@@ -41,6 +41,8 @@ class DebtTrackerApp {
     constructor() {
         this.debts = [];              // Array of debt objects (see addDebt for shape)
         this.incomes = [];            // Array of income source objects
+        this.bills = [];              // Array of bill objects { id, name, amount, dueDay, category }
+        this.expenses = [];           // Array of expense budget objects { id, name, budgetAmount, category }
         this.lastPaymentPlan = null;  // Most recently calculated paymentPlan array
         this.lastSummary = null;      // Summary object from DebtCalculator.generateSummary
         this.perMonthStimulus = [];   // Extra payment amounts indexed by plan month (0-based)
@@ -175,7 +177,7 @@ class DebtTrackerApp {
             });
         }
 
-        // Top nav page buttons (Debts / Add Debt / Strategy / Results)
+        // Top nav page buttons (Debts / Income / Budget / Strategy / Results)
         document.querySelectorAll('.page-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const page = btn.getAttribute('data-page');
@@ -184,6 +186,18 @@ class DebtTrackerApp {
                 }
             });
         });
+
+        // Bill form submit
+        const billForm = document.getElementById('billForm');
+        if (billForm) {
+            billForm.addEventListener('submit', (e) => { e.preventDefault(); this.addBill(); });
+        }
+
+        // Expense form submit
+        const expenseForm = document.getElementById('expenseForm');
+        if (expenseForm) {
+            expenseForm.addEventListener('submit', (e) => { e.preventDefault(); this.addExpense(); });
+        }
 
         // Target payoff date panel: collapse/expand toggle
         const targetToggle = document.getElementById('targetDateToggle');
@@ -408,10 +422,10 @@ class DebtTrackerApp {
         this.saveToStorage();
         this.saveToStorage();
         this.updateUI();
-        // Reset form
+        // Reset form and collapse it
         document.getElementById('debtForm').reset();
-        // Clear form visibility
         this.updateFormVisibility();
+        if (typeof window.closeDebtForm === 'function') window.closeDebtForm();
     }
 
     /**
@@ -446,8 +460,11 @@ class DebtTrackerApp {
             this.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
             
             this.displayPaymentPlan();
-            // Switch to results page for a focused UX
-            this.switchPage('results');
+            // Show the results div and scroll to it
+            this.switchPage('strategy');
+            const resultsEl = document.getElementById('resultsSection');
+            resultsEl.style.display = 'block';
+            setTimeout(() => resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
         } catch (error) {
             alert('Error calculating payment plan: ' + error.message);
         }
@@ -1160,21 +1177,20 @@ class DebtTrackerApp {
             document.getElementById('emptyState').style.display = 'block';
             // Hide all page sections
             document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-            this.switchPage('add');
+            this.switchPage('income');
             return;
         }
 
         document.getElementById('emptyState').style.display = 'none';
         // Hide all page sections
         document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-        // Default to Debts page
-        this.switchPage('debts');
-        this.renderDebtsList();
+        // Default to Income page
+        this.switchPage('income');
     }
 
     /**
      * Activate a top-level page section and update the nav button state.
-     * @param {string} pageName - One of `'debts'`, `'add'`, `'income'`, `'strategy'`, `'results'`
+     * @param {string} pageName - One of `'debts'`, `'income'`, `'budget'`, `'strategy'`
      */
     switchPage(pageName) {
         // update nav active state
@@ -1185,10 +1201,9 @@ class DebtTrackerApp {
         // list of page section ids
         const mapping = {
             debts: 'debtsSection',
-            add: 'inputSection',
             income: 'incomeSection',
-            strategy: 'strategySection',
-            results: 'resultsSection'
+            budget: 'budgetSection',
+            strategy: 'strategySection'
         };
 
         // hide all sections
@@ -1201,7 +1216,9 @@ class DebtTrackerApp {
         }
 
         // Keep side-effects for specific pages
+        if (pageName === 'debts') this.renderDebtsList();
         if (pageName === 'income') this.renderIncomeList();
+        if (pageName === 'budget') this.renderBudgetPage();
         if (pageName === 'strategy') this.renderStrategyIncomeWidget();
     }
 
@@ -1259,25 +1276,74 @@ class DebtTrackerApp {
      * inline edit form instead.
      */
     renderDebtsList() {
-        // Render category summary
+        // Render category summary card
         const categorySummary = document.getElementById('categorySummary');
         if (categorySummary) {
-            // Group debts by category
-            const summary = {};
-            for (const d of this.debts) {
-                const cat = d.category || 'Uncategorized';
-                if (!summary[cat]) summary[cat] = { count: 0, total: 0 };
-                summary[cat].count++;
-                // For fixed-amount debts, use fixedAmount; for credit card debts, use accountBalance
-                const amount = d.debtType === 'fixedAmount' ? d.fixedAmount : d.accountBalance;
-                summary[cat].total += amount;
+            if (this.debts.length === 0) {
+                categorySummary.innerHTML = '';
+            } else {
+                // ── Totals ──────────────────────────────────────────────────
+                const totalDebt = this.debts.reduce((s, d) => {
+                    return s + (d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0));
+                }, 0);
+                const totalMin = this.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+                const totalInterest = this.lastSummary ? this.lastSummary.totalInterest : null;
+
+                // ── Category breakdown ───────────────────────────────────────
+                const catMap = {};
+                for (const d of this.debts) {
+                    const cat = d.category || 'Uncategorized';
+                    if (!catMap[cat]) catMap[cat] = { count: 0, total: 0, minTotal: 0 };
+                    catMap[cat].count++;
+                    catMap[cat].total += d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
+                    catMap[cat].minTotal += d.minimumPayment || 0;
+                }
+
+                const catRows = Object.entries(catMap)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .map(([cat, v]) => `
+                        <div class="debt-overview-cat-row">
+                            <span class="debt-overview-cat-name">${cat}</span>
+                            <span class="debt-overview-cat-count">${v.count} debt${v.count !== 1 ? 's' : ''}</span>
+                            <span class="debt-overview-cat-min">${this.formatCurrency(v.minTotal)}/mo</span>
+                            <span class="debt-overview-cat-total">${this.formatCurrency(v.total)}</span>
+                        </div>`).join('');
+
+                const interestHTML = totalInterest !== null
+                    ? `<div class="debt-overview-stat">
+                            <span class="debt-overview-stat-label">Total Interest (projected)</span>
+                            <span class="debt-overview-stat-value debt-overview-stat-value--interest">${this.formatCurrency(totalInterest)}</span>
+                        </div>`
+                    : `<div class="debt-overview-stat">
+                            <span class="debt-overview-stat-label">Total Interest (projected)</span>
+                            <span class="debt-overview-stat-value debt-overview-stat-value--muted">Run a plan to see</span>
+                        </div>`;
+
+                categorySummary.innerHTML = `
+                    <div class="debt-overview-card">
+                        <div class="debt-overview-header">📊 Debt Overview</div>
+                        <div class="debt-overview-stats">
+                            <div class="debt-overview-stat">
+                                <span class="debt-overview-stat-label">Total Overall Debt</span>
+                                <span class="debt-overview-stat-value">${this.formatCurrency(totalDebt)}</span>
+                            </div>
+                            <div class="debt-overview-stat">
+                                <span class="debt-overview-stat-label">Monthly Minimums</span>
+                                <span class="debt-overview-stat-value">${this.formatCurrency(totalMin)}</span>
+                            </div>
+                            ${interestHTML}
+                        </div>
+                        <div class="debt-overview-cats">
+                            <div class="debt-overview-cats-header">
+                                <span>Category</span>
+                                <span>Count</span>
+                                <span>Min/mo</span>
+                                <span>Balance</span>
+                            </div>
+                            ${catRows}
+                        </div>
+                    </div>`;
             }
-            // Build summary HTML
-            let html = '<strong>Debts by Category:</strong> ';
-            html += Object.entries(summary).map(([cat, val]) =>
-                `${cat}: ${val.count} (${this.formatCurrency(val.total)})`
-            ).join(' &nbsp;|&nbsp; ');
-            categorySummary.innerHTML = html;
         }
         const debtsList = document.getElementById('debtsList');
         debtsList.innerHTML = '';
@@ -1658,6 +1724,7 @@ class DebtTrackerApp {
         if (submitBtn) submitBtn.textContent = 'Add Debt';
         const cancelBtn = document.getElementById('cancelEditBtn');
         if (cancelBtn) cancelBtn.style.display = 'none';
+        if (typeof window.closeDebtForm === 'function') window.closeDebtForm();
     }
 
     // ─── Income ───────────────────────────────────────────────────────────────
@@ -1979,10 +2046,26 @@ class DebtTrackerApp {
             </div>`;
         }
 
+        const totalBills    = (this.bills    || []).reduce((s, b) => s + b.amount, 0);
+        const totalExpenses = (this.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
+        const totalDebtMin  = this.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+        const netAfterAll   = monthlyTotal - totalDebtMin - totalBills - totalExpenses;
+
+        let netHtml = '';
+        if (totalBills > 0 || totalExpenses > 0) {
+            const netClass = netAfterAll >= 0 ? 'strategy-net--positive' : 'strategy-net--negative';
+            netHtml = `<div class="strategy-net ${netClass}">
+                Net after all obligations:
+                <strong>${this.formatCurrency(netAfterAll)}</strong>
+                <span class="strategy-net-breakdown">(Bills: ${this.formatCurrency(totalBills)} · Expenses: ${this.formatCurrency(totalExpenses)} · Debt mins: ${this.formatCurrency(totalDebtMin)})</span>
+            </div>`;
+        }
+
         widget.style.display = 'block';
         widget.innerHTML = `
             💰 Expected income this month: <strong>${this.formatCurrency(monthlyTotal)}</strong>
-            ${ratioHtml}`;
+            ${ratioHtml}
+            ${netHtml}`;
     }
 
     /**
@@ -2011,6 +2094,8 @@ class DebtTrackerApp {
             exportedAt: new Date().toISOString(),
             debts: normalisedDebts,
             incomes: this.incomes || [],
+            bills: this.bills || [],
+            expenses: this.expenses || [],
             strategy: {
                 monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
                 paymentStrategy: document.getElementById('paymentStrategy')?.value || null
@@ -2049,11 +2134,14 @@ class DebtTrackerApp {
             // Accept bare array (very old), v1.0 envelope (debts only), or v2.0 envelope
             const incomingDebts   = Array.isArray(parsed) ? parsed : (parsed.debts  || []);
             const incomingIncomes = parsed.incomes   || [];
+            const incomingBills   = parsed.bills     || [];
+            const incomingExpenses = parsed.expenses || [];
             const incomingStrategy = parsed.strategy || null;
 
             const validDebts = incomingDebts.filter(d => d && typeof d.name === 'string' && d.name.trim());
 
-            if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy) {
+            if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy
+                && incomingBills.length === 0 && incomingExpenses.length === 0) {
                 alert('No recognisable data found in the selected file.');
                 return;
             }
@@ -2062,6 +2150,8 @@ class DebtTrackerApp {
             const parts = [];
             if (validDebts.length)    parts.push(`${validDebts.length} debt(s)`);
             if (incomingIncomes.length) parts.push(`${incomingIncomes.length} income source(s)`);
+            if (incomingBills.length) parts.push(`${incomingBills.length} bill(s)`);
+            if (incomingExpenses.length) parts.push(`${incomingExpenses.length} expense budget(s)`);
             if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
             const action = confirm(
@@ -2079,6 +2169,8 @@ class DebtTrackerApp {
                     originalBalance: d.originalBalance ?? d.accountBalance ?? 0
                 }));
                 this.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
+                this.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
+                this.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
             } else {
                 // Merge debts — skip duplicates by name
                 const existingNames = new Set(this.debts.map(d => d.name.toLowerCase()));
@@ -2101,8 +2193,10 @@ class DebtTrackerApp {
                 if (skipped > 0) {
                     alert(`Merged ${toAdd.length} debt(s). Skipped ${skipped} duplicate name(s).`);
                 }
-                // Always restore income & strategy on merge
+                // Always restore income, bills, expenses & strategy on merge
                 this.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
+                this.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
+                this.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
             }
 
             // Restore strategy fields into the DOM
@@ -2135,7 +2229,6 @@ class DebtTrackerApp {
         this.saveToStorage();
         this.updateUI();
         document.getElementById('resultsSection').style.display = 'none';
-        document.getElementById('debtForm').reset();
         document.getElementById('monthlyPayment').value = '';
         alert('All debt data has been cleared');
     }
@@ -2149,6 +2242,8 @@ class DebtTrackerApp {
             const data = {
                 debts: this.debts,
                 incomes: this.incomes || [],
+                bills: this.bills || [],
+                expenses: this.expenses || [],
                 perMonthStimulus: this.perMonthStimulus || [],
                 monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
                 strategy: document.getElementById('paymentStrategy')?.value || null,
@@ -2172,6 +2267,8 @@ class DebtTrackerApp {
                 const parsed = JSON.parse(data);
                 this.debts = parsed.debts || [];
                 this.incomes = parsed.incomes || [];
+                this.bills = parsed.bills || [];
+                this.expenses = parsed.expenses || [];
                 this.perMonthStimulus = parsed.perMonthStimulus || [];
                 this._savedMonthlyPayment = parsed.monthlyPayment || null;
                 this._savedStrategy = parsed.strategy || null;
@@ -2346,11 +2443,13 @@ class DebtTrackerApp {
 
         // Legend
         const hasIncome = (this.incomes || []).length > 0;
+        const hasBills  = (this.bills  || []).some(b => b.dueDay);
         const legendDiv = document.createElement('div');
         legendDiv.className = 'cal-legend';
         legendDiv.innerHTML = `
             <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:#2563eb;"></span>Debt payment</span>
             ${hasIncome ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--income"></span>Payday</span>` : ''}
+            ${hasBills  ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bill"></span>Bill due</span>` : ''}
             <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--today"></span>Today</span>
         `;
         container.appendChild(legendDiv);
@@ -2393,6 +2492,16 @@ class DebtTrackerApp {
                 dayIncome[inc.day].push(inc);
             }
 
+            // Group bill due dates for this month by day
+            const dayBills = {};
+            for (const bill of (this.bills || [])) {
+                if (!bill.dueDay) continue;
+                const daysInM = new Date(year, month + 1, 0).getDate();
+                const day = Math.min(bill.dueDay, daysInM);
+                if (!dayBills[day]) dayBills[day] = [];
+                dayBills[day].push(bill);
+            }
+
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -2407,7 +2516,8 @@ class DebtTrackerApp {
             for (let day = 1; day <= daysInMonth; day++) {
                 const events    = dayPayments[day] || [];
                 const incomes   = dayIncome[day]   || [];
-                const hasEvents = events.length > 0 || incomes.length > 0;
+                const bills     = dayBills[day]    || [];
+                const hasEvents = events.length > 0 || incomes.length > 0 || bills.length > 0;
                 const isToday   = (year === todayYear && month === todayMonth && day === todayDay);
 
                 gridHTML += `<div class="cal-cell${hasEvents ? ' cal-has-events' : ''}${isToday ? ' cal-today' : ''}">
@@ -2426,6 +2536,14 @@ class DebtTrackerApp {
                     gridHTML += `<div class="cal-income-event" title="💰 ${inc.name}: ${this.formatCurrency(inc.amount)}">
                         <span class="cal-income-name">💰 ${inc.name}</span>
                         <span class="cal-income-amount">${this.formatCurrency(inc.amount)}</span>
+                    </div>`;
+                }
+
+                // Bill due chips
+                for (const bill of bills) {
+                    gridHTML += `<div class="cal-bill-event" title="🧾 ${bill.name}: ${this.formatCurrency(bill.amount)}">
+                        <span class="cal-bill-name">🧾 ${bill.name}</span>
+                        <span class="cal-bill-amount">${this.formatCurrency(bill.amount)}</span>
                     </div>`;
                 }
 
@@ -2668,6 +2786,463 @@ class DebtTrackerApp {
             }
         } catch(e) { console.error('Recalc after balance update failed:', e); }
         this.renderDebtsList();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BUDGET PAGE — Bills & Expenses
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Add a new bill from the billForm inputs. */
+    addBill() {
+        const name = document.getElementById('billName').value.trim();
+        const amount = parseFloat(document.getElementById('billAmount').value);
+        const dueDay = parseInt(document.getElementById('billDueDay').value) || null;
+        const category = document.getElementById('billCategory').value;
+        if (!name || isNaN(amount) || amount < 0) {
+            alert('Please enter a valid bill name and amount.');
+            return;
+        }
+        this.bills.push({ id: Date.now(), name, amount, dueDay, category });
+        this.saveToStorage();
+        document.getElementById('billForm').reset();
+        // Collapse the form after adding
+        const billBody = document.getElementById('billFormBody');
+        const billToggle = document.getElementById('billFormToggle');
+        if (billBody) billBody.hidden = true;
+        if (billToggle) { billToggle.setAttribute('aria-expanded', 'false'); billToggle.classList.remove('budget-form-toggle--open'); }
+        this.renderBudgetPage();
+    }
+
+    /** Delete a bill by id. */
+    deleteBill(id) {
+        this.bills = this.bills.filter(b => b.id !== id);
+        this.saveToStorage();
+        this.renderBudgetPage();
+    }
+
+    /** Enter inline edit mode for a bill. */
+    startEditBill(id) {
+        this.editingBillId = id;
+        this.renderBudgetPage();
+    }
+
+    /** Save inline bill edits. */
+    saveEditBill(id) {
+        const idx = this.bills.findIndex(b => b.id === id);
+        if (idx === -1) return;
+        const name = document.getElementById(`be-name-${id}`).value.trim();
+        const amount = parseFloat(document.getElementById(`be-amount-${id}`).value);
+        const dueDay = parseInt(document.getElementById(`be-dueday-${id}`).value) || null;
+        const category = document.getElementById(`be-cat-${id}`).value;
+        if (!name || isNaN(amount) || amount < 0) { alert('Invalid bill data.'); return; }
+        this.bills[idx] = { ...this.bills[idx], name, amount, dueDay, category };
+        this.editingBillId = null;
+        this.saveToStorage();
+        this.renderBudgetPage();
+    }
+
+    /** Cancel bill edit. */
+    cancelEditBill() {
+        this.editingBillId = null;
+        this.renderBudgetPage();
+    }
+
+    /** Add a new expense budget from the expenseForm inputs. */
+    addExpense() {
+        const name = document.getElementById('expenseName').value.trim();
+        const budgetAmount = parseFloat(document.getElementById('expenseBudget').value);
+        const category = document.getElementById('expenseCategory').value;
+        if (!name || isNaN(budgetAmount) || budgetAmount < 0) {
+            alert('Please enter a valid expense name and budget amount.');
+            return;
+        }
+        this.expenses.push({ id: Date.now(), name, budgetAmount, category });
+        this.saveToStorage();
+        document.getElementById('expenseForm').reset();
+        // Collapse the form after adding
+        const expBody = document.getElementById('expenseFormBody');
+        const expToggle = document.getElementById('expenseFormToggle');
+        if (expBody) expBody.hidden = true;
+        if (expToggle) { expToggle.setAttribute('aria-expanded', 'false'); expToggle.classList.remove('budget-form-toggle--open'); }
+        this.renderBudgetPage();
+    }
+
+    /** Delete an expense by id. */
+    deleteExpense(id) {
+        this.expenses = this.expenses.filter(e => e.id !== id);
+        this.saveToStorage();
+        this.renderBudgetPage();
+    }
+
+    /** Enter inline edit mode for an expense. */
+    startEditExpense(id) {
+        this.editingExpenseId = id;
+        this.renderBudgetPage();
+    }
+
+    /** Save inline expense edits. */
+    saveEditExpense(id) {
+        const idx = this.expenses.findIndex(e => e.id === id);
+        if (idx === -1) return;
+        const name = document.getElementById(`ee-name-${id}`).value.trim();
+        const budgetAmount = parseFloat(document.getElementById(`ee-amount-${id}`).value);
+        const category = document.getElementById(`ee-cat-${id}`).value;
+        if (!name || isNaN(budgetAmount) || budgetAmount < 0) { alert('Invalid expense data.'); return; }
+        this.expenses[idx] = { ...this.expenses[idx], name, budgetAmount, category };
+        this.editingExpenseId = null;
+        this.saveToStorage();
+        this.renderBudgetPage();
+    }
+
+    /** Cancel expense edit. */
+    cancelEditExpense() {
+        this.editingExpenseId = null;
+        this.renderBudgetPage();
+    }
+
+    /** Render the full Budget page: bill cards, expense cards, cashflow summary. */
+    renderBudgetPage() {
+        // Destroy any existing cashflow charts so canvases get recreated cleanly
+        if (this._cashflowDonutChart) { this._cashflowDonutChart.destroy(); this._cashflowDonutChart = null; }
+        if (this._cashflowBarChart)   { this._cashflowBarChart.destroy();   this._cashflowBarChart   = null; }
+        this._renderBillList();
+        this._renderExpenseList();
+        this._renderCashFlowSummary();
+    }
+
+    _renderBillList() {
+        const container = document.getElementById('billList');
+        if (!container) return;
+        const BILL_CATS = ['Utilities','Internet / Phone','Insurance','Subscription','Rent / Mortgage','Transport','Other'];
+        if (this.bills.length === 0) {
+            container.innerHTML = `<p class="empty-budget-msg">No bills added yet.</p>`;
+            return;
+        }
+
+        const cards = this.bills.map(bill => {
+            if (this.editingBillId === bill.id) {
+                return `<div class="budget-card budget-card--editing">
+                    <div class="budget-edit-grid">
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Name</label>
+                            <input type="text" id="be-name-${bill.id}" value="${bill.name.replace(/"/g,'&quot;')}" class="form-control"></div>
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Amount ($)</label>
+                            <input type="number" id="be-amount-${bill.id}" value="${bill.amount}" step="0.01" min="0" class="form-control"></div>
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Due Day</label>
+                            <input type="number" id="be-dueday-${bill.id}" value="${bill.dueDay || ''}" min="1" max="31" class="form-control" placeholder="—"></div>
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Category</label>
+                            <select id="be-cat-${bill.id}" class="form-control">
+                                ${BILL_CATS.map(c => `<option value="${c}" ${bill.category===c?'selected':''}>${c}</option>`).join('')}
+                            </select></div>
+                    </div>
+                    <div class="budget-edit-actions">
+                        <button class="btn btn-primary btn-small" onclick="app.saveEditBill(${bill.id})">Save</button>
+                        <button class="btn btn-secondary btn-small" onclick="app.cancelEditBill()">Cancel</button>
+                    </div>
+                </div>`;
+            }
+            const dueTxt = bill.dueDay ? `Due: ${this.getDayOrdinal(bill.dueDay)}` : 'No due day set';
+            return `<div class="budget-card">
+                <div class="budget-card-info">
+                    <span class="budget-card-name">${bill.name}</span>
+                    <span class="budget-card-amount">${this.formatCurrency(bill.amount)}<span class="budget-card-period">/mo</span></span>
+                    <span class="budget-card-meta">${bill.category} &bull; ${dueTxt}</span>
+                </div>
+                <div class="budget-card-actions">
+                    <button class="btn-edit" onclick="app.startEditBill(${bill.id})">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="app.deleteBill(${bill.id})">Delete</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        // ── Category breakdown ───────────────────────────────────────────────
+        const catMap = {};
+        for (const bill of this.bills) {
+            const cat = bill.category || 'Other';
+            if (!catMap[cat]) catMap[cat] = { count: 0, total: 0 };
+            catMap[cat].count++;
+            catMap[cat].total += bill.amount;
+        }
+        const totalBills = this.bills.reduce((s, b) => s + b.amount, 0);
+        const catRows = Object.entries(catMap)
+            .sort((a, b) => b[1].total - a[1].total)
+            .map(([cat, v]) => `
+                <div class="budget-cat-row">
+                    <span class="budget-cat-name">${cat}</span>
+                    <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
+                    <span class="budget-cat-amount">${this.formatCurrency(v.total)}/mo</span>
+                </div>`).join('');
+
+        const summaryHTML = `
+            <div class="budget-cat-summary">
+                <div class="budget-cat-summary-header">
+                    <span>Bills by Category</span>
+                    <span class="budget-cat-summary-total">${this.formatCurrency(totalBills)}/mo total</span>
+                </div>
+                ${catRows}
+            </div>`;
+
+        container.innerHTML = cards + summaryHTML;
+    }
+
+    _renderExpenseList() {
+        const container = document.getElementById('expenseList');
+        if (!container) return;
+        const EXP_CATS = ['Food & Groceries','Dining Out','Health & Fitness','Entertainment','Clothing','Personal Care','Education','Childcare','Other'];
+        if (this.expenses.length === 0) {
+            container.innerHTML = `<p class="empty-budget-msg">No expense budgets added yet.</p>`;
+            return;
+        }
+
+        const cards = this.expenses.map(exp => {
+            if (this.editingExpenseId === exp.id) {
+                return `<div class="budget-card budget-card--editing">
+                    <div class="budget-edit-grid">
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Name</label>
+                            <input type="text" id="ee-name-${exp.id}" value="${exp.name.replace(/"/g,'&quot;')}" class="form-control"></div>
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Budget ($)</label>
+                            <input type="number" id="ee-amount-${exp.id}" value="${exp.budgetAmount}" step="0.01" min="0" class="form-control"></div>
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Category</label>
+                            <select id="ee-cat-${exp.id}" class="form-control">
+                                ${EXP_CATS.map(c => `<option value="${c}" ${exp.category===c?'selected':''}>${c}</option>`).join('')}
+                            </select></div>
+                    </div>
+                    <div class="budget-edit-actions">
+                        <button class="btn btn-primary btn-small" onclick="app.saveEditExpense(${exp.id})">Save</button>
+                        <button class="btn btn-secondary btn-small" onclick="app.cancelEditExpense()">Cancel</button>
+                    </div>
+                </div>`;
+            }
+            return `<div class="budget-card">
+                <div class="budget-card-info">
+                    <span class="budget-card-name">${exp.name}</span>
+                    <span class="budget-card-amount">${this.formatCurrency(exp.budgetAmount)}<span class="budget-card-period">/mo</span></span>
+                    <span class="budget-card-meta">${exp.category}</span>
+                </div>
+                <div class="budget-card-actions">
+                    <button class="btn-edit" onclick="app.startEditExpense(${exp.id})">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="app.deleteExpense(${exp.id})">Delete</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        // ── Category breakdown ───────────────────────────────────────────────
+        const catMap = {};
+        for (const exp of this.expenses) {
+            const cat = exp.category || 'Other';
+            if (!catMap[cat]) catMap[cat] = { count: 0, total: 0 };
+            catMap[cat].count++;
+            catMap[cat].total += exp.budgetAmount;
+        }
+        const totalExp = this.expenses.reduce((s, e) => s + e.budgetAmount, 0);
+        const catRows = Object.entries(catMap)
+            .sort((a, b) => b[1].total - a[1].total)
+            .map(([cat, v]) => `
+                <div class="budget-cat-row budget-cat-row--expense">
+                    <span class="budget-cat-name">${cat}</span>
+                    <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
+                    <span class="budget-cat-amount">${this.formatCurrency(v.total)}/mo</span>
+                </div>`).join('');
+
+        const summaryHTML = `
+            <div class="budget-cat-summary budget-cat-summary--expense">
+                <div class="budget-cat-summary-header">
+                    <span>Expenses by Category</span>
+                    <span class="budget-cat-summary-total">${this.formatCurrency(totalExp)}/mo total</span>
+                </div>
+                ${catRows}
+            </div>`;
+
+        container.innerHTML = cards + summaryHTML;
+    }
+
+    _renderCashFlowSummary() {
+        const el = document.getElementById('cashFlowSummary');
+        if (!el) return;
+
+        const { monthlyTotal: monthlyIncome } = this.computeMonthlyIncome();
+        const totalBills = this.bills.reduce((s, b) => s + b.amount, 0);
+        const totalExpenses = this.expenses.reduce((s, e) => s + e.budgetAmount, 0);
+        const totalDebtMin = this.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+        const totalOutflow = totalBills + totalExpenses + totalDebtMin;
+        const net = monthlyIncome - totalOutflow;
+        const netClass = net >= 0 ? 'cashflow-net--positive' : 'cashflow-net--negative';
+
+        if (monthlyIncome === 0 && totalOutflow === 0) { el.style.display = 'none'; return; }
+        el.style.display = 'block';
+
+        const row = (label, value, cls = '') =>
+            `<div class="cashflow-row ${cls}"><span class="cashflow-label">${label}</span><span class="cashflow-value">${this.formatCurrency(value)}</span></div>`;
+
+        const subRow = (label, value, cls = '') =>
+            `<div class="cashflow-subrow ${cls}"><span class="cashflow-sublabel">${label}</span><span class="cashflow-subvalue">${this.formatCurrency(value)}</span></div>`;
+
+        // ── Bills by category ────────────────────────────────────────────────
+        let billCatRows = '';
+        if (totalBills > 0) {
+            const billCats = {};
+            for (const b of this.bills) {
+                const cat = b.category || 'Other';
+                billCats[cat] = (billCats[cat] || 0) + b.amount;
+            }
+            billCatRows = Object.entries(billCats)
+                .sort((a, b) => b[1] - a[1])
+                .map(([cat, amt]) => subRow(cat, amt, 'cashflow-subrow--bill'))
+                .join('');
+        }
+
+        // ── Expenses by category ─────────────────────────────────────────────
+        let expCatRows = '';
+        if (totalExpenses > 0) {
+            const expCats = {};
+            for (const e of this.expenses) {
+                const cat = e.category || 'Other';
+                expCats[cat] = (expCats[cat] || 0) + e.budgetAmount;
+            }
+            expCatRows = Object.entries(expCats)
+                .sort((a, b) => b[1] - a[1])
+                .map(([cat, amt]) => subRow(cat, amt, 'cashflow-subrow--expense'))
+                .join('');
+        }
+
+        // ── Debt minimums by debt name ────────────────────────────────────────
+        let debtSubRows = '';
+        if (totalDebtMin > 0) {
+            debtSubRows = this.debts
+                .filter(d => (d.minimumPayment || 0) > 0)
+                .sort((a, b) => (b.minimumPayment || 0) - (a.minimumPayment || 0))
+                .map(d => subRow(d.name, d.minimumPayment, 'cashflow-subrow--debt'))
+                .join('');
+        }
+
+        el.innerHTML = `
+            <div class="cashflow-tab-bar">
+                <button class="cashflow-tab cashflow-tab--active" data-tab="summary">📋 Summary</button>
+                <button class="cashflow-tab" data-tab="charts">📊 Charts</button>
+            </div>
+
+            <div class="cashflow-tab-panel cashflow-tab-panel--active" id="cashflowPanelSummary">
+                <h4>📈 Monthly Cash Flow</h4>
+                <div class="cashflow-grid">
+                    <div class="cashflow-inflow">
+                        <div class="cashflow-section-title">Income</div>
+                        ${row('Expected this month', monthlyIncome, 'cashflow-row--income')}
+                    </div>
+                    <div class="cashflow-outflow">
+                        <div class="cashflow-section-title">Outflows</div>
+                        ${totalDebtMin > 0 ? row('Debt minimums', totalDebtMin, 'cashflow-row--debt') + debtSubRows : ''}
+                        ${totalBills > 0 ? row('Bills', totalBills, 'cashflow-row--bills') + billCatRows : ''}
+                        ${totalExpenses > 0 ? row('Budgeted expenses', totalExpenses, 'cashflow-row--expenses') + expCatRows : ''}
+                        ${row('Total outflow', totalOutflow, 'cashflow-row--total')}
+                    </div>
+                </div>
+                <div class="cashflow-net ${netClass}">
+                    <span>Net remaining</span>
+                    <span>${this.formatCurrency(net)}</span>
+                </div>
+            </div>
+
+            <div class="cashflow-tab-panel" id="cashflowPanelCharts">
+                <div class="cashflow-charts-top">
+                    <div class="cashflow-chart-wrap cashflow-chart-wrap--donut">
+                        <h5 class="cashflow-chart-title">Where Does My Money Go?</h5>
+                        <p class="cashflow-chart-sub">Monthly income allocation</p>
+                        <canvas id="cashflowDonutChart"></canvas>
+                    </div>
+                </div>
+                <div class="cashflow-charts-bottom">
+                    <div class="cashflow-chart-wrap cashflow-chart-wrap--bar">
+                        <h5 class="cashflow-chart-title">Outflow Breakdown</h5>
+                        <p class="cashflow-chart-sub">Amount per category / debt</p>
+                        <div class="cashflow-bar-container">
+                            <canvas id="cashflowBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // Tab switching
+        el.querySelectorAll('.cashflow-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                el.querySelectorAll('.cashflow-tab').forEach(b => b.classList.remove('cashflow-tab--active'));
+                el.querySelectorAll('.cashflow-tab-panel').forEach(p => p.classList.remove('cashflow-tab-panel--active'));
+                btn.classList.add('cashflow-tab--active');
+                el.querySelector(`#cashflowPanel${btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)}`).classList.add('cashflow-tab-panel--active');
+                if (btn.dataset.tab === 'charts') this._renderCashFlowCharts(monthlyIncome, totalDebtMin, totalBills, totalExpenses, net);
+            });
+        });
+    }
+
+    _renderCashFlowCharts(monthlyIncome, totalDebtMin, totalBills, totalExpenses, net) {
+        // ── Donut: income allocation (outflow + net) ──────────────────────────
+        const donutCanvas = document.getElementById('cashflowDonutChart');
+        if (donutCanvas) {
+            if (this._cashflowDonutChart) { this._cashflowDonutChart.destroy(); this._cashflowDonutChart = null; }
+            const donutData = [];
+            const donutLabels = [];
+            const donutColors = [];
+            if (totalDebtMin > 0) { donutData.push(totalDebtMin); donutLabels.push('Debt Minimums'); donutColors.push('#ef4444'); }
+            if (totalBills > 0)   { donutData.push(totalBills);   donutLabels.push('Bills');          donutColors.push('#f59e0b'); }
+            if (totalExpenses > 0){ donutData.push(totalExpenses);donutLabels.push('Expenses');        donutColors.push('#8b5cf6'); }
+            if (net > 0)          { donutData.push(net);          donutLabels.push('Net Remaining');   donutColors.push('#10b981'); }
+            else if (donutData.length === 0) return;
+
+            this._cashflowDonutChart = new Chart(donutCanvas, {
+                type: 'doughnut',
+                data: { labels: donutLabels, datasets: [{ data: donutData, backgroundColor: donutColors, borderWidth: 2, borderColor: '#fff' }] },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, font: { size: 12 } } },
+                        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${this.formatCurrency(ctx.parsed)}` } }
+                    }
+                }
+            });
+        }
+
+        // ── Bar: outflow categories (bills by category + expenses by category + debt per debt) ──
+        const barCanvas = document.getElementById('cashflowBarChart');
+        if (barCanvas) {
+            if (this._cashflowBarChart) { this._cashflowBarChart.destroy(); this._cashflowBarChart = null; }
+
+            const labels = [];
+            const values = [];
+            const colors = [];
+
+            // Debt minimums per debt
+            this.debts.filter(d => (d.minimumPayment || 0) > 0)
+                .sort((a, b) => (b.minimumPayment || 0) - (a.minimumPayment || 0))
+                .forEach(d => { labels.push(d.name); values.push(d.minimumPayment); colors.push('#ef4444'); });
+
+            // Bills by category
+            const billCats = {};
+            for (const b of this.bills) { const c = b.category || 'Other'; billCats[c] = (billCats[c] || 0) + b.amount; }
+            Object.entries(billCats).sort((a, b) => b[1] - a[1])
+                .forEach(([cat, amt]) => { labels.push(cat); values.push(amt); colors.push('#f59e0b'); });
+
+            // Expenses by category
+            const expCats = {};
+            for (const e of this.expenses) { const c = e.category || 'Other'; expCats[c] = (expCats[c] || 0) + e.budgetAmount; }
+            Object.entries(expCats).sort((a, b) => b[1] - a[1])
+                .forEach(([cat, amt]) => { labels.push(cat); values.push(amt); colors.push('#8b5cf6'); });
+
+            if (labels.length === 0) return;
+
+            this._cashflowBarChart = new Chart(barCanvas, {
+                type: 'bar',
+                data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => ` ${this.formatCurrency(ctx.parsed.y)}/mo` } }
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: 11 }, maxRotation: 35, minRotation: 20 } },
+                        y: { ticks: { callback: v => this.formatCurrency(v) }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
     }
 
     /**

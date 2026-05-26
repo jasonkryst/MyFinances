@@ -70,6 +70,7 @@ body.dark-mode input, body.dark-mode select, body.dark-mode textarea {
     background: #1e293b;
     color: #f1f5f9;
     border-color: #334155;
+    color-scheme: dark;
 }
 body.dark-mode .btn {
     background: #334155;
@@ -458,6 +459,58 @@ section h3 {
 }
 
 /* Tabs */
+/* Divider between strategy controls and inline results */
+.plan-divider {
+    border: none;
+    border-top: 2px solid var(--border-color);
+    margin: 32px 0 28px;
+}
+
+/* ── Results page — outer tab bar ────────────────────────────────────────── */
+.results-tab-bar {
+    display: flex;
+    gap: 0;
+    margin: 20px 0 0;
+    border-bottom: 2px solid var(--border-color);
+    background: var(--card-background);
+    border-radius: 10px 10px 0 0;
+    overflow: hidden;
+}
+
+.results-tab-btn {
+    flex: 1;
+    padding: 13px 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    margin-bottom: -2px;
+}
+
+.results-tab-btn:hover {
+    color: var(--primary-color);
+    background: rgba(99,102,241,0.05);
+}
+
+.results-tab-btn--active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: rgba(99,102,241,0.07);
+}
+
+.results-tab-panel {
+    display: none;
+    padding: 24px 0 0;
+}
+
+.results-tab-panel--active {
+    display: block;
+}
+
 .tabs {
     display: flex;
     gap: 10px;
@@ -651,6 +704,38 @@ body.dark-mode .cal-income-event {
     border-left-color: #059669;
 }
 
+/* Bill due chip on the calendar — amber style */
+.cal-bill-event {
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin-top: 2px;
+    background: #d97706;
+    color: #fff;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    overflow: hidden;
+    cursor: default;
+    border-left: 3px solid #b45309;
+}
+
+body.dark-mode .cal-bill-event {
+    background: #92400e;
+    border-left-color: #d97706;
+}
+
+.cal-bill-name {
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-bill-amount {
+    display: block;
+    opacity: 0.9;
+}
+
 .cal-income-name {
     display: block;
     font-weight: 600;
@@ -691,6 +776,11 @@ body.dark-mode .cal-income-event {
 .cal-legend-swatch--income {
     background: #059669;
     border-left: 3px solid #047857;
+}
+
+.cal-legend-swatch--bill {
+    background: #d97706;
+    border-left: 3px solid #b45309;
 }
 
 .cal-legend-swatch--today {
@@ -774,6 +864,7 @@ label {
 
 input[type="text"],
 input[type="number"],
+input[type="date"],
 select {
     width: 100%;
     padding: 12px;
@@ -782,10 +873,13 @@ select {
     font-size: 1rem;
     transition: all 0.3s ease;
     background: white;
+    color: var(--text-primary);
+    font-family: inherit;
 }
 
 input[type="text"]:focus,
 input[type="number"]:focus,
+input[type="date"]:focus,
 select:focus {
     outline: none;
     border-color: var(--primary-color);
@@ -848,6 +942,287 @@ select:focus {
     box-shadow: var(--shadow-lg);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEBTS PAGE — merged form + list layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.debts-layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .debts-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Form column card */
+.debts-form-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    position: sticky;
+    top: 12px;
+    overflow: hidden;
+}
+
+body.dark-mode .debts-form-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+/* ── Debt Overview Card (categorySummary) ─────────────────────────────── */
+.debt-overview-card {
+    background: var(--light-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    margin-top: 4px;
+}
+
+.debt-overview-header {
+    background: var(--primary-color);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 14px 20px;
+    letter-spacing: 0.01em;
+}
+
+.debt-overview-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.debt-overview-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 12px;
+    border-right: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.debt-overview-stat:last-child {
+    border-right: none;
+}
+
+.debt-overview-stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 6px;
+}
+
+.debt-overview-stat-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1.1;
+}
+
+.debt-overview-stat-value--interest {
+    color: #dc2626;
+}
+
+.debt-overview-stat-value--muted {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-muted, #9ca3af);
+}
+
+.debt-overview-cats {
+    padding: 0 0 8px;
+}
+
+.debt-overview-cats-header {
+    display: grid;
+    grid-template-columns: 1fr 80px 90px 100px;
+    gap: 0 8px;
+    padding: 8px 20px 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #9ca3af);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.debt-overview-cat-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 90px 100px;
+    gap: 0 8px;
+    align-items: center;
+    padding: 10px 20px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+}
+
+.debt-overview-cat-row:last-child {
+    border-bottom: none;
+}
+
+.debt-overview-cat-row:hover {
+    background: rgba(0,0,0,0.025);
+}
+
+.debt-overview-cat-name {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.debt-overview-cat-count,
+.debt-overview-cat-min {
+    text-align: center;
+    color: var(--text-muted, #6b7280);
+    font-size: 0.82rem;
+}
+
+.debt-overview-cat-total {
+    text-align: right;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Dark mode */
+body.dark-mode .debt-overview-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+body.dark-mode .debt-overview-stat-label,
+body.dark-mode .debt-overview-cats-header,
+body.dark-mode .debt-overview-cat-count,
+body.dark-mode .debt-overview-cat-min {
+    color: #94a3b8;
+}
+
+body.dark-mode .debt-overview-stat-value--muted {
+    color: #64748b;
+}
+
+body.dark-mode .debt-overview-cat-row {
+    border-color: #334155;
+}
+
+body.dark-mode .debt-overview-cats-header {
+    border-color: #334155;
+}
+
+body.dark-mode .debt-overview-cat-row:hover {
+    background: rgba(255,255,255,0.04);
+}
+
+@media (max-width: 600px) {
+    .debt-overview-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+    .debt-overview-stat:nth-child(2) {
+        border-right: none;
+    }
+    .debt-overview-stat:nth-child(3) {
+        grid-column: 1 / -1;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+    }
+    .debt-overview-cats-header,
+    .debt-overview-cat-row {
+        grid-template-columns: 1fr 70px 100px;
+    }
+    .debt-overview-cats-header span:nth-child(2),
+    .debt-overview-cat-count {
+        display: none;
+    }
+}
+
+/* Toggle button — acts as the card header */
+.debt-form-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 16px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    text-align: left;
+    gap: 8px;
+    border-radius: 12px;
+    transition: background 0.15s;
+}
+.debt-form-toggle:hover {
+    background: rgba(0,0,0,0.03);
+}
+body.dark-mode .debt-form-toggle {
+    color: #f1f5f9;
+}
+body.dark-mode .debt-form-toggle:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+/* Open state — show a bottom border separating header from body */
+.debt-form-toggle--open {
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+body.dark-mode .debt-form-toggle--open {
+    border-bottom-color: #334155;
+}
+
+/* Chevron rotation */
+.debt-form-toggle-chevron {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.debt-form-toggle--open .debt-form-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+/* Collapsible body */
+.debt-form-body {
+    padding: 16px 22px 24px;
+}
+.debt-form-body[hidden] {
+    display: none;
+}
+
+.debt-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* List column header */
+.debts-list-col { display: flex; flex-direction: column; }
+
+.debts-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.debts-list-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
 /* Debts page toolbar (filter + import/export actions) */
 .debts-toolbar {
     display: flex;
@@ -857,6 +1232,7 @@ select:focus {
     gap: 10px;
     margin-bottom: 16px;
 }
+
 
 .debts-toolbar-filter {
     display: flex;
@@ -1035,31 +1411,43 @@ th.sort-active .sort-icon {
 
 /* Results Summary */
 .summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .summary-item {
+    flex: 1 1 180px;
     background: var(--light-bg);
-    padding: 20px;
-    border-radius: 8px;
-    border-left: 4px solid var(--primary-color);
+    padding: 10px 18px;
+    border-left: 3px solid var(--primary-color);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    border-right: 1px solid var(--border-color);
+}
+
+.summary-item:last-child {
+    border-right: none;
 }
 
 .summary-item .label {
-    font-size: 0.9rem;
+    font-size: 0.78rem;
     color: var(--text-secondary);
-    margin-bottom: 10px;
+    white-space: nowrap;
+    margin-bottom: 0;
 }
 
 .summary-item .value {
-    font-size: 1.8rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: var(--primary-color);
+    white-space: nowrap;
 }
 
 /* Table */
@@ -1175,7 +1563,12 @@ tbody tr:last-child td {
     }
 
     .summary {
-        grid-template-columns: 1fr;
+        flex-wrap: wrap;
+    }
+
+    .summary-item {
+        flex: 1 1 45%;
+        border-right: 1px solid var(--border-color);
     }
 
     table {
@@ -1899,3 +2292,503 @@ body.dark-mode .strategy-income-ratio { color: #a7f3d0; }
 }
 
 body.dark-mode .strategy-income-ratio--warn { color: #fbbf24; }
+
+/* ── Strategy net cashflow row ──────────────────────────────────────────── */
+.strategy-net {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+.strategy-net--positive { background: #d1fae5; color: #065f46; }
+.strategy-net--negative { background: #fee2e2; color: #7f1d1d; }
+body.dark-mode .strategy-net--positive { background: #064e3b; color: #a7f3d0; }
+body.dark-mode .strategy-net--negative { background: #450a0a; color: #fca5a5; }
+.strategy-net-breakdown { font-size: 0.78rem; opacity: 0.8; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUDGET PAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Two-column layout */
+.budget-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+.budget-col { display: flex; flex-direction: column; }
+@media (max-width: 768px) {
+    .budget-two-col { grid-template-columns: 1fr; }
+}
+
+/* Column heading card */
+.budget-col-card,
+.budget-form-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+body.dark-mode .budget-col-card,
+body.dark-mode .budget-form-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+/* Budget form toggle button — acts as the card header */
+.budget-form-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: left;
+    gap: 8px;
+    border-radius: 12px;
+    transition: background 0.15s;
+}
+.budget-form-toggle:hover {
+    background: rgba(0,0,0,0.03);
+}
+body.dark-mode .budget-form-toggle {
+    color: #f1f5f9;
+}
+body.dark-mode .budget-form-toggle:hover {
+    background: rgba(255,255,255,0.05);
+}
+.budget-form-toggle--open {
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+body.dark-mode .budget-form-toggle--open {
+    border-bottom-color: #334155;
+}
+.budget-form-toggle-chevron {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.budget-form-toggle--open .budget-form-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+/* Collapsible form body */
+.budget-form-body {
+    padding: 14px 18px 18px;
+}
+.budget-form-body[hidden] {
+    display: none;
+}
+
+/* Legacy h3 inside budget cards (kept for non-collapsible uses) */
+.budget-col-card h3,
+.budget-form-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+body.dark-mode .budget-col-card h3,
+body.dark-mode .budget-form-card h3 { color: #f1f5f9; }
+
+/* Form grid inside budget forms */
+.budget-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+@media (max-width: 480px) { .budget-form-grid { grid-template-columns: 1fr; } }
+.budget-form-grid .form-group { margin: 0; }
+
+/* Item cards */
+.budget-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+.budget-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+body.dark-mode .budget-card {
+    background: #0f172a;
+    border-color: #1e293b;
+}
+.budget-card--editing {
+    flex-direction: column;
+    align-items: stretch;
+    background: #eff6ff;
+    border-color: #3b82f6;
+}
+body.dark-mode .budget-card--editing {
+    background: #1e3a5f;
+    border-color: #3b82f6;
+}
+.budget-card-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    flex: 1;
+    min-width: 0;
+}
+.budget-card-name {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+body.dark-mode .budget-card-name { color: #f1f5f9; }
+.budget-card-amount {
+    font-weight: 700;
+    color: #0f766e;
+    font-size: 0.95rem;
+}
+body.dark-mode .budget-card-amount { color: #2dd4bf; }
+.budget-card-period {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #94a3b8;
+}
+.budget-card-meta {
+    font-size: 0.78rem;
+    color: #64748b;
+}
+body.dark-mode .budget-card-meta { color: #94a3b8; }
+.budget-card-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.budget-edit-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 2fr;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+@media (max-width: 600px) {
+    .budget-edit-grid { grid-template-columns: 1fr 1fr; }
+}
+.budget-edit-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.empty-budget-msg {
+    color: #9ca3af;
+    font-style: italic;
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+}
+
+/* ── Budget category summary panels ─────────────────────────────────────── */
+.budget-cat-summary {
+    margin-top: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f8fafc;
+}
+body.dark-mode .budget-cat-summary {
+    background: #0f172a;
+    border-color: #1e293b;
+}
+
+.budget-cat-summary--expense {
+    border-color: #ddd6fe;
+    background: #faf5ff;
+}
+body.dark-mode .budget-cat-summary--expense {
+    background: #1a0e2e;
+    border-color: #3b1f6e;
+}
+
+.budget-cat-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: #e2e8f0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+}
+body.dark-mode .budget-cat-summary-header {
+    background: #1e293b;
+    color: #94a3b8;
+}
+.budget-cat-summary--expense .budget-cat-summary-header {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+body.dark-mode .budget-cat-summary--expense .budget-cat-summary-header {
+    background: #2e1065;
+    color: #c4b5fd;
+}
+
+.budget-cat-summary-total {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+body.dark-mode .budget-cat-summary-total {
+    color: #f1f5f9;
+}
+
+.budget-cat-row {
+    display: flex;
+    align-items: center;
+    padding: 7px 14px;
+    font-size: 0.83rem;
+    border-top: 1px solid #e5e7eb;
+    gap: 8px;
+}
+body.dark-mode .budget-cat-row {
+    border-color: #1e293b;
+}
+.budget-cat-row:hover {
+    background: rgba(0,0,0,0.03);
+}
+body.dark-mode .budget-cat-row:hover {
+    background: rgba(255,255,255,0.04);
+}
+
+.budget-cat-row--expense {
+    border-color: #ddd6fe;
+}
+body.dark-mode .budget-cat-row--expense {
+    border-color: #3b1f6e;
+}
+
+.budget-cat-name {
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-color);
+}
+.budget-cat-count {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    min-width: 56px;
+    text-align: center;
+}
+.budget-cat-amount {
+    font-weight: 700;
+    color: #d97706;
+    min-width: 80px;
+    text-align: right;
+}
+.budget-cat-row--expense .budget-cat-amount {
+    color: #7c3aed;
+}
+body.dark-mode .budget-cat-amount {
+    color: #fbbf24;
+}
+body.dark-mode .budget-cat-row--expense .budget-cat-amount {
+    color: #a78bfa;
+}
+
+
+.cashflow-summary {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+body.dark-mode .cashflow-summary {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+/* ── Cashflow tabs ─────────────────────────────────────────────────── */
+.cashflow-tab-bar {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
+body.dark-mode .cashflow-tab-bar {
+    background: #0f172a;
+    border-color: #334155;
+}
+.cashflow-tab {
+    padding: 10px 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+}
+.cashflow-tab:hover { color: #1e293b; }
+.cashflow-tab--active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+body.dark-mode .cashflow-tab { color: #94a3b8; }
+body.dark-mode .cashflow-tab:hover { color: #f1f5f9; }
+body.dark-mode .cashflow-tab--active { color: #93c5fd; border-bottom-color: #93c5fd; }
+
+.cashflow-tab-panel { display: none; padding: 20px 24px; }
+.cashflow-tab-panel--active { display: block; }
+
+.cashflow-summary h4 {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+body.dark-mode .cashflow-summary h4 { color: #f1f5f9; }
+
+/* ── Cashflow charts panel ─────────────────────────────────────────── */
+.cashflow-charts-top {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.cashflow-charts-bottom {
+    width: 100%;
+}
+
+.cashflow-chart-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cashflow-chart-wrap--donut {
+    width: 100%;
+    max-width: 320px;
+}
+
+.cashflow-chart-wrap--bar {
+    width: 100%;
+    align-items: stretch;
+}
+
+.cashflow-bar-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    max-height: 300px;
+}
+
+.cashflow-chart-title {
+    margin: 0 0 2px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: center;
+}
+body.dark-mode .cashflow-chart-title { color: #f1f5f9; }
+.cashflow-chart-sub {
+    margin: 0 0 12px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    text-align: center;
+}
+#cashflowDonutChart {
+    max-width: 280px;
+    max-height: 280px;
+}
+#cashflowBarChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.cashflow-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 32px;
+    margin-bottom: 16px;
+}
+@media (max-width: 600px) { .cashflow-grid { grid-template-columns: 1fr; } }
+.cashflow-section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 6px;
+}
+.cashflow-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+}
+.cashflow-label { color: #374151; }
+body.dark-mode .cashflow-label { color: #d1d5db; }
+.cashflow-value { font-weight: 600; color: #1e293b; }
+body.dark-mode .cashflow-value { color: #f1f5f9; }
+.cashflow-row--income  { background: #d1fae5; }
+.cashflow-row--debt    { background: #fee2e2; }
+.cashflow-row--bills   { background: #fef3c7; }
+.cashflow-row--expenses { background: #ede9fe; }
+.cashflow-row--total   { background: #f1f5f9; font-weight: 700; }
+body.dark-mode .cashflow-row--income   { background: #064e3b; }
+body.dark-mode .cashflow-row--debt     { background: #450a0a; }
+body.dark-mode .cashflow-row--bills    { background: #451a03; }
+body.dark-mode .cashflow-row--expenses { background: #2e1065; }
+body.dark-mode .cashflow-row--total    { background: #0f172a; }
+
+/* Cashflow sub-rows (category / debt breakdowns) */
+.cashflow-subrow {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 10px 3px 24px;
+    font-size: 0.78rem;
+    border-left: 3px solid transparent;
+    margin-bottom: 1px;
+}
+.cashflow-sublabel { color: #6b7280; }
+.cashflow-subvalue { color: #374151; font-weight: 500; }
+.cashflow-subrow--bill     { border-left-color: #d97706; background: rgba(254,243,199,0.5); }
+.cashflow-subrow--expense  { border-left-color: #7c3aed; background: rgba(237,233,254,0.5); }
+.cashflow-subrow--debt     { border-left-color: #dc2626; background: rgba(254,226,226,0.4); }
+body.dark-mode .cashflow-sublabel { color: #9ca3af; }
+body.dark-mode .cashflow-subvalue { color: #cbd5e1; }
+body.dark-mode .cashflow-subrow--bill     { background: rgba(69,26,3,0.5); }
+body.dark-mode .cashflow-subrow--expense  { background: rgba(46,16,101,0.5); }
+body.dark-mode .cashflow-subrow--debt     { background: rgba(69,10,10,0.4); }
+.cashflow-net {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+.cashflow-net--positive { background: #d1fae5; color: #065f46; }
+.cashflow-net--negative { background: #fee2e2; color: #7f1d1d; }
+body.dark-mode .cashflow-net--positive { background: #064e3b; color: #a7f3d0; }
+body.dark-mode .cashflow-net--negative { background: #450a0a; color: #fca5a5; }

@@ -8,7 +8,8 @@ A modern, single-page web application that helps you plan and visualise a path t
 
 ### Debt Management
 - **Add unlimited debts** — credit cards (revolving balance with APR) or fixed-amount recurring payments (subscriptions, rent, instalments)
-- **Inline editing** — edit any debt directly on the Debts page without leaving the list
+- **Single-page add & manage** — the Debts page shows the add form and the debt list side by side; no page switching needed
+- **Inline editing** — click Edit on any debt card to populate the form for editing; the list updates immediately on save
 - **Update Balance** — quickly record a new balance for any credit-card debt while preserving the original balance for progress tracking
 - **Category labels** — tag debts (e.g. "Housing", "Credit Card") and filter the list by category
 - **Priority levels** — assign a 1–10 priority to each debt for custom strategy ordering
@@ -18,6 +19,14 @@ A modern, single-page web application that helps you plan and visualise a path t
 - **Automatic pay-schedule projection** — the app walks each source's pay cadence forward from its first pay date to calculate how many paydays fall in the current month
 - **Monthly income summary** — shows expected income this month, number of paydays, and estimated annual total
 - **Debt-to-income ratio** — the Strategy page shows what percentage of your expected monthly income your planned payment represents, with a warning if it exceeds 40%
+
+### Budget Tracking
+- **Bills** — add any recurring fixed costs (utilities, internet, insurance, subscriptions, rent, transport); each bill records name, monthly amount, due day, and category
+- **Expense budgets** — set monthly spending targets for variable categories (groceries, dining, health, entertainment, clothing, personal care, education, childcare)
+- **Cash Flow Summary** — a live panel on the Budget page shows expected monthly income minus debt minimums, bills, and budgeted expenses, giving you a net remaining figure
+- **Net cashflow on Strategy page** — the income widget also shows net after all obligations so you can see available surplus at a glance before running a plan
+- **Inline editing** — edit any bill or expense budget directly in the list without a separate form
+- **Persisted to storage** — bills and expenses are saved to `localStorage` and included in JSON export / import
 
 ### Calculation Engine
 - **Daily compounding interest** — matches real credit-card billing cycles:
@@ -65,7 +74,7 @@ A modern, single-page web application that helps you plan and visualise a path t
 
 ### 1 — Add your debts
 
-Navigate to **Add Debt**.
+Navigate to **Debts**. The page has a two-column layout: the **Add Debt form** stays pinned on the left, and your **debt list** fills the right. You can add, view, and edit all your debts without ever leaving the page.
 
 | Field | Notes |
 |-------|-------|
@@ -79,28 +88,28 @@ Navigate to **Add Debt**.
 | Opened Date | Optional — enables the Interest Paid to Date estimate |
 | Category | Optional label for filtering |
 
-Click **Add Debt**. Repeat for every debt.
+Click **Add Debt**. The new debt appears immediately in the list on the right. Repeat for every debt. Use the **Edit** button on any debt card to populate the form with that debt's values for inline editing.
 
-### 2 — Set your strategy
+### 2 — Set your strategy and view results
 
-Navigate to **Strategy**.
+Navigate to **Plan**.
 
 1. Enter your **Total Monthly Payment** — the total you can put toward all debts each month.
 2. Choose a **Payment Strategy** (see below).
-3. Optionally set a **Target Payoff Date** and click *Calculate Required Payment* to see the minimum monthly payment needed.
+3. Optionally expand **🎯 Back-calculate from a target payoff date** and click *Calculate* to find the required monthly payment for a specific deadline.
 4. Click **Calculate Payment Plan**.
 
-### 3 — Review the Results
-
-The Results page has three tabs:
+The results appear immediately below the controls on the same page, split into three tabs:
 
 | Tab | Contents |
 |-----|----------|
-| **Table** | Monthly schedule with per-debt payments and editable stimulus column; debt summary table with progress bars; strategy comparison panel; what-if simulator |
-| **Charts** | Payoff timeline (per-debt lines), cumulative progress chart, principal vs. interest doughnut |
-| **Calendar** | Month-by-month calendar with payment events on due dates |
+| **📊 Overview** | Strategy comparison panel; What-If extra-payment simulator |
+| **📋 Debt Summary** | Sortable per-debt table (min due, interest rate, principal/interest paid, payoff date, progress bar); per-debt amortization schedule (modal) |
+| **📅 Schedule** | Three sub-tabs — **Tabular** (monthly payment schedule with editable stimulus column), **Calendar** (month-by-month calendar with bill and payment events), **Chart** (payoff timeline, cumulative progress, principal vs. interest doughnut, balance distribution, debt-to-income) |
 
-### 4 — Track your income
+Click **Clear All Data** to reset everything and hide the results.
+
+### 3 — Track your income
 
 Navigate to **Income**.
 
@@ -113,7 +122,38 @@ Navigate to **Income**.
 
 Click **Add Income**. Add one row per income source.
 
-The page shows a summary of how much income is expected in the **current calendar month** (the app projects each source's schedule from its first pay date). The **Strategy** page also shows a debt-to-income ratio widget whenever income sources exist.
+The page shows a summary of how much income is expected in the **current calendar month** (the app projects each source's schedule from its first pay date). The **Strategy** page also shows a debt-to-income ratio widget whenever income sources exist, plus a net cashflow row when bills or expense budgets have been entered.
+
+### 4 — Track your budget
+
+Navigate to **Budget**.
+
+**Bills** (left column) — recurring fixed costs billed monthly:
+
+| Field | Notes |
+|-------|-------|
+| Name | e.g. "Electricity", "Netflix" |
+| Monthly Amount | What you pay each month |
+| Due Day | Day of month the bill is due (optional) |
+| Category | Utilities / Internet·Phone / Insurance / Subscription / Rent·Mortgage / Transport / Other |
+
+**Expense Budgets** (right column) — variable monthly spending targets:
+
+| Field | Notes |
+|-------|-------|
+| Name | e.g. "Groceries", "Gym" |
+| Monthly Budget | The amount you plan to spend |
+| Category | Food·Groceries / Dining Out / Health·Fitness / Entertainment / Clothing / Personal Care / Education / Childcare / Other |
+
+The **Cash Flow Summary** panel at the bottom automatically updates as you add items, showing:
+
+```
+Income (this month)
+  − Debt minimums
+  − Bills
+  − Budgeted expenses
+= Net remaining
+```
 
 ### 5 — Export / Import
 
@@ -125,8 +165,10 @@ The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of eve
 {
   "version": "2.0",
   "exportedAt": "2026-05-26T12:00:00.000Z",
-  "debts": [ { "id": 1, "name": "Visa", "accountBalance": 4200, ... } ],
-  "incomes": [ { "id": 1, "name": "Main Job", "amount": 2000, ... } ],
+  "debts":    [ { "id": 1, "name": "Visa", "accountBalance": 4200, ... } ],
+  "incomes":  [ { "id": 1, "name": "Main Job", "amount": 2000, ... } ],
+  "bills":    [ { "id": 2, "name": "Electricity", "amount": 120, "dueDay": 15, "category": "Utilities" } ],
+  "expenses": [ { "id": 3, "name": "Groceries", "budgetAmount": 400, "category": "Food & Groceries" } ],
   "strategy": { "monthlyPayment": 800, "paymentStrategy": "avalanche" }
 }
 ```
@@ -135,8 +177,8 @@ The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of eve
 
 | Choice | Behaviour |
 |--------|-----------|
-| **OK (Replace)** | Everything is replaced by the file contents (debts, income, strategy) |
-| **Cancel (Merge)** | Imported debts are appended (duplicates by name are skipped); income sources and strategy settings are always restored from the file |
+| **OK (Replace)** | Everything is replaced by the file contents (debts, income, bills, expenses, strategy) |
+| **Cancel (Merge)** | Imported debts are appended (duplicates by name are skipped); income, bills, expenses, and strategy settings are always restored from the file |
 
 > Legacy v1.0 files (debts only) are also accepted.
 
