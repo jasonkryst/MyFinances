@@ -1401,6 +1401,9 @@ class DebtTrackerApp {
                             </div>
                             <div class="debt-detail">
                                 <strong>Min Payment:</strong> ${this.formatCurrency(debt.minimumPayment)}
+                                ${debt.originalMinimumPayment !== undefined && debt.originalMinimumPayment !== debt.minimumPayment
+                                    ? `<span style="font-size:0.78em;color:#6b7280;margin-left:6px;">(originally ${this.formatCurrency(debt.originalMinimumPayment)})</span>`
+                                    : ''}
                                 ${negAmortRisk ? `<span class="neg-amort-badge" title="Your minimum payment barely covers interest — the balance may never decrease!">⚠️ Neg. amortization risk</span>` : ''}
                             </div>
                             <div class="debt-detail">
@@ -2595,18 +2598,29 @@ class DebtTrackerApp {
         if (!debt || debt.debtType === 'fixedAmount') return;
         const modal = document.getElementById('updateBalanceModal');
         if (!modal) return;
+
         document.getElementById('updateBalanceDebtName').textContent = debt.name;
         document.getElementById('updateBalanceCurrent').textContent = this.formatCurrency(debt.accountBalance);
-        const input = document.getElementById('updateBalanceInput');
-        input.value = debt.accountBalance.toFixed(2);
+
+        const balInput = document.getElementById('updateBalanceInput');
+        balInput.value = debt.accountBalance.toFixed(2);
+
+        // Show original minimum payment (first recorded value) and pre-fill with current
+        const origMin = debt.originalMinimumPayment ?? debt.minimumPayment ?? 0;
+        document.getElementById('updateMinPaymentOriginal').textContent = this.formatCurrency(origMin);
+        const minInput = document.getElementById('updateMinPaymentInput');
+        minInput.value = (debt.minimumPayment ?? 0).toFixed(2);
+
         modal.style.display = 'flex';
-        setTimeout(() => input.focus(), 50);
+        setTimeout(() => balInput.focus(), 50);
 
         const close = () => { modal.style.display = 'none'; };
         document.getElementById('confirmUpdateBalance').onclick = () => {
-            const newBal = parseFloat(input.value);
+            const newBal = parseFloat(balInput.value);
             if (isNaN(newBal) || newBal < 0) { alert('Please enter a valid balance (0 or more).'); return; }
-            this.updateDebtBalance(debtId, newBal);
+            const newMin = parseFloat(minInput.value);
+            if (isNaN(newMin) || newMin < 0) { alert('Please enter a valid minimum payment (0 or more).'); return; }
+            this.updateDebtBalance(id, newBal, newMin);
             close();
         };
         document.getElementById('cancelUpdateBalanceBtn').onclick = close;
@@ -2617,17 +2631,27 @@ class DebtTrackerApp {
     /**
      * Apply a new balance to a debt, preserve `originalBalance`, and
      * recalculate the payment plan if one already exists.
-     * @param {number} debtId      - ID of the debt to update
-     * @param {number} newBalance  - The new current balance (≥ 0)
+     * @param {number} debtId         - ID of the debt to update
+     * @param {number} newBalance     - The new current balance (≥ 0)
+     * @param {number} [newMinPayment] - Optional new minimum payment; if omitted, existing value is kept
      */
-    updateDebtBalance(debtId, newBalance) {
-        const idx = this.debts.findIndex(d => d.id === debtId);
+    updateDebtBalance(debtId, newBalance, newMinPayment) {
+        const idx = this.debts.findIndex(d => Number(d.id) === Number(debtId));
         if (idx === -1) return;
+
         // Preserve originalBalance — only update accountBalance
         if (!this.debts[idx].originalBalance) {
             this.debts[idx].originalBalance = this.debts[idx].accountBalance;
         }
         this.debts[idx].accountBalance = newBalance;
+
+        // Preserve originalMinimumPayment on first change, then update minimumPayment
+        if (newMinPayment !== undefined) {
+            if (this.debts[idx].originalMinimumPayment === undefined) {
+                this.debts[idx].originalMinimumPayment = this.debts[idx].minimumPayment ?? 0;
+            }
+            this.debts[idx].minimumPayment = newMinPayment;
+        }
         this.saveToStorage();
         // Recalculate if a plan exists
         try {

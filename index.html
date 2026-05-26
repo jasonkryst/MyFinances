@@ -320,9 +320,9 @@
                             <th data-sort="minDue" class="sortable">Min Due <span class="sort-icon">↕</span></th>
                             <th data-sort="interestRate" class="sortable">Interest Rate <span class="sort-icon">↕</span></th>
                             <th data-sort="totalPaid" class="sortable">Total Amount Paid <span class="sort-icon">↕</span></th>
-                            <th data-sort="principalPaid" class="sortable">Principal Paid <span class="sort-icon">↕</span></th>
-                            <th data-sort="interestPaid" class="sortable">Interest Paid <span class="sort-icon">↕</span></th>
-                            <th data-sort="interestToDate" class="sortable">Interest Paid to Date <span class="sort-icon">↕</span></th>
+                            <th data-sort="principalPaid" class="sortable">Est. Principal Paid <span class="sort-icon">↕</span></th>
+                            <th data-sort="interestPaid" class="sortable">Est. Interest Paid <span class="sort-icon">↕</span></th>
+                            <th data-sort="interestToDate" class="sortable">Est. Interest Paid to Date <span class="sort-icon">↕</span></th>
                             <th data-sort="payoffDate" class="sortable">Estimated Payoff Date <span class="sort-icon">↕</span></th>
                             <th>Amortization</th>
 						</tr>
@@ -480,16 +480,23 @@
     </script>
     <!-- Update Balance Modal (top-level so position:fixed works from any page) -->
     <div id="updateBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10002; align-items:center; justify-content:center;">
-        <div class="modal-content" style="background:white; max-width:420px; width:92%; border-radius:12px; padding:28px 24px; margin:auto; position:relative; outline:0;">
+        <div class="modal-content" style="background:white; max-width:460px; width:92%; border-radius:12px; padding:28px 24px; margin:auto; position:relative; outline:0;">
             <button id="cancelUpdateBalance" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
-            <h3 id="updateBalanceTitle" style="margin-top:0">Update Balance</h3>
-            <p style="margin:4px 0 14px;">Debt: <strong id="updateBalanceDebtName"></strong><br>
-            Current balance: <strong id="updateBalanceCurrent"></strong></p>
-            <div class="form-group">
-                <label for="updateBalanceInput">New Current Balance ($)</label>
-                <input type="number" id="updateBalanceInput" step="0.01" min="0" placeholder="0.00">
+            <h3 id="updateBalanceTitle" style="margin-top:0">Update Balance &amp; Minimum</h3>
+            <p style="margin:4px 0 14px;">Debt: <strong id="updateBalanceDebtName"></strong></p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div class="form-group" style="margin:0;">
+                    <label for="updateBalanceInput">New Balance ($)</label>
+                    <div style="font-size:0.78rem; color:#6b7280; margin-bottom:4px;">Current: <span id="updateBalanceCurrent"></span></div>
+                    <input type="number" id="updateBalanceInput" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label for="updateMinPaymentInput">New Minimum Due ($)</label>
+                    <div style="font-size:0.78rem; color:#6b7280; margin-bottom:4px;">Original: <span id="updateMinPaymentOriginal"></span></div>
+                    <input type="number" id="updateMinPaymentInput" step="0.01" min="0" placeholder="0.00">
+                </div>
             </div>
-            <div style="display:flex; gap:10px; margin-top:16px;">
+            <div style="display:flex; gap:10px; margin-top:20px;">
                 <button id="confirmUpdateBalance" class="btn btn-success">Update &amp; Recalculate</button>
                 <button id="cancelUpdateBalanceBtn" class="btn btn-secondary">Cancel</button>
             </div>
