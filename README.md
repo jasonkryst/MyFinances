@@ -46,7 +46,9 @@ A modern, single-page web application that helps you plan and visualise a path t
 
 ### Data Management
 - **Persistent storage** — debts, stimulus data, monthly payment, and strategy are auto-saved to `localStorage`
-- **Export to CSV** — full payment schedule plus per-debt summary in one file
+- **Export Debts (JSON)** — download a portable backup of your entire debt list as a `.json` file
+- **Import Debts (JSON)** — load a previously exported JSON file; choose to **replace** your current list or **merge** (duplicates by name are skipped automatically)
+- **Export to CSV** — full payment schedule plus per-debt summary in one spreadsheet-ready file
 - **Clear All Data** — wipe everything and start fresh
 
 ---
@@ -90,9 +92,26 @@ The Results page has three tabs:
 | **Charts** | Payoff timeline (per-debt lines), cumulative progress chart, principal vs. interest doughnut |
 | **Calendar** | Month-by-month calendar with payment events on due dates |
 
-### 4 — Export
+### 4 — Export / Import
 
-Click **Export as CSV** on the Results page to download a spreadsheet-ready file.
+**Export as CSV** — click the button on the Results page to download the full payment schedule plus a per-debt summary.
+
+**Export Debts (JSON)** — on the Debts page, click *⬇ Export Debts (JSON)* to download a backup of your debt list. The file looks like:
+
+```json
+{
+  "version": "1.0",
+  "exportedAt": "2026-05-25T12:00:00.000Z",
+  "debts": [ { "id": 1, "name": "Visa", "accountBalance": 4200, ... } ]
+}
+```
+
+**Import Debts (JSON)** — on the Debts page, click *⬆ Import Debts (JSON)* and select a previously exported file. You will be prompted to choose:
+
+| Choice | Behaviour |
+|--------|-----------|
+| **OK (Replace)** | Your current debt list is replaced entirely by the imported debts |
+| **Cancel (Merge)** | Imported debts are appended; any debt whose name already exists is skipped |
 
 ---
 
@@ -169,14 +188,17 @@ for 60 iterations:
 - ✅ No accounts, no tracking, no analytics
 - ✅ Data is stored only in your browser's `localStorage`
 
-To back up your data, use **Export as CSV** regularly.
+To back up your data, use **Export Debts (JSON)** regularly. You can also export the payment plan as CSV from the Results page.
 
 ---
 
 ## Troubleshooting
 
 **My data disappeared.**
-> You may have cleared browser storage. Export to CSV regularly as a backup.
+> You may have cleared browser storage. Use *Export Debts (JSON)* regularly as a portable backup you can re-import at any time.
+
+**Import says "duplicate skipped" but I wanted to update the debt.**
+> Delete or rename the existing debt first, then re-import, or use inline editing to update the debt manually.
 
 **The payoff date is very far away.**
 > Try increasing your monthly payment, switching to Avalanche, or using the What-If Simulator to see how much extra you need.

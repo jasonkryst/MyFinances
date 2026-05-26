@@ -519,6 +519,28 @@ select:focus {
     box-shadow: var(--shadow-lg);
 }
 
+/* Debts page toolbar (filter + import/export actions) */
+.debts-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.debts-toolbar-filter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.debts-toolbar-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 /* Debts List */
 .debts-list {
     display: grid;

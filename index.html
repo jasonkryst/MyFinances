@@ -149,11 +149,18 @@
             <!-- Debts List Section -->
             <section class="debts-section page-section" id="debtsSection">
                 <h2>Your Debts</h2>
-                <div style="margin-bottom: 16px;">
-                    <label for="categoryFilter" style="font-weight:600;">Filter by Category:</label>
-                    <select id="categoryFilter" style="margin-left:8px; min-width:140px;">
-                        <option value="">All</option>
-                    </select>
+                <div class="debts-toolbar">
+                    <div class="debts-toolbar-filter">
+                        <label for="categoryFilter" style="font-weight:600;">Filter by Category:</label>
+                        <select id="categoryFilter" style="margin-left:8px; min-width:140px;">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                    <div class="debts-toolbar-actions">
+                        <button id="exportJsonBtn" class="btn btn-secondary" title="Download all debts as a JSON backup file">⬇ Export Debts (JSON)</button>
+                        <button id="importJsonBtn" class="btn btn-secondary" title="Load debts from a previously exported JSON file">⬆ Import Debts (JSON)</button>
+                        <input type="file" id="importJsonInput" accept=".json,application/json" style="display:none;" aria-hidden="true">
+                    </div>
                 </div>
                 <div id="debtsList" class="debts-list"></div>
                 <div id="categorySummary" style="margin: 18px 0 0 0;"></div>

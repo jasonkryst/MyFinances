@@ -150,6 +150,27 @@ class DebtTrackerApp {
             });
         }
 
+        // Export debts as JSON
+        const exportJsonBtn = document.getElementById('exportJsonBtn');
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', () => this.exportDebtsJSON());
+        }
+
+        // Import debts from JSON — button triggers hidden file input
+        const importJsonBtn = document.getElementById('importJsonBtn');
+        const importJsonInput = document.getElementById('importJsonInput');
+        if (importJsonBtn && importJsonInput) {
+            importJsonBtn.addEventListener('click', () => importJsonInput.click());
+            importJsonInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.importDebtsJSON(file);
+                    // Reset so the same file can be re-selected if needed
+                    importJsonInput.value = '';
+                }
+            });
+        }
+
         // Top nav page buttons (Debts / Add Debt / Strategy / Results)
         document.querySelectorAll('.page-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1595,6 +1616,107 @@ class DebtTrackerApp {
         if (submitBtn) submitBtn.textContent = 'Add Debt';
         const cancelBtn = document.getElementById('cancelEditBtn');
         if (cancelBtn) cancelBtn.style.display = 'none';
+    }
+
+    /**
+     * Download all current debts as a JSON backup file.
+     * The file format is:
+     * ```json
+     * { "version": "1.0", "exportedAt": "<ISO date>", "debts": [...] }
+     * ```
+     * The file is named `debts-backup-YYYY-MM-DD.json`.
+     */
+    exportDebtsJSON() {
+        if (this.debts.length === 0) {
+            alert('No debts to export. Add some debts first.');
+            return;
+        }
+
+        const payload = {
+            version: '1.0',
+            exportedAt: new Date().toISOString(),
+            debts: this.debts
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `debts-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Import debts from a JSON file created by `exportDebtsJSON`.
+     * Prompts the user to choose between **Replace** (wipe current list) or
+     * **Merge** (append imported debts, skipping duplicates by name).
+     * New IDs are assigned to imported debts on merge to avoid collisions.
+     * @param {File} file - The JSON file selected by the user
+     */
+    importDebtsJSON(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            let parsed;
+            try {
+                parsed = JSON.parse(e.target.result);
+            } catch {
+                alert('Invalid JSON file. Please select a valid debt backup file.');
+                return;
+            }
+
+            // Accept both the envelope format and a bare array
+            const incoming = Array.isArray(parsed) ? parsed : parsed.debts;
+
+            if (!Array.isArray(incoming) || incoming.length === 0) {
+                alert('No debts found in the selected file.');
+                return;
+            }
+
+            // Validate each entry has at minimum a name field
+            const valid = incoming.filter(d => d && typeof d.name === 'string' && d.name.trim());
+            if (valid.length === 0) {
+                alert('The file contained no valid debt entries (each entry must have at least a "name").');
+                return;
+            }
+
+            const action = confirm(
+                `Found ${valid.length} debt(s) in the file.\n\n` +
+                `• OK  — Replace your current debt list with the imported debts\n` +
+                `• Cancel — Merge the imported debts into your existing list\n\n` +
+                `(Choose OK to replace, Cancel to merge)`
+            );
+
+            if (action) {
+                // Replace
+                this.debts = valid.map((d, i) => ({ ...d, id: Date.now() + i }));
+            } else {
+                // Merge — skip debts whose name already exists
+                const existingNames = new Set(this.debts.map(d => d.name.toLowerCase()));
+                let skipped = 0;
+                const toAdd = [];
+                for (const d of valid) {
+                    if (existingNames.has(d.name.toLowerCase())) {
+                        skipped++;
+                    } else {
+                        toAdd.push({ ...d, id: Date.now() + toAdd.length });
+                        existingNames.add(d.name.toLowerCase());
+                    }
+                }
+                this.debts = [...this.debts, ...toAdd];
+                if (skipped > 0) {
+                    alert(`Merged ${toAdd.length} debt(s). Skipped ${skipped} duplicate name(s).`);
+                }
+            }
+
+            this.saveToStorage();
+            this.updateUI();
+        };
+
+        reader.onerror = () => alert('Could not read the file. Please try again.');
+        reader.readAsText(file);
     }
 
     /**
