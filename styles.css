@@ -2253,6 +2253,173 @@ body.dark-mode .income-summary-label { color: #6ee7b7; }
 
 body.dark-mode .income-summary-value { color: #34d399; }
 
+/* Bonus value accent in the summary panel */
+.income-summary-value--bonus {
+    color: #d97706;
+}
+body.dark-mode .income-summary-value--bonus { color: #fbbf24; }
+
+/* ── Bonus / Windfall section ─────────────────────────────────────────────── */
+.bonus-section {
+    margin-top: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.bonus-form-toggle {
+    width: 100%;
+    text-align: left;
+    background: var(--light-bg);
+    border: none;
+    padding: 13px 18px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.bonus-form-toggle:hover { background: #e2e8f0; }
+body.dark-mode .bonus-form-toggle { background: #1e293b; color: #f1f5f9; }
+body.dark-mode .bonus-form-toggle:hover { background: #334155; }
+
+.bonus-form-chevron {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+}
+
+.bonus-form-toggle--open .bonus-form-chevron { transform: rotate(180deg); }
+
+.bonus-form-inner {
+    padding: 16px 18px 18px;
+    border-top: 1px solid var(--border-color);
+    background: var(--card-background);
+}
+
+.bonus-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 14px;
+}
+
+@media (max-width: 768px) {
+    .bonus-form-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Bonus list */
+.bonus-list-wrap {
+    margin-top: 16px;
+}
+
+.bonus-list-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 10px 0;
+}
+
+.bonus-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #d97706;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    gap: 12px;
+}
+
+.bonus-card--current {
+    border-left-color: #16a34a;
+    background: #f0fdf4;
+}
+body.dark-mode .bonus-card--current { background: #052e16; }
+
+.bonus-card--editing {
+    flex-direction: column;
+    align-items: stretch;
+    border-left-color: var(--primary-color);
+}
+
+.bonus-edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px;
+}
+@media (max-width: 768px) {
+    .bonus-edit-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.bonus-card-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    flex: 1;
+}
+
+.bonus-card-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.bonus-card-amount {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #d97706;
+}
+body.dark-mode .bonus-card-amount { color: #fbbf24; }
+
+.bonus-card-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.bonus-cat-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.bonus-cat--bonus   { background: #fef3c7; color: #92400e; }
+.bonus-cat--tax     { background: #dbeafe; color: #1e40af; }
+.bonus-cat--other   { background: #f3f4f6; color: #4b5563; }
+body.dark-mode .bonus-cat--bonus { background: #451a03; color: #fcd34d; }
+body.dark-mode .bonus-cat--tax   { background: #1e3a5f; color: #93c5fd; }
+body.dark-mode .bonus-cat--other { background: #1f2937; color: #d1d5db; }
+
+.bonus-this-month-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #16a34a;
+    white-space: nowrap;
+}
+body.dark-mode .bonus-this-month-tag { color: #4ade80; }
+
+/* Strategy bonus chip */
+.strategy-bonus-chip {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 12px;
+    margin-left: 6px;
+}
+body.dark-mode .strategy-bonus-chip { background: #451a03; color: #fcd34d; }
+
 /* Strategy page income widget */
 .strategy-income-widget {
     margin-top: 16px;
@@ -2792,3 +2959,212 @@ body.dark-mode .cashflow-subrow--debt     { background: rgba(69,10,10,0.4); }
 .cashflow-net--negative { background: #fee2e2; color: #7f1d1d; }
 body.dark-mode .cashflow-net--positive { background: #064e3b; color: #a7f3d0; }
 body.dark-mode .cashflow-net--negative { background: #450a0a; color: #fca5a5; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REPORTS PAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tab bar ───────────────────────────────────────────────────────────── */
+.rpt-tab-bar {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
+    border-radius: 10px 10px 0 0;
+    margin-bottom: 0;
+    overflow-x: auto;
+}
+.rpt-tab-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 13px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-bottom-color 0.15s;
+    white-space: nowrap;
+}
+.rpt-tab-btn:hover { color: var(--primary-color); }
+.rpt-tab-btn--active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* ── Tab panels ────────────────────────────────────────────────────────── */
+.rpt-tab-panel { display: none; padding: 24px 0 0; }
+.rpt-tab-panel--active { display: block; }
+
+/* ── Stats strip ───────────────────────────────────────────────────────── */
+.rpt-stats-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 28px;
+}
+.rpt-stat {
+    flex: 1 1 140px;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid var(--border-color);
+}
+.rpt-stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.rpt-stat-value { font-size: 1.15rem; font-weight: 700; }
+.rpt-stat--income  { background: #f0fdf4; border-color: #86efac; }
+.rpt-stat--income .rpt-stat-value  { color: #065f46; }
+.rpt-stat--bills   { background: #fffbeb; border-color: #fde68a; }
+.rpt-stat--bills   .rpt-stat-value { color: #92400e; }
+.rpt-stat--exp     { background: #f5f3ff; border-color: #c4b5fd; }
+.rpt-stat--exp     .rpt-stat-value { color: #4c1d95; }
+.rpt-stat--debt    { background: #fef2f2; border-color: #fca5a5; }
+.rpt-stat--debt    .rpt-stat-value { color: #7f1d1d; }
+.rpt-net--pos      { background: #d1fae5; border-color: #6ee7b7; }
+.rpt-net--pos .rpt-stat-value      { color: #064e3b; }
+.rpt-net--neg      { background: #fee2e2; border-color: #fca5a5; }
+.rpt-net--neg .rpt-stat-value      { color: #7f1d1d; }
+
+body.dark-mode .rpt-stat--income  { background: #022c22; border-color: #065f46; }
+body.dark-mode .rpt-stat--income .rpt-stat-value  { color: #6ee7b7; }
+body.dark-mode .rpt-stat--bills   { background: #1c1400; border-color: #78350f; }
+body.dark-mode .rpt-stat--bills   .rpt-stat-value { color: #fcd34d; }
+body.dark-mode .rpt-stat--exp     { background: #1e1b4b; border-color: #4c1d95; }
+body.dark-mode .rpt-stat--exp     .rpt-stat-value { color: #c4b5fd; }
+body.dark-mode .rpt-stat--debt    { background: #450a0a; border-color: #7f1d1d; }
+body.dark-mode .rpt-stat--debt    .rpt-stat-value { color: #fca5a5; }
+body.dark-mode .rpt-net--pos      { background: #064e3b; border-color: #065f46; }
+body.dark-mode .rpt-net--pos .rpt-stat-value      { color: #a7f3d0; }
+body.dark-mode .rpt-net--neg      { background: #450a0a; border-color: #7f1d1d; }
+body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
+
+/* ── Chart row ─────────────────────────────────────────────────────────── */
+.rpt-charts-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.rpt-chart-card {
+    flex: 1 1 300px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px 18px;
+}
+.rpt-chart-title  { margin: 0 0 2px; font-size: 1rem; font-weight: 700; color: var(--text-color); }
+.rpt-chart-sub    { margin: 0 0 14px; font-size: 0.8rem; color: var(--text-muted); }
+.rpt-chart-canvas-wrap { position: relative; height: 280px; }
+
+/* ── Money Flow ─────────────────────────────────────────────────────────── */
+.rpt-section-title { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
+.rpt-moneyflow-wrap { position: relative; height: 360px; }
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.rpt-empty-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+/* ── Calendar ────────────────────────────────────────────────────────────── */
+.rpt-cal-month-title {
+    margin: 0 0 10px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+.rpt-cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    margin-bottom: 14px;
+    font-size: 0.8rem;
+}
+.rpt-cal-legend-item { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+.rpt-cal-swatch {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+.rpt-cal-swatch--income { background: #10b981; }
+.rpt-cal-swatch--bill   { background: #f59e0b; }
+.rpt-cal-swatch--bonus  { background: #d97706; }
+.rpt-cal-swatch--today  { background: #2563eb; border-radius: 50%; }
+
+.rpt-cal-day-labels {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+.rpt-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+}
+.rpt-cal-cell {
+    min-height: 72px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 5px;
+    background: var(--card-bg);
+    overflow: hidden;
+    font-size: 0.7rem;
+}
+.rpt-cal-empty { background: transparent; border-color: transparent; }
+.rpt-cal-has-events { border-color: #c7d2fe; }
+.rpt-cal-today { background: #eff6ff; border-color: #2563eb; border-width: 2px; }
+body.dark-mode .rpt-cal-has-events { border-color: #4338ca; }
+body.dark-mode .rpt-cal-today { background: #1e3a5f; border-color: #2563eb; }
+
+.rpt-cal-day-num {
+    display: block;
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-bottom: 3px;
+    color: var(--text-color);
+}
+.rpt-cal-today .rpt-cal-day-num {
+    color: #2563eb;
+}
+
+/* Event chips */
+.rpt-cal-evt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-bottom: 2px;
+    font-size: 0.63rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.rpt-cal-evt-name { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.rpt-cal-evt-amt  { flex-shrink: 0; font-weight: 700; }
+
+.rpt-cal-evt--income { background: #10b981; }
+.rpt-cal-evt--bill   { background: #f59e0b; }
+.rpt-cal-evt--bonus  { background: #d97706; }
+
+@media (max-width: 640px) {
+    .rpt-cal-cell     { min-height: 56px; }
+    .rpt-cal-evt-amt  { display: none; }
+    .rpt-cal-evt      { font-size: 0.58rem; }
+    .rpt-tab-btn      { min-width: 100px; font-size: 0.82rem; padding: 10px 10px; }
+    .rpt-moneyflow-wrap { height: 260px; }
+}

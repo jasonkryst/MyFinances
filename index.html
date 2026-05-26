@@ -38,6 +38,7 @@
                 <button class="page-button" data-page="debts">Debts</button>
                 <button class="page-button" data-page="budget">Budget</button>
                 <button class="page-button" data-page="strategy">Plan</button>
+                <button class="page-button" data-page="reports">Reports</button>
             </nav>
         </header>
 
@@ -219,6 +220,42 @@
 
                 <!-- Income List -->
                 <div id="incomeList" class="income-list"></div>
+
+                <!-- ── One-time Bonuses / Windfalls ── -->
+                <div class="bonus-section">
+                    <button class="bonus-form-toggle" id="bonusFormToggle" type="button" aria-expanded="false" aria-controls="bonusFormBody">
+                        🎁 Add a one-time bonus / windfall
+                        <span class="bonus-form-chevron">▼</span>
+                    </button>
+                    <div id="bonusFormBody" hidden>
+                        <form id="bonusForm" novalidate class="bonus-form-inner">
+                            <div class="bonus-form-grid">
+                                <div class="form-group" style="margin:0;">
+                                    <label for="bonusName">Label *</label>
+                                    <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Tax refund" required>
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label for="bonusAmount">Amount ($) *</label>
+                                    <input type="number" id="bonusAmount" placeholder="0.00" step="0.01" min="0.01" required>
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label for="bonusDate">Date received *</label>
+                                    <input type="date" id="bonusDate" required>
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label for="bonusCategory">Category</label>
+                                    <select id="bonusCategory">
+                                        <option value="Bonus">Bonus</option>
+                                        <option value="Tax Refund">Tax Refund</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success" style="margin-top:14px;">Add Bonus</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="bonusList"></div>
 
                 <!-- Monthly Income Summary -->
                 <div id="incomeSummary" class="income-summary" style="display:none;"></div>
@@ -489,6 +526,35 @@
                 </div>
             </section>
 
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Reports Section                                             -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="reports-section page-section" id="reportsSection">
+                <h2>📈 Reports</h2>
+
+                <!-- Tab bar -->
+                <div class="rpt-tab-bar">
+                    <button class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" aria-selected="true">📅 Calendar</button>
+                    <button class="rpt-tab-btn" data-rptab="incomeexp" aria-selected="false">📊 Income vs Expenses</button>
+                    <button class="rpt-tab-btn" data-rptab="moneyflow" aria-selected="false">💰 Money Flow</button>
+                </div>
+
+                <!-- ── Calendar panel ───────────────────────────────────── -->
+                <div class="rpt-tab-panel rpt-tab-panel--active" id="rptPanel-calendar">
+                    <div id="reportsCalendar"></div>
+                </div>
+
+                <!-- ── Income vs Expenses panel ────────────────────────── -->
+                <div class="rpt-tab-panel" id="rptPanel-incomeexp">
+                    <div id="reportsIncomeExp"></div>
+                </div>
+
+                <!-- ── Money Flow panel ────────────────────────────────── -->
+                <div class="rpt-tab-panel" id="rptPanel-moneyflow">
+                    <div id="reportsMoneyFlow"></div>
+                </div>
+            </section>
+
             <!-- Empty State -->
             <section class="empty-state" id="emptyState">
                 <p>No debts added yet. Head to <strong>Debts</strong> to add your first debt!</p>
@@ -555,6 +621,27 @@
         makeBudgetToggle('expenseFormToggle', 'expenseFormBody');
     });
 
+    // ── Collapsible Bonus form ────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggle = document.getElementById('bonusFormToggle');
+        const body   = document.getElementById('bonusFormBody');
+        if (toggle && body) {
+            toggle.addEventListener('click', function () {
+                const open = !body.hidden;
+                body.hidden = open;
+                toggle.setAttribute('aria-expanded', String(!open));
+                toggle.classList.toggle('bonus-form-toggle--open', !open);
+            });
+        }
+        const bonusForm = document.getElementById('bonusForm');
+        if (bonusForm) {
+            bonusForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (window.app) app.addBonus();
+            });
+        }
+    });
+
     // ── Results top-level tab switching ──────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.results-tab-btn').forEach(function (btn) {
@@ -569,6 +656,28 @@
                 document.querySelectorAll('.results-tab-panel').forEach(function (p) {
                     p.classList.toggle('results-tab-panel--active', p.id === 'rPanel-' + target);
                 });
+            });
+        });
+    });
+
+    // ── Reports top-level tab switching ──────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.rpt-tab-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const target = btn.getAttribute('data-rptab');
+                document.querySelectorAll('.rpt-tab-btn').forEach(function (b) {
+                    b.classList.toggle('rpt-tab-btn--active', b === btn);
+                    b.setAttribute('aria-selected', String(b === btn));
+                });
+                document.querySelectorAll('.rpt-tab-panel').forEach(function (p) {
+                    p.classList.toggle('rpt-tab-panel--active', p.id === 'rptPanel-' + target);
+                });
+                // Re-render the newly visible tab so charts resize correctly
+                if (window.app) {
+                    if (target === 'calendar')  app._renderReportsCalendar();
+                    if (target === 'incomeexp') app._renderReportsIncomeExp();
+                    if (target === 'moneyflow') app._renderReportsMoneyFlow();
+                }
             });
         });
     });

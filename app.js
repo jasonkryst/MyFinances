@@ -41,6 +41,7 @@ class DebtTrackerApp {
     constructor() {
         this.debts = [];              // Array of debt objects (see addDebt for shape)
         this.incomes = [];            // Array of income source objects
+        this.bonuses = [];            // Array of one-time bonus/windfall objects { id, name, amount, date, category }
         this.bills = [];              // Array of bill objects { id, name, amount, dueDay, category }
         this.expenses = [];           // Array of expense budget objects { id, name, budgetAmount, category }
         this.lastPaymentPlan = null;  // Most recently calculated paymentPlan array
@@ -1203,7 +1204,8 @@ class DebtTrackerApp {
             debts: 'debtsSection',
             income: 'incomeSection',
             budget: 'budgetSection',
-            strategy: 'strategySection'
+            strategy: 'strategySection',
+            reports: 'reportsSection'
         };
 
         // hide all sections
@@ -1217,9 +1219,10 @@ class DebtTrackerApp {
 
         // Keep side-effects for specific pages
         if (pageName === 'debts') this.renderDebtsList();
-        if (pageName === 'income') this.renderIncomeList();
+        if (pageName === 'income') { this.renderIncomeList(); this.renderBonusList(); }
         if (pageName === 'budget') this.renderBudgetPage();
         if (pageName === 'strategy') this.renderStrategyIncomeWidget();
+        if (pageName === 'reports') this.renderReportsPage();
     }
 
     /**
@@ -1807,6 +1810,151 @@ class DebtTrackerApp {
         this.renderStrategyIncomeWidget();
     }
 
+    // ── Bonus / Windfall CRUD ────────────────────────────────────────────────
+
+    /** Add a new one-time bonus from the bonus form. */
+    addBonus() {
+        const name     = document.getElementById('bonusName').value.trim();
+        const amount   = parseFloat(document.getElementById('bonusAmount').value);
+        const date     = document.getElementById('bonusDate').value;
+        const category = document.getElementById('bonusCategory').value;
+
+        if (!name)                        { alert('Please enter a label for this bonus.'); return; }
+        if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
+        if (!date)                        { alert('Please enter the date received.'); return; }
+
+        this.bonuses.push({ id: Date.now(), name, amount, date, category });
+        this.saveToStorage();
+        this.renderBonusList();
+        this.renderStrategyIncomeWidget();
+        document.getElementById('bonusForm').reset();
+    }
+
+    /** Delete a bonus by ID. */
+    deleteBonus(bonusId) {
+        this.bonuses = this.bonuses.filter(b => b.id !== bonusId);
+        this.saveToStorage();
+        this.renderBonusList();
+        this.renderStrategyIncomeWidget();
+    }
+
+    /** Enter inline-edit mode for a bonus card. */
+    startEditBonus(bonusId) {
+        this.editingBonusId = bonusId;
+        this.renderBonusList();
+        setTimeout(() => {
+            const el = document.getElementById(`be-name-${bonusId}`);
+            if (el) el.focus();
+        }, 0);
+    }
+
+    /** Cancel inline-edit for a bonus card. */
+    cancelEditBonus() {
+        this.editingBonusId = null;
+        this.renderBonusList();
+    }
+
+    /** Save inline-edit for a bonus card. */
+    saveEditBonus(bonusId) {
+        const nameEl   = document.getElementById(`be-name-${bonusId}`);
+        const amtEl    = document.getElementById(`be-amount-${bonusId}`);
+        const dateEl   = document.getElementById(`be-date-${bonusId}`);
+        const catEl    = document.getElementById(`be-category-${bonusId}`);
+        if (!nameEl || !amtEl || !dateEl || !catEl) return;
+
+        const name     = nameEl.value.trim();
+        const amount   = parseFloat(amtEl.value);
+        const date     = dateEl.value;
+        const category = catEl.value;
+
+        if (!name)                        { alert('Please enter a label.'); return; }
+        if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+        if (!date)                        { alert('Please select a date.'); return; }
+
+        const idx = this.bonuses.findIndex(b => b.id === bonusId);
+        if (idx === -1) return;
+        this.bonuses[idx] = { ...this.bonuses[idx], name, amount, date, category };
+        this.editingBonusId = null;
+        this.saveToStorage();
+        this.renderBonusList();
+        this.renderStrategyIncomeWidget();
+    }
+
+    /**
+     * Render the list of one-time bonuses below the bonus form on the Income page.
+     */
+    renderBonusList() {
+        const container = document.getElementById('bonusList');
+        if (!container) return;
+
+        if (!this.bonuses || this.bonuses.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const now   = new Date();
+        const year  = now.getFullYear();
+        const month = now.getMonth();
+        const catBadgeClass = { Bonus: 'bonus-cat--bonus', 'Tax Refund': 'bonus-cat--tax', Other: 'bonus-cat--other' };
+
+        container.innerHTML = `
+        <div class="bonus-list-wrap">
+            <h4 class="bonus-list-title">One-time Bonuses &amp; Windfalls</h4>
+            ${this.bonuses.map(b => {
+                const d = new Date(b.date + 'T12:00:00');
+                const isThisMonth = d.getFullYear() === year && d.getMonth() === month;
+                const dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                const badgeCls = catBadgeClass[b.category] || 'bonus-cat--other';
+
+                if (this.editingBonusId === b.id) {
+                    return `
+                    <div class="bonus-card bonus-card--editing">
+                        <div class="bonus-edit-grid">
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Label</label>
+                                <input type="text" id="be-name-${b.id}" value="${b.name.replace(/"/g,'&quot;')}" style="width:100%;">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Amount ($)</label>
+                                <input type="number" id="be-amount-${b.id}" value="${b.amount}" min="0.01" step="0.01" style="width:100%;">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Date received</label>
+                                <input type="date" id="be-date-${b.id}" value="${b.date}" style="width:100%;">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Category</label>
+                                <select id="be-category-${b.id}" style="width:100%;">
+                                    <option value="Bonus"      ${b.category==='Bonus'      ?'selected':''}>Bonus</option>
+                                    <option value="Tax Refund" ${b.category==='Tax Refund' ?'selected':''}>Tax Refund</option>
+                                    <option value="Other"      ${b.category==='Other'      ?'selected':''}>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="income-edit-actions" style="margin-top:10px;">
+                            <button class="btn btn-primary btn-small" onclick="app.saveEditBonus(${b.id})">Save</button>
+                            <button class="btn btn-secondary btn-small" onclick="app.cancelEditBonus()">Cancel</button>
+                        </div>
+                    </div>`;
+                }
+
+                return `
+                <div class="bonus-card${isThisMonth ? ' bonus-card--current' : ''}">
+                    <div class="bonus-card-info">
+                        <span class="bonus-card-name">${b.name}</span>
+                        <span class="bonus-card-amount">${this.formatCurrency(b.amount)}</span>
+                        <span class="bonus-card-meta">${dateStr} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${b.category}</span></span>
+                        ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
+                    </div>
+                    <div class="debt-actions">
+                        <button class="btn-edit" onclick="app.startEditBonus(${b.id})">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="app.deleteBonus(${b.id})">Delete</button>
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+
     /**
      * Render the income list and summary panel inside the Income page.
      */
@@ -1890,9 +2038,18 @@ class DebtTrackerApp {
         // Summary panel
         if (summaryEl) {
             const { monthlyTotal } = this.computeMonthlyIncome();
+            const bonusThisMonth   = this.computeMonthlyBonuses();
+            const regularThisMonth = monthlyTotal - bonusThisMonth;
             const totalAnnual = this.incomes.reduce((s, i) => {
                 return s + (i.frequency === 'biweekly' ? i.amount * 26 : i.amount * 12);
             }, 0);
+
+            const bonusRow = bonusThisMonth > 0
+                ? `<div class="income-summary-item">
+                       <span class="income-summary-label">Bonuses this month</span>
+                       <span class="income-summary-value income-summary-value--bonus">${this.formatCurrency(bonusThisMonth)}</span>
+                   </div>`
+                : '';
 
             summaryEl.style.display = 'block';
             summaryEl.innerHTML = `
@@ -1902,6 +2059,11 @@ class DebtTrackerApp {
                         <span class="income-summary-label">Expected this month</span>
                         <span class="income-summary-value">${this.formatCurrency(monthlyTotal)}</span>
                     </div>
+                    <div class="income-summary-item">
+                        <span class="income-summary-label">Regular pay this month</span>
+                        <span class="income-summary-value">${this.formatCurrency(regularThisMonth)}</span>
+                    </div>
+                    ${bonusRow}
                     <div class="income-summary-item">
                         <span class="income-summary-label">Income sources</span>
                         <span class="income-summary-value">${this.incomes.length}</span>
@@ -2007,9 +2169,6 @@ class DebtTrackerApp {
         const now = new Date();
         const year = now.getFullYear();
         const month = now.getMonth();
-        const monthStart = new Date(year, month, 1);
-        const monthEnd   = new Date(year, month + 1, 0);
-        const msPerDay   = 24 * 60 * 60 * 1000;
 
         let monthlyTotal = 0;
 
@@ -2018,7 +2177,28 @@ class DebtTrackerApp {
             monthlyTotal += inc.amount * count;
         }
 
+        // Add any bonuses whose date falls in the current calendar month
+        monthlyTotal += this.computeMonthlyBonuses();
+
         return { monthlyTotal };
+    }
+
+    /**
+     * Sum of all one-time bonuses whose date falls in the current calendar month.
+     * @returns {number}
+     */
+    computeMonthlyBonuses() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        return (this.bonuses || []).reduce((sum, b) => {
+            if (!b.date) return sum;
+            const d = new Date(b.date + 'T12:00:00');
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                return sum + (b.amount || 0);
+            }
+            return sum;
+        }, 0);
     }
 
     /**
@@ -2049,21 +2229,27 @@ class DebtTrackerApp {
         const totalBills    = (this.bills    || []).reduce((s, b) => s + b.amount, 0);
         const totalExpenses = (this.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
         const totalDebtMin  = this.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+        const bonusThisMonth = this.computeMonthlyBonuses();
         const netAfterAll   = monthlyTotal - totalDebtMin - totalBills - totalExpenses;
 
         let netHtml = '';
         if (totalBills > 0 || totalExpenses > 0) {
             const netClass = netAfterAll >= 0 ? 'strategy-net--positive' : 'strategy-net--negative';
+            const bonusBit = bonusThisMonth > 0
+                ? ` · Bonuses: ${this.formatCurrency(bonusThisMonth)}` : '';
             netHtml = `<div class="strategy-net ${netClass}">
                 Net after all obligations:
                 <strong>${this.formatCurrency(netAfterAll)}</strong>
-                <span class="strategy-net-breakdown">(Bills: ${this.formatCurrency(totalBills)} · Expenses: ${this.formatCurrency(totalExpenses)} · Debt mins: ${this.formatCurrency(totalDebtMin)})</span>
+                <span class="strategy-net-breakdown">(Bills: ${this.formatCurrency(totalBills)} · Expenses: ${this.formatCurrency(totalExpenses)} · Debt mins: ${this.formatCurrency(totalDebtMin)}${bonusBit})</span>
             </div>`;
         }
 
+        const bonusChip = bonusThisMonth > 0
+            ? `<span class="strategy-bonus-chip">+${this.formatCurrency(bonusThisMonth)} bonus this month</span>` : '';
+
         widget.style.display = 'block';
         widget.innerHTML = `
-            💰 Expected income this month: <strong>${this.formatCurrency(monthlyTotal)}</strong>
+            💰 Expected income this month: <strong>${this.formatCurrency(monthlyTotal)}</strong> ${bonusChip}
             ${ratioHtml}
             ${netHtml}`;
     }
@@ -2094,6 +2280,7 @@ class DebtTrackerApp {
             exportedAt: new Date().toISOString(),
             debts: normalisedDebts,
             incomes: this.incomes || [],
+            bonuses: this.bonuses || [],
             bills: this.bills || [],
             expenses: this.expenses || [],
             strategy: {
@@ -2133,9 +2320,10 @@ class DebtTrackerApp {
 
             // Accept bare array (very old), v1.0 envelope (debts only), or v2.0 envelope
             const incomingDebts   = Array.isArray(parsed) ? parsed : (parsed.debts  || []);
-            const incomingIncomes = parsed.incomes   || [];
-            const incomingBills   = parsed.bills     || [];
-            const incomingExpenses = parsed.expenses || [];
+            const incomingIncomes  = parsed.incomes   || [];
+            const incomingBonuses  = parsed.bonuses   || [];
+            const incomingBills    = parsed.bills     || [];
+            const incomingExpenses = parsed.expenses  || [];
             const incomingStrategy = parsed.strategy || null;
 
             const validDebts = incomingDebts.filter(d => d && typeof d.name === 'string' && d.name.trim());
@@ -2169,6 +2357,7 @@ class DebtTrackerApp {
                     originalBalance: d.originalBalance ?? d.accountBalance ?? 0
                 }));
                 this.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
+                this.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
                 this.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
                 this.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
             } else {
@@ -2193,8 +2382,9 @@ class DebtTrackerApp {
                 if (skipped > 0) {
                     alert(`Merged ${toAdd.length} debt(s). Skipped ${skipped} duplicate name(s).`);
                 }
-                // Always restore income, bills, expenses & strategy on merge
+                // Always restore income, bonuses, bills, expenses & strategy on merge
                 this.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
+                this.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
                 this.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
                 this.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
             }
@@ -2226,6 +2416,7 @@ class DebtTrackerApp {
         this.lastPaymentPlan = null;
         this.lastSummary = null;
         this.perMonthStimulus = [];
+        this.bonuses = [];
         this.saveToStorage();
         this.updateUI();
         document.getElementById('resultsSection').style.display = 'none';
@@ -2242,6 +2433,7 @@ class DebtTrackerApp {
             const data = {
                 debts: this.debts,
                 incomes: this.incomes || [],
+                bonuses: this.bonuses || [],
                 bills: this.bills || [],
                 expenses: this.expenses || [],
                 perMonthStimulus: this.perMonthStimulus || [],
@@ -2267,6 +2459,7 @@ class DebtTrackerApp {
                 const parsed = JSON.parse(data);
                 this.debts = parsed.debts || [];
                 this.incomes = parsed.incomes || [];
+                this.bonuses = parsed.bonuses || [];
                 this.bills = parsed.bills || [];
                 this.expenses = parsed.expenses || [];
                 this.perMonthStimulus = parsed.perMonthStimulus || [];
@@ -3634,6 +3827,493 @@ class DebtTrackerApp {
                     }
                 }
             }
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  REPORTS PAGE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Helper — returns the day-of-month numbers when `inc` is paid in the
+     * given year/month (mirrors paydaysInCurrentMonth but returns an array
+     * of day numbers rather than a count).
+     */
+    _incomeDaysInMonth(inc, year, month) {
+        const monthStart = new Date(year, month, 1);
+        const monthEnd   = new Date(year, month + 1, 0);
+        const msPerDay   = 24 * 60 * 60 * 1000;
+        const first = new Date(inc.firstPayDate + 'T12:00:00');
+        if (isNaN(first.getTime())) return [];
+        const days = [];
+        if (inc.frequency === 'biweekly') {
+            let pay = new Date(first);
+            const diffDays = Math.floor((monthStart - pay) / msPerDay);
+            const periods  = Math.floor(diffDays / 14);
+            pay = new Date(pay.getTime() + Math.max(0, periods) * 14 * msPerDay);
+            while (pay < monthStart) pay = new Date(pay.getTime() + 14 * msPerDay);
+            while (pay <= monthEnd) {
+                days.push(pay.getDate());
+                pay = new Date(pay.getTime() + 14 * msPerDay);
+            }
+        } else {
+            const payDay = first.getDate();
+            const daysInM = new Date(year, month + 1, 0).getDate();
+            const actualDay = Math.min(payDay, daysInM);
+            const candidate = new Date(year, month, actualDay);
+            if (candidate >= monthStart && candidate <= monthEnd) days.push(actualDay);
+        }
+        return days;
+    }
+
+    /**
+     * Entry point — renders all three report panels for the current month.
+     * Called when the user switches to the Reports page.
+     */
+    renderReportsPage() {
+        // Destroy any lingering chart instances
+        ['_rptIncomeChart', '_rptBillsChart', '_rptExpChart', '_rptMoneyFlowChart']
+            .forEach(k => { if (this[k]) { this[k].destroy(); this[k] = null; } });
+
+        this._renderReportsCalendar();
+        this._renderReportsIncomeExp();
+        this._renderReportsMoneyFlow();
+    }
+
+    // ── Calendar ────────────────────────────────────────────────────────────
+    /** Renders a standalone current-month calendar with all events. */
+    _renderReportsCalendar() {
+        const container = document.getElementById('reportsCalendar');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const now   = new Date();
+        const year  = now.getFullYear();
+        const month = now.getMonth();
+        const today = now.getDate();
+
+        const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+        // ── Build event maps keyed by day-of-month ──────────────────────────
+
+        // Income paydays
+        const dayIncome = {};
+        for (const inc of (this.incomes || [])) {
+            for (const d of this._incomeDaysInMonth(inc, year, month)) {
+                if (!dayIncome[d]) dayIncome[d] = [];
+                dayIncome[d].push(inc);
+            }
+        }
+
+        // Bills due
+        const dayBills = {};
+        for (const bill of (this.bills || [])) {
+            if (!bill.dueDay) continue;
+            const daysInM = new Date(year, month + 1, 0).getDate();
+            const d = Math.min(bill.dueDay, daysInM);
+            if (!dayBills[d]) dayBills[d] = [];
+            dayBills[d].push(bill);
+        }
+
+        // Debt payments due
+        const dayDebts = {};
+        const palette = ['#2563eb','#dc2626','#d97706','#7c3aed','#db2777','#0891b2','#65a30d','#ea580c','#6366f1'];
+        let ci = 0;
+        for (const debt of (this.debts || [])) {
+            const daysInM = new Date(year, month + 1, 0).getDate();
+            const d = Math.min(debt.dueDate || 1, daysInM);
+            if (!dayDebts[d]) dayDebts[d] = [];
+            dayDebts[d].push({ ...debt, _color: palette[ci++ % palette.length] });
+        }
+
+        // Bonuses
+        const dayBonuses = {};
+        for (const b of (this.bonuses || [])) {
+            if (!b.date) continue;
+            const bd = new Date(b.date + 'T12:00:00');
+            if (bd.getFullYear() === year && bd.getMonth() === month) {
+                const d = bd.getDate();
+                if (!dayBonuses[d]) dayBonuses[d] = [];
+                dayBonuses[d].push(b);
+            }
+        }
+
+        // ── Legend ──────────────────────────────────────────────────────────
+        const legendItems = [
+            `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--income"></span>Payday</span>`,
+            `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bill"></span>Bill due</span>`,
+            `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch" style="background:#2563eb;"></span>Debt payment</span>`,
+            `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bonus"></span>Bonus/Windfall</span>`,
+            `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--today"></span>Today</span>`,
+        ];
+
+        // ── Grid ────────────────────────────────────────────────────────────
+        const firstDay   = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let gridHTML = `<div class="rpt-cal-day-labels">`;
+        for (const dl of DAY_LABELS) gridHTML += `<div class="rpt-cal-day-label">${dl}</div>`;
+        gridHTML += `</div><div class="rpt-cal-grid">`;
+
+        for (let i = 0; i < firstDay; i++) {
+            gridHTML += `<div class="rpt-cal-cell rpt-cal-empty"></div>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const incomes  = dayIncome[day]  || [];
+            const bills    = dayBills[day]   || [];
+            const debts    = dayDebts[day]   || [];
+            const bonuses  = dayBonuses[day] || [];
+            const hasEvts  = incomes.length || bills.length || debts.length || bonuses.length;
+            const isToday  = day === today;
+
+            gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}">
+                <span class="rpt-cal-day-num">${day}</span>`;
+
+            for (const inc of incomes) {
+                gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--income" title="💰 ${inc.name}: ${this.formatCurrency(inc.amount)}">
+                    <span class="rpt-cal-evt-name">💰 ${inc.name}</span>
+                    <span class="rpt-cal-evt-amt">${this.formatCurrency(inc.amount)}</span>
+                </div>`;
+            }
+            for (const bill of bills) {
+                gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${bill.name}: ${this.formatCurrency(bill.amount)}">
+                    <span class="rpt-cal-evt-name">🧾 ${bill.name}</span>
+                    <span class="rpt-cal-evt-amt">${this.formatCurrency(bill.amount)}</span>
+                </div>`;
+            }
+            for (const debt of debts) {
+                gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${debt.name}: min ${this.formatCurrency(debt.minimumPayment)}">
+                    <span class="rpt-cal-evt-name">💳 ${debt.name}</span>
+                    <span class="rpt-cal-evt-amt">${this.formatCurrency(debt.minimumPayment)}</span>
+                </div>`;
+            }
+            for (const b of bonuses) {
+                gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bonus" title="🎁 ${b.name}: ${this.formatCurrency(b.amount)}">
+                    <span class="rpt-cal-evt-name">🎁 ${b.name}</span>
+                    <span class="rpt-cal-evt-amt">${this.formatCurrency(b.amount)}</span>
+                </div>`;
+            }
+
+            gridHTML += `</div>`;
+        }
+        gridHTML += `</div>`;
+
+        container.innerHTML = `
+            <h3 class="rpt-cal-month-title">${monthLabel}</h3>
+            <div class="rpt-cal-legend">${legendItems.join('')}</div>
+            ${gridHTML}`;
+    }
+
+    // ── Income vs Expenses ──────────────────────────────────────────────────
+    _renderReportsIncomeExp() {
+        const container = document.getElementById('reportsIncomeExp');
+        if (!container) return;
+
+        const { monthlyTotal: totalIncome } = this.computeMonthlyIncome();
+        const totalBills    = (this.bills    || []).reduce((s, b) => s + b.amount, 0);
+        const totalExpenses = (this.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
+        const totalDebtMin  = (this.debts    || []).reduce((s, d) => s + (d.minimumPayment || 0), 0);
+        const totalOutflow  = totalBills + totalExpenses + totalDebtMin;
+        const net           = totalIncome - totalOutflow;
+        const netCls        = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
+
+        // ── Stats strip ─────────────────────────────────────────────────────
+        const stats = [
+            { label: 'Income (this month)', value: totalIncome, cls: 'rpt-stat--income' },
+            { label: 'Bills',               value: totalBills,  cls: 'rpt-stat--bills'  },
+            { label: 'Expense Budgets',     value: totalExpenses, cls: 'rpt-stat--exp'  },
+            { label: 'Debt Minimums',       value: totalDebtMin,  cls: 'rpt-stat--debt' },
+            { label: 'Net Remaining',       value: net,           cls: netCls            },
+        ];
+        const statsHTML = stats.map(s =>
+            `<div class="rpt-stat ${s.cls}">
+                <span class="rpt-stat-label">${s.label}</span>
+                <span class="rpt-stat-value">${this.formatCurrency(s.value)}</span>
+            </div>`).join('');
+
+        // ── Income chart data (by source) ────────────────────────────────────
+        const incomeLabels = [], incomeData = [];
+        for (const inc of (this.incomes || [])) {
+            const count = this.paydaysInCurrentMonth(inc);
+            if (count > 0) {
+                incomeLabels.push(inc.name);
+                incomeData.push(inc.amount * count);
+            }
+        }
+        // Add bonuses in current month
+        for (const b of (this.bonuses || [])) {
+            if (!b.date) continue;
+            const bd = new Date(b.date + 'T12:00:00');
+            const now = new Date();
+            if (bd.getFullYear() === now.getFullYear() && bd.getMonth() === now.getMonth()) {
+                incomeLabels.push(b.name);
+                incomeData.push(b.amount);
+            }
+        }
+
+        // ── Outflow chart data (by category / debt name) ─────────────────────
+        const outflowLabels = [], outflowData = [], outflowColors = [];
+        // Bills by category
+        const billCats = {};
+        for (const b of (this.bills || [])) { billCats[b.category || 'Other'] = (billCats[b.category || 'Other'] || 0) + b.amount; }
+        for (const [cat, amt] of Object.entries(billCats)) {
+            outflowLabels.push(`🧾 ${cat}`); outflowData.push(amt); outflowColors.push('#f59e0b');
+        }
+        // Expenses by category
+        const expCats = {};
+        for (const e of (this.expenses || [])) { expCats[e.category || 'Other'] = (expCats[e.category || 'Other'] || 0) + e.budgetAmount; }
+        for (const [cat, amt] of Object.entries(expCats)) {
+            outflowLabels.push(`💸 ${cat}`); outflowData.push(amt); outflowColors.push('#8b5cf6');
+        }
+        // Debt minimums
+        for (const d of (this.debts || [])) {
+            if ((d.minimumPayment || 0) > 0) {
+                outflowLabels.push(`💳 ${d.name}`); outflowData.push(d.minimumPayment); outflowColors.push('#ef4444');
+            }
+        }
+
+        const hasData = incomeData.length > 0 || outflowData.length > 0;
+
+        container.innerHTML = `
+            <div class="rpt-stats-strip">${statsHTML}</div>
+            ${!hasData ? '<p class="rpt-empty-msg">Add income sources, bills, expenses, or debts to see charts.</p>' : `
+            <div class="rpt-charts-row">
+                <div class="rpt-chart-card">
+                    <h4 class="rpt-chart-title">💰 Income This Month</h4>
+                    <p class="rpt-chart-sub">By source</p>
+                    <div class="rpt-chart-canvas-wrap">
+                        <canvas id="rptIncomeChart"></canvas>
+                    </div>
+                </div>
+                <div class="rpt-chart-card">
+                    <h4 class="rpt-chart-title">📤 Outflow This Month</h4>
+                    <p class="rpt-chart-sub">Bills, expenses &amp; debt minimums by category</p>
+                    <div class="rpt-chart-canvas-wrap">
+                        <canvas id="rptOutflowChart"></canvas>
+                    </div>
+                </div>
+            </div>`}`;
+
+        if (!hasData) return;
+
+        const fmt = v => this.formatCurrency(v);
+        const isDark = document.body.classList.contains('dark-mode');
+        const labelColor = isDark ? '#d1d5db' : '#374151';
+
+        const incomeColors = ['#10b981','#34d399','#6ee7b7','#a7f3d0','#059669','#047857','#065f46'];
+
+        // Income doughnut
+        if (incomeData.length > 0) {
+            const cvs = document.getElementById('rptIncomeChart');
+            if (cvs) {
+                if (this._rptIncomeChart) { this._rptIncomeChart.destroy(); this._rptIncomeChart = null; }
+                this._rptIncomeChart = new Chart(cvs, {
+                    type: 'doughnut',
+                    data: {
+                        labels: incomeLabels,
+                        datasets: [{ data: incomeData, backgroundColor: incomeColors, borderColor: isDark ? '#1f2937' : '#fff', borderWidth: 2 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: labelColor, usePointStyle: true, padding: 10, font: { size: 11 } } },
+                            tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.parsed)}` } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Outflow horizontal bar
+        if (outflowData.length > 0) {
+            const cvs = document.getElementById('rptOutflowChart');
+            if (cvs) {
+                if (this._rptOutflowChart) { this._rptOutflowChart.destroy(); this._rptOutflowChart = null; }
+                this._rptOutflowChart = new Chart(cvs, {
+                    type: 'bar',
+                    data: {
+                        labels: outflowLabels,
+                        datasets: [{ data: outflowData, backgroundColor: outflowColors, borderRadius: 4 }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.x) } }
+                        },
+                        scales: {
+                            x: { ticks: { color: labelColor, callback: v => fmt(v) }, grid: { color: isDark ? '#374151' : '#e5e7eb' } },
+                            y: { ticks: { color: labelColor }, grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    // ── Money Flow ──────────────────────────────────────────────────────────
+    _renderReportsMoneyFlow() {
+        const container = document.getElementById('reportsMoneyFlow');
+        if (!container) return;
+
+        const now        = new Date();
+        const year       = now.getFullYear();
+        const month      = now.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const todayDay   = now.getDate();
+        const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        // Build per-day income and outflow arrays (indexed 1..daysInMonth)
+        const dailyIn  = new Array(daysInMonth + 1).fill(0);
+        const dailyOut = new Array(daysInMonth + 1).fill(0);
+
+        // Income paydays
+        for (const inc of (this.incomes || [])) {
+            for (const d of this._incomeDaysInMonth(inc, year, month)) {
+                dailyIn[d] += inc.amount;
+            }
+        }
+        // Bonuses
+        for (const b of (this.bonuses || [])) {
+            if (!b.date) continue;
+            const bd = new Date(b.date + 'T12:00:00');
+            if (bd.getFullYear() === year && bd.getMonth() === month) {
+                dailyIn[bd.getDate()] += b.amount;
+            }
+        }
+        // Bills
+        for (const bill of (this.bills || [])) {
+            const d = Math.min(bill.dueDay || 1, daysInMonth);
+            dailyOut[d] += bill.amount;
+        }
+        // Debt minimums
+        for (const debt of (this.debts || [])) {
+            const d = Math.min(debt.dueDate || 1, daysInMonth);
+            dailyOut[d] += debt.minimumPayment || 0;
+        }
+
+        // Build cumulative series
+        const labels = [];
+        const cumInData  = [];
+        const cumOutData = [];
+        const netData    = [];
+        let cumIn = 0, cumOut = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+            cumIn  += dailyIn[d];
+            cumOut += dailyOut[d];
+            labels.push(d);
+            cumInData.push(parseFloat(cumIn.toFixed(2)));
+            cumOutData.push(parseFloat(cumOut.toFixed(2)));
+            netData.push(parseFloat((cumIn - cumOut).toFixed(2)));
+        }
+
+        const hasAnyData = cumIn > 0 || cumOut > 0;
+
+        container.innerHTML = `
+            <h3 class="rpt-section-title">💰 Money Flow — ${monthLabel}</h3>
+            <p class="rpt-chart-sub" style="margin:0 0 16px">Cumulative income, outflow, and net balance day by day through the month. Vertical dashed line = today.</p>
+            ${!hasAnyData ? '<p class="rpt-empty-msg">Add income sources, bills, or debts to see the money flow chart.</p>' : `
+            <div class="rpt-moneyflow-wrap">
+                <canvas id="rptMoneyFlowChart"></canvas>
+            </div>`}`;
+
+        if (!hasAnyData) return;
+
+        const cvs = document.getElementById('rptMoneyFlowChart');
+        if (!cvs) return;
+        if (this._rptMoneyFlowChart) { this._rptMoneyFlowChart.destroy(); this._rptMoneyFlowChart = null; }
+
+        const fmt = v => this.formatCurrency(v);
+        const isDark = document.body.classList.contains('dark-mode');
+        const gridColor  = isDark ? '#374151' : '#e5e7eb';
+        const labelColor = isDark ? '#d1d5db' : '#374151';
+
+        this._rptMoneyFlowChart = new Chart(cvs, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Cumulative Income',
+                        data: cumInData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16,185,129,0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        borderWidth: 2,
+                    },
+                    {
+                        label: 'Cumulative Outflow',
+                        data: cumOutData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239,68,68,0.06)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        borderWidth: 2,
+                    },
+                    {
+                        label: 'Net Balance',
+                        data: netData,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        borderWidth: 2.5,
+                        borderDash: [],
+                    },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { color: labelColor, usePointStyle: true, padding: 14, font: { size: 12 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`,
+                        }
+                    },
+                    // Today annotation via a plugin-free vertical line drawn on afterDraw
+                    annotation: undefined
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: `Day of ${monthLabel}`, color: labelColor, font: { size: 11 } },
+                        ticks: { color: labelColor, maxTicksLimit: 16 },
+                        grid: { color: gridColor }
+                    },
+                    y: {
+                        title: { display: true, text: 'Amount ($)', color: labelColor, font: { size: 11 } },
+                        ticks: { color: labelColor, callback: v => fmt(v) },
+                        grid: { color: gridColor }
+                    }
+                }
+            },
+            plugins: [{
+                // Draw a vertical dashed line at today's day
+                id: 'todayLine',
+                afterDraw(chart) {
+                    const todayIdx = todayDay - 1;
+                    if (todayIdx < 0 || todayIdx >= chart.data.labels.length) return;
+                    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+                    const xPos = x.getPixelForValue(todayIdx);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, top);
+                    ctx.lineTo(xPos, bottom);
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = isDark ? 'rgba(251,191,36,0.7)' : 'rgba(37,99,235,0.45)';
+                    ctx.setLineDash([5, 4]);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }]
         });
     }
 }
