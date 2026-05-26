@@ -1,0 +1,423 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt Tracker - Manage Your Debts</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="confetti-container"></div>
+    <div class="container">
+        <header>
+            <h1>💳 Debt Tracker</h1>
+            <p>Take control of your debt with smart payment strategies</p>
+            <button id="themeSwitcher" class="btn btn-secondary" aria-label="Toggle dark mode" style="position: absolute; top: 20px; right: 20px;">🌙</button>
+            <nav class="top-nav">
+                <button class="page-button active" data-page="debts">Debts</button>
+                <button class="page-button" data-page="add">Add Debt</button>
+                <button class="page-button" data-page="strategy">Strategy</button>
+                <button class="page-button" data-page="results">Results</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Input Section -->
+            <section class="input-section page-section" id="inputSection">
+                <h2>Add New Debt</h2>
+                <form id="debtForm">
+                    <div class="form-group">
+                        <label for="debtName">Debt Name *
+                            <span class="help-icon" tabindex="0" aria-label="Enter a descriptive name for this debt, e.g., 'Credit Card' or 'Student Loan'.">?</span>
+                        </label>
+                        <input type="text" id="debtName" placeholder="e.g., Credit Card, Student Loan" required aria-required="true" aria-describedby="debtNameHelp">
+                        <span id="debtNameHelp" class="sr-only">Enter a descriptive name for this debt.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debtCategory">Category
+                            <span class="help-icon" tabindex="0" aria-label="Assign a category to this debt, e.g., Credit Card, Loan, Medical, etc.">?</span>
+                        </label>
+                        <input type="text" id="debtCategory" placeholder="e.g., Credit Card, Loan, Medical" aria-describedby="debtCategoryHelp">
+                        <span id="debtCategoryHelp" class="sr-only">Assign a category to this debt, e.g., Credit Card, Loan, Medical, etc.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debtType">Debt Type *
+                            <span class="help-icon" tabindex="0" aria-label="Select Credit Card for debts with interest, or Fixed Amount for fixed-payment obligations like daycare.">?</span>
+                        </label>
+                        <select id="debtType" required aria-required="true" aria-describedby="debtTypeHelp">
+                            <option value="creditCard">Credit Card / Interest-bearing</option>
+                            <option value="fixedAmount">Fixed Amount (e.g., Daycare)</option>
+                        </select>
+                        <span id="debtTypeHelp" class="sr-only">Select Credit Card for debts with interest, or Fixed Amount for fixed-payment obligations.</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="accountBalance">Account Balance ($) *
+                                <span class="help-icon" tabindex="0" aria-label="Enter the current balance for this debt.">?</span>
+                            </label>
+                            <input type="number" id="accountBalance" placeholder="0.00" step="0.01" min="0" required aria-required="true" aria-describedby="accountBalanceHelp" class="credit-card-field">
+                            <span id="accountBalanceHelp" class="sr-only">Enter the current balance for this debt.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="interestRate">Interest Rate (%) *
+                                <span class="help-icon" tabindex="0" aria-label="Enter the annual interest rate for this debt.">?</span>
+                            </label>
+                            <input type="number" id="interestRate" placeholder="0.00" step="0.01" min="0" max="100" required aria-required="true" aria-describedby="interestRateHelp" class="credit-card-field">
+                            <span id="interestRateHelp" class="sr-only">Enter the annual interest rate for this debt.</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="priority">Priority (1-100) - Optional
+                            <span class="help-icon" tabindex="0" aria-label="Set a custom priority for this debt. 1 is lowest, 100 is highest.">?</span>
+                        </label>
+                        <input type="number" id="priority" placeholder="1 (lowest) - 100 (highest)" min="1" max="100" aria-describedby="priorityHelp" class="credit-card-field">
+                        <span id="priorityHelp" class="sr-only">Set a custom priority for this debt. 1 is lowest, 100 is highest.</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="minimumPayment">Minimum Monthly Payment ($) *
+                                <span class="help-icon" tabindex="0" aria-label="Enter the minimum required monthly payment for this debt.">?</span>
+                            </label>
+                            <input type="number" id="minimumPayment" placeholder="0.00" step="0.01" min="0" required aria-required="true" aria-describedby="minimumPaymentHelp" class="credit-card-field">
+                            <span id="minimumPaymentHelp" class="sr-only">Enter the minimum required monthly payment for this debt.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dueDate">Due Date (Day of Month) *
+                                <span class="help-icon" tabindex="0" aria-label="Enter the day of the month this payment is due (1-31).">?</span>
+                            </label>
+                            <input type="number" id="dueDate" placeholder="1-31" min="1" max="31" required aria-required="true" aria-describedby="dueDateHelp" class="credit-card-field">
+                            <span id="dueDateHelp" class="sr-only">Enter the day of the month this payment is due (1-31).</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group credit-card-field-container">
+                        <label for="debtStartDate">Date Debt Was Opened (optional)
+                            <span class="help-icon" tabindex="0" aria-label="When did you first open or take on this debt? Used to calculate real interest paid to date.">?</span>
+                        </label>
+                        <input type="date" id="debtStartDate" aria-describedby="debtStartDateHelp" class="credit-card-field">
+                        <span id="debtStartDateHelp" class="sr-only">Enter the date this debt was opened, to calculate interest already paid.</span>
+                    </div>
+
+                    <!-- Fixed-Amount Debt Fields -->
+                    <div class="form-row" id="fixedAmountFieldsContainer" style="display: none;">
+                        <div class="form-group">
+                            <label for="fixedAmount">Monthly Amount ($) *
+                                <span class="help-icon" tabindex="0" aria-label="Enter the fixed monthly payment amount for this obligation.">?</span>
+                            </label>
+                            <input type="number" id="fixedAmount" placeholder="0.00" step="0.01" min="0" aria-required="true" aria-describedby="fixedAmountHelp">
+                            <span id="fixedAmountHelp" class="sr-only">Enter the fixed monthly payment amount.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fixedStartDate">Start Date *
+                                <span class="help-icon" tabindex="0" aria-label="Enter the date when this obligation starts.">?</span>
+                            </label>
+                            <input type="date" id="fixedStartDate" aria-required="true" aria-describedby="fixedStartDateHelp">
+                            <span id="fixedStartDateHelp" class="sr-only">Enter the start date for this obligation.</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="fixedEndDateContainer" style="display: none;">
+                        <label for="fixedEndDate">End Date *
+                            <span class="help-icon" tabindex="0" aria-label="Enter the date when this obligation ends.">?</span>
+                        </label>
+                        <input type="date" id="fixedEndDate" aria-required="true" aria-describedby="fixedEndDateHelp">
+                        <span id="fixedEndDateHelp" class="sr-only">Enter the end date for this obligation.</span>
+                    </div>
+
+                    <button type="submit" id="debtFormSubmit" class="btn btn-primary" aria-label="Add Debt">Add Debt</button>
+                    <button type="button" id="cancelEditBtn" class="btn" style="display:none; margin-left:8px;" aria-label="Cancel Edit">Cancel</button>
+    <!-- Theme Switcher -->
+    <button id="themeSwitcher" class="btn btn-secondary" aria-label="Toggle dark mode" style="position: absolute; top: 20px; right: 20px;">🌙</button>
+    <!-- Accessibility: visually hidden class for screen readers -->
+    <style>
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+        .help-icon { display: inline-block; background: #eee; color: #333; border-radius: 50%; width: 1.2em; height: 1.2em; text-align: center; font-size: 0.9em; cursor: pointer; margin-left: 4px; }
+        .help-icon:focus, .help-icon:hover { background: #2563eb; color: #fff; outline: 2px solid #2563eb; }
+    </style>
+                </form>
+            </section>
+
+            <!-- Debts List Section -->
+            <section class="debts-section page-section" id="debtsSection">
+                <h2>Your Debts</h2>
+                <div style="margin-bottom: 16px;">
+                    <label for="categoryFilter" style="font-weight:600;">Filter by Category:</label>
+                    <select id="categoryFilter" style="margin-left:8px; min-width:140px;">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div id="debtsList" class="debts-list"></div>
+                <div id="categorySummary" style="margin: 18px 0 0 0;"></div>
+            </section>
+
+            <!-- Payment Strategy Section -->
+            <section class="strategy-section page-section" id="strategySection">
+                <h2>Payment Strategy</h2>
+                
+                <div class="strategy-controls">
+                    <div class="form-group">
+                        <label for="monthlyPayment">Monthly Payment Amount ($) *</label>
+                        <input type="number" id="monthlyPayment" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="paymentStrategy">Payment Strategy</label>
+                        <select id="paymentStrategy">
+                            <option value="avalanche">Avalanche (Highest Interest First)</option>
+                            <option value="snowball">Snowball (Lowest Balance First)</option>
+                            <option value="priority-lowest">Priority Lowest First</option>
+                            <option value="priority-highest">Priority Highest First</option>
+                        </select>
+                    </div>
+
+                    <button id="calculateBtn" class="btn btn-success">Calculate Payment Plan</button>
+                    <button id="clearDataBtn" class="btn btn-danger">Clear All Data</button>
+                </div>
+
+                <!-- Target Payoff Date -->
+                <div class="target-date-panel">
+                    <button class="target-date-toggle" id="targetDateToggle" type="button" aria-expanded="false" aria-controls="targetDateBody">
+                        🎯 Back-calculate from a target payoff date
+                        <span class="target-date-chevron">▼</span>
+                    </button>
+                    <div class="target-date-body" id="targetDateBody" hidden>
+                        <p class="target-date-desc">Enter a date and we'll calculate the monthly payment required to be debt-free by then.</p>
+                        <div class="target-date-row">
+                            <div class="form-group" style="flex:1; min-width:180px;">
+                                <label for="targetPayoffDate">Target Payoff Date</label>
+                                <input type="date" id="targetPayoffDate">
+                            </div>
+                            <div class="form-group" style="flex:1; min-width:160px;">
+                                <label for="targetPayoffStrategy">Strategy</label>
+                                <select id="targetPayoffStrategy">
+                                    <option value="avalanche">Avalanche</option>
+                                    <option value="snowball">Snowball</option>
+                                    <option value="priority-lowest">Priority (Low→High)</option>
+                                    <option value="priority-highest">Priority (High→Low)</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
+                                <button id="calcTargetBtn" class="btn btn-primary">Calculate</button>
+                            </div>
+                        </div>
+                        <div id="targetPayoffResult"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section page-section" id="resultsSection">
+                <h2>Payment Plan</h2>
+                
+                <div class="summary">
+                    <div class="summary-item">
+                        <span class="label">Total Debt:</span>
+                        <span class="value" id="totalDebtValue">$0.00</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Total Interest:</span>
+                        <span class="value" id="totalInterestValue">$0.00</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Time to Pay Off:</span>
+                        <span class="value" id="timeToPayOffValue">0 months</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Monthly Interest Cost:</span>
+                        <span class="value summary-item--alert" id="monthlyInterestCostValue">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Strategy Comparison & What-If -->
+                <div id="interestComparison"></div>
+                <div id="whatIfSimulator"></div>
+
+                <!-- Debt Summary Table -->
+                <h3>Debt Summary</h3>
+                <div class="table-wrapper">
+				<table id="debtSummaryTable">
+					<thead>
+						<tr>
+                            <th data-sort="name" class="sortable">Debt Name <span class="sort-icon">↕</span></th>
+                            <th data-sort="minDue" class="sortable">Min Due <span class="sort-icon">↕</span></th>
+                            <th data-sort="interestRate" class="sortable">Interest Rate <span class="sort-icon">↕</span></th>
+                            <th data-sort="totalPaid" class="sortable">Total Amount Paid <span class="sort-icon">↕</span></th>
+                            <th data-sort="principalPaid" class="sortable">Principal Paid <span class="sort-icon">↕</span></th>
+                            <th data-sort="interestPaid" class="sortable">Interest Paid <span class="sort-icon">↕</span></th>
+                            <th data-sort="interestToDate" class="sortable">Interest Paid to Date <span class="sort-icon">↕</span></th>
+                            <th data-sort="payoffDate" class="sortable">Estimated Payoff Date <span class="sort-icon">↕</span></th>
+                            <th>Amortization</th>
+						</tr>
+					</thead>
+					<tbody id="debtSummaryTableBody">
+					</tbody>
+				</table>
+			</div>
+
+                <!-- Enhanced Amortization Modal for accessibility and export -->
+                <div id="amortizationModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="amortizationTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10001; align-items:center; justify-content:center;">
+                    <div class="modal-content" style="background:white; max-width:95vw; max-height:90vh; overflow:auto; border-radius:12px; padding:32px 24px; margin:auto; position:relative; outline:0;">
+                        <button id="closeAmortization" aria-label="Close amortization schedule" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
+                        <h3 id="amortizationTitle">Amortization Schedule</h3>
+                        <div id="amortizationTableWrapper"></div>
+                        <button id="exportAmortizationBtn" class="btn btn-secondary" style="margin-top:18px;">Export as CSV</button>
+                    </div>
+                </div>
+
+                <!-- Update Balance Modal -->
+                <div id="updateBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10002; align-items:center; justify-content:center;">
+                    <div class="modal-content" style="background:white; max-width:420px; width:92%; border-radius:12px; padding:28px 24px; margin:auto; position:relative; outline:0;">
+                        <button id="cancelUpdateBalance" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
+                        <h3 id="updateBalanceTitle" style="margin-top:0">Update Balance</h3>
+                        <p style="margin:4px 0 14px;">Debt: <strong id="updateBalanceDebtName"></strong><br>
+                        Current balance: <strong id="updateBalanceCurrent"></strong></p>
+                        <div class="form-group">
+                            <label for="updateBalanceInput">New Current Balance ($)</label>
+                            <input type="number" id="updateBalanceInput" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:16px;">
+                            <button id="confirmUpdateBalance" class="btn btn-success">Update &amp; Recalculate</button>
+                            <button id="cancelUpdateBalanceBtn" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Schedule -->
+                <h3>Monthly Payment Schedule</h3>
+                
+
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="tabular">Tabular View</button>
+                    <button class="tab-button" data-tab="calendar">Calendar View</button>
+                    <button class="tab-button" data-tab="chart">Chart View</button>
+                </div>
+
+                <!-- Per-month stimulus inputs will be rendered next to each month by the app -->
+
+                <div id="tabular-tab" class="tab-content active">
+                    <div class="table-wrapper">
+                        <table id="paymentTable">
+                            <thead id="paymentTableHead">
+                            </thead>
+                            <tbody id="paymentTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="calendar-tab" class="tab-content">
+                    <div id="calendarView"></div>
+                </div>
+
+                <div id="chart-tab" class="tab-content">
+                    <div class="chart-container">
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+
+                <button id="exportBtn" class="btn btn-secondary">Export as CSV</button>
+            </section>
+
+            <!-- Empty State -->
+            <section class="empty-state" id="emptyState">
+                <p>No debts added yet. Start by adding your first debt above!</p>
+            </section>
+        </main>
+    </div>
+
+    <script src="debtCalculator.js"></script>
+    <script src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    // Accessibility and CSV export for amortization modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('amortizationModal');
+        const closeBtn = document.getElementById('closeAmortization');
+        const exportBtn = document.getElementById('exportAmortizationBtn');
+        let lastFocused;
+        if (modal && closeBtn) {
+            // Focus trap
+            modal.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    modal.style.display = 'none';
+                    if (lastFocused) lastFocused.focus();
+                }
+                // Trap focus inside modal
+                if (e.key === 'Tab') {
+                    const focusable = modal.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (e.shiftKey) {
+                        if (document.activeElement === first) {
+                            e.preventDefault();
+                            last.focus();
+                        }
+                    } else {
+                        if (document.activeElement === last) {
+                            e.preventDefault();
+                            first.focus();
+                        }
+                    }
+                }
+            });
+            // Open modal: focus close button
+            const origShow = app.showAmortizationModal.bind(app);
+            app.showAmortizationModal = function(debtName) {
+                lastFocused = document.activeElement;
+                origShow(debtName);
+                setTimeout(() => closeBtn.focus(), 0);
+            };
+            // Close button
+            closeBtn.onclick = function() {
+                modal.style.display = 'none';
+                if (lastFocused) lastFocused.focus();
+            };
+        }
+        // CSV export for amortization
+        if (exportBtn) {
+            exportBtn.onclick = function() {
+                const title = document.getElementById('amortizationTitle').textContent;
+                const wrapper = document.getElementById('amortizationTableWrapper');
+                if (!wrapper) return;
+                const table = wrapper.querySelector('table');
+                if (!table) return;
+                let csv = '';
+                // Table headers
+                const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+                csv += headers.join(',') + '\n';
+                // Table rows
+                Array.from(table.querySelectorAll('tbody tr')).forEach(tr => {
+                    const cells = Array.from(tr.querySelectorAll('td')).map(td => '"' + td.textContent.trim() + '"');
+                    csv += cells.join(',') + '\n';
+                });
+                // Download
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (title.replace(/[^a-z0-9]/gi,'_').toLowerCase() || 'amortization') + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            };
+        }
+    });
+    </script>
+</body>
+</html>
