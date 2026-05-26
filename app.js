@@ -1,27 +1,49 @@
 /**
- * Debt Tracker Application
+ * app.js — Debt Tracker Application
  *
- * Main UI and data management for the Debt Tracker web app.
+ * Main UI controller and data manager for the Debt Tracker web app.
  *
- * Features:
- * - Add, edit, and delete debts (inline editing supported)
- * - Choose payment strategy (Avalanche, Snowball, Priority)
- * - Enter monthly payment and optional per-month stimulus/bonus payments
- * - Calculate payoff plan with daily-compounded interest (credit card style)
- * - Multi-page navigation (Debts, Add, Strategy, Results)
- * - LocalStorage persistence and CSV export
- * - Responsive, accessible UI
+ * Debt types supported:
+ *   - creditCard  : Interest-bearing debt. Uses daily-compounded interest.
+ *                   Fields: accountBalance, interestRate, minimumPayment, dueDate,
+ *                           originalBalance, debtStartDate (optional), priority (optional)
+ *   - fixedAmount : Date-range obligation (e.g. daycare). No interest, fixed monthly cost.
+ *                   Fields: fixedAmount, fixedStartDate, fixedEndDate
+ *
+ * Key features:
+ *   - Add, inline-edit, and delete debts
+ *   - Four payment strategies: Avalanche, Snowball, Priority-Low, Priority-High
+ *   - Monthly payment + optional per-month stimulus/bonus payments
+ *   - Target payoff date back-calculator (binary search)
+ *   - Interest saved strategy comparison (all 4 strategies side-by-side)
+ *   - What-if simulator (extra-payment slider, live recalc)
+ *   - Minimum payment / negative-amortization risk warnings
+ *   - Update-balance modal — adjust current balance without losing original
+ *   - Interest paid to date — estimated real interest spent since debt was opened
+ *   - Per-debt payoff progress bars (debt cards + summary table)
+ *   - Calendar view (paginated, one month per page, today highlighted)
+ *   - Chart view: per-debt balance timeline, cumulative payment line chart, pie chart
+ *   - LocalStorage persistence (debts, strategy, monthly payment, stimulus)
+ *   - CSV export of full payment plan and debt summary
+ *   - Dark mode toggle, category filter, column sorting
+ *
+ * Dependencies:
+ *   - debtCalculator.js  (DebtCalculator static class)
+ *   - Chart.js           (loaded from CDN in index.html)
  */
 
 class DebtTrackerApp {
-    // Main application class for managing debts, UI, and calculations
+    /**
+     * Root application class.
+     * Instantiated once (as `app`) after DOMContentLoaded.
+     * Owns all state: debt list, last calculated plan, per-month stimulus, edit state.
+     */
     constructor() {
-        // List of debt objects (see addDebt for structure)
-        this.debts = [];
-        this.lastPaymentPlan = null;
-        this.lastSummary = null;
-        this.perMonthStimulus = []; // array of per-month stimulus values
-        this.editingDebtId = null; // id of debt currently being edited
+        this.debts = [];              // Array of debt objects (see addDebt for shape)
+        this.lastPaymentPlan = null;  // Most recently calculated paymentPlan array
+        this.lastSummary = null;      // Summary object from DebtCalculator.generateSummary
+        this.perMonthStimulus = [];   // Extra payment amounts indexed by plan month (0-based)
+        this.editingDebtId = null;    // ID of the debt currently in inline-edit mode, or null
         this.storageKey = 'debtTrackerData';
         
         this.initializeEventListeners();
@@ -30,9 +52,15 @@ class DebtTrackerApp {
         this.updateFormVisibility();
     }
 
-    // Set up all event listeners for UI controls and navigation
+    /**
+     * Attach all DOM event listeners.
+     * Called once from the constructor. Covers: tab switching, category filter,
+     * dark mode, help icons, form validation, debt type toggling, calculate button,
+     * localStorage change listeners, clear data, page navigation,
+     * target-date panel toggle, and target-date calculate button.
+     */
     initializeEventListeners() {
-        // Tab switching for Results section
+        // Tab switching within the Results section (Tabular / Calendar / Chart)
         document.querySelectorAll('.tab-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const tab = btn.getAttribute('data-tab');
@@ -41,14 +69,14 @@ class DebtTrackerApp {
                 }
             });
         });
-        // Category filter for debts list
+        // Category filter on the Debts page — re-renders list on change
         const categoryFilter = document.getElementById('categoryFilter');
         if (categoryFilter) {
             categoryFilter.addEventListener('change', () => {
                 this.renderDebtsList();
             });
         }
-        // Theme switcher (dark mode)
+        // Dark mode toggle — switches body class and updates button icon/label
         const themeSwitcher = document.getElementById('themeSwitcher');
         if (themeSwitcher) {
             themeSwitcher.addEventListener('click', () => {
@@ -58,7 +86,7 @@ class DebtTrackerApp {
             });
         }
 
-        // Keyboard navigation for help icons
+        // Allow keyboard activation (Enter / Space) of help tooltip icons
         document.querySelectorAll('.help-icon').forEach(icon => {
             icon.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -68,13 +96,13 @@ class DebtTrackerApp {
             });
         });
 
-        // Input validation for Add Debt form
+        // Live validation as the user types in the Add Debt form
         const debtForm = document.getElementById('debtForm');
         if (debtForm) {
             debtForm.addEventListener('input', (e) => {
                 this.validateDebtForm();
             });
-            // Form submission
+            // On submit: validate, then either save an edit or add a new debt
             debtForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 if (!this.validateDebtForm()) return;
@@ -86,7 +114,7 @@ class DebtTrackerApp {
             });
         }
 
-        // Debt type change listener
+        // Show/hide credit-card vs fixed-amount fields when debt type changes
         const debtTypeSelect = document.getElementById('debtType');
         if (debtTypeSelect) {
             debtTypeSelect.addEventListener('change', () => {
@@ -94,7 +122,7 @@ class DebtTrackerApp {
             });
         }
 
-        // Calculate Payment Plan button
+        // "Calculate Payment Plan" button — runs the main payoff calculation
         const calculateBtn = document.getElementById('calculateBtn');
         if (calculateBtn) {
             calculateBtn.addEventListener('click', () => {
@@ -102,7 +130,7 @@ class DebtTrackerApp {
             });
         }
 
-        // Save strategy settings to localStorage on change
+        // Persist strategy settings immediately when the user changes them
         const monthlyPaymentEl = document.getElementById('monthlyPayment');
         if (monthlyPaymentEl) {
             monthlyPaymentEl.addEventListener('change', () => this.saveToStorage());
@@ -122,7 +150,7 @@ class DebtTrackerApp {
             });
         }
 
-        // Navigation: Add click event listeners to all .page-button elements
+        // Top nav page buttons (Debts / Add Debt / Strategy / Results)
         document.querySelectorAll('.page-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const page = btn.getAttribute('data-page');
@@ -132,7 +160,7 @@ class DebtTrackerApp {
             });
         });
 
-        // Target payoff date panel toggle
+        // Target payoff date panel: collapse/expand toggle
         const targetToggle = document.getElementById('targetDateToggle');
         const targetBody = document.getElementById('targetDateBody');
         if (targetToggle && targetBody) {
@@ -143,13 +171,18 @@ class DebtTrackerApp {
             });
         }
 
-        // Target payoff date calculate button
+        // Target payoff date: "Calculate" button runs binary-search back-calculator
         const calcTargetBtn = document.getElementById('calcTargetBtn');
         if (calcTargetBtn) {
             calcTargetBtn.addEventListener('click', () => this.calculateRequiredPayment());
         }
     }
 
+    /**
+     * Validate the Add Debt form fields based on the currently selected debt type.
+     * Adds/removes `.input-error` class and shows inline error messages.
+     * @returns {boolean} true if all visible required fields are valid
+     */
     validateDebtForm() {
         const debtType = document.getElementById('debtType').value;
         const debtNameEl = document.getElementById('debtName');
@@ -212,7 +245,11 @@ class DebtTrackerApp {
         return valid;
     }
 
-    // Update form field visibility based on debt type
+    /**
+     * Show/hide form fields based on the selected debt type.
+     * creditCard  → shows balance, rate, min payment, due date, priority, start date fields
+     * fixedAmount → hides those; shows fixed amount, start date, end date fields
+     */
     updateFormVisibility() {
         const debtType = document.getElementById('debtType').value;
         const creditCardFields = document.querySelectorAll('.credit-card-field');
@@ -245,7 +282,18 @@ class DebtTrackerApp {
         }
     }
 
-    // Add a new debt from the Add Debt form
+    /**
+     * Read the Add Debt form, validate it, build a debt object, push it to this.debts,
+     * persist to localStorage, and refresh the UI. Resets the form on success.
+     *
+     * Debt object shape (creditCard):
+     *   { id, name, debtType, category, accountBalance, originalBalance, interestRate,
+     *     priority, minimumPayment, dueDate, debtStartDate }
+     *
+     * Debt object shape (fixedAmount):
+     *   { id, name, debtType, category, fixedAmount, fixedStartDate, fixedEndDate,
+     *     accountBalance:0, interestRate:0, minimumPayment, dueDate }
+     */
     addDebt() {
         const name = document.getElementById('debtName').value.trim();
         const debtType = document.getElementById('debtType').value;
@@ -332,15 +380,21 @@ class DebtTrackerApp {
         this.updateFormVisibility();
     }
 
-    // Delete a debt by id
+    /**
+     * Remove a debt by ID, persist, and refresh the UI.
+     * @param {number} debtId - The debt's `id` property
+     */
     deleteDebt(debtId) {
         this.debts = this.debts.filter(debt => debt.id !== debtId);
         this.saveToStorage();
         this.updateUI();
     }
 
-    // Calculate the payment plan using the selected strategy and monthly payment
-    // Navigates to Results page after calculation
+    /**
+     * Read the monthly payment amount and strategy from the Strategy form,
+     * run DebtCalculator.calculatePaymentPlan, store the result, render the
+     * Results page, and switch to it.
+     */
     calculatePaymentPlan() {
         const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
         const strategy = document.getElementById('paymentStrategy').value;
@@ -365,7 +419,16 @@ class DebtTrackerApp {
         }
     }
 
-    // Back-calculate the monthly payment needed to hit a target payoff date
+    /**
+     * Use binary search to find the minimum monthly payment needed to pay off all
+     * interest-bearing debts by the user's chosen target date.
+     *
+     * Algorithm:
+     *   1. Convert target date → targetMonths from today
+     *   2. Binary search (60 iterations) between totalMinimum and 2×totalBalance
+     *   3. Round result up to the nearest dollar
+     *   4. Render a result card with payoff stats and an optional "Use this amount" button
+     */
     calculateRequiredPayment() {
         const resultEl = document.getElementById('targetPayoffResult');
         const dateVal = document.getElementById('targetPayoffDate').value;
@@ -478,7 +541,14 @@ class DebtTrackerApp {
         }
     }
 
-    // Render the payment plan and summary tables in the Results page
+    /**
+     * Render the full Results page after a calculation:
+     *   - Summary stats (total debt, interest, payoff time, monthly interest cost)
+     *   - Debt Summary table
+     *   - Strategy interest comparison panel
+     *   - What-if extra-payment simulator
+     *   - Monthly payment schedule table
+     */
     displayPaymentPlan() {
         if (!this.lastPaymentPlan || !this.lastSummary) return;
 
@@ -513,7 +583,14 @@ class DebtTrackerApp {
         this.displayPaymentSchedule();
     }
 
-    // Render the debt summary table in the Results page
+    /**
+     * Build this._debtSummaryRows from this.lastPaymentPlan, then call
+     * _renderDebtSummaryTable(). Also wires up column-header sort clicks.
+     *
+     * Each row includes: name, minDue, interestRate, dueDate, isFixedAmount,
+     * totalPaid, principalPaid, interestPaid, payoffDate, interestToDate,
+     * debtStartDate, order.
+     */
     displayDebtSummary() {
         // Get debt names in the order they appear in the payment plan (payment priority order)
         const debtOrderMap = {};
@@ -603,6 +680,11 @@ class DebtTrackerApp {
         });
     }
 
+    /**
+     * Re-sort and re-render the debt summary table body using this._debtSummaryRows
+     * and this._debtSummarySort. Also updates column header sort icons.
+     * Called by displayDebtSummary() and whenever a sort header is clicked.
+     */
     _renderDebtSummaryTable() {
         const summaryBody = document.getElementById('debtSummaryTableBody');
         summaryBody.innerHTML = '';
@@ -705,7 +787,11 @@ class DebtTrackerApp {
         });
     }
 
-    // Show amortization modal for a given debt
+    /**
+     * Open the amortization modal for a single debt, showing a month-by-month
+     * table of payment, principal, interest, and remaining balance.
+     * @param {string} debtName - Debt name as it appears in the payment plan
+     */
     showAmortizationModal(debtName) {
         const modal = document.getElementById('amortizationModal');
         const title = document.getElementById('amortizationTitle');
@@ -736,7 +822,13 @@ class DebtTrackerApp {
         };
     }
 
-    // Render the monthly payment schedule table, including per-month stimulus inputs
+    /**
+     * Build the monthly payment schedule table (tabular view tab).
+     * Columns: Month | [one column per debt] | Stimulus ($) | Total Paid
+     *
+     * The Stimulus column is an editable number input per month. Changing it
+     * updates this.perMonthStimulus, persists, and immediately recalculates the plan.
+     */
     displayPaymentSchedule() {
         if (!this.lastPaymentPlan || this.lastPaymentPlan.length === 0) return;
 
@@ -875,7 +967,14 @@ class DebtTrackerApp {
         }
     }
 
-    // Export the current payment plan and summary to a CSV file
+    /**
+     * Export the current payment plan to a downloadable CSV file.
+     * The file contains two sections:
+     *   1. Monthly schedule — one row per month with per-debt payment amounts,
+     *      a "Stimulus Applied" column, and a monthly total.
+     *   2. Debt summary — one row per debt with totals for principal, interest
+     *      paid, and estimated payoff date.
+     */
     exportToCSV() {
         if (!this.lastPaymentPlan) {
             alert('Please calculate a payment plan first');
@@ -991,7 +1090,14 @@ class DebtTrackerApp {
         window.URL.revokeObjectURL(url);
     }
 
-    // Update the UI based on current app state (show/hide pages, render lists)
+    /**
+     * Refresh the entire UI to match the current state of `this.debts`.
+     * - Restores saved monthly-payment and strategy values from storage.
+     * - Shows the empty-state banner and redirects to the Add page when there
+     *   are no debts.
+     * - Otherwise hides the empty state, activates the Debts page, and calls
+     *   `renderDebtsList()`.
+     */
     updateUI() {
         // Restore saved strategy settings
         if (this._savedMonthlyPayment) {
@@ -1019,7 +1125,10 @@ class DebtTrackerApp {
         this.renderDebtsList();
     }
 
-    // Switch top-level pages (debts, add, strategy, results)
+    /**
+     * Activate a top-level page section and update the nav button state.
+     * @param {string} pageName - One of `'debts'`, `'add'`, `'strategy'`, `'results'`
+     */
     switchPage(pageName) {
         // update nav active state
         document.querySelectorAll('.page-button').forEach(b => b.classList.remove('active'));
@@ -1044,9 +1153,20 @@ class DebtTrackerApp {
         }
     }
 
-    // Compute estimated interest already paid from debtStartDate to today
-    // Uses daily-compounded interest on the *original* balance over the elapsed period,
-    // minus the principal reduction (origBalance - currentBalance).
+    /**
+     * Estimate the interest already paid on a credit-card debt since its
+     * `debtStartDate` using daily compounding on the original balance.
+     *
+     * Algorithm:
+     *   totalAccrued = origBal × ((1 + rate/365)^days − 1)
+     *   interestPaid = max(0, totalAccrued − principalPaidDown)
+     *
+     * @param {object} debt - A debt object with `debtType`, `debtStartDate`,
+     *   `originalBalance`, `accountBalance`, and `interestRate`.
+     * @returns {{ interestPaid: number, days: number, start: Date } | null}
+     *   Returns `null` if the debt is not a credit card, has no start date,
+     *   or the start date is in the future.
+     */
     computeInterestPaidToDate(debt) {
         if (!debt.debtStartDate || debt.debtType !== 'creditCard') return null;
         const start = new Date(debt.debtStartDate);
@@ -1067,7 +1187,19 @@ class DebtTrackerApp {
         return { interestPaid, days, start };
     }
 
-    // Render the list of debts, supporting inline editing
+    /**
+     * Render the Debts page list.
+     * Each debt is shown as a card with:
+     *   - Name, balance, APR, minimum payment, due date, category
+     *   - A negative-amortization warning badge if APR causes the balance to grow
+     *   - A paydown progress bar (requires `originalBalance`)
+     *   - Monthly interest cost estimate
+     *   - Interest Paid to Date stat (credit-card debts with `debtStartDate` only)
+     *   - Edit / Delete / Update Balance action buttons
+     *
+     * If `this.editingDebtId` is set the matching card is replaced with an
+     * inline edit form instead.
+     */
     renderDebtsList() {
         // Render category summary
         const categorySummary = document.getElementById('categorySummary');
@@ -1257,7 +1389,12 @@ class DebtTrackerApp {
         }
     }
 
-    // Begin inline editing for a debt card
+    /**
+     * Enter inline-edit mode for a debt card.
+     * Sets `this.editingDebtId` and re-renders the list so the card is
+     * replaced with an editable form. Focuses the name field after render.
+     * @param {number} debtId - ID of the debt to edit
+     */
     startEdit(debtId) {
         // Enable inline editing for this debt
         const debt = this.debts.find(d => d.id === debtId);
@@ -1272,7 +1409,13 @@ class DebtTrackerApp {
         }, 0);
     }
 
-    // Save changes from inline editing of a debt card
+    /**
+     * Validate and persist the inline-edit form for a debt card.
+     * Handles both `fixedAmount` and `creditCard` debt types, reading the
+     * appropriate inline input elements. After saving, auto-recalculates the
+     * payment plan if a monthly payment is already set.
+     * @param {number} debtId - ID of the debt being saved
+     */
     saveInlineEdit(debtId) {
         const nameEl = document.getElementById(`inline-name-${debtId}`);
         const catEl = document.getElementById(`inline-category-${debtId}`);
@@ -1387,13 +1530,17 @@ class DebtTrackerApp {
         this.updateUI();
     }
 
-    // Cancel inline editing and restore debt card view
+    /** Discard inline edits and return the card to read-only view. */
     cancelInlineEdit() {
         this.editingDebtId = null;
         this.updateUI();
     }
 
-    // Save changes to the currently editing debt
+    /**
+     * Save changes from the full-page edit form (legacy modal edit path).
+     * Validates required fields, updates the debt in `this.debts`, and
+     * auto-recalculates the plan if a monthly payment is set.
+     */
     saveEdit() {
         if (!this.editingDebtId) return;
 
@@ -1440,7 +1587,7 @@ class DebtTrackerApp {
         this.cancelEdit();
     }
 
-    // Cancel current edit and reset form
+    /** Reset the Add Debt form to its blank state and hide the Cancel button. */
     cancelEdit() {
         this.editingDebtId = null;
         document.getElementById('debtForm').reset();
@@ -1450,7 +1597,12 @@ class DebtTrackerApp {
         if (cancelBtn) cancelBtn.style.display = 'none';
     }
 
-    // Remove all debts and reset the app
+    /**
+     * Wipe all debts and reset every piece of app state, then confirm to the user.
+     * Clears `this.debts`, `this.lastPaymentPlan`, `this.lastSummary`, and
+     * `this.perMonthStimulus`, removes data from localStorage, and resets all
+     * form fields.
+     */
     clearAllData() {
         this.debts = [];
         this.lastPaymentPlan = null;
@@ -1464,7 +1616,10 @@ class DebtTrackerApp {
         alert('All debt data has been cleared');
     }
 
-    // Save debts and per-month stimulus to localStorage
+    /**
+     * Persist current state to localStorage under `this.storageKey`.
+     * Saved keys: `debts`, `perMonthStimulus`, `monthlyPayment`, `strategy`, `timestamp`.
+     */
     saveToStorage() {
         try {
             const data = {
@@ -1480,7 +1635,11 @@ class DebtTrackerApp {
         }
     }
 
-    // Load debts and per-month stimulus from localStorage
+    /**
+     * Restore state from localStorage.
+     * Populates `this.debts`, `this.perMonthStimulus`, `this._savedMonthlyPayment`,
+     * and `this._savedStrategy`. Silently ignores missing or corrupted data.
+     */
     loadFromStorage() {
         try {
             const data = localStorage.getItem(this.storageKey);
@@ -1496,7 +1655,11 @@ class DebtTrackerApp {
         }
     }
 
-    // Format a number as USD currency
+    /**
+     * Format a number as a USD currency string (e.g., `1234.5` → `"$1,234.50"`).
+     * @param {number} value
+     * @returns {string}
+     */
     formatCurrency(value) {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -1506,7 +1669,11 @@ class DebtTrackerApp {
         }).format(value);
     }
 
-    // Convert a day number to an ordinal string (e.g., 1 -> 1st)
+    /**
+     * Return the ordinal suffix string for a day number (e.g., `1` → `"1st"`).
+     * @param {number} day
+     * @returns {string}
+     */
     getDayOrdinal(day) {
         const j = day % 10;
         const k = day % 100;
@@ -1517,7 +1684,14 @@ class DebtTrackerApp {
         return day + 'th';
     }
 
-    // Switch between Results tab views (table/chart)
+    /**
+     * Activate a Results sub-tab by name.
+     * Valid tab names: `'table'`, `'chart'`, `'calendar'`.
+     * Side effects:
+     *   - `'chart'` triggers `renderBalanceChart()`, `renderProgressChart()`, `renderPieChart()`
+     *   - `'calendar'` triggers `renderCalendarView()`
+     * @param {string} tabName
+     */
     switchTab(tabName) {
         // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(tab => {
@@ -1546,6 +1720,14 @@ class DebtTrackerApp {
         }
     }
 
+    /**
+     * Render the payment calendar for a given page (1 month per page).
+     * Each month is drawn as a standard weekly grid. Debt payment events are
+     * pinned to their `dueDate` day and colour-coded by debt. Today's cell
+     * receives the `cal-today` CSS class. Prev/Next pagination buttons are
+     * rendered at the top and bottom of the container.
+     * @param {number} [page=0] - Zero-based page index
+     */
     renderCalendarView(page = 0) {
         const container = document.getElementById('calendarView');
         if (!container || !this.lastPaymentPlan || this.lastPaymentPlan.length === 0) return;
@@ -1668,6 +1850,15 @@ class DebtTrackerApp {
             btn.addEventListener('click', () => this.renderCalendarView(page + 1));
         });
     }
+    /**
+     * Render the Strategy Comparison panel inside `#interestComparison`.
+     * Runs all four payment strategies with the current debts and monthly
+     * payment, then displays a ranked table showing total interest and months
+     * for each strategy. If the current strategy is not optimal a savings
+     * banner is shown.
+     * @param {string} currentStrategy - The strategy key currently selected
+     * @param {number} monthlyPayment  - The current total monthly payment
+     */
     // ─── Interest Saved Comparison ────────────────────────────────────────────
     displayInterestComparison(currentStrategy, monthlyPayment) {
         const container = document.getElementById('interestComparison');
@@ -1722,6 +1913,14 @@ class DebtTrackerApp {
         container.innerHTML = html;
     }
 
+    /**
+     * Render the What-If Simulator panel inside `#whatIfSimulator`.
+     * Displays a range slider (0 → min(1000, basePayment)) that lets the user
+     * drag an extra monthly payment amount and instantly see the resulting
+     * months saved and interest saved compared to the base scenario.
+     * @param {number} basePayment - The current calculated monthly payment
+     * @param {string} strategy    - The currently selected strategy key
+     */
     // ─── What-If Simulator ────────────────────────────────────────────────────
     displayWhatIfSimulator(basePayment, strategy) {
         const container = document.getElementById('whatIfSimulator');
@@ -1783,6 +1982,12 @@ class DebtTrackerApp {
         });
     }
 
+    /**
+     * Open the Update Balance modal for a credit-card debt.
+     * Pre-fills the input with the current balance and wires up Confirm/Cancel.
+     * On confirmation calls `updateDebtBalance()` which preserves `originalBalance`.
+     * @param {number} debtId - ID of the debt whose balance will be updated
+     */
     // ─── Update Balance Modal ─────────────────────────────────────────────────
     showUpdateBalanceModal(debtId) {
         const debt = this.debts.find(d => d.id === debtId);
@@ -1808,6 +2013,12 @@ class DebtTrackerApp {
         modal.onclick = (e) => { if (e.target === modal) close(); };
     }
 
+    /**
+     * Apply a new balance to a debt, preserve `originalBalance`, and
+     * recalculate the payment plan if one already exists.
+     * @param {number} debtId      - ID of the debt to update
+     * @param {number} newBalance  - The new current balance (≥ 0)
+     */
     updateDebtBalance(debtId, newBalance) {
         const idx = this.debts.findIndex(d => d.id === debtId);
         if (idx === -1) return;
@@ -1834,8 +2045,12 @@ class DebtTrackerApp {
         this.renderDebtsList();
     }
 
-    // ─── Balance-over-time chart (per debt) ───────────────────────────────────
-    // Render the balance-over-time chart: one line per debt showing balance declining
+    /**
+     * Draw (or redraw) the "Payoff Timeline" Chart.js line chart.
+     * One line per debt, each showing the projected balance declining to zero.
+     * Uses `this.lastPaymentPlan` as the data source. Destroys any previous
+     * `this.balanceChart` instance before creating a new one.
+     */
     renderBalanceChart() {
         if (!this.lastPaymentPlan) return;
 
@@ -1912,7 +2127,12 @@ class DebtTrackerApp {
         });
     }
 
-    // Render a doughnut chart: total principal vs total interest paid
+    /**
+     * Draw (or redraw) the "Total Interest vs. Principal Paid" doughnut chart.
+     * Uses `this.lastSummary.totalDebt` (principal) and
+     * `this.lastSummary.totalInterest` as segment values. Destroys any
+     * previous `this.pieChart` instance before creating a new one.
+     */
     renderPieChart() {
         const canvas = document.getElementById('pieChart');
         if (!canvas || !this.lastSummary) return;
@@ -1951,7 +2171,12 @@ class DebtTrackerApp {
         });
     }
 
-    // Render the progress chart (total vs principal vs interest paid over time)
+    /**
+     * Draw (or redraw) the cumulative-payments progress line chart.
+     * Three lines: Total Paid, Principal Paid, and Interest Paid — all
+     * running totals over the plan duration. Destroys any previous
+     * `this.progressChart` instance.
+     */
     renderProgressChart() {
         if (!this.lastPaymentPlan) return;
 

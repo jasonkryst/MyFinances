@@ -1,165 +1,194 @@
 # Debt Tracker Application
 
-A modern web application to help you manage and pay off your debts efficiently using various payment strategies.
+A modern, single-page web application that helps you plan and visualise a path to becoming debt-free. All calculations happen locally in your browser — no accounts, no servers, no tracking.
+
+---
 
 ## Features
 
-### Core Functionality
-- **Add Multiple Debts**: Track credit cards, student loans, personal loans, and more
-- **Flexible Input**: Enter debt name, account balance, interest rate, and optional priority level
-- **Multiple Payment Strategies**:
-  - **Avalanche**: Pay highest interest rate first (saves the most money on interest)
-  - **Snowball**: Pay lowest balance first (psychological wins)
-  - **Priority Lowest First**: Pay debts you've marked as lowest priority first
-  - **Priority Highest First**: Pay debts you've marked as highest priority first
+### Debt Management
+- **Add unlimited debts** — credit cards (revolving balance with APR) or fixed-amount recurring payments (subscriptions, rent, instalments)
+- **Inline editing** — edit any debt directly on the Debts page without leaving the list
+- **Update Balance** — quickly record a new balance for any credit-card debt while preserving the original balance for progress tracking
+- **Category labels** — tag debts (e.g. "Housing", "Credit Card") and filter the list by category
+- **Priority levels** — assign a 1–10 priority to each debt for custom strategy ordering
 
-### Calculation Features
-- Monthly payment allocation to each debt
-- Accurate interest calculations (**daily compounding**, matches credit card standards)
-- Principal vs. Interest breakdown for each payment
-- Estimated payoff date for each debt
-- Total debt overview with payoff timeline
-- **Per-month stimulus/bonus payments**: Add extra payments for any month, distributed by priority
+### Calculation Engine
+- **Daily compounding interest** — matches real credit-card billing cycles:
+  ```
+  monthlyInterest = balance × ((1 + APR/365)^daysInMonth − 1)
+  ```
+- **Four payment strategies** — Avalanche, Snowball, Priority-Lowest, Priority-Highest
+- **Per-month stimulus** — add a one-time extra payment for any month in the schedule table; the plan recalculates instantly
+- **Negative-amortisation warning** — a badge flags any debt where the minimum payment is too low to cover the monthly interest
 
-### Data Management & UI
-- **LocalStorage Integration**: All data is automatically saved to your browser
-- **Export to CSV**: Download payment plans as CSV for spreadsheet analysis
-- **Clear All Data**: Remove all debts and start fresh
-- **Inline Editing**: Edit debts directly in the list, no need to switch pages
-- **Multi-page Navigation**: Top navigation for Debts, Add Debt, Strategy, and Results
+### Results & Analysis
+- **Monthly schedule table** — rows = months, columns = debts + Stimulus + Total Paid, editable stimulus inputs per row
+- **Debt summary table** — per-debt totals for principal paid, interest paid, payoff date, and a snowball/avalanche progress bar
+- **Strategy comparison panel** — runs all four strategies and shows how much interest and time each saves relative to your current choice
+- **What-If simulator** — drag a slider to add extra monthly payment and instantly see months saved / interest saved
+- **Target Payoff Date calculator** — enter a desired payoff date; a binary-search algorithm back-calculates the required monthly payment
+
+### Charts (Chart.js)
+- **Payoff Timeline** — one line per debt showing projected balance declining to zero
+- **Cumulative Progress** — three lines: Total Paid, Principal Paid, Interest Paid (running totals)
+- **Principal vs. Interest doughnut** — visualises how much of your total outlay is interest
+
+### Calendar View
+- One calendar month per page, paginated forward through the entire plan
+- Debt payment events pinned to each debt's due date, colour-coded by debt
+- Today's date highlighted
+
+### Interest Paid to Date
+- Record the date you opened each credit-card debt (`debtStartDate`)
+- The app estimates the interest you have already paid using daily compounding on the original balance, minus the principal you have paid down
+- Shown on each debt card, in the summary table, and persisted to localStorage
+
+### Data Management
+- **Persistent storage** — debts, stimulus data, monthly payment, and strategy are auto-saved to `localStorage`
+- **Export to CSV** — full payment schedule plus per-debt summary in one file
+- **Clear All Data** — wipe everything and start fresh
+
+---
 
 ## How to Use
 
-### 1. Adding Debts
-1. Fill in the debt name (e.g., "Credit Card", "Student Loan")
-2. Enter the current account balance
-3. Enter the annual interest rate (e.g., 18.5 for 18.5%)
-4. (Optional) Set priority level (1-100, where 100 is highest priority)
-5. Click "Add Debt" or use the inline Edit button in the Debts list to update existing debts
+### 1 — Add your debts
 
-### 2. Setting Up Payment Strategy
-1. Enter your total monthly payment amount
-2. Select your preferred payment strategy:
-  - **Avalanche (Recommended)**: Mathematically optimal - saves the most on interest
-  - **Snowball**: Psychology-focused - quick wins with smallest debts
-  - **Priority-based**: Manual control over which debts to tackle first
-3. (Optional) Enter extra "stimulus" payments for any month in the Results table
-4. Click "Calculate Payment Plan" (auto-navigates to Results)
+Navigate to **Add Debt**.
 
-### 3. Understanding the Results
+| Field | Notes |
+|-------|-------|
+| Debt Name | Any label (e.g. "Visa", "Car Loan") |
+| Debt Type | Credit Card (revolving) or Fixed Amount (recurring) |
+| Balance / Amount | Current balance or fixed monthly cost |
+| APR | Annual interest rate, e.g. `18.9` |
+| Minimum Payment | The minimum you must pay each month |
+| Due Date | Day of month the payment is due (used in Calendar view) |
+| Priority | 1–10, used by Priority strategies |
+| Opened Date | Optional — enables the Interest Paid to Date estimate |
+| Category | Optional label for filtering |
 
-The Results page shows:
-- **Monthly Payment Schedule**: Table with months as rows, debts as columns, and a per-month stimulus input column. Edit stimulus for any month to see the effect instantly.
-- **Debt Summary**: Total paid, principal, interest, and estimated payoff date for each debt.
-- **Chart View**: Visualize balances over time.
+Click **Add Debt**. Repeat for every debt.
 
-### 4. Exporting Data
-Click "Export as CSV" to download your payment plan for use in spreadsheets or other tools.
+### 2 — Set your strategy
+
+Navigate to **Strategy**.
+
+1. Enter your **Total Monthly Payment** — the total you can put toward all debts each month.
+2. Choose a **Payment Strategy** (see below).
+3. Optionally set a **Target Payoff Date** and click *Calculate Required Payment* to see the minimum monthly payment needed.
+4. Click **Calculate Payment Plan**.
+
+### 3 — Review the Results
+
+The Results page has three tabs:
+
+| Tab | Contents |
+|-----|----------|
+| **Table** | Monthly schedule with per-debt payments and editable stimulus column; debt summary table with progress bars; strategy comparison panel; what-if simulator |
+| **Charts** | Payoff timeline (per-debt lines), cumulative progress chart, principal vs. interest doughnut |
+| **Calendar** | Month-by-month calendar with payment events on due dates |
+
+### 4 — Export
+
+Click **Export as CSV** on the Results page to download a spreadsheet-ready file.
+
+---
 
 ## Payment Strategies Explained
 
-### Avalanche Method
-- Pays minimum on all debts except the one with the highest interest rate
-- Excess money goes to highest interest rate debt
-- **Best for**: Saving money long-term
-- **Example**: If you have a 20% credit card and 5% car loan, pay the credit card first
+| Strategy | Order | Best for |
+|----------|-------|----------|
+| **Avalanche** | Highest APR first | Minimising total interest paid |
+| **Snowball** | Lowest balance first | Psychological momentum |
+| **Priority – Low first** | Lowest priority number first | Custom ordering (manually deprioritise debts) |
+| **Priority – High first** | Highest priority number first | Tackling the most important debt first |
 
-### Snowball Method
-- Pays minimum on all debts except the one with the lowest balance
-- Excess money goes to lowest balance debt
-- **Best for**: Quick psychological wins
-- **Example**: If you have a $500 and $5,000 debt, pay off the $500 first
+The **Strategy Comparison** panel on the Results page always shows how your chosen strategy compares to all others so you can make an informed decision.
 
-### Priority Methods
-- Allows you to manually set which debts to tackle first (1-10 scale)
-- Useful if some debts feel more urgent due to circumstances
-- **Best for**: Personal situations where financial optimization isn't the only goal
+---
 
-## Data Storage
+## Target Payoff Date (Back-Calculator)
 
-All your debt information is automatically saved to your browser's localStorage. This means:
-- ✅ Your data persists between sessions
-- ✅ Your data stays on your local device (not sent to any server)
-- ✅ Clearing browser data will remove your debt tracker data
+Enter a target date in the **Strategy** section. The app uses a binary-search algorithm (up to 60 iterations) to find the smallest monthly payment that pays off all debts by that date.
 
-To back up your data, export it as CSV regularly.
-
-## Tips for Success
-
-1. **Be Realistic**: Only enter a monthly payment amount you can actually afford
-2. **Use Avalanche**: If you want to save the most money on interest
-3. **Use Snowball**: If you need quick motivational wins
-4. **Set Priorities**: If certain debts feel more urgent
-5. **Check Regularly**: Update your debts as you pay them off
-6. **Emergency Buffer**: Don't commit your entire available funds - keep some for emergencies
+---
 
 ## Technical Details
 
-### Files
-- `index.html` - Main HTML structure
-- `styles.css` - Responsive styling
-- `debtCalculator.js` - Debt calculation engine
-- `app.js` - Application logic and UI management
+### File Structure
+
+```
+index.html          — Markup and layout
+styles.css          — Responsive styles + dark mode
+app.js              — DebtTrackerApp class (UI, state, charts)
+debtCalculator.js   — DebtCalculator static class (pure calculation engine)
+```
+
+### Dependencies
+
+- [Chart.js](https://www.chartjs.org/) (loaded from CDN) — all charts
 
 ### Browser Requirements
-- Modern browser with JavaScript enabled
-- LocalStorage support
-- Tested on Chrome, Firefox, Safari, and Edge
 
-### Formulas
+- Modern browser with ES6+ JavaScript support
+- `localStorage` enabled
+- Tested in Chrome, Firefox, Safari, and Edge
 
-**Daily Compounding Interest Calculation (per month):**
+### Interest Formula
+
 ```
-monthlyInterest = balance × ( (1 + (annualRate / 100 / 365))^daysInMonth - 1 )
+monthlyInterest = balance × ((1 + APR / 100 / 365)^daysInMonth − 1)
 ```
-Where:
-- `balance` = current debt balance
-- `annualRate` = annual interest rate (e.g., 18 for 18%)
-- `daysInMonth` = number of days in the current month
 
-**Payment Allocation:**
-1. Calculate interest for all debts
-2. Allocate based on strategy order
-3. Minimum payment covers interest + some principal
-4. Excess payment goes to highest priority debt (by strategy)
+### Interest Paid to Date Formula
+
+```
+totalAccrued = originalBalance × ((1 + APR/100/365)^daysSinceOpened − 1)
+interestPaid = max(0, totalAccrued − principalPaidDown)
+```
+
+### Binary-Search Back-Calculator
+
+```
+lo  = sum of all minimum payments
+hi  = 2 × totalBalance + 10 000
+for 60 iterations:
+    mid = (lo + hi) / 2
+    if calculatePaymentPlan(mid) pays off by target date → hi = mid
+    else → lo = mid
+```
+
+---
+
+## Data Privacy
+
+- ✅ All calculations run entirely in your browser
+- ✅ No data is sent to any server
+- ✅ No accounts, no tracking, no analytics
+- ✅ Data is stored only in your browser's `localStorage`
+
+To back up your data, use **Export as CSV** regularly.
+
+---
 
 ## Troubleshooting
 
-**Q: My data disappeared!**
-- A: Check if you cleared your browser's cache/storage
-- Recovery: You would need to re-enter your debts unless you had an export
+**My data disappeared.**
+> You may have cleared browser storage. Export to CSV regularly as a backup.
 
-**Q: The payoff date seems too far away**
-- A: Try increasing your monthly payment or using the Avalanche strategy to save on interest
+**The payoff date is very far away.**
+> Try increasing your monthly payment, switching to Avalanche, or using the What-If Simulator to see how much extra you need.
 
-**Q: Can I edit a debt after adding it?**
-- A: Yes! Click the Edit button next to any debt to update it inline.
+**The payment is less than the minimum required.**
+> The app will show an error. Your total monthly budget must cover every debt's minimum payment.
 
-**Q: Is my data secure?**
-- A: Yes, your data never leaves your computer - it's stored locally in your browser
-
-## Privacy & Security
-
-- ✅ All calculations happen in your browser
-- ✅ No data is sent to any server
-- ✅ No tracking or analytics
-- ✅ No third-party services
-- ✅ Completely private and secure
-
-## Future Enhancements
-
-Potential features for future versions:
-- Extra payment calculator (one-time lump sum payments)
-- Debt consolidation analysis
-- Income/expense tracker integration
-- Payment reminders
-- Mobile app version
-- Multi-device sync (with user account)
-
-## License
-
-This application is free to use for personal financial management.
+**A debt shows a ⚠️ neg-amort badge.**
+> Your minimum payment is too low to cover monthly interest on that debt. Increase the minimum payment or reduce the APR (e.g. by transferring to a lower-rate card).
 
 ---
 
 **Start your journey to being debt-free today!** 💰
+
+

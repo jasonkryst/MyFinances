@@ -1,37 +1,42 @@
 /**
  * DebtCalculator
  *
- * Core logic for debt payoff calculations and strategies.
+ * Pure-static calculation engine for debt payoff planning.
  *
- * Features:
- * - Supports Avalanche, Snowball, and Priority strategies
- * - Handles minimum payments, overage, and per-month stimulus (extra payments)
- * - Uses daily compounding interest for accurate modeling (credit card style)
- * - Allocates payments and stimulus according to selected strategy
- * - Returns detailed payment schedule and summary
+ * Supported strategies: Avalanche (highest APR first), Snowball (lowest balance
+ * first), Priority-Lowest (low priority number first), Priority-Highest
+ * (high priority number first).
+ *
+ * Interest model: daily compounding — balance × ((1 + APR/365)^daysInMonth − 1)
+ *
+ * Payment allocation order each month:
+ *   1. Minimum payments to every active debt
+ *   2. Remaining overage applied to debts in strategy order
+ *   3. Per-month stimulus (extra one-time payments) applied in strategy order
+ *
+ * Fixed-amount debts (e.g., rent, subscriptions) are date-range-driven and
+ * are not subject to interest compounding or payoff logic.
+ *
+ * Safety limit: 600 months (50 years). Throws if exceeded.
  */
 
 class DebtCalculator {
-    // Main class for all debt payoff calculations and scheduling
     /**
-     * Calculate payment plan based on strategy
-     * @param {Array} debts - Array of debt objects
-     * @param {number} monthlyPayment - Total monthly payment amount
-     * @param {string} strategy - Payment strategy (avalanche, snowball, priority-lowest, priority-highest)
-     * @returns {Array} Payment plan with monthly breakdown
-     */
-    /**
-     * Calculate payment plan based on strategy and daily compounding interest
+     * Calculate a month-by-month payment plan for a list of debts.
      *
-     * @param {Array} debts - Array of debt objects
-     * @param {number} monthlyPayment - Total monthly payment amount
-     * @param {string} strategy - Payment strategy (avalanche, snowball, priority-lowest, priority-highest)
-     * @param {number|Array} monthlyStimulus - Per-month extra payment(s) (stimulus)
-     * @returns {Object} { paymentPlan, workingDebts }
-     *
-     * - Applies minimum payments first, then overage by strategy order, then stimulus by strategy order
-     * - Uses daily compounding for interest (credit card style)
-     * - Each month, tracks principal, interest, and payoff status for each debt
+     * @param {object[]} debts            - Array of debt objects (credit card or fixed-amount)
+     * @param {number}   monthlyPayment   - Total monthly budget available for debt payments
+     * @param {string}   [strategy]       - One of: `'avalanche'`, `'snowball'`,
+     *                                      `'priority-lowest'`, `'priority-highest'`
+     * @param {number|number[]} [monthlyStimulus=0] - Extra one-time payments per month
+     *                                      (scalar applied every month, or per-month array)
+     * @returns {{ paymentPlan: object[], workingDebts: object[] }}
+     *   `paymentPlan` — array of monthly entries, each with `month`, `date`,
+     *   `payments[]`, and `stimulusApplied` map.
+     *   `workingDebts` — mutated copies of the input debts with `totalPrincipal`,
+     *   `totalInterest`, and `paidOffMonth` filled in.
+     * @throws {Error} If `monthlyPayment` is below the total of all minimum payments,
+     *   or if the plan exceeds 600 months.
      */
     static calculatePaymentPlan(debts, monthlyPayment, strategy = 'avalanche', monthlyStimulus = 0) {
         if (!debts || debts.length === 0) {
@@ -271,7 +276,10 @@ class DebtCalculator {
     }
 
     /**
-     * Check if any debts remain unpaid
+     * Return `true` if any credit-card debt still has a balance > 0.01.
+     * Fixed-amount debts are excluded — they are date-range-driven, not balance-driven.
+     * @param {object[]} debts - Working debt copies from `calculatePaymentPlan`
+     * @returns {boolean}
      */
     static hasUnpaidDebts(debts) {
         return debts.some(debt => {
@@ -282,7 +290,7 @@ class DebtCalculator {
     }
 
     /**
-     * Calculate total interest accrued in a month
+     * @deprecated Used only for reporting. The main payoff loop uses daily compounding directly.
      */
     /**
      * Calculate total interest accrued in a month (not used in main payoff, for reporting only)
@@ -295,14 +303,19 @@ class DebtCalculator {
     }
 
     /**
-     * Get payment order based on strategy
-     */
-    /**
-     * Get payment order for debts based on selected strategy
+     * Return the array of debt indices in the order payments should be applied
+     * for the given strategy (skipping already-paid-off debts).
      *
-     * - Avalanche: highest interest first
-     * - Snowball: lowest balance first
-     * - Priority: user-defined priority field
+     * | Strategy           | Order                                |
+     * |--------------------|--------------------------------------|
+     * | `avalanche`        | Highest APR first                    |
+     * | `snowball`         | Lowest balance first                 |
+     * | `priority-lowest`  | Lowest priority number first (1 = low)|
+     * | `priority-highest` | Highest priority number first         |
+     *
+     * @param {object[]} debts    - Working debt array
+     * @param {string}   strategy - Strategy key
+     * @returns {number[]} Ordered array of indices into `debts`
      */
     static getPaymentOrder(debts, strategy) {
         const activeDebts = debts
@@ -348,10 +361,10 @@ class DebtCalculator {
     }
 
     /**
-     * Generate summary statistics
-     */
-    /**
-     * Generate summary statistics for the payoff plan
+     * Compute high-level summary statistics from a completed payment plan.
+     * @param {object[]} workingDebts - Mutated debt copies from `calculatePaymentPlan`
+     * @param {object[]} paymentPlan  - The plan array
+     * @returns {{ totalDebt, totalInterest, totalPaid, monthsToPayOff, payOffDate }}
      */
     static generateSummary(workingDebts, paymentPlan) {
         const totalDebt = workingDebts.reduce((sum, d) => sum + d.accountBalance, 0);
@@ -369,10 +382,9 @@ class DebtCalculator {
     }
 
     /**
-     * Calculate payoff date from today
-     */
-    /**
-     * Calculate payoff date from today, given number of months
+     * Return the calendar date that is `months` months from today.
+     * @param {number} months
+     * @returns {Date}
      */
     static getPayOffDate(months) {
         const today = new Date();
@@ -381,12 +393,10 @@ class DebtCalculator {
     }
 
     /**
-     * Get the starting month based on current date
-     * If after the 15th, start from next month; otherwise start from current month
-     */
-    /**
-     * Get the starting month based on current date
-     * If after the 15th, start from next month; otherwise start from current month
+     * Return the plan start month.
+     * If today is after the 15th, the plan starts next month; otherwise it
+     * starts the current month. This avoids a partial-month as month 1.
+     * @returns {Date} First day of the starting month
      */
     static getStartingMonth() {
         const today = new Date();
@@ -402,11 +412,10 @@ class DebtCalculator {
     }
 
     /**
-     * Get month name from month offset
-     * @param {number} monthOffset - Number of months from starting month
-     */
-    /**
-     * Get month name from month offset (for display)
+     * Return a human-readable month label for a zero-based month offset from
+     * the plan start (e.g., offset 0 → "January 2025").
+     * @param {number} monthOffset - Months after the starting month
+     * @returns {string} e.g., `"March 2026"`
      */
     static getMonthName(monthOffset) {
         const startDate = this.getStartingMonth();
@@ -415,17 +424,20 @@ class DebtCalculator {
     }
 
     /**
-     * Format date to readable string
-     */
-    /**
-     * Format date to readable string (e.g., January 1, 2024)
+     * Format a Date to a readable locale string (e.g., `"January 1, 2025"`).
+     * @param {Date} date
+     * @returns {string}
      */
     static formatDate(date) {
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     }
 
     /**
-     * Calculate the number of months between two dates
+     * Count the whole calendar months between two dates by stepping forward
+     * one month at a time. Used to determine the duration of fixed-amount debts.
+     * @param {Date} startDate
+     * @param {Date} endDate
+     * @returns {number} Number of whole months
      */
     static calculateMonthsBetweenDates(startDate, endDate) {
         const start = new Date(startDate);
