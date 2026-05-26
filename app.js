@@ -40,10 +40,12 @@ class DebtTrackerApp {
      */
     constructor() {
         this.debts = [];              // Array of debt objects (see addDebt for shape)
+        this.incomes = [];            // Array of income source objects
         this.lastPaymentPlan = null;  // Most recently calculated paymentPlan array
         this.lastSummary = null;      // Summary object from DebtCalculator.generateSummary
         this.perMonthStimulus = [];   // Extra payment amounts indexed by plan month (0-based)
         this.editingDebtId = null;    // ID of the debt currently in inline-edit mode, or null
+        this.editingIncomeId = null;  // ID of the income source currently in inline-edit mode, or null
         this.storageKey = 'debtTrackerData';
         
         this.initializeEventListeners();
@@ -133,7 +135,10 @@ class DebtTrackerApp {
         // Persist strategy settings immediately when the user changes them
         const monthlyPaymentEl = document.getElementById('monthlyPayment');
         if (monthlyPaymentEl) {
-            monthlyPaymentEl.addEventListener('change', () => this.saveToStorage());
+            monthlyPaymentEl.addEventListener('change', () => {
+                this.saveToStorage();
+                this.renderStrategyIncomeWidget();
+            });
         }
         const paymentStrategyEl = document.getElementById('paymentStrategy');
         if (paymentStrategyEl) {
@@ -150,13 +155,13 @@ class DebtTrackerApp {
             });
         }
 
-        // Export debts as JSON
+        // Export full backup as JSON (header toolbar)
         const exportJsonBtn = document.getElementById('exportJsonBtn');
         if (exportJsonBtn) {
-            exportJsonBtn.addEventListener('click', () => this.exportDebtsJSON());
+            exportJsonBtn.addEventListener('click', () => this.exportAllJSON());
         }
 
-        // Import debts from JSON — button triggers hidden file input
+        // Import full backup from JSON — button triggers hidden file input (header toolbar)
         const importJsonBtn = document.getElementById('importJsonBtn');
         const importJsonInput = document.getElementById('importJsonInput');
         if (importJsonBtn && importJsonInput) {
@@ -164,8 +169,7 @@ class DebtTrackerApp {
             importJsonInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    this.importDebtsJSON(file);
-                    // Reset so the same file can be re-selected if needed
+                    this.importAllJSON(file);
                     importJsonInput.value = '';
                 }
             });
@@ -196,6 +200,15 @@ class DebtTrackerApp {
         const calcTargetBtn = document.getElementById('calcTargetBtn');
         if (calcTargetBtn) {
             calcTargetBtn.addEventListener('click', () => this.calculateRequiredPayment());
+        }
+
+        // Income form submission
+        const incomeForm = document.getElementById('incomeForm');
+        if (incomeForm) {
+            incomeForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.addIncome();
+            });
         }
     }
 
@@ -853,7 +866,7 @@ class DebtTrackerApp {
     displayPaymentSchedule() {
         if (!this.lastPaymentPlan || this.lastPaymentPlan.length === 0) return;
 
-        // Get unique debt names in the order they appear in the payment plan (payment priority order)
+        // Get unique debt names from the payment plan
         const debtNames = [];
         const debtNameSet = new Set();
         for (const monthData of this.lastPaymentPlan) {
@@ -864,6 +877,19 @@ class DebtTrackerApp {
                 }
             }
         }
+
+        // Sort columns by payoff order: the debt whose last non-zero payment appears
+        // earliest in the plan is the first to be paid off → leftmost column.
+        const lastPaymentMonthIndex = {};
+        for (const name of debtNames) lastPaymentMonthIndex[name] = -1;
+        for (let mi = 0; mi < this.lastPaymentPlan.length; mi++) {
+            for (const payment of this.lastPaymentPlan[mi].payments) {
+                if (payment.payment > 0) {
+                    lastPaymentMonthIndex[payment.debtName] = mi;
+                }
+            }
+        }
+        debtNames.sort((a, b) => lastPaymentMonthIndex[a] - lastPaymentMonthIndex[b]);
 
         // Build header with Month + all debt names (sorted) + Stimulus (editable) + Total Paid
         const thead = document.getElementById('paymentTableHead');
@@ -1148,7 +1174,7 @@ class DebtTrackerApp {
 
     /**
      * Activate a top-level page section and update the nav button state.
-     * @param {string} pageName - One of `'debts'`, `'add'`, `'strategy'`, `'results'`
+     * @param {string} pageName - One of `'debts'`, `'add'`, `'income'`, `'strategy'`, `'results'`
      */
     switchPage(pageName) {
         // update nav active state
@@ -1160,6 +1186,7 @@ class DebtTrackerApp {
         const mapping = {
             debts: 'debtsSection',
             add: 'inputSection',
+            income: 'incomeSection',
             strategy: 'strategySection',
             results: 'resultsSection'
         };
@@ -1172,6 +1199,10 @@ class DebtTrackerApp {
             const el = document.getElementById(id);
             if (el) el.classList.add('active');
         }
+
+        // Keep side-effects for specific pages
+        if (pageName === 'income') this.renderIncomeList();
+        if (pageName === 'strategy') this.renderStrategyIncomeWidget();
     }
 
     /**
@@ -1626,6 +1657,331 @@ class DebtTrackerApp {
         if (cancelBtn) cancelBtn.style.display = 'none';
     }
 
+    // ─── Income ───────────────────────────────────────────────────────────────
+
+    /**
+     * Read the Add Income form, validate, build an income object, and save.
+     *
+     * Income object shape:
+     *   { id, name, amount, firstPayDate, frequency }
+     *   frequency: 'biweekly' | 'monthly'
+     */
+    addIncome() {
+        const name = document.getElementById('incomeName').value.trim();
+        const amount = parseFloat(document.getElementById('incomeAmount').value);
+        const firstPayDate = document.getElementById('incomeFirstDate').value;
+        const frequency = document.getElementById('incomeFrequency').value;
+
+        if (!name) { alert('Please enter a name for this income source.'); return; }
+        if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
+        if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
+
+        this.incomes.push({ id: Date.now(), name, amount, firstPayDate, frequency });
+        this.saveToStorage();
+        this.renderIncomeList();
+        document.getElementById('incomeForm').reset();
+    }
+
+    /**
+     * Remove an income source by ID.
+     * @param {number} incomeId
+     */
+    deleteIncome(incomeId) {
+        this.incomes = this.incomes.filter(i => i.id !== incomeId);
+        this.saveToStorage();
+        this.renderIncomeList();
+        this.renderStrategyIncomeWidget();
+    }
+
+    /** Enter inline-edit mode for an income card. */
+    startEditIncome(incomeId) {
+        this.editingIncomeId = incomeId;
+        this.renderIncomeList();
+        setTimeout(() => {
+            const el = document.getElementById(`ie-name-${incomeId}`);
+            if (el) el.focus();
+        }, 0);
+    }
+
+    /** Cancel inline-edit without saving. */
+    cancelEditIncome() {
+        this.editingIncomeId = null;
+        this.renderIncomeList();
+    }
+
+    /** Validate and save the inline-edit form for an income card. */
+    saveEditIncome(incomeId) {
+        const nameEl   = document.getElementById(`ie-name-${incomeId}`);
+        const amountEl = document.getElementById(`ie-amount-${incomeId}`);
+        const dateEl   = document.getElementById(`ie-date-${incomeId}`);
+        const freqEl   = document.getElementById(`ie-freq-${incomeId}`);
+
+        if (!nameEl || !amountEl || !dateEl || !freqEl) return;
+
+        const name        = nameEl.value.trim();
+        const amount      = parseFloat(amountEl.value);
+        const firstPayDate = dateEl.value;
+        const frequency   = freqEl.value;
+
+        if (!name)                        { alert('Please enter a name.');            return; }
+        if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.');     return; }
+        if (!firstPayDate)                { alert('Please select a first pay date.');  return; }
+
+        const idx = this.incomes.findIndex(i => i.id === incomeId);
+        if (idx === -1) return;
+
+        this.incomes[idx] = { ...this.incomes[idx], name, amount, firstPayDate, frequency };
+        this.editingIncomeId = null;
+        this.saveToStorage();
+        this.renderIncomeList();
+        this.renderStrategyIncomeWidget();
+    }
+
+    /**
+     * Render the income list and summary panel inside the Income page.
+     */
+    renderIncomeList() {
+        const container = document.getElementById('incomeList');
+        const summaryEl = document.getElementById('incomeSummary');
+        if (!container) return;
+
+        if (this.incomes.length === 0) {
+            container.innerHTML = `<p class="empty-income-msg" style="color:#9ca3af;font-style:italic;margin:8px 0 0 0;">No income sources added yet.</p>`;
+            if (summaryEl) summaryEl.style.display = 'none';
+            return;
+        }
+
+        const freqLabel = { biweekly: 'Every other week', monthly: 'Once per month' };
+
+        container.innerHTML = this.incomes.map(inc => {
+            // ── Inline edit mode ──────────────────────────────────────────
+            if (this.editingIncomeId === inc.id) {
+                return `
+                <div class="income-card income-card--editing">
+                    <div class="income-edit-form">
+                        <div class="income-edit-grid">
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Name</label>
+                                <input type="text" id="ie-name-${inc.id}" value="${inc.name.replace(/"/g, '&quot;')}" class="form-control" style="width:100%;">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Amount per paycheck ($)</label>
+                                <input type="number" id="ie-amount-${inc.id}" value="${inc.amount}" min="0.01" step="0.01" class="form-control" style="width:100%;">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">First pay date</label>
+                                <input type="date" id="ie-date-${inc.id}" value="${inc.firstPayDate}" class="form-control" style="width:100%;">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Frequency</label>
+                                <select id="ie-freq-${inc.id}" class="form-control" style="width:100%;">
+                                    <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
+                                    <option value="monthly"  ${inc.frequency === 'monthly'  ? 'selected' : ''}>Once per month</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="income-edit-actions">
+                            <button class="btn btn-primary btn-small" onclick="app.saveEditIncome(${inc.id})">Save</button>
+                            <button class="btn btn-secondary btn-small" onclick="app.cancelEditIncome()">Cancel</button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            // ── Normal display mode ───────────────────────────────────────
+            const dateStr = new Date(inc.firstPayDate + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            const pdays = this.paydaysInCurrentMonth(inc);
+            const pdayLabel = pdays === 1 ? '1 payday this month' : `${pdays} paydays this month`;
+
+            const upcomingDates = this.nextPayDates(inc, 3);
+            const upcomingHTML = upcomingDates.length
+                ? upcomingDates.map(d => {
+                    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    return `<span class="income-upcoming-chip">${label}</span>`;
+                  }).join('')
+                : '';
+
+            return `
+            <div class="income-card">
+                <div class="income-card-info">
+                    <span class="income-card-name">${inc.name}</span>
+                    <span class="income-card-amount">${this.formatCurrency(inc.amount)}</span>
+                    <span class="income-card-detail">First pay: ${dateStr}</span>
+                    <span class="income-card-freq">${freqLabel[inc.frequency] || inc.frequency} &mdash; ${pdayLabel}</span>
+                    ${upcomingHTML ? `<span class="income-card-upcoming-label">Next paydays:</span>${upcomingHTML}` : ''}
+                </div>
+                <div class="debt-actions">
+                    <button class="btn-edit" onclick="app.startEditIncome(${inc.id})">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="app.deleteIncome(${inc.id})">Delete</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Summary panel
+        if (summaryEl) {
+            const { monthlyTotal } = this.computeMonthlyIncome();
+            const totalAnnual = this.incomes.reduce((s, i) => {
+                return s + (i.frequency === 'biweekly' ? i.amount * 26 : i.amount * 12);
+            }, 0);
+
+            summaryEl.style.display = 'block';
+            summaryEl.innerHTML = `
+                <h4>📅 Estimated Income Summary</h4>
+                <div class="income-summary-grid">
+                    <div class="income-summary-item">
+                        <span class="income-summary-label">Expected this month</span>
+                        <span class="income-summary-value">${this.formatCurrency(monthlyTotal)}</span>
+                    </div>
+                    <div class="income-summary-item">
+                        <span class="income-summary-label">Income sources</span>
+                        <span class="income-summary-value">${this.incomes.length}</span>
+                    </div>
+                    <div class="income-summary-item">
+                        <span class="income-summary-label">Estimated annual</span>
+                        <span class="income-summary-value">${this.formatCurrency(totalAnnual)}</span>
+                    </div>
+                </div>`;
+        }
+    }
+
+    /**
+     * Compute the total income expected in the current calendar month by
+     * projecting each source's pay schedule forward from its first pay date.
+     *
+     * - biweekly: every 14 days from firstPayDate
+     * - monthly:  same day each month as firstPayDate
+     *
+     * @returns {{ monthlyTotal: number, paydaysThisMonth: number }}
+     */
+    /**
+     * Count how many paydays fall in the current calendar month for a
+     * single income source.
+     * @param {object} inc - income source object
+     * @returns {number}
+     */
+    /**
+     * Return the next `n` upcoming pay dates for an income source (on or after today).
+     * @param {object} inc - income source object
+     * @param {number} n   - how many dates to return
+     * @returns {Date[]}
+     */
+    nextPayDates(inc, n = 3) {
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const first = new Date(inc.firstPayDate + 'T12:00:00');
+        if (isNaN(first.getTime())) return [];
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dates = [];
+
+        if (inc.frequency === 'biweekly') {
+            // Advance from firstPayDate in 14-day steps until we reach today or beyond
+            let pay = new Date(first);
+            const diffDays = Math.floor((today - pay) / msPerDay);
+            if (diffDays > 0) {
+                const periods = Math.floor(diffDays / 14);
+                pay = new Date(pay.getTime() + periods * 14 * msPerDay);
+            }
+            while (pay < today) pay = new Date(pay.getTime() + 14 * msPerDay);
+            while (dates.length < n) {
+                dates.push(new Date(pay));
+                pay = new Date(pay.getTime() + 14 * msPerDay);
+            }
+        } else {
+            // monthly: same day-of-month as firstPayDate
+            const payDay = first.getDate();
+            let yr = today.getFullYear();
+            let mo = today.getMonth();
+            // find first occurrence on or after today
+            while (dates.length < n) {
+                const candidate = new Date(yr, mo, payDay, 12, 0, 0);
+                if (candidate >= today) dates.push(candidate);
+                mo++;
+                if (mo > 11) { mo = 0; yr++; }
+            }
+        }
+        return dates;
+    }
+
+    paydaysInCurrentMonth(inc) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const monthStart = new Date(year, month, 1);
+        const monthEnd   = new Date(year, month + 1, 0);
+        const msPerDay   = 24 * 60 * 60 * 1000;
+
+        const first = new Date(inc.firstPayDate + 'T12:00:00');
+        if (isNaN(first.getTime())) return 0;
+
+        if (inc.frequency === 'biweekly') {
+            let pay = new Date(first);
+            const diffDays = Math.floor((monthStart - pay) / msPerDay);
+            const periods  = Math.floor(diffDays / 14);
+            pay = new Date(pay.getTime() + periods * 14 * msPerDay);
+            while (pay < monthStart) pay = new Date(pay.getTime() + 14 * msPerDay);
+            let count = 0;
+            while (pay <= monthEnd) {
+                count++;
+                pay = new Date(pay.getTime() + 14 * msPerDay);
+            }
+            return count;
+        } else {
+            const payDay   = first.getDate();
+            const candidate = new Date(year, month, payDay);
+            return (candidate >= monthStart && candidate <= monthEnd) ? 1 : 0;
+        }
+    }
+
+    computeMonthlyIncome() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const monthStart = new Date(year, month, 1);
+        const monthEnd   = new Date(year, month + 1, 0);
+        const msPerDay   = 24 * 60 * 60 * 1000;
+
+        let monthlyTotal = 0;
+
+        for (const inc of this.incomes) {
+            const count = this.paydaysInCurrentMonth(inc);
+            monthlyTotal += inc.amount * count;
+        }
+
+        return { monthlyTotal };
+    }
+
+    /**
+     * Render (or hide) the income context widget on the Strategy page.
+     * Shows monthly expected income alongside the current monthly payment
+     * commitment so the user can see the ratio at a glance.
+     */
+    renderStrategyIncomeWidget() {
+        const widget = document.getElementById('strategyIncomeWidget');
+        if (!widget) return;
+        if (this.incomes.length === 0) { widget.style.display = 'none'; return; }
+
+        const { monthlyTotal } = this.computeMonthlyIncome();
+        const paymentEl = document.getElementById('monthlyPayment');
+        const paymentAmt = paymentEl ? (parseFloat(paymentEl.value) || 0) : 0;
+
+        const pct = monthlyTotal > 0 ? (paymentAmt / monthlyTotal * 100) : 0;
+        const isWarn = pct > 40;
+
+        let ratioHtml = '';
+        if (paymentAmt > 0 && monthlyTotal > 0) {
+            ratioHtml = `<div class="strategy-income-ratio${isWarn ? ' strategy-income-ratio--warn' : ''}">
+                Your planned payment is <strong>${pct.toFixed(1)}%</strong> of your expected monthly income
+                ${isWarn ? ' — that\'s a high debt-to-income ratio (>40%).' : '.'}
+            </div>`;
+        }
+
+        widget.style.display = 'block';
+        widget.innerHTML = `
+            💰 Expected income this month: <strong>${this.formatCurrency(monthlyTotal)}</strong>
+            ${ratioHtml}`;
+    }
+
     /**
      * Download all current debts as a JSON backup file.
      * The file format is:
@@ -1634,23 +1990,35 @@ class DebtTrackerApp {
      * ```
      * The file is named `debts-backup-YYYY-MM-DD.json`.
      */
-    exportDebtsJSON() {
-        if (this.debts.length === 0) {
-            alert('No debts to export. Add some debts first.');
-            return;
-        }
+    /**
+     * Export a full app backup as JSON — includes debts, income sources,
+     * monthly payment, and selected strategy.
+     */
+    exportAllJSON() {
+        // Normalise each debt so both accountBalance and originalBalance are always
+        // present in the export, even if Update Balance was never used.
+        const normalisedDebts = this.debts.map(d => ({
+            ...d,
+            accountBalance:  d.accountBalance  ?? 0,
+            originalBalance: d.originalBalance ?? d.accountBalance ?? 0
+        }));
 
         const payload = {
-            version: '1.0',
+            version: '2.0',
             exportedAt: new Date().toISOString(),
-            debts: this.debts
+            debts: normalisedDebts,
+            incomes: this.incomes || [],
+            strategy: {
+                monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
+                paymentStrategy: document.getElementById('paymentStrategy')?.value || null
+            }
         };
 
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `debts-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `debt-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1658,58 +2026,71 @@ class DebtTrackerApp {
     }
 
     /**
-     * Import debts from a JSON file created by `exportDebtsJSON`.
-     * Prompts the user to choose between **Replace** (wipe current list) or
-     * **Merge** (append imported debts, skipping duplicates by name).
-     * New IDs are assigned to imported debts on merge to avoid collisions.
-     * @param {File} file - The JSON file selected by the user
+     * Import a full backup JSON file created by `exportAllJSON`.
+     * Also accepts legacy v1.0 files (debts only).
+     * Prompts the user to choose Replace or Merge for debts; income and
+     * strategy are always restored from the file when present.
+     * @param {File} file
      */
-    importDebtsJSON(file) {
+    importAllJSON(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             let parsed;
             try {
                 parsed = JSON.parse(e.target.result);
             } catch {
-                alert('Invalid JSON file. Please select a valid debt backup file.');
+                alert('Invalid JSON file. Please select a valid backup file.');
                 return;
             }
 
-            // Accept both the envelope format and a bare array
-            const incoming = Array.isArray(parsed) ? parsed : parsed.debts;
+            // Accept bare array (very old), v1.0 envelope (debts only), or v2.0 envelope
+            const incomingDebts   = Array.isArray(parsed) ? parsed : (parsed.debts  || []);
+            const incomingIncomes = parsed.incomes   || [];
+            const incomingStrategy = parsed.strategy || null;
 
-            if (!Array.isArray(incoming) || incoming.length === 0) {
-                alert('No debts found in the selected file.');
+            const validDebts = incomingDebts.filter(d => d && typeof d.name === 'string' && d.name.trim());
+
+            if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy) {
+                alert('No recognisable data found in the selected file.');
                 return;
             }
 
-            // Validate each entry has at minimum a name field
-            const valid = incoming.filter(d => d && typeof d.name === 'string' && d.name.trim());
-            if (valid.length === 0) {
-                alert('The file contained no valid debt entries (each entry must have at least a "name").');
-                return;
-            }
+            // Build a summary for the confirm dialog
+            const parts = [];
+            if (validDebts.length)    parts.push(`${validDebts.length} debt(s)`);
+            if (incomingIncomes.length) parts.push(`${incomingIncomes.length} income source(s)`);
+            if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
             const action = confirm(
-                `Found ${valid.length} debt(s) in the file.\n\n` +
-                `• OK  — Replace your current debt list with the imported debts\n` +
-                `• Cancel — Merge the imported debts into your existing list\n\n` +
-                `(Choose OK to replace, Cancel to merge)`
+                `Found: ${parts.join(', ')}.\n\n` +
+                `• OK     — Replace your current data entirely\n` +
+                `• Cancel — Merge debts only (income & strategy will still be restored; duplicate debt names are skipped)\n`
             );
 
             if (action) {
-                // Replace
-                this.debts = valid.map((d, i) => ({ ...d, id: Date.now() + i }));
+                // Full replace — preserve both balance fields
+                this.debts = validDebts.map((d, i) => ({
+                    ...d,
+                    id: Date.now() + i,
+                    accountBalance:  d.accountBalance  ?? 0,
+                    originalBalance: d.originalBalance ?? d.accountBalance ?? 0
+                }));
+                this.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
             } else {
-                // Merge — skip debts whose name already exists
+                // Merge debts — skip duplicates by name
                 const existingNames = new Set(this.debts.map(d => d.name.toLowerCase()));
                 let skipped = 0;
                 const toAdd = [];
-                for (const d of valid) {
+                for (const d of validDebts) {
                     if (existingNames.has(d.name.toLowerCase())) {
                         skipped++;
                     } else {
-                        toAdd.push({ ...d, id: Date.now() + toAdd.length });
+                        toAdd.push({
+                            ...d,
+                            id: Date.now() + toAdd.length,
+                            accountBalance:  d.accountBalance  ?? 0,
+                            originalBalance: d.originalBalance ?? d.accountBalance ?? 0
+                        });
                         existingNames.add(d.name.toLowerCase());
                     }
                 }
@@ -1717,6 +2098,16 @@ class DebtTrackerApp {
                 if (skipped > 0) {
                     alert(`Merged ${toAdd.length} debt(s). Skipped ${skipped} duplicate name(s).`);
                 }
+                // Always restore income & strategy on merge
+                this.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
+            }
+
+            // Restore strategy fields into the DOM
+            if (incomingStrategy) {
+                const mpEl = document.getElementById('monthlyPayment');
+                const psEl = document.getElementById('paymentStrategy');
+                if (mpEl && incomingStrategy.monthlyPayment) mpEl.value = incomingStrategy.monthlyPayment;
+                if (psEl && incomingStrategy.paymentStrategy) psEl.value = incomingStrategy.paymentStrategy;
             }
 
             this.saveToStorage();
@@ -1754,6 +2145,7 @@ class DebtTrackerApp {
         try {
             const data = {
                 debts: this.debts,
+                incomes: this.incomes || [],
                 perMonthStimulus: this.perMonthStimulus || [],
                 monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
                 strategy: document.getElementById('paymentStrategy')?.value || null,
@@ -1776,6 +2168,7 @@ class DebtTrackerApp {
             if (data) {
                 const parsed = JSON.parse(data);
                 this.debts = parsed.debts || [];
+                this.incomes = parsed.incomes || [];
                 this.perMonthStimulus = parsed.perMonthStimulus || [];
                 this._savedMonthlyPayment = parsed.monthlyPayment || null;
                 this._savedStrategy = parsed.strategy || null;
@@ -1844,6 +2237,8 @@ class DebtTrackerApp {
             this.renderBalanceChart();
             this.renderProgressChart();
             this.renderPieChart();
+            this.renderDebtDistributionChart();
+            this.renderDebtToIncomeChart();
         }
         if (tabName === 'calendar') {
             this.renderCalendarView();
@@ -1864,11 +2259,12 @@ class DebtTrackerApp {
         container.innerHTML = '';
 
         const MONTHS_PER_PAGE = 1;
+        const msPerDay = 24 * 60 * 60 * 1000;
 
         // Build debt color map
         const debtColors = {};
         const palette = [
-            '#2563eb','#dc2626','#059669','#d97706','#7c3aed',
+            '#2563eb','#dc2626','#d97706','#7c3aed',
             '#db2777','#0891b2','#65a30d','#ea580c','#6366f1'
         ];
         let colorIdx = 0;
@@ -1876,7 +2272,48 @@ class DebtTrackerApp {
             debtColors[debt.name] = palette[colorIdx++ % palette.length];
         }
 
-        // Group payments by year/month into ordered array
+        // ── Pre-compute income paydays per year-month ──────────────────────
+        // Returns a Map keyed by "YYYY-M" → [{ name, amount, day }]
+        const incomeByMonth = new Map();
+        for (const inc of (this.incomes || [])) {
+            const first = new Date(inc.firstPayDate + 'T12:00:00');
+            if (isNaN(first.getTime())) continue;
+
+            // Determine the date range to cover (same span as the payment plan)
+            const planStart = this.lastPaymentPlan[0].date;
+            const planEnd   = this.lastPaymentPlan[this.lastPaymentPlan.length - 1].date;
+
+            if (inc.frequency === 'biweekly') {
+                // Walk bi-weekly from firstPayDate; skip paydays before plan start
+                let pay = new Date(first);
+                // Align to plan start: step forward in 14-day increments until >= planStart
+                while (pay < planStart) pay = new Date(pay.getTime() + 14 * msPerDay);
+                while (pay <= new Date(planEnd.getFullYear(), planEnd.getMonth() + 1, 0)) {
+                    const key = `${pay.getFullYear()}-${pay.getMonth()}`;
+                    if (!incomeByMonth.has(key)) incomeByMonth.set(key, []);
+                    incomeByMonth.get(key).push({ name: inc.name, amount: inc.amount, day: pay.getDate() });
+                    pay = new Date(pay.getTime() + 14 * msPerDay);
+                }
+            } else {
+                // monthly: same day-of-month each month
+                const payDay = first.getDate();
+                let y = planStart.getFullYear();
+                let m = planStart.getMonth();
+                const endY = planEnd.getFullYear();
+                const endM = planEnd.getMonth();
+                while (y < endY || (y === endY && m <= endM)) {
+                    const daysInM = new Date(y, m + 1, 0).getDate();
+                    const actualDay = Math.min(payDay, daysInM);
+                    const key = `${y}-${m}`;
+                    if (!incomeByMonth.has(key)) incomeByMonth.set(key, []);
+                    incomeByMonth.get(key).push({ name: inc.name, amount: inc.amount, day: actualDay });
+                    m++;
+                    if (m > 11) { m = 0; y++; }
+                }
+            }
+        }
+
+        // Group debt payments by year/month into ordered array
         const monthMap = new Map();
         for (const monthData of this.lastPaymentPlan) {
             const d = monthData.date;
@@ -1904,6 +2341,17 @@ class DebtTrackerApp {
 
         const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+        // Legend
+        const hasIncome = (this.incomes || []).length > 0;
+        const legendDiv = document.createElement('div');
+        legendDiv.className = 'cal-legend';
+        legendDiv.innerHTML = `
+            <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:#2563eb;"></span>Debt payment</span>
+            ${hasIncome ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--income"></span>Payday</span>` : ''}
+            <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--today"></span>Today</span>
+        `;
+        container.appendChild(legendDiv);
+
         // Pagination controls
         const paginationTop = document.createElement('div');
         paginationTop.className = 'cal-pagination';
@@ -1926,11 +2374,20 @@ class DebtTrackerApp {
         for (const { year, month, payments } of pageMonths) {
             const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-            // Group payments by due day
+            // Group debt payments by due day
             const dayPayments = {};
             for (const p of payments) {
                 if (!dayPayments[p.dueDay]) dayPayments[p.dueDay] = [];
                 dayPayments[p.dueDay].push(p);
+            }
+
+            // Group income paydays for this month by day
+            const monthKey = `${year}-${month}`;
+            const incomeEvents = incomeByMonth.get(monthKey) || [];
+            const dayIncome = {};
+            for (const inc of incomeEvents) {
+                if (!dayIncome[inc.day]) dayIncome[inc.day] = [];
+                dayIncome[inc.day].push(inc);
             }
 
             const firstDay = new Date(year, month, 1).getDay();
@@ -1945,17 +2402,30 @@ class DebtTrackerApp {
             }
 
             for (let day = 1; day <= daysInMonth; day++) {
-                const events = dayPayments[day] || [];
-                const hasEvents = events.length > 0;
-                const isToday = (year === todayYear && month === todayMonth && day === todayDay);
+                const events    = dayPayments[day] || [];
+                const incomes   = dayIncome[day]   || [];
+                const hasEvents = events.length > 0 || incomes.length > 0;
+                const isToday   = (year === todayYear && month === todayMonth && day === todayDay);
+
                 gridHTML += `<div class="cal-cell${hasEvents ? ' cal-has-events' : ''}${isToday ? ' cal-today' : ''}">
                     <span class="cal-day-num">${day}</span>`;
+
+                // Debt payment chips
                 for (const ev of events) {
                     gridHTML += `<div class="cal-event" style="background:${ev.color};" title="${ev.name}: ${this.formatCurrency(ev.payment)}">
                         <span class="cal-event-name">${ev.name}</span>
                         <span class="cal-event-amount">${this.formatCurrency(ev.payment)}</span>
                     </div>`;
                 }
+
+                // Income payday chips
+                for (const inc of incomes) {
+                    gridHTML += `<div class="cal-income-event" title="💰 ${inc.name}: ${this.formatCurrency(inc.amount)}">
+                        <span class="cal-income-name">💰 ${inc.name}</span>
+                        <span class="cal-income-amount">${this.formatCurrency(inc.amount)}</span>
+                    </div>`;
+                }
+
                 gridHTML += `</div>`;
             }
             gridHTML += `</div>`;
@@ -2120,8 +2590,9 @@ class DebtTrackerApp {
      */
     // ─── Update Balance Modal ─────────────────────────────────────────────────
     showUpdateBalanceModal(debtId) {
-        const debt = this.debts.find(d => d.id === debtId);
-        if (!debt || debt.debtType !== 'creditCard') return;
+        const id = typeof debtId === 'string' ? parseInt(debtId, 10) : debtId;
+        const debt = this.debts.find(d => Number(d.id) === id);
+        if (!debt || debt.debtType === 'fixedAmount') return;
         const modal = document.getElementById('updateBalanceModal');
         if (!modal) return;
         document.getElementById('updateBalanceDebtName').textContent = debt.name;
@@ -2428,6 +2899,138 @@ class DebtTrackerApp {
                         title: {
                             display: true,
                             text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Pie chart: current balance distribution across all debts.
+     */
+    renderDebtDistributionChart() {
+        const canvas = document.getElementById('debtDistributionChart');
+        if (!canvas || !this.debts || this.debts.length === 0) return;
+
+        if (this.debtDistributionChart) this.debtDistributionChart.destroy();
+
+        // Use the first month of the payment plan for per-debt monthly amounts.
+        // Fall back to minimum payments if no plan has been run yet.
+        const palette = [
+            '#2563eb','#dc2626','#d97706','#7c3aed',
+            '#db2777','#0891b2','#65a30d','#ea580c','#6366f1','#0d9488'
+        ];
+
+        let labels, data;
+        if (this.lastPaymentPlan && this.lastPaymentPlan.length > 0) {
+            const firstMonth = this.lastPaymentPlan[0];
+            labels = [];
+            data   = [];
+            for (const p of firstMonth.payments) {
+                if (p.payment > 0) {
+                    labels.push(p.debtName);
+                    data.push(parseFloat(p.payment.toFixed(2)));
+                }
+            }
+        } else {
+            labels = this.debts.map(d => d.name);
+            data   = this.debts.map(d => parseFloat((d.minimumPayment || 0).toFixed(2)));
+        }
+
+        if (data.length === 0) return;
+
+        const colors = labels.map((_, i) => palette[i % palette.length]);
+        const fmt = v => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+        const total = data.reduce((a, b) => a + b, 0);
+
+        this.debtDistributionChart = new Chart(canvas.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels,
+                datasets: [{
+                    data,
+                    backgroundColor: colors,
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
+                    title: { display: true, text: 'Monthly Payment Distribution', font: { size: 13 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                                return `${ctx.label}: ${fmt(ctx.parsed)} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Pie chart: monthly debt payment vs. remaining income.
+     * Only rendered when income sources exist.
+     */
+    renderDebtToIncomeChart() {
+        const canvas = document.getElementById('debtToIncomeChart');
+        if (!canvas) return;
+
+        if (this.debtToIncomeChart) this.debtToIncomeChart.destroy();
+
+        const { monthlyTotal } = this.computeMonthlyIncome();
+        // Read the monthly payment from the DOM input (it is never stored as an instance property)
+        const monthlyPayment = parseFloat(document.getElementById('monthlyPayment')?.value) || 0;
+
+        if (monthlyTotal <= 0 || (this.incomes || []).length === 0) {
+            // No income data — draw a placeholder message
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted') || '#6b7280';
+            ctx.font = '13px sans-serif';
+            ctx.fillText('Add income sources to see debt-to-income ratio', canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+            return;
+        }
+
+        const debtPmt   = Math.min(monthlyPayment, monthlyTotal);
+        const remaining = Math.max(0, monthlyTotal - debtPmt);
+
+        const fmt = v => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
+        this.debtToIncomeChart = new Chart(canvas.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['Debt Payments', 'Remaining Income'],
+                datasets: [{
+                    data: [parseFloat(debtPmt.toFixed(2)), parseFloat(remaining.toFixed(2))],
+                    backgroundColor: ['#dc2626', '#059669'],
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
+                    title: { display: true, text: 'Monthly Debt-to-Income', font: { size: 13 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                                return `${ctx.label}: ${fmt(ctx.parsed)} (${pct}%)`;
+                            }
                         }
                     }
                 }

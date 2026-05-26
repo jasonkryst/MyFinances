@@ -13,6 +13,12 @@ A modern, single-page web application that helps you plan and visualise a path t
 - **Category labels** — tag debts (e.g. "Housing", "Credit Card") and filter the list by category
 - **Priority levels** — assign a 1–10 priority to each debt for custom strategy ordering
 
+### Income Tracking
+- **Add income sources** — name, amount per paycheck, first pay date, and frequency (bi-weekly or monthly)
+- **Automatic pay-schedule projection** — the app walks each source's pay cadence forward from its first pay date to calculate how many paydays fall in the current month
+- **Monthly income summary** — shows expected income this month, number of paydays, and estimated annual total
+- **Debt-to-income ratio** — the Strategy page shows what percentage of your expected monthly income your planned payment represents, with a warning if it exceeds 40%
+
 ### Calculation Engine
 - **Daily compounding interest** — matches real credit-card billing cycles:
   ```
@@ -33,6 +39,8 @@ A modern, single-page web application that helps you plan and visualise a path t
 - **Payoff Timeline** — one line per debt showing projected balance declining to zero
 - **Cumulative Progress** — three lines: Total Paid, Principal Paid, Interest Paid (running totals)
 - **Principal vs. Interest doughnut** — visualises how much of your total outlay is interest
+- **Debt Balance Distribution pie** — shows how your current balances are split across all debts
+- **Monthly Debt-to-Income pie** — shows your monthly debt payment vs. remaining income (requires income sources)
 
 ### Calendar View
 - One calendar month per page, paginated forward through the entire plan
@@ -45,9 +53,9 @@ A modern, single-page web application that helps you plan and visualise a path t
 - Shown on each debt card, in the summary table, and persisted to localStorage
 
 ### Data Management
-- **Persistent storage** — debts, stimulus data, monthly payment, and strategy are auto-saved to `localStorage`
-- **Export Debts (JSON)** — download a portable backup of your entire debt list as a `.json` file
-- **Import Debts (JSON)** — load a previously exported JSON file; choose to **replace** your current list or **merge** (duplicates by name are skipped automatically)
+- **Persistent storage** — debts, income, stimulus data, monthly payment, and strategy are auto-saved to `localStorage`
+- **Export (JSON)** — one-click full backup from the header toolbar; downloads debts, income sources, and strategy settings as a single `.json` file
+- **Import (JSON)** — restore from any previously exported backup; choose **Replace** (full restore) or **Merge** (append debts, always restores income & strategy)
 - **Export to CSV** — full payment schedule plus per-debt summary in one spreadsheet-ready file
 - **Clear All Data** — wipe everything and start fresh
 
@@ -92,26 +100,45 @@ The Results page has three tabs:
 | **Charts** | Payoff timeline (per-debt lines), cumulative progress chart, principal vs. interest doughnut |
 | **Calendar** | Month-by-month calendar with payment events on due dates |
 
-### 4 — Export / Import
+### 4 — Track your income
 
-**Export as CSV** — click the button on the Results page to download the full payment schedule plus a per-debt summary.
+Navigate to **Income**.
 
-**Export Debts (JSON)** — on the Debts page, click *⬇ Export Debts (JSON)* to download a backup of your debt list. The file looks like:
+| Field | Notes |
+|-------|-------|
+| Name | Label for this source, e.g. "Main Job" |
+| Amount per Paycheck | The amount received each pay period (gross or net) |
+| First Pay Date | The date of the first (or next) payday for this source |
+| Frequency | **Every other week** (bi-weekly, 26 pays/year) or **Once per month** (12 pays/year) |
+
+Click **Add Income**. Add one row per income source.
+
+The page shows a summary of how much income is expected in the **current calendar month** (the app projects each source's schedule from its first pay date). The **Strategy** page also shows a debt-to-income ratio widget whenever income sources exist.
+
+### 5 — Export / Import
+
+The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of every page, next to the dark-mode toggle.
+
+**Export (JSON)** — click *⬇ Export* to download a complete backup of everything:
 
 ```json
 {
-  "version": "1.0",
-  "exportedAt": "2026-05-25T12:00:00.000Z",
-  "debts": [ { "id": 1, "name": "Visa", "accountBalance": 4200, ... } ]
+  "version": "2.0",
+  "exportedAt": "2026-05-26T12:00:00.000Z",
+  "debts": [ { "id": 1, "name": "Visa", "accountBalance": 4200, ... } ],
+  "incomes": [ { "id": 1, "name": "Main Job", "amount": 2000, ... } ],
+  "strategy": { "monthlyPayment": 800, "paymentStrategy": "avalanche" }
 }
 ```
 
-**Import Debts (JSON)** — on the Debts page, click *⬆ Import Debts (JSON)* and select a previously exported file. You will be prompted to choose:
+**Import (JSON)** — click *⬆ Import* and select a previously exported file. You will be prompted to choose:
 
 | Choice | Behaviour |
 |--------|-----------|
-| **OK (Replace)** | Your current debt list is replaced entirely by the imported debts |
-| **Cancel (Merge)** | Imported debts are appended; any debt whose name already exists is skipped |
+| **OK (Replace)** | Everything is replaced by the file contents (debts, income, strategy) |
+| **Cancel (Merge)** | Imported debts are appended (duplicates by name are skipped); income sources and strategy settings are always restored from the file |
+
+> Legacy v1.0 files (debts only) are also accepted.
 
 ---
 

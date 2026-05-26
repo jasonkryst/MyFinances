@@ -11,12 +11,27 @@
     <div id="confetti-container"></div>
     <div class="container">
         <header>
-            <h1>💳 Debt Tracker</h1>
-            <p>Take control of your debt with smart payment strategies</p>
-            <button id="themeSwitcher" class="btn btn-secondary" aria-label="Toggle dark mode" style="position: absolute; top: 20px; right: 20px;">🌙</button>
+            <div class="header-top">
+                <div class="header-toolbar">
+                    <button id="exportJsonBtn" class="header-icon-btn" title="Export backup (debts, income, strategy) as JSON" aria-label="Export JSON">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </button>
+                    <button id="importJsonBtn" class="header-icon-btn" title="Import from a previously exported JSON backup" aria-label="Import JSON">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </button>
+                    <input type="file" id="importJsonInput" accept=".json,application/json" style="display:none;" aria-hidden="true">
+                    <div class="header-toolbar-divider"></div>
+                    <button id="themeSwitcher" class="header-icon-btn" aria-label="Toggle dark mode">🌙</button>
+                </div>
+            </div>
+            <div class="header-hero">
+                <h1>💳 Debt Tracker</h1>
+                <p>Take control of your debt with smart payment strategies</p>
+            </div>
             <nav class="top-nav">
                 <button class="page-button active" data-page="debts">Debts</button>
                 <button class="page-button" data-page="add">Add Debt</button>
+                <button class="page-button" data-page="income">Income</button>
                 <button class="page-button" data-page="strategy">Strategy</button>
                 <button class="page-button" data-page="results">Results</button>
             </nav>
@@ -135,8 +150,6 @@
 
                     <button type="submit" id="debtFormSubmit" class="btn btn-primary" aria-label="Add Debt">Add Debt</button>
                     <button type="button" id="cancelEditBtn" class="btn" style="display:none; margin-left:8px;" aria-label="Cancel Edit">Cancel</button>
-    <!-- Theme Switcher -->
-    <button id="themeSwitcher" class="btn btn-secondary" aria-label="Toggle dark mode" style="position: absolute; top: 20px; right: 20px;">🌙</button>
     <!-- Accessibility: visually hidden class for screen readers -->
     <style>
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
@@ -156,14 +169,60 @@
                             <option value="">All</option>
                         </select>
                     </div>
-                    <div class="debts-toolbar-actions">
-                        <button id="exportJsonBtn" class="btn btn-secondary" title="Download all debts as a JSON backup file">⬇ Export Debts (JSON)</button>
-                        <button id="importJsonBtn" class="btn btn-secondary" title="Load debts from a previously exported JSON file">⬆ Import Debts (JSON)</button>
-                        <input type="file" id="importJsonInput" accept=".json,application/json" style="display:none;" aria-hidden="true">
-                    </div>
                 </div>
                 <div id="debtsList" class="debts-list"></div>
                 <div id="categorySummary" style="margin: 18px 0 0 0;"></div>
+            </section>
+
+            <!-- Income Section -->
+            <section class="income-section page-section" id="incomeSection">
+                <h2>💰 Income Sources</h2>
+
+                <!-- Add Income Form -->
+                <div class="income-form-card">
+                    <h3>Add Income Source</h3>
+                    <form id="incomeForm" novalidate>
+                        <div class="income-form-grid">
+                            <div class="form-group">
+                                <label for="incomeName">Name *
+                                    <span class="help-icon" tabindex="0" aria-label="A label for this income source, e.g. 'Main Job' or 'Freelance'.">?</span>
+                                </label>
+                                <input type="text" id="incomeName" placeholder="e.g. Main Job, Freelance" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="incomeAmount">Amount per Paycheck ($) *
+                                    <span class="help-icon" tabindex="0" aria-label="The gross or net amount you receive each pay period.">?</span>
+                                </label>
+                                <input type="number" id="incomeAmount" placeholder="0.00" step="0.01" min="0" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="incomeFirstDate">First Pay Date *
+                                    <span class="help-icon" tabindex="0" aria-label="The date of the first (or next) payday for this income source.">?</span>
+                                </label>
+                                <input type="date" id="incomeFirstDate" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="incomeFrequency">Frequency *
+                                    <span class="help-icon" tabindex="0" aria-label="How often you receive this payment.">?</span>
+                                </label>
+                                <select id="incomeFrequency" required>
+                                    <option value="biweekly">Every other week (bi-weekly)</option>
+                                    <option value="monthly">Once per month</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success" id="incomeFormSubmit">Add Income</button>
+                    </form>
+                </div>
+
+                <!-- Income List -->
+                <div id="incomeList" class="income-list"></div>
+
+                <!-- Monthly Income Summary -->
+                <div id="incomeSummary" class="income-summary" style="display:none;"></div>
             </section>
 
             <!-- Payment Strategy Section -->
@@ -188,6 +247,9 @@
 
                     <button id="calculateBtn" class="btn btn-success">Calculate Payment Plan</button>
                     <button id="clearDataBtn" class="btn btn-danger">Clear All Data</button>
+
+                    <!-- Income context widget shown only when income sources exist -->
+                    <div id="strategyIncomeWidget" class="strategy-income-widget" style="display:none;"></div>
                 </div>
 
                 <!-- Target Payoff Date -->
@@ -280,24 +342,6 @@
                     </div>
                 </div>
 
-                <!-- Update Balance Modal -->
-                <div id="updateBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10002; align-items:center; justify-content:center;">
-                    <div class="modal-content" style="background:white; max-width:420px; width:92%; border-radius:12px; padding:28px 24px; margin:auto; position:relative; outline:0;">
-                        <button id="cancelUpdateBalance" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
-                        <h3 id="updateBalanceTitle" style="margin-top:0">Update Balance</h3>
-                        <p style="margin:4px 0 14px;">Debt: <strong id="updateBalanceDebtName"></strong><br>
-                        Current balance: <strong id="updateBalanceCurrent"></strong></p>
-                        <div class="form-group">
-                            <label for="updateBalanceInput">New Current Balance ($)</label>
-                            <input type="number" id="updateBalanceInput" step="0.01" min="0" placeholder="0.00">
-                        </div>
-                        <div style="display:flex; gap:10px; margin-top:16px;">
-                            <button id="confirmUpdateBalance" class="btn btn-success">Update &amp; Recalculate</button>
-                            <button id="cancelUpdateBalanceBtn" class="btn btn-secondary">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Payment Schedule -->
                 <h3>Monthly Payment Schedule</h3>
                 
@@ -334,6 +378,14 @@
                     </div>
                     <div class="chart-container">
                         <canvas id="pieChart"></canvas>
+                    </div>
+                    <div class="chart-row">
+                        <div class="chart-container chart-container--half">
+                            <canvas id="debtDistributionChart"></canvas>
+                        </div>
+                        <div class="chart-container chart-container--half">
+                            <canvas id="debtToIncomeChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -426,5 +478,22 @@
         }
     });
     </script>
+    <!-- Update Balance Modal (top-level so position:fixed works from any page) -->
+    <div id="updateBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10002; align-items:center; justify-content:center;">
+        <div class="modal-content" style="background:white; max-width:420px; width:92%; border-radius:12px; padding:28px 24px; margin:auto; position:relative; outline:0;">
+            <button id="cancelUpdateBalance" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
+            <h3 id="updateBalanceTitle" style="margin-top:0">Update Balance</h3>
+            <p style="margin:4px 0 14px;">Debt: <strong id="updateBalanceDebtName"></strong><br>
+            Current balance: <strong id="updateBalanceCurrent"></strong></p>
+            <div class="form-group">
+                <label for="updateBalanceInput">New Current Balance ($)</label>
+                <input type="number" id="updateBalanceInput" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div style="display:flex; gap:10px; margin-top:16px;">
+                <button id="confirmUpdateBalance" class="btn btn-success">Update &amp; Recalculate</button>
+                <button id="cancelUpdateBalanceBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

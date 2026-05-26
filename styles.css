@@ -45,6 +45,18 @@
 body.dark-mode {
     background: linear-gradient(135deg, #232526 0%, #414345 100%);
     color: #f1f5f9;
+
+    /* ── Override all CSS custom properties for dark mode ── */
+    --light-bg: #1e293b;
+    --border-color: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --card-bg: #1e293b;
+    --text-color: #f1f5f9;
+    --bg-color: #0f172a;
+    --table-header-bg: #0f172a;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5);
 }
 body.dark-mode .container {
     background: #23272f;
@@ -75,6 +87,142 @@ body.dark-mode .help-icon {
 body.dark-mode .help-icon:focus, body.dark-mode .help-icon:hover {
     background: #2563eb;
     color: #fff;
+}
+
+/* ── Tables ── */
+body.dark-mode table {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+body.dark-mode td {
+    border-bottom-color: #334155;
+    color: #f1f5f9;
+}
+body.dark-mode th {
+    border-bottom-color: #334155;
+}
+body.dark-mode tbody tr:last-child td {
+    border-bottom: none;
+}
+body.dark-mode .amount {
+    color: #f1f5f9;
+}
+body.dark-mode .amount small {
+    color: #34d399;
+}
+body.dark-mode .balance {
+    color: #93c5fd;
+}
+
+/* ── Section headings ── */
+body.dark-mode section h2 {
+    color: #f1f5f9;
+}
+body.dark-mode section h3 {
+    color: #f1f5f9;
+}
+
+/* ── Tab buttons ── */
+body.dark-mode .tab-button {
+    color: #94a3b8;
+}
+body.dark-mode .tab-button:hover,
+body.dark-mode .tab-button.active {
+    color: #93c5fd;
+    border-bottom-color: #93c5fd;
+}
+
+/* ── Edit button ── */
+body.dark-mode .btn-edit {
+    background: #334155;
+    color: #f1f5f9;
+    border-color: #475569;
+}
+body.dark-mode .btn-edit:hover {
+    background: #1e3a5f;
+    border-color: #93c5fd;
+}
+
+/* ── Progress bars ── */
+body.dark-mode .debt-progress-bar,
+body.dark-mode .summary-progress-bar {
+    background: #334155;
+}
+body.dark-mode .debt-progress-label,
+body.dark-mode .summary-progress-label {
+    color: #94a3b8;
+}
+
+/* ── Calendar cell states ── */
+body.dark-mode .cal-cell.cal-has-events {
+    background: #1e3a5f;
+    border-color: #1d4ed8;
+}
+body.dark-mode .cal-cell.cal-has-events .cal-day-num {
+    color: #93c5fd;
+}
+body.dark-mode .cal-day-label {
+    color: #64748b;
+}
+
+/* ── Comparison table best row ── */
+body.dark-mode .comparison-table tr.comparison-best td {
+    color: #86efac;
+}
+
+/* ── Input validation ── */
+body.dark-mode .input-error {
+    background: #3b0f0f !important;
+    border-color: #f87171 !important;
+}
+
+/* ── Chart containers ── */
+body.dark-mode .chart-container {
+    background: #1e293b;
+}
+
+/* ── Inline edit form on debt card ── */
+body.dark-mode .debt-edit-form,
+body.dark-mode .debt-edit-form input,
+body.dark-mode .debt-edit-form select {
+    background: #0f172a;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+
+/* ── Summary stats ── */
+body.dark-mode .summary-item .label {
+    color: #94a3b8;
+}
+body.dark-mode .summary-item .value {
+    color: #93c5fd;
+}
+body.dark-mode .summary-item--alert .value,
+body.dark-mode #monthlyInterestCostValue {
+    color: #f87171;
+}
+
+/* ── Category summary / filter ── */
+body.dark-mode .category-summary,
+body.dark-mode #categorySummary {
+    color: #94a3b8;
+}
+
+/* ── Misc muted text ── */
+body.dark-mode .whatif-desc,
+body.dark-mode .whatif-hint,
+body.dark-mode .whatif-slider-cap,
+body.dark-mode .whatif-metric-label,
+body.dark-mode .target-date-desc,
+body.dark-mode .target-result-meta,
+body.dark-mode .income-card-detail {
+    color: #94a3b8;
+}
+body.dark-mode .whatif-metric-val {
+    color: #f1f5f9;
+}
+body.dark-mode .cal-page-label {
+    color: #94a3b8;
 }
 /* Input validation error styling */
 .input-error {
@@ -143,40 +291,142 @@ body {
 header {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
-    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Top bar: toolbar pinned to the right ──────────────────────────── */
+.header-top {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 6px 10px 0;
+}
+
+.header-toolbar {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.header-toolbar-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255,255,255,0.20);
+    margin: 0 4px;
+}
+
+/* Icon-only toolbar buttons */
+.header-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255,255,255,0.70);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+}
+
+.header-icon-btn:hover {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+}
+
+.header-icon-btn svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+body.dark-mode .header-icon-btn {
+    color: rgba(255,255,255,0.55);
+}
+
+body.dark-mode .header-icon-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+}
+
+/* Keep old class names harmless if referenced elsewhere */
+.header-toolbar-btn { display: none; }
+
+body.dark-mode .top-nav {
+    background: rgba(0,0,0,0.30);
+    border-top-color: rgba(255,255,255,0.08);
+}
+
+body.dark-mode .page-button {
+    color: rgba(255,255,255,0.60);
+}
+
+body.dark-mode .page-button:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.06);
+}
+
+body.dark-mode .page-button.active {
+    color: #fff;
+    border-bottom-color: #93c5fd;
+}
+
+/* ── Hero: centred title + subtitle ───────────────────────────────── */
+.header-hero {
     text-align: center;
+    padding: 20px 20px 8px;
 }
 
 header h1 {
     font-size: 2.5rem;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 header p {
     font-size: 1.1rem;
     opacity: 0.9;
+    margin: 0;
 }
 
 .top-nav {
     display: flex;
-    gap: 10px;
     justify-content: center;
-    margin-top: 15px;
+    margin-top: 12px;
+    background: rgba(0,0,0,0.18);
+    border-top: 1px solid rgba(255,255,255,0.10);
 }
 
 .page-button {
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: white;
+    flex: 1;
+    max-width: 160px;
+    padding: 12px 16px;
+    border-radius: 0;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: rgba(255,255,255,0.72);
     cursor: pointer;
     font-weight: 600;
+    font-size: 0.88rem;
+    letter-spacing: 0.02em;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    white-space: nowrap;
+}
+
+.page-button:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+    border-bottom-color: rgba(255,255,255,0.4);
 }
 
 .page-button.active {
-    background: white;
-    color: var(--primary-color);
+    color: #fff;
+    background: transparent;
+    border-bottom: 3px solid #fff;
 }
 
 .page-section { display: none; }
@@ -253,6 +503,19 @@ section h3 {
     padding: 20px;
     background: var(--light-bg);
     border-radius: 8px;
+}
+
+.chart-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.chart-container--half {
+    flex: 1 1 340px;
+    min-width: 280px;
+    height: 360px;
+    margin: 0;
 }
 
 /* Calendar View */
@@ -369,6 +632,76 @@ section h3 {
     opacity: 0.92;
 }
 
+/* Income payday chip on the calendar — distinct green style */
+.cal-income-event {
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin-top: 2px;
+    background: #059669;
+    color: #fff;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    overflow: hidden;
+    cursor: default;
+    border-left: 3px solid #047857;
+}
+
+body.dark-mode .cal-income-event {
+    background: #065f46;
+    border-left-color: #059669;
+}
+
+.cal-income-name {
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-income-amount {
+    display: block;
+    opacity: 0.9;
+}
+
+/* Calendar legend */
+.cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    margin-bottom: 14px;
+    font-size: 0.8rem;
+    align-items: center;
+}
+
+.cal-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-color);
+}
+
+.cal-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.cal-legend-swatch--income {
+    background: #059669;
+    border-left: 3px solid #047857;
+}
+
+.cal-legend-swatch--today {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    outline: 2px solid #f59e0b;
+    outline-offset: -2px;
+    flex-shrink: 0;
+}
+
 .cal-empty {
     background: transparent;
 }
@@ -418,10 +751,6 @@ body.dark-mode .cal-day-num {
 
 body.dark-mode .cal-cell.cal-has-events .cal-day-num {
     color: #93c5fd;
-}
-
-body.dark-mode .cal-page-label {
-    color: #94a3b8;
 }
 
 
@@ -811,6 +1140,18 @@ tbody tr:last-child td {
         font-size: 1.8rem;
     }
 
+    .top-nav {
+        justify-content: flex-start;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .page-button {
+        flex: 0 0 auto;
+        font-size: 0.82rem;
+        padding: 10px 14px;
+    }
+
     main {
         padding: 20px;
     }
@@ -853,12 +1194,17 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 480px) {
-    header {
-        padding: 20px 10px;
+    .header-hero {
+        padding: 14px 10px 6px;
     }
 
     header h1 {
         font-size: 1.5rem;
+    }
+
+    .header-toolbar-btn {
+        padding: 4px 8px;
+        font-size: 0.72rem;
     }
 
     .debt-details {
@@ -1314,3 +1660,242 @@ body.dark-mode .target-result--warn .target-result-payment {
     color: #fbbf24;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   INCOME SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.income-form-card {
+    background: var(--light-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+
+.income-form-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.income-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px 20px;
+    margin-bottom: 16px;
+}
+
+/* Income list */
+.income-list {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.income-card {
+    background: var(--light-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Inline edit state — card expands to show the form */
+.income-card--editing {
+    display: block;
+    border-color: var(--primary-color);
+}
+
+.income-edit-form {
+    width: 100%;
+}
+
+.income-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px 16px;
+    margin-bottom: 12px;
+}
+
+.income-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
+    align-items: center;
+}
+
+.income-edit-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.income-card-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    align-items: baseline;
+}
+
+.income-card-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-color);
+}
+
+.income-card-detail {
+    font-size: 0.88rem;
+    color: #6b7280;
+}
+
+.income-card-amount {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #059669;
+    white-space: nowrap;
+}
+
+.income-card-freq {
+    display: inline-block;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 999px;
+    padding: 1px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+body.dark-mode .income-card-freq {
+    background: #064e3b;
+    color: #6ee7b7;
+}
+
+.income-card-upcoming-label {
+    font-size: 0.78rem;
+    color: #6b7280;
+    font-weight: 600;
+    white-space: nowrap;
+    align-self: center;
+}
+
+.income-upcoming-chip {
+    display: inline-block;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+body.dark-mode .income-upcoming-chip {
+    background: #1e3a5f;
+    color: #93c5fd;
+    border-color: #2563eb;
+}
+
+body.dark-mode .income-card-upcoming-label {
+    color: #94a3b8;
+}
+
+body.dark-mode .income-card-amount {
+    color: #34d399;
+}
+
+/* Monthly income summary panel */
+.income-summary {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid #86efac;
+    border-radius: 10px;
+    padding: 16px 20px;
+}
+
+body.dark-mode .income-summary {
+    background: linear-gradient(135deg, #052e16 0%, #064e3b 100%);
+    border-color: #166534;
+}
+
+.income-summary h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.95rem;
+    color: #166534;
+    font-weight: 700;
+}
+
+body.dark-mode .income-summary h4 { color: #6ee7b7; }
+
+.income-summary-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 28px;
+}
+
+.income-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.income-summary-label {
+    font-size: 0.75rem;
+    color: #4b7c59;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+body.dark-mode .income-summary-label { color: #6ee7b7; }
+
+.income-summary-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #15803d;
+}
+
+body.dark-mode .income-summary-value { color: #34d399; }
+
+/* Strategy page income widget */
+.strategy-income-widget {
+    margin-top: 16px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    color: #166534;
+}
+
+body.dark-mode .strategy-income-widget {
+    background: #052e16;
+    border-color: #166534;
+    color: #6ee7b7;
+}
+
+.strategy-income-widget strong {
+    color: #15803d;
+}
+
+body.dark-mode .strategy-income-widget strong {
+    color: #34d399;
+}
+
+.strategy-income-ratio {
+    margin-top: 6px;
+    font-size: 0.83rem;
+    color: #4b7c59;
+}
+
+body.dark-mode .strategy-income-ratio { color: #a7f3d0; }
+
+.strategy-income-ratio--warn {
+    color: #b45309;
+    font-weight: 600;
+}
+
+body.dark-mode .strategy-income-ratio--warn { color: #fbbf24; }
