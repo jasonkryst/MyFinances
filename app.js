@@ -1189,8 +1189,14 @@ class DebtTrackerApp {
      *   or the start date is in the future.
      */
     computeInterestPaidToDate(debt) {
-        if (!debt.debtStartDate || debt.debtType !== 'creditCard') return null;
-        const start = new Date(debt.debtStartDate);
+        // Only run for credit-card debts that have a start date.
+        // Treat a missing/undefined debtType as 'creditCard' (backward-compat with
+        // debts saved before the debtType field was introduced).
+        const isCC = !debt.debtType || debt.debtType === 'creditCard';
+        if (!debt.debtStartDate || !isCC) return null;
+
+        // Use noon local time to avoid UTC-midnight date-shift issues
+        const start = new Date(debt.debtStartDate + 'T12:00:00');
         const today = new Date();
         if (isNaN(start.getTime()) || start >= today) return null;
 
@@ -1509,6 +1515,11 @@ class DebtTrackerApp {
             const minimumPayment = parseFloat(minEl.value);
             const dueDate = parseInt(dueEl.value);
             const priority = prioEl && prioEl.value ? parseInt(prioEl.value) : null;
+
+            // Resolve idx here so debtStartDate fallback can safely reference it
+            const idx = this.debts.findIndex(d => d.id === debtId);
+            if (idx === -1) return;
+
             const startDateEl = document.getElementById(`inline-start-date-cc-${debtId}`);
             const debtStartDate = startDateEl ? (startDateEl.value || null) : this.debts[idx]?.debtStartDate || null;
 
@@ -1516,9 +1527,6 @@ class DebtTrackerApp {
                 alert('Please fill in all required fields');
                 return;
             }
-
-            const idx = this.debts.findIndex(d => d.id === debtId);
-            if (idx === -1) return;
 
             this.debts[idx] = {
                 ...this.debts[idx],
