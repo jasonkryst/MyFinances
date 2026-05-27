@@ -40,6 +40,7 @@ class DebtTrackerApp {
      */
     constructor() {
         this.debts = [];              // Array of debt objects (see addDebt for shape)
+        this.accounts = [];           // Array of account objects { id, name, type, startingBalance }
         this.incomes = [];            // Array of income source objects
         this.bonuses = [];            // Array of one-time bonus/windfall objects { id, name, amount, date, category }
         this.bills = [];              // Array of bill objects { id, name, amount, dueDay, category }
@@ -49,12 +50,15 @@ class DebtTrackerApp {
         this.perMonthStimulus = [];   // Extra payment amounts indexed by plan month (0-based)
         this.editingDebtId = null;    // ID of the debt currently in inline-edit mode, or null
         this.editingIncomeId = null;  // ID of the income source currently in inline-edit mode, or null
+        this.editingAccountId = null; // ID of the account currently in inline-edit mode, or null
+        this._reportMonthOffset = 0;  // 0 = current month, 1 = next month, -1 = last month, etc.
         this.storageKey = 'debtTrackerData';
         
         this.initializeEventListeners();
         this.loadFromStorage();
         this.updateUI();
         this.updateFormVisibility();
+        this.switchPage('accounts'); // default landing page on initial load
     }
 
     /**
@@ -390,6 +394,7 @@ class DebtTrackerApp {
             debt.minimumPayment = minimumPayment;
             debt.dueDate = dueDate;
             debt.debtStartDate = document.getElementById('debtStartDate').value || null;
+            debt.accountId = parseInt(document.getElementById('debtAccount')?.value) || null;
         } else if (debtType === 'fixedAmount') {
             const fixedAmount = parseFloat(document.getElementById('fixedAmount').value);
             const fixedStartDate = document.getElementById('fixedStartDate').value;
@@ -1176,17 +1181,12 @@ class DebtTrackerApp {
 
         if (this.debts.length === 0) {
             document.getElementById('emptyState').style.display = 'block';
-            // Hide all page sections
-            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-            this.switchPage('income');
-            return;
+        } else {
+            document.getElementById('emptyState').style.display = 'none';
         }
 
-        document.getElementById('emptyState').style.display = 'none';
-        // Hide all page sections
-        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-        // Default to Income page
-        this.switchPage('income');
+        // Re-render the debt list in place (preserves current page)
+        this.renderDebtsList();
     }
 
     /**
@@ -1201,6 +1201,7 @@ class DebtTrackerApp {
 
         // list of page section ids
         const mapping = {
+            accounts: 'accountsSection',
             debts: 'debtsSection',
             income: 'incomeSection',
             budget: 'budgetSection',
@@ -1218,11 +1219,16 @@ class DebtTrackerApp {
         }
 
         // Keep side-effects for specific pages
-        if (pageName === 'debts') this.renderDebtsList();
-        if (pageName === 'income') { this.renderIncomeList(); this.renderBonusList(); }
-        if (pageName === 'budget') this.renderBudgetPage();
+        if (pageName === 'accounts') this.renderAccountsList();
+        if (pageName === 'debts') { this.renderDebtsList(); this._refreshAccountSelectors(); }
+        if (pageName === 'income') { this.renderIncomeList(); this.renderBonusList(); this._refreshAccountSelectors(); }
+        if (pageName === 'budget') { this.renderBudgetPage(); this._refreshAccountSelectors(); }
         if (pageName === 'strategy') this.renderStrategyIncomeWidget();
-        if (pageName === 'reports') this.renderReportsPage();
+        if (pageName === 'reports') {
+            this._reportMonthOffset = 0; // Reset to current month when entering Reports
+            this._updateReportMonthNav();
+            this.renderReportsPage();
+        }
     }
 
     /**
@@ -1406,6 +1412,12 @@ class DebtTrackerApp {
                 
                 editHTML += `
                             <div class="debt-detail"><strong>Category:</strong> <input id="inline-category-${debt.id}" type="text" value="${debt.category || ''}"></div>
+                            <div class="debt-detail"><strong>Account:</strong>
+                                <select id="inline-account-${debt.id}">
+                                    <option value="">— No account —</option>
+                                    ${this.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="debt-actions">
@@ -1547,16 +1559,18 @@ class DebtTrackerApp {
      * @param {number} debtId - ID of the debt being saved
      */
     saveInlineEdit(debtId) {
-        const nameEl = document.getElementById(`inline-name-${debtId}`);
-        const catEl = document.getElementById(`inline-category-${debtId}`);
+        const nameEl    = document.getElementById(`inline-name-${debtId}`);
+        const catEl     = document.getElementById(`inline-category-${debtId}`);
+        const acctEl    = document.getElementById(`inline-account-${debtId}`);
         
         if (!nameEl) {
             alert('Missing debt name field');
             return;
         }
 
-        const name = nameEl.value.trim();
-        const category = catEl ? catEl.value.trim() : '';
+        const name      = nameEl.value.trim();
+        const category  = catEl ? catEl.value.trim() : '';
+        const accountId = acctEl?.value ? parseInt(acctEl.value) : null;
         const debt = this.debts.find(d => d.id === debtId);
         
         if (!debt) return;
@@ -1598,7 +1612,8 @@ class DebtTrackerApp {
                 fixedStartDate,
                 fixedEndDate,
                 priority,
-                category
+                category,
+                accountId
             };
         } else {
             // Credit card debt
@@ -1640,7 +1655,8 @@ class DebtTrackerApp {
                 minimumPayment,
                 dueDate,
                 debtStartDate,
-                category
+                category,
+                accountId
             };
         }
 
@@ -1744,12 +1760,13 @@ class DebtTrackerApp {
         const amount = parseFloat(document.getElementById('incomeAmount').value);
         const firstPayDate = document.getElementById('incomeFirstDate').value;
         const frequency = document.getElementById('incomeFrequency').value;
+        const accountId = parseInt(document.getElementById('incomeAccount')?.value) || null;
 
         if (!name) { alert('Please enter a name for this income source.'); return; }
         if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
         if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
 
-        this.incomes.push({ id: Date.now(), name, amount, firstPayDate, frequency });
+        this.incomes.push({ id: Date.now(), name, amount, firstPayDate, frequency, accountId });
         this.saveToStorage();
         this.renderIncomeList();
         document.getElementById('incomeForm').reset();
@@ -1784,10 +1801,11 @@ class DebtTrackerApp {
 
     /** Validate and save the inline-edit form for an income card. */
     saveEditIncome(incomeId) {
-        const nameEl   = document.getElementById(`ie-name-${incomeId}`);
-        const amountEl = document.getElementById(`ie-amount-${incomeId}`);
-        const dateEl   = document.getElementById(`ie-date-${incomeId}`);
-        const freqEl   = document.getElementById(`ie-freq-${incomeId}`);
+        const nameEl      = document.getElementById(`ie-name-${incomeId}`);
+        const amountEl    = document.getElementById(`ie-amount-${incomeId}`);
+        const dateEl      = document.getElementById(`ie-date-${incomeId}`);
+        const freqEl      = document.getElementById(`ie-freq-${incomeId}`);
+        const accountEl   = document.getElementById(`ie-account-${incomeId}`);
 
         if (!nameEl || !amountEl || !dateEl || !freqEl) return;
 
@@ -1795,6 +1813,7 @@ class DebtTrackerApp {
         const amount      = parseFloat(amountEl.value);
         const firstPayDate = dateEl.value;
         const frequency   = freqEl.value;
+        const accountId   = accountEl?.value ? parseInt(accountEl.value) : null;
 
         if (!name)                        { alert('Please enter a name.');            return; }
         if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.');     return; }
@@ -1803,7 +1822,7 @@ class DebtTrackerApp {
         const idx = this.incomes.findIndex(i => i.id === incomeId);
         if (idx === -1) return;
 
-        this.incomes[idx] = { ...this.incomes[idx], name, amount, firstPayDate, frequency };
+        this.incomes[idx] = { ...this.incomes[idx], name, amount, firstPayDate, frequency, accountId };
         this.editingIncomeId = null;
         this.saveToStorage();
         this.renderIncomeList();
@@ -1814,16 +1833,17 @@ class DebtTrackerApp {
 
     /** Add a new one-time bonus from the bonus form. */
     addBonus() {
-        const name     = document.getElementById('bonusName').value.trim();
-        const amount   = parseFloat(document.getElementById('bonusAmount').value);
-        const date     = document.getElementById('bonusDate').value;
-        const category = document.getElementById('bonusCategory').value;
+        const name      = document.getElementById('bonusName').value.trim();
+        const amount    = parseFloat(document.getElementById('bonusAmount').value);
+        const date      = document.getElementById('bonusDate').value;
+        const category  = document.getElementById('bonusCategory').value;
+        const accountId = parseInt(document.getElementById('bonusAccount')?.value) || null;
 
         if (!name)                        { alert('Please enter a label for this bonus.'); return; }
         if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
         if (!date)                        { alert('Please enter the date received.'); return; }
 
-        this.bonuses.push({ id: Date.now(), name, amount, date, category });
+        this.bonuses.push({ id: Date.now(), name, amount, date, category, accountId });
         this.saveToStorage();
         this.renderBonusList();
         this.renderStrategyIncomeWidget();
@@ -1856,16 +1876,18 @@ class DebtTrackerApp {
 
     /** Save inline-edit for a bonus card. */
     saveEditBonus(bonusId) {
-        const nameEl   = document.getElementById(`be-name-${bonusId}`);
-        const amtEl    = document.getElementById(`be-amount-${bonusId}`);
-        const dateEl   = document.getElementById(`be-date-${bonusId}`);
-        const catEl    = document.getElementById(`be-category-${bonusId}`);
+        const nameEl      = document.getElementById(`be-name-${bonusId}`);
+        const amtEl       = document.getElementById(`be-amount-${bonusId}`);
+        const dateEl      = document.getElementById(`be-date-${bonusId}`);
+        const catEl       = document.getElementById(`be-category-${bonusId}`);
+        const accountEl   = document.getElementById(`be-account-${bonusId}`);
         if (!nameEl || !amtEl || !dateEl || !catEl) return;
 
-        const name     = nameEl.value.trim();
-        const amount   = parseFloat(amtEl.value);
-        const date     = dateEl.value;
-        const category = catEl.value;
+        const name      = nameEl.value.trim();
+        const amount    = parseFloat(amtEl.value);
+        const date      = dateEl.value;
+        const category  = catEl.value;
+        const accountId = accountEl?.value ? parseInt(accountEl.value) : null;
 
         if (!name)                        { alert('Please enter a label.'); return; }
         if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
@@ -1873,7 +1895,7 @@ class DebtTrackerApp {
 
         const idx = this.bonuses.findIndex(b => b.id === bonusId);
         if (idx === -1) return;
-        this.bonuses[idx] = { ...this.bonuses[idx], name, amount, date, category };
+        this.bonuses[idx] = { ...this.bonuses[idx], name, amount, date, category, accountId };
         this.editingBonusId = null;
         this.saveToStorage();
         this.renderBonusList();
@@ -1928,6 +1950,13 @@ class DebtTrackerApp {
                                     <option value="Bonus"      ${b.category==='Bonus'      ?'selected':''}>Bonus</option>
                                     <option value="Tax Refund" ${b.category==='Tax Refund' ?'selected':''}>Tax Refund</option>
                                     <option value="Other"      ${b.category==='Other'      ?'selected':''}>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Account</label>
+                                <select id="be-account-${b.id}" style="width:100%;">
+                                    <option value="">— No account —</option>
+                                    ${this.accounts.map(a => `<option value="${a.id}" ${b.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
@@ -1995,6 +2024,13 @@ class DebtTrackerApp {
                                 <select id="ie-freq-${inc.id}" class="form-control" style="width:100%;">
                                     <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
                                     <option value="monthly"  ${inc.frequency === 'monthly'  ? 'selected' : ''}>Once per month</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:0.8rem;font-weight:600;">Account</label>
+                                <select id="ie-account-${inc.id}" class="form-control" style="width:100%;">
+                                    <option value="">— No account —</option>
+                                    ${this.accounts.map(a => `<option value="${a.id}" ${inc.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
@@ -2276,8 +2312,9 @@ class DebtTrackerApp {
         }));
 
         const payload = {
-            version: '2.0',
+            version: '3.0',
             exportedAt: new Date().toISOString(),
+            accounts: this.accounts || [],
             debts: normalisedDebts,
             incomes: this.incomes || [],
             bonuses: this.bonuses || [],
@@ -2318,8 +2355,9 @@ class DebtTrackerApp {
                 return;
             }
 
-            // Accept bare array (very old), v1.0 envelope (debts only), or v2.0 envelope
-            const incomingDebts   = Array.isArray(parsed) ? parsed : (parsed.debts  || []);
+            // Accept bare array (very old), v1.0 envelope (debts only), or v2.0/v3.0 envelope
+            const incomingDebts    = Array.isArray(parsed) ? parsed : (parsed.debts    || []);
+            const incomingAccounts = parsed.accounts  || [];
             const incomingIncomes  = parsed.incomes   || [];
             const incomingBonuses  = parsed.bonuses   || [];
             const incomingBills    = parsed.bills     || [];
@@ -2336,6 +2374,7 @@ class DebtTrackerApp {
 
             // Build a summary for the confirm dialog
             const parts = [];
+            if (incomingAccounts.length) parts.push(`${incomingAccounts.length} account(s)`);
             if (validDebts.length)    parts.push(`${validDebts.length} debt(s)`);
             if (incomingIncomes.length) parts.push(`${incomingIncomes.length} income source(s)`);
             if (incomingBills.length) parts.push(`${incomingBills.length} bill(s)`);
@@ -2350,6 +2389,7 @@ class DebtTrackerApp {
 
             if (action) {
                 // Full replace — preserve both balance fields
+                this.accounts = incomingAccounts.map((a, i) => ({ ...a, id: Date.now() + 500 + i }));
                 this.debts = validDebts.map((d, i) => ({
                     ...d,
                     id: Date.now() + i,
@@ -2382,7 +2422,8 @@ class DebtTrackerApp {
                 if (skipped > 0) {
                     alert(`Merged ${toAdd.length} debt(s). Skipped ${skipped} duplicate name(s).`);
                 }
-                // Always restore income, bonuses, bills, expenses & strategy on merge
+                // Always restore accounts, income, bonuses, bills, expenses & strategy on merge
+                this.accounts = incomingAccounts.map((a, i) => ({ ...a, id: Date.now() + 500 + i }));
                 this.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
                 this.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
                 this.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
@@ -2413,6 +2454,7 @@ class DebtTrackerApp {
      */
     clearAllData() {
         this.debts = [];
+        this.accounts = [];
         this.lastPaymentPlan = null;
         this.lastSummary = null;
         this.perMonthStimulus = [];
@@ -2432,6 +2474,7 @@ class DebtTrackerApp {
         try {
             const data = {
                 debts: this.debts,
+                accounts: this.accounts || [],
                 incomes: this.incomes || [],
                 bonuses: this.bonuses || [],
                 bills: this.bills || [],
@@ -2458,6 +2501,7 @@ class DebtTrackerApp {
             if (data) {
                 const parsed = JSON.parse(data);
                 this.debts = parsed.debts || [];
+                this.accounts = parsed.accounts || [];
                 this.incomes = parsed.incomes || [];
                 this.bonuses = parsed.bonuses || [];
                 this.bills = parsed.bills || [];
@@ -2991,11 +3035,12 @@ class DebtTrackerApp {
         const amount = parseFloat(document.getElementById('billAmount').value);
         const dueDay = parseInt(document.getElementById('billDueDay').value) || null;
         const category = document.getElementById('billCategory').value;
+        const accountId = parseInt(document.getElementById('billAccount')?.value) || null;
         if (!name || isNaN(amount) || amount < 0) {
             alert('Please enter a valid bill name and amount.');
             return;
         }
-        this.bills.push({ id: Date.now(), name, amount, dueDay, category });
+        this.bills.push({ id: Date.now(), name, amount, dueDay, category, accountId });
         this.saveToStorage();
         document.getElementById('billForm').reset();
         // Collapse the form after adding
@@ -3023,12 +3068,14 @@ class DebtTrackerApp {
     saveEditBill(id) {
         const idx = this.bills.findIndex(b => b.id === id);
         if (idx === -1) return;
-        const name = document.getElementById(`be-name-${id}`).value.trim();
-        const amount = parseFloat(document.getElementById(`be-amount-${id}`).value);
-        const dueDay = parseInt(document.getElementById(`be-dueday-${id}`).value) || null;
-        const category = document.getElementById(`be-cat-${id}`).value;
+        const name      = document.getElementById(`be-name-${id}`).value.trim();
+        const amount    = parseFloat(document.getElementById(`be-amount-${id}`).value);
+        const dueDay    = parseInt(document.getElementById(`be-dueday-${id}`).value) || null;
+        const category  = document.getElementById(`be-cat-${id}`).value;
+        const acctEl    = document.getElementById(`be-acct-${id}`);
+        const accountId = acctEl?.value ? parseInt(acctEl.value) : null;
         if (!name || isNaN(amount) || amount < 0) { alert('Invalid bill data.'); return; }
-        this.bills[idx] = { ...this.bills[idx], name, amount, dueDay, category };
+        this.bills[idx] = { ...this.bills[idx], name, amount, dueDay, category, accountId };
         this.editingBillId = null;
         this.saveToStorage();
         this.renderBudgetPage();
@@ -3045,11 +3092,12 @@ class DebtTrackerApp {
         const name = document.getElementById('expenseName').value.trim();
         const budgetAmount = parseFloat(document.getElementById('expenseBudget').value);
         const category = document.getElementById('expenseCategory').value;
+        const accountId = parseInt(document.getElementById('expenseAccount')?.value) || null;
         if (!name || isNaN(budgetAmount) || budgetAmount < 0) {
             alert('Please enter a valid expense name and budget amount.');
             return;
         }
-        this.expenses.push({ id: Date.now(), name, budgetAmount, category });
+        this.expenses.push({ id: Date.now(), name, budgetAmount, category, accountId });
         this.saveToStorage();
         document.getElementById('expenseForm').reset();
         // Collapse the form after adding
@@ -3077,11 +3125,13 @@ class DebtTrackerApp {
     saveEditExpense(id) {
         const idx = this.expenses.findIndex(e => e.id === id);
         if (idx === -1) return;
-        const name = document.getElementById(`ee-name-${id}`).value.trim();
+        const name         = document.getElementById(`ee-name-${id}`).value.trim();
         const budgetAmount = parseFloat(document.getElementById(`ee-amount-${id}`).value);
-        const category = document.getElementById(`ee-cat-${id}`).value;
+        const category     = document.getElementById(`ee-cat-${id}`).value;
+        const acctEl       = document.getElementById(`ee-acct-${id}`);
+        const accountId    = acctEl?.value ? parseInt(acctEl.value) : null;
         if (!name || isNaN(budgetAmount) || budgetAmount < 0) { alert('Invalid expense data.'); return; }
-        this.expenses[idx] = { ...this.expenses[idx], name, budgetAmount, category };
+        this.expenses[idx] = { ...this.expenses[idx], name, budgetAmount, category, accountId };
         this.editingExpenseId = null;
         this.saveToStorage();
         this.renderBudgetPage();
@@ -3125,6 +3175,11 @@ class DebtTrackerApp {
                         <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Category</label>
                             <select id="be-cat-${bill.id}" class="form-control">
                                 ${BILL_CATS.map(c => `<option value="${c}" ${bill.category===c?'selected':''}>${c}</option>`).join('')}
+                            </select></div>
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Account</label>
+                            <select id="be-acct-${bill.id}" class="form-control">
+                                <option value="">— No account —</option>
+                                ${this.accounts.map(a => `<option value="${a.id}" ${bill.accountId===a.id?'selected':''}>${a.name}</option>`).join('')}
                             </select></div>
                     </div>
                     <div class="budget-edit-actions">
@@ -3197,6 +3252,11 @@ class DebtTrackerApp {
                         <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Category</label>
                             <select id="ee-cat-${exp.id}" class="form-control">
                                 ${EXP_CATS.map(c => `<option value="${c}" ${exp.category===c?'selected':''}>${c}</option>`).join('')}
+                            </select></div>
+                        <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Account</label>
+                            <select id="ee-acct-${exp.id}" class="form-control">
+                                <option value="">— No account —</option>
+                                ${this.accounts.map(a => `<option value="${a.id}" ${exp.accountId===a.id?'selected':''}>${a.name}</option>`).join('')}
                             </select></div>
                     </div>
                     <div class="budget-edit-actions">
@@ -3831,6 +3891,228 @@ class DebtTrackerApp {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    //  ACCOUNTS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Refresh all account-selector <select> dropdowns in the Add-forms so
+     * they always reflect the current `this.accounts` list.
+     * Call this after any change to `this.accounts`.
+     */
+    _refreshAccountSelectors() {
+        const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
+        const opts = [
+            `<option value="">— No account —</option>`,
+            ...this.accounts.map(a => `<option value="${a.id}">${a.name} (${a.type})</option>`)
+        ].join('');
+        for (const id of selIds) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            const prev = el.value;
+            el.innerHTML = opts;
+            // restore selection if the account still exists
+            if (this.accounts.find(a => String(a.id) === prev)) el.value = prev;
+        }
+    }
+
+    /** Add a new account from the accountForm inputs. */
+    addAccount() {
+        const name = document.getElementById('accountName').value.trim();
+        const type = document.getElementById('accountType').value;
+        const startingBalance = parseFloat(document.getElementById('accountStartingBalance').value);
+
+        if (!name) { alert('Please enter an account name.'); return; }
+        if (isNaN(startingBalance)) { alert('Please enter a starting balance (use 0 if unknown).'); return; }
+
+        this.accounts.push({ id: Date.now(), name, type, startingBalance });
+        this.saveToStorage();
+        this.renderAccountsList();
+        this._refreshAccountSelectors();
+        document.getElementById('accountForm').reset();
+    }
+
+    /** Delete an account by ID. */
+    deleteAccount(id) {
+        this.accounts = this.accounts.filter(a => a.id !== id);
+        this.saveToStorage();
+        this.renderAccountsList();
+        this._refreshAccountSelectors();
+    }
+
+    /** Enter inline-edit mode for an account card. */
+    startEditAccount(id) {
+        this.editingAccountId = id;
+        this.renderAccountsList();
+        setTimeout(() => { const el = document.getElementById(`ac-name-${id}`); if (el) el.focus(); }, 0);
+    }
+
+    /** Cancel inline-edit for an account card. */
+    cancelEditAccount() {
+        this.editingAccountId = null;
+        this.renderAccountsList();
+    }
+
+    /** Save inline-edit for an account card. */
+    saveEditAccount(id) {
+        const idx = this.accounts.findIndex(a => a.id === id);
+        if (idx === -1) return;
+        const name = document.getElementById(`ac-name-${id}`)?.value.trim();
+        const type = document.getElementById(`ac-type-${id}`)?.value;
+        const startingBalance = parseFloat(document.getElementById(`ac-bal-${id}`)?.value);
+        if (!name) { alert('Please enter an account name.'); return; }
+        if (isNaN(startingBalance)) { alert('Please enter a valid starting balance.'); return; }
+        this.accounts[idx] = { ...this.accounts[idx], name, type, startingBalance };
+        this.editingAccountId = null;
+        this.saveToStorage();
+        this.renderAccountsList();
+        this._refreshAccountSelectors();
+    }
+
+    /**
+     * Compute the projected balance for a given account based on:
+     *   startingBalance
+     *   + income paydays this month assigned to this account
+     *   + bonuses this month assigned to this account
+     *   − debt minimums assigned to this account
+     *   − bills assigned to this account
+     *   − expense budgets assigned to this account
+     * @param {number|null} accountId
+     * @returns {number}
+     */
+    computeAccountBalance(accountId, year = null, month = null) {
+        const acct = this.accounts.find(a => a.id === accountId);
+        if (!acct) return 0;
+        let balance = acct.startingBalance;
+
+        // Default to current month if not specified
+        const now = new Date();
+        const yr = year  !== null ? year  : now.getFullYear();
+        const mo = month !== null ? month : now.getMonth();
+
+        // Add income paydays in the specified month
+        for (const inc of this.incomes) {
+            if (inc.accountId === accountId) {
+                balance += inc.amount * this._incomeDaysInMonth(inc, yr, mo).length;
+            }
+        }
+
+        // Add bonuses in the specified month
+        for (const b of this.bonuses) {
+            if (b.accountId !== accountId) continue;
+            const bd = new Date(b.date + 'T12:00:00');
+            if (bd.getFullYear() === yr && bd.getMonth() === mo) balance += b.amount;
+        }
+
+        // Subtract debt minimums
+        for (const d of this.debts) {
+            if (d.accountId === accountId) balance -= (d.minimumPayment || 0);
+        }
+
+        // Subtract bills
+        for (const b of this.bills) {
+            if (b.accountId === accountId) balance -= b.amount;
+        }
+
+        // Subtract expense budgets
+        for (const e of this.expenses) {
+            if (e.accountId === accountId) balance -= e.budgetAmount;
+        }
+
+        return balance;
+    }
+
+    /** Render the full accounts list on the Accounts page. */
+    renderAccountsList() {
+        const container = document.getElementById('accountList');
+        if (!container) return;
+
+        if (!this.accounts || this.accounts.length === 0) {
+            container.innerHTML = `<p class="acct-empty-msg">No accounts yet. Add your first account above to start tracking cash flow per account.</p>`;
+            return;
+        }
+
+        const ACCT_TYPES = ['Checking','Savings','Cash','Investment','Credit Card','Loan','Other'];
+        const typeIcon = { Checking:'🏦', Savings:'💰', Cash:'💵', Investment:'📈', 'Credit Card':'💳', Loan:'🏠', Other:'🗂️' };
+
+        const now = new Date();
+        const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        const cards = this.accounts.map(a => {
+            if (this.editingAccountId === a.id) {
+                return `<div class="acct-card acct-card--editing">
+                    <div class="acct-edit-grid">
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:0.8rem;font-weight:600">Name</label>
+                            <input type="text" id="ac-name-${a.id}" value="${a.name.replace(/"/g,'&quot;')}" style="width:100%">
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:0.8rem;font-weight:600">Type</label>
+                            <select id="ac-type-${a.id}" style="width:100%">
+                                ${ACCT_TYPES.map(t => `<option value="${t}" ${a.type===t?'selected':''}>${t}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:0.8rem;font-weight:600">Starting Balance ($)</label>
+                            <input type="number" id="ac-bal-${a.id}" value="${a.startingBalance}" step="0.01" style="width:100%">
+                        </div>
+                    </div>
+                    <div class="acct-edit-actions">
+                        <button class="btn btn-primary btn-small" onclick="app.saveEditAccount(${a.id})">Save</button>
+                        <button class="btn btn-secondary btn-small" onclick="app.cancelEditAccount()">Cancel</button>
+                    </div>
+                </div>`;
+            }
+
+            const projBalance = this.computeAccountBalance(a.id);
+            const balClass = projBalance >= 0 ? 'acct-balance--pos' : 'acct-balance--neg';
+
+            // Items linked to this account
+            const linkedIncome  = this.incomes.filter(i => i.accountId === a.id);
+            const linkedBonuses = this.bonuses.filter(b => b.accountId === a.id);
+            const linkedDebts   = this.debts.filter(d => d.accountId === a.id);
+            const linkedBills   = this.bills.filter(b => b.accountId === a.id);
+            const linkedExp     = this.expenses.filter(e => e.accountId === a.id);
+            const hasLinks = linkedIncome.length || linkedBonuses.length || linkedDebts.length || linkedBills.length || linkedExp.length;
+
+            const linkRows = !hasLinks ? '' : `
+                <div class="acct-links">
+                    ${linkedIncome.map(i  => `<span class="acct-link acct-link--income">💰 ${i.name}</span>`).join('')}
+                    ${linkedBonuses.map(b => `<span class="acct-link acct-link--bonus">🎁 ${b.name}</span>`).join('')}
+                    ${linkedDebts.map(d   => `<span class="acct-link acct-link--debt">💳 ${d.name}</span>`).join('')}
+                    ${linkedBills.map(b   => `<span class="acct-link acct-link--bill">🧾 ${b.name}</span>`).join('')}
+                    ${linkedExp.map(e     => `<span class="acct-link acct-link--exp">💸 ${e.name}</span>`).join('')}
+                </div>`;
+
+            return `<div class="acct-card">
+                <div class="acct-card-header">
+                    <span class="acct-type-icon">${typeIcon[a.type] || '🗂️'}</span>
+                    <div class="acct-card-info">
+                        <span class="acct-card-name">${a.name}</span>
+                        <span class="acct-type-badge">${a.type}</span>
+                    </div>
+                    <div class="acct-balances">
+                        <div class="acct-balance-item">
+                            <span class="acct-balance-label">Starting</span>
+                            <span class="acct-balance-value">${this.formatCurrency(a.startingBalance)}</span>
+                        </div>
+                        <div class="acct-balance-item">
+                            <span class="acct-balance-label">Proj. (${monthLabel})</span>
+                            <span class="acct-balance-value ${balClass}">${this.formatCurrency(projBalance)}</span>
+                        </div>
+                    </div>
+                    <div class="debt-actions">
+                        <button class="btn-edit" onclick="app.startEditAccount(${a.id})">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="app.deleteAccount(${a.id})">Delete</button>
+                    </div>
+                </div>
+                ${linkRows}
+            </div>`;
+        }).join('');
+
+        container.innerHTML = cards;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     //  REPORTS PAGE
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -3870,6 +4152,41 @@ class DebtTrackerApp {
      * Entry point — renders all three report panels for the current month.
      * Called when the user switches to the Reports page.
      */
+    // ══════════════════════════════════════════════════════════════════════════
+    // REPORTS PAGE
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Returns a Date object for the first day of the currently selected report month. */
+    _getReportDate() {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth() + this._reportMonthOffset, 1);
+    }
+
+    /** Step the report month back by 1 and re-render. */
+    prevReportMonth() {
+        this._reportMonthOffset--;
+        this._updateReportMonthNav();
+        this.renderReportsPage();
+    }
+
+    /** Step the report month forward by 1 and re-render. */
+    nextReportMonth() {
+        this._reportMonthOffset++;
+        this._updateReportMonthNav();
+        this.renderReportsPage();
+    }
+
+    /** Update the month label and disable the "next" button if already at current month. */
+    _updateReportMonthNav() {
+        const d = this._getReportDate();
+        const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const el = document.getElementById('rptMonthLabel');
+        if (el) el.textContent = label;
+        // Optionally dim the "prev" button if too far back (> 24 months)
+        const prevBtn = document.getElementById('rptPrevMonth');
+        if (prevBtn) prevBtn.disabled = this._reportMonthOffset <= -24;
+    }
+
     renderReportsPage() {
         // Destroy any lingering chart instances
         ['_rptIncomeChart', '_rptBillsChart', '_rptExpChart', '_rptMoneyFlowChart']
@@ -3887,12 +4204,14 @@ class DebtTrackerApp {
         if (!container) return;
         container.innerHTML = '';
 
-        const now   = new Date();
-        const year  = now.getFullYear();
-        const month = now.getMonth();
-        const today = now.getDate();
+        const rptDate  = this._getReportDate();
+        const year     = rptDate.getFullYear();
+        const month    = rptDate.getMonth();
+        const now      = new Date();
+        const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+        const today    = isCurrentMonth ? now.getDate() : -1;
 
-        const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
         // ── Build event maps keyed by day-of-month ──────────────────────────
@@ -3945,8 +4264,8 @@ class DebtTrackerApp {
             `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bill"></span>Bill due</span>`,
             `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch" style="background:#2563eb;"></span>Debt payment</span>`,
             `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bonus"></span>Bonus/Windfall</span>`,
-            `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--today"></span>Today</span>`,
-        ];
+            isCurrentMonth ? `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--today"></span>Today</span>` : '',
+        ].filter(Boolean);
 
         // ── Grid ────────────────────────────────────────────────────────────
         const firstDay   = new Date(year, month, 1).getDay();
@@ -4011,7 +4330,21 @@ class DebtTrackerApp {
         const container = document.getElementById('reportsIncomeExp');
         if (!container) return;
 
-        const { monthlyTotal: totalIncome } = this.computeMonthlyIncome();
+        const rptDate = this._getReportDate();
+        const rptYear  = rptDate.getFullYear();
+        const rptMonth = rptDate.getMonth();
+
+        // Compute income for the report month
+        let totalIncome = 0;
+        for (const inc of (this.incomes || [])) {
+            totalIncome += inc.amount * this._incomeDaysInMonth(inc, rptYear, rptMonth).length;
+        }
+        for (const b of (this.bonuses || [])) {
+            if (!b.date) continue;
+            const bd = new Date(b.date + 'T12:00:00');
+            if (bd.getFullYear() === rptYear && bd.getMonth() === rptMonth) totalIncome += b.amount;
+        }
+
         const totalBills    = (this.bills    || []).reduce((s, b) => s + b.amount, 0);
         const totalExpenses = (this.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
         const totalDebtMin  = (this.debts    || []).reduce((s, d) => s + (d.minimumPayment || 0), 0);
@@ -4019,9 +4352,11 @@ class DebtTrackerApp {
         const net           = totalIncome - totalOutflow;
         const netCls        = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
+        const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
         // ── Stats strip ─────────────────────────────────────────────────────
         const stats = [
-            { label: 'Income (this month)', value: totalIncome, cls: 'rpt-stat--income' },
+            { label: `Income (${monthLabel})`, value: totalIncome, cls: 'rpt-stat--income' },
             { label: 'Bills',               value: totalBills,  cls: 'rpt-stat--bills'  },
             { label: 'Expense Budgets',     value: totalExpenses, cls: 'rpt-stat--exp'  },
             { label: 'Debt Minimums',       value: totalDebtMin,  cls: 'rpt-stat--debt' },
@@ -4036,18 +4371,17 @@ class DebtTrackerApp {
         // ── Income chart data (by source) ────────────────────────────────────
         const incomeLabels = [], incomeData = [];
         for (const inc of (this.incomes || [])) {
-            const count = this.paydaysInCurrentMonth(inc);
+            const count = this._incomeDaysInMonth(inc, rptYear, rptMonth).length;
             if (count > 0) {
                 incomeLabels.push(inc.name);
                 incomeData.push(inc.amount * count);
             }
         }
-        // Add bonuses in current month
+        // Add bonuses in report month
         for (const b of (this.bonuses || [])) {
             if (!b.date) continue;
             const bd = new Date(b.date + 'T12:00:00');
-            const now = new Date();
-            if (bd.getFullYear() === now.getFullYear() && bd.getMonth() === now.getMonth()) {
+            if (bd.getFullYear() === rptYear && bd.getMonth() === rptMonth) {
                 incomeLabels.push(b.name);
                 incomeData.push(b.amount);
             }
@@ -4159,12 +4493,14 @@ class DebtTrackerApp {
         const container = document.getElementById('reportsMoneyFlow');
         if (!container) return;
 
-        const now        = new Date();
-        const year       = now.getFullYear();
-        const month      = now.getMonth();
+        const rptDate  = this._getReportDate();
+        const year     = rptDate.getFullYear();
+        const month    = rptDate.getMonth();
+        const now      = new Date();
+        const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const todayDay   = now.getDate();
-        const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const todayDay   = isCurrentMonth ? now.getDate() : null;
+        const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
         // Build per-day income and outflow arrays (indexed 1..daysInMonth)
         const dailyIn  = new Array(daysInMonth + 1).fill(0);
@@ -4212,13 +4548,49 @@ class DebtTrackerApp {
 
         const hasAnyData = cumIn > 0 || cumOut > 0;
 
+        // ── Per-account balance section ──────────────────────────────────────
+        let acctSectionHTML = '';
+        if (this.accounts && this.accounts.length > 0) {
+            const mLabel = monthLabel;
+            const typeIcon = { Checking:'🏦', Savings:'💰', Cash:'💵', Investment:'📈', 'Credit Card':'💳', Loan:'🏠', Other:'🗂️' };
+            const acctRows = this.accounts.map(a => {
+                const proj = this.computeAccountBalance(a.id, year, month);
+                const diff = proj - a.startingBalance;
+                const diffClass = diff >= 0 ? 'acct-mf-diff--pos' : 'acct-mf-diff--neg';
+                const diffSign  = diff >= 0 ? '+' : '';
+                return `<div class="acct-mf-row">
+                    <span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span>
+                    <span class="acct-mf-name">${a.name}</span>
+                    <span class="acct-mf-type">${a.type}</span>
+                    <span class="acct-mf-start">${this.formatCurrency(a.startingBalance)}</span>
+                    <span class="acct-mf-proj">${this.formatCurrency(proj)}</span>
+                    <span class="acct-mf-diff ${diffClass}">${diffSign}${this.formatCurrency(diff)}</span>
+                </div>`;
+            }).join('');
+            acctSectionHTML = `
+                <div class="acct-mf-section">
+                    <h4 class="acct-mf-title">🏦 Account Balances — ${mLabel}</h4>
+                    <p class="rpt-chart-sub">Starting balance vs. projected end-of-month after all linked income, debts, bills and expenses.</p>
+                    <div class="acct-mf-header">
+                        <span></span>
+                        <span>Account</span>
+                        <span>Type</span>
+                        <span>Starting</span>
+                        <span>Projected</span>
+                        <span>Change</span>
+                    </div>
+                    ${acctRows}
+                </div>`;
+        }
+
         container.innerHTML = `
             <h3 class="rpt-section-title">💰 Money Flow — ${monthLabel}</h3>
             <p class="rpt-chart-sub" style="margin:0 0 16px">Cumulative income, outflow, and net balance day by day through the month. Vertical dashed line = today.</p>
             ${!hasAnyData ? '<p class="rpt-empty-msg">Add income sources, bills, or debts to see the money flow chart.</p>' : `
             <div class="rpt-moneyflow-wrap">
                 <canvas id="rptMoneyFlowChart"></canvas>
-            </div>`}`;
+            </div>`}
+            ${acctSectionHTML}`;
 
         if (!hasAnyData) return;
 
@@ -4296,9 +4668,10 @@ class DebtTrackerApp {
                 }
             },
             plugins: [{
-                // Draw a vertical dashed line at today's day
+                // Draw a vertical dashed line at today's day (current month only)
                 id: 'todayLine',
                 afterDraw(chart) {
+                    if (!todayDay) return; // not current month — skip
                     const todayIdx = todayDay - 1;
                     if (todayIdx < 0 || todayIdx >= chart.data.labels.length) return;
                     const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
@@ -4319,7 +4692,6 @@ class DebtTrackerApp {
 }
 
 // Initialize the app when the DOM is ready
-let app;
 document.addEventListener('DOMContentLoaded', () => {
-    app = new DebtTrackerApp();
+    window.app = new DebtTrackerApp();
 });

@@ -34,7 +34,8 @@
                 <p>Take control of your debt with smart payment strategies</p>
             </div>
             <nav class="top-nav">
-                <button class="page-button active" data-page="income">Income</button>
+                <button class="page-button active" data-page="accounts">Accounts</button>
+                <button class="page-button" data-page="income">Income</button>
                 <button class="page-button" data-page="debts">Debts</button>
                 <button class="page-button" data-page="budget">Budget</button>
                 <button class="page-button" data-page="strategy">Plan</button>
@@ -43,6 +44,49 @@
         </header>
 
         <main>
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Accounts Section                                            -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="accounts-section page-section" id="accountsSection">
+                <h2>🏦 Accounts</h2>
+                <p class="accounts-intro">Define your bank accounts, wallets, and credit lines. Then link income, debts, bills, and expenses to specific accounts so you can track real cash flow per account.</p>
+
+                <!-- Add Account form -->
+                <div class="account-form-card">
+                    <h3>Add Account</h3>
+                    <form id="accountForm" novalidate>
+                        <div class="account-form-grid">
+                            <div class="form-group">
+                                <label for="accountName">Account Name *</label>
+                                <input type="text" id="accountName" placeholder="e.g. Main Checking, Emergency Fund" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="accountType">Type *</label>
+                                <select id="accountType" required>
+                                    <option value="Checking">Checking</option>
+                                    <option value="Savings">Savings</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Investment">Investment</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                    <option value="Loan">Loan</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="accountStartingBalance">Starting Balance ($) *
+                                    <span class="help-icon" tabindex="0" aria-label="The current or starting balance of this account. Use a negative value for credit cards or loans.">?</span>
+                                </label>
+                                <input type="number" id="accountStartingBalance" placeholder="0.00" step="0.01" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success" id="accountFormSubmit">Add Account</button>
+                    </form>
+                </div>
+
+                <!-- Account list -->
+                <div id="accountList"></div>
+            </section>
+
             <!-- Debts Section — form + list side by side -->
             <section class="debts-section page-section" id="debtsSection">
                 <div class="debts-layout">
@@ -122,6 +166,15 @@
                                         <span class="help-icon" tabindex="0" aria-label="When did you first open or take on this debt? Used to calculate real interest paid to date.">?</span>
                                     </label>
                                     <input type="date" id="debtStartDate" class="credit-card-field">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="debtAccount">Pay from Account
+                                        <span class="help-icon" tabindex="0" aria-label="Which account do payments for this debt come from?">?</span>
+                                    </label>
+                                    <select id="debtAccount">
+                                        <option value="">— No account —</option>
+                                    </select>
                                 </div>
 
                                 <!-- Fixed-Amount Debt Fields -->
@@ -213,6 +266,14 @@
                                     <option value="monthly">Once per month</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label for="incomeAccount">Deposit to Account
+                                    <span class="help-icon" tabindex="0" aria-label="Which account does this income deposit into?">?</span>
+                                </label>
+                                <select id="incomeAccount">
+                                    <option value="">— No account —</option>
+                                </select>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="incomeFormSubmit">Add Income</button>
                     </form>
@@ -248,6 +309,12 @@
                                         <option value="Bonus">Bonus</option>
                                         <option value="Tax Refund">Tax Refund</option>
                                         <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label for="bonusAccount">Deposit to Account</label>
+                                    <select id="bonusAccount">
+                                        <option value="">— No account —</option>
                                     </select>
                                 </div>
                             </div>
@@ -300,6 +367,12 @@
                                             <option value="Other">Other</option>
                                         </select>
                                     </div>
+                                    <div class="form-group">
+                                        <label for="billAccount">Pay from Account</label>
+                                        <select id="billAccount">
+                                            <option value="">— No account —</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary" id="billFormSubmit">Add Bill</button>
                             </form>
@@ -338,6 +411,12 @@
                                             <option value="Education">Education</option>
                                             <option value="Childcare">Childcare</option>
                                             <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="expenseAccount">Pay from Account</label>
+                                        <select id="expenseAccount">
+                                            <option value="">— No account —</option>
                                         </select>
                                     </div>
                                 </div>
@@ -532,6 +611,13 @@
             <section class="reports-section page-section" id="reportsSection">
                 <h2>📈 Reports</h2>
 
+                <!-- Month pagination -->
+                <div class="rpt-month-nav">
+                    <button class="rpt-month-btn" id="rptPrevMonth" onclick="app.prevReportMonth()" title="Previous month">&#8249;</button>
+                    <span class="rpt-month-label" id="rptMonthLabel"></span>
+                    <button class="rpt-month-btn" id="rptNextMonth" onclick="app.nextReportMonth()" title="Next month">&#8250;</button>
+                </div>
+
                 <!-- Tab bar -->
                 <div class="rpt-tab-bar">
                     <button class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" aria-selected="true">📅 Calendar</button>
@@ -565,7 +651,26 @@
     <script src="debtCalculator.js"></script>
     <script src="app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+        // ── Reports month pagination: update label and re-render active tab on month change ──
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.app && typeof app._updateReportMonthNav === 'function') {
+                app._updateReportMonthNav();
+            }
+        });
+        </script>
     <script>
+    // ── Account form ──────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('accountForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (window.app) app.addAccount();
+            });
+        }
+    });
+
     // ── Collapsible "Add New Debt" form ──────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         const toggle = document.getElementById('debtFormToggle');

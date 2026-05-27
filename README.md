@@ -14,6 +14,13 @@ A modern, single-page web application that helps you plan and visualise a path t
 - **Category labels** — tag debts (e.g. "Housing", "Credit Card") and filter the list by category
 - **Priority levels** — assign a 1–10 priority to each debt for custom strategy ordering
 
+### Account Management
+- **Add accounts** — define checking, savings, cash, investment, credit card, loan, or other accounts with a name, type, and starting balance
+- **Link to accounts** — assign income sources, bonuses, debts, bills, and expense budgets to specific accounts
+- **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, bills, and expenses for the current month
+- **Money Flow report** — the Reports › Money Flow tab includes a per-account balance table alongside the cumulative cash-flow chart
+- **Export / Import** — accounts are included in the JSON backup (version 3.0 format)
+
 ### Income Tracking
 - **Add income sources** — name, amount per paycheck, first pay date, and frequency (bi-weekly or monthly)
 - **Automatic pay-schedule projection** — the app walks each source's pay cadence forward from its first pay date to calculate how many paydays fall in the current month
@@ -90,7 +97,19 @@ Navigate to **Debts**. The page has a two-column layout: the **Add Debt form** s
 
 Click **Add Debt**. The new debt appears immediately in the list on the right. Repeat for every debt. Use the **Edit** button on any debt card to populate the form with that debt's values for inline editing.
 
-### 2 — Set your strategy and view results
+### 2 — Set up your accounts (optional)
+
+Navigate to **Accounts**. Define the bank accounts, wallets, or credit cards your money flows through.
+
+| Field | Notes |
+|-------|-------|
+| Account Name | A label, e.g. "Chase Checking" |
+| Account Type | Checking / Savings / Cash / Investment / Credit Card / Loan / Other |
+| Starting Balance | Current balance of the account |
+
+Click **Add Account**. Each account card shows the starting balance and a **projected end-of-month balance** that factors in all linked income, bonuses, debt payments, bills, and expense budgets. When adding income sources, debts, bills, or expenses you can optionally link them to one of your accounts.
+
+### 3 — Set your strategy and view results
 
 Navigate to **Plan**.
 
@@ -109,7 +128,7 @@ The results appear immediately below the controls on the same page, split into t
 
 Click **Clear All Data** to reset everything and hide the results.
 
-### 3 — Track your income
+### 4 — Track your income
 
 Navigate to **Income**.
 
@@ -124,7 +143,7 @@ Click **Add Income**. Add one row per income source.
 
 The page shows a summary of how much income is expected in the **current calendar month** (the app projects each source's schedule from its first pay date). The **Strategy** page also shows a debt-to-income ratio widget whenever income sources exist, plus a net cashflow row when bills or expense budgets have been entered.
 
-### 4 — Track your budget
+### 5 — Track your budget
 
 Navigate to **Budget**.
 
@@ -155,7 +174,7 @@ Income (this month)
 = Net remaining
 ```
 
-### 5 — Export / Import
+### 6 — Export / Import
 
 The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of every page, next to the dark-mode toggle.
 
@@ -163,12 +182,13 @@ The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of eve
 
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "exportedAt": "2026-05-26T12:00:00.000Z",
-  "debts":    [ { "id": 1, "name": "Visa", "accountBalance": 4200, ... } ],
-  "incomes":  [ { "id": 1, "name": "Main Job", "amount": 2000, ... } ],
-  "bills":    [ { "id": 2, "name": "Electricity", "amount": 120, "dueDay": 15, "category": "Utilities" } ],
-  "expenses": [ { "id": 3, "name": "Groceries", "budgetAmount": 400, "category": "Food & Groceries" } ],
+  "accounts": [ { "id": 1, "name": "Chase Checking", "type": "Checking", "startingBalance": 2500 } ],
+  "debts":    [ { "id": 1, "name": "Visa", "accountBalance": 4200, "accountId": 1, ... } ],
+  "incomes":  [ { "id": 1, "name": "Main Job", "amount": 2000, "accountId": 1, ... } ],
+  "bills":    [ { "id": 2, "name": "Electricity", "amount": 120, "dueDay": 15, "category": "Utilities", "accountId": 1 } ],
+  "expenses": [ { "id": 3, "name": "Groceries", "budgetAmount": 400, "category": "Food & Groceries", "accountId": 1 } ],
   "strategy": { "monthlyPayment": 800, "paymentStrategy": "avalanche" }
 }
 ```

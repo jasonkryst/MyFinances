@@ -1,3 +1,68 @@
+/* ═══════════════════════════════════════════════════════════════
+   REPORTS MONTH SELECTOR (pagination)
+   ═══════════════════════════════════════════════════════════════ */
+.rpt-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 0 0 18px 0;
+    background: var(--card-bg, #fff);
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color, #e5e7eb);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 7px 18px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+.rpt-month-btn {
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.rpt-month-btn:hover, .rpt-month-btn:focus {
+    background: #1e40af;
+    color: #fff;
+    outline: 2px solid #2563eb;
+}
+.rpt-month-label {
+    font-size: 1.08rem;
+    font-weight: 600;
+    color: var(--primary-color, #2563eb);
+    letter-spacing: 0.01em;
+    min-width: 120px;
+    text-align: center;
+    user-select: none;
+}
+body.dark-mode .rpt-month-nav {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+body.dark-mode .rpt-month-btn {
+    background: #2563eb;
+    color: #fff;
+}
+body.dark-mode .rpt-month-btn:hover, body.dark-mode .rpt-month-btn:focus {
+    background: #1e40af;
+    color: #fff;
+    outline: 2px solid #2563eb;
+}
+body.dark-mode .rpt-month-label {
+    color: #60a5fa;
+}
 /* Visually hidden for accessibility */
 .sr-only {
     position: absolute;
@@ -2074,9 +2139,22 @@ body.dark-mode .target-result--warn .target-result-payment {
 
 .income-form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px 20px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px 16px;
     margin-bottom: 16px;
+}
+@media (min-width: 900px) {
+    .income-form-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px 18px;
+    }
+    .income-form-card label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 98%;
+        display: block;
+    }
 }
 
 /* Income list */
@@ -2084,6 +2162,13 @@ body.dark-mode .target-result--warn .target-result-payment {
     display: grid;
     gap: 12px;
     margin-bottom: 20px;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+    .income-list {
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 14px 18px;
+    }
 }
 
 .income-card {
@@ -3167,4 +3252,176 @@ body.dark-mode .rpt-cal-today { background: #1e3a5f; border-color: #2563eb; }
     .rpt-cal-evt      { font-size: 0.58rem; }
     .rpt-tab-btn      { min-width: 100px; font-size: 0.82rem; padding: 10px 10px; }
     .rpt-moneyflow-wrap { height: 260px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACCOUNTS PAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.accounts-intro {
+    margin: 0 0 20px;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    max-width: 700px;
+}
+
+/* ── Add Account form card ─────────────────────────────────────────────── */
+.account-form-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 22px 22px 18px;
+    margin-bottom: 26px;
+}
+.account-form-card h3 { margin: 0 0 16px; font-size: 1rem; font-weight: 700; }
+.account-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px 20px;
+    margin-bottom: 16px;
+}
+
+/* ── Account card ──────────────────────────────────────────────────────── */
+.acct-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    transition: border-color 0.15s;
+}
+.acct-card:hover { border-color: var(--primary-color); }
+.acct-card--editing { border-color: var(--primary-color); background: var(--light-bg); }
+
+.acct-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.acct-type-icon { font-size: 1.6rem; flex-shrink: 0; }
+.acct-card-info { flex: 1; min-width: 120px; }
+.acct-card-name { display: block; font-weight: 700; font-size: 1rem; }
+.acct-type-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #e0e7ff;
+    color: #3730a3;
+    margin-top: 2px;
+}
+body.dark-mode .acct-type-badge { background: #1e1b4b; color: #a5b4fc; }
+
+.acct-balances {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.acct-balance-item { display: flex; flex-direction: column; align-items: flex-end; }
+.acct-balance-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.acct-balance-value { font-size: 1rem; font-weight: 700; }
+.acct-balance--pos { color: #059669; }
+.acct-balance--neg { color: #dc2626; }
+body.dark-mode .acct-balance--pos { color: #34d399; }
+body.dark-mode .acct-balance--neg { color: #f87171; }
+
+/* ── Linked-item chips ─────────────────────────────────────────────────── */
+.acct-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+.acct-link {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.acct-link--income  { background: #d1fae5; color: #065f46; }
+.acct-link--bonus   { background: #fef3c7; color: #92400e; }
+.acct-link--debt    { background: #fee2e2; color: #7f1d1d; }
+.acct-link--bill    { background: #fffbeb; color: #78350f; }
+.acct-link--exp     { background: #f5f3ff; color: #4c1d95; }
+body.dark-mode .acct-link--income  { background: #064e3b; color: #6ee7b7; }
+body.dark-mode .acct-link--bonus   { background: #451a03; color: #fcd34d; }
+body.dark-mode .acct-link--debt    { background: #450a0a; color: #fca5a5; }
+body.dark-mode .acct-link--bill    { background: #1c1400; color: #fcd34d; }
+body.dark-mode .acct-link--exp     { background: #1e1b4b; color: #c4b5fd; }
+
+/* ── Inline edit grid ──────────────────────────────────────────────────── */
+.acct-edit-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px 16px;
+    margin-bottom: 12px;
+}
+.acct-edit-actions { display: flex; gap: 8px; }
+
+/* ── Empty state ───────────────────────────────────────────────────────── */
+.acct-empty-msg {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+}
+
+/* ── Money Flow per-account table ─────────────────────────────────────── */
+.acct-mf-section {
+    margin-top: 32px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.acct-mf-title {
+    margin: 0;
+    padding: 14px 18px 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+.acct-mf-section .rpt-chart-sub { padding: 4px 18px 10px; }
+.acct-mf-header,
+.acct-mf-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 100px 110px 110px 100px;
+    align-items: center;
+    padding: 8px 18px;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+.acct-mf-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: var(--light-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+.acct-mf-row { border-bottom: 1px solid var(--border-color); }
+.acct-mf-row:last-child { border-bottom: none; }
+.acct-mf-icon { font-size: 1.1rem; }
+.acct-mf-name { font-weight: 600; }
+.acct-mf-type { color: var(--text-muted); font-size: 0.78rem; }
+.acct-mf-start, .acct-mf-proj { font-weight: 600; text-align: right; }
+.acct-mf-diff { font-weight: 700; text-align: right; }
+.acct-mf-diff--pos { color: #059669; }
+.acct-mf-diff--neg { color: #dc2626; }
+body.dark-mode .acct-mf-diff--pos { color: #34d399; }
+body.dark-mode .acct-mf-diff--neg { color: #f87171; }
+
+@media (max-width: 700px) {
+    .acct-mf-header,
+    .acct-mf-row { grid-template-columns: 28px 1fr 80px 80px; }
+    .acct-mf-type, .acct-mf-start { display: none; }
+    .acct-edit-grid { grid-template-columns: 1fr 1fr; }
+    .acct-card-header { gap: 10px; }
 }
