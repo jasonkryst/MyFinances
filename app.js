@@ -53,9 +53,23 @@ class DebtTrackerApp {
         this.editingAccountId = null; // ID of the account currently in inline-edit mode, or null
         this._reportMonthOffset = 0;  // 0 = current month, 1 = next month, -1 = last month, etc.
         this.storageKey = 'debtTrackerData';
-        
+
         this.initializeEventListeners();
         this.loadFromStorage();
+
+        // MIGRATION: Assign first account to any income without accountId so they appear in the Ledger
+        if (this.accounts.length > 0 && this.incomes.length > 0) {
+            const firstAccountId = this.accounts[0].id;
+            let changed = false;
+            for (let i = 0; i < this.incomes.length; i++) {
+                if (!this.incomes[i].accountId || isNaN(this.incomes[i].accountId)) {
+                    this.incomes[i].accountId = firstAccountId;
+                    changed = true;
+                }
+            }
+            if (changed) this.saveToStorage();
+        }
+
         this.updateUI();
         this.updateFormVisibility();
         this.switchPage('accounts'); // default landing page on initial load
@@ -1206,7 +1220,8 @@ class DebtTrackerApp {
             income: 'incomeSection',
             budget: 'budgetSection',
             strategy: 'strategySection',
-            reports: 'reportsSection'
+            reports: 'reportsSection',
+            ledger: 'ledgerSection'
         };
 
         // hide all sections
@@ -1229,6 +1244,331 @@ class DebtTrackerApp {
             this._updateReportMonthNav();
             this.renderReportsPage();
         }
+        if (pageName === 'ledger') {
+            this.renderLedgerPage();
+        }
+    }
+
+    /**
+     * Render the Ledger page (stub for now)
+     */
+    renderLedgerPage() {
+        const container = document.getElementById('ledgerTableContainer');
+        if (!container) return;
+
+        // Gather all transactions
+        let transactions = this._getLedgerTransactions();
+
+
+        // Account filter UI
+        const accounts = this.accounts || [];
+        let selectedAccount = this._ledgerAccountFilter || 'all';
+        let selectedDateRange = this._ledgerDateRange || 'all';
+        let filterHtml = '';
+        filterHtml += `<div style="margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">`;
+        // Account filter
+        if (accounts.length > 0) {
+            filterHtml += `<label for="ledgerAccountFilter" style="font-weight:600;">Account:</label>
+                <select id="ledgerAccountFilter" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
+                    <option value="all">All Accounts</option>`;
+            for (const acct of accounts) {
+                filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${acct.name}</option>`;
+            }
+            filterHtml += `</select>`;
+        }
+        // Date range filter
+        filterHtml += `<label for="ledgerDateRange" style="font-weight:600;">Show:</label>
+            <select id="ledgerDateRange" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
+                <option value="all"${selectedDateRange==='all'?' selected':''}>All</option>
+                <option value="past"${selectedDateRange==='past'?' selected':''}>Past & Today Only</option>
+                <option value="30"${selectedDateRange==='30'?' selected':''}>Next 30 Days</option>
+                <option value="month"${selectedDateRange==='month'?' selected':''}>Through Next Month</option>
+                <option value="60"${selectedDateRange==='60'?' selected':''}>Next 60 Days</option>
+                <option value="90"${selectedDateRange==='90'?' selected':''}>Next 90 Days</option>
+            </select>`;
+        filterHtml += `</div>`;
+
+        // Filter transactions by account if needed
+        if (selectedAccount !== 'all') {
+            transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
+        }
+        // Filter transactions by date range
+        const now = new Date();
+        if (selectedDateRange !== 'all') {
+            transactions = transactions.filter(tx => {
+                const txDate = new Date(tx.date);
+                if (selectedDateRange === 'past') {
+                    return txDate <= now;
+                } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
+                    const days = parseInt(selectedDateRange, 10);
+                    const futureLimit = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+                    return txDate <= futureLimit;
+                } else if (selectedDateRange === 'month') {
+                    // Through the end of next month
+                    const y = now.getFullYear();
+                    const m = now.getMonth();
+                    const endOfNextMonth = new Date(y, m + 2, 0, 23, 59, 59, 999);
+                    return txDate <= endOfNextMonth;
+                }
+                return true;
+            });
+        }
+
+        // Table sorting
+        let sortKey = this._ledgerSortKey || 'date';
+        let sortDir = this._ledgerSortDir || 'desc';
+        transactions.sort((a, b) => {
+            let vA = a[sortKey], vB = b[sortKey];
+            if (sortKey === 'amount' || sortKey === 'balance') {
+                vA = Number(vA); vB = Number(vB);
+            } else if (sortKey === 'date') {
+                vA = new Date(vA); vB = new Date(vB);
+            } else {
+                vA = (vA || '').toString().toLowerCase();
+                vB = (vB || '').toString().toLowerCase();
+            }
+            if (vA < vB) return sortDir === 'asc' ? -1 : 1;
+            if (vA > vB) return sortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // Table HTML with sort icons
+        const sortIcon = key => {
+            if (this._ledgerSortKey !== key) return '<span class="sort-icon">⇅</span>';
+            return this._ledgerSortDir === 'asc' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
+        };
+        let html = filterHtml;
+        html += `<table class="ledger-table">
+            <thead><tr>
+                <th data-key="date">Date ${sortIcon('date')}</th>
+                <th data-key="account">Account ${sortIcon('account')}</th>
+                <th data-key="name">Transaction ${sortIcon('name')}</th>
+                <th data-key="amount">Amount ${sortIcon('amount')}</th>
+                <th data-key="balance">Running Balance ${sortIcon('balance')}</th>
+            </tr></thead>
+            <tbody>`;
+        if (transactions.length === 0) {
+            html += `<tr><td colspan="5" style="text-align:center;color:#888;padding:32px 0;">No transactions yet.</td></tr>`;
+        } else {
+            for (const tx of transactions) {
+                html += `<tr>
+                    <td>${tx.date ? this._formatLedgerDate(tx.date) : ''}</td>
+                    <td>${tx.account || ''}</td>
+                    <td>${tx.name || ''}</td>
+                    <td style="text-align:right;${tx.amount < 0 ? 'color:#dc2626;' : 'color:#059669;'}">${this.formatCurrency(tx.amount)}</td>
+                    <td style="text-align:right;">${this.formatCurrency(tx.balance)}</td>
+                </tr>`;
+            }
+        }
+        html += `</tbody></table>`;
+
+        container.innerHTML = html;
+
+        // Sorting event listeners
+        const table = container.querySelector('.ledger-table');
+        if (table) {
+            table.querySelectorAll('th[data-key]').forEach(th => {
+                th.style.cursor = 'pointer';
+                th.onclick = () => {
+                    const key = th.getAttribute('data-key');
+                    if (this._ledgerSortKey === key) {
+                        this._ledgerSortDir = this._ledgerSortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this._ledgerSortKey = key;
+                        this._ledgerSortDir = key === 'amount' || key === 'balance' ? 'desc' : 'asc';
+                    }
+                    this.renderLedgerPage();
+                };
+            });
+        }
+
+        // Account filter event listener
+        const acctFilter = container.querySelector('#ledgerAccountFilter');
+        if (acctFilter) {
+            acctFilter.onchange = (e) => {
+                this._ledgerAccountFilter = e.target.value;
+                this.renderLedgerPage();
+            };
+        }
+        // Date range filter event listener
+        const dateRangeFilter = container.querySelector('#ledgerDateRange');
+        if (dateRangeFilter) {
+            dateRangeFilter.onchange = (e) => {
+                this._ledgerDateRange = e.target.value;
+                this.renderLedgerPage();
+            };
+        }
+    }
+
+    /**
+     * Gather all transactions for the ledger (stub: returns empty array for now)
+     * Each transaction: {date, account, name, amount, balance}
+     */
+    _getLedgerTransactions() {
+        // Gather all transactions from incomes, bonuses, debts (payments), bills, expenses
+        // Each transaction: {date, account, name, amount, balance}
+        const accountMap = {};
+        for (const acct of this.accounts) {
+            accountMap[acct.id] = { ...acct, txs: [] };
+        }
+
+        // Helper to add a transaction
+        function addTx({accountId, date, name, amount, type}) {
+            if (!accountId || !accountMap[accountId]) return;
+            accountMap[accountId].txs.push({ date: new Date(date), name, amount, type });
+        }
+
+        // Gather all transactions for the current and next 12 months
+        const today = new Date();
+        const startYear = today.getFullYear();
+        const startMonth = today.getMonth();
+        const monthsToProject = 12;
+        // Project all income paydays for each income source within the 12-month window
+        const windowStart = new Date(startYear, startMonth, 1);
+        const windowEnd = new Date(startYear, startMonth + monthsToProject, 0, 23, 59, 59, 999);
+        for (const inc of this.incomes) {
+            if (!inc.accountId) continue;
+            if (inc.firstDate && inc.amount) {
+                let payDate = new Date(inc.firstDate);
+                payDate.setHours(0,0,0,0);
+                while (payDate <= windowEnd) {
+                    if (payDate >= windowStart && payDate <= windowEnd) {
+                        addTx({
+                            accountId: inc.accountId,
+                            date: new Date(payDate),
+                            name: inc.name || 'Income',
+                            amount: Number(inc.amount),
+                            type: 'income'
+                        });
+                    }
+                    if (inc.frequency === 'biweekly' || inc.frequency === 'bi-weekly') {
+                        payDate.setDate(payDate.getDate() + 14);
+                    } else {
+                        payDate.setMonth(payDate.getMonth() + 1);
+                    }
+                }
+            }
+        }
+
+        // Now gather all other transaction types by month
+        for (let m = 0; m < monthsToProject; m++) {
+            const year = startYear + Math.floor((startMonth + m) / 12);
+            const month = (startMonth + m) % 12;
+            // Bonuses
+            for (const bonus of this.bonuses) {
+                if (!bonus.accountId) continue;
+                if (bonus.date && bonus.amount) {
+                    const bonusDate = new Date(bonus.date);
+                    if (bonusDate.getFullYear() === year && bonusDate.getMonth() === month) {
+                        addTx({
+                            accountId: bonus.accountId,
+                            date: bonusDate,
+                            name: bonus.name || 'Bonus',
+                            amount: Number(bonus.amount),
+                            type: 'bonus'
+                        });
+                    }
+                }
+            }
+            // Debts (payments)
+            for (const debt of this.debts) {
+                if (!debt.accountId) continue;
+                if (debt.dueDate && debt.minimumPayment) {
+                    const due = new Date(year, month, debt.dueDate);
+                    addTx({
+                        accountId: debt.accountId,
+                        date: due,
+                        name: debt.name || 'Debt Payment',
+                        amount: -Math.abs(Number(debt.minimumPayment)),
+                        type: 'debt'
+                    });
+                }
+            }
+            // Bills
+            for (const bill of this.bills) {
+                if (!bill.accountId) continue;
+                if (bill.dueDay && bill.amount) {
+                    const due = new Date(year, month, bill.dueDay);
+                    addTx({
+                        accountId: bill.accountId,
+                        date: due,
+                        name: bill.name || 'Bill',
+                        amount: -Math.abs(Number(bill.amount)),
+                        type: 'bill'
+                    });
+                }
+            }
+            // Expenses
+            for (const exp of this.expenses) {
+                if (!exp.accountId) continue;
+                if (exp.budgetAmount) {
+                    const date = new Date(year, month, 1);
+                    addTx({
+                        accountId: exp.accountId,
+                        date,
+                        name: exp.name || 'Expense',
+                        amount: -Math.abs(Number(exp.budgetAmount)),
+                        type: 'expense'
+                    });
+                }
+            }
+        }
+
+        // For each account, sort txs by date ascending
+        for (var acctId in accountMap) {
+            accountMap[acctId].txs.sort(function(a, b) { return a.date - b.date; });
+        }
+
+        // Calculate running balances per account with rollover
+        var allTxs = [];
+        for (var acctId in accountMap) {
+            var lastMonth = null;
+            var running = accountMap[acctId].startingBalance;
+            for (var i = 0; i < accountMap[acctId].txs.length; i++) {
+                var tx = accountMap[acctId].txs[i];
+                var txMonth = tx.date.getFullYear() + '-' + (tx.date.getMonth() + 1);
+                if (lastMonth && txMonth !== lastMonth) {
+                    allTxs.push({
+                        date: new Date(tx.date.getFullYear(), tx.date.getMonth(), 1),
+                        account: accountMap[acctId].name,
+                        accountId: acctId,
+                        name: 'Balance Rollover',
+                        amount: 0,
+                        balance: running
+                    });
+                }
+                running += tx.amount;
+                tx.balance = running;
+                allTxs.push({
+                    date: tx.date,
+                    account: accountMap[acctId].name,
+                    accountId: acctId,
+                    name: tx.name,
+                    amount: tx.amount,
+                    balance: tx.balance
+                });
+                lastMonth = txMonth;
+            }
+        }
+        // Sort newest on top by default
+        allTxs.sort(function(a, b) { return b.date - a.date; });
+        // Format date as ISO string for table
+        return allTxs.map(function(tx) {
+            return {
+                date: tx.date.toISOString(),
+                account: tx.account,
+                accountId: tx.accountId,
+                name: tx.name,
+                amount: tx.amount,
+                balance: tx.balance
+            };
+        });
+    }
+
+    _formatLedgerDate(date) {
+        if (!date) return '';
+        const d = new Date(date);
+        return d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
     }
 
     /**
@@ -1539,142 +1879,7 @@ class DebtTrackerApp {
      */
     startEdit(debtId) {
         // Enable inline editing for this debt
-        const debt = this.debts.find(d => d.id === debtId);
-        if (!debt) return;
-
         this.editingDebtId = debtId;
-        this.updateUI();
-        // focus the first input after render
-        setTimeout(() => {
-            const el = document.getElementById(`inline-name-${debtId}`);
-            if (el) el.focus();
-        }, 0);
-    }
-
-    /**
-     * Validate and persist the inline-edit form for a debt card.
-     * Handles both `fixedAmount` and `creditCard` debt types, reading the
-     * appropriate inline input elements. After saving, auto-recalculates the
-     * payment plan if a monthly payment is already set.
-     * @param {number} debtId - ID of the debt being saved
-     */
-    saveInlineEdit(debtId) {
-        const nameEl    = document.getElementById(`inline-name-${debtId}`);
-        const catEl     = document.getElementById(`inline-category-${debtId}`);
-        const acctEl    = document.getElementById(`inline-account-${debtId}`);
-        
-        if (!nameEl) {
-            alert('Missing debt name field');
-            return;
-        }
-
-        const name      = nameEl.value.trim();
-        const category  = catEl ? catEl.value.trim() : '';
-        const accountId = acctEl?.value ? parseInt(acctEl.value) : null;
-        const debt = this.debts.find(d => d.id === debtId);
-        
-        if (!debt) return;
-
-        // Get the appropriate fields based on debt type
-        if (debt.debtType === 'fixedAmount') {
-            const amountEl = document.getElementById(`inline-fixed-amount-${debtId}`);
-            const startEl = document.getElementById(`inline-start-date-${debtId}`);
-            const endEl = document.getElementById(`inline-end-date-${debtId}`);
-            const prioEl = document.getElementById(`inline-priority-${debtId}`);
-            
-            if (!amountEl || !startEl || !endEl) {
-                alert('Missing form elements for inline edit');
-                return;
-            }
-            
-            const fixedAmount = parseFloat(amountEl.value);
-            const fixedStartDate = startEl.value;
-            const fixedEndDate = endEl.value;
-            const priority = prioEl && prioEl.value !== '' ? parseInt(prioEl.value) : null;
-            
-            if (isNaN(fixedAmount) || !fixedStartDate || !fixedEndDate) {
-                alert('Please fill in all required fields');
-                return;
-            }
-            
-            if (new Date(fixedStartDate) >= new Date(fixedEndDate)) {
-                alert('Start date must be before end date');
-                return;
-            }
-            
-            const idx = this.debts.findIndex(d => d.id === debtId);
-            if (idx === -1) return;
-            
-            this.debts[idx] = {
-                ...this.debts[idx],
-                name,
-                fixedAmount,
-                fixedStartDate,
-                fixedEndDate,
-                priority,
-                category,
-                accountId
-            };
-        } else {
-            // Credit card debt
-            const balEl = document.getElementById(`inline-balance-${debtId}`);
-            const intEl = document.getElementById(`inline-interest-${debtId}`);
-            const minEl = document.getElementById(`inline-min-${debtId}`);
-            const dueEl = document.getElementById(`inline-due-${debtId}`);
-            const prioEl = document.getElementById(`inline-priority-${debtId}`);
-
-            if (!balEl || !intEl || !minEl || !dueEl) {
-                alert('Missing form elements for inline edit');
-                return;
-            }
-
-            const accountBalance = parseFloat(balEl.value);
-            const interestRate = parseFloat(intEl.value);
-            const minimumPayment = parseFloat(minEl.value);
-            const dueDate = parseInt(dueEl.value);
-            const priority = prioEl && prioEl.value ? parseInt(prioEl.value) : null;
-
-            // Resolve idx here so debtStartDate fallback can safely reference it
-            const idx = this.debts.findIndex(d => d.id === debtId);
-            if (idx === -1) return;
-
-            const startDateEl = document.getElementById(`inline-start-date-cc-${debtId}`);
-            const debtStartDate = startDateEl ? (startDateEl.value || null) : this.debts[idx]?.debtStartDate || null;
-
-            if (!name || isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
-                alert('Please fill in all required fields');
-                return;
-            }
-
-            this.debts[idx] = {
-                ...this.debts[idx],
-                name,
-                accountBalance,
-                interestRate,
-                priority,
-                minimumPayment,
-                dueDate,
-                debtStartDate,
-                category,
-                accountId
-            };
-        }
-
-        this.saveToStorage();
-        // Auto-recalculate if monthly payment set
-        try {
-            const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
-            const strategy = document.getElementById('paymentStrategy').value;
-            if (monthlyPayment && !isNaN(monthlyPayment) && monthlyPayment > 0) {
-                const result = DebtCalculator.calculatePaymentPlan(this.debts, monthlyPayment, strategy, this.perMonthStimulus && this.perMonthStimulus.length > 0 ? this.perMonthStimulus : 0);
-                this.lastPaymentPlan = result.paymentPlan;
-                this.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
-            }
-        } catch (err) {
-            console.error('Error recalculating after inline save', err);
-        }
-
-        this.editingDebtId = null;
         this.updateUI();
     }
 
@@ -1756,20 +1961,21 @@ class DebtTrackerApp {
      *   frequency: 'biweekly' | 'monthly'
      */
     addIncome() {
-        const name = document.getElementById('incomeName').value.trim();
-        const amount = parseFloat(document.getElementById('incomeAmount').value);
-        const firstPayDate = document.getElementById('incomeFirstDate').value;
-        const frequency = document.getElementById('incomeFrequency').value;
-        const accountId = parseInt(document.getElementById('incomeAccount')?.value) || null;
+    const name = document.getElementById('incomeName').value.trim();
+    const amount = parseFloat(document.getElementById('incomeAmount').value);
+    const firstPayDate = document.getElementById('incomeFirstDate').value;
+    const frequency = document.getElementById('incomeFrequency').value;
+    const accountId = parseInt(document.getElementById('incomeAccount')?.value);
 
-        if (!name) { alert('Please enter a name for this income source.'); return; }
-        if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
-        if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
+    if (!name) { alert('Please enter a name for this income source.'); return; }
+    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
+    if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
+    if (!accountId || isNaN(accountId)) { alert('Please select an account for this income source.'); return; }
 
-        this.incomes.push({ id: Date.now(), name, amount, firstPayDate, frequency, accountId });
-        this.saveToStorage();
-        this.renderIncomeList();
-        document.getElementById('incomeForm').reset();
+    this.incomes.push({ id: Date.now(), name, amount, firstPayDate, frequency, accountId });
+    this.saveToStorage();
+    this.renderIncomeList();
+    document.getElementById('incomeForm').reset();
     }
 
     /**
@@ -1801,11 +2007,11 @@ class DebtTrackerApp {
 
     /** Validate and save the inline-edit form for an income card. */
     saveEditIncome(incomeId) {
-        const nameEl      = document.getElementById(`ie-name-${incomeId}`);
-        const amountEl    = document.getElementById(`ie-amount-${incomeId}`);
-        const dateEl      = document.getElementById(`ie-date-${incomeId}`);
-        const freqEl      = document.getElementById(`ie-freq-${incomeId}`);
-        const accountEl   = document.getElementById(`ie-account-${incomeId}`);
+    const nameEl      = document.getElementById(`ie-name-${incomeId}`);
+    const amountEl    = document.getElementById(`ie-amount-${incomeId}`);
+    const dateEl      = document.getElementById(`ie-date-${incomeId}`);
+    const freqEl      = document.getElementById(`ie-freq-${incomeId}`);
+    const accountEl   = document.getElementById(`ie-account-${incomeId}`);
 
         if (!nameEl || !amountEl || !dateEl || !freqEl) return;
 
@@ -1883,22 +2089,23 @@ class DebtTrackerApp {
         const accountEl   = document.getElementById(`be-account-${bonusId}`);
         if (!nameEl || !amtEl || !dateEl || !catEl) return;
 
-        const name      = nameEl.value.trim();
-        const amount    = parseFloat(amtEl.value);
-        const date      = dateEl.value;
-        const category  = catEl.value;
-        const accountId = accountEl?.value ? parseInt(accountEl.value) : null;
+    const name = nameEl.value.trim();
+    const amount = parseFloat(amountEl.value);
+    const firstPayDate = dateEl.value;
+    const frequency = freqEl.value;
+    const accountId = accountEl && accountEl.value ? parseInt(accountEl.value) : null;
 
-        if (!name)                        { alert('Please enter a label.'); return; }
-        if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
-        if (!date)                        { alert('Please select a date.'); return; }
+    if (!name) { alert('Please enter a name for this income source.'); return; }
+    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
+    if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
+    if (!accountId || isNaN(accountId)) { alert('Please select an account for this income source.'); return; }
 
-        const idx = this.bonuses.findIndex(b => b.id === bonusId);
-        if (idx === -1) return;
-        this.bonuses[idx] = { ...this.bonuses[idx], name, amount, date, category, accountId };
-        this.editingBonusId = null;
-        this.saveToStorage();
-        this.renderBonusList();
+    const idx = this.incomes.findIndex(i => i.id === incomeId);
+    if (idx === -1) return;
+    this.incomes[idx] = { ...this.incomes[idx], name, amount, firstPayDate, frequency, accountId };
+    this.editingIncomeId = null;
+    this.saveToStorage();
+    this.renderIncomeList();
         this.renderStrategyIncomeWidget();
     }
 
@@ -2248,25 +2455,23 @@ class DebtTrackerApp {
         if (this.incomes.length === 0) { widget.style.display = 'none'; return; }
 
         const { monthlyTotal } = this.computeMonthlyIncome();
-        const paymentEl = document.getElementById('monthlyPayment');
-        const paymentAmt = paymentEl ? (parseFloat(paymentEl.value) || 0) : 0;
-
-        const pct = monthlyTotal > 0 ? (paymentAmt / monthlyTotal * 100) : 0;
+        const totalDebtMin = this.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+        const pct = monthlyTotal > 0 ? (totalDebtMin / monthlyTotal * 100) : 0;
         const isWarn = pct > 40;
 
         let ratioHtml = '';
-        if (paymentAmt > 0 && monthlyTotal > 0) {
+        if (totalDebtMin > 0 && monthlyTotal > 0) {
             ratioHtml = `<div class="strategy-income-ratio${isWarn ? ' strategy-income-ratio--warn' : ''}">
                 Your planned payment is <strong>${pct.toFixed(1)}%</strong> of your expected monthly income
                 ${isWarn ? ' — that\'s a high debt-to-income ratio (>40%).' : '.'}
             </div>`;
         }
 
-        const totalBills    = (this.bills    || []).reduce((s, b) => s + b.amount, 0);
-        const totalExpenses = (this.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
-        const totalDebtMin  = this.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
-        const bonusThisMonth = this.computeMonthlyBonuses();
-        const netAfterAll   = monthlyTotal - totalDebtMin - totalBills - totalExpenses;
+    const totalBills    = (this.bills    || []).reduce((s, b) => s + b.amount, 0);
+    const totalExpenses = (this.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
+    // totalDebtMin already declared above
+    const bonusThisMonth = this.computeMonthlyBonuses();
+    const netAfterAll   = monthlyTotal - totalDebtMin - totalBills - totalExpenses;
 
         let netHtml = '';
         if (totalBills > 0 || totalExpenses > 0) {
@@ -2323,6 +2528,12 @@ class DebtTrackerApp {
             strategy: {
                 monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
                 paymentStrategy: document.getElementById('paymentStrategy')?.value || null
+            },
+            ledgerSettings: {
+                accountFilter: this._ledgerAccountFilter || 'all',
+                dateRange: this._ledgerDateRange || 'all',
+                sortKey: this._ledgerSortKey || 'date',
+                sortDir: this._ledgerSortDir || 'desc'
             }
         };
 
@@ -2363,6 +2574,7 @@ class DebtTrackerApp {
             const incomingBills    = parsed.bills     || [];
             const incomingExpenses = parsed.expenses  || [];
             const incomingStrategy = parsed.strategy || null;
+            const incomingLedgerSettings = parsed.ledgerSettings || null;
 
             const validDebts = incomingDebts.filter(d => d && typeof d.name === 'string' && d.name.trim());
 
@@ -2400,6 +2612,13 @@ class DebtTrackerApp {
                 this.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
                 this.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
                 this.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
+                // Restore ledger settings if present
+                if (incomingLedgerSettings) {
+                    this._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
+                    this._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
+                    this._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
+                    this._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
+                }
             } else {
                 // Merge debts — skip duplicates by name
                 const existingNames = new Set(this.debts.map(d => d.name.toLowerCase()));
@@ -2428,6 +2647,13 @@ class DebtTrackerApp {
                 this.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
                 this.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
                 this.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
+                // Restore ledger settings if present
+                if (incomingLedgerSettings) {
+                    this._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
+                    this._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
+                    this._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
+                    this._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
+                }
             }
 
             // Restore strategy fields into the DOM
@@ -2482,6 +2708,12 @@ class DebtTrackerApp {
                 perMonthStimulus: this.perMonthStimulus || [],
                 monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
                 strategy: document.getElementById('paymentStrategy')?.value || null,
+                ledgerSettings: {
+                    accountFilter: this._ledgerAccountFilter || 'all',
+                    dateRange: this._ledgerDateRange || 'all',
+                    sortKey: this._ledgerSortKey || 'date',
+                    sortDir: this._ledgerSortDir || 'desc'
+                },
                 timestamp: new Date().toISOString()
             };
             localStorage.setItem(this.storageKey, JSON.stringify(data));
@@ -2509,6 +2741,13 @@ class DebtTrackerApp {
                 this.perMonthStimulus = parsed.perMonthStimulus || [];
                 this._savedMonthlyPayment = parsed.monthlyPayment || null;
                 this._savedStrategy = parsed.strategy || null;
+                // Restore ledger settings if present
+                if (parsed.ledgerSettings) {
+                    this._ledgerAccountFilter = parsed.ledgerSettings.accountFilter || 'all';
+                    this._ledgerDateRange = parsed.ledgerSettings.dateRange || 'all';
+                    this._ledgerSortKey = parsed.ledgerSettings.sortKey || 'date';
+                    this._ledgerSortDir = parsed.ledgerSettings.sortDir || 'desc';
+                }
             }
         } catch (error) {
             console.error('Error loading from localStorage:', error);

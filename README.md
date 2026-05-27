@@ -1,10 +1,25 @@
-# Debt Tracker Application
 
-A modern, single-page web application that helps you plan and visualise a path to becoming debt-free. All calculations happen locally in your browser — no accounts, no servers, no tracking.
+# MyFinances
+
+_A modern, privacy-first web app to track accounts, debts, income, and spending, helping you plan and visualize your path to financial freedom._
+
+
+All calculations happen locally in your browser — no accounts, no servers, no tracking.
 
 ---
 
 ## Features
+### Ledger Filters & Contents
+- **Account filter** — filter transactions by account
+- **Date range filter** — filter transactions to show:
+  - All
+  - Past & Today Only
+  - Next 30 Days
+  - Through Next Month
+  - Next 60 Days
+  - Next 90 Days
+  - Hide or show future transactions
+- **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, bonuses, debts, bills, and expenses**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month).
 
 ### Debt Management
 - **Add unlimited debts** — credit cards (revolving balance with APR) or fixed-amount recurring payments (subscriptions, rent, instalments)
@@ -162,7 +177,7 @@ Navigate to **Budget**.
 |-------|-------|
 | Name | e.g. "Groceries", "Gym" |
 | Monthly Budget | The amount you plan to spend |
-| Category | Food·Groceries / Dining Out / Health·Fitness / Entertainment / Clothing / Personal Care / Education / Childcare / Other |
+| Category | Food·Groceries / Dining Out / Health·Fitness / Entertainment / Clothing / Personal Care / Education / Childcare / Costco / Target / Reconciliation / Other |
 
 The **Cash Flow Summary** panel at the bottom automatically updates as you add items, showing:
 

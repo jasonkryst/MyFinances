@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debt Tracker - Manage Your Debts</title>
+    <title>MyFinances - Track Your Money</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
@@ -30,8 +30,8 @@
                 </div>
             </div>
             <div class="header-hero">
-                <h1>💳 Debt Tracker</h1>
-                <p>Take control of your debt with smart payment strategies</p>
+                <h1>� MyFinances</h1>
+                <p>Track accounts, debts, income, and spending — plan your path to financial freedom.</p>
             </div>
             <nav class="top-nav">
                 <button class="page-button active" data-page="accounts">Accounts</button>
@@ -40,7 +40,15 @@
                 <button class="page-button" data-page="budget">Budget</button>
                 <button class="page-button" data-page="strategy">Plan</button>
                 <button class="page-button" data-page="reports">Reports</button>
+                <button class="page-button" data-page="ledger">Ledger</button>
             </nav>
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Ledger Section                                            -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="ledger-section page-section" id="ledgerSection">
+                <h2>📒 Ledger</h2>
+                <div id="ledgerTableContainer"></div>
+            </section>
         </header>
 
         <main>
@@ -410,6 +418,9 @@
                                             <option value="Personal Care">Personal Care</option>
                                             <option value="Education">Education</option>
                                             <option value="Childcare">Childcare</option>
+                                            <option value="Costco">Costco</option>
+                                            <option value="Target">Target</option>
+                                            <option value="Reconciliation">Reconciliation</option>
                                             <option value="Other">Other</option>
                                         </select>
                                     </div>

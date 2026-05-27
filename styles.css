@@ -1,4 +1,108 @@
 /* ═══════════════════════════════════════════════════════════════
+   LEDGER PAGE & TABLE
+   ═══════════════════════════════════════════════════════════════ */
+.ledger-section {
+    background: var(--card-bg, #fff);
+    border-radius: 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    padding: 28px 24px 32px 24px;
+    margin-bottom: 40px;
+}
+.ledger-section h2 {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    margin-bottom: 18px;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 8px;
+}
+#ledgerTableContainer {
+    margin-top: 18px;
+}
+.ledger-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--card-bg, #fff);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    font-size: 1rem;
+    margin-bottom: 0;
+}
+.ledger-table thead {
+    background: var(--primary-color);
+    color: #fff;
+}
+.ledger-table th {
+    padding: 14px 12px;
+    font-weight: 700;
+    text-align: left;
+    border-bottom: 2px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 1.02rem;
+}
+.ledger-table th:hover {
+    background: #1d4ed8;
+}
+.ledger-table td {
+    padding: 13px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
+    font-size: 0.98rem;
+    color: var(--text-primary);
+}
+.ledger-table tbody tr:hover {
+    background: #f3f4f6;
+}
+.ledger-table tr:last-child td {
+    border-bottom: none;
+}
+.ledger-table td {
+    transition: background 0.15s;
+}
+.ledger-table td[style*="color:#dc2626"] {
+    font-weight: 600;
+}
+.ledger-table td[style*="color:#059669"] {
+    font-weight: 600;
+}
+
+body.dark-mode .ledger-section {
+    background: #1e293b;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.18);
+}
+body.dark-mode .ledger-section h2 {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+}
+body.dark-mode .ledger-table {
+    background: #1e293b;
+    color: #f1f5f9;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.28);
+}
+body.dark-mode .ledger-table thead {
+    background: #2563eb;
+    color: #fff;
+}
+body.dark-mode .ledger-table th {
+    background: #2563eb;
+    color: #fff;
+    border-bottom-color: #334155;
+}
+body.dark-mode .ledger-table th:hover {
+    background: #1e40af;
+}
+body.dark-mode .ledger-table td {
+    border-bottom-color: #334155;
+    color: #f1f5f9;
+}
+body.dark-mode .ledger-table tbody tr:hover {
+    background: #334155;
+}
+/* ═══════════════════════════════════════════════════════════════
    REPORTS MONTH SELECTOR (pagination)
    ═══════════════════════════════════════════════════════════════ */
 .rpt-month-nav {
