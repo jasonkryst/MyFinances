@@ -1,13 +1,14 @@
 // Bills and expenses
+import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth } from './utils.js';
 
 
 // Render the full Budget page: bill cards, expense cards, cashflow summary.
 export function renderBudgetPage(app) {
     if (app._cashflowDonutChart) { app._cashflowDonutChart.destroy(); app._cashflowDonutChart = null; }
     if (app._cashflowBarChart)   { app._cashflowBarChart.destroy();   app._cashflowBarChart   = null; }
-    app._renderBillList();
-    app._renderExpenseList();
-    app._renderCashFlowSummary();
+    renderBillList(app);
+    renderExpenseList(app);
+    renderCashFlowSummary(app);
 }
 
 export function renderBillList(app) {
@@ -45,11 +46,11 @@ export function renderBillList(app) {
                 </div>
             </div>`;
         }
-        const dueTxt = bill.dueDay ? `Due: ${app.getDayOrdinal(bill.dueDay)}` : 'No due day set';
+        const dueTxt = bill.dueDay ? `Due: ${getDayOrdinal(bill.dueDay)}` : 'No due day set';
         return `<div class="budget-card">
             <div class="budget-card-info">
                 <span class="budget-card-name">${bill.name}</span>
-                <span class="budget-card-amount">${app.formatCurrency(bill.amount)}<span class="budget-card-period">/mo</span></span>
+                <span class="budget-card-amount">${formatCurrency(bill.amount)}<span class="budget-card-period">/mo</span></span>
                 <span class="budget-card-meta">${bill.category} &bull; ${dueTxt}</span>
             </div>
             <div class="budget-card-actions">
@@ -73,14 +74,14 @@ export function renderBillList(app) {
             <div class="budget-cat-row">
                 <span class="budget-cat-name">${cat}</span>
                 <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
-                <span class="budget-cat-amount">${app.formatCurrency(v.total)}/mo</span>
+                <span class="budget-cat-amount">${formatCurrency(v.total)}/mo</span>
             </div>`).join('');
 
     const summaryHTML = `
         <div class="budget-cat-summary">
             <div class="budget-cat-summary-header">
                 <span>Bills by Category</span>
-                <span class="budget-cat-summary-total">${app.formatCurrency(totalBills)}/mo total</span>
+                <span class="budget-cat-summary-total">${formatCurrency(totalBills)}/mo total</span>
             </div>
             ${catRows}
         </div>`;
@@ -124,7 +125,7 @@ export function renderExpenseList(app) {
         return `<div class="budget-card">
             <div class="budget-card-info">
                 <span class="budget-card-name">${exp.name}</span>
-                <span class="budget-card-amount">${app.formatCurrency(exp.budgetAmount)}<span class="budget-card-period">/mo</span></span>
+                <span class="budget-card-amount">${formatCurrency(exp.budgetAmount)}<span class="budget-card-period">/mo</span></span>
                 <span class="budget-card-meta">${exp.category}</span>
             </div>
             <div class="budget-card-actions">
@@ -148,14 +149,14 @@ export function renderExpenseList(app) {
             <div class="budget-cat-row budget-cat-row--expense">
                 <span class="budget-cat-name">${cat}</span>
                 <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
-                <span class="budget-cat-amount">${app.formatCurrency(v.total)}/mo</span>
+                <span class="budget-cat-amount">${formatCurrency(v.total)}/mo</span>
             </div>`).join('');
 
     const summaryHTML = `
         <div class="budget-cat-summary budget-cat-summary--expense">
             <div class="budget-cat-summary-header">
                 <span>Expenses by Category</span>
-                <span class="budget-cat-summary-total">${app.formatCurrency(totalExp)}/mo total</span>
+                <span class="budget-cat-summary-total">${formatCurrency(totalExp)}/mo total</span>
             </div>
             ${catRows}
         </div>`;
@@ -167,7 +168,8 @@ export function renderCashFlowSummary(app) {
     const el = document.getElementById('cashFlowSummary');
     if (!el) return;
 
-    const { monthlyTotal: monthlyIncome } = app.computeMonthlyIncome();
+    const now = new Date();
+    const { monthlyTotal: monthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
     const totalBills = app.bills.reduce((s, b) => s + b.amount, 0);
     const totalExpenses = app.expenses.reduce((s, e) => s + e.budgetAmount, 0);
     const totalDebtMin = app.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
@@ -179,10 +181,10 @@ export function renderCashFlowSummary(app) {
     el.style.display = 'block';
 
     const row = (label, value, cls = '') =>
-        `<div class="cashflow-row ${cls}"><span class="cashflow-label">${label}</span><span class="cashflow-value">${app.formatCurrency(value)}</span></div>`;
+        `<div class="cashflow-row ${cls}"><span class="cashflow-label">${label}</span><span class="cashflow-value">${formatCurrency(value)}</span></div>`;
 
     const subRow = (label, value, cls = '') =>
-        `<div class="cashflow-subrow ${cls}"><span class="cashflow-sublabel">${label}</span><span class="cashflow-subvalue">${app.formatCurrency(value)}</span></div>`;
+        `<div class="cashflow-subrow ${cls}"><span class="cashflow-sublabel">${label}</span><span class="cashflow-subvalue">${formatCurrency(value)}</span></div>`;
 
     let billCatRows = '';
     if (totalBills > 0) {
@@ -242,7 +244,7 @@ export function renderCashFlowSummary(app) {
             </div>
             <div class="cashflow-net ${netClass}">
                 <span>Net remaining</span>
-                <span>${app.formatCurrency(net)}</span>
+                <span>${formatCurrency(net)}</span>
             </div>
         </div>
 
@@ -298,7 +300,7 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                 responsive: true, maintainAspectRatio: true,
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, font: { size: 12 } } },
-                    tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${app.formatCurrency(ctx.parsed)}` } }
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatCurrency(ctx.parsed)}` } }
                 }
             }
         });
@@ -335,11 +337,11 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                 responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: ctx => ` ${app.formatCurrency(ctx.parsed.y)}/mo` } }
+                    tooltip: { callbacks: { label: ctx => ` ${formatCurrency(ctx.parsed.y)}/mo` } }
                 },
                 scales: {
                     x: { ticks: { font: { size: 11 }, maxRotation: 35, minRotation: 20 } },
-                    y: { ticks: { callback: v => app.formatCurrency(v) }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
+                    y: { ticks: { callback: v => formatCurrency(v) }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
                 }
             }
         });

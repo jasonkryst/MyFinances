@@ -3,7 +3,8 @@
 import {
     getIncomePaydaysInMonth,
     getBillsByDayForMonth,
-    getBonusesByDayForMonth
+    getBonusesByDayForMonth,
+    formatCurrency
 } from './utils.js';
 
 export function incomeDaysInMonth(app, inc, year, month) {
@@ -38,6 +39,8 @@ export function updateReportMonthNav(app) {
 }
 
 export function renderReportsPage(app) {
+    updateReportMonthNav(app);
+
     ['_rptIncomeChart', '_rptBillsChart', '_rptExpChart', '_rptMoneyFlowChart', '_rptOutflowChart']
         .forEach(k => {
             if (app[k]) {
@@ -118,16 +121,16 @@ export function renderReportsCalendar(app) {
         gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"><span class="rpt-cal-day-num">${day}</span>`;
 
         for (const inc of incomes) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--income" title="💰 ${inc.name}: ${app.formatCurrency(inc.amount)}"><span class="rpt-cal-evt-name">💰 ${inc.name}</span><span class="rpt-cal-evt-amt">${app.formatCurrency(inc.amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--income" title="💰 ${inc.name}: ${formatCurrency(inc.amount)}"><span class="rpt-cal-evt-name">💰 ${inc.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`;
         }
         for (const bill of bills) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${bill.name}: ${app.formatCurrency(bill.amount)}"><span class="rpt-cal-evt-name">🧾 ${bill.name}</span><span class="rpt-cal-evt-amt">${app.formatCurrency(bill.amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${bill.name}: ${formatCurrency(bill.amount)}"><span class="rpt-cal-evt-name">🧾 ${bill.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(bill.amount)}</span></div>`;
         }
         for (const debt of debts) {
-            gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${debt.name}: min ${app.formatCurrency(debt.minimumPayment)}"><span class="rpt-cal-evt-name">💳 ${debt.name}</span><span class="rpt-cal-evt-amt">${app.formatCurrency(debt.minimumPayment)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${debt.name}: min ${formatCurrency(debt.minimumPayment)}"><span class="rpt-cal-evt-name">💳 ${debt.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(debt.minimumPayment)}</span></div>`;
         }
         for (const b of bonuses) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bonus" title="🎁 ${b.name}: ${app.formatCurrency(b.amount)}"><span class="rpt-cal-evt-name">🎁 ${b.name}</span><span class="rpt-cal-evt-amt">${app.formatCurrency(b.amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bonus" title="🎁 ${b.name}: ${formatCurrency(b.amount)}"><span class="rpt-cal-evt-name">🎁 ${b.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(b.amount)}</span></div>`;
         }
 
         gridHTML += '</div>';
@@ -172,7 +175,7 @@ export function renderReportsIncomeExp(app) {
         { label: 'Debt Minimums', value: totalDebtMin, cls: 'rpt-stat--debt' },
         { label: 'Net Remaining', value: net, cls: netCls }
     ];
-    const statsHTML = stats.map(s => `<div class="rpt-stat ${s.cls}"><span class="rpt-stat-label">${s.label}</span><span class="rpt-stat-value">${app.formatCurrency(s.value)}</span></div>`).join('');
+    const statsHTML = stats.map(s => `<div class="rpt-stat ${s.cls}"><span class="rpt-stat-label">${s.label}</span><span class="rpt-stat-value">${formatCurrency(s.value)}</span></div>`).join('');
 
     const incomeLabels = [];
     const incomeData = [];
@@ -240,7 +243,7 @@ export function renderReportsIncomeExp(app) {
 
     if (!hasData) return;
 
-    const fmt = v => app.formatCurrency(v);
+    const fmt = v => formatCurrency(v);
     const isDark = document.body.classList.contains('dark-mode');
     const labelColor = isDark ? '#d1d5db' : '#374151';
     const incomeColors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669', '#047857', '#065f46'];
@@ -363,7 +366,7 @@ export function renderReportsMoneyFlow(app) {
             const diff = proj - a.startingBalance;
             const diffClass = diff >= 0 ? 'acct-mf-diff--pos' : 'acct-mf-diff--neg';
             const diffSign = diff >= 0 ? '+' : '';
-            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${a.name}</span><span class="acct-mf-type">${a.type}</span><span class="acct-mf-start">${app.formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj">${app.formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}">${diffSign}${app.formatCurrency(diff)}</span></div>`;
+            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${a.name}</span><span class="acct-mf-type">${a.type}</span><span class="acct-mf-start">${formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj">${formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}">${diffSign}${formatCurrency(diff)}</span></div>`;
         }).join('');
 
         acctSectionHTML = `
@@ -390,7 +393,7 @@ export function renderReportsMoneyFlow(app) {
         app._rptMoneyFlowChart = null;
     }
 
-    const fmt = v => app.formatCurrency(v);
+    const fmt = v => formatCurrency(v);
     const isDark = document.body.classList.contains('dark-mode');
     const gridColor = isDark ? '#374151' : '#e5e7eb';
     const labelColor = isDark ? '#d1d5db' : '#374151';

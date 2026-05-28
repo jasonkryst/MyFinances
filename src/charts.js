@@ -1,4 +1,5 @@
 // Charts and visualizations
+import { computeMonthlyIncomeForMonth } from './utils.js';
 
 export function renderBalanceChart(app) {
     if (!app.lastPaymentPlan) return;
@@ -307,7 +308,8 @@ export function renderDebtToIncomeChart(app) {
 
     if (app.debtToIncomeChart) app.debtToIncomeChart.destroy();
 
-    const { monthlyTotal } = app.computeMonthlyIncome();
+        const now = new Date();
+        const { monthlyTotal } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment')?.value) || 0;
 
     if (monthlyTotal <= 0 || (app.incomes || []).length === 0) {

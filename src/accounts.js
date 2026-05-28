@@ -1,6 +1,6 @@
 // Account management
 
-import { countIncomePaydaysInMonth } from './utils.js';
+import { countIncomePaydaysInMonth, formatCurrency } from './utils.js';
 
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
@@ -124,11 +124,11 @@ export function renderAccountsList(app) {
                 <div class="acct-balances">
                     <div class="acct-balance-item">
                         <span class="acct-balance-label">Starting</span>
-                        <span class="acct-balance-value">${app.formatCurrency(a.startingBalance)}</span>
+                        <span class="acct-balance-value">${formatCurrency(a.startingBalance)}</span>
                     </div>
                     <div class="acct-balance-item">
                         <span class="acct-balance-label">Proj. (${monthLabel})</span>
-                        <span class="acct-balance-value ${balClass}">${app.formatCurrency(projBalance)}</span>
+                        <span class="acct-balance-value ${balClass}">${formatCurrency(projBalance)}</span>
                     </div>
                 </div>
                 <div class="debt-actions">

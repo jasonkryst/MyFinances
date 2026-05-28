@@ -1,6 +1,31 @@
 // UI helpers, event listeners, theming
+import { renderLedgerPage } from './ledger.js';
+import { refreshAccountSelectors } from './accounts.js';
 
 export function initializeEventListeners(app) {
+    const themeSwitcher = document.getElementById('themeSwitcher');
+    const applyTheme = (theme) => {
+        const isDark = theme === 'dark';
+        document.body.classList.toggle('dark-mode', isDark);
+        if (themeSwitcher) {
+            themeSwitcher.textContent = isDark ? '☀️' : '🌙';
+            themeSwitcher.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Toggle dark mode');
+        }
+    };
+
+    const savedTheme = localStorage.getItem('debtTrackerTheme');
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+        applyTheme(savedTheme);
+    }
+
+    if (themeSwitcher) {
+        themeSwitcher.addEventListener('click', () => {
+            const nextTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+            applyTheme(nextTheme);
+            localStorage.setItem('debtTrackerTheme', nextTheme);
+        });
+    }
+
     // Navigation: page switching
     document.querySelectorAll('.page-button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -81,6 +106,42 @@ export function initializeEventListeners(app) {
             }
         });
     }
+
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    if (exportJsonBtn) {
+        exportJsonBtn.addEventListener('click', () => app.exportAllJSON());
+    }
+
+    const importJsonBtn = document.getElementById('importJsonBtn');
+    const importJsonInput = document.getElementById('importJsonInput');
+    if (importJsonBtn && importJsonInput) {
+        importJsonBtn.addEventListener('click', () => {
+            importJsonInput.click();
+        });
+
+        importJsonInput.addEventListener('change', () => {
+            const [file] = importJsonInput.files || [];
+            if (file) {
+                app.importAllJSON(file);
+            }
+            importJsonInput.value = '';
+        });
+    }
+
+    const clearDataBtn = document.getElementById('clearDataBtn');
+    if (clearDataBtn) {
+        clearDataBtn.addEventListener('click', () => {
+            const confirmed = confirm('Clear all accounts, debts, incomes, bonuses, bills, expenses, and plan results?');
+            if (confirmed) {
+                app.clearAllData();
+            }
+        });
+    }
+
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => app.exportToCSV());
+    }
 }
 
 export function switchTab(app, tabName) {
@@ -92,8 +153,15 @@ export function switchTab(app, tabName) {
         button.classList.remove('active');
     });
 
-    document.getElementById(`${tabName}-tab`).classList.add('active');
-    event.target.classList.add('active');
+    const activeTabPanel = document.getElementById(`${tabName}-tab`);
+    if (activeTabPanel) {
+        activeTabPanel.classList.add('active');
+    }
+
+    const activeTabButton = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+    if (activeTabButton) {
+        activeTabButton.classList.add('active');
+    }
 
     if (tabName === 'chart') {
         app.renderBalanceChart();
@@ -163,13 +231,12 @@ export function switchPage(app, pageName) {
     }
 
     if (pageName === 'accounts') app.renderAccountsList();
-    if (pageName === 'debts') { app.renderDebtsList(); app._refreshAccountSelectors(); }
-    if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); app._refreshAccountSelectors(); }
-    if (pageName === 'budget') { app.renderBudgetPage(); app._refreshAccountSelectors(); }
+    if (pageName === 'debts') { app.renderDebtsList(); refreshAccountSelectors(app); }
+    if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); }
+    if (pageName === 'budget') { app.renderBudgetPage(); refreshAccountSelectors(app); }
     if (pageName === 'strategy') app.renderStrategyIncomeWidget();
     if (pageName === 'reports') {
         app._reportMonthOffset = 0;
-        app._updateReportMonthNav();
         app.renderReportsPage();
     }
     if (pageName === 'ledger') {
@@ -194,66 +261,6 @@ export function updateUI(app) {
     }
 
     app.renderDebtsList();
-}
-
-export function showMilestone(debtName) {
-    const host = document.createElement('div');
-    host.style.position = 'fixed';
-    host.style.inset = '0';
-    host.style.pointerEvents = 'none';
-    host.style.zIndex = '9999';
-    host.style.overflow = 'hidden';
-
-    const toast = document.createElement('div');
-    toast.textContent = `${debtName} paid off today`;
-    toast.style.position = 'absolute';
-    toast.style.top = '24px';
-    toast.style.left = '50%';
-    toast.style.transform = 'translateX(-50%)';
-    toast.style.padding = '12px 18px';
-    toast.style.borderRadius = '999px';
-    toast.style.background = 'rgba(15, 23, 42, 0.92)';
-    toast.style.color = '#fff';
-    toast.style.fontWeight = '600';
-    toast.style.boxShadow = '0 12px 28px rgba(15, 23, 42, 0.28)';
-    toast.style.letterSpacing = '0.01em';
-    host.appendChild(toast);
-
-    const colors = ['#2563eb', '#059669', '#f59e0b', '#dc2626', '#7c3aed'];
-    const count = 24;
-    for (let index = 0; index < count; index++) {
-        const piece = document.createElement('span');
-        const angle = (Math.PI * 2 * index) / count;
-        const distance = 120 + Math.random() * 180;
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance - 40;
-        piece.style.position = 'absolute';
-        piece.style.left = '50%';
-        piece.style.top = '18%';
-        piece.style.width = `${6 + Math.random() * 6}px`;
-        piece.style.height = `${10 + Math.random() * 8}px`;
-        piece.style.marginLeft = `-${3 + Math.random() * 3}px`;
-        piece.style.background = colors[index % colors.length];
-        piece.style.borderRadius = '2px';
-        piece.style.opacity = '0.95';
-        piece.style.transform = 'translate(-50%, -50%)';
-        host.appendChild(piece);
-
-        const animation = piece.animate([
-            { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1 },
-            { transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${360 + index * 18}deg)`, opacity: 0 }
-        ], {
-            duration: 1100 + Math.random() * 500,
-            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-            fill: 'forwards'
-        });
-        animation.onfinish = () => piece.remove();
-    }
-
-    document.body.appendChild(host);
-    window.setTimeout(() => {
-        host.remove();
-    }, 1800);
 }
 
 export function showMilestone(debtName) {

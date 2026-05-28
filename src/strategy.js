@@ -76,11 +76,11 @@ export function calculateRequiredPayment(app) {
 
             const actualMonths = r.paymentPlan.length;
             const payoffDateStr = summary ? DebtCalculator.formatDate(summary.payOffDate) : '—';
-            const interestStr = summary ? app.formatCurrency(summary.totalInterest) : '—';
+            const interestStr = summary ? formatCurrency(summary.totalInterest) : '—';
 
             resultEl.innerHTML = `<div class="target-result">
                 <div class="target-result-headline">✅ Payment Plan</div>
-                <span class="target-result-payment">${app.formatCurrency(monthlyPayment)}<span style="font-size:0.5em;font-weight:500;"> / month</span></span>
+                <span class="target-result-payment">${formatCurrency(monthlyPayment)}<span style="font-size:0.5em;font-weight:500;"> / month</span></span>
                 <div class="target-result-meta">
                     <span>📅 Payoff by <strong>${payoffDateStr}</strong></span>
                     <span>⏱ ${actualMonths} month${actualMonths !== 1 ? 's' : ''}</span>
@@ -171,15 +171,15 @@ export function calculateRequiredPayment(app) {
     const isHigher = requiredPayment > currentPayment + 0.5;
     const panelClass = isHigher ? 'target-result--warn' : 'target-result';
     const headline = isHigher
-        ? `⚠️ You need to pay ${app.formatCurrency(extraNeeded)} more/month`
+        ? `⚠️ You need to pay ${formatCurrency(extraNeeded)} more/month`
         : '✅ Your current payment covers this goal';
 
     const payoffDateStr = summary ? DebtCalculator.formatDate(summary.payOffDate) : dateVal;
-    const interestStr = summary ? app.formatCurrency(summary.totalInterest) : '—';
+    const interestStr = summary ? formatCurrency(summary.totalInterest) : '—';
 
     resultEl.innerHTML = `<div class="target-result ${panelClass}">
         <div class="target-result-headline">${headline}</div>
-        <span class="target-result-payment">${app.formatCurrency(requiredPayment)}<span style="font-size:0.5em;font-weight:500;"> / month</span></span>
+        <span class="target-result-payment">${formatCurrency(requiredPayment)}<span style="font-size:0.5em;font-weight:500;"> / month</span></span>
         <div class="target-result-meta">
             <span>📅 Payoff by <strong>${payoffDateStr}</strong></span>
             <span>⏱ ${actualMonths} month${actualMonths !== 1 ? 's' : ''}</span>
@@ -221,9 +221,9 @@ export function displayPaymentPlan(app) {
 
     // Update summary
     document.getElementById('totalDebtValue').textContent =
-        app.formatCurrency(app.lastSummary.totalDebt);
+        formatCurrency(app.lastSummary.totalDebt);
     document.getElementById('totalInterestValue').textContent =
-        app.formatCurrency(app.lastSummary.totalInterest);
+        formatCurrency(app.lastSummary.totalInterest);
     document.getElementById('timeToPayOffValue').textContent =
         `${app.lastSummary.monthsToPayOff} months (${DebtCalculator.formatDate(app.lastSummary.payOffDate)})`;
 
@@ -235,7 +235,7 @@ export function displayPaymentPlan(app) {
         }
     }
     const micEl = document.getElementById('monthlyInterestCostValue');
-    if (micEl) micEl.textContent = app.formatCurrency(monthlyInterestCost);
+    if (micEl) micEl.textContent = formatCurrency(monthlyInterestCost);
 
     // Build debt summary table
     app.displayDebtSummary();
@@ -371,23 +371,23 @@ export function renderCalendarView(app, page = 0) {
                 <span class="cal-day-num">${day}</span>`;
 
             for (const ev of events) {
-                gridHTML += `<div class="cal-event" style="background:${ev.color};" title="${ev.name}: ${app.formatCurrency(ev.payment)}">
+                gridHTML += `<div class="cal-event" style="background:${ev.color};" title="${ev.name}: ${formatCurrency(ev.payment)}">
                     <span class="cal-event-name">${ev.name}</span>
-                    <span class="cal-event-amount">${app.formatCurrency(ev.payment)}</span>
+                    <span class="cal-event-amount">${formatCurrency(ev.payment)}</span>
                 </div>`;
             }
 
             for (const inc of incomes) {
-                gridHTML += `<div class="cal-income-event" title="💰 ${inc.name}: ${app.formatCurrency(inc.amount)}">
+                gridHTML += `<div class="cal-income-event" title="💰 ${inc.name}: ${formatCurrency(inc.amount)}">
                     <span class="cal-income-name">💰 ${inc.name}</span>
-                    <span class="cal-income-amount">${app.formatCurrency(inc.amount)}</span>
+                    <span class="cal-income-amount">${formatCurrency(inc.amount)}</span>
                 </div>`;
             }
 
             for (const bill of bills) {
-                gridHTML += `<div class="cal-bill-event" title="🧾 ${bill.name}: ${app.formatCurrency(bill.amount)}">
+                gridHTML += `<div class="cal-bill-event" title="🧾 ${bill.name}: ${formatCurrency(bill.amount)}">
                     <span class="cal-bill-name">🧾 ${bill.name}</span>
-                    <span class="cal-bill-amount">${app.formatCurrency(bill.amount)}</span>
+                    <span class="cal-bill-amount">${formatCurrency(bill.amount)}</span>
                 </div>`;
             }
 
@@ -449,7 +449,7 @@ export function displayInterestComparison(app, currentStrategy, monthlyPayment) 
 
     let html = `<div class="interest-comparison"><h4>📊 Strategy Comparison</h4>`;
     if (interestSaved > 0.5) {
-        html += `<div class="comparison-banner">Switching to <strong>${best.label}</strong> saves <strong>${app.formatCurrency(interestSaved)}</strong> in interest`;
+        html += `<div class="comparison-banner">Switching to <strong>${best.label}</strong> saves <strong>${formatCurrency(interestSaved)}</strong> in interest`;
         if (monthsSaved > 0) html += ` and pays off <strong>${monthsSaved} month${monthsSaved !== 1 ? 's' : ''} sooner</strong>`;
         html += '.</div>';
     } else {
@@ -464,9 +464,9 @@ export function displayInterestComparison(app, currentStrategy, monthlyPayment) 
                 ${r.isCurrent ? '<span class="strat-badge strat-badge--current">Current</span>' : ''}
                 ${r.key === best.key ? '<span class="strat-badge strat-badge--best">Best</span>' : ''}
             </td>
-            <td>${app.formatCurrency(r.totalInterest)}</td>
+            <td>${formatCurrency(r.totalInterest)}</td>
             <td>${r.months} mo</td>
-            <td>${diff > 0.5 ? `<span class="diff-cost">+${app.formatCurrency(diff)}</span>` : '<span class="diff-best">—</span>'}</td>
+            <td>${diff > 0.5 ? `<span class="diff-cost">+${formatCurrency(diff)}</span>` : '<span class="diff-best">—</span>'}</td>
         </tr>`;
     }
     html += '</tbody></table></div></div>';
@@ -488,9 +488,9 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
         <h4>🔧 What-If Simulator</h4>
         <p class="whatif-desc">Drag the slider to see how paying extra each month changes your payoff.</p>
         <div class="whatif-slider-row">
-            <span class="whatif-slider-label">Extra/mo: <strong id="whatifExtraAmt">${app.formatCurrency(0)}</strong></span>
+            <span class="whatif-slider-label">Extra/mo: <strong id="whatifExtraAmt">${formatCurrency(0)}</strong></span>
             <input type="range" id="whatifSlider" min="0" max="${sliderMax}" step="10" value="0">
-            <span class="whatif-slider-cap">+${app.formatCurrency(sliderMax)}</span>
+            <span class="whatif-slider-cap">+${formatCurrency(sliderMax)}</span>
         </div>
         <div id="whatifResult"><p class="whatif-hint">Move the slider to simulate a higher payment.</p></div>
     </div>`;
@@ -501,7 +501,7 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
 
     slider.addEventListener('input', () => {
         const extra = parseInt(slider.value, 10);
-        extraAmtEl.textContent = app.formatCurrency(extra);
+        extraAmtEl.textContent = formatCurrency(extra);
         if (extra === 0) {
             resultDiv.innerHTML = '<p class="whatif-hint">Move the slider to simulate a higher payment.</p>';
             return;
@@ -522,11 +522,11 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
                 </div>
                 <div class="whatif-metric whatif-metric--good">
                     <div class="whatif-metric-label">Interest Saved</div>
-                    <div class="whatif-metric-val">${app.formatCurrency(interestSaved)}</div>
+                    <div class="whatif-metric-val">${formatCurrency(interestSaved)}</div>
                 </div>
                 <div class="whatif-metric">
                     <div class="whatif-metric-label">New Total Interest</div>
-                    <div class="whatif-metric-val">${app.formatCurrency(s.totalInterest)}</div>
+                    <div class="whatif-metric-val">${formatCurrency(s.totalInterest)}</div>
                 </div>
             </div>`;
         } catch (e) {
@@ -562,20 +562,20 @@ export function renderStrategyIncomeWidget(app) {
     if (totalBills > 0 || totalExpenses > 0) {
         const netClass = netAfterAll >= 0 ? 'strategy-net--positive' : 'strategy-net--negative';
         const bonusBit = bonusThisMonth > 0
-            ? ` · Bonuses: ${app.formatCurrency(bonusThisMonth)}` : '';
+            ? ` · Bonuses: ${formatCurrency(bonusThisMonth)}` : '';
         netHtml = `<div class="strategy-net ${netClass}">
             Net after all obligations:
-            <strong>${app.formatCurrency(netAfterAll)}</strong>
-            <span class="strategy-net-breakdown">(Bills: ${app.formatCurrency(totalBills)} · Expenses: ${app.formatCurrency(totalExpenses)} · Debt mins: ${app.formatCurrency(totalDebtMin)}${bonusBit})</span>
+            <strong>${formatCurrency(netAfterAll)}</strong>
+            <span class="strategy-net-breakdown">(Bills: ${formatCurrency(totalBills)} · Expenses: ${formatCurrency(totalExpenses)} · Debt mins: ${formatCurrency(totalDebtMin)}${bonusBit})</span>
         </div>`;
     }
 
     const bonusChip = bonusThisMonth > 0
-        ? `<span class="strategy-bonus-chip">+${app.formatCurrency(bonusThisMonth)} bonus this month</span>` : '';
+        ? `<span class="strategy-bonus-chip">+${formatCurrency(bonusThisMonth)} bonus this month</span>` : '';
 
     widget.style.display = 'block';
     widget.innerHTML = `
-        💰 Expected income this month: <strong>${app.formatCurrency(monthlyTotal)}</strong> ${bonusChip}
+        💰 Expected income this month: <strong>${formatCurrency(monthlyTotal)}</strong> ${bonusChip}
         ${ratioHtml}
         ${netHtml}`;
 }
@@ -616,7 +616,7 @@ export function renderDebtSummaryTable(app) {
 
     for (const summary of rows) {
         const dueDateStr = summary.dueDate
-            ? `<div style="font-size:0.78em;color:#6b7280;margin-top:2px;">Due: ${app.getDayOrdinal(summary.dueDate)} of month</div>`
+            ? `<div style="font-size:0.78em;color:#6b7280;margin-top:2px;">Due: ${getDayOrdinal(summary.dueDate)} of month</div>`
             : '';
 
         // Progress bar: based on originalBalance vs current accountBalance
@@ -644,16 +644,16 @@ export function renderDebtSummaryTable(app) {
 
         const row = document.createElement('tr');
         const iptdCell = summary.interestToDate !== null
-            ? `<span class="iptd-value">${app.formatCurrency(summary.interestToDate)}</span>
+            ? `<span class="iptd-value">${formatCurrency(summary.interestToDate)}</span>
                ${summary.debtStartDate ? `<div class="iptd-sub">since ${new Date(summary.debtStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>` : ''}`
             : '<span style="color:#9ca3af;font-size:0.8em;">No start date</span>';
         row.innerHTML = `
             <td>${summary.name}${dueDateStr}${progressBar}</td>
-            <td class="min-due">${app.formatCurrency(summary.minDue)}</td>
+            <td class="min-due">${formatCurrency(summary.minDue)}</td>
             <td class="interest-rate">${summary.interestRate.toFixed(2)}%</td>
-            <td class="amount">${app.formatCurrency(summary.totalPaid)}</td>
-            <td class="principal">${app.formatCurrency(summary.principalPaid)}</td>
-            <td class="interest">${app.formatCurrency(summary.interestPaid)}</td>
+            <td class="amount">${formatCurrency(summary.totalPaid)}</td>
+            <td class="principal">${formatCurrency(summary.principalPaid)}</td>
+            <td class="interest">${formatCurrency(summary.interestPaid)}</td>
             <td>${iptdCell}</td>
             <td>${summary.payoffDate || '-'}</td>
             <td><button class="btn btn-small btn-secondary" data-amortization="${summary.name}">View</button></td>
@@ -786,7 +786,7 @@ export function showAmortizationModal(app, debtName) {
             const monthData = app.lastPaymentPlan[mi];
             const payment = monthData.payments.find(p => p.debtName === debtName);
             if (payment) {
-                html += `<tr><td>${DebtCalculator.getMonthName(monthData.month - 1)}</td><td>${app.formatCurrency(payment.payment)}</td><td>${app.formatCurrency(payment.principal)}</td><td>${app.formatCurrency(payment.interest)}</td><td>${app.formatCurrency(payment.balance)}</td></tr>`;
+                html += `<tr><td>${DebtCalculator.getMonthName(monthData.month - 1)}</td><td>${formatCurrency(payment.payment)}</td><td>${formatCurrency(payment.principal)}</td><td>${formatCurrency(payment.interest)}</td><td>${formatCurrency(payment.balance)}</td></tr>`;
             }
         }
     }
@@ -888,12 +888,12 @@ export function displayPaymentSchedule(app) {
             const overage = monthOverageMap[debtName] || 0;
             let paymentStr = '-';
             if (payment > 0) {
-                paymentStr = app.formatCurrency(payment);
+                paymentStr = formatCurrency(payment);
                 if (overage > 0) {
-                    paymentStr += `<br><small>(+${app.formatCurrency(overage)})</small>`;
+                    paymentStr += `<br><small>(+${formatCurrency(overage)})</small>`;
                 }
                 if (monthData.stimulusApplied && monthData.stimulusApplied[debtName]) {
-                    paymentStr += `<br><span style='color:#059669;font-size:0.9em;'>(Stimulus: ${app.formatCurrency(monthData.stimulusApplied[debtName])})</span>`;
+                    paymentStr += `<br><span style='color:#059669;font-size:0.9em;'>(Stimulus: ${formatCurrency(monthData.stimulusApplied[debtName])})</span>`;
                 }
             }
             row.innerHTML += `<td class="amount">${paymentStr}</td>`;
@@ -905,9 +905,9 @@ export function displayPaymentSchedule(app) {
         const stimulusDisplay = `<input id="${stimulusInputId}" type="number" step="0.01" min="0" value="${stimDisplayStr}" style="width:100px;">`;
         row.innerHTML += `<td class="amount" style="color:#059669;font-weight:600;">${stimulusDisplay}</td>`;
 
-        let totalPaidStr = app.formatCurrency(monthTotal);
+        let totalPaidStr = formatCurrency(monthTotal);
         if (monthTotalOverage > 0) {
-            totalPaidStr += `<br><small>(+${app.formatCurrency(monthTotalOverage)})</small>`;
+            totalPaidStr += `<br><small>(+${formatCurrency(monthTotalOverage)})</small>`;
         }
         row.innerHTML += `<td class="amount" style="font-weight: bold; border-left: 2px solid var(--border-color);">${totalPaidStr}</td>`;
 
@@ -935,3 +935,4 @@ export function displayPaymentSchedule(app) {
         }
     }
 }
+

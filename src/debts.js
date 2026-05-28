@@ -1,4 +1,5 @@
 // Debt management and calculations
+import { formatCurrency, getDayOrdinal, computeInterestPaidToDate } from './utils.js';
 
 function recalculateIfConfigured(app) {
     try {
@@ -103,13 +104,13 @@ export function showUpdateBalanceModal(app, debtId) {
     if (!modal) return;
 
     document.getElementById('updateBalanceDebtName').textContent = debt.name;
-    document.getElementById('updateBalanceCurrent').textContent = app.formatCurrency(debt.accountBalance);
+    document.getElementById('updateBalanceCurrent').textContent = formatCurrency(debt.accountBalance);
 
     const balInput = document.getElementById('updateBalanceInput');
     balInput.value = debt.accountBalance.toFixed(2);
 
     const origMin = debt.originalMinimumPayment ?? debt.minimumPayment ?? 0;
-    document.getElementById('updateMinPaymentOriginal').textContent = app.formatCurrency(origMin);
+    document.getElementById('updateMinPaymentOriginal').textContent = formatCurrency(origMin);
     const minInput = document.getElementById('updateMinPaymentInput');
     minInput.value = (debt.minimumPayment ?? 0).toFixed(2);
 
@@ -240,14 +241,14 @@ export function renderDebtsList(app) {
                     <div class="debt-overview-cat-row">
                         <span class="debt-overview-cat-name">${cat}</span>
                         <span class="debt-overview-cat-count">${v.count} debt${v.count !== 1 ? 's' : ''}</span>
-                        <span class="debt-overview-cat-min">${app.formatCurrency(v.minTotal)}/mo</span>
-                        <span class="debt-overview-cat-total">${app.formatCurrency(v.total)}</span>
+                        <span class="debt-overview-cat-min">${formatCurrency(v.minTotal)}/mo</span>
+                        <span class="debt-overview-cat-total">${formatCurrency(v.total)}</span>
                     </div>`).join('');
 
             const interestHTML = totalInterest !== null
                 ? `<div class="debt-overview-stat">
                         <span class="debt-overview-stat-label">Total Interest (projected)</span>
-                        <span class="debt-overview-stat-value debt-overview-stat-value--interest">${app.formatCurrency(totalInterest)}</span>
+                        <span class="debt-overview-stat-value debt-overview-stat-value--interest">${formatCurrency(totalInterest)}</span>
                     </div>`
                 : `<div class="debt-overview-stat">
                         <span class="debt-overview-stat-label">Total Interest (projected)</span>
@@ -260,11 +261,11 @@ export function renderDebtsList(app) {
                     <div class="debt-overview-stats">
                         <div class="debt-overview-stat">
                             <span class="debt-overview-stat-label">Total Overall Debt</span>
-                            <span class="debt-overview-stat-value">${app.formatCurrency(totalDebt)}</span>
+                            <span class="debt-overview-stat-value">${formatCurrency(totalDebt)}</span>
                         </div>
                         <div class="debt-overview-stat">
                             <span class="debt-overview-stat-label">Monthly Minimums</span>
-                            <span class="debt-overview-stat-value">${app.formatCurrency(totalMin)}</span>
+                            <span class="debt-overview-stat-value">${formatCurrency(totalMin)}</span>
                         </div>
                         ${interestHTML}
                     </div>
@@ -367,7 +368,7 @@ export function renderDebtsList(app) {
 
                 cardHTML += `
                         <div class="debt-detail">
-                            <strong>Monthly Amount:</strong> ${app.formatCurrency(debt.fixedAmount)}
+                            <strong>Monthly Amount:</strong> ${formatCurrency(debt.fixedAmount)}
                         </div>
                         <div class="debt-detail">
                             <strong>Period:</strong> ${debt.fixedStartDate} to ${debt.fixedEndDate}
@@ -388,26 +389,26 @@ export function renderDebtsList(app) {
                 const negAmortRisk = debt.minimumPayment <= monthlyInterest && debt.minimumPayment > 0;
                 const origBal = debt.originalBalance || debt.accountBalance;
                 const progressPct = origBal > 0 ? Math.min(100, Math.round((origBal - debt.accountBalance) / origBal * 100)) : 0;
-                const iptd = app.computeInterestPaidToDate(debt);
+                const iptd = computeInterestPaidToDate(debt);
 
                 cardHTML += `
                         <div class="debt-detail">
-                            <strong>Balance:</strong> ${app.formatCurrency(debt.accountBalance)}
-                            ${origBal > debt.accountBalance ? `<span style="font-size:0.78em;color:#6b7280;margin-left:6px;">(was ${app.formatCurrency(origBal)})</span>` : ''}
+                            <strong>Balance:</strong> ${formatCurrency(debt.accountBalance)}
+                            ${origBal > debt.accountBalance ? `<span style="font-size:0.78em;color:#6b7280;margin-left:6px;">(was ${formatCurrency(origBal)})</span>` : ''}
                         </div>
                         <div class="debt-detail">
                             <strong>Interest:</strong> ${debt.interestRate.toFixed(2)}%
-                            <span style="font-size:0.78em;color:#6b7280;margin-left:4px;">≈ ${app.formatCurrency(monthlyInterest)}/mo</span>
+                            <span style="font-size:0.78em;color:#6b7280;margin-left:4px;">≈ ${formatCurrency(monthlyInterest)}/mo</span>
                         </div>
                         <div class="debt-detail">
-                            <strong>Min Payment:</strong> ${app.formatCurrency(debt.minimumPayment)}
+                            <strong>Min Payment:</strong> ${formatCurrency(debt.minimumPayment)}
                             ${debt.originalMinimumPayment !== undefined && debt.originalMinimumPayment !== debt.minimumPayment
-                                ? `<span style="font-size:0.78em;color:#6b7280;margin-left:6px;">(originally ${app.formatCurrency(debt.originalMinimumPayment)})</span>`
+                                ? `<span style="font-size:0.78em;color:#6b7280;margin-left:6px;">(originally ${formatCurrency(debt.originalMinimumPayment)})</span>`
                                 : ''}
                             ${negAmortRisk ? `<span class="neg-amort-badge" title="Your minimum payment barely covers interest — the balance may never decrease!">⚠️ Neg. amortization risk</span>` : ''}
                         </div>
                         <div class="debt-detail">
-                            <strong>Due Date:</strong> ${app.getDayOrdinal(debt.dueDate)} of month
+                            <strong>Due Date:</strong> ${getDayOrdinal(debt.dueDate)} of month
                         </div>
                         ${debt.debtStartDate ? `
                         <div class="debt-detail">
@@ -416,7 +417,7 @@ export function renderDebtsList(app) {
                         ${iptd ? `
                         <div class="debt-detail iptd-detail">
                             <strong>Est. interest paid to date:</strong>
-                            <span class="iptd-value">${app.formatCurrency(iptd.interestPaid)}</span>
+                            <span class="iptd-value">${formatCurrency(iptd.interestPaid)}</span>
                             <span class="iptd-sub">over ${iptd.days} days since ${iptd.start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
                         </div>` : ''}
                         ${debt.priority ? `

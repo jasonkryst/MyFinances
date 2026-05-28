@@ -10,14 +10,9 @@ import {
     cancelInlineEdit as cancelInlineEditDebtFeature,
     saveInlineEdit as saveInlineEditDebtFeature
 } from './debts.js';
-import { renderLedgerPage } from './ledger.js';
-import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature, refreshAccountSelectors as refreshAccountSelectorsFeature } from './accounts.js';
+import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature } from './accounts.js';
 import {
     renderBudgetPage,
-    renderBillList as renderBillListFeature,
-    renderExpenseList as renderExpenseListFeature,
-    renderCashFlowSummary as renderCashFlowSummaryFeature,
-    renderCashFlowCharts as renderCashFlowChartsFeature,
     addBill,
     deleteBill,
     startEditBill,
@@ -38,15 +33,6 @@ import {
 } from './charts.js';
 import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature } from './storage.js';
 import {
-    formatCurrency,
-    getDayOrdinal,
-    countIncomePaydaysInMonth,
-    getNextIncomePayDates,
-    computeMonthlyBonusesForMonth,
-    computeMonthlyIncomeForMonth,
-    computeInterestPaidToDate as computeInterestPaidToDateFeature
-} from './utils.js';
-import {
     renderIncomeList,
     addIncome,
     deleteIncome,
@@ -66,7 +52,6 @@ import {
     calculateRequiredPayment as calculateRequiredPaymentFeature,
     displayPaymentPlan as displayPaymentPlanFeature,
     displayDebtSummary as displayDebtSummaryFeature,
-    renderDebtSummaryTable as renderDebtSummaryTableFeature,
     showAmortizationModal as showAmortizationModalFeature,
     displayPaymentSchedule as displayPaymentScheduleFeature,
     displayInterestComparison as displayInterestComparisonFeature,
@@ -75,15 +60,11 @@ import {
     renderCalendarView as renderCalendarViewFeature
 } from './strategy.js';
 import {
-    getReportDate as getReportDateFeature,
     prevReportMonth as prevReportMonthFeature,
     nextReportMonth as nextReportMonthFeature,
-    updateReportMonthNav as updateReportMonthNavFeature,
-    renderReportsPage as renderReportsPageFeature,
-    renderReportsCalendar as renderReportsCalendarFeature,
-    renderReportsIncomeExp as renderReportsIncomeExpFeature,
-    renderReportsMoneyFlow as renderReportsMoneyFlowFeature
+    renderReportsPage as renderReportsPageFeature
 } from './reports.js';
+import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth } from './utils.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -131,6 +112,10 @@ export class DebtTrackerApp {
         this.switchPage('accounts');
     }
 
+    initializeEventListeners() {
+        return initializeUIEventListeners(this);
+    }
+
     /**
      * Run the main payment-plan calculation from the Plan section inputs.
      * Stores results and reveals the Results panel when successful.
@@ -155,8 +140,6 @@ export class DebtTrackerApp {
     deleteDebt(debtId) {
         return deleteDebtFeature(this, debtId);
     }
-
-
 
     /**
      * Use binary search to find the minimum monthly payment needed to pay off all
@@ -185,24 +168,11 @@ export class DebtTrackerApp {
     }
 
     /**
-     * Build this._debtSummaryRows from this.lastPaymentPlan, then call
-     * _renderDebtSummaryTable(). Also wires up column-header sort clicks.
-     *
-     * Each row includes: name, minDue, interestRate, dueDate, isFixedAmount,
-     * totalPaid, principalPaid, interestPaid, payoffDate, interestToDate,
-     * debtStartDate, order.
+     * Build this._debtSummaryRows from this.lastPaymentPlan and render the
+     * interactive summary table with sortable columns.
      */
     displayDebtSummary() {
         return displayDebtSummaryFeature(this);
-    }
-
-    /**
-     * Re-sort and re-render the debt summary table body using this._debtSummaryRows
-     * and this._debtSummarySort. Also updates column header sort icons.
-     * Called by displayDebtSummary() and whenever a sort header is clicked.
-     */
-    _renderDebtSummaryTable() {
-        return renderDebtSummaryTableFeature(this);
     }
 
     /**
@@ -234,7 +204,9 @@ export class DebtTrackerApp {
      *      paid, and estimated payoff date.
      */
     exportToCSV() {
-        return exportToCSVFeature(this);
+        return exportToCSVFeature(this, {
+            onMissingPlan: () => alert('Please calculate a payment plan first')
+        });
     }
 
     /**
@@ -255,24 +227,6 @@ export class DebtTrackerApp {
      */
     switchPage(pageName) {
         return switchPageFeature(this, pageName);
-    }
-
-    /**
-     * Estimate the interest already paid on a credit-card debt since its
-     * `debtStartDate` using daily compounding on the original balance.
-     *
-     * Algorithm:
-     *   totalAccrued = origBal × ((1 + rate/365)^days − 1)
-     *   interestPaid = max(0, totalAccrued − principalPaidDown)
-     *
-     * @param {object} debt - A debt object with `debtType`, `debtStartDate`,
-     *   `originalBalance`, `accountBalance`, and `interestRate`.
-     * @returns {{ interestPaid: number, days: number, start: Date } | null}
-     *   Returns `null` if the debt is not a credit card, has no start date,
-     *   or the start date is in the future.
-     */
-    computeInterestPaidToDate(debt) {
-        return computeInterestPaidToDateFeature(debt);
     }
 
     /**
@@ -408,56 +362,6 @@ export class DebtTrackerApp {
     }
 
     /**
-     * Compute the total income expected in the current calendar month by
-     * projecting each source's pay schedule forward from its first pay date.
-     *
-     * - biweekly: every 14 days from firstPayDate
-     * - monthly:  same day each month as firstPayDate
-     *
-     * @returns {{ monthlyTotal: number, paydaysThisMonth: number }}
-     */
-    /**
-     * Count how many paydays fall in the current calendar month for a
-     * single income source.
-     * @param {object} inc - income source object
-     * @returns {number}
-     */
-    /**
-     * Return the next `n` upcoming pay dates for an income source (on or after today).
-     * @param {object} inc - income source object
-     * @param {number} n   - how many dates to return
-     * @returns {Date[]}
-     */
-    nextPayDates(inc, n = 3) {
-        return getNextIncomePayDates(inc, n);
-    }
-
-    paydaysInCurrentMonth(inc) {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        return countIncomePaydaysInMonth(inc, year, month);
-    }
-
-    computeMonthlyIncome() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        return computeMonthlyIncomeForMonth(this.incomes, this.bonuses, year, month);
-    }
-
-    /**
-     * Sum of all one-time bonuses whose date falls in the current calendar month.
-     * @returns {number}
-     */
-    computeMonthlyBonuses() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        return computeMonthlyBonusesForMonth(this.bonuses, year, month);
-    }
-
-    /**
      * Render (or hide) the income context widget on the Strategy page.
      * Shows monthly expected income alongside the current monthly payment
      * commitment so the user can see the ratio at a glance.
@@ -466,14 +370,18 @@ export class DebtTrackerApp {
         return renderStrategyIncomeWidgetFeature(this);
     }
 
-    /**
-     * Download all current debts as a JSON backup file.
-     * The file format is:
-     * ```json
-     * { "version": "1.0", "exportedAt": "<ISO date>", "debts": [...] }
-     * ```
-     * The file is named `debts-backup-YYYY-MM-DD.json`.
-     */
+    // Compatibility shim for any stale callsites that still expect app.computeMonthlyIncome().
+    computeMonthlyIncome() {
+        const now = new Date();
+        return computeMonthlyIncomeForMonth(this.incomes, this.bonuses, now.getFullYear(), now.getMonth());
+    }
+
+    // Compatibility shim for stale callsites expecting app.computeMonthlyBonuses().
+    computeMonthlyBonuses() {
+        const now = new Date();
+        return computeMonthlyBonusesForMonth(this.bonuses, now.getFullYear(), now.getMonth());
+    }
+
     /**
      * Export a full app backup as JSON — includes debts, income sources,
      * monthly payment, and selected strategy.
@@ -490,7 +398,19 @@ export class DebtTrackerApp {
      * @param {File} file
      */
     importAllJSON(file) {
-        return importAllJSONFeature(this, file);
+        return importAllJSONFeature(this, file, {
+            onInvalidJSON: () => alert('Invalid JSON file. Please select a valid backup file.'),
+            onNoData: () => alert('No recognisable data found in the selected file.'),
+            requestImportMode: (parts) => confirm(
+                `Found: ${parts.join(', ')}.\n\n` +
+                `• OK     — Replace your current data entirely\n` +
+                `• Cancel — Merge debts only (income & strategy will still be restored; duplicate debt names are skipped)\n`
+            ),
+            onMergeDuplicates: (addedCount, skippedCount) => {
+                alert(`Merged ${addedCount} debt(s). Skipped ${skippedCount} duplicate name(s).`);
+            },
+            onReadError: () => alert('Could not read the file. Please try again.')
+        });
     }
 
     /**
@@ -500,7 +420,9 @@ export class DebtTrackerApp {
      * form fields.
      */
     clearAllData() {
-        return clearAllDataFeature(this);
+        return clearAllDataFeature(this, {
+            onCleared: () => alert('All debt data has been cleared')
+        });
     }
 
     /**
@@ -526,22 +448,6 @@ export class DebtTrackerApp {
      */
     loadFromStorage() {
         return loadFromStorage(this);
-    }
-
-    /**
-     * Format a number as a USD currency string (e.g., `1234.5` → `"$1,234.50"`).
-     * @param {number} value
-     * @returns {string}
-     */
-    formatCurrency(value) { return formatCurrency(value); }
-
-    /**
-     * Return the ordinal suffix string for a day number (e.g., `1` → `"1st"`).
-     * @param {number} day
-     * @returns {string}
-     */
-    getDayOrdinal(day) {
-        return getDayOrdinal(day);
     }
 
     /**
@@ -675,22 +581,6 @@ export class DebtTrackerApp {
         return renderBudgetPage(this);
     }
 
-    _renderBillList() {
-        return renderBillListFeature(this);
-    }
-
-    _renderExpenseList() {
-        return renderExpenseListFeature(this);
-    }
-
-    _renderCashFlowSummary() {
-        return renderCashFlowSummaryFeature(this);
-    }
-
-    _renderCashFlowCharts(monthlyIncome, totalDebtMin, totalBills, totalExpenses, net) {
-        return renderCashFlowChartsFeature(this, monthlyIncome, totalDebtMin, totalBills, totalExpenses, net);
-    }
-
     /**
      * Draw (or redraw) the "Payoff Timeline" Chart.js line chart.
      * One line per debt, each showing the projected balance declining to zero.
@@ -739,15 +629,6 @@ export class DebtTrackerApp {
     // ═══════════════════════════════════════════════════════════════════════
     //  ACCOUNTS
     // ═══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Refresh all account-selector <select> dropdowns in the Add-forms so
-     * they always reflect the current `this.accounts` list.
-     * Call this after any change to `this.accounts`.
-     */
-    _refreshAccountSelectors() {
-        return refreshAccountSelectorsFeature(this);
-    }
 
     /** Add a new account from the accountForm inputs. */
     addAccount() {
@@ -798,19 +679,6 @@ export class DebtTrackerApp {
     //  REPORTS PAGE
     // ═══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Entry point — renders all three report panels for the current month.
-     * Called when the user switches to the Reports page.
-     */
-    // ══════════════════════════════════════════════════════════════════════════
-    // REPORTS PAGE
-    // ══════════════════════════════════════════════════════════════════════════
-
-    /** Returns a Date object for the first day of the currently selected report month. */
-    _getReportDate() {
-        return getReportDateFeature(this);
-    }
-
     /** Step the report month back by 1 and re-render. */
     prevReportMonth() {
         return prevReportMonthFeature(this);
@@ -821,29 +689,8 @@ export class DebtTrackerApp {
         return nextReportMonthFeature(this);
     }
 
-    /** Update the month label and disable the "next" button if already at current month. */
-    _updateReportMonthNav() {
-        return updateReportMonthNavFeature(this);
-    }
-
     renderReportsPage() {
         return renderReportsPageFeature(this);
-    }
-
-    // ── Calendar ────────────────────────────────────────────────────────────
-    /** Renders a standalone current-month calendar with all events. */
-    _renderReportsCalendar() {
-        return renderReportsCalendarFeature(this);
-    }
-
-    // ── Income vs Expenses ──────────────────────────────────────────────────
-    _renderReportsIncomeExp() {
-        return renderReportsIncomeExpFeature(this);
-    }
-
-    // ── Money Flow ──────────────────────────────────────────────────────────
-    _renderReportsMoneyFlow() {
-        return renderReportsMoneyFlowFeature(this);
     }
 }
 

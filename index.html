@@ -676,8 +676,8 @@
         <script>
         // ── Reports month pagination: update label and re-render active tab on month change ──
         window.addEventListener('DOMContentLoaded', function () {
-            if (window.app && typeof app._updateReportMonthNav === 'function') {
-                app._updateReportMonthNav();
+            if (window.app && typeof app.renderReportsPage === 'function') {
+                app.renderReportsPage();
             }
         });
         </script>
@@ -801,9 +801,7 @@
                 });
                 // Re-render the newly visible tab so charts resize correctly
                 if (window.app) {
-                    if (target === 'calendar')  app._renderReportsCalendar();
-                    if (target === 'incomeexp') app._renderReportsIncomeExp();
-                    if (target === 'moneyflow') app._renderReportsMoneyFlow();
+                    app.renderReportsPage();
                 }
             });
         });

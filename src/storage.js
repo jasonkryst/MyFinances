@@ -97,9 +97,12 @@ export function exportAllJSON(app) {
 }
 
 // Export the current payment plan to a downloadable CSV file.
-export function exportToCSV(app) {
+export function exportToCSV(app, options = {}) {
+    const { onMissingPlan } = options;
     if (!app.lastPaymentPlan) {
-        alert('Please calculate a payment plan first');
+        if (typeof onMissingPlan === 'function') {
+            onMissingPlan();
+        }
         return;
     }
 
@@ -202,14 +205,24 @@ export function exportToCSV(app) {
 }
 
 // Import a full backup JSON file.
-export function importAllJSON(app, file) {
+export function importAllJSON(app, file, options = {}) {
+    const {
+        onInvalidJSON,
+        onNoData,
+        requestImportMode,
+        onMergeDuplicates,
+        onReadError
+    } = options;
+
     const reader = new FileReader();
     reader.onload = (e) => {
         let parsed;
         try {
             parsed = JSON.parse(e.target.result);
         } catch {
-            alert('Invalid JSON file. Please select a valid backup file.');
+            if (typeof onInvalidJSON === 'function') {
+                onInvalidJSON();
+            }
             return;
         }
 
@@ -226,7 +239,9 @@ export function importAllJSON(app, file) {
 
         if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy
             && incomingBills.length === 0 && incomingExpenses.length === 0) {
-            alert('No recognisable data found in the selected file.');
+            if (typeof onNoData === 'function') {
+                onNoData();
+            }
             return;
         }
 
@@ -238,13 +253,11 @@ export function importAllJSON(app, file) {
         if (incomingExpenses.length) parts.push(`${incomingExpenses.length} expense budget(s)`);
         if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
-        const action = confirm(
-            `Found: ${parts.join(', ')}.\n\n` +
-            `• OK     — Replace your current data entirely\n` +
-            `• Cancel — Merge debts only (income & strategy will still be restored; duplicate debt names are skipped)\n`
-        );
+        const shouldReplace = typeof requestImportMode === 'function'
+            ? requestImportMode(parts)
+            : true;
 
-        if (action) {
+        if (shouldReplace) {
             app.accounts = incomingAccounts.map((a, i) => ({ ...a, id: Date.now() + 500 + i }));
             app.debts = validDebts.map((d, i) => ({
                 ...d,
@@ -280,8 +293,8 @@ export function importAllJSON(app, file) {
                 }
             }
             app.debts = [...app.debts, ...toAdd];
-            if (skipped > 0) {
-                alert(`Merged ${toAdd.length} debt(s). Skipped ${skipped} duplicate name(s).`);
+            if (skipped > 0 && typeof onMergeDuplicates === 'function') {
+                onMergeDuplicates(toAdd.length, skipped);
             }
             app.accounts = incomingAccounts.map((a, i) => ({ ...a, id: Date.now() + 500 + i }));
             app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
@@ -307,12 +320,17 @@ export function importAllJSON(app, file) {
         app.updateUI();
     };
 
-    reader.onerror = () => alert('Could not read the file. Please try again.');
+    reader.onerror = () => {
+        if (typeof onReadError === 'function') {
+            onReadError();
+        }
+    };
     reader.readAsText(file);
 }
 
 // Wipe all user data and reset the visible UI state.
-export function clearAllData(app) {
+export function clearAllData(app, options = {}) {
+    const { onCleared } = options;
     app.debts = [];
     app.accounts = [];
     app.lastPaymentPlan = null;
@@ -323,5 +341,7 @@ export function clearAllData(app) {
     app.updateUI();
     document.getElementById('resultsSection').style.display = 'none';
     document.getElementById('monthlyPayment').value = '';
-    alert('All debt data has been cleared');
+    if (typeof onCleared === 'function') {
+        onCleared();
+    }
 }

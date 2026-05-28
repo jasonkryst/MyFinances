@@ -1,4 +1,11 @@
 // Income and bonus management
+import {
+    formatCurrency,
+    countIncomePaydaysInMonth,
+    getNextIncomePayDates,
+    computeMonthlyIncomeForMonth,
+    computeMonthlyBonusesForMonth
+} from './utils.js';
 
 
 // Render the income list and summary panel inside the Income page.
@@ -57,10 +64,11 @@ export function renderIncomeList(app) {
         }
 
         const dateStr = new Date(inc.firstPayDate + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        const pdays = app.paydaysInCurrentMonth(inc);
+        const now = new Date();
+        const pdays = countIncomePaydaysInMonth(inc, now.getFullYear(), now.getMonth());
         const pdayLabel = pdays === 1 ? '1 payday this month' : `${pdays} paydays this month`;
 
-        const upcomingDates = app.nextPayDates(inc, 3);
+        const upcomingDates = getNextIncomePayDates(inc, 3);
         const upcomingHTML = upcomingDates.length
             ? upcomingDates.map(d => {
                 const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -72,7 +80,7 @@ export function renderIncomeList(app) {
             <div class="income-card">
                 <div class="income-card-info">
                     <span class="income-card-name">${inc.name}</span>
-                    <span class="income-card-amount">${app.formatCurrency(inc.amount)}</span>
+                    <span class="income-card-amount">${formatCurrency(inc.amount)}</span>
                     <span class="income-card-detail">First pay: ${dateStr}</span>
                     <span class="income-card-freq">${freqLabel[inc.frequency] || inc.frequency} &mdash; ${pdayLabel}</span>
                     ${upcomingHTML ? `<span class="income-card-upcoming-label">Next paydays:</span>${upcomingHTML}` : ''}
@@ -85,8 +93,11 @@ export function renderIncomeList(app) {
     }).join('');
 
     if (summaryEl) {
-        const { monthlyTotal } = app.computeMonthlyIncome();
-        const bonusThisMonth = app.computeMonthlyBonuses();
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const { monthlyTotal } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, year, month);
+        const bonusThisMonth = computeMonthlyBonusesForMonth(app.bonuses, year, month);
         const regularThisMonth = monthlyTotal - bonusThisMonth;
         const totalAnnual = app.incomes.reduce((s, i) => {
             return s + (i.frequency === 'biweekly' ? i.amount * 26 : i.amount * 12);
@@ -95,7 +106,7 @@ export function renderIncomeList(app) {
         const bonusRow = bonusThisMonth > 0
             ? `<div class="income-summary-item">
                    <span class="income-summary-label">Bonuses this month</span>
-                   <span class="income-summary-value income-summary-value--bonus">${app.formatCurrency(bonusThisMonth)}</span>
+                   <span class="income-summary-value income-summary-value--bonus">${formatCurrency(bonusThisMonth)}</span>
                </div>`
             : '';
 
@@ -105,11 +116,11 @@ export function renderIncomeList(app) {
             <div class="income-summary-grid">
                 <div class="income-summary-item">
                     <span class="income-summary-label">Expected this month</span>
-                    <span class="income-summary-value">${app.formatCurrency(monthlyTotal)}</span>
+                    <span class="income-summary-value">${formatCurrency(monthlyTotal)}</span>
                 </div>
                 <div class="income-summary-item">
                     <span class="income-summary-label">Regular pay this month</span>
-                    <span class="income-summary-value">${app.formatCurrency(regularThisMonth)}</span>
+                    <span class="income-summary-value">${formatCurrency(regularThisMonth)}</span>
                 </div>
                 ${bonusRow}
                 <div class="income-summary-item">
@@ -118,7 +129,7 @@ export function renderIncomeList(app) {
                 </div>
                 <div class="income-summary-item">
                     <span class="income-summary-label">Estimated annual</span>
-                    <span class="income-summary-value">${app.formatCurrency(totalAnnual)}</span>
+                    <span class="income-summary-value">${formatCurrency(totalAnnual)}</span>
                 </div>
             </div>`;
     }
@@ -329,7 +340,7 @@ export function renderBonusList(app) {
                 <div class="bonus-card${isThisMonth ? ' bonus-card--current' : ''}">
                     <div class="bonus-card-info">
                         <span class="bonus-card-name">${b.name}</span>
-                        <span class="bonus-card-amount">${app.formatCurrency(b.amount)}</span>
+                        <span class="bonus-card-amount">${formatCurrency(b.amount)}</span>
                         <span class="bonus-card-meta">${dateStr} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${b.category}</span></span>
                         ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
                     </div>

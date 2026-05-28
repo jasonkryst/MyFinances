@@ -243,10 +243,21 @@ Enter a target date in the **Strategy** section. The app uses a binary-search al
 ### File Structure
 
 ```
-index.html          — Markup and layout
+index.html          — Markup and layout shell
 styles.css          — Responsive styles + dark mode
-app.js              — DebtTrackerApp class (UI, state, charts)
 debtCalculator.js   — DebtCalculator static class (pure calculation engine)
+src/app.js          — DebtTrackerApp composition + delegator methods + bootstrap
+src/ui.js           — Event wiring, page/tab switching, UI refresh helpers
+src/strategy.js     — Plan calculation handlers + schedule/summary rendering
+src/debts.js        — Debt CRUD + debt list + balance update flows
+src/income.js       — Income/bonus CRUD + rendering
+src/bills.js        — Bills/expenses CRUD + budget rendering
+src/accounts.js     — Account CRUD + projection helpers
+src/reports.js      — Reports month navigation + report rendering
+src/ledger.js       — Ledger rendering + filters
+src/charts.js       — Chart lifecycle and chart renderers
+src/storage.js      — Persistence, import/export flows
+src/utils.js        — Shared date/format/projection utilities
 ```
 
 ### Dependencies

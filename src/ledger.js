@@ -1,6 +1,6 @@
 // Ledger logic: rendering, transaction gathering
 
-import { getIncomePaydaysInMonth } from './utils.js';
+import { getIncomePaydaysInMonth, formatCurrency } from './utils.js';
 
 // Gather all transactions for the ledger
 export function getLedgerTransactions(app) {
@@ -225,8 +225,8 @@ export function renderLedgerPage(app) {
                 <td>${tx.date ? _formatLedgerDate(tx.date) : ''}</td>
                 <td>${tx.account || ''}</td>
                 <td>${tx.name || ''}</td>
-                <td style="text-align:right;${tx.amount < 0 ? 'color:#dc2626;' : 'color:#059669;'}">${app.formatCurrency ? app.formatCurrency(tx.amount) : tx.amount}</td>
-                <td style="text-align:right;">${app.formatCurrency ? app.formatCurrency(tx.balance) : tx.balance}</td>
+                <td style="text-align:right;${tx.amount < 0 ? 'color:#dc2626;' : 'color:#059669;'}">${formatCurrency(tx.amount)}</td>
+                <td style="text-align:right;">${formatCurrency(tx.balance)}</td>
             </tr>`;
         }
     }
