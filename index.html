@@ -30,8 +30,20 @@
                 </div>
             </div>
             <div class="header-hero">
-                <h1>� MyFinances</h1>
-                <p>Track accounts, debts, income, and spending — plan your path to financial freedom.</p>
+                                <h1>
+                                    <span style="vertical-align:middle; display:inline-block; width:1.5em; height:1.5em; margin-right:0.3em;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" style="display:inline;vertical-align:middle;">
+                                            <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
+                                            <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
+                                            <circle cx="16" cy="16" r="3" fill="#2563eb"/>
+                                            <line x1="16" y1="3" x2="16" y2="8" stroke="#2563eb" stroke-width="2"/>
+                                            <line x1="16" y1="24" x2="16" y2="29" stroke="#2563eb" stroke-width="2"/>
+                                            <line x1="3" y1="16" x2="8" y2="16" stroke="#2563eb" stroke-width="2"/>
+                                            <line x1="24" y1="16" x2="29" y2="16" stroke="#2563eb" stroke-width="2"/>
+                                        </svg>
+                                    </span>
+                                    MyFinances
+                                </h1>
             </div>
             <nav class="top-nav">
                 <button class="page-button active" data-page="accounts">Accounts</button>
@@ -494,7 +506,7 @@
                                 </select>
                             </div>
                             <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
-                                <button id="calcTargetBtn" class="btn btn-primary">Calculate</button>
+                                <button id="calcTargetBtn" type="button" class="btn btn-primary">Calculate</button>
                             </div>
                         </div>
                         <div id="targetPayoffResult"></div>
@@ -660,11 +672,10 @@
     </div>
 
     <script src="debtCalculator.js"></script>
-    <script src="app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
         // ── Reports month pagination: update label and re-render active tab on month change ──
-        document.addEventListener('DOMContentLoaded', function () {
+        window.addEventListener('DOMContentLoaded', function () {
             if (window.app && typeof app._updateReportMonthNav === 'function') {
                 app._updateReportMonthNav();
             }
@@ -672,7 +683,7 @@
         </script>
     <script>
     // ── Account form ──────────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
+    window.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('accountForm');
         if (form) {
             form.addEventListener('submit', function (e) {
@@ -799,7 +810,7 @@
     });
 
     // Accessibility and CSV export for amortization modal
-    document.addEventListener('DOMContentLoaded', function() {
+    window.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('amortizationModal');
         const closeBtn = document.getElementById('closeAmortization');
         const exportBtn = document.getElementById('exportAmortizationBtn');
@@ -897,5 +908,6 @@
             </div>
         </div>
     </div>
+    <script type="module" src="src/app.js"></script>
 </body>
 </html>

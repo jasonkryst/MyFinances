@@ -1,38 +1,45 @@
+import { renderDebtsList } from './debts.js';
+import { renderLedgerPage } from './ledger.js';
+import { renderAccountsList } from './accounts.js';
+import {
+    renderBudgetPage,
+    addBill,
+    deleteBill,
+    startEditBill,
+    saveEditBill,
+    cancelEditBill,
+    addExpense,
+    deleteExpense,
+    startEditExpense,
+    saveEditExpense,
+    cancelEditExpense
+} from './bills.js';
+import { saveToStorage, loadFromStorage } from './storage.js';
+import { formatCurrency } from './utils.js';
+import {
+    renderIncomeList,
+    addIncome,
+    deleteIncome,
+    startEditIncome,
+    cancelEditIncome,
+    saveEditIncome,
+    addBonus,
+    deleteBonus,
+    startEditBonus,
+    cancelEditBonus,
+    saveEditBonus,
+    renderBonusList
+} from './income.js';
+
 /**
- * app.js — Debt Tracker Application
+ * app.js — Debt Tracker Application (ES module)
  *
  * Main UI controller and data manager for the Debt Tracker web app.
  *
- * Debt types supported:
- *   - creditCard  : Interest-bearing debt. Uses daily-compounded interest.
- *                   Fields: accountBalance, interestRate, minimumPayment, dueDate,
- *                           originalBalance, debtStartDate (optional), priority (optional)
- *   - fixedAmount : Date-range obligation (e.g. daycare). No interest, fixed monthly cost.
- *                   Fields: fixedAmount, fixedStartDate, fixedEndDate
- *
- * Key features:
- *   - Add, inline-edit, and delete debts
- *   - Four payment strategies: Avalanche, Snowball, Priority-Low, Priority-High
- *   - Monthly payment + optional per-month stimulus/bonus payments
- *   - Target payoff date back-calculator (binary search)
- *   - Interest saved strategy comparison (all 4 strategies side-by-side)
- *   - What-if simulator (extra-payment slider, live recalc)
- *   - Minimum payment / negative-amortization risk warnings
- *   - Update-balance modal — adjust current balance without losing original
- *   - Interest paid to date — estimated real interest spent since debt was opened
- *   - Per-debt payoff progress bars (debt cards + summary table)
- *   - Calendar view (paginated, one month per page, today highlighted)
- *   - Chart view: per-debt balance timeline, cumulative payment line chart, pie chart
- *   - LocalStorage persistence (debts, strategy, monthly payment, stimulus)
- *   - CSV export of full payment plan and debt summary
- *   - Dark mode toggle, category filter, column sorting
- *
- * Dependencies:
- *   - debtCalculator.js  (DebtCalculator static class)
- *   - Chart.js           (loaded from CDN in index.html)
+ * Modularized for modern browser support.
  */
 
-class DebtTrackerApp {
+export class DebtTrackerApp {
     /**
      * Root application class.
      * Instantiated once (as `app`) after DOMContentLoaded.
@@ -83,6 +90,15 @@ class DebtTrackerApp {
      * target-date panel toggle, and target-date calculate button.
      */
     initializeEventListeners() {
+        // Navigation: page switching
+        document.querySelectorAll('.page-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const page = btn.getAttribute('data-page');
+                if (page) {
+                    this.switchPage(page);
+                }
+            });
+        });
         // Tab switching within the Results section (Tabular / Calendar / Chart)
         document.querySelectorAll('.tab-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -92,131 +108,6 @@ class DebtTrackerApp {
                 }
             });
         });
-        // Category filter on the Debts page — re-renders list on change
-        const categoryFilter = document.getElementById('categoryFilter');
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', () => {
-                this.renderDebtsList();
-            });
-        }
-        // Dark mode toggle — switches body class and updates button icon/label
-        const themeSwitcher = document.getElementById('themeSwitcher');
-        if (themeSwitcher) {
-            themeSwitcher.addEventListener('click', () => {
-                document.body.classList.toggle('dark-mode');
-                themeSwitcher.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
-                themeSwitcher.setAttribute('aria-label', document.body.classList.contains('dark-mode') ? 'Toggle light mode' : 'Toggle dark mode');
-            });
-        }
-
-        // Allow keyboard activation (Enter / Space) of help tooltip icons
-        document.querySelectorAll('.help-icon').forEach(icon => {
-            icon.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    icon.click();
-                }
-            });
-        });
-
-        // Live validation as the user types in the Add Debt form
-        const debtForm = document.getElementById('debtForm');
-        if (debtForm) {
-            debtForm.addEventListener('input', (e) => {
-                this.validateDebtForm();
-            });
-            // On submit: validate, then either save an edit or add a new debt
-            debtForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (!this.validateDebtForm()) return;
-                if (this.editingDebtId) {
-                    this.saveEdit();
-                } else {
-                    this.addDebt();
-                }
-            });
-        }
-
-        // Show/hide credit-card vs fixed-amount fields when debt type changes
-        const debtTypeSelect = document.getElementById('debtType');
-        if (debtTypeSelect) {
-            debtTypeSelect.addEventListener('change', () => {
-                this.updateFormVisibility();
-            });
-        }
-
-        // "Calculate Payment Plan" button — runs the main payoff calculation
-        const calculateBtn = document.getElementById('calculateBtn');
-        if (calculateBtn) {
-            calculateBtn.addEventListener('click', () => {
-                this.calculatePaymentPlan();
-            });
-        }
-
-        // Persist strategy settings immediately when the user changes them
-        const monthlyPaymentEl = document.getElementById('monthlyPayment');
-        if (monthlyPaymentEl) {
-            monthlyPaymentEl.addEventListener('change', () => {
-                this.saveToStorage();
-                this.renderStrategyIncomeWidget();
-            });
-        }
-        const paymentStrategyEl = document.getElementById('paymentStrategy');
-        if (paymentStrategyEl) {
-            paymentStrategyEl.addEventListener('change', () => this.saveToStorage());
-        }
-
-        // Clear All Data button
-        const clearDataBtn = document.getElementById('clearDataBtn');
-        if (clearDataBtn) {
-            clearDataBtn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to clear all debt data?')) {
-                    this.clearAllData();
-                }
-            });
-        }
-
-        // Export full backup as JSON (header toolbar)
-        const exportJsonBtn = document.getElementById('exportJsonBtn');
-        if (exportJsonBtn) {
-            exportJsonBtn.addEventListener('click', () => this.exportAllJSON());
-        }
-
-        // Import full backup from JSON — button triggers hidden file input (header toolbar)
-        const importJsonBtn = document.getElementById('importJsonBtn');
-        const importJsonInput = document.getElementById('importJsonInput');
-        if (importJsonBtn && importJsonInput) {
-            importJsonBtn.addEventListener('click', () => importJsonInput.click());
-            importJsonInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    this.importAllJSON(file);
-                    importJsonInput.value = '';
-                }
-            });
-        }
-
-        // Top nav page buttons (Debts / Income / Budget / Strategy / Results)
-        document.querySelectorAll('.page-button').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const page = btn.getAttribute('data-page');
-                if (page) {
-                    this.switchPage(page);
-                }
-            });
-        });
-
-        // Bill form submit
-        const billForm = document.getElementById('billForm');
-        if (billForm) {
-            billForm.addEventListener('submit', (e) => { e.preventDefault(); this.addBill(); });
-        }
-
-        // Expense form submit
-        const expenseForm = document.getElementById('expenseForm');
-        if (expenseForm) {
-            expenseForm.addEventListener('submit', (e) => { e.preventDefault(); this.addExpense(); });
-        }
 
         // Target payoff date panel: collapse/expand toggle
         const targetToggle = document.getElementById('targetDateToggle');
@@ -229,87 +120,67 @@ class DebtTrackerApp {
             });
         }
 
-        // Target payoff date: "Calculate" button runs binary-search back-calculator
-        const calcTargetBtn = document.getElementById('calcTargetBtn');
-        if (calcTargetBtn) {
-            calcTargetBtn.addEventListener('click', () => this.calculateRequiredPayment());
-        }
-
-        // Income form submission
-        const incomeForm = document.getElementById('incomeForm');
-        if (incomeForm) {
-            incomeForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.addIncome();
+        // Main plan: calculate using monthly payment + selected strategy
+        const calculateBtn = document.getElementById('calculateBtn');
+        if (calculateBtn) {
+            calculateBtn.addEventListener('click', () => {
+                this.calculatePaymentPlanFromInputs();
             });
         }
+
+        // Target payoff date: "Calculate" button runs back-calculation
+        const calcTargetBtn = document.getElementById('calcTargetBtn');
+        if (calcTargetBtn) {
+            calcTargetBtn.addEventListener('click', () => {
+                try {
+                    this.calculateRequiredPayment();
+                } catch (err) {
+                    console.error('Error invoking calculateRequiredPayment from click handler', err);
+                    const resultEl = document.getElementById('targetPayoffResult');
+                    if (resultEl) resultEl.innerHTML = `<div class="target-result target-result--error">Error: ${err && err.message ? err.message : String(err)}</div>`;
+                }
+            });
+        }
+
+
     }
 
     /**
-     * Validate the Add Debt form fields based on the currently selected debt type.
-     * Adds/removes `.input-error` class and shows inline error messages.
-     * @returns {boolean} true if all visible required fields are valid
+     * Run the main payment-plan calculation from the Plan section inputs.
+     * Stores results and reveals the Results panel when successful.
      */
-    validateDebtForm() {
-        const debtType = document.getElementById('debtType').value;
-        const debtNameEl = document.getElementById('debtName');
-        
-        // Always validate debt name
-        let fields = [{ id: 'debtName', required: true }];
-        
-        if (debtType === 'creditCard') {
-            fields = fields.concat([
-                { id: 'accountBalance', required: true, min: 0 },
-                { id: 'interestRate', required: true, min: 0, max: 100 },
-                { id: 'minimumPayment', required: true, min: 0 },
-                { id: 'dueDate', required: true, min: 1, max: 31 }
-            ]);
-        } else if (debtType === 'fixedAmount') {
-            fields = fields.concat([
-                { id: 'fixedAmount', required: true, min: 0 },
-                { id: 'fixedStartDate', required: true },
-                { id: 'fixedEndDate', required: true }
-            ]);
+    calculatePaymentPlanFromInputs() {
+        const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
+        const strategy = document.getElementById('paymentStrategy').value;
+
+        if (!monthlyPayment || isNaN(monthlyPayment) || monthlyPayment <= 0) {
+            alert('Please enter a valid monthly payment amount greater than 0.');
+            return;
         }
-        
-        let valid = true;
-        fields.forEach(field => {
-            const el = document.getElementById(field.id);
-            if (!el || el.style.display === 'none') return;
-            
-            let error = '';
-            const value = el.value;
-            
-            if (field.required && !value) error = 'Required';
-            if (field.min !== undefined && value && Number(value) < field.min) error = `Must be ≥ ${field.min}`;
-            if (field.max !== undefined && value && Number(value) > field.max) error = `Must be ≤ ${field.max}`;
-            
-            // Date range validation for fixed amount
-            if (field.id === 'fixedEndDate' && value) {
-                const startDate = document.getElementById('fixedStartDate').value;
-                if (startDate && new Date(startDate) >= new Date(value)) {
-                    error = 'End date must be after start date';
-                }
+
+        if (!this.debts || this.debts.length === 0) {
+            alert('Please add at least one debt before calculating.');
+            return;
+        }
+
+        try {
+            const stimulus = this.perMonthStimulus && this.perMonthStimulus.length > 0
+                ? this.perMonthStimulus
+                : 0;
+            const result = DebtCalculator.calculatePaymentPlan(this.debts, monthlyPayment, strategy, stimulus);
+            this.lastPaymentPlan = result.paymentPlan;
+            this.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
+
+            const resultsSection = document.getElementById('resultsSection');
+            if (resultsSection) {
+                resultsSection.style.display = 'block';
             }
-            
-            let msgEl = el.nextElementSibling && el.nextElementSibling.classList.contains('error-message') ? el.nextElementSibling : null;
-            if (!msgEl) {
-                msgEl = document.createElement('span');
-                msgEl.className = 'error-message';
-                el.parentNode.insertBefore(msgEl, el.nextSibling);
-            }
-            if (error) {
-                el.classList.add('input-error');
-                msgEl.textContent = error;
-                msgEl.style.display = 'block';
-                valid = false;
-            } else {
-                el.classList.remove('input-error');
-                msgEl.textContent = '';
-                msgEl.style.display = 'none';
-            }
-        });
-        return valid;
+
+            this.displayPaymentPlan();
+            this.saveToStorage();
+        } catch (err) {
+            alert(err && err.message ? err.message : 'Unable to calculate payment plan.');
+        }
     }
 
     /**
@@ -349,146 +220,7 @@ class DebtTrackerApp {
         }
     }
 
-    /**
-     * Read the Add Debt form, validate it, build a debt object, push it to this.debts,
-     * persist to localStorage, and refresh the UI. Resets the form on success.
-     *
-     * Debt object shape (creditCard):
-     *   { id, name, debtType, category, accountBalance, originalBalance, interestRate,
-     *     priority, minimumPayment, dueDate, debtStartDate }
-     *
-     * Debt object shape (fixedAmount):
-     *   { id, name, debtType, category, fixedAmount, fixedStartDate, fixedEndDate,
-     *     accountBalance:0, interestRate:0, minimumPayment, dueDate }
-     */
-    addDebt() {
-        const name = document.getElementById('debtName').value.trim();
-        const debtType = document.getElementById('debtType').value;
-        const category = document.getElementById('debtCategory') ? document.getElementById('debtCategory').value.trim() : '';
 
-        if (!name) {
-            alert('Please enter a debt name');
-            return;
-        }
-
-        const debt = {
-            id: Date.now(),
-            name,
-            debtType,
-            category
-        };
-
-        if (debtType === 'creditCard') {
-            const accountBalance = parseFloat(document.getElementById('accountBalance').value);
-            const interestRate = parseFloat(document.getElementById('interestRate').value);
-            const priority = document.getElementById('priority').value ? 
-                parseInt(document.getElementById('priority').value) : null;
-            const minimumPayment = parseFloat(document.getElementById('minimumPayment').value);
-            const dueDate = parseInt(document.getElementById('dueDate').value);
-
-            if (isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
-                alert('Please fill in all required fields for credit card debt');
-                return;
-            }
-
-            if (accountBalance < 0 || interestRate < 0 || minimumPayment < 0) {
-                alert('Balance, interest rate, and minimum payment cannot be negative');
-                return;
-            }
-
-            if (dueDate < 1 || dueDate > 31) {
-                alert('Due date must be between 1 and 31');
-                return;
-            }
-
-            debt.accountBalance = accountBalance;
-            debt.originalBalance = accountBalance; // preserved for progress tracking
-            debt.interestRate = interestRate;
-            debt.priority = priority;
-            debt.minimumPayment = minimumPayment;
-            debt.dueDate = dueDate;
-            debt.debtStartDate = document.getElementById('debtStartDate').value || null;
-            debt.accountId = parseInt(document.getElementById('debtAccount')?.value) || null;
-        } else if (debtType === 'fixedAmount') {
-            const fixedAmount = parseFloat(document.getElementById('fixedAmount').value);
-            const fixedStartDate = document.getElementById('fixedStartDate').value;
-            const fixedEndDate = document.getElementById('fixedEndDate').value;
-
-            if (isNaN(fixedAmount) || !fixedStartDate || !fixedEndDate) {
-                alert('Please fill in all required fields for fixed amount debt');
-                return;
-            }
-
-            if (fixedAmount < 0) {
-                alert('Fixed amount cannot be negative');
-                return;
-            }
-
-            if (new Date(fixedStartDate) >= new Date(fixedEndDate)) {
-                alert('Start date must be before end date');
-                return;
-            }
-
-            debt.fixedAmount = fixedAmount;
-            debt.fixedStartDate = fixedStartDate;
-            debt.fixedEndDate = fixedEndDate;
-            debt.accountBalance = 0; // For compatibility
-            debt.interestRate = 0;
-            debt.minimumPayment = fixedAmount;
-            debt.dueDate = new Date(fixedStartDate).getDate(); // Use day from start date
-        }
-
-        this.debts.push(debt);
-        this.saveToStorage();
-        this.saveToStorage();
-        this.updateUI();
-        // Reset form and collapse it
-        document.getElementById('debtForm').reset();
-        this.updateFormVisibility();
-        if (typeof window.closeDebtForm === 'function') window.closeDebtForm();
-    }
-
-    /**
-     * Remove a debt by ID, persist, and refresh the UI.
-     * @param {number} debtId - The debt's `id` property
-     */
-    deleteDebt(debtId) {
-        this.debts = this.debts.filter(debt => debt.id !== debtId);
-        this.saveToStorage();
-        this.updateUI();
-    }
-
-    /**
-     * Read the monthly payment amount and strategy from the Strategy form,
-     * run DebtCalculator.calculatePaymentPlan, store the result, render the
-     * Results page, and switch to it.
-     */
-    calculatePaymentPlan() {
-        const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
-        const strategy = document.getElementById('paymentStrategy').value;
-        // Use per-month stimulus array if available, otherwise empty array
-        const monthlyStimulus = this.perMonthStimulus && this.perMonthStimulus.length > 0 ? this.perMonthStimulus : 0;
-
-        if (!monthlyPayment || isNaN(monthlyPayment) || monthlyPayment <= 0) {
-            alert('Please enter a valid monthly payment amount');
-            return;
-        }
-
-        try {
-            const result = DebtCalculator.calculatePaymentPlan(this.debts, monthlyPayment, strategy, monthlyStimulus);
-            this.lastPaymentPlan = result.paymentPlan;
-            this.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
-            
-            this.displayPaymentPlan();
-            // Show the results div and scroll to it
-            this.switchPage('strategy');
-            const resultsEl = document.getElementById('resultsSection');
-            resultsEl.style.display = 'block';
-            setTimeout(() => resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-        } catch (error) {
-            alert('Error calculating payment plan: ' + error.message);
-        }
-    }
 
     /**
      * Use binary search to find the minimum monthly payment needed to pay off all
@@ -502,11 +234,52 @@ class DebtTrackerApp {
      */
     calculateRequiredPayment() {
         const resultEl = document.getElementById('targetPayoffResult');
+        
+        if (!resultEl) {
+            console.error('targetPayoffResult element not found!');
+            return;
+        }
+        
         const dateVal = document.getElementById('targetPayoffDate').value;
         const strategy = document.getElementById('targetPayoffStrategy').value;
+        const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value) || 0;
 
+        // If no date provided, just calculate plan with current payment and show results
         if (!dateVal) {
-            resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">Please enter a target date.</div></div>`;
+            if (this.debts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
+                resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">No interest-bearing debts to calculate for.</div></div>`;
+                return;
+            }
+
+            try {
+                const r = DebtCalculator.calculatePaymentPlan(this.debts, monthlyPayment, strategy, 0);
+                const summary = DebtCalculator.generateSummary(r.workingDebts, r.paymentPlan);
+                
+                // Store for the full plan display
+                this.lastPaymentPlan = r.paymentPlan;
+                this.lastSummary = summary;
+                
+                const actualMonths = r.paymentPlan.length;
+                const payoffDateStr = summary ? DebtCalculator.formatDate(summary.payOffDate) : '—';
+                const interestStr = summary ? this.formatCurrency(summary.totalInterest) : '—';
+
+                resultEl.innerHTML = `<div class="target-result">
+                    <div class="target-result-headline">✅ Payment Plan</div>
+                    <span class="target-result-payment">${this.formatCurrency(monthlyPayment)}<span style="font-size:0.5em;font-weight:500;"> / month</span></span>
+                    <div class="target-result-meta">
+                        <span>📅 Payoff by <strong>${payoffDateStr}</strong></span>
+                        <span>⏱ ${actualMonths} month${actualMonths !== 1 ? 's' : ''}</span>
+                        <span>💸 Total interest: <strong>${interestStr}</strong></span>
+                    </div>
+                </div>`;
+                
+                // Display the full payment plan tabs and switch to the Plan page
+                this.displayPaymentPlan();
+                this.switchPage('strategy');
+            } catch (e) {
+                console.error('calculateRequiredPayment: ERROR', e);
+                resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">Error calculating payment plan: ${e.message}</div></div>`;
+            }
             return;
         }
 
@@ -518,9 +291,11 @@ class DebtTrackerApp {
         }
 
         if (this.debts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
+            console.warn('No interest-bearing debts found');
             resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">No interest-bearing debts to calculate for.</div></div>`;
             return;
         }
+
 
         // How many months until target date?
         const targetMonths = (targetDate.getFullYear() - today.getFullYear()) * 12
@@ -605,9 +380,17 @@ class DebtTrackerApp {
                 document.getElementById('monthlyPayment').value = requiredPayment;
                 document.getElementById('paymentStrategy').value = strategy;
                 this.saveToStorage();
-                // Scroll to calculate button
-                document.getElementById('calculateBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                document.getElementById('calculateBtn').focus();
+                
+                // Recalculate and display the full plan
+                try {
+                    const result = DebtCalculator.calculatePaymentPlan(this.debts, requiredPayment, strategy, 0);
+                    this.lastPaymentPlan = result.paymentPlan;
+                    this.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
+                    this.displayPaymentPlan();
+                    this.switchPage('strategy');
+                } catch (err) {
+                    console.error('Error recalculating plan:', err);
+                }
             });
         }
     }
@@ -621,10 +404,13 @@ class DebtTrackerApp {
      *   - Monthly payment schedule table
      */
     displayPaymentPlan() {
-        if (!this.lastPaymentPlan || !this.lastSummary) return;
+        if (!this.lastPaymentPlan || !this.lastSummary) {
+            console.error('displayPaymentPlan: missing data!');
+            return;
+        }
 
         // Update summary
-        document.getElementById('totalDebtValue').textContent = 
+        document.getElementById('totalDebtValue').textContent =
             this.formatCurrency(this.lastSummary.totalDebt);
         document.getElementById('totalInterestValue').textContent = 
             this.formatCurrency(this.lastSummary.totalInterest);
@@ -1245,160 +1031,12 @@ class DebtTrackerApp {
             this.renderReportsPage();
         }
         if (pageName === 'ledger') {
-            this.renderLedgerPage();
+            renderLedgerPage(this);
         }
     }
 
-    /**
-     * Render the Ledger page (stub for now)
-     */
-    renderLedgerPage() {
-        const container = document.getElementById('ledgerTableContainer');
-        if (!container) return;
 
-        // Gather all transactions
-        let transactions = this._getLedgerTransactions();
-
-
-        // Account filter UI
-        const accounts = this.accounts || [];
-        let selectedAccount = this._ledgerAccountFilter || 'all';
-        let selectedDateRange = this._ledgerDateRange || 'all';
-        let filterHtml = '';
-        filterHtml += `<div style="margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">`;
-        // Account filter
-        if (accounts.length > 0) {
-            filterHtml += `<label for="ledgerAccountFilter" style="font-weight:600;">Account:</label>
-                <select id="ledgerAccountFilter" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
-                    <option value="all">All Accounts</option>`;
-            for (const acct of accounts) {
-                filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${acct.name}</option>`;
-            }
-            filterHtml += `</select>`;
-        }
-        // Date range filter
-        filterHtml += `<label for="ledgerDateRange" style="font-weight:600;">Show:</label>
-            <select id="ledgerDateRange" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
-                <option value="all"${selectedDateRange==='all'?' selected':''}>All</option>
-                <option value="past"${selectedDateRange==='past'?' selected':''}>Past & Today Only</option>
-                <option value="30"${selectedDateRange==='30'?' selected':''}>Next 30 Days</option>
-                <option value="month"${selectedDateRange==='month'?' selected':''}>Through Next Month</option>
-                <option value="60"${selectedDateRange==='60'?' selected':''}>Next 60 Days</option>
-                <option value="90"${selectedDateRange==='90'?' selected':''}>Next 90 Days</option>
-            </select>`;
-        filterHtml += `</div>`;
-
-        // Filter transactions by account if needed
-        if (selectedAccount !== 'all') {
-            transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
-        }
-        // Filter transactions by date range
-        const now = new Date();
-        if (selectedDateRange !== 'all') {
-            transactions = transactions.filter(tx => {
-                const txDate = new Date(tx.date);
-                if (selectedDateRange === 'past') {
-                    return txDate <= now;
-                } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
-                    const days = parseInt(selectedDateRange, 10);
-                    const futureLimit = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-                    return txDate <= futureLimit;
-                } else if (selectedDateRange === 'month') {
-                    // Through the end of next month
-                    const y = now.getFullYear();
-                    const m = now.getMonth();
-                    const endOfNextMonth = new Date(y, m + 2, 0, 23, 59, 59, 999);
-                    return txDate <= endOfNextMonth;
-                }
-                return true;
-            });
-        }
-
-        // Table sorting
-        let sortKey = this._ledgerSortKey || 'date';
-        let sortDir = this._ledgerSortDir || 'desc';
-        transactions.sort((a, b) => {
-            let vA = a[sortKey], vB = b[sortKey];
-            if (sortKey === 'amount' || sortKey === 'balance') {
-                vA = Number(vA); vB = Number(vB);
-            } else if (sortKey === 'date') {
-                vA = new Date(vA); vB = new Date(vB);
-            } else {
-                vA = (vA || '').toString().toLowerCase();
-                vB = (vB || '').toString().toLowerCase();
-            }
-            if (vA < vB) return sortDir === 'asc' ? -1 : 1;
-            if (vA > vB) return sortDir === 'asc' ? 1 : -1;
-            return 0;
-        });
-
-        // Table HTML with sort icons
-        const sortIcon = key => {
-            if (this._ledgerSortKey !== key) return '<span class="sort-icon">⇅</span>';
-            return this._ledgerSortDir === 'asc' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
-        };
-        let html = filterHtml;
-        html += `<table class="ledger-table">
-            <thead><tr>
-                <th data-key="date">Date ${sortIcon('date')}</th>
-                <th data-key="account">Account ${sortIcon('account')}</th>
-                <th data-key="name">Transaction ${sortIcon('name')}</th>
-                <th data-key="amount">Amount ${sortIcon('amount')}</th>
-                <th data-key="balance">Running Balance ${sortIcon('balance')}</th>
-            </tr></thead>
-            <tbody>`;
-        if (transactions.length === 0) {
-            html += `<tr><td colspan="5" style="text-align:center;color:#888;padding:32px 0;">No transactions yet.</td></tr>`;
-        } else {
-            for (const tx of transactions) {
-                html += `<tr>
-                    <td>${tx.date ? this._formatLedgerDate(tx.date) : ''}</td>
-                    <td>${tx.account || ''}</td>
-                    <td>${tx.name || ''}</td>
-                    <td style="text-align:right;${tx.amount < 0 ? 'color:#dc2626;' : 'color:#059669;'}">${this.formatCurrency(tx.amount)}</td>
-                    <td style="text-align:right;">${this.formatCurrency(tx.balance)}</td>
-                </tr>`;
-            }
-        }
-        html += `</tbody></table>`;
-
-        container.innerHTML = html;
-
-        // Sorting event listeners
-        const table = container.querySelector('.ledger-table');
-        if (table) {
-            table.querySelectorAll('th[data-key]').forEach(th => {
-                th.style.cursor = 'pointer';
-                th.onclick = () => {
-                    const key = th.getAttribute('data-key');
-                    if (this._ledgerSortKey === key) {
-                        this._ledgerSortDir = this._ledgerSortDir === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        this._ledgerSortKey = key;
-                        this._ledgerSortDir = key === 'amount' || key === 'balance' ? 'desc' : 'asc';
-                    }
-                    this.renderLedgerPage();
-                };
-            });
-        }
-
-        // Account filter event listener
-        const acctFilter = container.querySelector('#ledgerAccountFilter');
-        if (acctFilter) {
-            acctFilter.onchange = (e) => {
-                this._ledgerAccountFilter = e.target.value;
-                this.renderLedgerPage();
-            };
-        }
-        // Date range filter event listener
-        const dateRangeFilter = container.querySelector('#ledgerDateRange');
-        if (dateRangeFilter) {
-            dateRangeFilter.onchange = (e) => {
-                this._ledgerDateRange = e.target.value;
-                this.renderLedgerPage();
-            };
-        }
-    }
+// ...existing code...
 
     /**
      * Gather all transactions for the ledger (stub: returns empty array for now)
@@ -1887,6 +1525,70 @@ class DebtTrackerApp {
     cancelInlineEdit() {
         this.editingDebtId = null;
         this.updateUI();
+    }
+
+    /**
+     * Save inline edits for a debt card (called from inline "Save" button).
+     * Updates the debt object, persists, and refreshes the UI.
+     * @param {number} debtId
+     */
+    saveInlineEdit(debtId) {
+        const debt = this.debts.find(d => d.id === debtId);
+        if (!debt) return;
+
+        try {
+            // Common fields
+            const nameEl = document.getElementById(`inline-name-${debtId}`);
+            if (nameEl) debt.name = nameEl.value.trim();
+
+            const categoryEl = document.getElementById(`inline-category-${debtId}`);
+            if (categoryEl) debt.category = categoryEl.value.trim();
+
+            const accountEl = document.getElementById(`inline-account-${debtId}`);
+            if (accountEl) debt.accountId = accountEl.value ? parseInt(accountEl.value) : null;
+
+            // Type-specific fields
+            if (debt.debtType === 'fixedAmount') {
+                const fixedAmtEl = document.getElementById(`inline-fixed-amount-${debtId}`);
+                const startEl = document.getElementById(`inline-start-date-${debtId}`);
+                const endEl = document.getElementById(`inline-end-date-${debtId}`);
+                const priorityEl = document.getElementById(`inline-priority-${debtId}`);
+
+                if (fixedAmtEl) debt.fixedAmount = parseFloat(fixedAmtEl.value) || 0;
+                if (startEl) debt.fixedStartDate = startEl.value || null;
+                if (endEl) debt.fixedEndDate = endEl.value || null;
+                if (priorityEl) debt.priority = priorityEl.value ? parseInt(priorityEl.value) : null;
+            } else {
+                const balEl = document.getElementById(`inline-balance-${debtId}`);
+                const intEl = document.getElementById(`inline-interest-${debtId}`);
+                const minEl = document.getElementById(`inline-min-${debtId}`);
+                const dueEl = document.getElementById(`inline-due-${debtId}`);
+                const priorityEl = document.getElementById(`inline-priority-${debtId}`);
+                const startDateEl = document.getElementById(`inline-start-date-cc-${debtId}`);
+
+                if (balEl) debt.accountBalance = parseFloat(balEl.value) || 0;
+                if (intEl) debt.interestRate = parseFloat(intEl.value) || 0;
+                if (minEl) debt.minimumPayment = parseFloat(minEl.value) || 0;
+                if (dueEl) debt.dueDate = dueEl.value ? parseInt(dueEl.value) : null;
+                if (priorityEl) debt.priority = priorityEl.value ? parseInt(priorityEl.value) : null;
+                if (startDateEl) debt.debtStartDate = startDateEl.value || null;
+            }
+
+            // Basic validation: require a name
+            if (!debt.name) {
+                alert('Please enter a name for the debt.');
+                return;
+            }
+
+            // Persist and refresh
+            this.saveToStorage();
+            this.editingDebtId = null;
+            this.renderDebtsList();
+            this.updateUI();
+        } catch (err) {
+            console.error('saveInlineEdit error', err);
+            alert('Error saving debt: ' + (err && err.message ? err.message : String(err)));
+        }
     }
 
     /**
@@ -2759,14 +2461,7 @@ class DebtTrackerApp {
      * @param {number} value
      * @returns {string}
      */
-    formatCurrency(value) {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(value);
-    }
+    formatCurrency(value) { return formatCurrency(value); }
 
     /**
      * Return the ordinal suffix string for a day number (e.g., `1` → `"1st"`).
