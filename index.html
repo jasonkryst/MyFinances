@@ -697,6 +697,17 @@
         }
     });
 
+    // ── Income form ────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        const incomeForm = document.getElementById('incomeForm');
+        if (incomeForm) {
+            incomeForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (window.app) app.addIncome();
+            });
+        }
+    });
+
     // ── Collapsible "Add New Debt" form ──────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         const toggle = document.getElementById('debtFormToggle');

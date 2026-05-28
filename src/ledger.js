@@ -171,20 +171,23 @@ export function renderLedgerPage(app) {
         transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
     }
     const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     if (selectedDateRange !== 'all') {
         transactions = transactions.filter(tx => {
             const txDate = new Date(tx.date);
+            const txDateOnly = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
             if (selectedDateRange === 'past') {
-                return txDate <= now;
+                return txDateOnly <= todayStart;
             } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
                 const days = parseInt(selectedDateRange, 10);
-                const futureLimit = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-                return txDate <= futureLimit;
+                const futureLimit = new Date(todayStart.getTime() + days * 24 * 60 * 60 * 1000);
+                return txDateOnly >= todayStart && txDateOnly < futureLimit;
             } else if (selectedDateRange === 'month') {
                 const y = now.getFullYear();
                 const m = now.getMonth();
                 const endOfNextMonth = new Date(y, m + 2, 0, 23, 59, 59, 999);
-                return txDate <= endOfNextMonth;
+                return txDateOnly >= todayStart && txDateOnly <= endOfNextMonth;
             }
             return true;
         });
