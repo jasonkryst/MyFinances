@@ -1,5 +1,58 @@
 // Account management
 
+import { countIncomePaydaysInMonth } from './utils.js';
+
+export function refreshAccountSelectors(app) {
+    const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
+    const opts = [
+        `<option value="">— No account —</option>`,
+        ...app.accounts.map(a => `<option value="${a.id}">${a.name} (${a.type})</option>`)
+    ].join('');
+    for (const id of selIds) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const prev = el.value;
+        el.innerHTML = opts;
+        if (app.accounts.find(a => String(a.id) === prev)) el.value = prev;
+    }
+}
+
+export function computeAccountBalance(app, accountId, year = null, month = null) {
+    const acct = app.accounts.find(a => a.id === accountId);
+    if (!acct) return 0;
+    let balance = acct.startingBalance;
+
+    const now = new Date();
+    const yr = year !== null ? year : now.getFullYear();
+    const mo = month !== null ? month : now.getMonth();
+
+    for (const inc of app.incomes) {
+        if (inc.accountId === accountId) {
+            balance += (inc.amount || 0) * countIncomePaydaysInMonth(inc, yr, mo);
+        }
+    }
+
+    for (const b of app.bonuses) {
+        if (b.accountId !== accountId) continue;
+        const bd = new Date(b.date + 'T12:00:00');
+        if (bd.getFullYear() === yr && bd.getMonth() === mo) balance += b.amount;
+    }
+
+    for (const d of app.debts) {
+        if (d.accountId === accountId) balance -= (d.minimumPayment || 0);
+    }
+
+    for (const b of app.bills) {
+        if (b.accountId === accountId) balance -= b.amount;
+    }
+
+    for (const e of app.expenses) {
+        if (e.accountId === accountId) balance -= e.budgetAmount;
+    }
+
+    return balance;
+}
+
 export function renderAccountsList(app) {
     const container = document.getElementById('accountList');
     if (!container) return;
@@ -88,4 +141,52 @@ export function renderAccountsList(app) {
     }).join('');
 
     container.innerHTML = cards;
+}
+
+export function addAccount(app) {
+    const name = document.getElementById('accountName').value.trim();
+    const type = document.getElementById('accountType').value;
+    const startingBalance = parseFloat(document.getElementById('accountStartingBalance').value);
+
+    if (!name) { alert('Please enter an account name.'); return; }
+    if (isNaN(startingBalance)) { alert('Please enter a starting balance (use 0 if unknown).'); return; }
+
+    app.accounts.push({ id: Date.now(), name, type, startingBalance });
+    app.saveToStorage();
+    app.renderAccountsList();
+    refreshAccountSelectors(app);
+    document.getElementById('accountForm').reset();
+}
+
+export function deleteAccount(app, id) {
+    app.accounts = app.accounts.filter(a => a.id !== id);
+    app.saveToStorage();
+    app.renderAccountsList();
+    refreshAccountSelectors(app);
+}
+
+export function startEditAccount(app, id) {
+    app.editingAccountId = id;
+    app.renderAccountsList();
+    setTimeout(() => { const el = document.getElementById(`ac-name-${id}`); if (el) el.focus(); }, 0);
+}
+
+export function cancelEditAccount(app) {
+    app.editingAccountId = null;
+    app.renderAccountsList();
+}
+
+export function saveEditAccount(app, id) {
+    const idx = app.accounts.findIndex(a => a.id === id);
+    if (idx === -1) return;
+    const name = document.getElementById(`ac-name-${id}`)?.value.trim();
+    const type = document.getElementById(`ac-type-${id}`)?.value;
+    const startingBalance = parseFloat(document.getElementById(`ac-bal-${id}`)?.value);
+    if (!name) { alert('Please enter an account name.'); return; }
+    if (isNaN(startingBalance)) { alert('Please enter a valid starting balance.'); return; }
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance };
+    app.editingAccountId = null;
+    app.saveToStorage();
+    app.renderAccountsList();
+    refreshAccountSelectors(app);
 }

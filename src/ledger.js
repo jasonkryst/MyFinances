@@ -1,5 +1,7 @@
 // Ledger logic: rendering, transaction gathering
 
+import { getIncomePaydaysInMonth } from './utils.js';
+
 // Gather all transactions for the ledger
 export function getLedgerTransactions(app) {
     // --- Begin: _getLedgerTransactions logic from app.js ---
@@ -15,34 +17,22 @@ export function getLedgerTransactions(app) {
     const startYear = today.getFullYear();
     const startMonth = today.getMonth();
     const monthsToProject = 12;
-    const windowStart = new Date(startYear, startMonth, 1);
-    const windowEnd = new Date(startYear, startMonth + monthsToProject, 0, 23, 59, 59, 999);
-    for (const inc of app.incomes) {
-        if (!inc.accountId) continue;
-        if (inc.firstDate && inc.amount) {
-            let payDate = new Date(inc.firstDate);
-            payDate.setHours(0,0,0,0);
-            while (payDate <= windowEnd) {
-                if (payDate >= windowStart && payDate <= windowEnd) {
-                    addTx({
-                        accountId: inc.accountId,
-                        date: new Date(payDate),
-                        name: inc.name || 'Income',
-                        amount: Number(inc.amount),
-                        type: 'income'
-                    });
-                }
-                if (inc.frequency === 'biweekly' || inc.frequency === 'bi-weekly') {
-                    payDate.setDate(payDate.getDate() + 14);
-                } else {
-                    payDate.setMonth(payDate.getMonth() + 1);
-                }
-            }
-        }
-    }
     for (let m = 0; m < monthsToProject; m++) {
         const year = startYear + Math.floor((startMonth + m) / 12);
         const month = (startMonth + m) % 12;
+        for (const inc of app.incomes) {
+            if (!inc.accountId || !inc.amount) continue;
+            const paydays = getIncomePaydaysInMonth(inc, year, month);
+            for (const payDate of paydays) {
+                addTx({
+                    accountId: inc.accountId,
+                    date: payDate,
+                    name: inc.name || 'Income',
+                    amount: Number(inc.amount),
+                    type: 'income'
+                });
+            }
+        }
         for (const bonus of app.bonuses) {
             if (!bonus.accountId) continue;
             if (bonus.date && bonus.amount) {
