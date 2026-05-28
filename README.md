@@ -9,6 +9,11 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 ---
 
 ## Features
+### Built-in Usage Guide
+- **Dedicated HTML guide page** — the in-app help button opens `USAGE_GUIDE.html` in a new tab
+- **Theme-matched styling** — guide visuals follow the app look and dark mode preference
+- **Fixed back link** — a persistent **Back to Application** link at the top-left returns to the main app
+
 ### Ledger Filters & Contents
 - **Account filter** — filter transactions by account
 - **Date range filter** — filter transactions to show (default: **Next 30 Days**):
@@ -97,6 +102,10 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 ---
 
 ## How to Use
+
+### Open the usage guide
+
+Click the **❓ Help** button in the header toolbar to open the full usage guide in a separate tab. The guide lives at `USAGE_GUIDE.html` and includes a fixed **Back to Application** link that returns you to `index.html`.
 
 ### 1 — Add your debts
 
@@ -249,6 +258,7 @@ Enter a target date in the **Strategy** section. The app uses a binary-search al
 
 ```
 index.html          — Markup and layout shell
+USAGE_GUIDE.html    — Full in-app usage guide (opened by Help button)
 styles.css          — Responsive styles + dark mode
 src/app.js          — DebtTrackerApp composition + delegator methods + bootstrap
 src/ui.js           — Event wiring, page/tab switching, UI refresh helpers

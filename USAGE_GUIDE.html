@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFinances Usage Guide</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        :root {
+            --guide-content-max: 1050px;
+        }
+
+        body {
+            min-height: 100vh;
+            padding-top: 56px;
+        }
+
+        .back-to-app {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 1000;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-color);
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-radius: 999px;
+            padding: 10px 14px;
+            box-shadow: var(--shadow);
+            transition: background 0.15s ease;
+        }
+
+        .back-to-app:hover {
+            background: var(--primary-hover);
+        }
+
+        .back-to-app:focus {
+            outline: 2px solid #ffffff;
+            outline-offset: 2px;
+        }
+
+        .guide-container {
+            max-width: var(--guide-content-max);
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .guide-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            padding: 28px 22px 22px;
+            text-align: center;
+        }
+
+        .guide-header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+
+        .guide-header p {
+            margin-top: 10px;
+            opacity: 0.92;
+            font-size: 1rem;
+        }
+
+        .guide-main {
+            padding: 28px 22px 36px;
+        }
+
+        .toc {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 24px;
+        }
+
+        .toc h2 {
+            margin: 0 0 12px;
+            border: none;
+            padding: 0;
+            font-size: 1.15rem;
+            color: var(--text-primary);
+        }
+
+        .toc ol {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+
+        .toc a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .guide-section {
+            margin-bottom: 22px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 18px;
+        }
+
+        .guide-section h2 {
+            margin-top: 0;
+            margin-bottom: 14px;
+            font-size: 1.35rem;
+        }
+
+        .guide-section h3 {
+            margin-top: 18px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .guide-section p,
+        .guide-section li {
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .guide-section ul,
+        .guide-section ol {
+            padding-left: 20px;
+        }
+
+        .guide-table-wrap {
+            overflow-x: auto;
+            margin: 10px 0 6px;
+        }
+
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 540px;
+        }
+
+        .guide-table th,
+        .guide-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.95rem;
+        }
+
+        .guide-table thead th {
+            background: var(--primary-color);
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .guide-note {
+            border-left: 4px solid var(--primary-color);
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 10px 0;
+        }
+
+        .guide-warning {
+            border-left: 4px solid var(--danger-color);
+            background: #fff5f5;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 10px 0;
+        }
+
+        .guide-footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+            margin-top: 20px;
+        }
+
+        body.dark-mode .guide-container {
+            background: #1e293b;
+        }
+
+        body.dark-mode .guide-section {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        body.dark-mode .toc {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        body.dark-mode .guide-table th,
+        body.dark-mode .guide-table td {
+            border-color: #334155;
+        }
+
+        body.dark-mode .guide-table thead th {
+            background: #2563eb;
+        }
+
+        body.dark-mode .guide-note {
+            background: #0f172a;
+        }
+
+        body.dark-mode .guide-warning {
+            background: #3b0f0f;
+            color: #fecaca;
+        }
+
+        body.dark-mode .back-to-app {
+            background: #1d4ed8;
+            color: #ffffff;
+        }
+
+        body.dark-mode .back-to-app:hover {
+            background: #2563eb;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+                padding-top: 62px;
+            }
+
+            .guide-header {
+                padding: 22px 14px 16px;
+            }
+
+            .guide-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .guide-main {
+                padding: 16px 12px 24px;
+            }
+
+            .guide-section {
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a class="back-to-app" href="index.html" aria-label="Back to application">← Back to Application</a>
+    <div class="guide-container">
+        <header class="guide-header">
+            <h1>MyFinances Usage Guide</h1>
+            <p>Privacy-first personal finance tracking and debt payoff planning, all in your browser.</p>
+        </header>
+
+        <main class="guide-main">
+            <nav class="toc" aria-label="Table of Contents">
+                <h2>Table of Contents</h2>
+                <ol>
+                    <li><a href="#getting-started">Getting Started</a></li>
+                    <li><a href="#adding-debts">Adding Debts</a></li>
+                    <li><a href="#setting-up-accounts">Setting Up Accounts</a></li>
+                    <li><a href="#tracking-income">Tracking Income</a></li>
+                    <li><a href="#managing-budget">Managing Your Budget</a></li>
+                    <li><a href="#creating-plan">Creating a Payment Plan</a></li>
+                    <li><a href="#viewing-transactions">Viewing Transactions</a></li>
+                    <li><a href="#data-management">Data Management</a></li>
+                    <li><a href="#tips-tricks">Tips and Tricks</a></li>
+                </ol>
+            </nav>
+
+            <section class="guide-section" id="getting-started">
+                <h2>Getting Started</h2>
+                <h3>What is MyFinances?</h3>
+                <p>MyFinances is a browser-based debt and budget tracker that helps you track debts, plan income, build payoff strategies, and visualize your finances without any server dependency.</p>
+
+                <h3>Key Features</h3>
+                <ul>
+                    <li>Ledger for transaction visibility by account and date range</li>
+                    <li>Debt management with interest-aware planning</li>
+                    <li>Account setup for realistic cash flow tracking</li>
+                    <li>Income and bonus scheduling</li>
+                    <li>Budget planning for bills and variable expenses</li>
+                    <li>Strategy planning with payoff projections and comparisons</li>
+                    <li>Reports and charts for long-term analysis</li>
+                </ul>
+
+                <h3>Navigation Basics</h3>
+                <ul>
+                    <li>Use top tabs to switch between pages</li>
+                    <li>Use month navigation controls in calendar and reports</li>
+                    <li>Use export and import buttons in the top-right toolbar</li>
+                    <li>Use the help button to open this guide</li>
+                </ul>
+            </section>
+
+            <section class="guide-section" id="adding-debts">
+                <h2>Adding Debts</h2>
+                <p>Accurate debt details improve payoff calculations and strategy quality.</p>
+
+                <h3>How to Add a Debt</h3>
+                <ol>
+                    <li>Open the Debts page</li>
+                    <li>Complete the Add Debt form</li>
+                    <li>Submit the form to add it to your debt list</li>
+                </ol>
+
+                <div class="guide-table-wrap">
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>What to Enter</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Debt Name</td><td>Any descriptive label</td><td>Examples: Visa, Car Loan, Student Loans</td></tr>
+                            <tr><td>Debt Type</td><td>Credit Card or Fixed Amount</td><td>Credit Card includes APR math; Fixed Amount is recurring cost</td></tr>
+                            <tr><td>Balance or Amount</td><td>Current amount owed</td><td>Balance for cards, monthly amount for fixed obligations</td></tr>
+                            <tr><td>APR</td><td>Annual percentage rate</td><td>Only for interest-bearing debts</td></tr>
+                            <tr><td>Minimum Payment</td><td>Required monthly minimum</td><td>Only for interest-bearing debts</td></tr>
+                            <tr><td>Due Date</td><td>Day of month</td><td>Used for scheduling and calendar context</td></tr>
+                            <tr><td>Priority</td><td>Priority rank</td><td>Used by priority-based strategies</td></tr>
+                            <tr><td>Opened Date</td><td>Date the debt started</td><td>Optional, helps estimate paid interest history</td></tr>
+                            <tr><td>Category</td><td>Organizational tag</td><td>Examples: Credit Card, Housing, Auto</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Editing and Deleting</h3>
+                <ul>
+                    <li>Use Edit to load existing values and update</li>
+                    <li>Use Delete to remove a debt entry</li>
+                </ul>
+            </section>
+
+            <section class="guide-section" id="setting-up-accounts">
+                <h2>Setting Up Accounts</h2>
+                <p>Accounts represent where money actually moves. Linking entries to accounts improves projected balances and cash flow accuracy.</p>
+
+                <div class="guide-table-wrap">
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>What to Enter</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Account Name</td><td>Example: Main Checking, Emergency Fund</td></tr>
+                            <tr><td>Account Type</td><td>Checking, Savings, Cash, Investment, Credit Card, Loan, Other</td></tr>
+                            <tr><td>Starting Balance</td><td>Current balance for that account</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="guide-note">Each account card includes projected end-of-month balance based on linked income, debt payments, bills, and expenses.</div>
+            </section>
+
+            <section class="guide-section" id="tracking-income">
+                <h2>Tracking Income</h2>
+                <p>Income entries power monthly cash flow and debt-to-income analysis.</p>
+
+                <div class="guide-table-wrap">
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>What to Enter</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Name</td><td>Label for source</td><td>Examples: Main Job, Freelance</td></tr>
+                            <tr><td>Amount per Paycheck</td><td>Gross or net amount</td><td>Must be greater than zero</td></tr>
+                            <tr><td>First Pay Date</td><td>Next payday</td><td>Format: YYYY-MM-DD</td></tr>
+                            <tr><td>Frequency</td><td>Biweekly or Monthly</td><td>Biweekly estimates 26 pay periods annually</td></tr>
+                            <tr><td>Account</td><td>Optional linked account</td><td>Improves account-level projection accuracy</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Income Summary</h3>
+                <ul>
+                    <li>Expected Income This Month</li>
+                    <li>Paydays This Month</li>
+                    <li>Annual Estimate</li>
+                </ul>
+            </section>
+
+            <section class="guide-section" id="managing-budget">
+                <h2>Managing Your Budget</h2>
+                <h3>Bills vs Expense Budgets</h3>
+                <ul>
+                    <li>Bills are fixed recurring monthly obligations with optional due day</li>
+                    <li>Expense budgets represent variable spending categories and dated costs</li>
+                </ul>
+
+                <h3>How to Add a Bill</h3>
+                <ol>
+                    <li>Open Budget page</li>
+                    <li>Fill bill form values</li>
+                    <li>Add bill to list</li>
+                </ol>
+
+                <h3>How to Add an Expense</h3>
+                <ol>
+                    <li>Use Expense Budgets form on the right side</li>
+                    <li>Enter name, amount, date, category, and optional account</li>
+                    <li>Add expense to list</li>
+                </ol>
+
+                <div class="guide-note">Cash flow summary on this page shows income minus debt minimums, bills, and planned expenses.</div>
+            </section>
+
+            <section class="guide-section" id="creating-plan">
+                <h2>Creating a Payment Plan</h2>
+                <p>The Plan page builds a month-by-month payoff schedule using your payment budget and selected strategy.</p>
+
+                <h3>Strategies</h3>
+                <div class="guide-table-wrap">
+                    <table class="guide-table">
+                        <thead>
+                            <tr>
+                                <th>Strategy</th>
+                                <th>Order</th>
+                                <th>Best For</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Avalanche</td><td>Highest APR first</td><td>Reducing total interest paid</td></tr>
+                            <tr><td>Snowball</td><td>Lowest balance first</td><td>Early wins and momentum</td></tr>
+                            <tr><td>Priority - Low first</td><td>Lowest priority value first</td><td>Custom low-to-high sequence</td></tr>
+                            <tr><td>Priority - High first</td><td>Highest priority value first</td><td>Tackle most important debt first</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Results Areas</h3>
+                <ul>
+                    <li>Overview: strategy comparison and what-if simulation</li>
+                    <li>Debt Summary: debt-level principal, interest, and payoff details</li>
+                    <li>Schedule: tabular, calendar, and chart views</li>
+                </ul>
+
+                <div class="guide-note">You can back-calculate from a target payoff date to estimate required monthly payment.</div>
+            </section>
+
+            <section class="guide-section" id="viewing-transactions">
+                <h2>Viewing Transactions</h2>
+                <p>The Ledger shows chronological income, bills, expenses, debt payments, and one-time bonuses.</p>
+
+                <h3>Ledger Filters</h3>
+                <ul>
+                    <li>Account filter for single-account or all-account views</li>
+                    <li>Date range options including next 30, 60, and 90 days</li>
+                    <li>Future transaction visibility toggle</li>
+                </ul>
+            </section>
+
+            <section class="guide-section" id="data-management">
+                <h2>Data Management</h2>
+                <h3>Exporting Data</h3>
+                <ol>
+                    <li>Use the export button in the top-right toolbar</li>
+                    <li>Choose JSON export</li>
+                    <li>Store the downloaded backup file safely</li>
+                </ol>
+
+                <h3>Importing Data</h3>
+                <ol>
+                    <li>Use the import button in the top-right toolbar</li>
+                    <li>Select a prior JSON backup</li>
+                    <li>Choose replace or merge behavior based on your goal</li>
+                </ol>
+
+                <h3>Exporting Schedule to CSV</h3>
+                <p>From the Plan schedule tab, export monthly schedule details as CSV for spreadsheet analysis.</p>
+
+                <h3>Clearing All Data</h3>
+                <p>Clear All Data removes accounts, debts, income, bills, expenses, and strategy data.</p>
+                <div class="guide-warning">Warning: clearing data cannot be undone. Export backup first if needed.</div>
+            </section>
+
+            <section class="guide-section" id="tips-tricks">
+                <h2>Tips and Tricks</h2>
+                <ol>
+                    <li>Start with accurate balances, APR values, and minimum payments</li>
+                    <li>Use categories consistently for better organization</li>
+                    <li>Link entries to accounts for realistic account-level projections</li>
+                    <li>Compare all strategies before deciding on a payoff method</li>
+                </ol>
+            </section>
+
+            <p class="guide-footer">Guide theme follows your app style and dark mode preference automatically.</p>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('debtTrackerTheme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        }());
+    </script>
+</body>
+</html>

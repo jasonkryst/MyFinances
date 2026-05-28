@@ -112,6 +112,13 @@ export function initializeEventListeners(app) {
         exportJsonBtn.addEventListener('click', () => app.exportAllJSON());
     }
 
+    const helpBtn = document.getElementById('helpBtn');
+    if (helpBtn) {
+        helpBtn.addEventListener('click', () => {
+            window.open('USAGE_GUIDE.html', '_blank');
+        });
+    }
+
     const importJsonBtn = document.getElementById('importJsonBtn');
     const importJsonInput = document.getElementById('importJsonInput');
     if (importJsonBtn && importJsonInput) {
