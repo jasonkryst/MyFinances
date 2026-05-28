@@ -11,7 +11,7 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 ## Features
 ### Ledger Filters & Contents
 - **Account filter** — filter transactions by account
-- **Date range filter** — filter transactions to show:
+- **Date range filter** — filter transactions to show (default: **Next 30 Days**):
   - All
   - Past & Today Only
   - Next 30 Days
@@ -19,7 +19,7 @@ All calculations happen locally in your browser — no accounts, no servers, no 
   - Next 60 Days
   - Next 90 Days
   - Hide or show future transactions
-- **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, bonuses, debts, bills, and expenses**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month).
+- **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, bonuses, debts, bills, and expenses**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month). All date filtering uses precise date-only comparisons to ensure accurate transaction display.
 
 ### Debt Management
 - **Add unlimited debts** — credit cards (revolving balance with APR) or fixed-amount recurring payments (subscriptions, rent, instalments)
@@ -44,7 +44,8 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 
 ### Budget Tracking
 - **Bills** — add any recurring fixed costs (utilities, internet, insurance, subscriptions, rent, transport); each bill records name, monthly amount, due day, and category
-- **Expense budgets** — set monthly spending targets for variable categories (groceries, dining, health, entertainment, clothing, personal care, education, childcare)
+- **Expense budgets** — set monthly spending targets for variable categories (groceries, dining, health, entertainment, clothing, personal care, education, childcare); each expense tracks the date it was incurred for calendar and ledger integration
+- **Expense date tracking** — expenses are captured with specific dates, allowing them to appear in the calendar view alongside bills and income for a complete monthly overview
 - **Cash Flow Summary** — a live panel on the Budget page shows expected monthly income minus debt minimums, bills, and budgeted expenses, giving you a net remaining figure
 - **Net cashflow on Strategy page** — the income widget also shows net after all obligations so you can see available surplus at a glance before running a plan
 - **Inline editing** — edit any bill or expense budget directly in the list without a separate form
@@ -76,6 +77,9 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 ### Calendar View
 - One calendar month per page, paginated forward through the entire plan
 - Debt payment events pinned to each debt's due date, colour-coded by debt
+- Bill events displayed on their due dates
+- Expense events displayed on their transaction dates (purple styling)
+- Income paydays marked with 💰 emoji
 - Today's date highlighted
 
 ### Interest Paid to Date
@@ -176,7 +180,8 @@ Navigate to **Budget**.
 | Field | Notes |
 |-------|-------|
 | Name | e.g. "Groceries", "Gym" |
-| Monthly Budget | The amount you plan to spend |
+| Cost | The amount spent |
+| Date | The date the expense was incurred (tracked for calendar and ledger integration) |
 | Category | Food·Groceries / Dining Out / Health·Fitness / Entertainment / Clothing / Personal Care / Education / Childcare / Costco / Target / Reconciliation / Other |
 
 The **Cash Flow Summary** panel at the bottom automatically updates as you add items, showing:
@@ -245,19 +250,19 @@ Enter a target date in the **Strategy** section. The app uses a binary-search al
 ```
 index.html          — Markup and layout shell
 styles.css          — Responsive styles + dark mode
-debtCalculator.js   — DebtCalculator static class (pure calculation engine)
 src/app.js          — DebtTrackerApp composition + delegator methods + bootstrap
 src/ui.js           — Event wiring, page/tab switching, UI refresh helpers
 src/strategy.js     — Plan calculation handlers + schedule/summary rendering
 src/debts.js        — Debt CRUD + debt list + balance update flows
 src/income.js       — Income/bonus CRUD + rendering
-src/bills.js        — Bills/expenses CRUD + budget rendering
+src/bills.js        — Bills/expenses CRUD + budget rendering + date tracking
 src/accounts.js     — Account CRUD + projection helpers
-src/reports.js      — Reports month navigation + report rendering
-src/ledger.js       — Ledger rendering + filters
+src/reports.js      — Reports month navigation + report rendering + calendar integration
+src/ledger.js       — Ledger rendering + filters + date-range filtering
 src/charts.js       — Chart lifecycle and chart renderers
 src/storage.js      — Persistence, import/export flows
-src/utils.js        — Shared date/format/projection utilities
+src/utils.js        — Shared date/format/projection utilities + expense date utilities
+src/debtCalculator.js — DebtCalculator static class (pure calculation engine)
 ```
 
 ### Dependencies
