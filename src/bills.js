@@ -104,8 +104,10 @@ export function renderExpenseList(app) {
                 <div class="budget-edit-grid">
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Name</label>
                         <input type="text" id="ee-name-${exp.id}" value="${exp.name.replace(/"/g,'&quot;')}" class="form-control"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Budget ($)</label>
+                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Cost</label>
                         <input type="number" id="ee-amount-${exp.id}" value="${exp.budgetAmount}" step="0.01" min="0" class="form-control"></div>
+                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Date</label>
+                        <input type="date" id="ee-date-${exp.id}" value="${exp.date instanceof Date ? exp.date.toISOString().split('T')[0] : (exp.date ? new Date(exp.date).toISOString().split('T')[0] : '')}" class="form-control"></div>
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Category</label>
                         <select id="ee-cat-${exp.id}" class="form-control">
                             ${EXP_CATS.map(c => `<option value="${c}" ${exp.category===c?'selected':''}>${c}</option>`).join('')}
@@ -125,8 +127,8 @@ export function renderExpenseList(app) {
         return `<div class="budget-card">
             <div class="budget-card-info">
                 <span class="budget-card-name">${exp.name}</span>
-                <span class="budget-card-amount">${formatCurrency(exp.budgetAmount)}<span class="budget-card-period">/mo</span></span>
-                <span class="budget-card-meta">${exp.category}</span>
+                <span class="budget-card-amount">${formatCurrency(exp.budgetAmount)}</span>
+                <span class="budget-card-meta">${exp.category} • ${exp.date instanceof Date ? exp.date.toLocaleDateString() : new Date(exp.date).toLocaleDateString()}</span>
             </div>
             <div class="budget-card-actions">
                 <button class="btn-edit" onclick="app.startEditExpense(${exp.id})">Edit</button>
@@ -410,13 +412,15 @@ export function cancelEditBill(app) {
 export function addExpense(app) {
     const name = document.getElementById('expenseName').value.trim();
     const budgetAmount = parseFloat(document.getElementById('expenseBudget').value);
+    const dateStr = document.getElementById('expenseDate').value;
     const category = document.getElementById('expenseCategory').value;
     const accountId = parseInt(document.getElementById('expenseAccount')?.value) || null;
-    if (!name || isNaN(budgetAmount) || budgetAmount < 0) {
-        alert('Please enter a valid expense name and budget amount.');
+    if (!name || isNaN(budgetAmount) || budgetAmount < 0 || !dateStr) {
+        alert('Please enter a valid expense name, amount, and date.');
         return;
     }
-    app.expenses.push({ id: Date.now(), name, budgetAmount, category, accountId });
+    const date = new Date(dateStr + 'T00:00:00');
+    app.expenses.push({ id: Date.now(), name, budgetAmount, date, category, accountId });
     app.saveToStorage();
     document.getElementById('expenseForm').reset();
     // Collapse the form after adding
@@ -446,11 +450,13 @@ export function saveEditExpense(app, id) {
     if (idx === -1) return;
     const name         = document.getElementById(`ee-name-${id}`).value.trim();
     const budgetAmount = parseFloat(document.getElementById(`ee-amount-${id}`).value);
+    const dateStr      = document.getElementById(`ee-date-${id}`).value;
     const category     = document.getElementById(`ee-cat-${id}`).value;
     const acctEl       = document.getElementById(`ee-acct-${id}`);
     const accountId    = acctEl?.value ? parseInt(acctEl.value) : null;
-    if (!name || isNaN(budgetAmount) || budgetAmount < 0) { alert('Invalid expense data.'); return; }
-    app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, category, accountId };
+    if (!name || isNaN(budgetAmount) || budgetAmount < 0 || !dateStr) { alert('Invalid expense data.'); return; }
+    const date = new Date(dateStr + 'T00:00:00');
+    app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date, category, accountId };
     app.editingExpenseId = null;
     app.saveToStorage();
     renderBudgetPage(app);

@@ -3,6 +3,7 @@
 import {
     getIncomePaydaysInMonth,
     getBillsByDayForMonth,
+    getExpensesByDayForMonth,
     getBonusesByDayForMonth,
     formatCurrency
 } from './utils.js';
@@ -79,6 +80,8 @@ export function renderReportsCalendar(app) {
 
     const dayBills = getBillsByDayForMonth(app.bills, year, month);
 
+    const dayExpenses = getExpensesByDayForMonth(app.expenses, year, month);
+
     const dayDebts = {};
     const palette = ['#2563eb', '#dc2626', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#6366f1'];
     let ci = 0;
@@ -94,6 +97,7 @@ export function renderReportsCalendar(app) {
     const legendItems = [
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--income"></span>Payday</span>',
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bill"></span>Bill due</span>',
+        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--expense"></span>Expense</span>',
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch" style="background:#2563eb;"></span>Debt payment</span>',
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bonus"></span>Bonus/Windfall</span>',
         isCurrentMonth ? '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--today"></span>Today</span>' : ''
@@ -113,9 +117,10 @@ export function renderReportsCalendar(app) {
     for (let day = 1; day <= daysInMonth; day++) {
         const incomes = dayIncome[day] || [];
         const bills = dayBills[day] || [];
+        const expenses = dayExpenses[day] || [];
         const debts = dayDebts[day] || [];
         const bonuses = dayBonuses[day] || [];
-        const hasEvts = incomes.length || bills.length || debts.length || bonuses.length;
+        const hasEvts = incomes.length || bills.length || expenses.length || debts.length || bonuses.length;
         const isToday = day === today;
 
         gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"><span class="rpt-cal-day-num">${day}</span>`;
@@ -125,6 +130,9 @@ export function renderReportsCalendar(app) {
         }
         for (const bill of bills) {
             gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${bill.name}: ${formatCurrency(bill.amount)}"><span class="rpt-cal-evt-name">🧾 ${bill.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(bill.amount)}</span></div>`;
+        }
+        for (const exp of expenses) {
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--expense" title="🛒 ${exp.name}: ${formatCurrency(exp.budgetAmount)}"><span class="rpt-cal-evt-name">🛒 ${exp.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(exp.budgetAmount)}</span></div>`;
         }
         for (const debt of debts) {
             gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${debt.name}: min ${formatCurrency(debt.minimumPayment)}"><span class="rpt-cal-evt-name">💳 ${debt.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(debt.minimumPayment)}</span></div>`;

@@ -3284,6 +3284,7 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 }
 .rpt-cal-swatch--income { background: #10b981; }
 .rpt-cal-swatch--bill   { background: #f59e0b; }
+.rpt-cal-swatch--expense { background: #8b5cf6; }
 .rpt-cal-swatch--bonus  { background: #d97706; }
 .rpt-cal-swatch--today  { background: #2563eb; border-radius: 50%; }
 
@@ -3348,6 +3349,7 @@ body.dark-mode .rpt-cal-today { background: #1e3a5f; border-color: #2563eb; }
 
 .rpt-cal-evt--income { background: #10b981; }
 .rpt-cal-evt--bill   { background: #f59e0b; }
+.rpt-cal-evt--expense { background: #8b5cf6; }
 .rpt-cal-evt--bonus  { background: #d97706; }
 
 @media (max-width: 640px) {

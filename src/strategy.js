@@ -2,7 +2,12 @@
 
 import {
     getBillsByDayForMonth,
-    getIncomeEventsByMonthForRange
+    getIncomeEventsByMonthForRange,
+    formatCurrency,
+    getDayOrdinal,
+    computeMonthlyIncomeForMonth,
+    computeMonthlyBonusesForMonth,
+    computeInterestPaidToDate
 } from './utils.js';
 
 /**
@@ -540,7 +545,19 @@ export function renderStrategyIncomeWidget(app) {
     if (!widget) return;
     if (app.incomes.length === 0) { widget.style.display = 'none'; return; }
 
-    const { monthlyTotal } = app.computeMonthlyIncome();
+    const fmt = (value) => {
+        if (typeof formatCurrency === 'function') {
+            return formatCurrency(value);
+        }
+        const numeric = Number(value) || 0;
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(numeric);
+    };
+
+    const now = new Date();
+    const { monthlyTotal } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
     const totalDebtMin = app.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
     const pct = monthlyTotal > 0 ? (totalDebtMin / monthlyTotal * 100) : 0;
     const isWarn = pct > 40;
@@ -555,27 +572,27 @@ export function renderStrategyIncomeWidget(app) {
 
     const totalBills = (app.bills || []).reduce((s, b) => s + b.amount, 0);
     const totalExpenses = (app.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
-    const bonusThisMonth = app.computeMonthlyBonuses();
+    const bonusThisMonth = computeMonthlyBonusesForMonth(app.bonuses, now.getFullYear(), now.getMonth());
     const netAfterAll = monthlyTotal - totalDebtMin - totalBills - totalExpenses;
 
     let netHtml = '';
     if (totalBills > 0 || totalExpenses > 0) {
         const netClass = netAfterAll >= 0 ? 'strategy-net--positive' : 'strategy-net--negative';
         const bonusBit = bonusThisMonth > 0
-            ? ` · Bonuses: ${formatCurrency(bonusThisMonth)}` : '';
+            ? ` · Bonuses: ${fmt(bonusThisMonth)}` : '';
         netHtml = `<div class="strategy-net ${netClass}">
             Net after all obligations:
-            <strong>${formatCurrency(netAfterAll)}</strong>
-            <span class="strategy-net-breakdown">(Bills: ${formatCurrency(totalBills)} · Expenses: ${formatCurrency(totalExpenses)} · Debt mins: ${formatCurrency(totalDebtMin)}${bonusBit})</span>
+            <strong>${fmt(netAfterAll)}</strong>
+            <span class="strategy-net-breakdown">(Bills: ${fmt(totalBills)} · Expenses: ${fmt(totalExpenses)} · Debt mins: ${fmt(totalDebtMin)}${bonusBit})</span>
         </div>`;
     }
 
     const bonusChip = bonusThisMonth > 0
-        ? `<span class="strategy-bonus-chip">+${formatCurrency(bonusThisMonth)} bonus this month</span>` : '';
+        ? `<span class="strategy-bonus-chip">+${fmt(bonusThisMonth)} bonus this month</span>` : '';
 
     widget.style.display = 'block';
     widget.innerHTML = `
-        💰 Expected income this month: <strong>${formatCurrency(monthlyTotal)}</strong> ${bonusChip}
+        💰 Expected income this month: <strong>${fmt(monthlyTotal)}</strong> ${bonusChip}
         ${ratioHtml}
         ${netHtml}`;
 }
@@ -744,7 +761,7 @@ export function displayDebtSummary(app) {
     // Store rows as array for sorting: [name, summaryObj, orderIndex]
     app._debtSummaryRows = Object.entries(debtSummaryMap).map(([name, summary]) => {
         const origDebt = originalDebts[name] || {};
-        const iptd = app.computeInterestPaidToDate(origDebt);
+        const iptd = computeInterestPaidToDate(origDebt);
         return {
             name,
             ...summary,
@@ -935,4 +952,3 @@ export function displayPaymentSchedule(app) {
         }
     }
 }
-

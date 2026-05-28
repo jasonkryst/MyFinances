@@ -155,6 +155,20 @@ export function getBillsByDayForMonth(bills, year, month) {
     return dayBills;
 }
 
+export function getExpensesByDayForMonth(expenses, year, month) {
+    const dayExpenses = {};
+    for (const exp of (expenses || [])) {
+        if (!exp.date) continue;
+        const ed = new Date(exp.date);
+        if (ed.getFullYear() === year && ed.getMonth() === month) {
+            const day = ed.getDate();
+            if (!dayExpenses[day]) dayExpenses[day] = [];
+            dayExpenses[day].push(exp);
+        }
+    }
+    return dayExpenses;
+}
+
 export function getBonusesByDayForMonth(bonuses, year, month) {
     const dayBonuses = {};
     for (const b of (bonuses || [])) {

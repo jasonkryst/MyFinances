@@ -416,8 +416,12 @@
                                         <input type="text" id="expenseName" placeholder="e.g. Groceries, Dining Out" required>
                                     </div>
                                     <div class="form-group">
-                                        <label for="expenseBudget">Monthly Budget ($) *</label>
+                                        <label for="expenseBudget">Cost *</label>
                                         <input type="number" id="expenseBudget" placeholder="0.00" step="0.01" min="0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="expenseDate">Date</label>
+                                        <input type="date" id="expenseDate" required>
                                     </div>
                                     <div class="form-group">
                                         <label for="expenseCategory">Category</label>
@@ -746,6 +750,30 @@
 
         makeBudgetToggle('billFormToggle',    'billFormBody');
         makeBudgetToggle('expenseFormToggle', 'expenseFormBody');
+
+        // Set default date for expense form to today
+        const expenseDateInput = document.getElementById('expenseDate');
+        if (expenseDateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            expenseDateInput.value = today;
+        }
+
+        // Wire billForm and expenseForm submit handlers
+        const billForm = document.getElementById('billForm');
+        if (billForm) {
+            billForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (window.app) app.addBill();
+            });
+        }
+
+        const expenseForm = document.getElementById('expenseForm');
+        if (expenseForm) {
+            expenseForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (window.app) app.addExpense();
+            });
+        }
     });
 
     // ── Collapsible Bonus form ────────────────────────────────────────────────

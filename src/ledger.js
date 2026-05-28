@@ -76,15 +76,17 @@ export function getLedgerTransactions(app) {
         }
         for (const exp of app.expenses) {
             if (!exp.accountId) continue;
-            if (exp.budgetAmount) {
-                const date = new Date(year, month, 1);
-                addTx({
-                    accountId: exp.accountId,
-                    date,
-                    name: exp.name || 'Expense',
-                    amount: -Math.abs(Number(exp.budgetAmount)),
-                    type: 'expense'
-                });
+            if (exp.budgetAmount && exp.date) {
+                const expDate = new Date(exp.date);
+                if (expDate.getFullYear() === year && expDate.getMonth() === month) {
+                    addTx({
+                        accountId: exp.accountId,
+                        date: expDate,
+                        name: exp.name || 'Expense',
+                        amount: -Math.abs(Number(exp.budgetAmount)),
+                        type: 'expense'
+                    });
+                }
             }
         }
     }
@@ -143,7 +145,7 @@ export function renderLedgerPage(app) {
     let transactions = getLedgerTransactions(app);
     const accounts = app.accounts || [];
     let selectedAccount = app._ledgerAccountFilter || 'all';
-    let selectedDateRange = app._ledgerDateRange || 'all';
+    let selectedDateRange = app._ledgerDateRange || '30';
     let filterHtml = '';
     filterHtml += `<div style="margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">`;
     if (accounts.length > 0) {
