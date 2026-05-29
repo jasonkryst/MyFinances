@@ -76,6 +76,11 @@ import {
     saveEditRecurring as saveEditRecurringFeature,
     refreshRecurringAccountSelectors as refreshRecurringAccountSelectorsFeature
 } from './recurring.js';
+import {
+    renderSavingsPage as renderSavingsPageFeature,
+    switchSavingsSubTab as switchSavingsSubTabFeature,
+    attachSavingsEventListeners as attachSavingsEventListenersFeature
+} from './savings.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -93,6 +98,8 @@ export class DebtTrackerApp {
         this.bills = [];
         this.expenses = [];
         this.recurringTemplates = [];
+        this.emergencyFunds = [];
+        this.sinkingFunds = [];
         this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
@@ -101,7 +108,9 @@ export class DebtTrackerApp {
         this.editingIncomeId = null;
         this.editingAccountId = null;
         this.editingRecurringId = null;
+        this.savingsSubTab = 'emergency';
         this._reportMonthOffset = 0;
+            this.liabilitiesSubTab = 'debts';
         this._savedMonthlyPayment = null;
         this._savedStrategy = null;
         this.storageKey = 'debtTrackerData';
@@ -723,6 +732,30 @@ export class DebtTrackerApp {
     cancelEditRecurring() { return cancelEditRecurringFeature(this); }
     saveEditRecurring(id) { return saveEditRecurringFeature(this, id); }
     refreshRecurringAccountSelectors() { return refreshRecurringAccountSelectorsFeature(this); }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  SAVINGS (Emergency Fund & Sinking Funds)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    renderSavingsPage() { return renderSavingsPageFeature(this); }
+    switchSavingsSubTab(subTab) { return switchSavingsSubTabFeature(this, subTab); }
+    attachSavingsEventListeners() { return attachSavingsEventListenersFeature(this); }
+
+    switchLiabilitiesSubTab(subTab) {
+        this.liabilitiesSubTab = subTab;
+        const section = document.getElementById('liabilitiesSection');
+        if (!section) return;
+        
+        // Update button states
+        section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.liabilitiesSubtab === subTab);
+        });
+        
+        // Show/hide panels
+        section.querySelectorAll('.liabilities-subtab-panel').forEach(panel => {
+            panel.style.display = panel.dataset.subtab === subTab ? 'block' : 'none';
+        });
+    }
 }
 
 // Initialize the app when the DOM is ready

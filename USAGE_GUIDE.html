@@ -269,6 +269,7 @@
                     <li><a href="#tracking-income">Tracking Income</a></li>
                     <li><a href="#managing-expenses">Managing Expenses</a></li>
                     <li><a href="#recurring-templates">Recurring Transaction Templates</a></li>
+                    <li><a href="#managing-savings">Managing Savings</a></li>
                     <li><a href="#creating-plan">Creating a Payment Plan</a></li>
                     <li><a href="#viewing-reports">Viewing Reports</a></li>
                     <li><a href="#viewing-transactions">Viewing Transactions</a></li>
@@ -481,6 +482,122 @@
                 </ul>
 
                 <div class="guide-note">Recurring templates automatically appear in the Ledger's projected transactions, Reports calendar, Money Flow chart, and Variance Dashboard for complete cash flow visibility.</div>
+            </section>
+
+            <section class="guide-section" id="managing-savings">
+                <h2>Managing Savings</h2>
+                <p>The Savings tab combines Emergency Fund tracking and Sinking Funds (goal-based savings) in one place, helping you build financial security and save for specific goals.</p>
+
+                <h3>What Are Emergency Funds and Sinking Funds?</h3>
+                <ul>
+                    <li><strong>Emergency Fund</strong> — a dedicated savings account per bank account to cover unexpected expenses (typically 3–6 months of living expenses)</li>
+                    <li><strong>Sinking Funds (Goal-Based Buckets)</strong> — named savings goals for specific purposes (vacation, car repairs, home improvement, annual insurance, etc.) with flexible contribution methods</li>
+                </ul>
+
+                <h3>Emergency Fund</h3>
+                <p>Track an emergency fund for each account with progress visualization.</p>
+                <h4>To Add or Edit an Emergency Fund</h4>
+                <ol>
+                    <li>Click the <strong>🏦 Emergency Fund</strong> tab if not already selected</li>
+                    <li>Click <strong>➕ Add/Edit Emergency Fund</strong></li>
+                    <li>Fill in the form:
+                        <div class="guide-table-wrap">
+                            <table class="guide-table">
+                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Account</td><td>Bank account this emergency fund belongs to</td></tr>
+                                    <tr><td>Target Amount ($)</td><td>Your emergency fund goal (e.g. $10,000)</td></tr>
+                                    <tr><td>Current Amount ($)</td><td>How much you've saved so far</td></tr>
+                                    <tr><td>Monthly Contribution ($)</td><td>How much to set aside each month</td></tr>
+                                    <tr><td>Auto-contribute monthly</td><td>Checkbox to automatically deduct from account each month</td></tr>
+                                    <tr><td>Notes</td><td>Optional reminders (e.g. "3–6 months of expenses")</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </li>
+                    <li>Click <strong>Save Emergency Fund</strong></li>
+                </ol>
+
+                <p>Each emergency fund card displays:</p>
+                <ul>
+                    <li>Progress bar showing % complete (green = excellent, blue = good, yellow = fair, red = warning)</li>
+                    <li>Current vs. Target amounts</li>
+                    <li>Projected completion date if contributing at the set monthly rate</li>
+                    <li>Edit, Delete, and Contribute buttons for quick actions</li>
+                </ul>
+
+                <h3>Sinking Funds (Goal-Based Savings)</h3>
+                <p>Create multiple named savings goals with three flexible allocation methods.</p>
+                <h4>To Add a Sinking Fund</h4>
+                <ol>
+                    <li>Click the <strong>🎯 Sinking Funds</strong> tab</li>
+                    <li>Click <strong>➕ Add/Edit Sinking Fund</strong></li>
+                    <li>Fill in the form:
+                        <div class="guide-table-wrap">
+                            <table class="guide-table">
+                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Goal Name</td><td>Name of the savings goal (e.g. "Vacation", "Car Repairs")</td></tr>
+                                    <tr><td>Allocation Method</td><td>Choose one of three methods (see below)</td></tr>
+                                    <tr><td>Account</td><td>Bank account this goal belongs to</td></tr>
+                                    <tr><td>Current Amount ($)</td><td>How much you've saved toward this goal</td></tr>
+                                    <tr><td>Auto-contribute monthly</td><td>Checkbox to automatically deduct from account each month</td></tr>
+                                    <tr><td>Notes</td><td>Optional notes about the goal</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </li>
+                    <li>Click <strong>Save Sinking Fund</strong></li>
+                </ol>
+
+                <h4>Allocation Methods</h4>
+                <ul>
+                    <li><strong>Fixed Monthly Amount</strong> — set a specific amount to save each month (e.g. $150/month for vacation)
+                        <div class="guide-table-wrap">
+                            <table class="guide-table">
+                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Monthly Allocation ($)</td><td>Amount to set aside each month</td></tr>
+                                    <tr><td>Target Amount ($)</td><td>Your savings goal total</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </li>
+                    <li><strong>Annual Cost ÷ 12</strong> — provide an annual cost and the app divides it into monthly chunks (e.g. annual car insurance $1,200 = $100/month)
+                        <div class="guide-table-wrap">
+                            <table class="guide-table">
+                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Annual Cost ($)</td><td>Total annual cost (e.g. $1,200 for insurance)</td></tr>
+                                    <tr><td>Target Amount ($)</td><td>Same as annual cost (auto-filled)</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </li>
+                    <li><strong>Target Date Planning</strong> — specify a target amount and date; the app calculates the monthly allocation needed (e.g. save $5,000 by December 31 = $417/month)
+                        <div class="guide-table-wrap">
+                            <table class="guide-table">
+                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Target Amount ($)</td><td>Your savings goal total (e.g. $5,000)</td></tr>
+                                    <tr><td>Target Date</td><td>Date you want to reach that amount (e.g. 2026-12-31)</td></tr>
+                                    <tr><td>Monthly Allocation</td><td>App calculates this automatically based on remaining time</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="guide-note"><strong>Auto-Contribution Integration:</strong> When you enable <em>Auto-contribute monthly</em>, the monthly amount automatically deducts from your account each month. These contributions appear in the Ledger as "Savings" transactions, in the Reports income-vs-expenses breakdown, and factor into your account's projected end-of-month balance.</div>
+
+                <h3>Viewing Savings Impact</h3>
+                <ul>
+                    <li><strong>Ledger</strong> — auto-contributed amounts appear as dedicated "Savings" transactions on the first of each month</li>
+                    <li><strong>Reports › Income vs. Expenses</strong> — savings contributions are summarized in a dedicated stat and included in the outflow breakdown chart</li>
+                    <li><strong>Reports › Money Flow</strong> — savings outflows are included in cumulative cash flow calculations</li>
+                    <li><strong>Reports › Variance Dashboard</strong> — month-to-month comparison of savings contributions to spot increases or decreases in saving behavior</li>
+                    <li><strong>Account Projections</strong> — auto-contributed amounts factor into projected end-of-month balances</li>
+                </ul>
             </section>
 
             <section class="guide-section" id="creating-plan">

@@ -50,9 +50,9 @@
             <nav class="top-nav">
                 <button class="page-button active" data-page="accounts">Accounts</button>
                 <button class="page-button" data-page="income">Income</button>
-                <button class="page-button" data-page="debts">Debts</button>
-                <button class="page-button" data-page="budget">Expenses</button>
+                <button class="page-button" data-page="liabilities">Liabilities</button>
                 <button class="page-button" data-page="recurring">Recurring</button>
+                <button class="page-button" data-page="savings">Savings</button>
                 <button class="page-button" data-page="strategy">Plan</button>
                 <button class="page-button" data-page="reports">Reports</button>
                 <button class="page-button" data-page="ledger">Ledger</button>
@@ -110,19 +110,28 @@
                 <div id="accountList"></div>
             </section>
 
-            <!-- Debts Section — form + list side by side -->
-            <section class="debts-section page-section" id="debtsSection">
-                <div class="debts-layout">
+            <!-- Liabilities Section (Debts & Expenses combined with subtabs) -->
+            <section class="liabilities-section page-section" id="liabilitiesSection">
+                <h2>💳 Liabilities</h2>
+                <div class="liabilities-container">
+                    <div class="liabilities-subtabs">
+                        <button class="liabilities-subtab-btn active" data-liabilities-subtab="debts">💳 Debts</button>
+                        <button class="liabilities-subtab-btn" data-liabilities-subtab="expenses">📊 Expenses</button>
+                    </div>
 
-                    <!-- ── Left: Add / Edit form ── -->
-                    <div class="debts-form-col" id="debtFormCol">
-                        <div class="debts-form-card">
-                            <button class="debt-form-toggle" id="debtFormToggle" aria-expanded="false" aria-controls="debtFormBody" type="button">
-                                <span id="debtFormTitle">Add New Debt</span>
-                                <svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            </button>
-                            <div class="debt-form-body" id="debtFormBody" hidden>
-                            <form id="debtForm">
+                    <div class="liabilities-content">
+                        <!-- ═════════════════ DEBTS SUBTAB ═════════════════ -->
+                        <div class="liabilities-subtab-panel" id="debtsPanel" data-subtab="debts" style="display:block;">
+                            <div class="debts-layout">
+                                <!-- ── Left: Add / Edit form ── -->
+                                <div class="debts-form-col" id="debtFormCol">
+                                    <div class="debts-form-card">
+                                        <button class="debt-form-toggle" id="debtFormToggle" aria-expanded="false" aria-controls="debtFormBody" type="button">
+                                            <span id="debtFormTitle">Add New Debt</span>
+                                            <svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                        </button>
+                                        <div class="debt-form-body" id="debtFormBody" hidden>
+                                        <form id="debtForm">
                                 <div class="form-group">
                                     <label for="debtName">Debt Name *
                                         <span class="help-icon" tabindex="0" aria-label="Enter a descriptive name for this debt, e.g., 'Credit Card' or 'Student Loan'.">?</span>
@@ -228,25 +237,86 @@
                                     <button type="button" id="cancelEditBtn" class="btn" style="display:none;">Cancel</button>
                                 </div>
                             </form>
-                            </div><!-- /debt-form-body -->
-                        </div>
-                    </div>
+                                        </div><!-- /debt-form-body -->
+                                    </div>
+                                </div>
 
-                    <!-- ── Right: Debt list ── -->
-                    <div class="debts-list-col">
-                        <div class="debts-list-header">
-                            <h2>Your Debts</h2>
-                            <div class="debts-toolbar-filter">
-                                <label for="categoryFilter" style="font-weight:600;font-size:0.875rem;">Filter:</label>
-                                <select id="categoryFilter" style="margin-left:6px; min-width:120px;">
-                                    <option value="">All categories</option>
-                                </select>
+                                <!-- ── Right: Debt list ── -->
+                                <div class="debts-list-col">
+                                    <div class="debts-list-header">
+                                        <h2>Your Debts</h2>
+                                        <div class="debts-toolbar-filter">
+                                            <label for="categoryFilter" style="font-weight:600;font-size:0.875rem;">Filter:</label>
+                                            <select id="categoryFilter" style="margin-left:6px; min-width:120px;">
+                                                <option value="">All categories</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div id="debtsList" class="debts-list"></div>
+                                    <div id="categorySummary" style="margin:18px 0 0 0;"></div>
+                                </div>
                             </div>
                         </div>
-                        <div id="debtsList" class="debts-list"></div>
-                        <div id="categorySummary" style="margin:18px 0 0 0;"></div>
-                    </div>
 
+                        <!-- ═════════════════ EXPENSES SUBTAB ═════════════════ -->
+                        <div class="liabilities-subtab-panel" id="expensesPanel" data-subtab="expenses" style="display:none;">
+                            <h3 style="margin-top:0;">Expenses</h3>
+                            <div class="budget-col">
+                                <div class="budget-form-card">
+                                    <button class="budget-form-toggle" id="expenseFormToggle" aria-expanded="false" aria-controls="expenseFormBody" type="button">
+                                        <span>Add Expense Budget</span>
+                                        <svg class="budget-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                    </button>
+                                    <div class="budget-form-body" id="expenseFormBody" hidden>
+                                    <form id="expenseForm" novalidate>
+                                        <div class="budget-form-grid">
+                                            <div class="form-group">
+                                                <label for="expenseName">Name *</label>
+                                                <input type="text" id="expenseName" placeholder="e.g. Groceries, Dining Out" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseBudget">Cost *</label>
+                                                <input type="number" id="expenseBudget" placeholder="0.00" step="0.01" min="0" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseDate">Date</label>
+                                                <input type="date" id="expenseDate" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseCategory">Category</label>
+                                                <select id="expenseCategory">
+                                                    <option value="Food & Groceries">Food &amp; Groceries</option>
+                                                    <option value="Dining Out">Dining Out</option>
+                                                    <option value="Health & Fitness">Health &amp; Fitness</option>
+                                                    <option value="Entertainment">Entertainment</option>
+                                                    <option value="Clothing">Clothing</option>
+                                                    <option value="Personal Care">Personal Care</option>
+                                                    <option value="Education">Education</option>
+                                                    <option value="Childcare">Childcare</option>
+                                                    <option value="Costco">Costco</option>
+                                                    <option value="Target">Target</option>
+                                                    <option value="Reconciliation">Reconciliation</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseAccount">Pay from Account</label>
+                                                <select id="expenseAccount">
+                                                    <option value="">— No account —</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary" id="expenseFormSubmit">Add Expense</button>
+                                    </form>
+                                    </div><!-- /expenseFormBody -->
+                                </div>
+                                <div id="expenseList" class="budget-item-list"></div>
+                            </div>
+
+                            <!-- Cash Flow Summary -->
+                            <div id="cashFlowSummary" class="cashflow-summary" style="display:none;"></div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -356,61 +426,6 @@
             <!-- Budget Section -->
             <section class="budget-section page-section" id="budgetSection">
                 <h2>📊 Expenses</h2>
-
-                <div class="budget-col">
-                        <div class="budget-form-card">
-                            <button class="budget-form-toggle" id="expenseFormToggle" aria-expanded="false" aria-controls="expenseFormBody" type="button">
-                                <span>Add Expense Budget</span>
-                                <svg class="budget-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            </button>
-                            <div class="budget-form-body" id="expenseFormBody" hidden>
-                            <form id="expenseForm" novalidate>
-                                <div class="budget-form-grid">
-                                    <div class="form-group">
-                                        <label for="expenseName">Name *</label>
-                                        <input type="text" id="expenseName" placeholder="e.g. Groceries, Dining Out" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseBudget">Cost *</label>
-                                        <input type="number" id="expenseBudget" placeholder="0.00" step="0.01" min="0" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseDate">Date</label>
-                                        <input type="date" id="expenseDate" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseCategory">Category</label>
-                                        <select id="expenseCategory">
-                                            <option value="Food & Groceries">Food &amp; Groceries</option>
-                                            <option value="Dining Out">Dining Out</option>
-                                            <option value="Health & Fitness">Health &amp; Fitness</option>
-                                            <option value="Entertainment">Entertainment</option>
-                                            <option value="Clothing">Clothing</option>
-                                            <option value="Personal Care">Personal Care</option>
-                                            <option value="Education">Education</option>
-                                            <option value="Childcare">Childcare</option>
-                                            <option value="Costco">Costco</option>
-                                            <option value="Target">Target</option>
-                                            <option value="Reconciliation">Reconciliation</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseAccount">Pay from Account</label>
-                                        <select id="expenseAccount">
-                                            <option value="">— No account —</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary" id="expenseFormSubmit">Add Expense</button>
-                            </form>
-                            </div><!-- /expenseFormBody -->
-                        </div>
-                        <div id="expenseList" class="budget-item-list"></div>
-                </div>
-
-                <!-- Cash Flow Summary -->
-                <div id="cashFlowSummary" class="cashflow-summary" style="display:none;"></div>
             </section>
 
             <!-- Plan Section (Strategy + Results combined) -->
@@ -720,6 +735,14 @@
 
                 <!-- Template List -->
                 <div id="recurringList" class="recurring-list"></div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Savings Section (Emergency Fund & Sinking Funds)           -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="savings-section page-section" id="savingsSection">
+                <h2>💰 Savings</h2>
+                <!-- Content dynamically rendered by renderSavingsPage() -->
             </section>
 
             <!-- Empty State -->

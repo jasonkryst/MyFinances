@@ -38,6 +38,7 @@ def main() -> None:
 
         # Accounts: add account
         page.click('button[data-page="accounts"]')
+        page.wait_for_timeout(500)
         page.fill('#accountName', 'Smoke Checking')
         page.select_option('#accountType', label='Checking')
         page.fill('#accountStartingBalance', '1000')
@@ -46,6 +47,7 @@ def main() -> None:
 
         # Income: add income
         page.click('button[data-page="income"]')
+        page.wait_for_timeout(500)
         page.fill('#incomeName', 'Smoke Job')
         page.fill('#incomeAmount', '2000')
         page.fill('#incomeFirstDate', '2026-05-01')
@@ -55,8 +57,12 @@ def main() -> None:
         page.click('#incomeFormSubmit')
         page.wait_for_selector('text=Smoke Job', timeout=10000)
 
-        # Debts: add debt
-        page.click('button[data-page="debts"]')
+        # Liabilities (Debts): add debt first
+        page.click('button[data-page="liabilities"]')
+        page.wait_for_selector('.liabilities-section', timeout=10000)
+        # Make sure we're on debts tab
+        page.click('[data-liabilities-subtab="debts"]')
+        page.wait_for_timeout(300)
         page.click('#debtFormToggle')
         page.fill('#debtName', 'Smoke Card')
         page.fill('#debtCategory', 'Credit Card')
@@ -69,9 +75,11 @@ def main() -> None:
         page.click('#debtFormSubmit')
         page.wait_for_selector('text=Smoke Card', timeout=10000)
 
-        # Budget (Expenses): add expense
-        page.click('button[data-page="budget"]')
+        # Switch to expenses tab within Liabilities
+        page.click('[data-liabilities-subtab="expenses"]')
+        page.wait_for_timeout(300)
         page.click('#expenseFormToggle')
+        page.wait_for_timeout(300)
         page.fill('#expenseName', 'Smoke Groceries')
         page.fill('#expenseBudget', '300')
         page.fill('#expenseDate', '2026-05-20')
@@ -94,7 +102,41 @@ def main() -> None:
         page.click('#recurringFormSubmit')
         page.wait_for_selector('text=Smoke Netflix', timeout=10000)
 
-        # Verify recurring appears in Reports
+        # Savings: add emergency fund
+        page.click('button[data-page="savings"]')
+        page.wait_for_selector('.savings-section', timeout=10000)
+        # Click emergency fund tab to ensure we're on it
+        page.click('[data-savings-subtab="emergency"]')
+        page.wait_for_timeout(300)
+        # Open the emergency fund form
+        page.click('#emergencyFormToggle')
+        page.wait_for_timeout(300)
+        # Select account (first real account)
+        page.select_option('#emergencyAccount', index=1)
+        page.fill('#emergencyTarget', '5000')
+        page.fill('#emergencyCurrent', '0')
+        page.fill('#emergencyContribution', '500')
+        page.check('#emergencyAuto')
+        page.click('#emergencyFormSubmit')
+        page.wait_for_selector('text=Emergency Fund', timeout=10000)
+
+        # Savings: add sinking fund
+        page.click('[data-savings-subtab="sinking"]')
+        page.wait_for_timeout(300)
+        # Open the sinking fund form
+        page.click('#sinkingFormToggle')
+        page.wait_for_timeout(300)
+        page.fill('#sinkingName', 'Smoke Vacation')
+        page.select_option('#sinkingAllocationMethod', 'fixed')
+        page.wait_for_timeout(200)
+        page.fill('#sinkingMonthlyAllocation', '200')
+        page.fill('#sinkingCurrentAmount', '0')
+        page.select_option('#sinkingAccount', index=1)
+        page.check('#sinkingAuto')
+        page.click('#sinkingFormSubmit')
+        page.wait_for_selector('text=Smoke Vacation', timeout=10000)
+
+        # Verify Savings appears in Reports
         page.click('button[data-page="reports"]')
         page.wait_for_selector('#reportsCalendar', timeout=10000)
         # Check that the calendar loaded
@@ -120,6 +162,7 @@ def main() -> None:
 
         # Strategy: calculate plan
         page.click('button[data-page="strategy"]')
+        page.wait_for_timeout(500)
         page.fill('#monthlyPayment', '400')
         page.select_option('#paymentStrategy', 'avalanche')
         page.click('#calculateBtn')

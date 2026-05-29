@@ -197,6 +197,7 @@ export function renderReportsIncomeExp(app) {
     let totalExpenses = 0;
     let totalRecurring = 0;
     let totalDebtMin = 0;
+    let totalSavings = 0;
 
     for (const tx of monthTxs) {
         if (tx.type === 'income' || tx.type === 'bonus') {
@@ -221,10 +222,14 @@ export function renderReportsIncomeExp(app) {
         }
         if (tx.type === 'debt') {
             totalDebtMin += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'savings') {
+            totalSavings += Math.abs(tx.amount || 0);
         }
     }
 
-    const totalOutflow = totalBills + totalExpenses + totalRecurring + totalDebtMin;
+    const totalOutflow = totalBills + totalExpenses + totalRecurring + totalDebtMin + totalSavings;
     const net = totalIncome - totalOutflow;
     const netCls = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
@@ -235,6 +240,7 @@ export function renderReportsIncomeExp(app) {
         { label: 'Bills', value: totalBills, cls: 'rpt-stat--bills' },
         { label: 'Expense Budgets', value: totalExpenses, cls: 'rpt-stat--exp' },
         { label: 'Recurring Costs', value: totalRecurring, cls: 'rpt-stat--recurring' },
+        { label: 'Savings Contributions', value: totalSavings, cls: 'rpt-stat--savings' },
         { label: 'Debt Minimums', value: totalDebtMin, cls: 'rpt-stat--debt' },
         { label: 'Net Remaining', value: net, cls: netCls }
     ];
@@ -298,6 +304,18 @@ export function renderReportsIncomeExp(app) {
         outflowLabels.push(`💳 ${escapeHtml(name)}`);
         outflowData.push(amt);
         outflowColors.push('#ef4444');
+    }
+
+    const savingsCats = {};
+    for (const tx of monthTxs) {
+        if (tx.type !== 'savings') continue;
+        const cat = tx.name || 'Savings';
+        savingsCats[cat] = (savingsCats[cat] || 0) + Math.abs(tx.amount || 0);
+    }
+    for (const [cat, amt] of Object.entries(savingsCats)) {
+        outflowLabels.push(`💰 ${escapeHtml(cat)}`);
+        outflowData.push(amt);
+        outflowColors.push('#10b981');
     }
 
     const hasData = incomeData.length > 0 || outflowData.length > 0;
@@ -521,7 +539,7 @@ export function renderReportsVariance(app) {
     const prevMonthTxs = getLedgerTransactionsForMonth(app, prevMonthDate.getFullYear(), prevMonthDate.getMonth());
 
     // Calculate totals for current month
-    let currIncome = 0, currExpenses = 0, currRecurring = 0, currDebtMin = 0;
+    let currIncome = 0, currExpenses = 0, currRecurring = 0, currDebtMin = 0, currSavings = 0;
     for (const tx of currMonthTxs) {
         if (tx.type === 'income' || tx.type === 'bonus') {
             currIncome += tx.amount;
@@ -533,11 +551,13 @@ export function renderReportsVariance(app) {
             currIncome += tx.amount;
         } else if (tx.type === 'debt') {
             currDebtMin += Math.abs(tx.amount || 0);
+        } else if (tx.type === 'savings') {
+            currSavings += Math.abs(tx.amount || 0);
         }
     }
 
     // Calculate totals for previous month
-    let prevIncome = 0, prevExpenses = 0, prevRecurring = 0, prevDebtMin = 0;
+    let prevIncome = 0, prevExpenses = 0, prevRecurring = 0, prevDebtMin = 0, prevSavings = 0;
     for (const tx of prevMonthTxs) {
         if (tx.type === 'income' || tx.type === 'bonus') {
             prevIncome += tx.amount;
@@ -549,6 +569,8 @@ export function renderReportsVariance(app) {
             prevIncome += tx.amount;
         } else if (tx.type === 'debt') {
             prevDebtMin += Math.abs(tx.amount || 0);
+        } else if (tx.type === 'savings') {
+            prevSavings += Math.abs(tx.amount || 0);
         }
     }
 
@@ -557,6 +579,7 @@ export function renderReportsVariance(app) {
     const deltaExpenses = currExpenses - prevExpenses;
     const deltaRecurring = currRecurring - prevRecurring;
     const deltaDebtMin = currDebtMin - prevDebtMin;
+    const deltaSavings = currSavings - prevSavings;
 
     // Format dates
     const currLabel = rptDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -599,6 +622,13 @@ export function renderReportsVariance(app) {
             current: currDebtMin,
             previous: prevDebtMin,
             delta: deltaDebtMin,
+            isExpense: true
+        },
+        {
+            label: '💰 Savings Contributions',
+            current: currSavings,
+            previous: prevSavings,
+            delta: deltaSavings,
             isExpense: true
         }
     ];

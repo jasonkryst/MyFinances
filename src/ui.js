@@ -430,6 +430,18 @@ export function updateFormVisibility() {
     }
 }
 
+export function attachLiabilitiesEventListeners(app) {
+    const section = document.getElementById('liabilitiesSection');
+    if (!section) return;
+
+    // Subtab switching
+    section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            app.switchLiabilitiesSubTab(btn.dataset.liabilitiesSubtab);
+        });
+    });
+}
+
 export function switchPage(app, pageName) {
     document.querySelectorAll('.page-button').forEach(b => b.classList.remove('active'));
     const btn = document.querySelector(`.page-button[data-page="${pageName}"]`);
@@ -437,9 +449,9 @@ export function switchPage(app, pageName) {
 
     const mapping = {
         accounts: 'accountsSection',
-        debts: 'debtsSection',
+        liabilities: 'liabilitiesSection',
         income: 'incomeSection',
-        budget: 'budgetSection',
+        savings: 'savingsSection',
         strategy: 'strategySection',
         reports: 'reportsSection',
         ledger: 'ledgerSection',
@@ -455,9 +467,21 @@ export function switchPage(app, pageName) {
     }
 
     if (pageName === 'accounts') app.renderAccountsList();
-    if (pageName === 'debts') { app.renderDebtsList(); refreshAccountSelectors(app); }
+    if (pageName === 'liabilities') {
+        // Render both debts and expenses
+        app.renderDebtsList();
+        app.renderBudgetPage();
+        refreshAccountSelectors(app);
+        // Attach liabilities subtab listeners
+        attachLiabilitiesEventListeners(app);
+        // Default to debts subtab
+        app.switchLiabilitiesSubTab('debts');
+    }
     if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); }
-    if (pageName === 'budget') { app.renderBudgetPage(); refreshAccountSelectors(app); }
+    if (pageName === 'savings') {
+        app.renderSavingsPage();
+        app.attachSavingsEventListeners();
+    }
     if (pageName === 'strategy') app.renderStrategyIncomeWidget();
     if (pageName === 'reports') {
         app._reportMonthOffset = 0;

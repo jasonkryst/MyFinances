@@ -3345,6 +3345,8 @@ body.dark-mode .cashflow-net--negative { background: #450a0a; color: #fca5a5; }
 .rpt-stat--recurring .rpt-stat-value { color: #0c4a6e; }
 .rpt-stat--debt    { background: #fef2f2; border-color: #fca5a5; }
 .rpt-stat--debt    .rpt-stat-value { color: #7f1d1d; }
+.rpt-stat--savings { background: #ecfdf5; border-color: #a5f3fc; }
+.rpt-stat--savings .rpt-stat-value { color: #065f46; }
 .rpt-net--pos      { background: #d1fae5; border-color: #6ee7b7; }
 .rpt-net--pos .rpt-stat-value      { color: #064e3b; }
 .rpt-net--neg      { background: #fee2e2; border-color: #fca5a5; }
@@ -3360,6 +3362,8 @@ body.dark-mode .rpt-stat--recurring { background: #06363c; border-color: #0c4a6e
 body.dark-mode .rpt-stat--recurring .rpt-stat-value { color: #67e8f9; }
 body.dark-mode .rpt-stat--debt    { background: #450a0a; border-color: #7f1d1d; }
 body.dark-mode .rpt-stat--debt    .rpt-stat-value { color: #fca5a5; }
+body.dark-mode .rpt-stat--savings { background: #06363c; border-color: #0c4a6e; }
+body.dark-mode .rpt-stat--savings .rpt-stat-value { color: #a7f3d0; }
 body.dark-mode .rpt-net--pos      { background: #064e3b; border-color: #065f46; }
 body.dark-mode .rpt-net--pos .rpt-stat-value      { color: #a7f3d0; }
 body.dark-mode .rpt-net--neg      { background: #450a0a; border-color: #7f1d1d; }
@@ -4113,4 +4117,100 @@ body.dark-mode .recurring-this-month strong { color: #f1f5f9; }
     .recurring-form-grid { grid-template-columns: 1fr; }
     .recurring-edit-grid { grid-template-columns: 1fr 1fr; }
     .recurring-card-header { flex-wrap: wrap; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SAVINGS PAGE — Emergency Fund & Sinking Funds
+   ═══════════════════════════════════════════════════════════════ */
+
+.savings-section { background: var(--card-bg, #fff); border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); padding: 28px 24px 32px 24px; margin-bottom: 40px; }
+.savings-section h2 { color: var(--primary-color); font-size: 1.4rem; margin-bottom: 18px; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; }
+.section-description { color: var(--text-muted, #6b7280); font-size: 0.92rem; margin: 0 0 20px; }
+
+.savings-subtabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+body.dark-mode .savings-subtabs { border-bottom-color: #334155; }
+.savings-subtab-btn { background: none; border: none; padding: 10px 16px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: #6b7280; border-bottom: 3px solid transparent; transition: all 0.15s; }
+body.dark-mode .savings-subtab-btn { color: #cbd5e1; }
+.savings-subtab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+.savings-subtab-btn:hover { color: var(--primary-color); }
+
+/* ═════════════════════════════════════════════════════════════ */
+/* Liabilities Subtabs (Debts & Expenses)                        */
+/* ═════════════════════════════════════════════════════════════ */
+.liabilities-subtabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+body.dark-mode .liabilities-subtabs { border-bottom-color: #334155; }
+.liabilities-subtab-btn { background: none; border: none; padding: 10px 16px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: #6b7280; border-bottom: 3px solid transparent; transition: all 0.15s; }
+body.dark-mode .liabilities-subtab-btn { color: #cbd5e1; }
+.liabilities-subtab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+.liabilities-subtab-btn:hover { color: var(--primary-color); }
+.liabilities-subtab-panel { display: none; }
+
+
+/* Emergency Fund Form & Card */
+.emergency-form-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; margin-bottom: 24px; overflow: hidden; }
+body.dark-mode .emergency-form-card { background: #1e293b; border-color: #334155; }
+.emergency-form-toggle { width: 100%; background: #f8fafc; border: none; padding: 14px 18px; font-weight: 600; font-size: 0.97rem; cursor: pointer; color: var(--primary-color); transition: background 0.15s; }
+body.dark-mode .emergency-form-toggle { background: #1e293b; color: #93c5fd; }
+.emergency-form-toggle:hover { background: #e0e7ff; }
+body.dark-mode .emergency-form-toggle:hover { background: #1e3a5f; }
+.emergency-form-body { padding: 18px 18px 20px; }
+.emergency-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; margin-bottom: 16px; }
+.emergency-form-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+.emergency-list { display: flex; flex-direction: column; gap: 14px; }
+.emergency-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; padding: 16px 18px; }
+body.dark-mode .emergency-card { background: #1e293b; border-color: #334155; }
+.emergency-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); }
+.emergency-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.emergency-account { font-weight: 700; color: #1e293b; font-size: 1rem; }
+body.dark-mode .emergency-account { color: #f1f5f9; }
+.emergency-target { font-size: 0.85rem; color: #6b7280; margin-top: 2px; }
+body.dark-mode .emergency-target { color: #cbd5e1; }
+.emergency-badge { padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; }
+.badge-complete { background: #d1fae5; color: #065f46; }
+body.dark-mode .badge-complete { background: #064e3b; color: #86efac; }
+.badge-excellent { background: #dbeafe; color: #0c4a6e; }
+body.dark-mode .badge-excellent { background: #082f49; color: #7dd3fc; }
+.badge-good { background: #fef3c7; color: #92400e; }
+body.dark-mode .badge-good { background: #451a03; color: #fcd34d; }
+.badge-warning { background: #fee2e2; color: #991b1b; }
+body.dark-mode .badge-warning { background: #7f1d1d; color: #fca5a5; }
+.progress-bar { height: 8px; border-radius: 4px; background: #e5e7eb; overflow: hidden; margin: 10px 0; }
+body.dark-mode .progress-bar { background: #334155; }
+.progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #2563eb, #059669); transition: width 0.4s ease; }
+.emergency-card-details { margin: 12px 0; }
+.detail-row { display: flex; justify-content: space-between; font-size: 0.88rem; padding: 4px 0; color: #4b5563; }
+body.dark-mode .detail-row { color: #cbd5e1; }
+.emergency-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+
+/* Sinking Funds Form & Card */
+.sinking-form-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; margin-bottom: 24px; overflow: hidden; }
+body.dark-mode .sinking-form-card { background: #1e293b; border-color: #334155; }
+.sinking-form-toggle { width: 100%; background: #f8fafc; border: none; padding: 14px 18px; font-weight: 600; font-size: 0.97rem; cursor: pointer; color: var(--primary-color); transition: background 0.15s; }
+body.dark-mode .sinking-form-toggle { background: #1e293b; color: #93c5fd; }
+.sinking-form-toggle:hover { background: #e0e7ff; }
+body.dark-mode .sinking-form-toggle:hover { background: #1e3a5f; }
+.sinking-form-body { padding: 18px 18px 20px; }
+.sinking-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; margin-bottom: 16px; }
+.sinking-form-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+.sinking-list { display: flex; flex-direction: column; gap: 14px; }
+.sinking-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; padding: 16px 18px; }
+body.dark-mode .sinking-card { background: #1e293b; border-color: #334155; }
+.sinking-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); }
+.sinking-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.sinking-name { font-weight: 700; color: #1e293b; font-size: 1rem; }
+body.dark-mode .sinking-name { color: #f1f5f9; }
+.sinking-account { font-size: 0.82rem; color: #6b7280; margin-top: 2px; }
+body.dark-mode .sinking-account { color: #cbd5e1; }
+.sinking-badge { padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; }
+.sinking-card-details { margin: 12px 0; }
+.sinking-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.empty-message { color: #9ca3af; font-style: italic; text-align: center; padding: 24px 0; font-size: 0.9rem; }
+
+@media (max-width: 768px) {
+    .emergency-form-grid { grid-template-columns: 1fr; }
+    .sinking-form-grid { grid-template-columns: 1fr; }
+    .emergency-form-actions { justify-content: flex-start; }
+    .sinking-form-actions { justify-content: flex-start; }
 }

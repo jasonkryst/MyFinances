@@ -65,6 +65,21 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 - **Monthly totals** — quickly see total recurring costs or income for the current month
 - **Account linking** — link recurring items to source/destination accounts for accurate account projections
 
+### Savings (Emergency Fund & Sinking Funds)
+- **Emergency Fund** — track a dedicated emergency fund per account with target amount, current savings, monthly contribution, and auto-contribution toggle
+- **Progress visualization** — completion percentage badges and progress bars showing how close you are to your emergency fund target
+- **Sinking Funds (Goal-Based Budgets)** — create multiple named savings goals with three flexible allocation methods:
+  - **Fixed Monthly Amount** — save a set amount each month
+  - **Annual Cost ÷ 12** — provide annual cost and save equal monthly installments automatically
+  - **Target Date Planning** — specify target amount and date; the app calculates the required monthly allocation
+- **Auto-contribute** — toggle automatic monthly contributions for emergency funds and sinking funds; auto-contributions appear as dedicated outflows in the Ledger and Reports
+- **Current vs. Target tracking** — each savings goal displays current amount, target amount, and projected completion date
+- **Integrated with Reports** — Emergency Fund and Sinking Fund contributions appear as dedicated line items in:
+  - **Income vs. Expenses report** — shows total savings contributions alongside other outflows
+  - **Money Flow chart** — savings outflows included in cumulative cash flow
+  - **Variance Dashboard** — month-to-month comparison of savings contributions
+  - **Account projections** — auto-contributed amounts factor into projected end-of-month account balances
+
 ### Calculation Engine
 - **Daily compounding interest** — matches real credit-card billing cycles:
   ```

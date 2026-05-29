@@ -227,6 +227,37 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
                 }
             }
         }
+
+        // Add auto-contributing savings to ledger
+        for (const fund of app.emergencyFunds || []) {
+            if (fund.autoContribute && fund.monthlyContribution > 0 && fund.currentAmount < fund.targetAmount) {
+                const savingDate = new Date(year, month, 1); // First day of month
+                addTx({
+                    accountId: fund.accountId,
+                    date: savingDate,
+                    name: 'Emergency Fund Contribution',
+                    amount: -Math.abs(Number(fund.monthlyContribution)),
+                    type: 'savings',
+                    sourceId: fund.id,
+                    category: 'Savings'
+                });
+            }
+        }
+
+        for (const fund of app.sinkingFunds || []) {
+            if (fund.autoContribute && fund.monthlyAllocation > 0 && fund.currentAmount < fund.targetAmount) {
+                const savingDate = new Date(year, month, 1); // First day of month
+                addTx({
+                    accountId: fund.accountId,
+                    date: savingDate,
+                    name: fund.name || 'Sinking Fund',
+                    amount: -Math.abs(Number(fund.monthlyAllocation)),
+                    type: 'savings',
+                    sourceId: fund.id,
+                    category: 'Savings'
+                });
+            }
+        }
     }
 
     for (const acctId in accountMap) {
