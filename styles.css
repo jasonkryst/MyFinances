@@ -70,6 +70,53 @@
     font-weight: 600;
 }
 
+.ledger-pagination {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ledger-page-summary {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+}
+
+.ledger-page-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ledger-page-info {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ledger-page-btn {
+    border: 1px solid var(--border-color);
+    background: var(--card-bg, #fff);
+    color: var(--text-primary);
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.ledger-page-btn:hover:not(:disabled) {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.ledger-page-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 body.dark-mode .ledger-section {
     background: #1e293b;
     box-shadow: 0 1px 8px rgba(0,0,0,0.18);
@@ -101,6 +148,25 @@ body.dark-mode .ledger-table td {
 }
 body.dark-mode .ledger-table tbody tr:hover {
     background: #334155;
+}
+
+body.dark-mode .ledger-page-summary {
+    color: #94a3b8;
+}
+
+body.dark-mode .ledger-page-info {
+    color: #f1f5f9;
+}
+
+body.dark-mode .ledger-page-btn {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+
+body.dark-mode .ledger-page-btn:hover:not(:disabled) {
+    background: #334155;
+    border-color: #475569;
 }
 /* ═══════════════════════════════════════════════════════════════
    REPORTS MONTH SELECTOR (pagination)
@@ -2246,6 +2312,11 @@ body.dark-mode .target-result--warn .target-result-payment {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px 16px;
     margin-bottom: 16px;
+}
+@media (max-width: 899px) {
+    .income-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 @media (min-width: 900px) {
     .income-form-grid {

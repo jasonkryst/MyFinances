@@ -105,7 +105,7 @@ export function renderIncomeList(app) {
 
         const bonusRow = bonusThisMonth > 0
             ? `<div class="income-summary-item">
-                   <span class="income-summary-label">Bonuses this month</span>
+                   <span class="income-summary-label">One-time entries this month</span>
                    <span class="income-summary-value income-summary-value--bonus">${formatCurrency(bonusThisMonth)}</span>
                </div>`
             : '';
@@ -216,7 +216,7 @@ export function addBonus(app) {
     const category  = document.getElementById('bonusCategory').value;
     const accountId = parseInt(document.getElementById('bonusAccount')?.value) || null;
 
-    if (!name)                        { alert('Please enter a label for this bonus.'); return; }
+    if (!name)                        { alert('Please enter a label for this one-time entry.'); return; }
     if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
     if (!date)                        { alert('Please enter the date received.'); return; }
 
@@ -262,7 +262,7 @@ export function saveEditBonus(app, bonusId) {
     const category = catEl.value;
     const accountId = accountEl && accountEl.value ? parseInt(accountEl.value) : null;
 
-    if (!name) { alert('Please enter a name for this bonus.'); return; }
+    if (!name) { alert('Please enter a name for this one-time entry.'); return; }
     if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
     if (!date) { alert('Please enter the date received.'); return; }
 
@@ -286,11 +286,17 @@ export function renderBonusList(app) {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
-    const catBadgeClass = { Bonus: 'bonus-cat--bonus', 'Tax Refund': 'bonus-cat--tax', Other: 'bonus-cat--other' };
+    const catBadgeClass = {
+        Bonus: 'bonus-cat--bonus',
+        'Tax Refund': 'bonus-cat--tax',
+        'Cash Deposit': 'bonus-cat--bonus',
+        'Check Deposit': 'bonus-cat--tax',
+        Other: 'bonus-cat--other'
+    };
 
     container.innerHTML = `
         <div class="bonus-list-wrap">
-            <h4 class="bonus-list-title">One-time Bonuses &amp; Windfalls</h4>
+            <h4 class="bonus-list-title">One-time Bonuses &amp; Deposits</h4>
             ${app.bonuses.map(b => {
                 const d = new Date(b.date + 'T12:00:00');
                 const isThisMonth = d.getFullYear() === year && d.getMonth() === month;
@@ -318,6 +324,8 @@ export function renderBonusList(app) {
                                 <select id="be-category-${b.id}" style="width:100%;">
                                     <option value="Bonus"      ${b.category==='Bonus'      ?'selected':''}>Bonus</option>
                                     <option value="Tax Refund" ${b.category==='Tax Refund' ?'selected':''}>Tax Refund</option>
+                                    <option value="Cash Deposit" ${b.category==='Cash Deposit' ?'selected':''}>Cash Deposit</option>
+                                    <option value="Check Deposit" ${b.category==='Check Deposit' ?'selected':''}>Check Deposit</option>
                                     <option value="Other"      ${b.category==='Other'      ?'selected':''}>Other</option>
                                 </select>
                             </div>

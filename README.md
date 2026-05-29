@@ -24,7 +24,7 @@ All calculations happen locally in your browser — no accounts, no servers, no 
   - Next 60 Days
   - Next 90 Days
   - Hide or show future transactions
-- **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, bonuses, debts, bills, and expenses**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month). All date filtering uses precise date-only comparisons to ensure accurate transaction display.
+- **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, one-time entries (bonuses/deposits), debts, bills, and expenses**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month). All date filtering uses precise date-only comparisons to ensure accurate transaction display.
 
 ### Debt Management
 - **Add unlimited debts** — credit cards (revolving balance with APR) or fixed-amount recurring payments (subscriptions, rent, instalments)
@@ -36,15 +36,16 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 
 ### Account Management
 - **Add accounts** — define checking, savings, cash, investment, credit card, loan, or other accounts with a name, type, and starting balance
-- **Link to accounts** — assign income sources, bonuses, debts, bills, and expense budgets to specific accounts
+- **Link to accounts** — assign income sources, one-time entries (bonuses/deposits), debts, bills, and expense budgets to specific accounts
 - **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, bills, and expenses for the current month
 - **Money Flow report** — the Reports › Money Flow tab includes a per-account balance table alongside the cumulative cash-flow chart
 - **Export / Import** — accounts are included in the JSON backup (version 3.0 format)
 
 ### Income Tracking
 - **Add income sources** — name, amount per paycheck, first pay date, and frequency (bi-weekly or monthly)
+- **Add one-time entries** — record irregular deposits using the one-time area (bonus, tax refund, cash deposit, check deposit, or other)
 - **Automatic pay-schedule projection** — the app walks each source's pay cadence forward from its first pay date to calculate how many paydays fall in the current month
-- **Monthly income summary** — shows expected income this month, number of paydays, and estimated annual total
+- **Monthly income summary** — shows expected income this month, regular pay, one-time entries, and estimated annual total
 - **Debt-to-income ratio** — the Strategy page shows what percentage of your expected monthly income your planned payment represents, with a warning if it exceeds 40%
 
 ### Budget Tracking
@@ -135,7 +136,7 @@ Navigate to **Accounts**. Define the bank accounts, wallets, or credit cards you
 | Account Type | Checking / Savings / Cash / Investment / Credit Card / Loan / Other |
 | Starting Balance | Current balance of the account |
 
-Click **Add Account**. Each account card shows the starting balance and a **projected end-of-month balance** that factors in all linked income, bonuses, debt payments, bills, and expense budgets. When adding income sources, debts, bills, or expenses you can optionally link them to one of your accounts.
+Click **Add Account**. Each account card shows the starting balance and a **projected end-of-month balance** that factors in all linked income, one-time entries (bonuses/deposits), debt payments, bills, and expense budgets. When adding income sources, one-time entries, debts, bills, or expenses you can optionally link them to one of your accounts.
 
 ### 3 — Set your strategy and view results
 
@@ -170,6 +171,8 @@ Navigate to **Income**.
 Click **Add Income**. Add one row per income source.
 
 The page shows a summary of how much income is expected in the **current calendar month** (the app projects each source's schedule from its first pay date). The **Strategy** page also shows a debt-to-income ratio widget whenever income sources exist, plus a net cashflow row when bills or expense budgets have been entered.
+
+Use the one-time entry section on the Income page to add irregular deposits such as bonuses, tax refunds, cash deposits, or check deposits. These entries can be linked to an account and are included in monthly income calculations.
 
 ### 5 — Track your budget
 
@@ -264,7 +267,7 @@ src/app.js          — DebtTrackerApp composition + delegator methods + bootstr
 src/ui.js           — Event wiring, page/tab switching, UI refresh helpers
 src/strategy.js     — Plan calculation handlers + schedule/summary rendering
 src/debts.js        — Debt CRUD + debt list + balance update flows
-src/income.js       — Income/bonus CRUD + rendering
+src/income.js       — Income and one-time entry CRUD + rendering
 src/bills.js        — Bills/expenses CRUD + budget rendering + date tracking
 src/accounts.js     — Account CRUD + projection helpers
 src/reports.js      — Reports month navigation + report rendering + calendar integration

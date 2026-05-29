@@ -146,6 +146,14 @@ export function renderLedgerPage(app) {
     const accounts = app.accounts || [];
     let selectedAccount = app._ledgerAccountFilter || 'all';
     let selectedDateRange = app._ledgerDateRange || '30';
+    let selectedPageSize = parseInt(app._ledgerPageSize, 10);
+    if (![10, 25, 50, 100].includes(selectedPageSize)) {
+        selectedPageSize = 25;
+    }
+    let currentPage = parseInt(app._ledgerPage, 10);
+    if (isNaN(currentPage) || currentPage < 1) {
+        currentPage = 1;
+    }
     let filterHtml = '';
     filterHtml += `<div style="margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">`;
     if (accounts.length > 0) {
@@ -166,13 +174,19 @@ export function renderLedgerPage(app) {
             <option value="60"${selectedDateRange==='60'?' selected':''}>Next 60 Days</option>
             <option value="90"${selectedDateRange==='90'?' selected':''}>Next 90 Days</option>
         </select>`;
+    filterHtml += `<label for="ledgerPageSize" style="font-weight:600;">Rows:</label>
+        <select id="ledgerPageSize" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
+            <option value="10"${selectedPageSize===10?' selected':''}>10</option>
+            <option value="25"${selectedPageSize===25?' selected':''}>25</option>
+            <option value="50"${selectedPageSize===50?' selected':''}>50</option>
+            <option value="100"${selectedPageSize===100?' selected':''}>100</option>
+        </select>`;
     filterHtml += `</div>`;
     if (selectedAccount !== 'all') {
         transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
     }
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     if (selectedDateRange !== 'all') {
         transactions = transactions.filter(tx => {
             const txDate = new Date(tx.date);
@@ -208,6 +222,21 @@ export function renderLedgerPage(app) {
         if (vA > vB) return sortDir === 'asc' ? 1 : -1;
         return 0;
     });
+
+    const totalRows = transactions.length;
+    const totalPages = Math.max(1, Math.ceil(totalRows / selectedPageSize));
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
+    app._ledgerPageSize = selectedPageSize;
+    app._ledgerPage = currentPage;
+
+    const startIndex = (currentPage - 1) * selectedPageSize;
+    const endIndex = startIndex + selectedPageSize;
+    const pagedTransactions = transactions.slice(startIndex, endIndex);
+    const startItem = totalRows === 0 ? 0 : startIndex + 1;
+    const endItem = Math.min(endIndex, totalRows);
+
     const sortIcon = key => {
         if (app._ledgerSortKey !== key) return '<span class="sort-icon">⇅</span>';
         return app._ledgerSortDir === 'asc' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
@@ -222,10 +251,10 @@ export function renderLedgerPage(app) {
             <th data-key="balance">Running Balance ${sortIcon('balance')}</th>
         </tr></thead>
         <tbody>`;
-    if (transactions.length === 0) {
+    if (pagedTransactions.length === 0) {
         html += `<tr><td colspan="5" style="text-align:center;color:#888;padding:32px 0;">No transactions yet.</td></tr>`;
     } else {
-        for (const tx of transactions) {
+        for (const tx of pagedTransactions) {
             html += `<tr>
                 <td>${tx.date ? _formatLedgerDate(tx.date) : ''}</td>
                 <td>${tx.account || ''}</td>
@@ -236,6 +265,14 @@ export function renderLedgerPage(app) {
         }
     }
     html += `</tbody></table>`;
+    html += `<div class="ledger-pagination">
+        <div class="ledger-page-summary">Showing ${startItem}-${endItem} of ${totalRows}</div>
+        <div class="ledger-page-controls">
+            <button id="ledgerPrevPage" class="ledger-page-btn" ${currentPage <= 1 ? 'disabled' : ''}>Previous</button>
+            <span class="ledger-page-info">Page ${currentPage} of ${totalPages}</span>
+            <button id="ledgerNextPage" class="ledger-page-btn" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+        </div>
+    </div>`;
     container.innerHTML = html;
     const table = container.querySelector('.ledger-table');
     if (table) {
@@ -249,6 +286,7 @@ export function renderLedgerPage(app) {
                     app._ledgerSortKey = key;
                     app._ledgerSortDir = key === 'amount' || key === 'balance' ? 'desc' : 'asc';
                 }
+                app._ledgerPage = 1;
                 renderLedgerPage(app);
             };
         });
@@ -257,6 +295,7 @@ export function renderLedgerPage(app) {
     if (acctFilter) {
         acctFilter.onchange = (e) => {
             app._ledgerAccountFilter = e.target.value;
+            app._ledgerPage = 1;
             renderLedgerPage(app);
         };
     }
@@ -264,7 +303,36 @@ export function renderLedgerPage(app) {
     if (dateRangeFilter) {
         dateRangeFilter.onchange = (e) => {
             app._ledgerDateRange = e.target.value;
+            app._ledgerPage = 1;
             renderLedgerPage(app);
+        };
+    }
+    const pageSizeFilter = container.querySelector('#ledgerPageSize');
+    if (pageSizeFilter) {
+        pageSizeFilter.onchange = (e) => {
+            const pageSize = parseInt(e.target.value, 10);
+            app._ledgerPageSize = [10, 25, 50, 100].includes(pageSize) ? pageSize : 25;
+            app._ledgerPage = 1;
+            renderLedgerPage(app);
+        };
+    }
+    const prevBtn = container.querySelector('#ledgerPrevPage');
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            if ((app._ledgerPage || 1) > 1) {
+                app._ledgerPage = (app._ledgerPage || 1) - 1;
+                renderLedgerPage(app);
+            }
+        };
+    }
+    const nextBtn = container.querySelector('#ledgerNextPage');
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            const page = app._ledgerPage || 1;
+            if (page < totalPages) {
+                app._ledgerPage = page + 1;
+                renderLedgerPage(app);
+            }
         };
     }
     // --- End: renderLedgerPage logic ---
