@@ -102,6 +102,22 @@ def main() -> None:
         if not calendar_content or len(calendar_content) < 10:
             fail('Reports calendar failed to load content')
 
+        # Test Income vs Expenses tab
+        page.click('button[data-rptab="incomeexp"]')
+        page.wait_for_selector('#reportsIncomeExp', timeout=10000)
+
+        # Test Money Flow tab
+        page.click('button[data-rptab="moneyflow"]')
+        page.wait_for_selector('#reportsMoneyFlow', timeout=10000)
+
+        # Test What Changed (Variance Dashboard) tab
+        page.click('button[data-rptab="variance"]')
+        page.wait_for_selector('#reportsVariance', timeout=10000)
+        # Verify variance dashboard loaded
+        variance_content = page.text_content('#reportsVariance')
+        if not variance_content or 'Month-to-Month' not in variance_content:
+            fail('Variance Dashboard failed to load content')
+
         # Strategy: calculate plan
         page.click('button[data-page="strategy"]')
         page.fill('#monthlyPayment', '400')

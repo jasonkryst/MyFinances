@@ -90,9 +90,9 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 
 ### Calendar & Reports
 - **Month-by-month calendar** — paginated calendar with income paydays, recurring template occurrences, expenses, debt payments, and bonuses pinned to their dates
-- **Reports sections** — Income vs. Expenses chart showing income, bills, recurring costs, and debt minimums; Money Flow chart tracking cumulative income/outflow/net day-by-day through the month; account balance projections for each account
+- **Reports sections** — Income vs. Expenses chart showing income, recurring costs, and debt minimums; Money Flow chart tracking cumulative income/outflow/net day-by-day through the month; Variance Dashboard comparing this month vs last month with clear deltas for income, expenses, recurring costs, and debt; account balance projections for each account
 - **Recurring integration** — all recurring template transactions are fully integrated into calendar events, income vs. expenses breakdown, and money flow calculations
-- **Account projections** — the Money Flow report shows projected end-of-month balance for each account after all linked transactions (income, debt payments, expenses, recurring items)
+- **Variance Dashboard** — "What Changed" tab comparing current month vs previous month with color-coded deltas for income, expenses, recurring costs, debt minimums, and net available funds; quickly identify spending patterns and budget trends
 
 ### Interest Paid to Date
 - Record the date you opened each credit-card debt (`debtStartDate`)
