@@ -69,17 +69,8 @@ def main() -> None:
         page.click('#debtFormSubmit')
         page.wait_for_selector('text=Smoke Card', timeout=10000)
 
-        # Budget: add bill and expense
+        # Budget (Expenses): add expense
         page.click('button[data-page="budget"]')
-        page.click('#billFormToggle')
-        page.fill('#billName', 'Smoke Electric')
-        page.fill('#billAmount', '120')
-        page.fill('#billDueDay', '12')
-        page.select_option('#billCategory', label='Utilities')
-        page.select_option('#billAccount', index=1)
-        page.click('#billFormSubmit')
-        page.wait_for_selector('text=Smoke Electric', timeout=10000)
-
         page.click('#expenseFormToggle')
         page.fill('#expenseName', 'Smoke Groceries')
         page.fill('#expenseBudget', '300')
@@ -88,6 +79,28 @@ def main() -> None:
         page.select_option('#expenseAccount', index=1)
         page.click('#expenseFormSubmit')
         page.wait_for_selector('text=Smoke Groceries', timeout=10000)
+
+        # Recurring: add recurring template
+        page.click('button[data-page="recurring"]')
+        page.click('#recurringFormToggle')
+        page.fill('#recurringName', 'Smoke Netflix')
+        page.select_option('#recurringType', 'subscription')
+        page.fill('#recurringAmount', '15.99')
+        page.select_option('#recurringFrequency', 'monthly')
+        page.fill('#recurringDayOfMonth', '1')
+        page.select_option('#recurringCategory', 'Subscription')
+        page.select_option('#recurringAccount', index=1)
+        page.fill('#recurringStartDate', '2026-05-01')
+        page.click('#recurringFormSubmit')
+        page.wait_for_selector('text=Smoke Netflix', timeout=10000)
+
+        # Verify recurring appears in Reports
+        page.click('button[data-page="reports"]')
+        page.wait_for_selector('#reportsCalendar', timeout=10000)
+        # Check that the calendar loaded
+        calendar_content = page.text_content('#reportsCalendar')
+        if not calendar_content or len(calendar_content) < 10:
+            fail('Reports calendar failed to load content')
 
         # Strategy: calculate plan
         page.click('button[data-page="strategy"]')

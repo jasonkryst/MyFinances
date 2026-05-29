@@ -107,6 +107,28 @@ function sanitizeLedgerOverrides(overrides) {
     return out;
 }
 
+function sanitizeRecurringTemplate(record, idFallback) {
+    const type = ['subscription', 'reimbursement', 'transfer'].includes(record?.type) ? record.type : 'subscription';
+    const frequency = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'].includes(record?.frequency) ? record.frequency : 'monthly';
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        type,
+        amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
+        frequency,
+        dayOfMonth: sanitizeInteger(record?.dayOfMonth, 1, { min: 1, max: 31 }),
+        category: normalizeText(record?.category, 40) || 'Other',
+        accountId: sanitizeInteger(record?.accountId, null),
+        targetAccountId: sanitizeInteger(record?.targetAccountId, null),
+        startDate: sanitizeDateISO(record?.startDate),
+        endDate: sanitizeDateISO(record?.endDate),
+        paused: record?.paused === true,
+        skippedMonths: Array.isArray(record?.skippedMonths)
+            ? record.skippedMonths.filter(m => typeof m === 'string' && /^\d{4}-\d{2}$/.test(m))
+            : []
+    };
+}
+
 function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
@@ -117,6 +139,7 @@ function sanitizeParsedState(parsed = {}) {
         bills: (Array.isArray(parsed.bills) ? parsed.bills : []).map((b, i) => sanitizeBill(b, now + 2000 + i)).filter(b => !!b.name),
         expenses: (Array.isArray(parsed.expenses) ? parsed.expenses : []).map((e, i) => sanitizeExpense(e, now + 3000 + i)).filter(e => !!e.name && !!e.date),
         ledgerAmountOverrides: sanitizeLedgerOverrides(parsed.ledgerAmountOverrides || {}),
+        recurringTemplates: (Array.isArray(parsed.recurringTemplates) ? parsed.recurringTemplates : []).map((r, i) => sanitizeRecurringTemplate(r, now + 4000 + i)).filter(r => !!r.name),
         perMonthStimulus: (Array.isArray(parsed.perMonthStimulus) ? parsed.perMonthStimulus : []).map(v => sanitizeFiniteNumber(v, 0, { min: 0 })),
         monthlyPayment: sanitizeFiniteNumber(parsed.monthlyPayment, null, { min: 0 }),
         strategy: normalizeText(parsed.strategy, 30) || null,
@@ -141,6 +164,7 @@ export function saveToStorage(app) {
             bills: app.bills || [],
             expenses: app.expenses || [],
             ledgerAmountOverrides: app.ledgerAmountOverrides || {},
+            recurringTemplates: app.recurringTemplates || [],
             perMonthStimulus: app.perMonthStimulus || [],
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             strategy: document.getElementById('paymentStrategy')?.value || null,
@@ -172,6 +196,7 @@ export function loadFromStorage(app) {
             app.bills = clean.bills;
             app.expenses = clean.expenses;
             app.ledgerAmountOverrides = clean.ledgerAmountOverrides;
+            app.recurringTemplates = clean.recurringTemplates;
             app.perMonthStimulus = clean.perMonthStimulus;
             app._savedMonthlyPayment = clean.monthlyPayment;
             app._savedStrategy = clean.strategy;
@@ -204,6 +229,7 @@ export function exportAllJSON(app) {
         bills: app.bills || [],
         expenses: app.expenses || [],
         ledgerAmountOverrides: app.ledgerAmountOverrides || {},
+        recurringTemplates: app.recurringTemplates || [],
         strategy: {
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             paymentStrategy: document.getElementById('paymentStrategy')?.value || null

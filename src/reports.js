@@ -75,6 +75,7 @@ export function renderReportsCalendar(app) {
     const dayExpenses = {};
     const dayDebts = {};
     const dayBonuses = {};
+    const dayRecurring = {};
 
     const palette = ['#2563eb', '#dc2626', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#6366f1'];
     const debtColorByName = {};
@@ -102,6 +103,11 @@ export function renderReportsCalendar(app) {
             dayExpenses[day].push(tx);
             continue;
         }
+        if (tx.type === 'recurring') {
+            if (!dayRecurring[day]) dayRecurring[day] = [];
+            dayRecurring[day].push(tx);
+            continue;
+        }
         if (tx.type === 'debt') {
             if (!dayDebts[day]) dayDebts[day] = [];
             if (!debtColorByName[tx.name]) {
@@ -115,6 +121,7 @@ export function renderReportsCalendar(app) {
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--income"></span>Payday</span>',
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bill"></span>Bill due</span>',
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--expense"></span>Expense</span>',
+        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--recurring"></span>Recurring</span>',
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch" style="background:#2563eb;"></span>Debt payment</span>',
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bonus"></span>Bonus/Windfall</span>',
         isCurrentMonth ? '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--today"></span>Today</span>' : ''
@@ -135,9 +142,10 @@ export function renderReportsCalendar(app) {
         const incomes = dayIncome[day] || [];
         const bills = dayBills[day] || [];
         const expenses = dayExpenses[day] || [];
+        const recurring = dayRecurring[day] || [];
         const debts = dayDebts[day] || [];
         const bonuses = dayBonuses[day] || [];
-        const hasEvts = incomes.length || bills.length || expenses.length || debts.length || bonuses.length;
+        const hasEvts = incomes.length || bills.length || expenses.length || recurring.length || debts.length || bonuses.length;
         const isToday = day === today;
 
         gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"><span class="rpt-cal-day-num">${day}</span>`;
@@ -152,6 +160,10 @@ export function renderReportsCalendar(app) {
         for (const exp of expenses) {
             const amount = Math.abs(exp.amount || 0);
             gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--expense" title="🛒 ${escapeHtml(exp.name)}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🛒 ${escapeHtml(exp.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
+        }
+        for (const rec of recurring) {
+            const amount = Math.abs(rec.amount || 0);
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--recurring" title="🔄 ${escapeHtml(rec.name)}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🔄 ${escapeHtml(rec.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
         }
         for (const debt of debts) {
             const amount = Math.abs(debt.amount || 0);
@@ -182,6 +194,7 @@ export function renderReportsIncomeExp(app) {
     let totalIncome = 0;
     let totalBills = 0;
     let totalExpenses = 0;
+    let totalRecurring = 0;
     let totalDebtMin = 0;
 
     for (const tx of monthTxs) {
@@ -197,12 +210,20 @@ export function renderReportsIncomeExp(app) {
             totalExpenses += Math.abs(tx.amount || 0);
             continue;
         }
+        if (tx.type === 'recurring') {
+            if (tx.amount >= 0) {
+                totalIncome += tx.amount;
+            } else {
+                totalRecurring += Math.abs(tx.amount);
+            }
+            continue;
+        }
         if (tx.type === 'debt') {
             totalDebtMin += Math.abs(tx.amount || 0);
         }
     }
 
-    const totalOutflow = totalBills + totalExpenses + totalDebtMin;
+    const totalOutflow = totalBills + totalExpenses + totalRecurring + totalDebtMin;
     const net = totalIncome - totalOutflow;
     const netCls = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
@@ -212,6 +233,7 @@ export function renderReportsIncomeExp(app) {
         { label: `Income (${monthLabel})`, value: totalIncome, cls: 'rpt-stat--income' },
         { label: 'Bills', value: totalBills, cls: 'rpt-stat--bills' },
         { label: 'Expense Budgets', value: totalExpenses, cls: 'rpt-stat--exp' },
+        { label: 'Recurring Costs', value: totalRecurring, cls: 'rpt-stat--recurring' },
         { label: 'Debt Minimums', value: totalDebtMin, cls: 'rpt-stat--debt' },
         { label: 'Net Remaining', value: net, cls: netCls }
     ];
@@ -254,6 +276,18 @@ export function renderReportsIncomeExp(app) {
         outflowColors.push('#8b5cf6');
     }
 
+    const recCats = {};
+    for (const tx of monthTxs) {
+        if (tx.type !== 'recurring' || tx.amount >= 0) continue;
+        const cat = tx.category || 'Other';
+        recCats[cat] = (recCats[cat] || 0) + Math.abs(tx.amount);
+    }
+    for (const [cat, amt] of Object.entries(recCats)) {
+        outflowLabels.push(`🔄 ${escapeHtml(cat)}`);
+        outflowData.push(amt);
+        outflowColors.push('#06b6d4');
+    }
+
     const debtByName = {};
     for (const tx of monthTxs) {
         if (tx.type !== 'debt') continue;
@@ -269,7 +303,7 @@ export function renderReportsIncomeExp(app) {
 
     container.innerHTML = `
         <div class="rpt-stats-strip">${statsHTML}</div>
-        ${!hasData ? '<p class="rpt-empty-msg">Add income sources, bills, expenses, or debts to see charts.</p>' : `
+        ${!hasData ? '<p class="rpt-empty-msg">Add income sources, bills, expenses, recurring items, or debts to see charts.</p>' : `
         <div class="rpt-charts-row">
             <div class="rpt-chart-card">
                 <h4 class="rpt-chart-title">💰 Income This Month</h4>
@@ -400,7 +434,7 @@ export function renderReportsMoneyFlow(app) {
         acctSectionHTML = `
             <div class="acct-mf-section">
                 <h4 class="acct-mf-title">🏦 Account Balances — ${monthLabel}</h4>
-                <p class="rpt-chart-sub">Starting balance vs. projected end-of-month after all linked income, debts, bills and expenses.</p>
+                <p class="rpt-chart-sub">Starting balance vs. projected end-of-month after all linked income, debts, bills, expenses, and recurring items.</p>
                 <div class="acct-mf-header"><span></span><span>Account</span><span>Type</span><span>Starting</span><span>Projected</span><span>Change</span></div>
                 ${acctRows}
             </div>`;
@@ -408,8 +442,8 @@ export function renderReportsMoneyFlow(app) {
 
     container.innerHTML = `
         <h3 class="rpt-section-title">💰 Money Flow — ${monthLabel}</h3>
-        <p class="rpt-chart-sub" style="margin:0 0 16px">Cumulative income, outflow, and net balance day by day through the month. Vertical dashed line = today.</p>
-        ${!hasAnyData ? '<p class="rpt-empty-msg">Add income, bills, debts, bonuses, or expenses to see the money flow chart.</p>' : '<div class="rpt-moneyflow-wrap"><canvas id="rptMoneyFlowChart"></canvas></div>'}
+        <p class="rpt-chart-sub" style="margin:0 0 16px">Cumulative income, outflow, and net balance day by day through the month. Vertical dashed line = today. Includes recurring transactions.</p>
+        ${!hasAnyData ? '<p class="rpt-empty-msg">Add income, bills, debts, bonuses, expenses, or recurring items to see the money flow chart.</p>' : '<div class="rpt-moneyflow-wrap"><canvas id="rptMoneyFlowChart"></canvas></div>'}
         ${acctSectionHTML}`;
 
     if (!hasAnyData) return;

@@ -3341,6 +3341,8 @@ body.dark-mode .cashflow-net--negative { background: #450a0a; color: #fca5a5; }
 .rpt-stat--bills   .rpt-stat-value { color: #92400e; }
 .rpt-stat--exp     { background: #f5f3ff; border-color: #c4b5fd; }
 .rpt-stat--exp     .rpt-stat-value { color: #4c1d95; }
+.rpt-stat--recurring { background: #ecfdf5; border-color: #a5f3fc; }
+.rpt-stat--recurring .rpt-stat-value { color: #0c4a6e; }
 .rpt-stat--debt    { background: #fef2f2; border-color: #fca5a5; }
 .rpt-stat--debt    .rpt-stat-value { color: #7f1d1d; }
 .rpt-net--pos      { background: #d1fae5; border-color: #6ee7b7; }
@@ -3354,6 +3356,8 @@ body.dark-mode .rpt-stat--bills   { background: #1c1400; border-color: #78350f; 
 body.dark-mode .rpt-stat--bills   .rpt-stat-value { color: #fcd34d; }
 body.dark-mode .rpt-stat--exp     { background: #1e1b4b; border-color: #4c1d95; }
 body.dark-mode .rpt-stat--exp     .rpt-stat-value { color: #c4b5fd; }
+body.dark-mode .rpt-stat--recurring { background: #06363c; border-color: #0c4a6e; }
+body.dark-mode .rpt-stat--recurring .rpt-stat-value { color: #67e8f9; }
 body.dark-mode .rpt-stat--debt    { background: #450a0a; border-color: #7f1d1d; }
 body.dark-mode .rpt-stat--debt    .rpt-stat-value { color: #fca5a5; }
 body.dark-mode .rpt-net--pos      { background: #064e3b; border-color: #065f46; }
@@ -3417,6 +3421,7 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 .rpt-cal-swatch--income { background: #10b981; }
 .rpt-cal-swatch--bill   { background: #f59e0b; }
 .rpt-cal-swatch--expense { background: #8b5cf6; }
+.rpt-cal-swatch--recurring { background: #06b6d4; }
 .rpt-cal-swatch--bonus  { background: #d97706; }
 .rpt-cal-swatch--today  { background: #2563eb; border-radius: 50%; }
 
@@ -3482,6 +3487,7 @@ body.dark-mode .rpt-cal-today { background: #1e3a5f; border-color: #2563eb; }
 .rpt-cal-evt--income { background: #10b981; }
 .rpt-cal-evt--bill   { background: #f59e0b; }
 .rpt-cal-evt--expense { background: #8b5cf6; }
+.rpt-cal-evt--recurring { background: #06b6d4; }
 .rpt-cal-evt--bonus  { background: #d97706; }
 
 @media (max-width: 640px) {
@@ -3662,4 +3668,237 @@ body.dark-mode .acct-mf-diff--neg { color: #f87171; }
     .acct-mf-type, .acct-mf-start { display: none; }
     .acct-edit-grid { grid-template-columns: 1fr 1fr; }
     .acct-card-header { gap: 10px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RECURRING TRANSACTION TEMPLATES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.recurring-section {
+    background: var(--card-bg, #fff);
+    border-radius: 12px;
+    padding: 28px 24px 32px;
+    margin-bottom: 40px;
+}
+.recurring-section h2 {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 8px;
+}
+.recurring-intro {
+    color: var(--text-muted, #6b7280);
+    font-size: 0.92rem;
+    margin: 0 0 20px;
+}
+
+/* ── Add-template form card ─────────────────────────────────────────────── */
+.recurring-form-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 10px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+body.dark-mode .recurring-form-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+.recurring-form-toggle {
+    width: 100%;
+    background: #f8fafc;
+    border: none;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 0.97rem;
+    cursor: pointer;
+    color: var(--primary-color);
+    transition: background 0.15s;
+}
+body.dark-mode .recurring-form-toggle {
+    background: #1e293b;
+    color: #93c5fd;
+}
+.recurring-form-toggle:hover { background: #e0e7ff; }
+body.dark-mode .recurring-form-toggle:hover { background: #1e3a5f; }
+.recurring-form-toggle-chevron {
+    transition: transform 0.2s;
+}
+.recurring-form-toggle--open .recurring-form-toggle-chevron {
+    transform: rotate(180deg);
+}
+.recurring-form-body {
+    padding: 18px 18px 20px;
+}
+.recurring-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px 16px;
+    margin-bottom: 16px;
+}
+
+/* ── Template cards ─────────────────────────────────────────────────────── */
+.recurring-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.recurring-empty-msg {
+    color: var(--text-muted, #6b7280);
+    font-style: italic;
+    text-align: center;
+    padding: 24px 0;
+}
+.recurring-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 10px;
+    padding: 16px 18px 14px;
+    transition: box-shadow 0.18s, opacity 0.18s;
+}
+body.dark-mode .recurring-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+.recurring-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); }
+.recurring-card--paused { opacity: 0.6; }
+.recurring-card--editing {
+    border-color: var(--primary-color);
+    background: #f0f4ff;
+}
+body.dark-mode .recurring-card--editing { background: #172041; }
+
+.recurring-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.recurring-type-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
+.recurring-card-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+.recurring-card-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary, #111827);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+body.dark-mode .recurring-card-name { color: #f1f5f9; }
+.recurring-type-label {
+    font-size: 0.78rem;
+    color: var(--text-muted, #6b7280);
+    margin-top: 2px;
+}
+.recurring-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.recurring-amount {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+.recurring-amount--pos { color: #059669; }
+.recurring-amount--neg { color: #dc2626; }
+body.dark-mode .recurring-amount--pos { color: #34d399; }
+body.dark-mode .recurring-amount--neg { color: #f87171; }
+.recurring-freq-badge {
+    font-size: 0.72rem;
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-weight: 600;
+}
+body.dark-mode .recurring-freq-badge { background: #1e3a5f; color: #93c5fd; }
+
+.recurring-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-bottom: 8px;
+}
+.recurring-meta-item {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+}
+
+.recurring-card-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.recurring-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 10px;
+}
+.recurring-badge--active  { background: #d1fae5; color: #065f46; }
+.recurring-badge--paused  { background: #fef3c7; color: #92400e; }
+.recurring-badge--skipped { background: #e0f2fe; color: #075985; }
+.recurring-badge--pending { background: #f3f4f6; color: #6b7280; }
+body.dark-mode .recurring-badge--active  { background: #064e3b; color: #6ee7b7; }
+body.dark-mode .recurring-badge--paused  { background: #451a03; color: #fcd34d; }
+body.dark-mode .recurring-badge--skipped { background: #0c4a6e; color: #7dd3fc; }
+body.dark-mode .recurring-badge--pending { background: #1f2937; color: #9ca3af; }
+.recurring-this-month {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+}
+.recurring-this-month strong { color: var(--text-primary, #111827); }
+body.dark-mode .recurring-this-month strong { color: #f1f5f9; }
+
+.recurring-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* ── Inline edit grid ───────────────────────────────────────────────────── */
+.recurring-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px 16px;
+    margin-bottom: 14px;
+}
+.recurring-edit-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 3px;
+    color: var(--text-muted, #6b7280);
+}
+.recurring-edit-field input,
+.recurring-edit-field select {
+    width: 100%;
+}
+.recurring-edit-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+    .recurring-form-grid { grid-template-columns: 1fr; }
+    .recurring-edit-grid { grid-template-columns: 1fr 1fr; }
+    .recurring-card-header { flex-wrap: wrap; }
 }

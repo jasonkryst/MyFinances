@@ -51,7 +51,8 @@
                 <button class="page-button active" data-page="accounts">Accounts</button>
                 <button class="page-button" data-page="income">Income</button>
                 <button class="page-button" data-page="debts">Debts</button>
-                <button class="page-button" data-page="budget">Budget</button>
+                <button class="page-button" data-page="budget">Expenses</button>
+                <button class="page-button" data-page="recurring">Recurring</button>
                 <button class="page-button" data-page="strategy">Plan</button>
                 <button class="page-button" data-page="reports">Reports</button>
                 <button class="page-button" data-page="ledger">Ledger</button>
@@ -354,59 +355,9 @@
 
             <!-- Budget Section -->
             <section class="budget-section page-section" id="budgetSection">
-                <h2>📊 Budget</h2>
+                <h2>📊 Expenses</h2>
 
-                <div class="budget-two-col">
-                    <!-- Bills Column -->
-                    <div class="budget-col">
-                        <div class="budget-form-card">
-                            <button class="budget-form-toggle" id="billFormToggle" aria-expanded="false" aria-controls="billFormBody" type="button">
-                                <span>Add Bill / Recurring Cost</span>
-                                <svg class="budget-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            </button>
-                            <div class="budget-form-body" id="billFormBody" hidden>
-                            <form id="billForm" novalidate>
-                                <div class="budget-form-grid">
-                                    <div class="form-group">
-                                        <label for="billName">Name *</label>
-                                        <input type="text" id="billName" placeholder="e.g. Electricity, Internet" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billAmount">Monthly Amount ($) *</label>
-                                        <input type="number" id="billAmount" placeholder="0.00" step="0.01" min="0" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billDueDay">Due Day of Month</label>
-                                        <input type="number" id="billDueDay" placeholder="1–31" min="1" max="31">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billCategory">Category</label>
-                                        <select id="billCategory">
-                                            <option value="Utilities">Utilities</option>
-                                            <option value="Internet / Phone">Internet / Phone</option>
-                                            <option value="Insurance">Insurance</option>
-                                            <option value="Subscription">Subscription</option>
-                                            <option value="Rent / Mortgage">Rent / Mortgage</option>
-                                            <option value="Transport">Transport</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billAccount">Pay from Account</label>
-                                        <select id="billAccount">
-                                            <option value="">— No account —</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary" id="billFormSubmit">Add Bill</button>
-                            </form>
-                            </div><!-- /billFormBody -->
-                        </div>
-                        <div id="billList" class="budget-item-list"></div>
-                    </div>
-
-                    <!-- Expenses Column -->
-                    <div class="budget-col">
+                <div class="budget-col">
                         <div class="budget-form-card">
                             <button class="budget-form-toggle" id="expenseFormToggle" aria-expanded="false" aria-controls="expenseFormBody" type="button">
                                 <span>Add Expense Budget</span>
@@ -456,7 +407,6 @@
                             </div><!-- /expenseFormBody -->
                         </div>
                         <div id="expenseList" class="budget-item-list"></div>
-                    </div>
                 </div>
 
                 <!-- Cash Flow Summary -->
@@ -670,6 +620,100 @@
                 <div class="rpt-tab-panel" id="rptPanel-moneyflow">
                     <div id="reportsMoneyFlow"></div>
                 </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Recurring Templates Section                                 -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="recurring-section page-section" id="recurringSection">
+                <h2>🔁 Recurring Templates</h2>
+                <p class="recurring-intro">Track recurring non-debt entries — subscriptions, reimbursements, and transfers. Each template generates projected ledger entries each month. You can pause a template or skip a specific month at any time.</p>
+
+                <!-- Add Template Form -->
+                <div class="recurring-form-card">
+                    <button class="recurring-form-toggle" id="recurringFormToggle" type="button" aria-expanded="false" aria-controls="recurringFormBody">
+                        <span>Add Recurring Template</span>
+                        <svg class="recurring-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="recurring-form-body" id="recurringFormBody" hidden>
+                        <form id="recurringForm" novalidate>
+                            <div class="recurring-form-grid">
+                                <div class="form-group">
+                                    <label for="recurringName">Name *</label>
+                                    <input type="text" id="recurringName" placeholder="e.g. Netflix, Gym reimbursement" required maxlength="80">
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringType">Type *</label>
+                                    <select id="recurringType" required>
+                                        <option value="subscription">Subscription / Expense</option>
+                                        <option value="reimbursement">Reimbursement / Income</option>
+                                        <option value="transfer">Transfer</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringAmount">Amount ($) *</label>
+                                    <input type="number" id="recurringAmount" placeholder="0.00" step="0.01" min="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringFrequency">Frequency *</label>
+                                    <select id="recurringFrequency" required>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="biweekly">Every 2 weeks</option>
+                                        <option value="monthly" selected>Monthly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringDayOfMonth">Day of Month</label>
+                                    <input type="number" id="recurringDayOfMonth" placeholder="1–31" min="1" max="31">
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringCategory">Category</label>
+                                    <select id="recurringCategory">
+                                        <option value="Subscription">Subscription</option>
+                                        <option value="Insurance">Insurance</option>
+                                        <option value="Rent / Mortgage">Rent / Mortgage</option>
+                                        <option value="Utilities">Utilities</option>
+                                        <option value="Transport">Transport</option>
+                                        <option value="Food">Food</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Health">Health</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Savings">Savings</option>
+                                        <option value="Transfer">Transfer</option>
+                                        <option value="Reimbursement">Reimbursement</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringAccount">Account *</label>
+                                    <select id="recurringAccount" required>
+                                        <option value="">— Select account —</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringTargetAccount">Target Account (transfers)</label>
+                                    <select id="recurringTargetAccount">
+                                        <option value="">— None (not a transfer) —</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringStartDate">Start Date *</label>
+                                    <input type="date" id="recurringStartDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringEndDate">End Date (optional)</label>
+                                    <input type="date" id="recurringEndDate">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="recurringFormSubmit">Add Template</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Template List -->
+                <div id="recurringList" class="recurring-list"></div>
             </section>
 
             <!-- Empty State -->

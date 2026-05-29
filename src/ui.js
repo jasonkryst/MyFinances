@@ -169,14 +169,6 @@ export function initializeEventListeners(app) {
         });
     }
 
-    const billForm = document.getElementById('billForm');
-    if (billForm) {
-        billForm.addEventListener('submit', e => {
-            e.preventDefault();
-            app.addBill();
-        });
-    }
-
     const expenseForm = document.getElementById('expenseForm');
     if (expenseForm) {
         expenseForm.addEventListener('submit', e => {
@@ -190,6 +182,25 @@ export function initializeEventListeners(app) {
         bonusForm.addEventListener('submit', e => {
             e.preventDefault();
             app.addBonus();
+        });
+    }
+
+    const recurringForm = document.getElementById('recurringForm');
+    if (recurringForm) {
+        recurringForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addRecurringTemplate();
+        });
+    }
+
+    const recurringFormToggle = document.getElementById('recurringFormToggle');
+    const recurringFormBody = document.getElementById('recurringFormBody');
+    if (recurringFormToggle && recurringFormBody) {
+        recurringFormToggle.addEventListener('click', () => {
+            const open = !recurringFormBody.hidden;
+            recurringFormBody.hidden = open;
+            recurringFormToggle.setAttribute('aria-expanded', String(!open));
+            recurringFormToggle.classList.toggle('recurring-form-toggle--open', !open);
         });
     }
 
@@ -240,7 +251,6 @@ export function initializeEventListeners(app) {
             toggle.classList.toggle('budget-form-toggle--open', !open);
         });
     };
-    makeBudgetToggle('billFormToggle', 'billFormBody');
     makeBudgetToggle('expenseFormToggle', 'expenseFormBody');
 
     const bonusFormToggle = document.getElementById('bonusFormToggle');
@@ -432,7 +442,8 @@ export function switchPage(app, pageName) {
         budget: 'budgetSection',
         strategy: 'strategySection',
         reports: 'reportsSection',
-        ledger: 'ledgerSection'
+        ledger: 'ledgerSection',
+        recurring: 'recurringSection'
     };
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -454,6 +465,10 @@ export function switchPage(app, pageName) {
     }
     if (pageName === 'ledger') {
         renderLedgerPage(app);
+    }
+    if (pageName === 'recurring') {
+        app.refreshRecurringAccountSelectors();
+        app.renderRecurringPage();
     }
 }
 

@@ -24,7 +24,7 @@ All calculations happen locally in your browser — no accounts, no servers, no 
   - Next 60 Days
   - Next 90 Days
   - Hide or show future transactions
-- **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, one-time entries (bonuses/deposits), debts, bills, and expenses**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month). All date filtering uses precise date-only comparisons to ensure accurate transaction display.
+- **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, one-time entries (bonuses/deposits), debts, expenses, and recurring templates**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month). All date filtering uses precise date-only comparisons to ensure accurate transaction display.
 - **Amount overrides (modal-based)** — each non-rollover transaction in the **Amount** column supports **Override / Edit override / Reset** using an in-app modal dialog (no browser prompt). Overrides preserve the original amount for history and display both values in the ledger row.
 - **Automatic recalculation after override** — changing a transaction amount recalculates account running balances and updates Reports totals/charts and account projections immediately.
 
@@ -38,8 +38,8 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 
 ### Account Management
 - **Add accounts** — define checking, savings, cash, investment, credit card, loan, or other accounts with a name, type, and starting balance
-- **Link to accounts** — assign income sources, one-time entries (bonuses/deposits), debts, bills, and expense budgets to specific accounts
-- **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, bills, and expenses for the current month, including any ledger amount overrides
+- **Link to accounts** — assign income sources, one-time entries (bonuses/deposits), debts, recurring templates, and expense budgets to specific accounts
+- **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, recurring transactions, and expenses for the current month, including any ledger amount overrides
 - **Money Flow report** — the Reports › Money Flow tab includes a per-account balance table alongside the cumulative cash-flow chart
 - **Export / Import** — accounts are included in the JSON backup (version 3.0 format)
 
@@ -50,14 +50,20 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 - **Monthly income summary** — shows expected income this month, regular pay, one-time entries, and estimated annual total
 - **Debt-to-income ratio** — the Strategy page shows what percentage of your expected monthly income your planned payment represents, with a warning if it exceeds 40%
 
-### Budget Tracking
-- **Bills** — add any recurring fixed costs (utilities, internet, insurance, subscriptions, rent, transport); each bill records name, monthly amount, due day, and category
+### Budget Tracking (Expenses)
 - **Expense budgets** — set monthly spending targets for variable categories (groceries, dining, health, entertainment, clothing, personal care, education, childcare); each expense tracks the date it was incurred for calendar and ledger integration
-- **Expense date tracking** — expenses are captured with specific dates, allowing them to appear in the calendar view alongside bills and income for a complete monthly overview
-- **Cash Flow Summary** — a live panel on the Budget page shows expected monthly income minus debt minimums, bills, and budgeted expenses, giving you a net remaining figure
-- **Net cashflow on Strategy page** — the income widget also shows net after all obligations so you can see available surplus at a glance before running a plan
-- **Inline editing** — edit any bill or expense budget directly in the list without a separate form
-- **Persisted to storage** — bills and expenses are saved to `localStorage` and included in JSON export / import
+- **Expense date tracking** — expenses are captured with specific dates, allowing them to appear in the calendar view alongside income and recurring items for a complete monthly overview
+- **Inline editing** — edit any expense budget directly in the list without a separate form
+- **Persisted to storage** — expenses are saved to `localStorage` and included in JSON export / import
+
+### Recurring Transaction Templates
+- **Support non-debt recurring items** — subscriptions, reimbursements, and transfers with flexible frequency (weekly, bi-weekly, monthly, quarterly, yearly)
+- **Start and end dates** — constrain recurring templates to specific date ranges
+- **Pause & skip controls** — temporarily pause a template or skip individual months without deleting
+- **Three types** — Subscription (outflow), Reimbursement (inflow), Transfer (debit one account, credit another)
+- **Integrated with ledger** — recurring templates automatically generate projected transactions in the ledger and appear in all Reports views
+- **Monthly totals** — quickly see total recurring costs or income for the current month
+- **Account linking** — link recurring items to source/destination accounts for accurate account projections
 
 ### Calculation Engine
 - **Daily compounding interest** — matches real credit-card billing cycles:
@@ -82,13 +88,11 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 - **Debt Balance Distribution pie** — shows how your current balances are split across all debts
 - **Monthly Debt-to-Income pie** — shows your monthly debt payment vs. remaining income (requires income sources)
 
-### Calendar View
-- One calendar month per page, paginated forward through the entire plan
-- Debt payment events pinned to each debt's due date, colour-coded by debt
-- Bill events displayed on their due dates
-- Expense events displayed on their transaction dates (purple styling)
-- Income paydays marked with 💰 emoji
-- Today's date highlighted
+### Calendar & Reports
+- **Month-by-month calendar** — paginated calendar with income paydays, recurring template occurrences, expenses, debt payments, and bonuses pinned to their dates
+- **Reports sections** — Income vs. Expenses chart showing income, bills, recurring costs, and debt minimums; Money Flow chart tracking cumulative income/outflow/net day-by-day through the month; account balance projections for each account
+- **Recurring integration** — all recurring template transactions are fully integrated into calendar events, income vs. expenses breakdown, and money flow calculations
+- **Account projections** — the Money Flow report shows projected end-of-month balance for each account after all linked transactions (income, debt payments, expenses, recurring items)
 
 ### Interest Paid to Date
 - Record the date you opened each credit-card debt (`debtStartDate`)
@@ -96,8 +100,8 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 - Shown on each debt card, in the summary table, and persisted to localStorage
 
 ### Data Management
-- **Persistent storage** — debts, income, stimulus data, monthly payment, strategy, and ledger amount overrides are auto-saved to `localStorage`
-- **Export (JSON)** — one-click full backup from the header toolbar; downloads debts, income sources, strategy settings, and ledger amount overrides as a single `.json` file
+- **Persistent storage** — debts, income, stimulus data, monthly payment, strategy, recurring templates, and ledger amount overrides are auto-saved to `localStorage`
+- **Export (JSON)** — one-click full backup from the header toolbar; downloads debts, income sources, strategy settings, recurring templates, and ledger amount overrides as a single `.json` file
 - **Import (JSON)** — restore from any previously exported backup; choose **Replace** (full restore) or **Merge** (append debts, always restores income & strategy)
 - **Export to CSV** — full payment schedule plus per-debt summary in one spreadsheet-ready file
 - **Clear All Data** — wipe everything and start fresh

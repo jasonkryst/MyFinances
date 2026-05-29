@@ -65,6 +65,17 @@ import {
     renderReportsPage as renderReportsPageFeature
 } from './reports.js';
 import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth } from './utils.js';
+import {
+    renderRecurringPage as renderRecurringPageFeature,
+    addRecurringTemplate as addRecurringTemplateFeature,
+    deleteRecurringTemplate as deleteRecurringTemplateFeature,
+    pauseRecurringTemplate as pauseRecurringTemplateFeature,
+    skipRecurringOccurrence as skipRecurringOccurrenceFeature,
+    startEditRecurring as startEditRecurringFeature,
+    cancelEditRecurring as cancelEditRecurringFeature,
+    saveEditRecurring as saveEditRecurringFeature,
+    refreshRecurringAccountSelectors as refreshRecurringAccountSelectorsFeature
+} from './recurring.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -81,6 +92,7 @@ export class DebtTrackerApp {
         this.bonuses = [];
         this.bills = [];
         this.expenses = [];
+        this.recurringTemplates = [];
         this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
@@ -88,6 +100,7 @@ export class DebtTrackerApp {
         this.editingDebtId = null;
         this.editingIncomeId = null;
         this.editingAccountId = null;
+        this.editingRecurringId = null;
         this._reportMonthOffset = 0;
         this._savedMonthlyPayment = null;
         this._savedStrategy = null;
@@ -696,6 +709,20 @@ export class DebtTrackerApp {
     renderReportsPage() {
         return renderReportsPageFeature(this);
     }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  RECURRING TRANSACTION TEMPLATES
+    // ═════════════════════════════════════════════════════════════════════════
+
+    renderRecurringPage() { return renderRecurringPageFeature(this); }
+    addRecurringTemplate() { return addRecurringTemplateFeature(this); }
+    deleteRecurringTemplate(id) { return deleteRecurringTemplateFeature(this, id); }
+    pauseRecurringTemplate(id, paused) { return pauseRecurringTemplateFeature(this, id, paused); }
+    skipRecurringOccurrence(id, monthKey, unskip) { return skipRecurringOccurrenceFeature(this, id, monthKey, unskip); }
+    startEditRecurring(id) { return startEditRecurringFeature(this, id); }
+    cancelEditRecurring() { return cancelEditRecurringFeature(this); }
+    saveEditRecurring(id) { return saveEditRecurringFeature(this, id); }
+    refreshRecurringAccountSelectors() { return refreshRecurringAccountSelectorsFeature(this); }
 }
 
 // Initialize the app when the DOM is ready

@@ -6,7 +6,6 @@ import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeT
 export function renderBudgetPage(app) {
     if (app._cashflowDonutChart) { app._cashflowDonutChart.destroy(); app._cashflowDonutChart = null; }
     if (app._cashflowBarChart)   { app._cashflowBarChart.destroy();   app._cashflowBarChart   = null; }
-    renderBillList(app);
     renderExpenseList(app);
     renderCashFlowSummary(app);
 }
