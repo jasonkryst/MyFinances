@@ -303,10 +303,10 @@
                 <!-- Income List -->
                 <div id="incomeList" class="income-list"></div>
 
-                <!-- ── One-time Bonuses / Windfalls ── -->
+                <!-- ── One-time bonuses / deposits ── -->
                 <div class="bonus-section">
                     <button class="bonus-form-toggle" id="bonusFormToggle" type="button" aria-expanded="false" aria-controls="bonusFormBody">
-                        🎁 Add a one-time bonus / windfall
+                        🎁 Add a one-time bonus / deposit
                         <span class="bonus-form-chevron">▼</span>
                     </button>
                     <div id="bonusFormBody" hidden>
@@ -314,7 +314,7 @@
                             <div class="bonus-form-grid">
                                 <div class="form-group" style="margin:0;">
                                     <label for="bonusName">Label *</label>
-                                    <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Tax refund" required>
+                                    <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Cash deposit, Check deposit" required>
                                 </div>
                                 <div class="form-group" style="margin:0;">
                                     <label for="bonusAmount">Amount ($) *</label>
@@ -329,6 +329,8 @@
                                     <select id="bonusCategory">
                                         <option value="Bonus">Bonus</option>
                                         <option value="Tax Refund">Tax Refund</option>
+                                        <option value="Cash Deposit">Cash Deposit</option>
+                                        <option value="Check Deposit">Check Deposit</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
@@ -339,7 +341,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-success" style="margin-top:14px;">Add Bonus</button>
+                            <button type="submit" class="btn btn-success" style="margin-top:14px;">Add One-time Entry</button>
                         </form>
                     </div>
                 </div>

@@ -188,11 +188,12 @@ export function updateFormVisibility() {
     const fixedAmountFields = document.querySelectorAll('.fixed-amount-field');
     const fixedAmountFieldsContainer = document.getElementById('fixedAmountFieldsContainer');
     const fixedEndDateContainer = document.getElementById('fixedEndDateContainer');
+    const requiredCreditCardIds = new Set(['accountBalance', 'interestRate', 'minimumPayment', 'dueDate']);
 
     if (debtType === 'creditCard') {
         creditCardFields.forEach(field => {
             field.style.display = '';
-            field.required = true;
+            field.required = requiredCreditCardIds.has(field.id);
         });
         fixedAmountFields.forEach(field => {
             field.style.display = 'none';
