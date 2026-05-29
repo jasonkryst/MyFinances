@@ -4,15 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>MyFinances - Track Your Money</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-        .help-icon { display: inline-block; background: #eee; color: #333; border-radius: 50%; width: 1.2em; height: 1.2em; text-align: center; font-size: 0.9em; cursor: pointer; margin-left: 4px; }
-        .help-icon:focus, .help-icon:hover { background: #2563eb; color: #fff; outline: 2px solid #2563eb; }
-    </style>
-</head>
 <body>
     <div id="confetti-container"></div>
     <div class="container">
@@ -25,37 +20,44 @@
                     <button id="importJsonBtn" class="header-icon-btn" title="Import from a previously exported JSON backup" aria-label="Import JSON">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </button>
-                    <input type="file" id="importJsonInput" accept=".json,application/json" style="display:none;" aria-hidden="true">
+                    <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
                     <button id="themeSwitcher" class="header-icon-btn" aria-label="Toggle dark mode">🌙</button>
-                                    <button id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help">❓</button>
+                    <button id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help">❓</button>
                 </div>
             </div>
             <div class="header-hero">
-                                <h1>
-                                    <span style="vertical-align:middle; display:inline-block; width:1.5em; height:1.5em; margin-right:0.3em;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" style="display:inline;vertical-align:middle;">
-                                            <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
-                                            <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
-                                            <circle cx="16" cy="16" r="3" fill="#2563eb"/>
-                                            <line x1="16" y1="3" x2="16" y2="8" stroke="#2563eb" stroke-width="2"/>
-                                            <line x1="16" y1="24" x2="16" y2="29" stroke="#2563eb" stroke-width="2"/>
-                                            <line x1="3" y1="16" x2="8" y2="16" stroke="#2563eb" stroke-width="2"/>
-                                            <line x1="24" y1="16" x2="29" y2="16" stroke="#2563eb" stroke-width="2"/>
-                                        </svg>
-                                    </span>
-                                    MyFinances
-                                </h1>
+                <h1>
+                    <span style="vertical-align:middle; display:inline-block; width:1.5em; height:1.5em; margin-right:0.3em;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" style="display:inline;vertical-align:middle;">
+                            <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
+                            <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
+                            <circle cx="16" cy="16" r="3" fill="#2563eb"/>
+                            <line x1="16" y1="3" x2="16" y2="8" stroke="#2563eb" stroke-width="2"/>
+                            <line x1="16" y1="24" x2="16" y2="29" stroke="#2563eb" stroke-width="2"/>
+                            <line x1="3" y1="16" x2="8" y2="16" stroke="#2563eb" stroke-width="2"/>
+                            <line x1="24" y1="16" x2="29" y2="16" stroke="#2563eb" stroke-width="2"/>
+                        </svg>
+                    </span>
+                    MyFinances
+                </h1>
             </div>
-            <nav class="top-nav">
-                <button class="page-button active" data-page="accounts">Accounts</button>
-                <button class="page-button" data-page="income">Income</button>
-                <button class="page-button" data-page="liabilities">Liabilities</button>
-                <button class="page-button" data-page="recurring">Recurring</button>
-                <button class="page-button" data-page="savings">Savings</button>
-                <button class="page-button" data-page="strategy">Plan</button>
-                <button class="page-button" data-page="reports">Reports</button>
-                <button class="page-button" data-page="ledger">Ledger</button>
+            <nav class="top-nav" id="topNav">
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navMenu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="nav-menu" id="navMenu">
+                    <button class="page-button active" data-page="accounts">Accounts</button>
+                    <button class="page-button" data-page="income">Income</button>
+                    <button class="page-button" data-page="liabilities">Liabilities</button>
+                    <button class="page-button" data-page="recurring">Recurring</button>
+                    <button class="page-button" data-page="savings">Savings</button>
+                    <button class="page-button" data-page="strategy">Plan</button>
+                    <button class="page-button" data-page="reports">Reports</button>
+                    <button class="page-button" data-page="ledger">Ledger</button>
+                </div>
             </nav>
             <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- Ledger Section                                            -->
