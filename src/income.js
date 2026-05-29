@@ -4,7 +4,11 @@ import {
     countIncomePaydaysInMonth,
     getNextIncomePayDates,
     computeMonthlyIncomeForMonth,
-    computeMonthlyBonusesForMonth
+    computeMonthlyBonusesForMonth,
+    normalizeText,
+    sanitizeFiniteNumber,
+    sanitizeDateISO,
+    escapeHtml
 } from './utils.js';
 
 
@@ -30,7 +34,7 @@ export function renderIncomeList(app) {
                         <div class="income-edit-grid">
                             <div class="form-group" style="margin:0;">
                                 <label style="font-size:0.8rem;font-weight:600;">Name</label>
-                                <input type="text" id="ie-name-${inc.id}" value="${inc.name.replace(/"/g, '&quot;')}" class="form-control" style="width:100%;">
+                                <input type="text" id="ie-name-${inc.id}" value="${escapeHtml(inc.name)}" class="form-control" style="width:100%;">
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label style="font-size:0.8rem;font-weight:600;">Amount per paycheck ($)</label>
@@ -51,13 +55,13 @@ export function renderIncomeList(app) {
                                 <label style="font-size:0.8rem;font-weight:600;">Account</label>
                                 <select id="ie-account-${inc.id}" class="form-control" style="width:100%;">
                                     <option value="">— No account —</option>
-                                    ${app.accounts.map(a => `<option value="${a.id}" ${inc.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                    ${app.accounts.map(a => `<option value="${a.id}" ${inc.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
                         <div class="income-edit-actions">
-                            <button class="btn btn-primary btn-small" onclick="app.saveEditIncome(${inc.id})">Save</button>
-                            <button class="btn btn-secondary btn-small" onclick="app.cancelEditIncome()">Cancel</button>
+                            <button class="btn btn-primary btn-small" data-income-action="save" data-income-id="${inc.id}">Save</button>
+                            <button class="btn btn-secondary btn-small" data-income-action="cancel">Cancel</button>
                         </div>
                     </div>
                 </div>`;
@@ -79,18 +83,33 @@ export function renderIncomeList(app) {
         return `
             <div class="income-card">
                 <div class="income-card-info">
-                    <span class="income-card-name">${inc.name}</span>
+                    <span class="income-card-name">${escapeHtml(inc.name)}</span>
                     <span class="income-card-amount">${formatCurrency(inc.amount)}</span>
                     <span class="income-card-detail">First pay: ${dateStr}</span>
-                    <span class="income-card-freq">${freqLabel[inc.frequency] || inc.frequency} &mdash; ${pdayLabel}</span>
+                    <span class="income-card-freq">${escapeHtml(freqLabel[inc.frequency] || inc.frequency)} &mdash; ${escapeHtml(pdayLabel)}</span>
                     ${upcomingHTML ? `<span class="income-card-upcoming-label">Next paydays:</span>${upcomingHTML}` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" onclick="app.startEditIncome(${inc.id})">Edit</button>
-                    <button class="btn btn-danger btn-small" onclick="app.deleteIncome(${inc.id})">Delete</button>
+                    <button class="btn-edit" data-income-action="edit" data-income-id="${inc.id}">Edit</button>
+                    <button class="btn btn-danger btn-small" data-income-action="delete" data-income-id="${inc.id}">Delete</button>
                 </div>
             </div>`;
     }).join('');
+
+    container.onclick = event => {
+        const actionEl = event.target.closest('[data-income-action]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-income-action');
+        const id = parseInt(actionEl.getAttribute('data-income-id'), 10);
+        if (action === 'cancel') {
+            app.cancelEditIncome();
+            return;
+        }
+        if (Number.isNaN(id)) return;
+        if (action === 'save') app.saveEditIncome(id);
+        if (action === 'edit') app.startEditIncome(id);
+        if (action === 'delete') app.deleteIncome(id);
+    };
 
     if (summaryEl) {
         const now = new Date();
@@ -137,9 +156,9 @@ export function renderIncomeList(app) {
 
 // Add a new income source
 export function addIncome(app) {
-    const name = document.getElementById('incomeName').value.trim();
-    const amount = parseFloat(document.getElementById('incomeAmount').value);
-    const firstPayDate = document.getElementById('incomeFirstDate').value;
+    const name = normalizeText(document.getElementById('incomeName').value, 80);
+    const amount = sanitizeFiniteNumber(document.getElementById('incomeAmount').value, NaN, { min: 0.01 });
+    const firstPayDate = sanitizeDateISO(document.getElementById('incomeFirstDate').value);
     const frequency = document.getElementById('incomeFrequency').value;
     const accountId = parseInt(document.getElementById('incomeAccount')?.value);
 
@@ -188,9 +207,9 @@ export function saveEditIncome(app, incomeId) {
 
     if (!nameEl || !amountEl || !dateEl || !freqEl) return;
 
-    const name        = nameEl.value.trim();
-    const amount      = parseFloat(amountEl.value);
-    const firstPayDate = dateEl.value;
+    const name        = normalizeText(nameEl.value, 80);
+    const amount      = sanitizeFiniteNumber(amountEl.value, NaN, { min: 0.01 });
+    const firstPayDate = sanitizeDateISO(dateEl.value);
     const frequency   = freqEl.value;
     const accountId   = accountEl?.value ? parseInt(accountEl.value) : null;
 
@@ -210,10 +229,10 @@ export function saveEditIncome(app, incomeId) {
 
 // Bonus CRUD
 export function addBonus(app) {
-    const name      = document.getElementById('bonusName').value.trim();
-    const amount    = parseFloat(document.getElementById('bonusAmount').value);
-    const date      = document.getElementById('bonusDate').value;
-    const category  = document.getElementById('bonusCategory').value;
+    const name      = normalizeText(document.getElementById('bonusName').value, 80);
+    const amount    = sanitizeFiniteNumber(document.getElementById('bonusAmount').value, NaN, { min: 0.01 });
+    const date      = sanitizeDateISO(document.getElementById('bonusDate').value);
+    const category  = normalizeText(document.getElementById('bonusCategory').value, 40);
     const accountId = parseInt(document.getElementById('bonusAccount')?.value) || null;
 
     if (!name)                        { alert('Please enter a label for this one-time entry.'); return; }
@@ -256,10 +275,10 @@ export function saveEditBonus(app, bonusId) {
     const accountEl   = document.getElementById(`be-account-${bonusId}`);
     if (!nameEl || !amtEl || !dateEl || !catEl) return;
 
-    const name = nameEl.value.trim();
-    const amount = parseFloat(amtEl.value);
-    const date = dateEl.value;
-    const category = catEl.value;
+    const name = normalizeText(nameEl.value, 80);
+    const amount = sanitizeFiniteNumber(amtEl.value, NaN, { min: 0.01 });
+    const date = sanitizeDateISO(dateEl.value);
+    const category = normalizeText(catEl.value, 40);
     const accountId = accountEl && accountEl.value ? parseInt(accountEl.value) : null;
 
     if (!name) { alert('Please enter a name for this one-time entry.'); return; }
@@ -309,7 +328,7 @@ export function renderBonusList(app) {
                         <div class="bonus-edit-grid">
                             <div class="form-group" style="margin:0;">
                                 <label style="font-size:0.8rem;font-weight:600;">Label</label>
-                                <input type="text" id="be-name-${b.id}" value="${b.name.replace(/"/g,'&quot;')}" style="width:100%;">
+                                <input type="text" id="be-name-${b.id}" value="${escapeHtml(b.name)}" style="width:100%;">
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label style="font-size:0.8rem;font-weight:600;">Amount ($)</label>
@@ -333,13 +352,13 @@ export function renderBonusList(app) {
                                 <label style="font-size:0.8rem;font-weight:600;">Account</label>
                                 <select id="be-account-${b.id}" style="width:100%;">
                                     <option value="">— No account —</option>
-                                    ${app.accounts.map(a => `<option value="${a.id}" ${b.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                    ${app.accounts.map(a => `<option value="${a.id}" ${b.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
                         <div class="income-edit-actions" style="margin-top:10px;">
-                            <button class="btn btn-primary btn-small" onclick="app.saveEditBonus(${b.id})">Save</button>
-                            <button class="btn btn-secondary btn-small" onclick="app.cancelEditBonus()">Cancel</button>
+                            <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}">Save</button>
+                            <button class="btn btn-secondary btn-small" data-bonus-action="cancel">Cancel</button>
                         </div>
                     </div>`;
                 }
@@ -347,16 +366,31 @@ export function renderBonusList(app) {
                 return `
                 <div class="bonus-card${isThisMonth ? ' bonus-card--current' : ''}">
                     <div class="bonus-card-info">
-                        <span class="bonus-card-name">${b.name}</span>
+                        <span class="bonus-card-name">${escapeHtml(b.name)}</span>
                         <span class="bonus-card-amount">${formatCurrency(b.amount)}</span>
-                        <span class="bonus-card-meta">${dateStr} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${b.category}</span></span>
+                        <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(b.category)}</span></span>
                         ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
                     </div>
                     <div class="debt-actions">
-                        <button class="btn-edit" onclick="app.startEditBonus(${b.id})">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="app.deleteBonus(${b.id})">Delete</button>
+                        <button class="btn-edit" data-bonus-action="edit" data-bonus-id="${b.id}">Edit</button>
+                        <button class="btn btn-danger btn-small" data-bonus-action="delete" data-bonus-id="${b.id}">Delete</button>
                     </div>
                 </div>`;
             }).join('')}
         </div>`;
+
+    container.onclick = event => {
+        const actionEl = event.target.closest('[data-bonus-action]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-bonus-action');
+        const id = parseInt(actionEl.getAttribute('data-bonus-id'), 10);
+        if (action === 'cancel') {
+            app.cancelEditBonus();
+            return;
+        }
+        if (Number.isNaN(id)) return;
+        if (action === 'save') app.saveEditBonus(id);
+        if (action === 'edit') app.startEditBonus(id);
+        if (action === 'delete') app.deleteBonus(id);
+    };
 }

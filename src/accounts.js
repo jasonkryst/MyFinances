@@ -1,12 +1,13 @@
 // Account management
 
-import { countIncomePaydaysInMonth, formatCurrency } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
+import { getLedgerTransactionsForMonth } from './ledger.js';
 
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
     const opts = [
         `<option value="">— No account —</option>`,
-        ...app.accounts.map(a => `<option value="${a.id}">${a.name} (${a.type})</option>`)
+        ...app.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`)
     ].join('');
     for (const id of selIds) {
         const el = document.getElementById(id);
@@ -20,34 +21,15 @@ export function refreshAccountSelectors(app) {
 export function computeAccountBalance(app, accountId, year = null, month = null) {
     const acct = app.accounts.find(a => a.id === accountId);
     if (!acct) return 0;
-    let balance = acct.startingBalance;
+    let balance = Number(acct.startingBalance) || 0;
 
     const now = new Date();
     const yr = year !== null ? year : now.getFullYear();
     const mo = month !== null ? month : now.getMonth();
+    const monthTxs = getLedgerTransactionsForMonth(app, yr, mo, accountId);
 
-    for (const inc of app.incomes) {
-        if (inc.accountId === accountId) {
-            balance += (inc.amount || 0) * countIncomePaydaysInMonth(inc, yr, mo);
-        }
-    }
-
-    for (const b of app.bonuses) {
-        if (b.accountId !== accountId) continue;
-        const bd = new Date(b.date + 'T12:00:00');
-        if (bd.getFullYear() === yr && bd.getMonth() === mo) balance += b.amount;
-    }
-
-    for (const d of app.debts) {
-        if (d.accountId === accountId) balance -= (d.minimumPayment || 0);
-    }
-
-    for (const b of app.bills) {
-        if (b.accountId === accountId) balance -= b.amount;
-    }
-
-    for (const e of app.expenses) {
-        if (e.accountId === accountId) balance -= e.budgetAmount;
+    for (const tx of monthTxs) {
+        balance += Number(tx.amount) || 0;
     }
 
     return balance;
@@ -74,7 +56,7 @@ export function renderAccountsList(app) {
                 <div class="acct-edit-grid">
                     <div class="form-group" style="margin:0">
                         <label style="font-size:0.8rem;font-weight:600">Name</label>
-                        <input type="text" id="ac-name-${a.id}" value="${a.name.replace(/\"/g,'&quot;')}" style="width:100%">
+                        <input type="text" id="ac-name-${a.id}" value="${escapeHtml(a.name)}" style="width:100%">
                     </div>
                     <div class="form-group" style="margin:0">
                         <label style="font-size:0.8rem;font-weight:600">Type</label>
@@ -88,8 +70,8 @@ export function renderAccountsList(app) {
                     </div>
                 </div>
                 <div class="acct-edit-actions">
-                    <button class="btn btn-primary btn-small" onclick="app.saveEditAccount(${a.id})">Save</button>
-                    <button class="btn btn-secondary btn-small" onclick="app.cancelEditAccount()">Cancel</button>
+                    <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}">Save</button>
+                    <button class="btn btn-secondary btn-small" data-account-action="cancel">Cancel</button>
                 </div>
             </div>`;
         }
@@ -107,19 +89,19 @@ export function renderAccountsList(app) {
 
         const linkRows = !hasLinks ? '' : `
             <div class="acct-links">
-                ${linkedIncome.map(i  => `<span class="acct-link acct-link--income">💰 ${i.name}</span>`).join('')}
-                ${linkedBonuses.map(b => `<span class="acct-link acct-link--bonus">🎁 ${b.name}</span>`).join('')}
-                ${linkedDebts.map(d   => `<span class="acct-link acct-link--debt">💳 ${d.name}</span>`).join('')}
-                ${linkedBills.map(b   => `<span class="acct-link acct-link--bill">🧾 ${b.name}</span>`).join('')}
-                ${linkedExp.map(e     => `<span class="acct-link acct-link--exp">💸 ${e.name}</span>`).join('')}
+                ${linkedIncome.map(i  => `<span class="acct-link acct-link--income">💰 ${escapeHtml(i.name)}</span>`).join('')}
+                ${linkedBonuses.map(b => `<span class="acct-link acct-link--bonus">🎁 ${escapeHtml(b.name)}</span>`).join('')}
+                ${linkedDebts.map(d   => `<span class="acct-link acct-link--debt">💳 ${escapeHtml(d.name)}</span>`).join('')}
+                ${linkedBills.map(b   => `<span class="acct-link acct-link--bill">🧾 ${escapeHtml(b.name)}</span>`).join('')}
+                ${linkedExp.map(e     => `<span class="acct-link acct-link--exp">💸 ${escapeHtml(e.name)}</span>`).join('')}
             </div>`;
 
         return `<div class="acct-card">
             <div class="acct-card-header">
                 <span class="acct-type-icon">${typeIcon[a.type] || '🗂️'}</span>
                 <div class="acct-card-info">
-                    <span class="acct-card-name">${a.name}</span>
-                    <span class="acct-type-badge">${a.type}</span>
+                    <span class="acct-card-name">${escapeHtml(a.name)}</span>
+                    <span class="acct-type-badge">${escapeHtml(a.type)}</span>
                 </div>
                 <div class="acct-balances">
                     <div class="acct-balance-item">
@@ -132,8 +114,8 @@ export function renderAccountsList(app) {
                     </div>
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" onclick="app.startEditAccount(${a.id})">Edit</button>
-                    <button class="btn btn-danger btn-small" onclick="app.deleteAccount(${a.id})">Delete</button>
+                    <button class="btn-edit" data-account-action="edit" data-account-id="${a.id}">Edit</button>
+                    <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}">Delete</button>
                 </div>
             </div>
             ${linkRows}
@@ -141,12 +123,26 @@ export function renderAccountsList(app) {
     }).join('');
 
     container.innerHTML = cards;
+    container.onclick = (event) => {
+        const actionEl = event.target.closest('[data-account-action]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-account-action');
+        const id = parseInt(actionEl.getAttribute('data-account-id'), 10);
+        if (action === 'cancel') {
+            app.cancelEditAccount();
+            return;
+        }
+        if (Number.isNaN(id)) return;
+        if (action === 'save') app.saveEditAccount(id);
+        if (action === 'edit') app.startEditAccount(id);
+        if (action === 'delete') app.deleteAccount(id);
+    };
 }
 
 export function addAccount(app) {
-    const name = document.getElementById('accountName').value.trim();
-    const type = document.getElementById('accountType').value;
-    const startingBalance = parseFloat(document.getElementById('accountStartingBalance').value);
+    const name = normalizeText(document.getElementById('accountName').value, 80);
+    const type = normalizeText(document.getElementById('accountType').value, 30);
+    const startingBalance = sanitizeFiniteNumber(document.getElementById('accountStartingBalance').value, NaN);
 
     if (!name) { alert('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { alert('Please enter a starting balance (use 0 if unknown).'); return; }
@@ -179,9 +175,9 @@ export function cancelEditAccount(app) {
 export function saveEditAccount(app, id) {
     const idx = app.accounts.findIndex(a => a.id === id);
     if (idx === -1) return;
-    const name = document.getElementById(`ac-name-${id}`)?.value.trim();
-    const type = document.getElementById(`ac-type-${id}`)?.value;
-    const startingBalance = parseFloat(document.getElementById(`ac-bal-${id}`)?.value);
+    const name = normalizeText(document.getElementById(`ac-name-${id}`)?.value, 80);
+    const type = normalizeText(document.getElementById(`ac-type-${id}`)?.value, 30);
+    const startingBalance = sanitizeFiniteNumber(document.getElementById(`ac-bal-${id}`)?.value, NaN);
     if (!name) { alert('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { alert('Please enter a valid starting balance.'); return; }
     app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance };

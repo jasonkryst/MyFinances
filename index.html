@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>MyFinances - Track Your Money</title>
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -643,9 +644,9 @@
 
                 <!-- Month pagination -->
                 <div class="rpt-month-nav">
-                    <button class="rpt-month-btn" id="rptPrevMonth" onclick="app.prevReportMonth()" title="Previous month">&#8249;</button>
+                    <button class="rpt-month-btn" id="rptPrevMonth" title="Previous month">&#8249;</button>
                     <span class="rpt-month-label" id="rptMonthLabel"></span>
-                    <button class="rpt-month-btn" id="rptNextMonth" onclick="app.nextReportMonth()" title="Next month">&#8250;</button>
+                    <button class="rpt-month-btn" id="rptNextMonth" title="Next month">&#8250;</button>
                 </div>
 
                 <!-- Tab bar -->
@@ -679,251 +680,7 @@
     </div>
 
     <script src="src/debtCalculator.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script>
-        // ── Reports month pagination: update label and re-render active tab on month change ──
-        window.addEventListener('DOMContentLoaded', function () {
-            if (window.app && typeof app.renderReportsPage === 'function') {
-                app.renderReportsPage();
-            }
-        });
-        </script>
-    <script>
-    // ── Account form ──────────────────────────────────────────────────────────
-    window.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('accountForm');
-        if (form) {
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
-                if (window.app) app.addAccount();
-            });
-        }
-    });
-
-    // ── Income form ────────────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        const incomeForm = document.getElementById('incomeForm');
-        if (incomeForm) {
-            incomeForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                if (window.app) app.addIncome();
-            });
-        }
-    });
-
-    // ── Collapsible "Add New Debt" form ──────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        const toggle = document.getElementById('debtFormToggle');
-        const body   = document.getElementById('debtFormBody');
-        if (!toggle || !body) return;
-
-        function openForm() {
-            body.hidden = false;
-            toggle.setAttribute('aria-expanded', 'true');
-            toggle.classList.add('debt-form-toggle--open');
-        }
-        function closeForm() {
-            body.hidden = true;
-            toggle.setAttribute('aria-expanded', 'false');
-            toggle.classList.remove('debt-form-toggle--open');
-        }
-
-        toggle.addEventListener('click', function () {
-            body.hidden ? openForm() : closeForm();
-        });
-
-        // Cancel edit: collapse and reset title
-        const cancelBtn = document.getElementById('cancelEditBtn');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function () {
-                const titleEl = document.getElementById('debtFormTitle');
-                if (titleEl) titleEl.textContent = 'Add New Debt';
-                closeForm();
-            }, true); // capture = run before app.js listener
-        }
-
-        // Expose helper so app.js can open the form programmatically
-        window.openDebtForm  = openForm;
-        window.closeDebtForm = closeForm;
-    });
-
-    // ── Collapsible Budget forms ──────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        function makeBudgetToggle(toggleId, bodyId) {
-            const toggle = document.getElementById(toggleId);
-            const body   = document.getElementById(bodyId);
-            if (!toggle || !body) return;
-
-            toggle.addEventListener('click', function () {
-                const open = !body.hidden;
-                body.hidden = open;
-                toggle.setAttribute('aria-expanded', String(!open));
-                toggle.classList.toggle('budget-form-toggle--open', !open);
-            });
-        }
-
-        makeBudgetToggle('billFormToggle',    'billFormBody');
-        makeBudgetToggle('expenseFormToggle', 'expenseFormBody');
-
-        // Set default date for expense form to today
-        const expenseDateInput = document.getElementById('expenseDate');
-        if (expenseDateInput) {
-            const today = new Date().toISOString().split('T')[0];
-            expenseDateInput.value = today;
-        }
-
-        // Wire billForm and expenseForm submit handlers
-        const billForm = document.getElementById('billForm');
-        if (billForm) {
-            billForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                if (window.app) app.addBill();
-            });
-        }
-
-        const expenseForm = document.getElementById('expenseForm');
-        if (expenseForm) {
-            expenseForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                if (window.app) app.addExpense();
-            });
-        }
-    });
-
-    // ── Collapsible Bonus form ────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        const toggle = document.getElementById('bonusFormToggle');
-        const body   = document.getElementById('bonusFormBody');
-        if (toggle && body) {
-            toggle.addEventListener('click', function () {
-                const open = !body.hidden;
-                body.hidden = open;
-                toggle.setAttribute('aria-expanded', String(!open));
-                toggle.classList.toggle('bonus-form-toggle--open', !open);
-            });
-        }
-        const bonusForm = document.getElementById('bonusForm');
-        if (bonusForm) {
-            bonusForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                if (window.app) app.addBonus();
-            });
-        }
-    });
-
-    // ── Results top-level tab switching ──────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.results-tab-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const target = btn.getAttribute('data-rtab');
-                // Update buttons
-                document.querySelectorAll('.results-tab-btn').forEach(function (b) {
-                    b.classList.toggle('results-tab-btn--active', b === btn);
-                    b.setAttribute('aria-selected', String(b === btn));
-                });
-                // Update panels
-                document.querySelectorAll('.results-tab-panel').forEach(function (p) {
-                    p.classList.toggle('results-tab-panel--active', p.id === 'rPanel-' + target);
-                });
-            });
-        });
-    });
-
-    // ── Reports top-level tab switching ──────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.rpt-tab-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const target = btn.getAttribute('data-rptab');
-                document.querySelectorAll('.rpt-tab-btn').forEach(function (b) {
-                    b.classList.toggle('rpt-tab-btn--active', b === btn);
-                    b.setAttribute('aria-selected', String(b === btn));
-                });
-                document.querySelectorAll('.rpt-tab-panel').forEach(function (p) {
-                    p.classList.toggle('rpt-tab-panel--active', p.id === 'rptPanel-' + target);
-                });
-                // Re-render the newly visible tab so charts resize correctly
-                if (window.app) {
-                    app.renderReportsPage();
-                }
-            });
-        });
-    });
-
-    // Accessibility and CSV export for amortization modal
-    window.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('amortizationModal');
-        const closeBtn = document.getElementById('closeAmortization');
-        const exportBtn = document.getElementById('exportAmortizationBtn');
-        let lastFocused;
-        if (modal && closeBtn) {
-            // Focus trap
-            modal.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    modal.style.display = 'none';
-                    if (lastFocused) lastFocused.focus();
-                }
-                // Trap focus inside modal
-                if (e.key === 'Tab') {
-                    const focusable = modal.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
-                    const first = focusable[0];
-                    const last = focusable[focusable.length - 1];
-                    if (e.shiftKey) {
-                        if (document.activeElement === first) {
-                            e.preventDefault();
-                            last.focus();
-                        }
-                    } else {
-                        if (document.activeElement === last) {
-                            e.preventDefault();
-                            first.focus();
-                        }
-                    }
-                }
-            });
-            // Open modal: focus close button
-            const origShow = app.showAmortizationModal.bind(app);
-            app.showAmortizationModal = function(debtName) {
-                lastFocused = document.activeElement;
-                origShow(debtName);
-                setTimeout(() => closeBtn.focus(), 0);
-            };
-            // Close button
-            closeBtn.onclick = function() {
-                modal.style.display = 'none';
-                if (lastFocused) lastFocused.focus();
-            };
-        }
-        // CSV export for amortization
-        if (exportBtn) {
-            exportBtn.onclick = function() {
-                const title = document.getElementById('amortizationTitle').textContent;
-                const wrapper = document.getElementById('amortizationTableWrapper');
-                if (!wrapper) return;
-                const table = wrapper.querySelector('table');
-                if (!table) return;
-                let csv = '';
-                // Table headers
-                const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
-                csv += headers.join(',') + '\n';
-                // Table rows
-                Array.from(table.querySelectorAll('tbody tr')).forEach(tr => {
-                    const cells = Array.from(tr.querySelectorAll('td')).map(td => '"' + td.textContent.trim() + '"');
-                    csv += cells.join(',') + '\n';
-                });
-                // Download
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = (title.replace(/[^a-z0-9]/gi,'_').toLowerCase() || 'amortization') + '.csv';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            };
-        }
-    });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous"></script>
     <!-- Update Balance Modal (top-level so position:fixed works from any page) -->
     <div id="updateBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10002; align-items:center; justify-content:center;">
         <div class="modal-content" style="background:white; max-width:460px; width:92%; border-radius:12px; padding:28px 24px; margin:auto; position:relative; outline:0;">
@@ -945,6 +702,25 @@
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button id="confirmUpdateBalance" class="btn btn-success">Update &amp; Recalculate</button>
                 <button id="cancelUpdateBalanceBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="ledgerOverrideModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10003; align-items:center; justify-content:center;">
+        <div class="modal-content" style="background:white; max-width:440px; width:92%; border-radius:12px; padding:26px 22px; margin:auto; position:relative; outline:0;">
+            <button id="ledgerOverrideCloseBtn" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
+            <h3 id="ledgerOverrideTitle" style="margin-top:0">Override Ledger Amount</h3>
+            <p style="margin:6px 0 10px; color:#6b7280;">Use a replacement amount while preserving the original value for history.</p>
+            <p style="margin:0 0 6px; font-size:0.9rem;"><strong id="ledgerOverrideTxName"></strong></p>
+            <p style="margin:0 0 2px; font-size:0.82rem; color:#6b7280;">Account: <span id="ledgerOverrideAccount"></span></p>
+            <p style="margin:0 0 12px; font-size:0.82rem; color:#6b7280;">Date: <span id="ledgerOverrideDate"></span></p>
+            <div class="form-group" style="margin:0 0 12px;">
+                <label for="ledgerOverrideAmountInput">Replacement Amount ($)</label>
+                <input type="number" id="ledgerOverrideAmountInput" step="0.01" placeholder="0.00">
+                <div style="font-size:0.78rem; color:#6b7280; margin-top:4px;">Original amount: <span id="ledgerOverrideOriginal"></span></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:18px;">
+                <button id="ledgerOverrideConfirmBtn" class="btn btn-success">Save Override</button>
+                <button id="ledgerOverrideCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

@@ -11,6 +11,49 @@ export function formatCurrency(value) {
     }).format(value);
 }
 
+export function normalizeText(value, maxLen = 120) {
+    const raw = String(value ?? '');
+    return raw
+        .replace(/[<>"`]/g, '')
+        .replace(/[\u0000-\u001F\u007F]/g, '')
+        .trim()
+        .slice(0, maxLen);
+}
+
+export function sanitizeFiniteNumber(value, fallback = 0, { min = null, max = null } = {}) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    if (min !== null && n < min) return min;
+    if (max !== null && n > max) return max;
+    return n;
+}
+
+export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {
+    const n = Number.parseInt(value, 10);
+    if (!Number.isFinite(n)) return fallback;
+    if (min !== null && n < min) return min;
+    if (max !== null && n > max) return max;
+    return n;
+}
+
+export function sanitizeDateISO(value) {
+    if (!value) return null;
+    const text = String(value).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+    const date = new Date(`${text}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return null;
+    return text;
+}
+
+export function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 export function getDayOrdinal(day) {
     const j = day % 10;
     const k = day % 100;

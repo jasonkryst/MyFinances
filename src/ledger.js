@@ -2,25 +2,101 @@
 
 import { getIncomePaydaysInMonth, formatCurrency } from './utils.js';
 
-// Gather all transactions for the ledger
-export function getLedgerTransactions(app) {
-    // --- Begin: _getLedgerTransactions logic from app.js ---
+function getDateKey(date) {
+    const d = new Date(date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function parseFiniteNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+}
+
+function getOverrideAmount(app, txId) {
+    if (!txId) return null;
+    const map = app.ledgerAmountOverrides || {};
+    const entry = map[txId];
+    if (!entry) return null;
+    return parseFiniteNumber(entry.amount);
+}
+
+function getEffectiveAmount(app, tx) {
+    const overrideAmount = getOverrideAmount(app, tx.transactionId);
+    return overrideAmount !== null ? overrideAmount : tx.originalAmount;
+}
+
+function toLedgerTxOutput(app, tx) {
+    const overrideAmount = getOverrideAmount(app, tx.transactionId);
+    const amount = overrideAmount !== null ? overrideAmount : tx.originalAmount;
+    return {
+        date: tx.date.toISOString(),
+        account: tx.account,
+        accountId: tx.accountId,
+        name: tx.name,
+        amount,
+        originalAmount: tx.originalAmount,
+        hasOverride: overrideAmount !== null,
+        overrideAmount,
+        balance: tx.balance,
+        type: tx.type,
+        category: tx.category,
+        sourceId: tx.sourceId,
+        transactionId: tx.transactionId,
+        isRollover: tx.type === 'rollover'
+    };
+}
+
+export function makeLedgerTransactionId(tx) {
+    const dateKey = getDateKey(tx.date);
+    const account = String(tx.accountId ?? '');
+    const type = String(tx.type ?? 'other');
+    const source = String(tx.sourceId ?? 'none');
+    return `${type}|${source}|${account}|${dateKey}`;
+}
+
+function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToProject = 12) {
     const accountMap = {};
-    for (const acct of app.accounts) {
+    for (const acct of app.accounts || []) {
         accountMap[acct.id] = { ...acct, txs: [] };
     }
-    function addTx({accountId, date, name, amount, type}) {
+
+    function addTx({ accountId, date, name, amount, type, sourceId, category }) {
         if (!accountId || !accountMap[accountId]) return;
-        accountMap[accountId].txs.push({ date: new Date(date), name, amount, type });
+        const txDate = new Date(date);
+        const tx = {
+            date: txDate,
+            name,
+            originalAmount: Number(amount),
+            type,
+            sourceId,
+            category
+        };
+        tx.transactionId = makeLedgerTransactionId({
+            accountId,
+            date: txDate,
+            type,
+            sourceId
+        });
+        accountMap[accountId].txs.push(tx);
     }
-    const today = new Date();
-    const startYear = today.getFullYear();
-    const startMonth = today.getMonth();
-    const monthsToProject = 12;
+
     for (let m = 0; m < monthsToProject; m++) {
         const year = startYear + Math.floor((startMonth + m) / 12);
         const month = (startMonth + m) % 12;
-        for (const inc of app.incomes) {
+
+        for (const inc of app.incomes || []) {
             if (!inc.accountId || !inc.amount) continue;
             const paydays = getIncomePaydaysInMonth(inc, year, month);
             for (const payDate of paydays) {
@@ -29,11 +105,14 @@ export function getLedgerTransactions(app) {
                     date: payDate,
                     name: inc.name || 'Income',
                     amount: Number(inc.amount),
-                    type: 'income'
+                    type: 'income',
+                    sourceId: inc.id,
+                    category: inc.category || 'Income'
                 });
             }
         }
-        for (const bonus of app.bonuses) {
+
+        for (const bonus of app.bonuses || []) {
             if (!bonus.accountId) continue;
             if (bonus.date && bonus.amount) {
                 const bonusDate = new Date(bonus.date);
@@ -43,12 +122,15 @@ export function getLedgerTransactions(app) {
                         date: bonusDate,
                         name: bonus.name || 'Bonus',
                         amount: Number(bonus.amount),
-                        type: 'bonus'
+                        type: 'bonus',
+                        sourceId: bonus.id,
+                        category: bonus.category || 'Bonus'
                     });
                 }
             }
         }
-        for (const debt of app.debts) {
+
+        for (const debt of app.debts || []) {
             if (!debt.accountId) continue;
             if (debt.dueDate && debt.minimumPayment) {
                 const due = new Date(year, month, debt.dueDate);
@@ -57,11 +139,14 @@ export function getLedgerTransactions(app) {
                     date: due,
                     name: debt.name || 'Debt Payment',
                     amount: -Math.abs(Number(debt.minimumPayment)),
-                    type: 'debt'
+                    type: 'debt',
+                    sourceId: debt.id,
+                    category: debt.name || 'Debt'
                 });
             }
         }
-        for (const bill of app.bills) {
+
+        for (const bill of app.bills || []) {
             if (!bill.accountId) continue;
             if (bill.dueDay && bill.amount) {
                 const due = new Date(year, month, bill.dueDay);
@@ -70,11 +155,14 @@ export function getLedgerTransactions(app) {
                     date: due,
                     name: bill.name || 'Bill',
                     amount: -Math.abs(Number(bill.amount)),
-                    type: 'bill'
+                    type: 'bill',
+                    sourceId: bill.id,
+                    category: bill.category || 'Other'
                 });
             }
         }
-        for (const exp of app.expenses) {
+
+        for (const exp of app.expenses || []) {
             if (!exp.accountId) continue;
             if (exp.budgetAmount && exp.date) {
                 const expDate = new Date(exp.date);
@@ -84,57 +172,190 @@ export function getLedgerTransactions(app) {
                         date: expDate,
                         name: exp.name || 'Expense',
                         amount: -Math.abs(Number(exp.budgetAmount)),
-                        type: 'expense'
+                        type: 'expense',
+                        sourceId: exp.id,
+                        category: exp.category || 'Other'
                     });
                 }
             }
         }
     }
-    for (var acctId in accountMap) {
-        accountMap[acctId].txs.sort(function(a, b) { return a.date - b.date; });
+
+    for (const acctId in accountMap) {
+        accountMap[acctId].txs.sort((a, b) => a.date - b.date);
     }
-    var allTxs = [];
-    for (var acctId in accountMap) {
-        var lastMonth = null;
-        var running = accountMap[acctId].startingBalance;
-        for (var i = 0; i < accountMap[acctId].txs.length; i++) {
-            var tx = accountMap[acctId].txs[i];
-            var txMonth = tx.date.getFullYear() + '-' + (tx.date.getMonth() + 1);
+
+    return accountMap;
+}
+
+export function getLedgerTransactionsForMonth(app, year, month, accountId = null) {
+    const accountMap = buildProjectedAccountTransactions(app, year, month, 1);
+    const out = [];
+    for (const acctId in accountMap) {
+        if (accountId !== null && String(acctId) !== String(accountId)) continue;
+        const acct = accountMap[acctId];
+        for (const tx of acct.txs) {
+            const amount = getEffectiveAmount(app, tx);
+            out.push({
+                date: tx.date.toISOString(),
+                account: acct.name,
+                accountId: acctId,
+                name: tx.name,
+                amount,
+                originalAmount: tx.originalAmount,
+                hasOverride: amount !== tx.originalAmount,
+                overrideAmount: amount !== tx.originalAmount ? amount : null,
+                type: tx.type,
+                category: tx.category,
+                sourceId: tx.sourceId,
+                transactionId: tx.transactionId
+            });
+        }
+    }
+    out.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return out;
+}
+
+// Gather all transactions for the ledger
+export function getLedgerTransactions(app) {
+    const today = new Date();
+    const accountMap = buildProjectedAccountTransactions(app, today.getFullYear(), today.getMonth(), 12);
+    const allTxs = [];
+
+    for (const acctId in accountMap) {
+        const acct = accountMap[acctId];
+        let lastMonth = null;
+        let running = Number(acct.startingBalance) || 0;
+
+        for (let i = 0; i < acct.txs.length; i++) {
+            const tx = acct.txs[i];
+            const txMonth = `${tx.date.getFullYear()}-${tx.date.getMonth() + 1}`;
             if (lastMonth && txMonth !== lastMonth) {
                 allTxs.push({
                     date: new Date(tx.date.getFullYear(), tx.date.getMonth(), 1),
-                    account: accountMap[acctId].name,
+                    account: acct.name,
                     accountId: acctId,
                     name: 'Balance Rollover',
-                    amount: 0,
-                    balance: running
+                    originalAmount: 0,
+                    balance: running,
+                    type: 'rollover',
+                    category: 'Balance',
+                    sourceId: null,
+                    transactionId: null
                 });
             }
-            running += tx.amount;
+
+            const amount = getEffectiveAmount(app, tx);
+            running += amount;
             tx.balance = running;
+
             allTxs.push({
                 date: tx.date,
-                account: accountMap[acctId].name,
+                account: acct.name,
                 accountId: acctId,
                 name: tx.name,
-                amount: tx.amount,
-                balance: tx.balance
+                originalAmount: tx.originalAmount,
+                balance: tx.balance,
+                type: tx.type,
+                category: tx.category,
+                sourceId: tx.sourceId,
+                transactionId: tx.transactionId
             });
             lastMonth = txMonth;
         }
     }
-    allTxs.sort(function(a, b) { return b.date - a.date; });
-    return allTxs.map(function(tx) {
-        return {
-            date: tx.date.toISOString(),
-            account: tx.account,
+
+    allTxs.sort((a, b) => b.date - a.date);
+    return allTxs.map(tx => toLedgerTxOutput(app, tx));
+}
+
+export function setLedgerAmountOverride(app, transactionId, amount, metadata = {}) {
+    if (!transactionId) return;
+    const parsed = parseFiniteNumber(amount);
+    if (parsed === null) return;
+    if (!app.ledgerAmountOverrides) app.ledgerAmountOverrides = {};
+
+    app.ledgerAmountOverrides[transactionId] = {
+        amount: parsed,
+        originalAmount: parseFiniteNumber(metadata.originalAmount),
+        transactionName: metadata.transactionName || null,
+        accountId: metadata.accountId || null,
+        date: metadata.date || null,
+        updatedAt: new Date().toISOString()
+    };
+}
+
+export function clearLedgerAmountOverride(app, transactionId) {
+    if (!transactionId || !app.ledgerAmountOverrides) return;
+    delete app.ledgerAmountOverrides[transactionId];
+}
+
+function openLedgerOverrideModal(app, tx) {
+    const modal = document.getElementById('ledgerOverrideModal');
+    if (!modal || !tx || tx.isRollover || !tx.transactionId) return;
+
+    const nameEl = document.getElementById('ledgerOverrideTxName');
+    const accountEl = document.getElementById('ledgerOverrideAccount');
+    const dateEl = document.getElementById('ledgerOverrideDate');
+    const originalEl = document.getElementById('ledgerOverrideOriginal');
+    const input = document.getElementById('ledgerOverrideAmountInput');
+    const confirmBtn = document.getElementById('ledgerOverrideConfirmBtn');
+    const cancelBtn = document.getElementById('ledgerOverrideCancelBtn');
+    const closeBtn = document.getElementById('ledgerOverrideCloseBtn');
+
+    if (!nameEl || !accountEl || !dateEl || !originalEl || !input || !confirmBtn || !cancelBtn || !closeBtn) {
+        return;
+    }
+
+    nameEl.textContent = tx.name || '';
+    accountEl.textContent = tx.account || '';
+    dateEl.textContent = tx.date ? _formatLedgerDate(tx.date) : '';
+    originalEl.textContent = formatCurrency(tx.originalAmount);
+    input.value = Number(tx.amount || 0).toFixed(2);
+
+    const close = () => {
+        modal.style.display = 'none';
+        modal.onkeydown = null;
+    };
+
+    confirmBtn.onclick = () => {
+        const parsed = parseFiniteNumber(input.value);
+        if (parsed === null) {
+            alert('Please enter a valid number.');
+            return;
+        }
+        setLedgerAmountOverride(app, tx.transactionId, parsed, {
+            originalAmount: tx.originalAmount,
+            transactionName: tx.name,
             accountId: tx.accountId,
-            name: tx.name,
-            amount: tx.amount,
-            balance: tx.balance
-        };
-    });
-    // --- End: _getLedgerTransactions logic ---
+            date: tx.date
+        });
+        app.saveToStorage();
+        close();
+        renderLedgerPage(app);
+        if (typeof app.renderReportsPage === 'function') app.renderReportsPage();
+        if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
+    };
+
+    cancelBtn.onclick = close;
+    closeBtn.onclick = close;
+    modal.onclick = (event) => {
+        if (event.target === modal) close();
+    };
+    modal.onkeydown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            close();
+            return;
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            confirmBtn.click();
+        }
+    };
+
+    modal.style.display = 'flex';
+    setTimeout(() => input.focus(), 30);
 }
 
 // Render the Ledger page
@@ -161,7 +382,7 @@ export function renderLedgerPage(app) {
             <select id="ledgerAccountFilter" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
                 <option value="all">All Accounts</option>`;
         for (const acct of accounts) {
-            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${acct.name}</option>`;
+            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)}</option>`;
         }
         filterHtml += `</select>`;
     }
@@ -255,11 +476,19 @@ export function renderLedgerPage(app) {
         html += `<tr><td colspan="5" style="text-align:center;color:#888;padding:32px 0;">No transactions yet.</td></tr>`;
     } else {
         for (const tx of pagedTransactions) {
+            const canOverride = !tx.isRollover && !!tx.transactionId;
+            const amountColor = tx.amount < 0 ? '#dc2626' : '#059669';
+            const amountCell = tx.hasOverride
+                ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
+                : `<span>${formatCurrency(tx.amount)}</span>`;
+            const overrideActions = canOverride
+                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit override' : 'Override'}</button>${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
+                : '';
             html += `<tr>
                 <td>${tx.date ? _formatLedgerDate(tx.date) : ''}</td>
-                <td>${tx.account || ''}</td>
-                <td>${tx.name || ''}</td>
-                <td style="text-align:right;${tx.amount < 0 ? 'color:#dc2626;' : 'color:#059669;'}">${formatCurrency(tx.amount)}</td>
+                <td>${escapeHtml(tx.account || '')}</td>
+                <td>${escapeHtml(tx.name || '')}</td>
+                <td style="text-align:right;color:${amountColor};">${amountCell}${overrideActions}</td>
                 <td style="text-align:right;">${formatCurrency(tx.balance)}</td>
             </tr>`;
         }
@@ -335,6 +564,26 @@ export function renderLedgerPage(app) {
             }
         };
     }
+
+    container.querySelectorAll('[data-ledger-override]').forEach(btn => {
+        btn.onclick = () => {
+            const txId = btn.getAttribute('data-ledger-override');
+            const tx = transactions.find(item => item.transactionId === txId);
+            if (!tx || tx.isRollover) return;
+            openLedgerOverrideModal(app, tx);
+        };
+    });
+
+    container.querySelectorAll('[data-ledger-clear-override]').forEach(btn => {
+        btn.onclick = () => {
+            const txId = btn.getAttribute('data-ledger-clear-override');
+            clearLedgerAmountOverride(app, txId);
+            app.saveToStorage();
+            renderLedgerPage(app);
+            if (typeof app.renderReportsPage === 'function') app.renderReportsPage();
+            if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
+        };
+    });
     // --- End: renderLedgerPage logic ---
 }
 

@@ -81,6 +81,7 @@ export class DebtTrackerApp {
         this.bonuses = [];
         this.bills = [];
         this.expenses = [];
+        this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
         this.perMonthStimulus = [];
@@ -409,6 +410,9 @@ export class DebtTrackerApp {
             onMergeDuplicates: (addedCount, skippedCount) => {
                 alert(`Merged ${addedCount} debt(s). Skipped ${skippedCount} duplicate name(s).`);
             },
+            onTooLarge: (maxBytes) => {
+                alert(`Import file is too large. Maximum supported size is ${Math.round(maxBytes / 1024)} KB.`);
+            },
             onReadError: () => alert('Could not read the file. Please try again.')
         });
     }
@@ -421,7 +425,7 @@ export class DebtTrackerApp {
      */
     clearAllData() {
         return clearAllDataFeature(this, {
-            onCleared: () => alert('All debt data has been cleared')
+            onCleared: () => alert('All app data and saved preferences have been cleared.')
         });
     }
 
