@@ -138,7 +138,10 @@ export function initializeEventListeners(app) {
     const clearDataBtn = document.getElementById('clearDataBtn');
     if (clearDataBtn) {
         clearDataBtn.addEventListener('click', () => {
-            const confirmed = confirm('Clear all accounts, debts, incomes, bonuses, bills, expenses, and plan results?');
+            const confirmed = confirm(
+                'Clear ALL app data and preferences?\n\n' +
+                'This will permanently remove accounts, debts, income, bonuses, bills, expenses, plans, ledger overrides, saved filters, and theme preference.'
+            );
             if (confirmed) {
                 app.clearAllData();
             }
@@ -148,6 +151,208 @@ export function initializeEventListeners(app) {
     const exportBtn = document.getElementById('exportBtn');
     if (exportBtn) {
         exportBtn.addEventListener('click', () => app.exportToCSV());
+    }
+
+    const accountForm = document.getElementById('accountForm');
+    if (accountForm) {
+        accountForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addAccount();
+        });
+    }
+
+    const incomeForm = document.getElementById('incomeForm');
+    if (incomeForm) {
+        incomeForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addIncome();
+        });
+    }
+
+    const billForm = document.getElementById('billForm');
+    if (billForm) {
+        billForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addBill();
+        });
+    }
+
+    const expenseForm = document.getElementById('expenseForm');
+    if (expenseForm) {
+        expenseForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addExpense();
+        });
+    }
+
+    const bonusForm = document.getElementById('bonusForm');
+    if (bonusForm) {
+        bonusForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addBonus();
+        });
+    }
+
+    const expenseDateInput = document.getElementById('expenseDate');
+    if (expenseDateInput && !expenseDateInput.value) {
+        expenseDateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    const debtFormToggle = document.getElementById('debtFormToggle');
+    const debtFormBody = document.getElementById('debtFormBody');
+    if (debtFormToggle && debtFormBody) {
+        const openForm = () => {
+            debtFormBody.hidden = false;
+            debtFormToggle.setAttribute('aria-expanded', 'true');
+            debtFormToggle.classList.add('debt-form-toggle--open');
+        };
+        const closeForm = () => {
+            debtFormBody.hidden = true;
+            debtFormToggle.setAttribute('aria-expanded', 'false');
+            debtFormToggle.classList.remove('debt-form-toggle--open');
+        };
+        debtFormToggle.addEventListener('click', () => {
+            if (debtFormBody.hidden) openForm();
+            else closeForm();
+        });
+
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                const titleEl = document.getElementById('debtFormTitle');
+                if (titleEl) titleEl.textContent = 'Add New Debt';
+                closeForm();
+            }, true);
+        }
+
+        window.openDebtForm = openForm;
+        window.closeDebtForm = closeForm;
+    }
+
+    const makeBudgetToggle = (toggleId, bodyId) => {
+        const toggle = document.getElementById(toggleId);
+        const body = document.getElementById(bodyId);
+        if (!toggle || !body) return;
+        toggle.addEventListener('click', () => {
+            const open = !body.hidden;
+            body.hidden = open;
+            toggle.setAttribute('aria-expanded', String(!open));
+            toggle.classList.toggle('budget-form-toggle--open', !open);
+        });
+    };
+    makeBudgetToggle('billFormToggle', 'billFormBody');
+    makeBudgetToggle('expenseFormToggle', 'expenseFormBody');
+
+    const bonusFormToggle = document.getElementById('bonusFormToggle');
+    const bonusFormBody = document.getElementById('bonusFormBody');
+    if (bonusFormToggle && bonusFormBody) {
+        bonusFormToggle.addEventListener('click', () => {
+            const open = !bonusFormBody.hidden;
+            bonusFormBody.hidden = open;
+            bonusFormToggle.setAttribute('aria-expanded', String(!open));
+            bonusFormToggle.classList.toggle('bonus-form-toggle--open', !open);
+        });
+    }
+
+    document.querySelectorAll('.results-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-rtab');
+            document.querySelectorAll('.results-tab-btn').forEach(b => {
+                const active = b === btn;
+                b.classList.toggle('results-tab-btn--active', active);
+                b.setAttribute('aria-selected', String(active));
+            });
+            document.querySelectorAll('.results-tab-panel').forEach(panel => {
+                panel.classList.toggle('results-tab-panel--active', panel.id === `rPanel-${target}`);
+            });
+        });
+    });
+
+    document.querySelectorAll('.rpt-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-rptab');
+            document.querySelectorAll('.rpt-tab-btn').forEach(b => {
+                const active = b === btn;
+                b.classList.toggle('rpt-tab-btn--active', active);
+                b.setAttribute('aria-selected', String(active));
+            });
+            document.querySelectorAll('.rpt-tab-panel').forEach(panel => {
+                panel.classList.toggle('rpt-tab-panel--active', panel.id === `rptPanel-${target}`);
+            });
+            app.renderReportsPage();
+        });
+    });
+
+    const rptPrevMonth = document.getElementById('rptPrevMonth');
+    if (rptPrevMonth) {
+        rptPrevMonth.addEventListener('click', () => app.prevReportMonth());
+    }
+    const rptNextMonth = document.getElementById('rptNextMonth');
+    if (rptNextMonth) {
+        rptNextMonth.addEventListener('click', () => app.nextReportMonth());
+    }
+
+    const amortizationModal = document.getElementById('amortizationModal');
+    const closeAmortizationBtn = document.getElementById('closeAmortization');
+    const exportAmortizationBtn = document.getElementById('exportAmortizationBtn');
+    let lastFocused = null;
+    if (amortizationModal && closeAmortizationBtn) {
+        amortizationModal.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                amortizationModal.style.display = 'none';
+                if (lastFocused) lastFocused.focus();
+            }
+            if (event.key === 'Tab') {
+                const focusable = amortizationModal.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        });
+
+        const origShowAmortizationModal = app.showAmortizationModal.bind(app);
+        app.showAmortizationModal = (debtName) => {
+            lastFocused = document.activeElement;
+            origShowAmortizationModal(debtName);
+            setTimeout(() => closeAmortizationBtn.focus(), 0);
+        };
+
+        closeAmortizationBtn.addEventListener('click', () => {
+            amortizationModal.style.display = 'none';
+            if (lastFocused) lastFocused.focus();
+        });
+    }
+
+    if (exportAmortizationBtn) {
+        exportAmortizationBtn.addEventListener('click', () => {
+            const title = (document.getElementById('amortizationTitle')?.textContent || '').trim();
+            const wrapper = document.getElementById('amortizationTableWrapper');
+            const table = wrapper?.querySelector('table');
+            if (!table) return;
+
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr =>
+                Array.from(tr.querySelectorAll('td')).map(td => `"${td.textContent.trim()}"`).join(',')
+            );
+            const csv = `${headers.join(',')}\n${rows.join('\n')}\n`;
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'amortization') + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        });
     }
 }
 

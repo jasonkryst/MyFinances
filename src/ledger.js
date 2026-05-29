@@ -382,7 +382,7 @@ export function renderLedgerPage(app) {
             <select id="ledgerAccountFilter" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
                 <option value="all">All Accounts</option>`;
         for (const acct of accounts) {
-            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${acct.name}</option>`;
+            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)}</option>`;
         }
         filterHtml += `</select>`;
     }
@@ -486,8 +486,8 @@ export function renderLedgerPage(app) {
                 : '';
             html += `<tr>
                 <td>${tx.date ? _formatLedgerDate(tx.date) : ''}</td>
-                <td>${tx.account || ''}</td>
-                <td>${tx.name || ''}</td>
+                <td>${escapeHtml(tx.account || '')}</td>
+                <td>${escapeHtml(tx.name || '')}</td>
                 <td style="text-align:right;color:${amountColor};">${amountCell}${overrideActions}</td>
                 <td style="text-align:right;">${formatCurrency(tx.balance)}</td>
             </tr>`;

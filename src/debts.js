@@ -1,5 +1,5 @@
 // Debt management and calculations
-import { formatCurrency, getDayOrdinal, computeInterestPaidToDate } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 
 function recalculateIfConfigured(app) {
     try {
@@ -22,9 +22,9 @@ function recalculateIfConfigured(app) {
 
 export function addDebt(app) {
     const debtType = document.getElementById('debtType').value;
-    const name = document.getElementById('debtName').value.trim();
-    const category = document.getElementById('debtCategory').value.trim();
-    const priority = document.getElementById('priority').value ? parseInt(document.getElementById('priority').value) : null;
+    const name = normalizeText(document.getElementById('debtName').value, 80);
+    const category = normalizeText(document.getElementById('debtCategory').value, 40);
+    const priority = sanitizeInteger(document.getElementById('priority').value, null, { min: 1, max: 100 });
     const accountIdValue = document.getElementById('debtAccount').value;
     const accountId = accountIdValue ? parseInt(accountIdValue) : null;
 
@@ -43,9 +43,9 @@ export function addDebt(app) {
     };
 
     if (debtType === 'fixedAmount') {
-        const fixedAmount = parseFloat(document.getElementById('fixedAmount').value);
-        const fixedStartDate = document.getElementById('fixedStartDate').value;
-        const fixedEndDate = document.getElementById('fixedEndDate').value;
+        const fixedAmount = sanitizeFiniteNumber(document.getElementById('fixedAmount').value, NaN, { min: 0.01 });
+        const fixedStartDate = sanitizeDateISO(document.getElementById('fixedStartDate').value);
+        const fixedEndDate = sanitizeDateISO(document.getElementById('fixedEndDate').value);
 
         if (isNaN(fixedAmount) || fixedAmount <= 0 || !fixedStartDate || !fixedEndDate) {
             alert('Please fill in all required fixed-amount debt fields.');
@@ -57,11 +57,11 @@ export function addDebt(app) {
         debt.fixedEndDate = fixedEndDate;
         debt.minimumPayment = fixedAmount;
     } else {
-        const accountBalance = parseFloat(document.getElementById('accountBalance').value);
-        const interestRate = parseFloat(document.getElementById('interestRate').value);
-        const minimumPayment = parseFloat(document.getElementById('minimumPayment').value);
-        const dueDate = parseInt(document.getElementById('dueDate').value);
-        const debtStartDate = document.getElementById('debtStartDate').value || null;
+        const accountBalance = sanitizeFiniteNumber(document.getElementById('accountBalance').value, NaN, { min: 0 });
+        const interestRate = sanitizeFiniteNumber(document.getElementById('interestRate').value, NaN, { min: 0, max: 100 });
+        const minimumPayment = sanitizeFiniteNumber(document.getElementById('minimumPayment').value, NaN, { min: 0 });
+        const dueDate = sanitizeInteger(document.getElementById('dueDate').value, NaN, { min: 1, max: 31 });
+        const debtStartDate = sanitizeDateISO(document.getElementById('debtStartDate').value);
 
         if (isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
             alert('Please fill in all required credit card debt fields.');
@@ -154,12 +154,12 @@ export function updateDebtBalance(app, debtId, newBalance, newMinPayment) {
 export function saveEdit(app) {
     if (!app.editingDebtId) return;
 
-    const name = document.getElementById('debtName').value.trim();
-    const accountBalance = parseFloat(document.getElementById('accountBalance').value);
-    const interestRate = parseFloat(document.getElementById('interestRate').value);
-    const priority = document.getElementById('priority').value ? parseInt(document.getElementById('priority').value) : null;
-    const minimumPayment = parseFloat(document.getElementById('minimumPayment').value);
-    const dueDate = parseInt(document.getElementById('dueDate').value);
+    const name = normalizeText(document.getElementById('debtName').value, 80);
+    const accountBalance = sanitizeFiniteNumber(document.getElementById('accountBalance').value, NaN, { min: 0 });
+    const interestRate = sanitizeFiniteNumber(document.getElementById('interestRate').value, NaN, { min: 0, max: 100 });
+    const priority = sanitizeInteger(document.getElementById('priority').value, null, { min: 1, max: 100 });
+    const minimumPayment = sanitizeFiniteNumber(document.getElementById('minimumPayment').value, NaN, { min: 0 });
+    const dueDate = sanitizeInteger(document.getElementById('dueDate').value, NaN, { min: 1, max: 31 });
 
     if (!name || isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
         alert('Please fill in all required fields');
@@ -239,7 +239,7 @@ export function renderDebtsList(app) {
                 .sort((a, b) => b[1].total - a[1].total)
                 .map(([cat, v]) => `
                     <div class="debt-overview-cat-row">
-                        <span class="debt-overview-cat-name">${cat}</span>
+                        <span class="debt-overview-cat-name">${escapeHtml(cat)}</span>
                         <span class="debt-overview-cat-count">${v.count} debt${v.count !== 1 ? 's' : ''}</span>
                         <span class="debt-overview-cat-min">${formatCurrency(v.minTotal)}/mo</span>
                         <span class="debt-overview-cat-total">${formatCurrency(v.total)}</span>
@@ -313,7 +313,7 @@ export function renderDebtsList(app) {
         if (app.editingDebtId === debt.id) {
             let editHTML = `
                 <div class="debt-info">
-                    <div class="debt-name"><input id="inline-name-${debt.id}" type="text" value="${debt.name}"></div>
+                    <div class="debt-name"><input id="inline-name-${debt.id}" type="text" value="${escapeHtml(debt.name)}"></div>
                     <div class="debt-details">`;
 
             if (debt.debtType === 'fixedAmount') {
@@ -333,25 +333,25 @@ export function renderDebtsList(app) {
             }
 
             editHTML += `
-                        <div class="debt-detail"><strong>Category:</strong> <input id="inline-category-${debt.id}" type="text" value="${debt.category || ''}"></div>
+                        <div class="debt-detail"><strong>Category:</strong> <input id="inline-category-${debt.id}" type="text" value="${escapeHtml(debt.category || '')}"></div>
                         <div class="debt-detail"><strong>Account:</strong>
                             <select id="inline-account-${debt.id}">
                                 <option value="">— No account —</option>
-                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
                             </select>
                         </div>
                     </div>
                 </div>
                 <div class="debt-actions">
-                    <button class="btn btn-success btn-save" onclick="app.saveInlineEdit(${debt.id})">Save</button>
-                    <button class="btn btn-secondary btn-cancel" onclick="app.cancelInlineEdit()">Cancel</button>
+                    <button class="btn btn-success btn-save" data-debt-action="save-inline" data-debt-id="${debt.id}">Save</button>
+                    <button class="btn btn-secondary btn-cancel" data-debt-action="cancel-inline">Cancel</button>
                 </div>
             `;
             card.innerHTML = editHTML;
         } else {
             let cardHTML = `
                 <div class="debt-info">
-                    <div class="debt-name">${debt.name}`;
+                    <div class="debt-name">${escapeHtml(debt.name)}`;
             if (debt.debtType === 'fixedAmount') {
                 cardHTML += ` <span class="debt-type-badge">Fixed Amount</span>`;
             }
@@ -435,14 +435,14 @@ export function renderDebtsList(app) {
             cardHTML += `
                         ${debt.category ? `
                             <div class="debt-detail">
-                                <strong>Category:</strong> ${debt.category}
+                                <strong>Category:</strong> ${escapeHtml(debt.category)}
                             </div>
                         ` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" onclick="app.startEdit(${debt.id})">Edit</button>
-                    ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" onclick="app.showUpdateBalanceModal(${debt.id})">Update Balance</button>` : ''}
-                    <button class="btn-delete" onclick="app.deleteDebt(${debt.id})">Delete</button>
+                    <button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}">Edit</button>
+                    ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}">Update Balance</button>` : ''}
+                    <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}">Delete</button>
                 </div>
             `;
             card.innerHTML = cardHTML;
@@ -450,6 +450,24 @@ export function renderDebtsList(app) {
 
         debtsList.appendChild(card);
     }
+
+    debtsList.onclick = (event) => {
+        const actionEl = event.target.closest('[data-debt-action]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-debt-action');
+        const id = parseInt(actionEl.getAttribute('data-debt-id'), 10);
+
+        if (action === 'cancel-inline') {
+            app.cancelInlineEdit();
+            return;
+        }
+
+        if (Number.isNaN(id)) return;
+        if (action === 'save-inline') app.saveInlineEdit(id);
+        if (action === 'edit') app.startEdit(id);
+        if (action === 'update-balance') app.showUpdateBalanceModal(id);
+        if (action === 'delete') app.deleteDebt(id);
+    };
 }
 
 export function startEdit(app, debtId) {
@@ -468,10 +486,10 @@ export function saveInlineEdit(app, debtId) {
 
     try {
         const nameEl = document.getElementById(`inline-name-${debtId}`);
-        if (nameEl) debt.name = nameEl.value.trim();
+        if (nameEl) debt.name = normalizeText(nameEl.value, 80);
 
         const categoryEl = document.getElementById(`inline-category-${debtId}`);
-        if (categoryEl) debt.category = categoryEl.value.trim();
+        if (categoryEl) debt.category = normalizeText(categoryEl.value, 40);
 
         const accountEl = document.getElementById(`inline-account-${debtId}`);
         if (accountEl) debt.accountId = accountEl.value ? parseInt(accountEl.value) : null;
@@ -482,10 +500,10 @@ export function saveInlineEdit(app, debtId) {
             const endEl = document.getElementById(`inline-end-date-${debtId}`);
             const priorityEl = document.getElementById(`inline-priority-${debtId}`);
 
-            if (fixedAmtEl) debt.fixedAmount = parseFloat(fixedAmtEl.value) || 0;
-            if (startEl) debt.fixedStartDate = startEl.value || null;
-            if (endEl) debt.fixedEndDate = endEl.value || null;
-            if (priorityEl) debt.priority = priorityEl.value ? parseInt(priorityEl.value) : null;
+            if (fixedAmtEl) debt.fixedAmount = sanitizeFiniteNumber(fixedAmtEl.value, 0, { min: 0 });
+            if (startEl) debt.fixedStartDate = sanitizeDateISO(startEl.value);
+            if (endEl) debt.fixedEndDate = sanitizeDateISO(endEl.value);
+            if (priorityEl) debt.priority = sanitizeInteger(priorityEl.value, null, { min: 1, max: 100 });
         } else {
             const balEl = document.getElementById(`inline-balance-${debtId}`);
             const intEl = document.getElementById(`inline-interest-${debtId}`);
@@ -494,12 +512,12 @@ export function saveInlineEdit(app, debtId) {
             const priorityEl = document.getElementById(`inline-priority-${debtId}`);
             const startDateEl = document.getElementById(`inline-start-date-cc-${debtId}`);
 
-            if (balEl) debt.accountBalance = parseFloat(balEl.value) || 0;
-            if (intEl) debt.interestRate = parseFloat(intEl.value) || 0;
-            if (minEl) debt.minimumPayment = parseFloat(minEl.value) || 0;
-            if (dueEl) debt.dueDate = dueEl.value ? parseInt(dueEl.value) : null;
-            if (priorityEl) debt.priority = priorityEl.value ? parseInt(priorityEl.value) : null;
-            if (startDateEl) debt.debtStartDate = startDateEl.value || null;
+            if (balEl) debt.accountBalance = sanitizeFiniteNumber(balEl.value, 0, { min: 0 });
+            if (intEl) debt.interestRate = sanitizeFiniteNumber(intEl.value, 0, { min: 0, max: 100 });
+            if (minEl) debt.minimumPayment = sanitizeFiniteNumber(minEl.value, 0, { min: 0 });
+            if (dueEl) debt.dueDate = sanitizeInteger(dueEl.value, null, { min: 1, max: 31 });
+            if (priorityEl) debt.priority = sanitizeInteger(priorityEl.value, null, { min: 1, max: 100 });
+            if (startDateEl) debt.debtStartDate = sanitizeDateISO(startDateEl.value);
         }
 
         if (!debt.name) {

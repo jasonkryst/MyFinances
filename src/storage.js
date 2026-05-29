@@ -1,5 +1,134 @@
 // LocalStorage import/export
 
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO } from './utils.js';
+
+const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
+
+function sanitizeAccount(record, idFallback) {
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        type: normalizeText(record?.type, 30) || 'Other',
+        startingBalance: sanitizeFiniteNumber(record?.startingBalance, 0)
+    };
+}
+
+function sanitizeDebt(record, idFallback) {
+    const debtType = record?.debtType === 'fixedAmount' ? 'fixedAmount' : 'creditCard';
+    const dueDate = sanitizeInteger(record?.dueDate, null, { min: 1, max: 31 });
+    const accountBalance = sanitizeFiniteNumber(record?.accountBalance, 0, { min: 0 });
+    const minimumPayment = sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 });
+    const originalBalance = sanitizeFiniteNumber(record?.originalBalance, accountBalance, { min: 0 });
+    const originalMinimumPayment = sanitizeFiniteNumber(record?.originalMinimumPayment, minimumPayment, { min: 0 });
+
+    return {
+        ...record,
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        category: normalizeText(record?.category, 40),
+        debtType,
+        priority: sanitizeInteger(record?.priority, null, { min: 1, max: 100 }),
+        accountId: sanitizeInteger(record?.accountId, null),
+        accountBalance,
+        originalBalance,
+        interestRate: sanitizeFiniteNumber(record?.interestRate, 0, { min: 0, max: 100 }),
+        minimumPayment,
+        originalMinimumPayment,
+        dueDate,
+        debtStartDate: sanitizeDateISO(record?.debtStartDate),
+        fixedAmount: sanitizeFiniteNumber(record?.fixedAmount, minimumPayment, { min: 0 }),
+        fixedStartDate: sanitizeDateISO(record?.fixedStartDate),
+        fixedEndDate: sanitizeDateISO(record?.fixedEndDate)
+    };
+}
+
+function sanitizeIncome(record, idFallback) {
+    const frequency = record?.frequency === 'monthly' ? 'monthly' : 'biweekly';
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
+        firstPayDate: sanitizeDateISO(record?.firstPayDate || record?.firstDate),
+        frequency,
+        accountId: sanitizeInteger(record?.accountId, null)
+    };
+}
+
+function sanitizeBonus(record, idFallback) {
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
+        date: sanitizeDateISO(record?.date),
+        category: normalizeText(record?.category, 40) || 'Other',
+        accountId: sanitizeInteger(record?.accountId, null)
+    };
+}
+
+function sanitizeBill(record, idFallback) {
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
+        dueDay: sanitizeInteger(record?.dueDay, null, { min: 1, max: 31 }),
+        category: normalizeText(record?.category, 40) || 'Other',
+        accountId: sanitizeInteger(record?.accountId, null)
+    };
+}
+
+function sanitizeExpense(record, idFallback) {
+    const date = sanitizeDateISO(record?.date);
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        budgetAmount: sanitizeFiniteNumber(record?.budgetAmount, 0, { min: 0 }),
+        date: date ? new Date(`${date}T00:00:00`) : null,
+        category: normalizeText(record?.category, 40) || 'Other',
+        accountId: sanitizeInteger(record?.accountId, null)
+    };
+}
+
+function sanitizeLedgerOverrides(overrides) {
+    const out = {};
+    if (!overrides || typeof overrides !== 'object') return out;
+    for (const [key, value] of Object.entries(overrides)) {
+        if (!key || typeof key !== 'string') continue;
+        const amount = sanitizeFiniteNumber(value?.amount, NaN);
+        if (!Number.isFinite(amount)) continue;
+        out[key] = {
+            amount,
+            originalAmount: sanitizeFiniteNumber(value?.originalAmount, null),
+            transactionName: normalizeText(value?.transactionName, 120) || null,
+            accountId: sanitizeInteger(value?.accountId, null),
+            date: sanitizeDateISO(value?.date),
+            updatedAt: sanitizeDateISO(value?.updatedAt) || new Date().toISOString()
+        };
+    }
+    return out;
+}
+
+function sanitizeParsedState(parsed = {}) {
+    const now = Date.now();
+    return {
+        debts: (Array.isArray(parsed.debts) ? parsed.debts : []).map((d, i) => sanitizeDebt(d, now + i)).filter(d => !!d.name),
+        accounts: (Array.isArray(parsed.accounts) ? parsed.accounts : []).map((a, i) => sanitizeAccount(a, now + 500 + i)).filter(a => !!a.name),
+        incomes: (Array.isArray(parsed.incomes) ? parsed.incomes : []).map((inc, i) => sanitizeIncome(inc, now + 1000 + i)).filter(i => !!i.name && !!i.firstPayDate),
+        bonuses: (Array.isArray(parsed.bonuses) ? parsed.bonuses : []).map((b, i) => sanitizeBonus(b, now + 1500 + i)).filter(b => !!b.name && !!b.date),
+        bills: (Array.isArray(parsed.bills) ? parsed.bills : []).map((b, i) => sanitizeBill(b, now + 2000 + i)).filter(b => !!b.name),
+        expenses: (Array.isArray(parsed.expenses) ? parsed.expenses : []).map((e, i) => sanitizeExpense(e, now + 3000 + i)).filter(e => !!e.name && !!e.date),
+        ledgerAmountOverrides: sanitizeLedgerOverrides(parsed.ledgerAmountOverrides || {}),
+        perMonthStimulus: (Array.isArray(parsed.perMonthStimulus) ? parsed.perMonthStimulus : []).map(v => sanitizeFiniteNumber(v, 0, { min: 0 })),
+        monthlyPayment: sanitizeFiniteNumber(parsed.monthlyPayment, null, { min: 0 }),
+        strategy: normalizeText(parsed.strategy, 30) || null,
+        ledgerSettings: {
+            accountFilter: normalizeText(parsed?.ledgerSettings?.accountFilter, 20) || 'all',
+            dateRange: normalizeText(parsed?.ledgerSettings?.dateRange, 20) || 'all',
+            sortKey: normalizeText(parsed?.ledgerSettings?.sortKey, 20) || 'date',
+            sortDir: parsed?.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc'
+        }
+    };
+}
+
 
 // Persist current state to localStorage under app.storageKey
 export function saveToStorage(app) {
@@ -35,23 +164,22 @@ export function loadFromStorage(app) {
         const data = localStorage.getItem(app.storageKey);
         if (data) {
             const parsed = JSON.parse(data);
-            app.debts = parsed.debts || [];
-            app.accounts = parsed.accounts || [];
-            app.incomes = parsed.incomes || [];
-            app.bonuses = parsed.bonuses || [];
-            app.bills = parsed.bills || [];
-            app.expenses = parsed.expenses || [];
-            app.ledgerAmountOverrides = parsed.ledgerAmountOverrides || {};
-            app.perMonthStimulus = parsed.perMonthStimulus || [];
-            app._savedMonthlyPayment = parsed.monthlyPayment || null;
-            app._savedStrategy = parsed.strategy || null;
+            const clean = sanitizeParsedState(parsed);
+            app.debts = clean.debts;
+            app.accounts = clean.accounts;
+            app.incomes = clean.incomes;
+            app.bonuses = clean.bonuses;
+            app.bills = clean.bills;
+            app.expenses = clean.expenses;
+            app.ledgerAmountOverrides = clean.ledgerAmountOverrides;
+            app.perMonthStimulus = clean.perMonthStimulus;
+            app._savedMonthlyPayment = clean.monthlyPayment;
+            app._savedStrategy = clean.strategy;
             // Restore ledger settings if present
-            if (parsed.ledgerSettings) {
-                app._ledgerAccountFilter = parsed.ledgerSettings.accountFilter || 'all';
-                app._ledgerDateRange = parsed.ledgerSettings.dateRange || 'all';
-                app._ledgerSortKey = parsed.ledgerSettings.sortKey || 'date';
-                app._ledgerSortDir = parsed.ledgerSettings.sortDir || 'desc';
-            }
+            app._ledgerAccountFilter = clean.ledgerSettings.accountFilter;
+            app._ledgerDateRange = clean.ledgerSettings.dateRange;
+            app._ledgerSortKey = clean.ledgerSettings.sortKey;
+            app._ledgerSortDir = clean.ledgerSettings.sortDir;
         }
     } catch (error) {
         console.error('Error loading from localStorage:', error);
@@ -214,8 +342,16 @@ export function importAllJSON(app, file, options = {}) {
         onNoData,
         requestImportMode,
         onMergeDuplicates,
-        onReadError
+        onReadError,
+        onTooLarge
     } = options;
+
+    if (file?.size > MAX_IMPORT_BYTES) {
+        if (typeof onTooLarge === 'function') {
+            onTooLarge(MAX_IMPORT_BYTES);
+        }
+        return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -229,17 +365,19 @@ export function importAllJSON(app, file, options = {}) {
             return;
         }
 
-        const incomingDebts = Array.isArray(parsed) ? parsed : (parsed.debts || []);
-        const incomingAccounts = parsed.accounts || [];
-        const incomingIncomes = parsed.incomes || [];
-        const incomingBonuses = parsed.bonuses || [];
-        const incomingBills = parsed.bills || [];
-        const incomingExpenses = parsed.expenses || [];
-        const incomingLedgerAmountOverrides = parsed.ledgerAmountOverrides || {};
-        const incomingStrategy = parsed.strategy || null;
-        const incomingLedgerSettings = parsed.ledgerSettings || null;
+        const payload = Array.isArray(parsed) ? { debts: parsed } : parsed;
+        const clean = sanitizeParsedState(payload);
+        const incomingDebts = clean.debts;
+        const incomingAccounts = clean.accounts;
+        const incomingIncomes = clean.incomes;
+        const incomingBonuses = clean.bonuses;
+        const incomingBills = clean.bills;
+        const incomingExpenses = clean.expenses;
+        const incomingLedgerAmountOverrides = clean.ledgerAmountOverrides;
+        const incomingStrategy = payload?.strategy || null;
+        const incomingLedgerSettings = clean.ledgerSettings;
 
-        const validDebts = incomingDebts.filter(d => d && typeof d.name === 'string' && d.name.trim());
+        const validDebts = incomingDebts.filter(d => d && d.name);
 
         if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy
             && incomingBills.length === 0 && incomingExpenses.length === 0) {
@@ -263,12 +401,7 @@ export function importAllJSON(app, file, options = {}) {
 
         if (shouldReplace) {
             app.accounts = incomingAccounts.map((a, i) => ({ ...a, id: Date.now() + 500 + i }));
-            app.debts = validDebts.map((d, i) => ({
-                ...d,
-                id: Date.now() + i,
-                accountBalance: d.accountBalance ?? 0,
-                originalBalance: d.originalBalance ?? d.accountBalance ?? 0
-            }));
+            app.debts = validDebts.map((d, i) => ({ ...d, id: Date.now() + i }));
             app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
             app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
@@ -290,9 +423,7 @@ export function importAllJSON(app, file, options = {}) {
                 } else {
                     toAdd.push({
                         ...d,
-                        id: Date.now() + toAdd.length,
-                        accountBalance: d.accountBalance ?? 0,
-                        originalBalance: d.originalBalance ?? d.accountBalance ?? 0
+                        id: Date.now() + toAdd.length
                     });
                     existingNames.add(d.name.toLowerCase());
                 }
@@ -318,8 +449,10 @@ export function importAllJSON(app, file, options = {}) {
         if (incomingStrategy) {
             const mpEl = document.getElementById('monthlyPayment');
             const psEl = document.getElementById('paymentStrategy');
-            if (mpEl && incomingStrategy.monthlyPayment) mpEl.value = incomingStrategy.monthlyPayment;
-            if (psEl && incomingStrategy.paymentStrategy) psEl.value = incomingStrategy.paymentStrategy;
+            const payment = sanitizeFiniteNumber(incomingStrategy.monthlyPayment, null, { min: 0 });
+            const strategy = normalizeText(incomingStrategy.paymentStrategy, 30);
+            if (mpEl && payment !== null) mpEl.value = payment;
+            if (psEl && strategy) psEl.value = strategy;
         }
 
         app.saveToStorage();
@@ -337,17 +470,46 @@ export function importAllJSON(app, file, options = {}) {
 // Wipe all user data and reset the visible UI state.
 export function clearAllData(app, options = {}) {
     const { onCleared } = options;
+
     app.debts = [];
     app.accounts = [];
+    app.incomes = [];
+    app.bills = [];
+    app.expenses = [];
     app.lastPaymentPlan = null;
     app.lastSummary = null;
     app.perMonthStimulus = [];
     app.bonuses = [];
     app.ledgerAmountOverrides = {};
-    app.saveToStorage();
+
+    app.editingDebtId = null;
+    app.editingIncomeId = null;
+    app.editingAccountId = null;
+    app._savedMonthlyPayment = null;
+    app._savedStrategy = null;
+    app._reportMonthOffset = 0;
+
+    app._ledgerAccountFilter = 'all';
+    app._ledgerDateRange = 'all';
+    app._ledgerSortKey = 'date';
+    app._ledgerSortDir = 'desc';
+    app._ledgerPage = 1;
+    app._ledgerPageSize = 25;
+
+    localStorage.removeItem(app.storageKey);
+    localStorage.removeItem('debtTrackerTheme');
+
     app.updateUI();
-    document.getElementById('resultsSection').style.display = 'none';
-    document.getElementById('monthlyPayment').value = '';
+
+    const resultsSection = document.getElementById('resultsSection');
+    if (resultsSection) resultsSection.style.display = 'none';
+
+    const monthlyPaymentInput = document.getElementById('monthlyPayment');
+    if (monthlyPaymentInput) monthlyPaymentInput.value = '';
+
+    const strategySelect = document.getElementById('paymentStrategy');
+    if (strategySelect) strategySelect.selectedIndex = 0;
+
     if (typeof onCleared === 'function') {
         onCleared();
     }

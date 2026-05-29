@@ -2,7 +2,8 @@
 
 import {
     getIncomePaydaysInMonth,
-    formatCurrency
+    formatCurrency,
+    escapeHtml
 } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledger.js';
 
@@ -142,22 +143,22 @@ export function renderReportsCalendar(app) {
         gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"><span class="rpt-cal-day-num">${day}</span>`;
 
         for (const inc of incomes) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--income" title="💰 ${inc.name}: ${formatCurrency(inc.amount)}"><span class="rpt-cal-evt-name">💰 ${inc.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--income" title="💰 ${escapeHtml(inc.name)}: ${formatCurrency(inc.amount)}"><span class="rpt-cal-evt-name">💰 ${escapeHtml(inc.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`;
         }
         for (const bill of bills) {
             const amount = Math.abs(bill.amount || 0);
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${bill.name}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🧾 ${bill.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${escapeHtml(bill.name)}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🧾 ${escapeHtml(bill.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
         }
         for (const exp of expenses) {
             const amount = Math.abs(exp.amount || 0);
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--expense" title="🛒 ${exp.name}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🛒 ${exp.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--expense" title="🛒 ${escapeHtml(exp.name)}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🛒 ${escapeHtml(exp.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
         }
         for (const debt of debts) {
             const amount = Math.abs(debt.amount || 0);
-            gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${debt.name}: min ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">💳 ${debt.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${escapeHtml(debt.name)}: min ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">💳 ${escapeHtml(debt.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
         }
         for (const b of bonuses) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bonus" title="🎁 ${b.name}: ${formatCurrency(b.amount)}"><span class="rpt-cal-evt-name">🎁 ${b.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(b.amount)}</span></div>`;
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bonus" title="🎁 ${escapeHtml(b.name)}: ${formatCurrency(b.amount)}"><span class="rpt-cal-evt-name">🎁 ${escapeHtml(b.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(b.amount)}</span></div>`;
         }
 
         gridHTML += '</div>';
@@ -236,7 +237,7 @@ export function renderReportsIncomeExp(app) {
         billCats[cat] = (billCats[cat] || 0) + Math.abs(tx.amount || 0);
     }
     for (const [cat, amt] of Object.entries(billCats)) {
-        outflowLabels.push(`🧾 ${cat}`);
+        outflowLabels.push(`🧾 ${escapeHtml(cat)}`);
         outflowData.push(amt);
         outflowColors.push('#f59e0b');
     }
@@ -248,7 +249,7 @@ export function renderReportsIncomeExp(app) {
         expCats[cat] = (expCats[cat] || 0) + Math.abs(tx.amount || 0);
     }
     for (const [cat, amt] of Object.entries(expCats)) {
-        outflowLabels.push(`💸 ${cat}`);
+        outflowLabels.push(`💸 ${escapeHtml(cat)}`);
         outflowData.push(amt);
         outflowColors.push('#8b5cf6');
     }
@@ -259,7 +260,7 @@ export function renderReportsIncomeExp(app) {
         debtByName[tx.name] = (debtByName[tx.name] || 0) + Math.abs(tx.amount || 0);
     }
     for (const [name, amt] of Object.entries(debtByName)) {
-        outflowLabels.push(`💳 ${name}`);
+        outflowLabels.push(`💳 ${escapeHtml(name)}`);
         outflowData.push(amt);
         outflowColors.push('#ef4444');
     }
@@ -393,7 +394,7 @@ export function renderReportsMoneyFlow(app) {
             const diff = proj - a.startingBalance;
             const diffClass = diff >= 0 ? 'acct-mf-diff--pos' : 'acct-mf-diff--neg';
             const diffSign = diff >= 0 ? '+' : '';
-            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${a.name}</span><span class="acct-mf-type">${a.type}</span><span class="acct-mf-start">${formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj">${formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}">${diffSign}${formatCurrency(diff)}</span></div>`;
+            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${escapeHtml(a.name)}</span><span class="acct-mf-type">${escapeHtml(a.type)}</span><span class="acct-mf-start">${formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj">${formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}">${diffSign}${formatCurrency(diff)}</span></div>`;
         }).join('');
 
         acctSectionHTML = `

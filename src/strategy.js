@@ -7,7 +7,8 @@ import {
     getDayOrdinal,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth,
-    computeInterestPaidToDate
+    computeInterestPaidToDate,
+    escapeHtml
 } from './utils.js';
 
 /**
@@ -98,7 +99,7 @@ export function calculateRequiredPayment(app) {
             app.switchPage('strategy');
         } catch (e) {
             console.error('calculateRequiredPayment: ERROR', e);
-            resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">Error calculating payment plan: ${e.message}</div></div>`;
+            resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">Error calculating payment plan: ${escapeHtml(e && e.message ? e.message : String(e))}</div></div>`;
         }
         return;
     }
@@ -376,22 +377,22 @@ export function renderCalendarView(app, page = 0) {
                 <span class="cal-day-num">${day}</span>`;
 
             for (const ev of events) {
-                gridHTML += `<div class="cal-event" style="background:${ev.color};" title="${ev.name}: ${formatCurrency(ev.payment)}">
-                    <span class="cal-event-name">${ev.name}</span>
+                gridHTML += `<div class="cal-event" style="background:${ev.color};" title="${escapeHtml(ev.name)}: ${formatCurrency(ev.payment)}">
+                    <span class="cal-event-name">${escapeHtml(ev.name)}</span>
                     <span class="cal-event-amount">${formatCurrency(ev.payment)}</span>
                 </div>`;
             }
 
             for (const inc of incomes) {
-                gridHTML += `<div class="cal-income-event" title="💰 ${inc.name}: ${formatCurrency(inc.amount)}">
-                    <span class="cal-income-name">💰 ${inc.name}</span>
+                gridHTML += `<div class="cal-income-event" title="💰 ${escapeHtml(inc.name)}: ${formatCurrency(inc.amount)}">
+                    <span class="cal-income-name">💰 ${escapeHtml(inc.name)}</span>
                     <span class="cal-income-amount">${formatCurrency(inc.amount)}</span>
                 </div>`;
             }
 
             for (const bill of bills) {
-                gridHTML += `<div class="cal-bill-event" title="🧾 ${bill.name}: ${formatCurrency(bill.amount)}">
-                    <span class="cal-bill-name">🧾 ${bill.name}</span>
+                gridHTML += `<div class="cal-bill-event" title="🧾 ${escapeHtml(bill.name)}: ${formatCurrency(bill.amount)}">
+                    <span class="cal-bill-name">🧾 ${escapeHtml(bill.name)}</span>
                     <span class="cal-bill-amount">${formatCurrency(bill.amount)}</span>
                 </div>`;
             }
@@ -535,7 +536,7 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
                 </div>
             </div>`;
         } catch (e) {
-            resultDiv.innerHTML = `<p class="error-message">${e.message}</p>`;
+            resultDiv.innerHTML = `<p class="error-message">${escapeHtml(e && e.message ? e.message : String(e))}</p>`;
         }
     });
 }
@@ -665,7 +666,7 @@ export function renderDebtSummaryTable(app) {
                ${summary.debtStartDate ? `<div class="iptd-sub">since ${new Date(summary.debtStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>` : ''}`
             : '<span style="color:#9ca3af;font-size:0.8em;">No start date</span>';
         row.innerHTML = `
-            <td>${summary.name}${dueDateStr}${progressBar}</td>
+            <td>${escapeHtml(summary.name)}${dueDateStr}${progressBar}</td>
             <td class="min-due">${formatCurrency(summary.minDue)}</td>
             <td class="interest-rate">${summary.interestRate.toFixed(2)}%</td>
             <td class="amount">${formatCurrency(summary.totalPaid)}</td>
@@ -673,7 +674,7 @@ export function renderDebtSummaryTable(app) {
             <td class="interest">${formatCurrency(summary.interestPaid)}</td>
             <td>${iptdCell}</td>
             <td>${summary.payoffDate || '-'}</td>
-            <td><button class="btn btn-small btn-secondary" data-amortization="${summary.name}">View</button></td>
+            <td><button class="btn btn-small btn-secondary" data-amortization="${escapeHtml(summary.name)}">View</button></td>
         `;
         summaryBody.appendChild(row);
         // Milestone: show confetti if debt was just paid off this render
@@ -854,7 +855,7 @@ export function displayPaymentSchedule(app) {
     const headerRow = document.createElement('tr');
     headerRow.innerHTML = '<th>Month</th>';
     for (const debtName of debtNames) {
-        headerRow.innerHTML += `<th>${debtName}</th>`;
+        headerRow.innerHTML += `<th>${escapeHtml(debtName)}</th>`;
     }
     headerRow.innerHTML += '<th>Stimulus ($)</th>';
     headerRow.innerHTML += '<th>Total Paid</th>';

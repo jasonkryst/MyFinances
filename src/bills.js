@@ -1,5 +1,5 @@
 // Bills and expenses
-import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 
 
 // Render the full Budget page: bill cards, expense cards, cashflow summary.
@@ -25,7 +25,7 @@ export function renderBillList(app) {
             return `<div class="budget-card budget-card--editing">
                 <div class="budget-edit-grid">
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Name</label>
-                        <input type="text" id="be-name-${bill.id}" value="${bill.name.replace(/"/g,'&quot;')}" class="form-control"></div>
+                        <input type="text" id="be-name-${bill.id}" value="${escapeHtml(bill.name)}" class="form-control"></div>
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Amount ($)</label>
                         <input type="number" id="be-amount-${bill.id}" value="${bill.amount}" step="0.01" min="0" class="form-control"></div>
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Due Day</label>
@@ -37,25 +37,25 @@ export function renderBillList(app) {
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Account</label>
                         <select id="be-acct-${bill.id}" class="form-control">
                             <option value="">— No account —</option>
-                            ${app.accounts.map(a => `<option value="${a.id}" ${bill.accountId===a.id?'selected':''}>${a.name}</option>`).join('')}
+                            ${app.accounts.map(a => `<option value="${a.id}" ${bill.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}
                         </select></div>
                 </div>
                 <div class="budget-edit-actions">
-                    <button class="btn btn-primary btn-small" onclick="app.saveEditBill(${bill.id})">Save</button>
-                    <button class="btn btn-secondary btn-small" onclick="app.cancelEditBill()">Cancel</button>
+                    <button class="btn btn-primary btn-small" data-bill-action="save" data-bill-id="${bill.id}">Save</button>
+                    <button class="btn btn-secondary btn-small" data-bill-action="cancel">Cancel</button>
                 </div>
             </div>`;
         }
         const dueTxt = bill.dueDay ? `Due: ${getDayOrdinal(bill.dueDay)}` : 'No due day set';
         return `<div class="budget-card">
             <div class="budget-card-info">
-                <span class="budget-card-name">${bill.name}</span>
+                <span class="budget-card-name">${escapeHtml(bill.name)}</span>
                 <span class="budget-card-amount">${formatCurrency(bill.amount)}<span class="budget-card-period">/mo</span></span>
-                <span class="budget-card-meta">${bill.category} &bull; ${dueTxt}</span>
+                <span class="budget-card-meta">${escapeHtml(bill.category)} &bull; ${escapeHtml(dueTxt)}</span>
             </div>
             <div class="budget-card-actions">
-                <button class="btn-edit" onclick="app.startEditBill(${bill.id})">Edit</button>
-                <button class="btn btn-danger btn-small" onclick="app.deleteBill(${bill.id})">Delete</button>
+                <button class="btn-edit" data-bill-action="edit" data-bill-id="${bill.id}">Edit</button>
+                <button class="btn btn-danger btn-small" data-bill-action="delete" data-bill-id="${bill.id}">Delete</button>
             </div>
         </div>`;
     }).join('');
@@ -72,7 +72,7 @@ export function renderBillList(app) {
         .sort((a, b) => b[1].total - a[1].total)
         .map(([cat, v]) => `
             <div class="budget-cat-row">
-                <span class="budget-cat-name">${cat}</span>
+                <span class="budget-cat-name">${escapeHtml(cat)}</span>
                 <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
                 <span class="budget-cat-amount">${formatCurrency(v.total)}/mo</span>
             </div>`).join('');
@@ -87,6 +87,20 @@ export function renderBillList(app) {
         </div>`;
 
     container.innerHTML = cards + summaryHTML;
+    container.onclick = (event) => {
+        const actionEl = event.target.closest('[data-bill-action]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-bill-action');
+        const id = parseInt(actionEl.getAttribute('data-bill-id'), 10);
+        if (action === 'cancel') {
+            app.cancelEditBill();
+            return;
+        }
+        if (Number.isNaN(id)) return;
+        if (action === 'save') app.saveEditBill(id);
+        if (action === 'edit') app.startEditBill(id);
+        if (action === 'delete') app.deleteBill(id);
+    };
 }
 
 export function renderExpenseList(app) {
@@ -103,7 +117,7 @@ export function renderExpenseList(app) {
             return `<div class="budget-card budget-card--editing">
                 <div class="budget-edit-grid">
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Name</label>
-                        <input type="text" id="ee-name-${exp.id}" value="${exp.name.replace(/"/g,'&quot;')}" class="form-control"></div>
+                        <input type="text" id="ee-name-${exp.id}" value="${escapeHtml(exp.name)}" class="form-control"></div>
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Cost</label>
                         <input type="number" id="ee-amount-${exp.id}" value="${exp.budgetAmount}" step="0.01" min="0" class="form-control"></div>
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Date</label>
@@ -115,24 +129,24 @@ export function renderExpenseList(app) {
                     <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Account</label>
                         <select id="ee-acct-${exp.id}" class="form-control">
                             <option value="">— No account —</option>
-                            ${app.accounts.map(a => `<option value="${a.id}" ${exp.accountId===a.id?'selected':''}>${a.name}</option>`).join('')}
+                            ${app.accounts.map(a => `<option value="${a.id}" ${exp.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}
                         </select></div>
                 </div>
                 <div class="budget-edit-actions">
-                    <button class="btn btn-primary btn-small" onclick="app.saveEditExpense(${exp.id})">Save</button>
-                    <button class="btn btn-secondary btn-small" onclick="app.cancelEditExpense()">Cancel</button>
+                    <button class="btn btn-primary btn-small" data-expense-action="save" data-expense-id="${exp.id}">Save</button>
+                    <button class="btn btn-secondary btn-small" data-expense-action="cancel">Cancel</button>
                 </div>
             </div>`;
         }
         return `<div class="budget-card">
             <div class="budget-card-info">
-                <span class="budget-card-name">${exp.name}</span>
+                <span class="budget-card-name">${escapeHtml(exp.name)}</span>
                 <span class="budget-card-amount">${formatCurrency(exp.budgetAmount)}</span>
-                <span class="budget-card-meta">${exp.category} • ${exp.date instanceof Date ? exp.date.toLocaleDateString() : new Date(exp.date).toLocaleDateString()}</span>
+                <span class="budget-card-meta">${escapeHtml(exp.category)} • ${escapeHtml(exp.date instanceof Date ? exp.date.toLocaleDateString() : new Date(exp.date).toLocaleDateString())}</span>
             </div>
             <div class="budget-card-actions">
-                <button class="btn-edit" onclick="app.startEditExpense(${exp.id})">Edit</button>
-                <button class="btn btn-danger btn-small" onclick="app.deleteExpense(${exp.id})">Delete</button>
+                <button class="btn-edit" data-expense-action="edit" data-expense-id="${exp.id}">Edit</button>
+                <button class="btn btn-danger btn-small" data-expense-action="delete" data-expense-id="${exp.id}">Delete</button>
             </div>
         </div>`;
     }).join('');
@@ -149,7 +163,7 @@ export function renderExpenseList(app) {
         .sort((a, b) => b[1].total - a[1].total)
         .map(([cat, v]) => `
             <div class="budget-cat-row budget-cat-row--expense">
-                <span class="budget-cat-name">${cat}</span>
+                <span class="budget-cat-name">${escapeHtml(cat)}</span>
                 <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
                 <span class="budget-cat-amount">${formatCurrency(v.total)}/mo</span>
             </div>`).join('');
@@ -164,6 +178,20 @@ export function renderExpenseList(app) {
         </div>`;
 
     container.innerHTML = cards + summaryHTML;
+    container.onclick = (event) => {
+        const actionEl = event.target.closest('[data-expense-action]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-expense-action');
+        const id = parseInt(actionEl.getAttribute('data-expense-id'), 10);
+        if (action === 'cancel') {
+            app.cancelEditExpense();
+            return;
+        }
+        if (Number.isNaN(id)) return;
+        if (action === 'save') app.saveEditExpense(id);
+        if (action === 'edit') app.startEditExpense(id);
+        if (action === 'delete') app.deleteExpense(id);
+    };
 }
 
 export function renderCashFlowSummary(app) {
@@ -183,10 +211,10 @@ export function renderCashFlowSummary(app) {
     el.style.display = 'block';
 
     const row = (label, value, cls = '') =>
-        `<div class="cashflow-row ${cls}"><span class="cashflow-label">${label}</span><span class="cashflow-value">${formatCurrency(value)}</span></div>`;
+        `<div class="cashflow-row ${cls}"><span class="cashflow-label">${escapeHtml(label)}</span><span class="cashflow-value">${formatCurrency(value)}</span></div>`;
 
     const subRow = (label, value, cls = '') =>
-        `<div class="cashflow-subrow ${cls}"><span class="cashflow-sublabel">${label}</span><span class="cashflow-subvalue">${formatCurrency(value)}</span></div>`;
+        `<div class="cashflow-subrow ${cls}"><span class="cashflow-sublabel">${escapeHtml(label)}</span><span class="cashflow-subvalue">${formatCurrency(value)}</span></div>`;
 
     let billCatRows = '';
     if (totalBills > 0) {
@@ -352,10 +380,10 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
 
 // Add a new bill from the billForm inputs.
 export function addBill(app) {
-    const name = document.getElementById('billName').value.trim();
-    const amount = parseFloat(document.getElementById('billAmount').value);
-    const dueDay = parseInt(document.getElementById('billDueDay').value) || null;
-    const category = document.getElementById('billCategory').value;
+    const name = normalizeText(document.getElementById('billName').value, 80);
+    const amount = sanitizeFiniteNumber(document.getElementById('billAmount').value, NaN, { min: 0 });
+    const dueDay = sanitizeInteger(document.getElementById('billDueDay').value, null, { min: 1, max: 31 });
+    const category = normalizeText(document.getElementById('billCategory').value, 40);
     const accountId = parseInt(document.getElementById('billAccount')?.value) || null;
     if (!name || isNaN(amount) || amount < 0) {
         alert('Please enter a valid bill name and amount.');
@@ -389,10 +417,10 @@ export function startEditBill(app, id) {
 export function saveEditBill(app, id) {
     const idx = app.bills.findIndex(b => b.id === id);
     if (idx === -1) return;
-    const name      = document.getElementById(`be-name-${id}`).value.trim();
-    const amount    = parseFloat(document.getElementById(`be-amount-${id}`).value);
-    const dueDay    = parseInt(document.getElementById(`be-dueday-${id}`).value) || null;
-    const category  = document.getElementById(`be-cat-${id}`).value;
+    const name      = normalizeText(document.getElementById(`be-name-${id}`).value, 80);
+    const amount    = sanitizeFiniteNumber(document.getElementById(`be-amount-${id}`).value, NaN, { min: 0 });
+    const dueDay    = sanitizeInteger(document.getElementById(`be-dueday-${id}`).value, null, { min: 1, max: 31 });
+    const category  = normalizeText(document.getElementById(`be-cat-${id}`).value, 40);
     const acctEl    = document.getElementById(`be-acct-${id}`);
     const accountId = acctEl?.value ? parseInt(acctEl.value) : null;
     if (!name || isNaN(amount) || amount < 0) { alert('Invalid bill data.'); return; }
@@ -410,10 +438,10 @@ export function cancelEditBill(app) {
 
 // Add a new expense budget from the expenseForm inputs.
 export function addExpense(app) {
-    const name = document.getElementById('expenseName').value.trim();
-    const budgetAmount = parseFloat(document.getElementById('expenseBudget').value);
-    const dateStr = document.getElementById('expenseDate').value;
-    const category = document.getElementById('expenseCategory').value;
+    const name = normalizeText(document.getElementById('expenseName').value, 80);
+    const budgetAmount = sanitizeFiniteNumber(document.getElementById('expenseBudget').value, NaN, { min: 0 });
+    const dateStr = sanitizeDateISO(document.getElementById('expenseDate').value);
+    const category = normalizeText(document.getElementById('expenseCategory').value, 40);
     const accountId = parseInt(document.getElementById('expenseAccount')?.value) || null;
     if (!name || isNaN(budgetAmount) || budgetAmount < 0 || !dateStr) {
         alert('Please enter a valid expense name, amount, and date.');
@@ -448,10 +476,10 @@ export function startEditExpense(app, id) {
 export function saveEditExpense(app, id) {
     const idx = app.expenses.findIndex(e => e.id === id);
     if (idx === -1) return;
-    const name         = document.getElementById(`ee-name-${id}`).value.trim();
-    const budgetAmount = parseFloat(document.getElementById(`ee-amount-${id}`).value);
-    const dateStr      = document.getElementById(`ee-date-${id}`).value;
-    const category     = document.getElementById(`ee-cat-${id}`).value;
+    const name         = normalizeText(document.getElementById(`ee-name-${id}`).value, 80);
+    const budgetAmount = sanitizeFiniteNumber(document.getElementById(`ee-amount-${id}`).value, NaN, { min: 0 });
+    const dateStr      = sanitizeDateISO(document.getElementById(`ee-date-${id}`).value);
+    const category     = normalizeText(document.getElementById(`ee-cat-${id}`).value, 40);
     const acctEl       = document.getElementById(`ee-acct-${id}`);
     const accountId    = acctEl?.value ? parseInt(acctEl.value) : null;
     if (!name || isNaN(budgetAmount) || budgetAmount < 0 || !dateStr) { alert('Invalid expense data.'); return; }
