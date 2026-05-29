@@ -472,6 +472,17 @@
                     <li>Date range options including next 30, 60, and 90 days</li>
                     <li>Future transaction visibility toggle</li>
                 </ul>
+
+                <h3>Overriding Transaction Amounts</h3>
+                <p>For non-rollover entries, the Amount column includes Override or Edit override controls.</p>
+                <ol>
+                    <li>Click Override (or Edit override) in the Amount column for the transaction</li>
+                    <li>Use the modal dialog to enter the replacement amount (negative for outflow, positive for inflow)</li>
+                    <li>Click Save Override to apply changes, or Cancel to leave the original unchanged</li>
+                    <li>Use Reset in the same row to remove an override and restore the original amount</li>
+                </ol>
+
+                <div class="guide-note">When an override is saved, the ledger keeps the original amount for history, recalculates running balance, and updates Reports totals/charts and account projections.</div>
             </section>
 
             <section class="guide-section" id="data-management">
@@ -480,6 +491,7 @@
                 <ol>
                     <li>Use the export button in the top-right toolbar</li>
                     <li>Choose JSON export</li>
+                    <li>Backup includes accounts, debts, income, bills, expenses, strategy settings, and ledger amount overrides</li>
                     <li>Store the downloaded backup file safely</li>
                 </ol>
 
@@ -487,7 +499,7 @@
                 <ol>
                     <li>Use the import button in the top-right toolbar</li>
                     <li>Select a prior JSON backup</li>
-                    <li>Choose replace or merge behavior based on your goal</li>
+                    <li>Choose replace or merge behavior based on your goal (ledger overrides are restored from backup)</li>
                 </ol>
 
                 <h3>Exporting Schedule to CSV</h3>

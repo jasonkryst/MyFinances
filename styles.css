@@ -70,6 +70,49 @@
     font-weight: 600;
 }
 
+.ledger-override-actions {
+    margin-top: 6px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.ledger-override-btn,
+.ledger-override-clear-btn {
+    border: 1px solid var(--border-color);
+    background: var(--card-bg, #fff);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ledger-override-btn:hover,
+.ledger-override-clear-btn:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.ledger-amount-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.2;
+}
+
+.ledger-amount-effective {
+    font-weight: 700;
+}
+
+.ledger-amount-original {
+    font-size: 0.75rem;
+    opacity: 0.72;
+    text-decoration: line-through;
+}
+
 .ledger-pagination {
     margin-top: 12px;
     display: flex;
@@ -167,6 +210,19 @@ body.dark-mode .ledger-page-btn {
 body.dark-mode .ledger-page-btn:hover:not(:disabled) {
     background: #334155;
     border-color: #475569;
+}
+
+body.dark-mode .ledger-override-btn,
+body.dark-mode .ledger-override-clear-btn {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-color: #334155;
+}
+
+body.dark-mode .ledger-override-btn:hover,
+body.dark-mode .ledger-override-clear-btn:hover {
+    background: #334155;
+    border-color: #60a5fa;
 }
 /* ═══════════════════════════════════════════════════════════════
    REPORTS MONTH SELECTOR (pagination)
@@ -2120,6 +2176,11 @@ body.dark-mode .whatif-metric--good .whatif-metric-val {
 
 /* ---- Update balance modal (dark mode) ---- */
 body.dark-mode #updateBalanceModal .modal-content {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+body.dark-mode #ledgerOverrideModal .modal-content {
     background: #1e293b;
     color: #f1f5f9;
 }

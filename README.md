@@ -25,6 +25,8 @@ All calculations happen locally in your browser — no accounts, no servers, no 
   - Next 90 Days
   - Hide or show future transactions
 - **Includes all transaction types** — The Ledger tab provides a running table of all account transactions, including **income, one-time entries (bonuses/deposits), debts, bills, and expenses**, with filters for account and date range (including future transactions and custom ranges like 30/60/90 days or through next month). All date filtering uses precise date-only comparisons to ensure accurate transaction display.
+- **Amount overrides (modal-based)** — each non-rollover transaction in the **Amount** column supports **Override / Edit override / Reset** using an in-app modal dialog (no browser prompt). Overrides preserve the original amount for history and display both values in the ledger row.
+- **Automatic recalculation after override** — changing a transaction amount recalculates account running balances and updates Reports totals/charts and account projections immediately.
 
 ### Debt Management
 - **Add unlimited debts** — credit cards (revolving balance with APR) or fixed-amount recurring payments (subscriptions, rent, instalments)
@@ -37,7 +39,7 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 ### Account Management
 - **Add accounts** — define checking, savings, cash, investment, credit card, loan, or other accounts with a name, type, and starting balance
 - **Link to accounts** — assign income sources, one-time entries (bonuses/deposits), debts, bills, and expense budgets to specific accounts
-- **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, bills, and expenses for the current month
+- **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, bills, and expenses for the current month, including any ledger amount overrides
 - **Money Flow report** — the Reports › Money Flow tab includes a per-account balance table alongside the cumulative cash-flow chart
 - **Export / Import** — accounts are included in the JSON backup (version 3.0 format)
 
@@ -94,8 +96,8 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 - Shown on each debt card, in the summary table, and persisted to localStorage
 
 ### Data Management
-- **Persistent storage** — debts, income, stimulus data, monthly payment, and strategy are auto-saved to `localStorage`
-- **Export (JSON)** — one-click full backup from the header toolbar; downloads debts, income sources, and strategy settings as a single `.json` file
+- **Persistent storage** — debts, income, stimulus data, monthly payment, strategy, and ledger amount overrides are auto-saved to `localStorage`
+- **Export (JSON)** — one-click full backup from the header toolbar; downloads debts, income sources, strategy settings, and ledger amount overrides as a single `.json` file
 - **Import (JSON)** — restore from any previously exported backup; choose **Replace** (full restore) or **Merge** (append debts, always restores income & strategy)
 - **Export to CSV** — full payment schedule plus per-debt summary in one spreadsheet-ready file
 - **Clear All Data** — wipe everything and start fresh
@@ -221,6 +223,13 @@ The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of eve
   "incomes":  [ { "id": 1, "name": "Main Job", "amount": 2000, "accountId": 1, ... } ],
   "bills":    [ { "id": 2, "name": "Electricity", "amount": 120, "dueDay": 15, "category": "Utilities", "accountId": 1 } ],
   "expenses": [ { "id": 3, "name": "Groceries", "budgetAmount": 400, "category": "Food & Groceries", "accountId": 1 } ],
+  "ledgerAmountOverrides": {
+    "bill|2|1|2026-06-15": {
+      "amount": -95,
+      "originalAmount": -120,
+      "transactionName": "Electricity"
+    }
+  },
   "strategy": { "monthlyPayment": 800, "paymentStrategy": "avalanche" }
 }
 ```
@@ -229,8 +238,8 @@ The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of eve
 
 | Choice | Behaviour |
 |--------|-----------|
-| **OK (Replace)** | Everything is replaced by the file contents (debts, income, bills, expenses, strategy) |
-| **Cancel (Merge)** | Imported debts are appended (duplicates by name are skipped); income, bills, expenses, and strategy settings are always restored from the file |
+| **OK (Replace)** | Everything is replaced by the file contents (debts, income, bills, expenses, strategy, and ledger overrides) |
+| **Cancel (Merge)** | Imported debts are appended (duplicates by name are skipped); income, bills, expenses, strategy settings, and ledger overrides are restored from the file |
 
 > Legacy v1.0 files (debts only) are also accepted.
 
@@ -271,7 +280,7 @@ src/income.js       — Income and one-time entry CRUD + rendering
 src/bills.js        — Bills/expenses CRUD + budget rendering + date tracking
 src/accounts.js     — Account CRUD + projection helpers
 src/reports.js      — Reports month navigation + report rendering + calendar integration
-src/ledger.js       — Ledger rendering + filters + date-range filtering
+src/ledger.js       — Ledger rendering + filters + running balances + amount override modal flow
 src/charts.js       — Chart lifecycle and chart renderers
 src/storage.js      — Persistence, import/export flows
 src/utils.js        — Shared date/format/projection utilities + expense date utilities

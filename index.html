@@ -948,6 +948,25 @@
             </div>
         </div>
     </div>
+    <div id="ledgerOverrideModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10003; align-items:center; justify-content:center;">
+        <div class="modal-content" style="background:white; max-width:440px; width:92%; border-radius:12px; padding:26px 22px; margin:auto; position:relative; outline:0;">
+            <button id="ledgerOverrideCloseBtn" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
+            <h3 id="ledgerOverrideTitle" style="margin-top:0">Override Ledger Amount</h3>
+            <p style="margin:6px 0 10px; color:#6b7280;">Use a replacement amount while preserving the original value for history.</p>
+            <p style="margin:0 0 6px; font-size:0.9rem;"><strong id="ledgerOverrideTxName"></strong></p>
+            <p style="margin:0 0 2px; font-size:0.82rem; color:#6b7280;">Account: <span id="ledgerOverrideAccount"></span></p>
+            <p style="margin:0 0 12px; font-size:0.82rem; color:#6b7280;">Date: <span id="ledgerOverrideDate"></span></p>
+            <div class="form-group" style="margin:0 0 12px;">
+                <label for="ledgerOverrideAmountInput">Replacement Amount ($)</label>
+                <input type="number" id="ledgerOverrideAmountInput" step="0.01" placeholder="0.00">
+                <div style="font-size:0.78rem; color:#6b7280; margin-top:4px;">Original amount: <span id="ledgerOverrideOriginal"></span></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:18px;">
+                <button id="ledgerOverrideConfirmBtn" class="btn btn-success">Save Override</button>
+                <button id="ledgerOverrideCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
     <script type="module" src="src/app.js"></script>
 </body>
 </html>

@@ -11,6 +11,7 @@ export function saveToStorage(app) {
             bonuses: app.bonuses || [],
             bills: app.bills || [],
             expenses: app.expenses || [],
+            ledgerAmountOverrides: app.ledgerAmountOverrides || {},
             perMonthStimulus: app.perMonthStimulus || [],
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             strategy: document.getElementById('paymentStrategy')?.value || null,
@@ -40,6 +41,7 @@ export function loadFromStorage(app) {
             app.bonuses = parsed.bonuses || [];
             app.bills = parsed.bills || [];
             app.expenses = parsed.expenses || [];
+            app.ledgerAmountOverrides = parsed.ledgerAmountOverrides || {};
             app.perMonthStimulus = parsed.perMonthStimulus || [];
             app._savedMonthlyPayment = parsed.monthlyPayment || null;
             app._savedStrategy = parsed.strategy || null;
@@ -73,6 +75,7 @@ export function exportAllJSON(app) {
         bonuses: app.bonuses || [],
         bills: app.bills || [],
         expenses: app.expenses || [],
+        ledgerAmountOverrides: app.ledgerAmountOverrides || {},
         strategy: {
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             paymentStrategy: document.getElementById('paymentStrategy')?.value || null
@@ -232,6 +235,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingBonuses = parsed.bonuses || [];
         const incomingBills = parsed.bills || [];
         const incomingExpenses = parsed.expenses || [];
+        const incomingLedgerAmountOverrides = parsed.ledgerAmountOverrides || {};
         const incomingStrategy = parsed.strategy || null;
         const incomingLedgerSettings = parsed.ledgerSettings || null;
 
@@ -269,6 +273,7 @@ export function importAllJSON(app, file, options = {}) {
             app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
             app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
+            app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
                 app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
@@ -301,6 +306,7 @@ export function importAllJSON(app, file, options = {}) {
             app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
             app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
+            app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
                 app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
@@ -337,6 +343,7 @@ export function clearAllData(app, options = {}) {
     app.lastSummary = null;
     app.perMonthStimulus = [];
     app.bonuses = [];
+    app.ledgerAmountOverrides = {};
     app.saveToStorage();
     app.updateUI();
     document.getElementById('resultsSection').style.display = 'none';

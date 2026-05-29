@@ -1,6 +1,7 @@
 // Account management
 
-import { countIncomePaydaysInMonth, formatCurrency } from './utils.js';
+import { formatCurrency } from './utils.js';
+import { getLedgerTransactionsForMonth } from './ledger.js';
 
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
@@ -20,34 +21,15 @@ export function refreshAccountSelectors(app) {
 export function computeAccountBalance(app, accountId, year = null, month = null) {
     const acct = app.accounts.find(a => a.id === accountId);
     if (!acct) return 0;
-    let balance = acct.startingBalance;
+    let balance = Number(acct.startingBalance) || 0;
 
     const now = new Date();
     const yr = year !== null ? year : now.getFullYear();
     const mo = month !== null ? month : now.getMonth();
+    const monthTxs = getLedgerTransactionsForMonth(app, yr, mo, accountId);
 
-    for (const inc of app.incomes) {
-        if (inc.accountId === accountId) {
-            balance += (inc.amount || 0) * countIncomePaydaysInMonth(inc, yr, mo);
-        }
-    }
-
-    for (const b of app.bonuses) {
-        if (b.accountId !== accountId) continue;
-        const bd = new Date(b.date + 'T12:00:00');
-        if (bd.getFullYear() === yr && bd.getMonth() === mo) balance += b.amount;
-    }
-
-    for (const d of app.debts) {
-        if (d.accountId === accountId) balance -= (d.minimumPayment || 0);
-    }
-
-    for (const b of app.bills) {
-        if (b.accountId === accountId) balance -= b.amount;
-    }
-
-    for (const e of app.expenses) {
-        if (e.accountId === accountId) balance -= e.budgetAmount;
+    for (const tx of monthTxs) {
+        balance += Number(tx.amount) || 0;
     }
 
     return balance;

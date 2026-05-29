@@ -81,6 +81,7 @@ export class DebtTrackerApp {
         this.bonuses = [];
         this.bills = [];
         this.expenses = [];
+        this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
         this.perMonthStimulus = [];

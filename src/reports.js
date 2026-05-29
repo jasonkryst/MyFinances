@@ -2,11 +2,9 @@
 
 import {
     getIncomePaydaysInMonth,
-    getBillsByDayForMonth,
-    getExpensesByDayForMonth,
-    getBonusesByDayForMonth,
     formatCurrency
 } from './utils.js';
+import { getLedgerTransactionsForMonth } from './ledger.js';
 
 export function incomeDaysInMonth(app, inc, year, month) {
     return getIncomePaydaysInMonth(inc, year, month).map(d => d.getDate());
@@ -70,29 +68,47 @@ export function renderReportsCalendar(app) {
     const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+    const monthTxs = getLedgerTransactionsForMonth(app, year, month);
     const dayIncome = {};
-    for (const inc of (app.incomes || [])) {
-        for (const d of incomeDaysInMonth(app, inc, year, month)) {
-            if (!dayIncome[d]) dayIncome[d] = [];
-            dayIncome[d].push(inc);
+    const dayBills = {};
+    const dayExpenses = {};
+    const dayDebts = {};
+    const dayBonuses = {};
+
+    const palette = ['#2563eb', '#dc2626', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#6366f1'];
+    const debtColorByName = {};
+    let ci = 0;
+
+    for (const tx of monthTxs) {
+        const day = new Date(tx.date).getDate();
+        if (tx.type === 'income') {
+            if (!dayIncome[day]) dayIncome[day] = [];
+            dayIncome[day].push(tx);
+            continue;
+        }
+        if (tx.type === 'bonus') {
+            if (!dayBonuses[day]) dayBonuses[day] = [];
+            dayBonuses[day].push(tx);
+            continue;
+        }
+        if (tx.type === 'bill') {
+            if (!dayBills[day]) dayBills[day] = [];
+            dayBills[day].push(tx);
+            continue;
+        }
+        if (tx.type === 'expense') {
+            if (!dayExpenses[day]) dayExpenses[day] = [];
+            dayExpenses[day].push(tx);
+            continue;
+        }
+        if (tx.type === 'debt') {
+            if (!dayDebts[day]) dayDebts[day] = [];
+            if (!debtColorByName[tx.name]) {
+                debtColorByName[tx.name] = palette[ci++ % palette.length];
+            }
+            dayDebts[day].push({ ...tx, _color: debtColorByName[tx.name] });
         }
     }
-
-    const dayBills = getBillsByDayForMonth(app.bills, year, month);
-
-    const dayExpenses = getExpensesByDayForMonth(app.expenses, year, month);
-
-    const dayDebts = {};
-    const palette = ['#2563eb', '#dc2626', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#6366f1'];
-    let ci = 0;
-    for (const debt of (app.debts || [])) {
-        const daysInM = new Date(year, month + 1, 0).getDate();
-        const d = Math.min(debt.dueDate || 1, daysInM);
-        if (!dayDebts[d]) dayDebts[d] = [];
-        dayDebts[d].push({ ...debt, _color: palette[ci++ % palette.length] });
-    }
-
-    const dayBonuses = getBonusesByDayForMonth(app.bonuses, year, month);
 
     const legendItems = [
         '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--income"></span>Payday</span>',
@@ -129,13 +145,16 @@ export function renderReportsCalendar(app) {
             gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--income" title="💰 ${inc.name}: ${formatCurrency(inc.amount)}"><span class="rpt-cal-evt-name">💰 ${inc.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`;
         }
         for (const bill of bills) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${bill.name}: ${formatCurrency(bill.amount)}"><span class="rpt-cal-evt-name">🧾 ${bill.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(bill.amount)}</span></div>`;
+            const amount = Math.abs(bill.amount || 0);
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${bill.name}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🧾 ${bill.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
         }
         for (const exp of expenses) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--expense" title="🛒 ${exp.name}: ${formatCurrency(exp.budgetAmount)}"><span class="rpt-cal-evt-name">🛒 ${exp.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(exp.budgetAmount)}</span></div>`;
+            const amount = Math.abs(exp.amount || 0);
+            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--expense" title="🛒 ${exp.name}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🛒 ${exp.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
         }
         for (const debt of debts) {
-            gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${debt.name}: min ${formatCurrency(debt.minimumPayment)}"><span class="rpt-cal-evt-name">💳 ${debt.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(debt.minimumPayment)}</span></div>`;
+            const amount = Math.abs(debt.amount || 0);
+            gridHTML += `<div class="rpt-cal-evt" style="background:${debt._color}" title="💳 ${debt.name}: min ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">💳 ${debt.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
         }
         for (const b of bonuses) {
             gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bonus" title="🎁 ${b.name}: ${formatCurrency(b.amount)}"><span class="rpt-cal-evt-name">🎁 ${b.name}</span><span class="rpt-cal-evt-amt">${formatCurrency(b.amount)}</span></div>`;
@@ -157,19 +176,31 @@ export function renderReportsIncomeExp(app) {
     const rptYear = rptDate.getFullYear();
     const rptMonth = rptDate.getMonth();
 
+    const monthTxs = getLedgerTransactionsForMonth(app, rptYear, rptMonth);
+
     let totalIncome = 0;
-    for (const inc of (app.incomes || [])) {
-        totalIncome += inc.amount * incomeDaysInMonth(app, inc, rptYear, rptMonth).length;
-    }
-    for (const b of (app.bonuses || [])) {
-        if (!b.date) continue;
-        const bd = new Date(b.date + 'T12:00:00');
-        if (bd.getFullYear() === rptYear && bd.getMonth() === rptMonth) totalIncome += b.amount;
+    let totalBills = 0;
+    let totalExpenses = 0;
+    let totalDebtMin = 0;
+
+    for (const tx of monthTxs) {
+        if (tx.type === 'income' || tx.type === 'bonus') {
+            totalIncome += tx.amount;
+            continue;
+        }
+        if (tx.type === 'bill') {
+            totalBills += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'expense') {
+            totalExpenses += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'debt') {
+            totalDebtMin += Math.abs(tx.amount || 0);
+        }
     }
 
-    const totalBills = (app.bills || []).reduce((s, b) => s + b.amount, 0);
-    const totalExpenses = (app.expenses || []).reduce((s, e) => s + e.budgetAmount, 0);
-    const totalDebtMin = (app.debts || []).reduce((s, d) => s + (d.minimumPayment || 0), 0);
     const totalOutflow = totalBills + totalExpenses + totalDebtMin;
     const net = totalIncome - totalOutflow;
     const netCls = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
@@ -185,30 +216,25 @@ export function renderReportsIncomeExp(app) {
     ];
     const statsHTML = stats.map(s => `<div class="rpt-stat ${s.cls}"><span class="rpt-stat-label">${s.label}</span><span class="rpt-stat-value">${formatCurrency(s.value)}</span></div>`).join('');
 
-    const incomeLabels = [];
-    const incomeData = [];
-    for (const inc of (app.incomes || [])) {
-        const count = incomeDaysInMonth(app, inc, rptYear, rptMonth).length;
-        if (count > 0) {
-            incomeLabels.push(inc.name);
-            incomeData.push(inc.amount * count);
+    const incomeBySource = {};
+    for (const tx of monthTxs) {
+        if (tx.type === 'income' || tx.type === 'bonus') {
+            incomeBySource[tx.name] = (incomeBySource[tx.name] || 0) + tx.amount;
         }
     }
-    for (const b of (app.bonuses || [])) {
-        if (!b.date) continue;
-        const bd = new Date(b.date + 'T12:00:00');
-        if (bd.getFullYear() === rptYear && bd.getMonth() === rptMonth) {
-            incomeLabels.push(b.name);
-            incomeData.push(b.amount);
-        }
-    }
+    const incomeLabels = Object.keys(incomeBySource);
+    const incomeData = incomeLabels.map(label => incomeBySource[label]);
 
     const outflowLabels = [];
     const outflowData = [];
     const outflowColors = [];
 
     const billCats = {};
-    for (const b of (app.bills || [])) billCats[b.category || 'Other'] = (billCats[b.category || 'Other'] || 0) + b.amount;
+    for (const tx of monthTxs) {
+        if (tx.type !== 'bill') continue;
+        const cat = tx.category || 'Other';
+        billCats[cat] = (billCats[cat] || 0) + Math.abs(tx.amount || 0);
+    }
     for (const [cat, amt] of Object.entries(billCats)) {
         outflowLabels.push(`🧾 ${cat}`);
         outflowData.push(amt);
@@ -216,19 +242,26 @@ export function renderReportsIncomeExp(app) {
     }
 
     const expCats = {};
-    for (const e of (app.expenses || [])) expCats[e.category || 'Other'] = (expCats[e.category || 'Other'] || 0) + e.budgetAmount;
+    for (const tx of monthTxs) {
+        if (tx.type !== 'expense') continue;
+        const cat = tx.category || 'Other';
+        expCats[cat] = (expCats[cat] || 0) + Math.abs(tx.amount || 0);
+    }
     for (const [cat, amt] of Object.entries(expCats)) {
         outflowLabels.push(`💸 ${cat}`);
         outflowData.push(amt);
         outflowColors.push('#8b5cf6');
     }
 
-    for (const d of (app.debts || [])) {
-        if ((d.minimumPayment || 0) > 0) {
-            outflowLabels.push(`💳 ${d.name}`);
-            outflowData.push(d.minimumPayment);
-            outflowColors.push('#ef4444');
-        }
+    const debtByName = {};
+    for (const tx of monthTxs) {
+        if (tx.type !== 'debt') continue;
+        debtByName[tx.name] = (debtByName[tx.name] || 0) + Math.abs(tx.amount || 0);
+    }
+    for (const [name, amt] of Object.entries(debtByName)) {
+        outflowLabels.push(`💳 ${name}`);
+        outflowData.push(amt);
+        outflowColors.push('#ef4444');
     }
 
     const hasData = incomeData.length > 0 || outflowData.length > 0;
@@ -325,28 +358,14 @@ export function renderReportsMoneyFlow(app) {
     const dailyIn = new Array(daysInMonth + 1).fill(0);
     const dailyOut = new Array(daysInMonth + 1).fill(0);
 
-    for (const inc of (app.incomes || [])) {
-        for (const d of incomeDaysInMonth(app, inc, year, month)) {
-            dailyIn[d] += inc.amount;
+    const monthTxs = getLedgerTransactionsForMonth(app, year, month);
+    for (const tx of monthTxs) {
+        const day = new Date(tx.date).getDate();
+        if (tx.amount >= 0) {
+            dailyIn[day] += tx.amount;
+        } else {
+            dailyOut[day] += Math.abs(tx.amount);
         }
-    }
-
-    for (const b of (app.bonuses || [])) {
-        if (!b.date) continue;
-        const bd = new Date(b.date + 'T12:00:00');
-        if (bd.getFullYear() === year && bd.getMonth() === month) {
-            dailyIn[bd.getDate()] += b.amount;
-        }
-    }
-
-    for (const bill of (app.bills || [])) {
-        const d = Math.min(bill.dueDay || 1, daysInMonth);
-        dailyOut[d] += bill.amount;
-    }
-
-    for (const debt of (app.debts || [])) {
-        const d = Math.min(debt.dueDate || 1, daysInMonth);
-        dailyOut[d] += debt.minimumPayment || 0;
     }
 
     const labels = [];
@@ -389,7 +408,7 @@ export function renderReportsMoneyFlow(app) {
     container.innerHTML = `
         <h3 class="rpt-section-title">💰 Money Flow — ${monthLabel}</h3>
         <p class="rpt-chart-sub" style="margin:0 0 16px">Cumulative income, outflow, and net balance day by day through the month. Vertical dashed line = today.</p>
-        ${!hasAnyData ? '<p class="rpt-empty-msg">Add income sources, bills, or debts to see the money flow chart.</p>' : '<div class="rpt-moneyflow-wrap"><canvas id="rptMoneyFlowChart"></canvas></div>'}
+        ${!hasAnyData ? '<p class="rpt-empty-msg">Add income, bills, debts, bonuses, or expenses to see the money flow chart.</p>' : '<div class="rpt-moneyflow-wrap"><canvas id="rptMoneyFlowChart"></canvas></div>'}
         ${acctSectionHTML}`;
 
     if (!hasAnyData) return;
