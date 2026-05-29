@@ -107,6 +107,54 @@ function sanitizeLedgerOverrides(overrides) {
     return out;
 }
 
+function sanitizeRecurringTemplate(record, idFallback) {
+    const skippedMonths = Array.isArray(record?.skippedMonths) ? record.skippedMonths.filter(m => /^\d{4}-\d{2}$/.test(m)) : [];
+    const frequency = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'].includes(record?.frequency) ? record.frequency : 'monthly';
+    const type = ['subscription', 'reimbursement', 'transfer'].includes(record?.type) ? record.type : 'subscription';
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        type,
+        amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
+        frequency,
+        dayOfMonth: sanitizeInteger(record?.dayOfMonth, null, { min: 1, max: 31 }),
+        category: normalizeText(record?.category, 40) || 'Other',
+        accountId: sanitizeInteger(record?.accountId, null),
+        targetAccountId: sanitizeInteger(record?.targetAccountId, null),
+        startDate: sanitizeDateISO(record?.startDate),
+        endDate: sanitizeDateISO(record?.endDate),
+        paused: Boolean(record?.paused),
+        skippedMonths
+    };
+}
+
+function sanitizeEmergencyFund(record, idFallback) {
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        accountId: sanitizeInteger(record?.accountId, null),
+        targetAmount: sanitizeFiniteNumber(record?.targetAmount, 0, { min: 0 }),
+        currentAmount: sanitizeFiniteNumber(record?.currentAmount, 0, { min: 0 }),
+        monthlyContribution: sanitizeFiniteNumber(record?.monthlyContribution, 0, { min: 0 }),
+        autoContribute: Boolean(record?.autoContribute),
+        notes: normalizeText(record?.notes, 200)
+    };
+}
+
+function sanitizeSinkingFund(record, idFallback) {
+    const allocationMethod = ['fixed', 'annual', 'target_date'].includes(record?.allocationMethod) ? record.allocationMethod : 'fixed';
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80),
+        allocationMethod,
+        monthlyAllocation: sanitizeFiniteNumber(record?.monthlyAllocation, 0, { min: 0 }),
+        targetAmount: sanitizeFiniteNumber(record?.targetAmount, 0, { min: 0 }),
+        currentAmount: sanitizeFiniteNumber(record?.currentAmount, 0, { min: 0 }),
+        autoContribute: Boolean(record?.autoContribute),
+        accountId: sanitizeInteger(record?.accountId, null),
+        notes: normalizeText(record?.notes, 200)
+    };
+}
+
 function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
@@ -117,6 +165,9 @@ function sanitizeParsedState(parsed = {}) {
         bills: (Array.isArray(parsed.bills) ? parsed.bills : []).map((b, i) => sanitizeBill(b, now + 2000 + i)).filter(b => !!b.name),
         expenses: (Array.isArray(parsed.expenses) ? parsed.expenses : []).map((e, i) => sanitizeExpense(e, now + 3000 + i)).filter(e => !!e.name && !!e.date),
         ledgerAmountOverrides: sanitizeLedgerOverrides(parsed.ledgerAmountOverrides || {}),
+        recurringTemplates: (Array.isArray(parsed.recurringTemplates) ? parsed.recurringTemplates : []).map((r, i) => sanitizeRecurringTemplate(r, now + 4000 + i)).filter(r => !!r.name),
+        emergencyFunds: (Array.isArray(parsed.emergencyFunds) ? parsed.emergencyFunds : []).map((e, i) => sanitizeEmergencyFund(e, now + 4500 + i)).filter(e => !!e.accountId),
+        sinkingFunds: (Array.isArray(parsed.sinkingFunds) ? parsed.sinkingFunds : []).map((s, i) => sanitizeSinkingFund(s, now + 5000 + i)).filter(s => !!s.name && !!s.accountId),
         perMonthStimulus: (Array.isArray(parsed.perMonthStimulus) ? parsed.perMonthStimulus : []).map(v => sanitizeFiniteNumber(v, 0, { min: 0 })),
         monthlyPayment: sanitizeFiniteNumber(parsed.monthlyPayment, null, { min: 0 }),
         strategy: normalizeText(parsed.strategy, 30) || null,
@@ -141,6 +192,9 @@ export function saveToStorage(app) {
             bills: app.bills || [],
             expenses: app.expenses || [],
             ledgerAmountOverrides: app.ledgerAmountOverrides || {},
+            recurringTemplates: app.recurringTemplates || [],
+            emergencyFunds: app.emergencyFunds || [],
+            sinkingFunds: app.sinkingFunds || [],
             perMonthStimulus: app.perMonthStimulus || [],
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             strategy: document.getElementById('paymentStrategy')?.value || null,
@@ -172,6 +226,9 @@ export function loadFromStorage(app) {
             app.bills = clean.bills;
             app.expenses = clean.expenses;
             app.ledgerAmountOverrides = clean.ledgerAmountOverrides;
+            app.recurringTemplates = clean.recurringTemplates;
+            app.emergencyFunds = clean.emergencyFunds;
+            app.sinkingFunds = clean.sinkingFunds;
             app.perMonthStimulus = clean.perMonthStimulus;
             app._savedMonthlyPayment = clean.monthlyPayment;
             app._savedStrategy = clean.strategy;
@@ -204,6 +261,7 @@ export function exportAllJSON(app) {
         bills: app.bills || [],
         expenses: app.expenses || [],
         ledgerAmountOverrides: app.ledgerAmountOverrides || {},
+        recurringTemplates: app.recurringTemplates || [],
         strategy: {
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             paymentStrategy: document.getElementById('paymentStrategy')?.value || null

@@ -4,15 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>MyFinances - Track Your Money</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-        .help-icon { display: inline-block; background: #eee; color: #333; border-radius: 50%; width: 1.2em; height: 1.2em; text-align: center; font-size: 0.9em; cursor: pointer; margin-left: 4px; }
-        .help-icon:focus, .help-icon:hover { background: #2563eb; color: #fff; outline: 2px solid #2563eb; }
-    </style>
-</head>
 <body>
     <div id="confetti-container"></div>
     <div class="container">
@@ -25,36 +20,44 @@
                     <button id="importJsonBtn" class="header-icon-btn" title="Import from a previously exported JSON backup" aria-label="Import JSON">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </button>
-                    <input type="file" id="importJsonInput" accept=".json,application/json" style="display:none;" aria-hidden="true">
+                    <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
                     <button id="themeSwitcher" class="header-icon-btn" aria-label="Toggle dark mode">🌙</button>
-                                    <button id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help">❓</button>
+                    <button id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help">❓</button>
                 </div>
             </div>
             <div class="header-hero">
-                                <h1>
-                                    <span style="vertical-align:middle; display:inline-block; width:1.5em; height:1.5em; margin-right:0.3em;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" style="display:inline;vertical-align:middle;">
-                                            <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
-                                            <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
-                                            <circle cx="16" cy="16" r="3" fill="#2563eb"/>
-                                            <line x1="16" y1="3" x2="16" y2="8" stroke="#2563eb" stroke-width="2"/>
-                                            <line x1="16" y1="24" x2="16" y2="29" stroke="#2563eb" stroke-width="2"/>
-                                            <line x1="3" y1="16" x2="8" y2="16" stroke="#2563eb" stroke-width="2"/>
-                                            <line x1="24" y1="16" x2="29" y2="16" stroke="#2563eb" stroke-width="2"/>
-                                        </svg>
-                                    </span>
-                                    MyFinances
-                                </h1>
+                <h1>
+                    <span style="vertical-align:middle; display:inline-block; width:1.5em; height:1.5em; margin-right:0.3em;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" style="display:inline;vertical-align:middle;">
+                            <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
+                            <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
+                            <circle cx="16" cy="16" r="3" fill="#2563eb"/>
+                            <line x1="16" y1="3" x2="16" y2="8" stroke="#2563eb" stroke-width="2"/>
+                            <line x1="16" y1="24" x2="16" y2="29" stroke="#2563eb" stroke-width="2"/>
+                            <line x1="3" y1="16" x2="8" y2="16" stroke="#2563eb" stroke-width="2"/>
+                            <line x1="24" y1="16" x2="29" y2="16" stroke="#2563eb" stroke-width="2"/>
+                        </svg>
+                    </span>
+                    MyFinances
+                </h1>
             </div>
-            <nav class="top-nav">
-                <button class="page-button active" data-page="accounts">Accounts</button>
-                <button class="page-button" data-page="income">Income</button>
-                <button class="page-button" data-page="debts">Debts</button>
-                <button class="page-button" data-page="budget">Budget</button>
-                <button class="page-button" data-page="strategy">Plan</button>
-                <button class="page-button" data-page="reports">Reports</button>
-                <button class="page-button" data-page="ledger">Ledger</button>
+            <nav class="top-nav" id="topNav">
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navMenu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="nav-menu" id="navMenu">
+                    <button class="page-button active" data-page="accounts">Accounts</button>
+                    <button class="page-button" data-page="income">Income</button>
+                    <button class="page-button" data-page="liabilities">Liabilities</button>
+                    <button class="page-button" data-page="recurring">Recurring</button>
+                    <button class="page-button" data-page="savings">Savings</button>
+                    <button class="page-button" data-page="strategy">Plan</button>
+                    <button class="page-button" data-page="reports">Reports</button>
+                    <button class="page-button" data-page="ledger">Ledger</button>
+                </div>
             </nav>
             <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- Ledger Section                                            -->
@@ -109,19 +112,28 @@
                 <div id="accountList"></div>
             </section>
 
-            <!-- Debts Section — form + list side by side -->
-            <section class="debts-section page-section" id="debtsSection">
-                <div class="debts-layout">
+            <!-- Liabilities Section (Debts & Expenses combined with subtabs) -->
+            <section class="liabilities-section page-section" id="liabilitiesSection">
+                <h2>💳 Liabilities</h2>
+                <div class="liabilities-container">
+                    <div class="liabilities-subtabs">
+                        <button class="liabilities-subtab-btn active" data-liabilities-subtab="debts">💳 Debts</button>
+                        <button class="liabilities-subtab-btn" data-liabilities-subtab="expenses">📊 Expenses</button>
+                    </div>
 
-                    <!-- ── Left: Add / Edit form ── -->
-                    <div class="debts-form-col" id="debtFormCol">
-                        <div class="debts-form-card">
-                            <button class="debt-form-toggle" id="debtFormToggle" aria-expanded="false" aria-controls="debtFormBody" type="button">
-                                <span id="debtFormTitle">Add New Debt</span>
-                                <svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            </button>
-                            <div class="debt-form-body" id="debtFormBody" hidden>
-                            <form id="debtForm">
+                    <div class="liabilities-content">
+                        <!-- ═════════════════ DEBTS SUBTAB ═════════════════ -->
+                        <div class="liabilities-subtab-panel" id="debtsPanel" data-subtab="debts" style="display:block;">
+                            <div class="debts-layout">
+                                <!-- ── Left: Add / Edit form ── -->
+                                <div class="debts-form-col" id="debtFormCol">
+                                    <div class="debts-form-card">
+                                        <button class="debt-form-toggle" id="debtFormToggle" aria-expanded="false" aria-controls="debtFormBody" type="button">
+                                            <span id="debtFormTitle">Add New Debt</span>
+                                            <svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                        </button>
+                                        <div class="debt-form-body" id="debtFormBody" hidden>
+                                        <form id="debtForm">
                                 <div class="form-group">
                                     <label for="debtName">Debt Name *
                                         <span class="help-icon" tabindex="0" aria-label="Enter a descriptive name for this debt, e.g., 'Credit Card' or 'Student Loan'.">?</span>
@@ -227,25 +239,86 @@
                                     <button type="button" id="cancelEditBtn" class="btn" style="display:none;">Cancel</button>
                                 </div>
                             </form>
-                            </div><!-- /debt-form-body -->
-                        </div>
-                    </div>
+                                        </div><!-- /debt-form-body -->
+                                    </div>
+                                </div>
 
-                    <!-- ── Right: Debt list ── -->
-                    <div class="debts-list-col">
-                        <div class="debts-list-header">
-                            <h2>Your Debts</h2>
-                            <div class="debts-toolbar-filter">
-                                <label for="categoryFilter" style="font-weight:600;font-size:0.875rem;">Filter:</label>
-                                <select id="categoryFilter" style="margin-left:6px; min-width:120px;">
-                                    <option value="">All categories</option>
-                                </select>
+                                <!-- ── Right: Debt list ── -->
+                                <div class="debts-list-col">
+                                    <div class="debts-list-header">
+                                        <h2>Your Debts</h2>
+                                        <div class="debts-toolbar-filter">
+                                            <label for="categoryFilter" style="font-weight:600;font-size:0.875rem;">Filter:</label>
+                                            <select id="categoryFilter" style="margin-left:6px; min-width:120px;">
+                                                <option value="">All categories</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div id="debtsList" class="debts-list"></div>
+                                    <div id="categorySummary" style="margin:18px 0 0 0;"></div>
+                                </div>
                             </div>
                         </div>
-                        <div id="debtsList" class="debts-list"></div>
-                        <div id="categorySummary" style="margin:18px 0 0 0;"></div>
-                    </div>
 
+                        <!-- ═════════════════ EXPENSES SUBTAB ═════════════════ -->
+                        <div class="liabilities-subtab-panel" id="expensesPanel" data-subtab="expenses" style="display:none;">
+                            <h3 style="margin-top:0;">Expenses</h3>
+                            <div class="budget-col">
+                                <div class="budget-form-card">
+                                    <button class="budget-form-toggle" id="expenseFormToggle" aria-expanded="false" aria-controls="expenseFormBody" type="button">
+                                        <span>Add Expense Budget</span>
+                                        <svg class="budget-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                    </button>
+                                    <div class="budget-form-body" id="expenseFormBody" hidden>
+                                    <form id="expenseForm" novalidate>
+                                        <div class="budget-form-grid">
+                                            <div class="form-group">
+                                                <label for="expenseName">Name *</label>
+                                                <input type="text" id="expenseName" placeholder="e.g. Groceries, Dining Out" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseBudget">Cost *</label>
+                                                <input type="number" id="expenseBudget" placeholder="0.00" step="0.01" min="0" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseDate">Date</label>
+                                                <input type="date" id="expenseDate" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseCategory">Category</label>
+                                                <select id="expenseCategory">
+                                                    <option value="Food & Groceries">Food &amp; Groceries</option>
+                                                    <option value="Dining Out">Dining Out</option>
+                                                    <option value="Health & Fitness">Health &amp; Fitness</option>
+                                                    <option value="Entertainment">Entertainment</option>
+                                                    <option value="Clothing">Clothing</option>
+                                                    <option value="Personal Care">Personal Care</option>
+                                                    <option value="Education">Education</option>
+                                                    <option value="Childcare">Childcare</option>
+                                                    <option value="Costco">Costco</option>
+                                                    <option value="Target">Target</option>
+                                                    <option value="Reconciliation">Reconciliation</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="expenseAccount">Pay from Account</label>
+                                                <select id="expenseAccount">
+                                                    <option value="">— No account —</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary" id="expenseFormSubmit">Add Expense</button>
+                                    </form>
+                                    </div><!-- /expenseFormBody -->
+                                </div>
+                                <div id="expenseList" class="budget-item-list"></div>
+                            </div>
+
+                            <!-- Cash Flow Summary -->
+                            <div id="cashFlowSummary" class="cashflow-summary" style="display:none;"></div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -354,113 +427,7 @@
 
             <!-- Budget Section -->
             <section class="budget-section page-section" id="budgetSection">
-                <h2>📊 Budget</h2>
-
-                <div class="budget-two-col">
-                    <!-- Bills Column -->
-                    <div class="budget-col">
-                        <div class="budget-form-card">
-                            <button class="budget-form-toggle" id="billFormToggle" aria-expanded="false" aria-controls="billFormBody" type="button">
-                                <span>Add Bill / Recurring Cost</span>
-                                <svg class="budget-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            </button>
-                            <div class="budget-form-body" id="billFormBody" hidden>
-                            <form id="billForm" novalidate>
-                                <div class="budget-form-grid">
-                                    <div class="form-group">
-                                        <label for="billName">Name *</label>
-                                        <input type="text" id="billName" placeholder="e.g. Electricity, Internet" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billAmount">Monthly Amount ($) *</label>
-                                        <input type="number" id="billAmount" placeholder="0.00" step="0.01" min="0" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billDueDay">Due Day of Month</label>
-                                        <input type="number" id="billDueDay" placeholder="1–31" min="1" max="31">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billCategory">Category</label>
-                                        <select id="billCategory">
-                                            <option value="Utilities">Utilities</option>
-                                            <option value="Internet / Phone">Internet / Phone</option>
-                                            <option value="Insurance">Insurance</option>
-                                            <option value="Subscription">Subscription</option>
-                                            <option value="Rent / Mortgage">Rent / Mortgage</option>
-                                            <option value="Transport">Transport</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="billAccount">Pay from Account</label>
-                                        <select id="billAccount">
-                                            <option value="">— No account —</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary" id="billFormSubmit">Add Bill</button>
-                            </form>
-                            </div><!-- /billFormBody -->
-                        </div>
-                        <div id="billList" class="budget-item-list"></div>
-                    </div>
-
-                    <!-- Expenses Column -->
-                    <div class="budget-col">
-                        <div class="budget-form-card">
-                            <button class="budget-form-toggle" id="expenseFormToggle" aria-expanded="false" aria-controls="expenseFormBody" type="button">
-                                <span>Add Expense Budget</span>
-                                <svg class="budget-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            </button>
-                            <div class="budget-form-body" id="expenseFormBody" hidden>
-                            <form id="expenseForm" novalidate>
-                                <div class="budget-form-grid">
-                                    <div class="form-group">
-                                        <label for="expenseName">Name *</label>
-                                        <input type="text" id="expenseName" placeholder="e.g. Groceries, Dining Out" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseBudget">Cost *</label>
-                                        <input type="number" id="expenseBudget" placeholder="0.00" step="0.01" min="0" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseDate">Date</label>
-                                        <input type="date" id="expenseDate" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseCategory">Category</label>
-                                        <select id="expenseCategory">
-                                            <option value="Food & Groceries">Food &amp; Groceries</option>
-                                            <option value="Dining Out">Dining Out</option>
-                                            <option value="Health & Fitness">Health &amp; Fitness</option>
-                                            <option value="Entertainment">Entertainment</option>
-                                            <option value="Clothing">Clothing</option>
-                                            <option value="Personal Care">Personal Care</option>
-                                            <option value="Education">Education</option>
-                                            <option value="Childcare">Childcare</option>
-                                            <option value="Costco">Costco</option>
-                                            <option value="Target">Target</option>
-                                            <option value="Reconciliation">Reconciliation</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="expenseAccount">Pay from Account</label>
-                                        <select id="expenseAccount">
-                                            <option value="">— No account —</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary" id="expenseFormSubmit">Add Expense</button>
-                            </form>
-                            </div><!-- /expenseFormBody -->
-                        </div>
-                        <div id="expenseList" class="budget-item-list"></div>
-                    </div>
-                </div>
-
-                <!-- Cash Flow Summary -->
-                <div id="cashFlowSummary" class="cashflow-summary" style="display:none;"></div>
+                <h2>📊 Expenses</h2>
             </section>
 
             <!-- Plan Section (Strategy + Results combined) -->
@@ -654,6 +621,7 @@
                     <button class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" aria-selected="true">📅 Calendar</button>
                     <button class="rpt-tab-btn" data-rptab="incomeexp" aria-selected="false">📊 Income vs Expenses</button>
                     <button class="rpt-tab-btn" data-rptab="moneyflow" aria-selected="false">💰 Money Flow</button>
+                    <button class="rpt-tab-btn" data-rptab="variance" aria-selected="false">📈 What Changed</button>
                 </div>
 
                 <!-- ── Calendar panel ───────────────────────────────────── -->
@@ -670,6 +638,113 @@
                 <div class="rpt-tab-panel" id="rptPanel-moneyflow">
                     <div id="reportsMoneyFlow"></div>
                 </div>
+
+                <!-- ── What Changed (Variance) panel ──────────────────── -->
+                <div class="rpt-tab-panel" id="rptPanel-variance">
+                    <div id="reportsVariance"></div>
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Recurring Templates Section                                 -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="recurring-section page-section" id="recurringSection">
+                <h2>🔁 Recurring Templates</h2>
+                <p class="recurring-intro">Track recurring non-debt entries — subscriptions, reimbursements, and transfers. Each template generates projected ledger entries each month. You can pause a template or skip a specific month at any time.</p>
+
+                <!-- Add Template Form -->
+                <div class="recurring-form-card">
+                    <button class="recurring-form-toggle" id="recurringFormToggle" type="button" aria-expanded="false" aria-controls="recurringFormBody">
+                        <span>Add Recurring Template</span>
+                        <svg class="recurring-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="recurring-form-body" id="recurringFormBody" hidden>
+                        <form id="recurringForm" novalidate>
+                            <div class="recurring-form-grid">
+                                <div class="form-group">
+                                    <label for="recurringName">Name *</label>
+                                    <input type="text" id="recurringName" placeholder="e.g. Netflix, Gym reimbursement" required maxlength="80">
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringType">Type *</label>
+                                    <select id="recurringType" required>
+                                        <option value="subscription">Subscription / Expense</option>
+                                        <option value="reimbursement">Reimbursement / Income</option>
+                                        <option value="transfer">Transfer</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringAmount">Amount ($) *</label>
+                                    <input type="number" id="recurringAmount" placeholder="0.00" step="0.01" min="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringFrequency">Frequency *</label>
+                                    <select id="recurringFrequency" required>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="biweekly">Every 2 weeks</option>
+                                        <option value="monthly" selected>Monthly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringDayOfMonth">Day of Month</label>
+                                    <input type="number" id="recurringDayOfMonth" placeholder="1–31" min="1" max="31">
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringCategory">Category</label>
+                                    <select id="recurringCategory">
+                                        <option value="Subscription">Subscription</option>
+                                        <option value="Insurance">Insurance</option>
+                                        <option value="Rent / Mortgage">Rent / Mortgage</option>
+                                        <option value="Utilities">Utilities</option>
+                                        <option value="Transport">Transport</option>
+                                        <option value="Food">Food</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Health">Health</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Savings">Savings</option>
+                                        <option value="Transfer">Transfer</option>
+                                        <option value="Reimbursement">Reimbursement</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringAccount">Account *</label>
+                                    <select id="recurringAccount" required>
+                                        <option value="">— Select account —</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringTargetAccount">Target Account (transfers)</label>
+                                    <select id="recurringTargetAccount">
+                                        <option value="">— None (not a transfer) —</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringStartDate">Start Date *</label>
+                                    <input type="date" id="recurringStartDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringEndDate">End Date (optional)</label>
+                                    <input type="date" id="recurringEndDate">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="recurringFormSubmit">Add Template</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Template List -->
+                <div id="recurringList" class="recurring-list"></div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Savings Section (Emergency Fund & Sinking Funds)           -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="savings-section page-section" id="savingsSection">
+                <h2>💰 Savings</h2>
+                <!-- Content dynamically rendered by renderSavingsPage() -->
             </section>
 
             <!-- Empty State -->

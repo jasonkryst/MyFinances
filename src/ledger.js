@@ -1,6 +1,7 @@
 // Ledger logic: rendering, transaction gathering
 
 import { getIncomePaydaysInMonth, formatCurrency } from './utils.js';
+import { getRecurringOccurrencesInMonth } from './recurring.js';
 
 function getDateKey(date) {
     const d = new Date(date);
@@ -177,6 +178,84 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
                         category: exp.category || 'Other'
                     });
                 }
+            }
+        }
+
+        for (const tmpl of app.recurringTemplates || []) {
+            if (!tmpl.accountId) continue;
+            const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
+            for (const occDate of occurrences) {
+                if (tmpl.type === 'reimbursement') {
+                    addTx({
+                        accountId: tmpl.accountId,
+                        date: occDate,
+                        name: tmpl.name || 'Recurring',
+                        amount: Math.abs(Number(tmpl.amount)),
+                        type: 'recurring',
+                        sourceId: tmpl.id,
+                        category: tmpl.category || 'Reimbursement'
+                    });
+                } else if (tmpl.type === 'transfer' && tmpl.targetAccountId) {
+                    addTx({
+                        accountId: tmpl.accountId,
+                        date: occDate,
+                        name: tmpl.name || 'Transfer (out)',
+                        amount: -Math.abs(Number(tmpl.amount)),
+                        type: 'recurring',
+                        sourceId: tmpl.id,
+                        category: tmpl.category || 'Transfer'
+                    });
+                    addTx({
+                        accountId: tmpl.targetAccountId,
+                        date: occDate,
+                        name: tmpl.name || 'Transfer (in)',
+                        amount: Math.abs(Number(tmpl.amount)),
+                        type: 'recurring',
+                        sourceId: tmpl.id,
+                        category: tmpl.category || 'Transfer'
+                    });
+                } else {
+                    addTx({
+                        accountId: tmpl.accountId,
+                        date: occDate,
+                        name: tmpl.name || 'Recurring',
+                        amount: -Math.abs(Number(tmpl.amount)),
+                        type: 'recurring',
+                        sourceId: tmpl.id,
+                        category: tmpl.category || 'Subscription'
+                    });
+                }
+            }
+        }
+
+        // Add auto-contributing savings to ledger
+        for (const fund of app.emergencyFunds || []) {
+            if (fund.autoContribute && fund.monthlyContribution > 0 && fund.currentAmount < fund.targetAmount) {
+                const savingDate = new Date(year, month, 1); // First day of month
+                addTx({
+                    accountId: fund.accountId,
+                    date: savingDate,
+                    name: 'Emergency Fund Contribution',
+                    amount: -Math.abs(Number(fund.monthlyContribution)),
+                    type: 'savings',
+                    sourceId: fund.id,
+                    category: 'Savings'
+                });
+            }
+        }
+
+        for (const fund of app.sinkingFunds || []) {
+            if (fund.autoContribute && fund.monthlyAllocation > 0 && fund.currentAmount < fund.targetAmount) {
+                const savingDate = new Date(year, month, 1); // First day of month
+                addTx({
+                    accountId: fund.accountId,
+                    date: savingDate,
+                    name: fund.name || 'Sinking Fund',
+                    amount: -Math.abs(Number(fund.monthlyAllocation)),
+                    type: 'savings',
+                    sourceId: fund.id,
+                    category: 'Savings'
+                });
             }
         }
     }

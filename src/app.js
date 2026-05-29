@@ -65,6 +65,22 @@ import {
     renderReportsPage as renderReportsPageFeature
 } from './reports.js';
 import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth } from './utils.js';
+import {
+    renderRecurringPage as renderRecurringPageFeature,
+    addRecurringTemplate as addRecurringTemplateFeature,
+    deleteRecurringTemplate as deleteRecurringTemplateFeature,
+    pauseRecurringTemplate as pauseRecurringTemplateFeature,
+    skipRecurringOccurrence as skipRecurringOccurrenceFeature,
+    startEditRecurring as startEditRecurringFeature,
+    cancelEditRecurring as cancelEditRecurringFeature,
+    saveEditRecurring as saveEditRecurringFeature,
+    refreshRecurringAccountSelectors as refreshRecurringAccountSelectorsFeature
+} from './recurring.js';
+import {
+    renderSavingsPage as renderSavingsPageFeature,
+    switchSavingsSubTab as switchSavingsSubTabFeature,
+    attachSavingsEventListeners as attachSavingsEventListenersFeature
+} from './savings.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -81,6 +97,9 @@ export class DebtTrackerApp {
         this.bonuses = [];
         this.bills = [];
         this.expenses = [];
+        this.recurringTemplates = [];
+        this.emergencyFunds = [];
+        this.sinkingFunds = [];
         this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
@@ -88,7 +107,10 @@ export class DebtTrackerApp {
         this.editingDebtId = null;
         this.editingIncomeId = null;
         this.editingAccountId = null;
+        this.editingRecurringId = null;
+        this.savingsSubTab = 'emergency';
         this._reportMonthOffset = 0;
+            this.liabilitiesSubTab = 'debts';
         this._savedMonthlyPayment = null;
         this._savedStrategy = null;
         this.storageKey = 'debtTrackerData';
@@ -695,6 +717,44 @@ export class DebtTrackerApp {
 
     renderReportsPage() {
         return renderReportsPageFeature(this);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  RECURRING TRANSACTION TEMPLATES
+    // ═════════════════════════════════════════════════════════════════════════
+
+    renderRecurringPage() { return renderRecurringPageFeature(this); }
+    addRecurringTemplate() { return addRecurringTemplateFeature(this); }
+    deleteRecurringTemplate(id) { return deleteRecurringTemplateFeature(this, id); }
+    pauseRecurringTemplate(id, paused) { return pauseRecurringTemplateFeature(this, id, paused); }
+    skipRecurringOccurrence(id, monthKey, unskip) { return skipRecurringOccurrenceFeature(this, id, monthKey, unskip); }
+    startEditRecurring(id) { return startEditRecurringFeature(this, id); }
+    cancelEditRecurring() { return cancelEditRecurringFeature(this); }
+    saveEditRecurring(id) { return saveEditRecurringFeature(this, id); }
+    refreshRecurringAccountSelectors() { return refreshRecurringAccountSelectorsFeature(this); }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  SAVINGS (Emergency Fund & Sinking Funds)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    renderSavingsPage() { return renderSavingsPageFeature(this); }
+    switchSavingsSubTab(subTab) { return switchSavingsSubTabFeature(this, subTab); }
+    attachSavingsEventListeners() { return attachSavingsEventListenersFeature(this); }
+
+    switchLiabilitiesSubTab(subTab) {
+        this.liabilitiesSubTab = subTab;
+        const section = document.getElementById('liabilitiesSection');
+        if (!section) return;
+        
+        // Update button states
+        section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.liabilitiesSubtab === subTab);
+        });
+        
+        // Show/hide panels
+        section.querySelectorAll('.liabilities-subtab-panel').forEach(panel => {
+            panel.style.display = panel.dataset.subtab === subTab ? 'block' : 'none';
+        });
     }
 }
 

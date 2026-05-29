@@ -26,9 +26,27 @@ export function initializeEventListeners(app) {
         });
     }
 
+    // Mobile menu toggle
+    const navToggle = document.getElementById('navToggle');
+    const topNav = document.getElementById('topNav');
+    if (navToggle && topNav) {
+        navToggle.addEventListener('click', () => {
+            const isOpen = topNav.classList.contains('menu-open');
+            topNav.classList.toggle('menu-open');
+            navToggle.setAttribute('aria-expanded', String(!isOpen));
+        });
+    }
+
     // Navigation: page switching
     document.querySelectorAll('.page-button').forEach(btn => {
         btn.addEventListener('click', () => {
+            // Close mobile menu when a page is selected
+            if (topNav && topNav.classList.contains('menu-open')) {
+                topNav.classList.remove('menu-open');
+                if (navToggle) {
+                    navToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
             const page = btn.getAttribute('data-page');
             if (page) {
                 app.switchPage(page);
@@ -169,14 +187,6 @@ export function initializeEventListeners(app) {
         });
     }
 
-    const billForm = document.getElementById('billForm');
-    if (billForm) {
-        billForm.addEventListener('submit', e => {
-            e.preventDefault();
-            app.addBill();
-        });
-    }
-
     const expenseForm = document.getElementById('expenseForm');
     if (expenseForm) {
         expenseForm.addEventListener('submit', e => {
@@ -190,6 +200,25 @@ export function initializeEventListeners(app) {
         bonusForm.addEventListener('submit', e => {
             e.preventDefault();
             app.addBonus();
+        });
+    }
+
+    const recurringForm = document.getElementById('recurringForm');
+    if (recurringForm) {
+        recurringForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addRecurringTemplate();
+        });
+    }
+
+    const recurringFormToggle = document.getElementById('recurringFormToggle');
+    const recurringFormBody = document.getElementById('recurringFormBody');
+    if (recurringFormToggle && recurringFormBody) {
+        recurringFormToggle.addEventListener('click', () => {
+            const open = !recurringFormBody.hidden;
+            recurringFormBody.hidden = open;
+            recurringFormToggle.setAttribute('aria-expanded', String(!open));
+            recurringFormToggle.classList.toggle('recurring-form-toggle--open', !open);
         });
     }
 
@@ -240,7 +269,6 @@ export function initializeEventListeners(app) {
             toggle.classList.toggle('budget-form-toggle--open', !open);
         });
     };
-    makeBudgetToggle('billFormToggle', 'billFormBody');
     makeBudgetToggle('expenseFormToggle', 'expenseFormBody');
 
     const bonusFormToggle = document.getElementById('bonusFormToggle');
@@ -420,6 +448,18 @@ export function updateFormVisibility() {
     }
 }
 
+export function attachLiabilitiesEventListeners(app) {
+    const section = document.getElementById('liabilitiesSection');
+    if (!section) return;
+
+    // Subtab switching
+    section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            app.switchLiabilitiesSubTab(btn.dataset.liabilitiesSubtab);
+        });
+    });
+}
+
 export function switchPage(app, pageName) {
     document.querySelectorAll('.page-button').forEach(b => b.classList.remove('active'));
     const btn = document.querySelector(`.page-button[data-page="${pageName}"]`);
@@ -427,12 +467,13 @@ export function switchPage(app, pageName) {
 
     const mapping = {
         accounts: 'accountsSection',
-        debts: 'debtsSection',
+        liabilities: 'liabilitiesSection',
         income: 'incomeSection',
-        budget: 'budgetSection',
+        savings: 'savingsSection',
         strategy: 'strategySection',
         reports: 'reportsSection',
-        ledger: 'ledgerSection'
+        ledger: 'ledgerSection',
+        recurring: 'recurringSection'
     };
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -444,9 +485,21 @@ export function switchPage(app, pageName) {
     }
 
     if (pageName === 'accounts') app.renderAccountsList();
-    if (pageName === 'debts') { app.renderDebtsList(); refreshAccountSelectors(app); }
+    if (pageName === 'liabilities') {
+        // Render both debts and expenses
+        app.renderDebtsList();
+        app.renderBudgetPage();
+        refreshAccountSelectors(app);
+        // Attach liabilities subtab listeners
+        attachLiabilitiesEventListeners(app);
+        // Default to debts subtab
+        app.switchLiabilitiesSubTab('debts');
+    }
     if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); }
-    if (pageName === 'budget') { app.renderBudgetPage(); refreshAccountSelectors(app); }
+    if (pageName === 'savings') {
+        app.renderSavingsPage();
+        app.attachSavingsEventListeners();
+    }
     if (pageName === 'strategy') app.renderStrategyIncomeWidget();
     if (pageName === 'reports') {
         app._reportMonthOffset = 0;
@@ -454,6 +507,10 @@ export function switchPage(app, pageName) {
     }
     if (pageName === 'ledger') {
         renderLedgerPage(app);
+    }
+    if (pageName === 'recurring') {
+        app.refreshRecurringAccountSelectors();
+        app.renderRecurringPage();
     }
 }
 
