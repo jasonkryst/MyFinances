@@ -623,10 +623,9 @@ python -m http.server 5500
 
 ### Security Issues
 If you discover a security vulnerability:
-1. **Do not** create a public GitHub issue
-2. **Contact** the repository owner privately
-3. **Include** steps to reproduce + impact assessment
-4. See [SECURITY.md](SECURITY.md) for more details
+1. Create a GitHub issue
+2. **Include** steps to reproduce + impact assessment
+3. See [SECURITY.md](SECURITY.md) for more details
 
 ### Bug Reports
 - Open an issue with steps to reproduce
@@ -638,6 +637,9 @@ If you discover a security vulnerability:
 - Add tests for new features
 - Follow the existing code style
 - See [SECURITY.md](SECURITY.md) for security guidelines
+
+### Future Considerations
+- See [ROADMAP.md](ROADMAP.md) for planned features and improvements
 
 ---
 
