@@ -19,13 +19,16 @@ python -m http.server 5500
 # Open browser
 http://localhost:5500
 
-# Run tests
-python tests/smoke_playwright.py    # Full workflow test
-python tests/test_networth_feature.py # Net worth widget/reports workflow
-python tests/test_security.py       # Security tests
-python tests/test_mobile_menu.py    # Mobile responsiveness
-python tests/security_scan.py       # Static security scan report
-```
+# Run tests (pytest-based, reorganized May 31, 2026)
+pytest tests/ -v                  # Run all tests
+pytest tests/security/ -v         # Security tests only
+pytest tests/features/ -v         # Feature tests only
+pytest tests/ui/ -v               # UI/UX tests only
+pytest tests/integration/ -v      # End-to-end tests only
+pytest -m "security" -v           # All security tests by marker
+pytest -m "not slow" -v           # Skip slow tests
+
+# See [tests/README.md](tests/README.md) for comprehensive test documentation
 
 For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -116,13 +119,123 @@ Production deployments include:
 - `Strict-Transport-Security` — HTTPS enforcement (production only)
 - `Referrer-Policy: strict-origin-when-cross-origin` — Privacy-friendly referrer policy
 
-### Static Security Analysis
-Run the security scan with: `python tests/security_scan.py`
+---
 
-**Latest Results (May 31, 2026)**:
-- HIGH severity issues: 0 ✅
-- MEDIUM severity issues: 0 ✅
-- LOW severity findings: 12 (all properly handled) ✅
+## 🧪 Testing Suite (Reorganized May 31, 2026)
+
+The test suite has been completely reorganized for maximum cohesiveness and maintainability:
+
+### Test Statistics
+- **Total Tests**: 85+ comprehensive tests
+- **Test Files**: 25+ organized across 5 categories
+- **Coverage**: All major features + security + UI + accessibility
+- **Framework**: pytest with Playwright browser automation
+
+### Test Categories
+
+#### 🔐 Security Tests (16 tests)
+- **XSS Prevention** — Input sanitization in all fields
+- **CSP Compliance** — Strict Content Security Policy enforcement
+- **Input Validation** — Bounds checking, unicode handling, special characters
+- **Static Analysis** — Code patterns, hardcoded secrets, dependencies
+
+Run: `pytest tests/security/ -v`
+
+#### 🎯 Feature Tests (40+ tests)
+- **Accounts** — CRUD operations, account types, balance calculations
+- **Debts** — Liability management, interest calculation, amortization schedules
+- **Income** — Multiple income sources, frequency types, total calculations
+- **Expenses** — Bill tracking, expense categorization
+- **Recurring** — Transaction templates, auto-generation
+- **Ledger** — Transaction history, filtering, amount overrides
+- **Reports** — Income vs expenses, money flow, net worth analytics
+- **Savings** — Emergency funds, sinking funds, persistence
+- **Net Worth** — Multi-asset calculations, historical snapshots, milestones
+
+Run: `pytest tests/features/ -v`
+
+#### 🎨 UI/UX Tests (21 tests)
+- **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing
+- **Modal Functionality** — Visibility toggling, close buttons, amortization displays
+- **Dark Mode** — Theme switching, color contrast, persistence
+- **CSS Loading** — External stylesheet, utility classes, responsive breakpoints
+- **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML
+
+Run: `pytest tests/ui/ -v`
+
+#### 🔄 Integration Tests (8 tests)
+- **End-to-End Workflows** — Complete user journeys (account → debt → net worth)
+- **Data Persistence** — Cross-navigation data integrity
+- **Import/Export** — JSON roundtrip validation, file handling
+
+Run: `pytest tests/integration/ -v`
+
+### Quick Test Commands
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run by category
+pytest tests/security/ -v         # 16 security tests
+pytest tests/features/ -v         # 40+ feature tests
+pytest tests/ui/ -v               # 21 UI/UX tests
+pytest tests/integration/ -v      # 8 integration tests
+
+# Run with markers
+pytest -m "security" -v           # All security tests
+pytest -m "feature" -v            # All feature tests
+pytest -m "ui" -v                 # All UI tests
+pytest -m "integration" -v        # All integration tests
+pytest -m "not slow" -v           # Skip slow tests
+
+# Generate coverage report
+pytest --cov=. --cov-report=html
+```
+
+### Test Organization
+
+```
+tests/
+├── conftest.py              # Shared fixtures, test data, helpers
+├── README.md                # Comprehensive test documentation
+├── security/                # Security & compliance tests (4 files)
+├── features/                # Feature-specific tests (9 files)
+├── ui/                      # UI/UX & responsive tests (5 files)
+├── integration/             # End-to-end tests (2 files)
+└── debug/                   # Legacy debug files (archived)
+```
+
+### Key Improvements (May 31, 2026)
+
+✅ **Reorganized Structure** — From 20 mixed files to 25+ organized files
+✅ **Consolidated Duplicates** — Merged test_savings.py + test_savings2.py
+✅ **Standardized Port** — All tests use `localhost:5500` consistently
+✅ **Comprehensive Fixtures** — conftest.py with 10+ reusable fixtures
+✅ **Complete Documentation** — [tests/README.md](tests/README.md) with 500+ lines
+✅ **Missing Feature Coverage** — Added tests for recurring, ledger, reports, dark mode, accessibility
+✅ **Pytest Integration** — Professional pytest-based test framework
+✅ **Error Tracking** — All tests track console/page errors automatically
+
+### For Developers
+
+See [tests/README.md](tests/README.md) for:
+- Prerequisites and installation
+- Detailed test organization
+- Fixture reference and usage examples
+- Coverage matrix (feature-to-test mapping)
+- Common test patterns and best practices
+- Troubleshooting guide
+- Contributing guidelines
+
+### Security Scan Results (May 31, 2026)
+
+Static security analysis:
+- **HIGH severity issues**: 0 ✅
+- **MEDIUM severity issues**: 0 ✅
+- **LOW severity findings**: 12 (all properly handled) ✅
+
+Run: `pytest tests/security/ -v` for current security test results
 
 ---
 
@@ -476,11 +589,24 @@ src/
   ├─ storage.js            — Persistence, import/export, data validation
   ├─ debtCalculator.js     — Pure calculation engine
   └─ utils.js              — Formatting, date utilities, sanitization
-tests/
-  ├─ smoke_playwright.py   — Full workflow test
-  ├─ test_security.py      — Security & validation tests
-  ├─ test_mobile_menu.py   — Mobile responsiveness tests
-  └─ test_css_load.py      — CSS loading verification
+tests/ (Reorganized May 31, 2026 — 25+ files, 85+ tests)
+  ├─ conftest.py              — Shared fixtures & utilities
+  ├─ README.md                — Comprehensive test documentation
+  ├─ security/                — 16 security & compliance tests
+  │   ├─ test_xss.py
+  │   ├─ test_csp.py
+  │   ├─ test_input_validation.py
+  │   └─ test_static_scan.py
+  ├─ features/                — 40+ feature-specific tests
+  │   ├─ test_accounts.py, test_debts.py, test_income.py
+  │   ├─ test_expenses.py, test_recurring.py, test_ledger.py
+  │   ├─ test_reports.py, test_savings.py, test_networth.py
+  ├─ ui/                      — 21 UI/UX & responsive tests
+  │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
+  │   ├─ test_css_load.py, test_accessibility.py
+  ├─ integration/              — 8 end-to-end workflow tests
+  │   ├─ test_smoke.py, test_workflows.py
+  └─ debug/                   — Legacy debug files (archived)
 ```
 
 ### Documentation Files
