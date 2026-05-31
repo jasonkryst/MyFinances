@@ -272,6 +272,7 @@
                     <li><a href="#managing-savings">Managing Savings</a></li>
                     <li><a href="#creating-plan">Creating a Payment Plan</a></li>
                     <li><a href="#viewing-reports">Viewing Reports</a></li>
+                    <li><a href="#net-worth-tracking">Net Worth Tracking</a></li>
                     <li><a href="#viewing-transactions">Viewing Transactions</a></li>
                     <li><a href="#data-management">Data Management</a></li>
                     <li><a href="#tips-tricks">Tips and Tricks</a></li>
@@ -635,7 +636,7 @@
 
             <section class="guide-section" id="viewing-reports">
                 <h2>Viewing Reports</h2>
-                <p>The Reports page includes four tabs for analyzing your finances: Calendar, Income vs Expenses, Money Flow, and What Changed.</p>
+                <p>The Reports page includes five tabs for analyzing your finances: Calendar, Income vs Expenses, Money Flow, What Changed, and Net Worth.</p>
 
                 <h3>Calendar Tab</h3>
                 <ul>
@@ -677,6 +678,63 @@
                     <li><strong>🔴 Red</strong> — income decrease or expense/cost increase (watch out)</li>
                 </ul>
             </section>
+
+            <section class="guide-section" id="net-worth-tracking">
+                <h2>Net Worth Tracking</h2>
+                <p>The Net Worth report combines account assets and debt liabilities so you can track overall wealth growth, not just debt payoff.</p>
+
+                <h3>What Is Captured in a Snapshot</h3>
+                <div class="guide-table-wrap">
+                    <table class="guide-table">
+                        <thead>
+                            <tr><th>Metric</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Total Assets</td><td>Sum of positive projected account balances for the selected month</td></tr>
+                            <tr><td>Total Liabilities</td><td>Sum of current debt balances (or fixed monthly debt obligations)</td></tr>
+                            <tr><td>Net Worth</td><td>Total Assets minus Total Liabilities</td></tr>
+                            <tr><td>Debt Payment Made</td><td>Total debt outflows from ledger transactions in that month</td></tr>
+                            <tr><td>Income Received</td><td>Total income, bonuses, and positive recurring inflows in that month</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>How to Use the Net Worth Tab</h3>
+                <ol>
+                    <li>Go to <strong>Reports</strong> and select <strong>Net Worth</strong></li>
+                    <li>Choose <strong>3M</strong>, <strong>6M</strong>, or <strong>12M</strong> range</li>
+                    <li>Click <strong>Capture Snapshot Now</strong> to store/update this month's snapshot</li>
+                    <li>Review both charts:
+                        <ul>
+                            <li><strong>Net Worth vs Debt Payoff</strong> — trend of net worth and liabilities</li>
+                            <li><strong>Asset Growth vs Debt Reduction</strong> — month-over-month composition</li>
+                        </ul>
+                    </li>
+                    <li>Use the <strong>Snapshot History</strong> table under the charts to audit each recorded month quickly</li>
+                </ol>
+
+                <h3>Snapshot History Table Columns</h3>
+                <div class="guide-table-wrap">
+                    <table class="guide-table">
+                        <thead>
+                            <tr><th>Column</th><th>What It Shows</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Date</td><td>Snapshot date for that monthly record</td></tr>
+                            <tr><td>Assets</td><td>Total positive projected account balances</td></tr>
+                            <tr><td>Liabilities</td><td>Total debt balances/obligations</td></tr>
+                            <tr><td>Net Worth</td><td>Assets minus liabilities for the snapshot</td></tr>
+                            <tr><td>Income</td><td>Total monthly income (income, bonuses, positive recurring)</td></tr>
+                            <tr><td>Debt Paid</td><td>Total debt-payment outflows for that month</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="guide-note">The Accounts page also includes a Net Worth widget showing current net worth and change from your prior snapshot.</div>
+                <div class="guide-note">Milestones trigger every $5,000 gain in net worth from your first recorded snapshot.</div>
+            </section>
+
+            <section class="guide-section" id="viewing-transactions">
                 <h2>Viewing Transactions</h2>
                 <p>The Ledger shows chronological income, expenses, recurring templates, debt payments, and one-time entries (bonuses and deposits).</p>
 
@@ -705,7 +763,7 @@
                 <ol>
                     <li>Use the export button in the top-right toolbar</li>
                     <li>Choose JSON export</li>
-                    <li>Backup includes accounts, debts, income, expenses, recurring templates, strategy settings, and ledger amount overrides</li>
+                    <li>Backup includes accounts, debts, income, expenses, recurring templates, strategy settings, net worth snapshots, net worth milestone state, and ledger amount overrides</li>
                     <li>Store the downloaded backup file safely</li>
                 </ol>
 

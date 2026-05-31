@@ -114,10 +114,10 @@ export function showUpdateBalanceModal(app, debtId) {
     const minInput = document.getElementById('updateMinPaymentInput');
     minInput.value = (debt.minimumPayment ?? 0).toFixed(2);
 
-    modal.style.display = 'flex';
+    modal.classList.add('flex-visible'); modal.classList.remove('hidden');
     setTimeout(() => balInput.focus(), 50);
 
-    const close = () => { modal.style.display = 'none'; };
+    const close = () => { modal.classList.add('hidden'); modal.classList.remove('flex-visible'); };
     document.getElementById('confirmUpdateBalance').onclick = () => {
         const newBal = parseFloat(balInput.value);
         if (isNaN(newBal) || newBal < 0) { alert('Please enter a valid balance (0 or more).'); return; }
@@ -207,7 +207,7 @@ export function cancelEdit(app) {
     const submitBtn = document.getElementById('debtFormSubmit');
     if (submitBtn) submitBtn.textContent = 'Add Debt';
     const cancelBtn = document.getElementById('cancelEditBtn');
-    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (cancelBtn) { cancelBtn.classList.add('hidden'); cancelBtn.classList.remove('visible'); }
     if (typeof window.closeDebtForm === 'function') window.closeDebtForm();
 }
 

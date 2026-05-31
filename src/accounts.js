@@ -150,6 +150,7 @@ export function addAccount(app) {
     app.accounts.push({ id: Date.now(), name, type, startingBalance });
     app.saveToStorage();
     app.renderAccountsList();
+    app.renderNetWorthWidget();
     refreshAccountSelectors(app);
     document.getElementById('accountForm').reset();
 }
@@ -158,6 +159,7 @@ export function deleteAccount(app, id) {
     app.accounts = app.accounts.filter(a => a.id !== id);
     app.saveToStorage();
     app.renderAccountsList();
+    app.renderNetWorthWidget();
     refreshAccountSelectors(app);
 }
 
@@ -184,5 +186,6 @@ export function saveEditAccount(app, id) {
     app.editingAccountId = null;
     app.saveToStorage();
     app.renderAccountsList();
+    app.renderNetWorthWidget();
     refreshAccountSelectors(app);
 }

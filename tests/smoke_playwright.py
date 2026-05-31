@@ -45,6 +45,12 @@ def main() -> None:
         page.click('#accountFormSubmit')
         page.wait_for_selector('text=Smoke Checking', timeout=10000)
 
+        # Accounts: net worth widget should render (auto snapshot)
+        page.wait_for_selector('#netWorthWidget', timeout=10000)
+        net_worth_widget_text = page.text_content('#netWorthWidget') or ''
+        if 'Net Worth' not in net_worth_widget_text:
+            fail('Net worth widget did not render expected content on Accounts page')
+
         # Income: add income
         page.click('button[data-page="income"]')
         page.wait_for_timeout(500)
@@ -159,6 +165,23 @@ def main() -> None:
         variance_content = page.text_content('#reportsVariance')
         if not variance_content or 'Month-to-Month' not in variance_content:
             fail('Variance Dashboard failed to load content')
+
+        # Test Net Worth tab
+        page.click('button[data-rptab="networth"]')
+        page.wait_for_selector('#reportsNetWorth', timeout=10000)
+        page.wait_for_selector('#captureSnapshotBtn', timeout=10000)
+        page.click('#captureSnapshotBtn')
+        page.wait_for_timeout(500)
+        net_worth_content = page.text_content('#reportsNetWorth')
+        if not net_worth_content or 'Net Worth Timeline' not in net_worth_content:
+            fail('Net Worth report failed to render timeline')
+        if not page.query_selector('#rptNetWorthTrendChart'):
+            fail('Net Worth trend chart canvas not found')
+        if not page.query_selector('#netWorthHistoryTable'):
+            fail('Net Worth snapshot history table not found')
+        history_rows = page.eval_on_selector_all('#netWorthHistoryTable tbody tr', 'rows => rows.length')
+        if history_rows < 1:
+            fail('Net Worth snapshot history table has no rows')
 
         # Strategy: calculate plan
         page.click('button[data-page="strategy"]')

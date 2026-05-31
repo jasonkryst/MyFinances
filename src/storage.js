@@ -155,6 +155,23 @@ function sanitizeSinkingFund(record, idFallback) {
     };
 }
 
+function sanitizeNetWorthSnapshot(record) {
+    const date = sanitizeDateISO(record?.date);
+    if (!date) return null;
+    const totalAssets = sanitizeFiniteNumber(record?.totalAssets, 0);
+    const totalLiabilities = sanitizeFiniteNumber(record?.totalLiabilities, 0);
+    const netWorth = sanitizeFiniteNumber(record?.netWorth, totalAssets - totalLiabilities);
+    return {
+        date,
+        totalAssets,
+        totalLiabilities,
+        netWorth,
+        debtPaymentMade: sanitizeFiniteNumber(record?.debtPaymentMade, 0, { min: 0 }),
+        incomeReceived: sanitizeFiniteNumber(record?.incomeReceived, 0, { min: 0 }),
+        source: record?.source === 'manual' ? 'manual' : 'auto'
+    };
+}
+
 function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
@@ -168,6 +185,8 @@ function sanitizeParsedState(parsed = {}) {
         recurringTemplates: (Array.isArray(parsed.recurringTemplates) ? parsed.recurringTemplates : []).map((r, i) => sanitizeRecurringTemplate(r, now + 4000 + i)).filter(r => !!r.name),
         emergencyFunds: (Array.isArray(parsed.emergencyFunds) ? parsed.emergencyFunds : []).map((e, i) => sanitizeEmergencyFund(e, now + 4500 + i)).filter(e => !!e.accountId),
         sinkingFunds: (Array.isArray(parsed.sinkingFunds) ? parsed.sinkingFunds : []).map((s, i) => sanitizeSinkingFund(s, now + 5000 + i)).filter(s => !!s.name && !!s.accountId),
+        monthlySnapshots: (Array.isArray(parsed.monthlySnapshots) ? parsed.monthlySnapshots : []).map(sanitizeNetWorthSnapshot).filter(Boolean),
+        netWorthMilestonesAwarded: (Array.isArray(parsed.netWorthMilestonesAwarded) ? parsed.netWorthMilestonesAwarded : []).map(v => sanitizeInteger(v, null, { min: 5000 })).filter(v => Number.isFinite(v)),
         perMonthStimulus: (Array.isArray(parsed.perMonthStimulus) ? parsed.perMonthStimulus : []).map(v => sanitizeFiniteNumber(v, 0, { min: 0 })),
         monthlyPayment: sanitizeFiniteNumber(parsed.monthlyPayment, null, { min: 0 }),
         strategy: normalizeText(parsed.strategy, 30) || null,
@@ -195,6 +214,8 @@ export function saveToStorage(app) {
             recurringTemplates: app.recurringTemplates || [],
             emergencyFunds: app.emergencyFunds || [],
             sinkingFunds: app.sinkingFunds || [],
+            monthlySnapshots: app.monthlySnapshots || [],
+            netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
             perMonthStimulus: app.perMonthStimulus || [],
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             strategy: document.getElementById('paymentStrategy')?.value || null,
@@ -229,6 +250,8 @@ export function loadFromStorage(app) {
             app.recurringTemplates = clean.recurringTemplates;
             app.emergencyFunds = clean.emergencyFunds;
             app.sinkingFunds = clean.sinkingFunds;
+            app.monthlySnapshots = clean.monthlySnapshots;
+            app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;
             app.perMonthStimulus = clean.perMonthStimulus;
             app._savedMonthlyPayment = clean.monthlyPayment;
             app._savedStrategy = clean.strategy;
@@ -262,6 +285,8 @@ export function exportAllJSON(app) {
         expenses: app.expenses || [],
         ledgerAmountOverrides: app.ledgerAmountOverrides || {},
         recurringTemplates: app.recurringTemplates || [],
+        monthlySnapshots: app.monthlySnapshots || [],
+        netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
         strategy: {
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             paymentStrategy: document.getElementById('paymentStrategy')?.value || null
@@ -432,6 +457,8 @@ export function importAllJSON(app, file, options = {}) {
         const incomingBills = clean.bills;
         const incomingExpenses = clean.expenses;
         const incomingLedgerAmountOverrides = clean.ledgerAmountOverrides;
+        const incomingMonthlySnapshots = clean.monthlySnapshots;
+        const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
         const incomingStrategy = payload?.strategy || null;
         const incomingLedgerSettings = clean.ledgerSettings;
 
@@ -465,6 +492,8 @@ export function importAllJSON(app, file, options = {}) {
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
             app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
+            app.monthlySnapshots = incomingMonthlySnapshots || [];
+            app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
                 app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
@@ -496,6 +525,8 @@ export function importAllJSON(app, file, options = {}) {
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
             app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
+            app.monthlySnapshots = incomingMonthlySnapshots || [];
+            app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
                 app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
@@ -560,7 +591,10 @@ export function clearAllData(app, options = {}) {
     app.updateUI();
 
     const resultsSection = document.getElementById('resultsSection');
-    if (resultsSection) resultsSection.style.display = 'none';
+    if (resultsSection) {
+        resultsSection.classList.add('hidden');
+        resultsSection.classList.remove('visible');
+    }
 
     const monthlyPaymentInput = document.getElementById('monthlyPayment');
     if (monthlyPaymentInput) monthlyPaymentInput.value = '';

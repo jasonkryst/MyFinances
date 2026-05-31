@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: May 29, 2026  
-**Current Version**: v3.0  
+**Last Updated**: May 30, 2026  
+**Current Version**: v3.1  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -23,17 +23,19 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 These features have the highest user impact and are feasible with existing architecture.
 
 #### 🏆 Net Worth Tracker & Historical Snapshots
-**Priority**: HIGH | **Effort**: MEDIUM | **Status**: PROPOSED
+**Priority**: HIGH | **Effort**: MEDIUM | **Status**: IMPLEMENTED (May 30, 2026)
 
 **Description**:
 Users need to see the big picture: total wealth growth, not just debt reduction. Monthly snapshots of net worth (total assets - total liabilities) create a powerful motivational tool and help users understand their complete financial trajectory.
 
-**Features**:
-- Monthly net worth snapshot (auto-captured or manual)
-- Historical trend chart (3/6/12 month views)
-- Net worth vs. debt payoff comparison
-- Milestone celebrations ("You've grown $5K in net worth!")
-- Asset growth vs. debt reduction visualization
+**Delivered Features**:
+- Monthly net worth snapshot with month-level upsert (auto-captured and manual capture)
+- Historical trend chart with 3/6/12 month controls
+- Net worth vs. liabilities trend visualization
+- Asset growth vs. debt reduction composition chart
+- Snapshot history audit table (date, assets, liabilities, net worth, income, debt paid)
+- Milestone celebrations at +$5K net worth increments from first snapshot
+- Accounts dashboard widget showing current net worth and change from prior snapshot
 
 **Why This Matters**:
 - Complements debt-focused view with holistic perspective
@@ -56,10 +58,15 @@ this.monthlySnapshots = [
 ];
 ```
 
-**UI Changes**:
-- New chart on Reports page showing net worth trend
-- Dashboard widget with current net worth + change from last month
-- Milestone notifications
+**Implementation Notes**:
+- Data persisted via localStorage, JSON export/import, and sanitization pipeline
+- Reports tab now includes a dedicated Net Worth panel
+- Manual snapshot capture is available directly from Reports
+- Snapshot metrics include `totalAssets`, `totalLiabilities`, `netWorth`, `debtPaymentMade`, and `incomeReceived`
+
+**Follow-up Enhancements**:
+- Optional snapshot history table export
+- Configurable milestone thresholds
 
 ---
 
@@ -382,7 +389,7 @@ Domain-specific tools for advanced users.
 
 - [ ] Financial Health Dashboard (HIGH impact, LOW-MEDIUM effort)
 - [ ] Budget Alerts & Warnings (HIGH impact, LOW effort)
-- [ ] Net Worth Tracker (HIGH impact, MEDIUM effort)
+- [x] Net Worth Tracker (HIGH impact, MEDIUM effort)
 
 **Why This Release**:
 - Reuses existing calculations

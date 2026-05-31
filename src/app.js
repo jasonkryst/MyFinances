@@ -46,7 +46,6 @@ import {
     saveEditBonus,
     renderBonusList
 } from './income.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature } from './ui.js';
 import {
     calculatePaymentPlanFromInputs as calculatePaymentPlanFromInputsFeature,
     calculateRequiredPayment as calculateRequiredPaymentFeature,
@@ -62,8 +61,11 @@ import {
 import {
     prevReportMonth as prevReportMonthFeature,
     nextReportMonth as nextReportMonthFeature,
-    renderReportsPage as renderReportsPageFeature
+    renderReportsPage as renderReportsPageFeature,
+    captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
+    renderNetWorthWidget as renderNetWorthWidgetFeature
 } from './reports.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature } from './ui.js';
 import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth } from './utils.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
@@ -100,6 +102,8 @@ export class DebtTrackerApp {
         this.recurringTemplates = [];
         this.emergencyFunds = [];
         this.sinkingFunds = [];
+        this.monthlySnapshots = [];
+        this.netWorthMilestonesAwarded = [];
         this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
@@ -114,9 +118,11 @@ export class DebtTrackerApp {
         this._savedMonthlyPayment = null;
         this._savedStrategy = null;
         this.storageKey = 'debtTrackerData';
+    this._netWorthRangeMonths = 6;
 
         this.initializeEventListeners();
         this.loadFromStorage();
+    this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
 
         if (this.accounts.length > 0 && this.incomes.length > 0) {
             const firstAccountId = this.accounts[0].id;
@@ -459,6 +465,10 @@ export class DebtTrackerApp {
         return showMilestoneFeature(debtName);
     }
 
+    showNetWorthMilestone(message) {
+        return showNetWorthMilestoneFeature(message);
+    }
+
     /**
      * Persist current state to localStorage under `this.storageKey`.
      * Saved keys: `debts`, `perMonthStimulus`, `monthlyPayment`, `strategy`, `timestamp`.
@@ -719,6 +729,14 @@ export class DebtTrackerApp {
         return renderReportsPageFeature(this);
     }
 
+    captureNetWorthSnapshot(options = {}) {
+        return captureNetWorthSnapshotFeature(this, options);
+    }
+
+    renderNetWorthWidget() {
+        return renderNetWorthWidgetFeature(this);
+    }
+
     // ═════════════════════════════════════════════════════════════════════════
     //  RECURRING TRANSACTION TEMPLATES
     // ═════════════════════════════════════════════════════════════════════════
@@ -753,7 +771,8 @@ export class DebtTrackerApp {
         
         // Show/hide panels
         section.querySelectorAll('.liabilities-subtab-panel').forEach(panel => {
-            panel.style.display = panel.dataset.subtab === subTab ? 'block' : 'none';
+            panel.classList.toggle('visible', panel.dataset.subtab === subTab);
+            panel.classList.toggle('hidden', panel.dataset.subtab !== subTab);
         });
     }
 }

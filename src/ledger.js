@@ -393,7 +393,7 @@ function openLedgerOverrideModal(app, tx) {
     input.value = Number(tx.amount || 0).toFixed(2);
 
     const close = () => {
-        modal.style.display = 'none';
+        modal.classList.add('hidden'); modal.classList.remove('flex-visible');
         modal.onkeydown = null;
     };
 
@@ -433,7 +433,7 @@ function openLedgerOverrideModal(app, tx) {
         }
     };
 
-    modal.style.display = 'flex';
+    modal.classList.add('flex-visible'); modal.classList.remove('hidden');
     setTimeout(() => input.focus(), 30);
 }
 
@@ -585,7 +585,7 @@ export function renderLedgerPage(app) {
     const table = container.querySelector('.ledger-table');
     if (table) {
         table.querySelectorAll('th[data-key]').forEach(th => {
-            th.style.cursor = 'pointer';
+            th.classList.add('cursor-pointer');
             th.onclick = () => {
                 const key = th.getAttribute('data-key');
                 if (app._ledgerSortKey === key) {

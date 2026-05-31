@@ -6,7 +6,7 @@ _A modern, privacy-first web app to track accounts, debts, income, and spending,
 
 All calculations happen locally in your browser — no accounts, no servers, no tracking.
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: May 29, 2026
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: May 30, 2026
 
 ---
 
@@ -21,8 +21,10 @@ http://localhost:5500
 
 # Run tests
 python tests/smoke_playwright.py    # Full workflow test
+python tests/test_networth_feature.py # Net worth widget/reports workflow
 python tests/test_security.py       # Security tests
 python tests/test_mobile_menu.py    # Mobile responsiveness
+python tests/security_scan.py       # Static security scan report
 ```
 
 For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
@@ -51,6 +53,7 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 ### Documentation
 - [SECURITY.md](SECURITY.md) — Detailed security practices & implementation
 - [SECURITY_AUDIT.md](SECURITY_AUDIT.md) — Full security audit report
+- [SECURITY_SCAN_REPORT.json](SECURITY_SCAN_REPORT.json) — Latest static scan output
 - [DEPLOYMENT.md](DEPLOYMENT.md) — Production deployment with security headers
 
 ---
@@ -68,6 +71,14 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 - **Strong CSP** — `style-src 'self'` (no inline styles)
 - **Utility Classes** — `.sr-only` and `.help-icon` properly organized
 - **Breakpoints** — Desktop (>768px), Tablet (768px), Mobile (≤480px)
+
+### Net Worth Tracking & Historical Snapshots (NEW)
+- **Monthly Snapshots** — Automatically captured and manually capturable snapshots of assets, liabilities, and net worth
+- **Trend Analytics** — 3/6/12 month net worth views in Reports with comparison charts
+- **Snapshot Audit Table** — Date, assets, liabilities, net worth, income, and debt paid shown in a quick monthly history table
+- **Motivation Milestones** — Celebration notifications at +$5K net worth growth increments from your first snapshot
+- **Accounts Dashboard Widget** — Current net worth and change from the prior snapshot shown on Accounts page
+- **Export/Import Ready** — Snapshot history and milestone state are included in JSON backup flow
 
 ---
 
@@ -221,6 +232,7 @@ src/
 - **Reports sections** — Income vs. Expenses chart showing income, recurring costs, and debt minimums; Money Flow chart tracking cumulative income/outflow/net day-by-day through the month; Variance Dashboard comparing this month vs last month with clear deltas for income, expenses, recurring costs, and debt; account balance projections for each account
 - **Recurring integration** — all recurring template transactions are fully integrated into calendar events, income vs. expenses breakdown, and money flow calculations
 - **Variance Dashboard** — "What Changed" tab comparing current month vs previous month with color-coded deltas for income, expenses, recurring costs, debt minimums, and net available funds; quickly identify spending patterns and budget trends
+- **Net Worth tab** — dedicated reporting view with: historical net worth trend, liabilities comparison, asset growth vs debt reduction chart, snapshot history audit table, 3/6/12 month range selector, and manual snapshot capture
 
 ### Interest Paid to Date
 - Record the date you opened each credit-card debt (`debtStartDate`)
@@ -228,8 +240,8 @@ src/
 - Shown on each debt card, in the summary table, and persisted to localStorage
 
 ### Data Management
-- **Persistent storage** — debts, income, stimulus data, monthly payment, strategy, recurring templates, and ledger amount overrides are auto-saved to `localStorage`
-- **Export (JSON)** — one-click full backup from the header toolbar; downloads debts, income sources, strategy settings, recurring templates, and ledger amount overrides as a single `.json` file
+- **Persistent storage** — debts, income, stimulus data, monthly payment, strategy, recurring templates, net worth snapshots, milestone markers, and ledger amount overrides are auto-saved to `localStorage`
+- **Export (JSON)** — one-click full backup from the header toolbar; downloads debts, income sources, strategy settings, recurring templates, net worth snapshots, milestone markers, and ledger amount overrides as a single `.json` file
 - **Import (JSON)** — restore from any previously exported backup; choose **Replace** (full restore) or **Merge** (append debts, always restores income & strategy)
 - **Export to CSV** — full payment schedule plus per-debt summary in one spreadsheet-ready file
 - **Clear All Data** — wipe everything and start fresh

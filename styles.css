@@ -32,6 +32,192 @@
     outline: 2px solid #2563eb;
 }
 
+/* CSP-Compliant Display Utilities */
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+
+.flex-visible {
+    display: flex !important;
+}
+
+.inline-visible {
+    display: inline-block !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Modal Overlay & Content */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay[id="ledgerOverrideModal"] {
+    z-index: 10003;
+}
+
+.modal-content {
+    background: white;
+    max-width: 460px;
+    width: 92%;
+    border-radius: 12px;
+    padding: 28px 24px;
+    margin: auto;
+    position: relative;
+    outline: 0;
+}
+
+#ledgerOverrideModal .modal-content {
+    max-width: 440px;
+    padding: 26px 22px;
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.modal-subtitle {
+    margin: 4px 0 14px;
+}
+
+.modal-description {
+    margin: 6px 0 10px;
+    color: #6b7280;
+}
+
+.modal-tx-name {
+    margin: 0 0 6px;
+    font-size: 0.9rem;
+}
+
+.modal-helper-text {
+    font-size: 0.78rem;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.modal-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.modal-form-grid .form-group {
+    margin: 0;
+}
+
+.modal-form-group {
+    margin: 0 0 12px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+#ledgerOverrideModal .modal-actions {
+    margin-top: 18px;
+}
+
+/* Inline Style Replacements - CSP Compliance */
+.logo-icon {
+    vertical-align: middle;
+    display: inline-block;
+    width: 1.5em;
+    height: 1.5em;
+    margin-right: 0.3em;
+}
+
+.logo-svg {
+    display: inline;
+    vertical-align: middle;
+}
+
+.fixed-amount-fields {
+    display: none;
+}
+
+.fixed-end-date-container {
+    display: none;
+}
+
+.cancel-edit-btn {
+    display: none;
+}
+
+.form-group.no-margin {
+    margin: 0;
+}
+
+.form-group-flex-1 {
+    flex: 1;
+    min-width: 160px;
+}
+
+.category-filter-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.category-filter {
+    margin-left: 6px;
+    min-width: 120px;
+}
+
+.category-summary {
+    margin: 18px 0 0 0;
+}
+
+.income-summary {
+    display: none;
+}
+
+.cashflow-summary {
+    display: none;
+}
+
+.strategy-income-widget {
+    display: none;
+}
+
+.submit-button-margin {
+    margin-top: 14px;
+}
+
+.heading-no-margin {
+    margin-top: 0;
+}
+
+.liabilities-panel-visible {
+    display: block;
+}
+
+.liabilities-panel-hidden {
+    display: none;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    LEDGER PAGE & TABLE
    ═══════════════════════════════════════════════════════════════ */
@@ -2903,6 +3089,81 @@ body.dark-mode .strategy-income-ratio { color: #a7f3d0; }
 
 body.dark-mode .strategy-income-ratio--warn { color: #fbbf24; }
 
+/* Accounts net worth dashboard widget */
+.net-worth-widget {
+    margin: 10px 0 18px;
+}
+
+.nw-widget-card {
+    background: linear-gradient(145deg, #f8fafc, #ecfeff);
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 3px 10px rgba(30, 64, 175, 0.08);
+}
+
+.nw-widget-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.nw-widget-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1d4ed8;
+}
+
+.nw-widget-date {
+    font-size: 0.8rem;
+    color: #475569;
+}
+
+.nw-widget-main {
+    margin-top: 4px;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.nw-widget-change {
+    margin-top: 3px;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.nw-change--up { color: #15803d; }
+.nw-change--down { color: #b91c1c; }
+
+.nw-widget-breakdown {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.86rem;
+    color: #334155;
+}
+
+.nw-widget-empty {
+    margin: 0;
+    padding: 12px;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    color: var(--text-muted);
+    background: var(--card-bg);
+}
+
+body.dark-mode .nw-widget-card {
+    background: linear-gradient(145deg, #0f172a, #1e293b);
+    border-color: #334155;
+}
+
+body.dark-mode .nw-widget-head h3 { color: #93c5fd; }
+body.dark-mode .nw-widget-date { color: #94a3b8; }
+body.dark-mode .nw-widget-main { color: #e2e8f0; }
+body.dark-mode .nw-widget-breakdown { color: #cbd5e1; }
+
 /* ── Strategy net cashflow row ──────────────────────────────────────────── */
 .strategy-net {
     margin-top: 8px;
@@ -3505,7 +3766,7 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
     padding: 20px 18px;
 }
 .rpt-chart-title  { margin: 0 0 2px; font-size: 1rem; font-weight: 700; color: var(--text-color); }
-.rpt-chart-sub    { margin: 0 0 14px; font-size: 0.8rem; color: var(--text-muted); }
+.rpt-chart-sub    { margin: 0 0 16px; font-size: 0.8rem; color: var(--text-muted); }
 .rpt-chart-canvas-wrap { position: relative; height: 280px; }
 
 /* ── Money Flow ─────────────────────────────────────────────────────────── */
@@ -3548,6 +3809,7 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 .rpt-cal-swatch--bill   { background: #f59e0b; }
 .rpt-cal-swatch--expense { background: #8b5cf6; }
 .rpt-cal-swatch--recurring { background: #06b6d4; }
+.rpt-cal-swatch--debt { background: #2563eb; }
 .rpt-cal-swatch--bonus  { background: #d97706; }
 .rpt-cal-swatch--today  { background: #2563eb; border-radius: 50%; }
 
@@ -3615,6 +3877,126 @@ body.dark-mode .rpt-cal-today { background: #1e3a5f; border-color: #2563eb; }
 .rpt-cal-evt--expense { background: #8b5cf6; }
 .rpt-cal-evt--recurring { background: #06b6d4; }
 .rpt-cal-evt--bonus  { background: #d97706; }
+.rpt-cal-evt--debt-dynamic { background: var(--debt-color, #2563eb); }
+
+/* Net worth reports panel */
+.nw-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.nw-report-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.nw-report-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.nw-range-buttons {
+    display: inline-flex;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.nw-range-btn {
+    border: none;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.nw-range-btn + .nw-range-btn {
+    border-left: 1px solid var(--border-color);
+}
+
+.nw-range-btn.active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.nw-report-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.nw-report-stat {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.nw-report-stat span {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.nw-report-stat strong {
+    font-size: 1.03rem;
+    color: var(--text-primary);
+}
+
+.nw-history-card {
+    margin-top: 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.nw-history-table-wrap {
+    overflow-x: auto;
+}
+
+.nw-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 680px;
+}
+
+.nw-history-table th,
+.nw-history-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: right;
+    font-size: 0.86rem;
+    color: var(--text-primary);
+}
+
+.nw-history-table th:first-child,
+.nw-history-table td:first-child {
+    text-align: left;
+}
+
+.nw-history-table th {
+    font-size: 0.76rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--light-bg);
+    position: sticky;
+    top: 0;
+}
+
+.nw-history-table tr:last-child td {
+    border-bottom: none;
+}
 
 @media (max-width: 640px) {
     .rpt-cal-cell     { min-height: 56px; }

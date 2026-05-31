@@ -87,7 +87,16 @@ async def test_xss_protection():
                     "name": "<img src=x onerror=alert('xss')>",
                     "type": "Credit Card",
                     "startingBalance": 0
-                }]
+                }],
+                "monthlySnapshots": [{
+                    "date": "<script>2026-05-01</script>",
+                    "totalAssets": "10000",
+                    "totalLiabilities": "5000",
+                    "netWorth": "5000",
+                    "debtPaymentMade": "900",
+                    "incomeReceived": "2500"
+                }],
+                "netWorthMilestonesAwarded": [5000, "<img src=x>", 10000]
             }"""
             
             # Create a temporary file for import
@@ -113,6 +122,44 @@ async def test_xss_protection():
                     # Check if data was imported safely
                     debts_count = await page.evaluate('() => document.querySelectorAll(".debt-card").length')
                     print(f"✓ Imported {debts_count} debt(s) safely\n")
+
+                    # Check snapshot fields were sanitized
+                    snapshot_sanitized = await page.evaluate("""
+                        () => {
+                            const raw = localStorage.getItem('debtTrackerData');
+                            if (!raw) return false;
+                            const parsed = JSON.parse(raw);
+                            const snapshots = Array.isArray(parsed.monthlySnapshots) ? parsed.monthlySnapshots : [];
+                            const milestones = Array.isArray(parsed.netWorthMilestonesAwarded) ? parsed.netWorthMilestonesAwarded : [];
+                            const hasUnsafeDate = snapshots.some(s => typeof s.date === 'string' && s.date.includes('<'));
+                            const hasUnsafeMilestone = milestones.some(m => typeof m === 'string');
+                            return !hasUnsafeDate && !hasUnsafeMilestone;
+                        }
+                    """)
+                    assert snapshot_sanitized, "Net worth snapshot import sanitization failed"
+                    print("✓ Net worth snapshot data sanitized during import\n")
+
+                    # Check snapshot history table is rendered safely in Reports > Net Worth
+                    await page.click('button[data-page="reports"]')
+                    await page.wait_for_timeout(300)
+                    await page.click('button[data-rptab="networth"]')
+                    await page.wait_for_timeout(300)
+                    await page.click('#captureSnapshotBtn')
+                    await page.wait_for_timeout(500)
+
+                    table_present = await page.evaluate("""
+                        () => !!document.querySelector('#netWorthHistoryTable')
+                    """)
+                    assert table_present, "Net worth history table missing in Reports"
+
+                    table_safe = await page.evaluate("""
+                        () => {
+                            const html = document.querySelector('#netWorthHistoryTable tbody')?.innerHTML || '';
+                            return !html.includes('<script') && !html.includes('onerror=');
+                        }
+                    """)
+                    assert table_safe, "Unsafe HTML found in net worth snapshot history table"
+                    print("✓ Net worth snapshot history table renders safely\n")
             finally:
                 os.unlink(temp_file)
             
@@ -230,6 +277,11 @@ async def test_data_persistence():
                 assert 'debts' in parsed or 'accounts' in parsed or 'incomes' in parsed, \
                        "Invalid localStorage format"
                 print("✓ localStorage data is valid JSON\n")
+
+                # New schema fields should exist for net worth tracking
+                assert 'monthlySnapshots' in parsed, "monthlySnapshots missing from localStorage"
+                assert 'netWorthMilestonesAwarded' in parsed, "netWorthMilestonesAwarded missing from localStorage"
+                print("✓ Net worth storage fields present\n")
             except json.JSONDecodeError:
                 raise AssertionError("localStorage contains invalid JSON")
             

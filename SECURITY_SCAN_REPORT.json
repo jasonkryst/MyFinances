@@ -1,0 +1,83 @@
+{
+  "scannedAt": "2026-05-30T20:13:35.303388+00:00",
+  "root": "\\\\Serenity\\Users\\jkryst\\Shared\\Documents\\Web Development\\Tools\\Debt Tracker",
+  "summary": {
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 12
+  },
+  "findings": [
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\accounts.js",
+      "detail": "Found 3 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\bills.js",
+      "detail": "Found 5 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\debts.js",
+      "detail": "Found 6 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\income.js",
+      "detail": "Found 5 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\ledger.js",
+      "detail": "Found 1 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\recurring.js",
+      "detail": "Found 3 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\reports.js",
+      "detail": "Found 9 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\savings.js",
+      "detail": "Found 1 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\strategy.js",
+      "detail": "Found 28 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "innerhtml-review",
+      "file": "src\\ui.js",
+      "detail": "Found 1 innerHTML assignment(s); ensure values are escaped/sanitized"
+    },
+    {
+      "severity": "LOW",
+      "check": "localstorage-key-review",
+      "file": "src\\storage.js",
+      "detail": "Review localStorage key expression: app.storageKey, JSON.stringify(data"
+    },
+    {
+      "severity": "LOW",
+      "check": "localstorage-key-review",
+      "file": "src\\storage.js",
+      "detail": "Review localStorage key expression: app.storageKey"
+    }
+  ]
+}
