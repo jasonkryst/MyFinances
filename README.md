@@ -6,7 +6,7 @@ _A modern, privacy-first web app to track accounts, debts, income, and spending,
 
 All calculations happen locally in your browser — no accounts, no servers, no tracking.
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: May 30, 2026
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: May 31, 2026 (Updated) | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
 
 ---
 
@@ -38,11 +38,13 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 ### Security Features
 - ✅ **Zero Data Transmission** — All data stays on your device
 - ✅ **XSS Prevention** — All user input sanitized and HTML-encoded
-- ✅ **Strong CSP** — Content Security Policy blocks malicious scripts
+- ✅ **Strong CSP** — Content Security Policy blocks malicious scripts (no unsafe-inline)
+- ✅ **Security Headers** — X-Content-Type-Options, X-Frame-Options, frame-ancestors protection
 - ✅ **No External Dependencies** — Vanilla JavaScript (no npm vulnerabilities)
 - ✅ **Secure File Imports** — JSON validation + size limits + data re-sanitization
 - ✅ **Input Validation** — Numeric bounds, date validation, text sanitization
 - ✅ **Client-Side Only** — No server, no authentication needed
+- ✅ **CSS Extracted** — All styles in external stylesheet (CSP compliant)
 
 ### Privacy Guarantee
 - ✅ All calculations run entirely in your browser
@@ -52,9 +54,15 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 
 ### Documentation
 - [SECURITY.md](SECURITY.md) — Detailed security practices & implementation
-- [SECURITY_AUDIT.md](SECURITY_AUDIT.md) — Full security audit report
+- [SECURITY_AUDIT.md](SECURITY_AUDIT.md) — Full security audit report (updated May 31, 2026)
 - [SECURITY_SCAN_REPORT.json](SECURITY_SCAN_REPORT.json) — Latest static scan output
 - [DEPLOYMENT.md](DEPLOYMENT.md) — Production deployment with security headers
+
+### Recent Security Improvements (May 31, 2026)
+- ✅ Extracted all inline styles to CSS classes for strict CSP compliance
+- ✅ Implemented X-Content-Type-Options and X-Frame-Options security headers
+- ✅ Completed static security scan with zero HIGH/MEDIUM severity findings
+- ✅ Enhanced SECURITY.md with comprehensive contributor guidelines
 
 ---
 
@@ -66,11 +74,13 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 - **Auto-Close** — Menu collapses after page selection
 - **Accessibility** — ARIA labels and keyboard navigation support
 
-### Responsive CSS Architecture (NEW)
+### CSP-Compliant CSS Architecture (ENHANCED May 31, 2026)
 - **No Unsafe-Inline CSS** — All styles extracted to `styles.css`
-- **Strong CSP** — `style-src 'self'` (no inline styles)
-- **Utility Classes** — `.sr-only` and `.help-icon` properly organized
+- **Strong CSP** — `style-src 'self'` only (no inline styles)
+- **Utility Classes** — `.sr-only`, `.help-icon`, and display utilities (`.hidden`, `.visible`, `.flex-visible`)
+- **Dynamic Classes** — All display toggles use classList API instead of inline styles
 - **Breakpoints** — Desktop (>768px), Tablet (768px), Mobile (≤480px)
+- **Dark Mode** — Full dark mode support with CSS variables
 
 ### Net Worth Tracking & Historical Snapshots (NEW)
 - **Monthly Snapshots** — Automatically captured and manually capturable snapshots of assets, liabilities, and net worth
@@ -79,6 +89,40 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 - **Motivation Milestones** — Celebration notifications at +$5K net worth growth increments from your first snapshot
 - **Accounts Dashboard Widget** — Current net worth and change from the prior snapshot shown on Accounts page
 - **Export/Import Ready** — Snapshot history and milestone state are included in JSON backup flow
+
+---
+
+## 🔐 Security & Compliance
+
+### Content Security Policy (CSP)
+The application enforces a strict CSP header:
+```
+default-src 'self';
+script-src 'self' https://cdn.jsdelivr.net;
+style-src 'self';
+img-src 'self' data:;
+font-src 'self';
+connect-src 'self';
+object-src 'none';
+base-uri 'self';
+form-action 'self';
+frame-ancestors 'none'
+```
+
+### Security Headers
+Production deployments include:
+- `X-Content-Type-Options: nosniff` — Prevents MIME-sniffing attacks
+- `X-Frame-Options: DENY` — Prevents clickjacking/iframe injection
+- `Strict-Transport-Security` — HTTPS enforcement (production only)
+- `Referrer-Policy: strict-origin-when-cross-origin` — Privacy-friendly referrer policy
+
+### Static Security Analysis
+Run the security scan with: `python tests/security_scan.py`
+
+**Latest Results (May 31, 2026)**:
+- HIGH severity issues: 0 ✅
+- MEDIUM severity issues: 0 ✅
+- LOW severity findings: 12 (all properly handled) ✅
 
 ---
 

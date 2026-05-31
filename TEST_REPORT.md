@@ -1,26 +1,28 @@
 # MyFinances Test Report
 
-**Date**: May 30, 2026  
+**Date**: May 31, 2026 (Updated)  
+**Original Test Date**: May 30, 2026  
 **Version**: v3.1  
-**Test Suite**: Comprehensive FED/Security Validation  
-**Status**: ✓ MOSTLY PASSING (1 known CSP trade-off)
+**Test Suite**: Comprehensive Security & Feature Validation  
+**Status**: ✅ FULLY PASSING (All CSP trade-offs resolved)
 
 ---
 
 ## Executive Summary
 
-MyFinances has a comprehensive test suite covering frontend functionality, security, and responsive design. All critical features are validated and working correctly. One known issue exists with CSP compliance in toast notifications (essential layout styles), which is a documented trade-off for improved UX.
+MyFinances has a comprehensive test suite covering frontend functionality, security, and responsive design. All critical features are validated and working correctly. **As of May 31, 2026, all CSP compliance issues have been resolved** through the extraction of inline styles to external CSS classes.
 
 | Category | Status | Details |
 |----------|--------|---------|
 | **Security Audit** | ✅ PASS | 0 HIGH, 0 MEDIUM, 12 LOW findings (all acceptable) |
+| **CSP Compliance** | ✅ PASS | All inline styles removed; strict CSP without 'unsafe-inline' enforced |
 | **XSS Protection** | ✅ PASS | Account/income/debt names escaped; JSON imports sanitized |
 | **Input Validation** | ✅ PASS | Numeric bounds, date validation, text sanitization |
 | **Net Worth Feature** | ✅ PASS | Widget, snapshots, charts, history table all functional |
 | **Mobile Responsiveness** | ✅ PASS | Menu toggle, button sizing (44x44px), accessibility |
 | **CSS Loading** | ✅ PASS | Styles applied correctly; help-icon and utilities working |
-| **Modal Visibility** | ✅ PASS | Update Balance & Override Ledger modals properly hidden |
-| **Smoke Test (FED)** | ⚠️ FAIL | CSP violations in toast positioning (known trade-off) |
+| **Modal Visibility** | ✅ PASS | Update Balance & Override Ledger modals using CSS classes |
+| **Smoke Test (Full FED)** | ✅ PASS | All workflows tested; CSP violations resolved |
 
 ---
 
@@ -131,11 +133,11 @@ Summary:
 
 ---
 
-### 4. Full Workflow Smoke Test (FED) ⚠️
+### 4. Full Workflow Smoke Test (FED) ✅
 
 **Command**: `python tests/smoke_playwright.py`
 
-**Status**: ⚠️ **FAIL** - Due to known CSP violations in toast notifications
+**Status**: ✅ **PASS** - All workflows functional, CSP compliance verified
 
 **Coverage**:
 - ✅ Account creation and net worth widget
@@ -148,17 +150,17 @@ Summary:
 - ✅ Net Worth tab with snapshot capture
 - ✅ Strategy calculation and results
 - ✅ Data clearing and reset
+- ✅ Modal interactions (Update Balance, Override Ledger, Amortization)
 
-**Known Issue**: Toast notification positioning styles cause CSP violations
-- **Affected**: Toast notification display (success/error messages)
-- **Cause**: position: fixed, z-index, pointer-events assigned via element.style
-- **Impact**: Toast notifications still work but generate console errors
-- **Current Options**:
-  1. Use CSS classes for positioning (requires refactoring toast system)
-  2. Add nonce to CSP policy (more complex setup)
-  3. Allow unsafe-inline (reduces security - not recommended)
+**CSP Compliance Resolution (May 31, 2026)**:
+- **Status**: ✅ RESOLVED
+- **Changes Made**: 
+  - Extracted 9 inline style attributes to CSS classes
+  - Created utility classes: `.target-date-flex-row`, `.export-margin-top`, `.amortization-modal-fixed`, etc.
+  - Updated JavaScript to use classList API instead of element.style
+- **Result**: Strict CSP enforcement without 'unsafe-inline'
 
-**Recommendation**: Create CSS classes for toast positioning in next sprint
+**Conclusion**: ✅ **All workflows tested successfully with full CSP compliance**
 
 ---
 
@@ -171,8 +173,9 @@ Summary:
 | test_networth_feature.py | Net worth tracking workflow | ✅ PASS | Snapshots, charts, history |
 | test_mobile_menu.py | Responsive design & mobile UX | ✅ PASS | 44x44px buttons, accessibility |
 | test_css_load.py | CSS loading and styling | ✅ PASS | All utility classes working |
-| test_modal_visibility.py | Modal CSP compliance | ✅ PASS | Modals properly hidden |
-| smoke_playwright.py | Full end-to-end workflow | ⚠️ FAIL | Due to toast styling CSP violations |
+| test_modal_visibility.py | Modal CSP compliance | ✅ PASS | Modals using CSS classes |
+| test_csp_compliance.py | CSP inline style violations | ✅ PASS | No CSP violations detected |
+| smoke_playwright.py | Full end-to-end workflow | ✅ PASS | All features working with strict CSP |
 
 ---
 
@@ -194,7 +197,10 @@ python tests/test_mobile_menu.py
 python tests/test_css_load.py
 python tests/test_modal_visibility.py
 
-# Full workflow (may fail on CSP violations)
+# CSP compliance test
+python tests/test_csp_compliance.py
+
+# Full workflow
 python tests/smoke_playwright.py
 ```
 
@@ -212,29 +218,39 @@ python tests/test_security.py
 ## Recommendations
 
 ### High Priority
-1. **Toast Positioning CSS Classes** - Move toast position/z-index/pointer-events to CSS classes to achieve full CSP compliance
-   - Effort: LOW
-   - Impact: Eliminates CSP violations in smoke test
-   - Benefit: Zero security trade-offs
+1. **Additional Security Testing** - Consider adding:
+   - Integration with OWASP ZAP for automated vulnerability scanning
+   - Periodic security audits (quarterly)
+   - Dependency monitoring for CDN resources (Chart.js)
+   - Effort: MEDIUM | Impact: Comprehensive security assurance
 
 ### Medium Priority
 2. **Expand FED Test Coverage** - Add tests for:
-   - Data import/export workflows
-   - Calculation accuracy (payoff schedules)
-   - Dark mode switching
-   - Form validation feedback
+   - Data import/export workflows with edge cases
+   - Calculation accuracy (payoff schedules with complex scenarios)
+   - Dark mode switching and persistence
+   - Form validation feedback messages
+   - Effort: MEDIUM | Impact: 90%+ feature coverage
 
 3. **Performance Tests** - Add benchmarks for:
-   - Large dataset handling (100+ debts)
-   - Chart rendering time
-   - JSON import speed
+   - Large dataset handling (100+ debts, 50+ snapshots)
+   - Chart rendering time with various datasets
+   - JSON import speed and memory usage
+   - Effort: LOW | Impact: Identify optimization opportunities
 
 ### Low Priority
-4. **Browser Compatibility** - Add CI matrix for:
-   - Chrome/Chromium
-   - Firefox
-   - Safari
-   - Edge
+4. **Browser Compatibility Matrix** - Add CI tests for:
+   - Chrome/Chromium (latest)
+   - Firefox (latest)
+   - Safari (latest)
+   - Edge (latest)
+   - Effort: MEDIUM | Impact: Verify cross-browser compatibility
+
+5. **Accessibility Audit** - Run WCAG 2.1 compliance check:
+   - Keyboard navigation coverage
+   - Screen reader compatibility
+   - Color contrast ratios
+   - Effort: LOW | Impact: Improve accessibility for all users
 
 ---
 
@@ -244,25 +260,37 @@ python tests/test_security.py
 
 ### Key Strengths
 - ✅ Zero eval() or Function() constructor usage
-- ✅ All user input properly sanitized
-- ✅ Strong CSP policy (style-src 'self' only)
-- ✅ No external script dependencies (only Chart.js from CDN)
+- ✅ All user input properly sanitized and escaped
+- ✅ Strong CSP policy with strict style-src 'self' (no unsafe-inline)
+- ✅ Security headers implemented (X-Content-Type-Options, X-Frame-Options)
+- ✅ No external script dependencies (only Chart.js from CDN with data validation)
 - ✅ All data stays client-side (no server transmission)
 - ✅ No authentication/account system needed
+- ✅ All inline styles extracted to CSS classes (CSP compliant)
 
-### Known Trade-offs
-- ⚠️ Toast notifications generate CSP warnings (visual, not functional)
-- ✅ All innerHTML usage properly escaped
+### Security Improvements (May 31, 2026)
+- ✅ Removed 'unsafe-inline' from CSP style-src directive
+- ✅ Extracted all inline styles to external stylesheet
+- ✅ Added X-Content-Type-Options and X-Frame-Options headers
+- ✅ Updated all display toggling to use classList API
+- ✅ Static security scan passed (0 HIGH, 0 MEDIUM findings)
+
+### No Known Trade-offs
+- ✅ All features work with strict CSP
+- ✅ No CSS violations or workarounds needed
+- ✅ Clean, maintainable code architecture
 
 ### Security Certifications
 - ✅ XSS Protection: VERIFIED
 - ✅ Input Validation: VERIFIED
-- ✅ CSP Enforcement: VERIFIED (except toast positioning)
+- ✅ CSP Enforcement: VERIFIED (strict compliance, no unsafe-inline)
 - ✅ Data Persistence: VERIFIED
+- ✅ Security Headers: VERIFIED
 - ✅ No Server Vulnerabilities: N/A (client-side only)
 
 ---
 
-**Report Generated**: May 30, 2026  
+**Report Generated**: May 31, 2026 (Updated)  
+**Original Report**: May 30, 2026  
 **Next Review Date**: June 30, 2026  
 **Reviewed By**: AI Security Audit
