@@ -307,7 +307,7 @@ export function attachSavingsEventListeners(app) {
   const emergencyFormBody = document.getElementById('emergencyFormBody');
   if (emergencyFormToggle && emergencyFormBody) {
     emergencyFormToggle.addEventListener('click', () => {
-      emergencyFormBody.style.display = emergencyFormBody.style.display === 'none' ? 'block' : 'none';
+      emergencyFormBody.classList.toggle('visible'); emergencyFormBody.classList.toggle('hidden');
     });
   }
 
@@ -316,7 +316,7 @@ export function attachSavingsEventListeners(app) {
   const sinkingFormBody = document.getElementById('sinkingFormBody');
   if (sinkingFormToggle && sinkingFormBody) {
     sinkingFormToggle.addEventListener('click', () => {
-      sinkingFormBody.style.display = sinkingFormBody.style.display === 'none' ? 'block' : 'none';
+      sinkingFormBody.classList.toggle('visible'); sinkingFormBody.classList.toggle('hidden');
     });
   }
 
@@ -350,7 +350,7 @@ export function attachSavingsEventListeners(app) {
   const emergencyCancelBtn = document.getElementById('emergencyCancelBtn');
   if (emergencyCancelBtn) {
     emergencyCancelBtn.addEventListener('click', () => {
-      if (emergencyFormBody) emergencyFormBody.style.display = 'none';
+      if (emergencyFormBody) { emergencyFormBody.classList.add('hidden'); emergencyFormBody.classList.remove('visible'); }
       emergencyForm?.reset();
     });
   }
@@ -358,7 +358,7 @@ export function attachSavingsEventListeners(app) {
   const sinkingCancelBtn = document.getElementById('sinkingCancelBtn');
   if (sinkingCancelBtn) {
     sinkingCancelBtn.addEventListener('click', () => {
-      if (sinkingFormBody) sinkingFormBody.style.display = 'none';
+      if (sinkingFormBody) { sinkingFormBody.classList.add('hidden'); sinkingFormBody.classList.remove('visible'); }
       sinkingForm?.reset();
     });
   }
@@ -474,7 +474,7 @@ function startEditEmergencyFund(app, fundId) {
   document.getElementById('emergencyAuto').checked = fund.autoContribute;
   document.getElementById('emergencyNotes').value = fund.notes || '';
 
-  document.getElementById('emergencyFormBody').style.display = 'block';
+  document.getElementById('emergencyFormBody').classList.add('visible'); document.getElementById('emergencyFormBody').classList.remove('hidden');
 }
 
 /**
@@ -598,7 +598,7 @@ function startEditSinkingFund(app, fundId) {
   }
 
   handleAllocationMethodChange();
-  document.getElementById('sinkingFormBody').style.display = 'block';
+  document.getElementById('sinkingFormBody').classList.add('visible'); document.getElementById('sinkingFormBody').classList.remove('hidden');
 }
 
 /**
@@ -606,8 +606,16 @@ function startEditSinkingFund(app, fundId) {
  */
 window.handleAllocationMethodChange = function() {
   const method = document.getElementById('sinkingAllocationMethod').value;
-  document.getElementById('fixedAmountGroup').style.display = method === 'fixed' ? 'block' : 'none';
-  document.getElementById('annualCostGroup').style.display = method === 'annual' ? 'block' : 'none';
+  const fixedEl = document.getElementById('fixedAmountGroup');
+  const annualEl = document.getElementById('annualCostGroup');
+  if (fixedEl) {
+    fixedEl.classList.toggle('visible', method === 'fixed');
+    fixedEl.classList.toggle('hidden', method !== 'fixed');
+  }
+  if (annualEl) {
+    annualEl.classList.toggle('visible', method === 'annual');
+    annualEl.classList.toggle('hidden', method !== 'annual');
+  }
   document.getElementById('targetAmountGroup').style.display = method === 'target_date' ? 'block' : 'none';
   document.getElementById('targetDateGroup').style.display = method === 'target_date' ? 'block' : 'none';
 };

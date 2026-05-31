@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>MyFinances - Track Your Money</title>
     <link rel="stylesheet" href="styles.css">
@@ -28,8 +30,8 @@
             </div>
             <div class="header-hero">
                 <h1>
-                    <span style="vertical-align:middle; display:inline-block; width:1.5em; height:1.5em; margin-right:0.3em;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" style="display:inline;vertical-align:middle;">
+                    <span class="logo-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" class="logo-svg">
                             <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
                             <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
                             <circle cx="16" cy="16" r="3" fill="#2563eb"/>
@@ -75,6 +77,7 @@
             <section class="accounts-section page-section" id="accountsSection">
                 <h2>🏦 Accounts</h2>
                 <p class="accounts-intro">Define your bank accounts, wallets, and credit lines. Then link income, debts, bills, and expenses to specific accounts so you can track real cash flow per account.</p>
+                <div id="netWorthWidget" class="net-worth-widget" aria-live="polite"></div>
 
                 <!-- Add Account form -->
                 <div class="account-form-card">
@@ -123,7 +126,7 @@
 
                     <div class="liabilities-content">
                         <!-- ═════════════════ DEBTS SUBTAB ═════════════════ -->
-                        <div class="liabilities-subtab-panel" id="debtsPanel" data-subtab="debts" style="display:block;">
+                        <div class="liabilities-subtab-panel liabilities-panel-visible" id="debtsPanel" data-subtab="debts">
                             <div class="debts-layout">
                                 <!-- ── Left: Add / Edit form ── -->
                                 <div class="debts-form-col" id="debtFormCol">
@@ -212,7 +215,7 @@
                                 </div>
 
                                 <!-- Fixed-Amount Debt Fields -->
-                                <div class="form-row" id="fixedAmountFieldsContainer" style="display:none;">
+                                <div class="form-row fixed-amount-fields" id="fixedAmountFieldsContainer">
                                     <div class="form-group">
                                         <label for="fixedAmount">Monthly Amount ($) *
                                             <span class="help-icon" tabindex="0" aria-label="Enter the fixed monthly payment amount for this obligation.">?</span>
@@ -227,7 +230,7 @@
                                     </div>
                                 </div>
 
-                                <div class="form-group" id="fixedEndDateContainer" style="display:none;">
+                                <div class="form-group fixed-end-date-container" id="fixedEndDateContainer">
                                     <label for="fixedEndDate">End Date *
                                         <span class="help-icon" tabindex="0" aria-label="Enter the date when this obligation ends.">?</span>
                                     </label>
@@ -236,7 +239,7 @@
 
                                 <div class="debt-form-actions">
                                     <button type="submit" id="debtFormSubmit" class="btn btn-primary">Add Debt</button>
-                                    <button type="button" id="cancelEditBtn" class="btn" style="display:none;">Cancel</button>
+                                    <button type="button" id="cancelEditBtn" class="btn hidden">Cancel</button>
                                 </div>
                             </form>
                                         </div><!-- /debt-form-body -->
@@ -248,21 +251,21 @@
                                     <div class="debts-list-header">
                                         <h2>Your Debts</h2>
                                         <div class="debts-toolbar-filter">
-                                            <label for="categoryFilter" style="font-weight:600;font-size:0.875rem;">Filter:</label>
-                                            <select id="categoryFilter" style="margin-left:6px; min-width:120px;">
+                                            <label for="categoryFilter" class="category-filter-label">Filter:</label>
+                                            <select id="categoryFilter" class="category-filter">
                                                 <option value="">All categories</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div id="debtsList" class="debts-list"></div>
-                                    <div id="categorySummary" style="margin:18px 0 0 0;"></div>
+                                    <div id="categorySummary" class="category-summary"></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- ═════════════════ EXPENSES SUBTAB ═════════════════ -->
-                        <div class="liabilities-subtab-panel" id="expensesPanel" data-subtab="expenses" style="display:none;">
-                            <h3 style="margin-top:0;">Expenses</h3>
+                        <div class="liabilities-subtab-panel liabilities-panel-hidden" id="expensesPanel" data-subtab="expenses">
+                            <h3 class="heading-no-margin">Expenses</h3>
                             <div class="budget-col">
                                 <div class="budget-form-card">
                                     <button class="budget-form-toggle" id="expenseFormToggle" aria-expanded="false" aria-controls="expenseFormBody" type="button">
@@ -316,7 +319,7 @@
                             </div>
 
                             <!-- Cash Flow Summary -->
-                            <div id="cashFlowSummary" class="cashflow-summary" style="display:none;"></div>
+                            <div id="cashFlowSummary" class="cashflow-summary"></div>
                         </div>
                     </div>
                 </div>
@@ -386,19 +389,19 @@
                     <div id="bonusFormBody" hidden>
                         <form id="bonusForm" novalidate class="bonus-form-inner">
                             <div class="bonus-form-grid">
-                                <div class="form-group" style="margin:0;">
+                                <div class="form-group no-margin">
                                     <label for="bonusName">Label *</label>
                                     <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Cash deposit, Check deposit" required>
                                 </div>
-                                <div class="form-group" style="margin:0;">
+                                <div class="form-group no-margin">
                                     <label for="bonusAmount">Amount ($) *</label>
                                     <input type="number" id="bonusAmount" placeholder="0.00" step="0.01" min="0.01" required>
                                 </div>
-                                <div class="form-group" style="margin:0;">
+                                <div class="form-group no-margin">
                                     <label for="bonusDate">Date received *</label>
                                     <input type="date" id="bonusDate" required>
                                 </div>
-                                <div class="form-group" style="margin:0;">
+                                <div class="form-group no-margin">
                                     <label for="bonusCategory">Category</label>
                                     <select id="bonusCategory">
                                         <option value="Bonus">Bonus</option>
@@ -408,21 +411,21 @@
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group" style="margin:0;">
+                                <div class="form-group form-group-no-margin">
                                     <label for="bonusAccount">Deposit to Account</label>
                                     <select id="bonusAccount">
                                         <option value="">— No account —</option>
                                     </select>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-success" style="margin-top:14px;">Add One-time Entry</button>
+                            <button type="submit" class="btn btn-success submit-button-margin">Add One-time Entry</button>
                         </form>
                     </div>
                 </div>
                 <div id="bonusList"></div>
 
                 <!-- Monthly Income Summary -->
-                <div id="incomeSummary" class="income-summary" style="display:none;"></div>
+                <div id="incomeSummary" class="income-summary"></div>
             </section>
 
             <!-- Budget Section -->
@@ -455,7 +458,7 @@
                     <button id="clearDataBtn" class="btn btn-danger">Clear All Data</button>
 
                     <!-- Income context widget shown only when income sources exist -->
-                    <div id="strategyIncomeWidget" class="strategy-income-widget" style="display:none;"></div>
+                    <div id="strategyIncomeWidget" class="strategy-income-widget"></div>
                 </div>
 
                 <!-- ── Target Payoff Date back-calculator ─────────────────── -->
@@ -466,12 +469,7 @@
                     </button>
                     <div class="target-date-body" id="targetDateBody" hidden>
                         <p class="target-date-desc">Enter a date and we'll calculate the monthly payment required to be debt-free by then.</p>
-                        <div class="target-date-row">
-                            <div class="form-group" style="flex:1; min-width:180px;">
-                                <label for="targetPayoffDate">Target Payoff Date</label>
-                                <input type="date" id="targetPayoffDate">
-                            </div>
-                            <div class="form-group" style="flex:1; min-width:160px;">
+                        <div class=\"target-date-row\">\n                            <div class=\"form-group form-group-flex-1\">\n                                <label for=\"targetPayoffDate\">Target Payoff Date</label>\n                                <input type=\"date\" id=\"targetPayoffDate\">\n                            </div>\n                            <div class=\"form-group form-group-flex-1\">
                                 <label for="targetPayoffStrategy">Strategy</label>
                                 <select id="targetPayoffStrategy">
                                     <option value="avalanche">Avalanche</option>
@@ -480,7 +478,7 @@
                                     <option value="priority-highest">Priority (High→Low)</option>
                                 </select>
                             </div>
-                            <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
+                            <div class="target-date-flex-row">
                                 <button id="calcTargetBtn" type="button" class="btn btn-primary">Calculate</button>
                             </div>
                         </div>
@@ -489,7 +487,7 @@
                 </div>
 
                 <!-- ── Results (hidden until Calculate is clicked) ────────── -->
-                <div id="resultsSection" style="display:none;">
+                <div id="resultsSection" class="hidden">
                     <hr class="plan-divider">
 
                     <!-- Stats bar -->
@@ -588,17 +586,17 @@
                             </div>
                         </div>
 
-                        <button id="exportBtn" class="btn btn-secondary" style="margin-top:16px;">Export as CSV</button>
+                        <button id="exportBtn" class="btn btn-secondary export-margin-top">Export as CSV</button>
                     </div>
                 </div><!-- /#resultsSection -->
 
                 <!-- Amortization modal — position:fixed, lives outside tab panels -->
-                <div id="amortizationModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="amortizationTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10001; align-items:center; justify-content:center;">
-                    <div class="modal-content" style="background:white; max-width:95vw; max-height:90vh; overflow:auto; border-radius:12px; padding:32px 24px; margin:auto; position:relative; outline:0;">
-                        <button id="closeAmortization" aria-label="Close amortization schedule" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
+                <div id="amortizationModal" class="amortization-modal-fixed" role="dialog" aria-modal="true" aria-labelledby="amortizationTitle" tabindex="-1">
+                    <div class="amortization-modal-content">
+                        <button id="closeAmortization" aria-label="Close amortization schedule" class="amortization-close-btn">&times;</button>
                         <h3 id="amortizationTitle">Amortization Schedule</h3>
                         <div id="amortizationTableWrapper"></div>
-                        <button id="exportAmortizationBtn" class="btn btn-secondary" style="margin-top:18px;">Export as CSV</button>
+                        <button id="exportAmortizationBtn" class="btn btn-secondary export-amortization-margin">Export as CSV</button>
                     </div>
                 </div>
             </section>
@@ -622,6 +620,7 @@
                     <button class="rpt-tab-btn" data-rptab="incomeexp" aria-selected="false">📊 Income vs Expenses</button>
                     <button class="rpt-tab-btn" data-rptab="moneyflow" aria-selected="false">💰 Money Flow</button>
                     <button class="rpt-tab-btn" data-rptab="variance" aria-selected="false">📈 What Changed</button>
+                    <button class="rpt-tab-btn" data-rptab="networth" aria-selected="false">📉 Net Worth</button>
                 </div>
 
                 <!-- ── Calendar panel ───────────────────────────────────── -->
@@ -642,6 +641,10 @@
                 <!-- ── What Changed (Variance) panel ──────────────────── -->
                 <div class="rpt-tab-panel" id="rptPanel-variance">
                     <div id="reportsVariance"></div>
+                </div>
+
+                <div class="rpt-tab-panel" id="rptPanel-networth">
+                    <div id="reportsNetWorth"></div>
                 </div>
             </section>
 
@@ -757,43 +760,43 @@
     <script src="src/debtCalculator.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous"></script>
     <!-- Update Balance Modal (top-level so position:fixed works from any page) -->
-    <div id="updateBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10002; align-items:center; justify-content:center;">
-        <div class="modal-content" style="background:white; max-width:460px; width:92%; border-radius:12px; padding:28px 24px; margin:auto; position:relative; outline:0;">
-            <button id="cancelUpdateBalance" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
-            <h3 id="updateBalanceTitle" style="margin-top:0">Update Balance &amp; Minimum</h3>
-            <p style="margin:4px 0 14px;">Debt: <strong id="updateBalanceDebtName"></strong></p>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                <div class="form-group" style="margin:0;">
+    <div id="updateBalanceModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="cancelUpdateBalance" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="updateBalanceTitle">Update Balance &amp; Minimum</h3>
+            <p class="modal-subtitle">Debt: <strong id="updateBalanceDebtName"></strong></p>
+            <div class="modal-form-grid">
+                <div class="form-group">
                     <label for="updateBalanceInput">New Balance ($)</label>
-                    <div style="font-size:0.78rem; color:#6b7280; margin-bottom:4px;">Current: <span id="updateBalanceCurrent"></span></div>
+                    <div class="modal-helper-text">Current: <span id="updateBalanceCurrent"></span></div>
                     <input type="number" id="updateBalanceInput" step="0.01" min="0" placeholder="0.00">
                 </div>
-                <div class="form-group" style="margin:0;">
+                <div class="form-group">
                     <label for="updateMinPaymentInput">New Minimum Due ($)</label>
-                    <div style="font-size:0.78rem; color:#6b7280; margin-bottom:4px;">Original: <span id="updateMinPaymentOriginal"></span></div>
+                    <div class="modal-helper-text">Original: <span id="updateMinPaymentOriginal"></span></div>
                     <input type="number" id="updateMinPaymentInput" step="0.01" min="0" placeholder="0.00">
                 </div>
             </div>
-            <div style="display:flex; gap:10px; margin-top:20px;">
+            <div class="modal-actions">
                 <button id="confirmUpdateBalance" class="btn btn-success">Update &amp; Recalculate</button>
                 <button id="cancelUpdateBalanceBtn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>
-    <div id="ledgerOverrideModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10003; align-items:center; justify-content:center;">
-        <div class="modal-content" style="background:white; max-width:440px; width:92%; border-radius:12px; padding:26px 22px; margin:auto; position:relative; outline:0;">
-            <button id="ledgerOverrideCloseBtn" aria-label="Close" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
-            <h3 id="ledgerOverrideTitle" style="margin-top:0">Override Ledger Amount</h3>
-            <p style="margin:6px 0 10px; color:#6b7280;">Use a replacement amount while preserving the original value for history.</p>
-            <p style="margin:0 0 6px; font-size:0.9rem;"><strong id="ledgerOverrideTxName"></strong></p>
-            <p style="margin:0 0 2px; font-size:0.82rem; color:#6b7280;">Account: <span id="ledgerOverrideAccount"></span></p>
-            <p style="margin:0 0 12px; font-size:0.82rem; color:#6b7280;">Date: <span id="ledgerOverrideDate"></span></p>
-            <div class="form-group" style="margin:0 0 12px;">
+    <div id="ledgerOverrideModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="ledgerOverrideCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="ledgerOverrideTitle">Override Ledger Amount</h3>
+            <p class="modal-description">Use a replacement amount while preserving the original value for history.</p>
+            <p class="modal-tx-name"><strong id="ledgerOverrideTxName"></strong></p>
+            <p class="modal-helper-text">Account: <span id="ledgerOverrideAccount"></span></p>
+            <p class="modal-helper-text">Date: <span id="ledgerOverrideDate"></span></p>
+            <div class="form-group modal-form-group">
                 <label for="ledgerOverrideAmountInput">Replacement Amount ($)</label>
                 <input type="number" id="ledgerOverrideAmountInput" step="0.01" placeholder="0.00">
-                <div style="font-size:0.78rem; color:#6b7280; margin-top:4px;">Original amount: <span id="ledgerOverrideOriginal"></span></div>
+                <div class="modal-helper-text">Original amount: <span id="ledgerOverrideOriginal"></span></div>
             </div>
-            <div style="display:flex; gap:10px; margin-top:18px;">
+            <div class="modal-actions">
                 <button id="ledgerOverrideConfirmBtn" class="btn btn-success">Save Override</button>
                 <button id="ledgerOverrideCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>

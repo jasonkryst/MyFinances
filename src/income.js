@@ -20,7 +20,7 @@ export function renderIncomeList(app) {
 
     if (app.incomes.length === 0) {
         container.innerHTML = `<p class="empty-income-msg" style="color:#9ca3af;font-style:italic;margin:8px 0 0 0;">No income sources added yet.</p>`;
-        if (summaryEl) summaryEl.style.display = 'none';
+        if (summaryEl) { summaryEl.classList.add('hidden'); summaryEl.classList.remove('visible'); }
         return;
     }
 
@@ -129,7 +129,7 @@ export function renderIncomeList(app) {
                </div>`
             : '';
 
-        summaryEl.style.display = 'block';
+        summaryEl.classList.add('visible'); summaryEl.classList.remove('hidden');
         summaryEl.innerHTML = `
             <h4>📅 Estimated Income Summary</h4>
             <div class="income-summary-grid">

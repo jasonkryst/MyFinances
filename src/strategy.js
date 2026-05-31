@@ -39,7 +39,7 @@ export function calculatePaymentPlanFromInputs(app) {
 
         const resultsSection = document.getElementById('resultsSection');
         if (resultsSection) {
-            resultsSection.style.display = 'block';
+            resultsSection.classList.add('visible'); resultsSection.classList.remove('hidden');
         }
 
         app.displayPaymentPlan();
@@ -544,7 +544,7 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
 export function renderStrategyIncomeWidget(app) {
     const widget = document.getElementById('strategyIncomeWidget');
     if (!widget) return;
-    if (app.incomes.length === 0) { widget.style.display = 'none'; return; }
+    if (app.incomes.length === 0) { widget.classList.add('hidden'); widget.classList.remove('visible'); return; }
 
     const fmt = (value) => {
         if (typeof formatCurrency === 'function') {
@@ -591,7 +591,7 @@ export function renderStrategyIncomeWidget(app) {
     const bonusChip = bonusThisMonth > 0
         ? `<span class="strategy-bonus-chip">+${fmt(bonusThisMonth)} bonus this month</span>` : '';
 
-    widget.style.display = 'block';
+    widget.classList.add('visible'); widget.classList.remove('hidden');
     widget.innerHTML = `
         💰 Expected income this month: <strong>${fmt(monthlyTotal)}</strong> ${bonusChip}
         ${ratioHtml}
@@ -810,12 +810,17 @@ export function showAmortizationModal(app, debtName) {
     }
     html += '</tbody></table></div>';
     wrapper.innerHTML = html;
-    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex-visible');
     document.getElementById('closeAmortization').onclick = () => {
-        modal.style.display = 'none';
+        modal.classList.add('hidden');
+        modal.classList.remove('flex-visible');
     };
     modal.onclick = (e) => {
-        if (e.target === modal) modal.style.display = 'none';
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+        }
     };
 }
 

@@ -206,8 +206,8 @@ export function renderCashFlowSummary(app) {
     const net = monthlyIncome - totalOutflow;
     const netClass = net >= 0 ? 'cashflow-net--positive' : 'cashflow-net--negative';
 
-    if (monthlyIncome === 0 && totalOutflow === 0) { el.style.display = 'none'; return; }
-    el.style.display = 'block';
+    if (monthlyIncome === 0 && totalOutflow === 0) { el.classList.add('hidden'); el.classList.remove('visible'); return; }
+    el.classList.add('visible'); el.classList.remove('hidden');
 
     const row = (label, value, cls = '') =>
         `<div class="cashflow-row ${cls}"><span class="cashflow-label">${escapeHtml(label)}</span><span class="cashflow-value">${formatCurrency(value)}</span></div>`;

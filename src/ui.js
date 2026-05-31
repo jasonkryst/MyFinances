@@ -320,6 +320,25 @@ export function initializeEventListeners(app) {
         rptNextMonth.addEventListener('click', () => app.nextReportMonth());
     }
 
+    document.addEventListener('click', event => {
+        const rangeBtn = event.target.closest('[data-networth-range]');
+        if (rangeBtn) {
+            const nextRange = parseInt(rangeBtn.getAttribute('data-networth-range'), 10);
+            if ([3, 6, 12].includes(nextRange)) {
+                app._netWorthRangeMonths = nextRange;
+                app.renderReportsPage();
+            }
+            return;
+        }
+
+        const captureBtn = event.target.closest('#captureSnapshotBtn');
+        if (captureBtn) {
+            app.captureNetWorthSnapshot({ source: 'manual' });
+            app.renderReportsPage();
+            app.renderNetWorthWidget();
+        }
+    });
+
     const amortizationModal = document.getElementById('amortizationModal');
     const closeAmortizationBtn = document.getElementById('closeAmortization');
     const exportAmortizationBtn = document.getElementById('exportAmortizationBtn');
@@ -327,7 +346,7 @@ export function initializeEventListeners(app) {
     if (amortizationModal && closeAmortizationBtn) {
         amortizationModal.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
-                amortizationModal.style.display = 'none';
+        amortizationModal.classList.add('hidden'); amortizationModal.classList.remove('flex-visible');
                 if (lastFocused) lastFocused.focus();
             }
             if (event.key === 'Tab') {
@@ -353,7 +372,8 @@ export function initializeEventListeners(app) {
         };
 
         closeAmortizationBtn.addEventListener('click', () => {
-            amortizationModal.style.display = 'none';
+            amortizationModal.classList.add('hidden');
+            amortizationModal.classList.remove('flex-visible');
             if (lastFocused) lastFocused.focus();
         });
     }
@@ -425,26 +445,26 @@ export function updateFormVisibility() {
 
     if (debtType === 'creditCard') {
         creditCardFields.forEach(field => {
-            field.style.display = '';
+            field.classList.remove('hidden'); field.classList.add('visible');
             field.required = requiredCreditCardIds.has(field.id);
         });
         fixedAmountFields.forEach(field => {
-            field.style.display = 'none';
+            field.classList.add('hidden'); field.classList.remove('visible');
             field.required = false;
         });
-        fixedAmountFieldsContainer.style.display = 'none';
-        fixedEndDateContainer.style.display = 'none';
+        fixedAmountFieldsContainer.classList.add('hidden'); fixedAmountFieldsContainer.classList.remove('visible');
+        fixedEndDateContainer.classList.add('hidden'); fixedEndDateContainer.classList.remove('visible');
     } else if (debtType === 'fixedAmount') {
         creditCardFields.forEach(field => {
-            field.style.display = 'none';
+            field.classList.add('hidden'); field.classList.remove('visible');
             field.required = false;
         });
         fixedAmountFields.forEach(field => {
-            field.style.display = '';
+            field.classList.remove('hidden'); field.classList.add('visible');
             field.required = true;
         });
-        fixedAmountFieldsContainer.style.display = '';
-        fixedEndDateContainer.style.display = '';
+        fixedAmountFieldsContainer.classList.remove('hidden'); fixedAmountFieldsContainer.classList.add('visible');
+        fixedEndDateContainer.classList.remove('hidden'); fixedEndDateContainer.classList.add('visible');
     }
 }
 
@@ -484,7 +504,10 @@ export function switchPage(app, pageName) {
         if (el) el.classList.add('active');
     }
 
-    if (pageName === 'accounts') app.renderAccountsList();
+    if (pageName === 'accounts') {
+        app.renderAccountsList();
+        app.renderNetWorthWidget();
+    }
     if (pageName === 'liabilities') {
         // Render both debts and expenses
         app.renderDebtsList();
@@ -525,12 +548,13 @@ export function updateUI(app) {
     }
 
     if (app.debts.length === 0) {
-        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('emptyState').classList.add('visible'); document.getElementById('emptyState').classList.remove('hidden');
     } else {
-        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('emptyState').classList.add('hidden'); document.getElementById('emptyState').classList.remove('visible');
     }
 
     app.renderDebtsList();
+    app.renderNetWorthWidget();
 }
 
 export function showMilestone(debtName) {
@@ -591,4 +615,27 @@ export function showMilestone(debtName) {
     window.setTimeout(() => {
         host.remove();
     }, 1800);
+}
+
+export function showNetWorthMilestone(message) {
+    const host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.top = '20px';
+    host.style.right = '20px';
+    host.style.zIndex = '9999';
+
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.background = 'linear-gradient(135deg, #2563eb, #10b981)';
+    toast.style.color = '#fff';
+    toast.style.padding = '12px 14px';
+    toast.style.borderRadius = '10px';
+    toast.style.boxShadow = '0 10px 22px rgba(15, 23, 42, 0.24)';
+    toast.style.fontWeight = '600';
+    toast.style.maxWidth = '360px';
+    toast.style.fontSize = '0.9rem';
+    host.appendChild(toast);
+
+    document.body.appendChild(host);
+    window.setTimeout(() => host.remove(), 2600);
 }
