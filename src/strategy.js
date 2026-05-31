@@ -810,12 +810,17 @@ export function showAmortizationModal(app, debtName) {
     }
     html += '</tbody></table></div>';
     wrapper.innerHTML = html;
-    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex-visible');
     document.getElementById('closeAmortization').onclick = () => {
-        modal.style.display = 'none';
+        modal.classList.add('hidden');
+        modal.classList.remove('flex-visible');
     };
     modal.onclick = (e) => {
-        if (e.target === modal) modal.style.display = 'none';
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+        }
     };
 }
 

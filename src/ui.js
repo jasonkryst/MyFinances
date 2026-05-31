@@ -372,7 +372,8 @@ export function initializeEventListeners(app) {
         };
 
         closeAmortizationBtn.addEventListener('click', () => {
-            amortizationModal.style.display = 'none';
+            amortizationModal.classList.add('hidden');
+            amortizationModal.classList.remove('flex-visible');
             if (lastFocused) lastFocused.focus();
         });
     }

@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>MyFinances - Track Your Money</title>
     <link rel="stylesheet" href="styles.css">
@@ -237,7 +239,7 @@
 
                                 <div class="debt-form-actions">
                                     <button type="submit" id="debtFormSubmit" class="btn btn-primary">Add Debt</button>
-                                    <button type="button" id="cancelEditBtn" class="btn" style="display:none;">Cancel</button>
+                                    <button type="button" id="cancelEditBtn" class="btn hidden">Cancel</button>
                                 </div>
                             </form>
                                         </div><!-- /debt-form-body -->
@@ -409,7 +411,7 @@
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
-                                <div class="form-group" style="margin:0;">
+                                <div class="form-group form-group-no-margin">
                                     <label for="bonusAccount">Deposit to Account</label>
                                     <select id="bonusAccount">
                                         <option value="">— No account —</option>
@@ -476,7 +478,7 @@
                                     <option value="priority-highest">Priority (High→Low)</option>
                                 </select>
                             </div>
-                            <div style="display:flex; align-items:flex-end; padding-bottom:2px;">
+                            <div class="target-date-flex-row">
                                 <button id="calcTargetBtn" type="button" class="btn btn-primary">Calculate</button>
                             </div>
                         </div>
@@ -485,7 +487,7 @@
                 </div>
 
                 <!-- ── Results (hidden until Calculate is clicked) ────────── -->
-                <div id="resultsSection" style="display:none;">
+                <div id="resultsSection" class="hidden">
                     <hr class="plan-divider">
 
                     <!-- Stats bar -->
@@ -584,17 +586,17 @@
                             </div>
                         </div>
 
-                        <button id="exportBtn" class="btn btn-secondary" style="margin-top:16px;">Export as CSV</button>
+                        <button id="exportBtn" class="btn btn-secondary export-margin-top">Export as CSV</button>
                     </div>
                 </div><!-- /#resultsSection -->
 
                 <!-- Amortization modal — position:fixed, lives outside tab panels -->
-                <div id="amortizationModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="amortizationTitle" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:10001; align-items:center; justify-content:center;">
-                    <div class="modal-content" style="background:white; max-width:95vw; max-height:90vh; overflow:auto; border-radius:12px; padding:32px 24px; margin:auto; position:relative; outline:0;">
-                        <button id="closeAmortization" aria-label="Close amortization schedule" style="position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer;">&times;</button>
+                <div id="amortizationModal" class="amortization-modal-fixed" role="dialog" aria-modal="true" aria-labelledby="amortizationTitle" tabindex="-1">
+                    <div class="amortization-modal-content">
+                        <button id="closeAmortization" aria-label="Close amortization schedule" class="amortization-close-btn">&times;</button>
                         <h3 id="amortizationTitle">Amortization Schedule</h3>
                         <div id="amortizationTableWrapper"></div>
-                        <button id="exportAmortizationBtn" class="btn btn-secondary" style="margin-top:18px;">Export as CSV</button>
+                        <button id="exportAmortizationBtn" class="btn btn-secondary export-amortization-margin">Export as CSV</button>
                     </div>
                 </div>
             </section>
