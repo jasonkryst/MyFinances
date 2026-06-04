@@ -41,7 +41,7 @@ function renderEmergencyFundContent(app) {
 
       <div class="emergency-form-card">
         <button class="emergency-form-toggle" id="emergencyFormToggle">➕ Add/Edit Emergency Fund</button>
-        <div class="emergency-form-body" id="emergencyFormBody" style="display:none;">
+        <div class="emergency-form-body hidden" id="emergencyFormBody">
           <form id="emergencyForm">
             <div class="emergency-form-grid">
               <div class="form-group">
@@ -116,7 +116,7 @@ function renderEmergencyFundContent(app) {
             <div class="emergency-badge ${badgeClass}">${progressPercent}%</div>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" style="width: ${Math.min(100, progressPercent)}%"></div>
+            <div class="progress-fill"></div>
           </div>
           <div class="emergency-card-details">
             <div class="detail-row">
@@ -159,7 +159,7 @@ function renderSinkingFundsContent(app) {
 
       <div class="sinking-form-card">
         <button class="sinking-form-toggle" id="sinkingFormToggle">➕ Add/Edit Sinking Fund</button>
-        <div class="sinking-form-body" id="sinkingFormBody" style="display:none;">
+        <div class="sinking-form-body hidden" id="sinkingFormBody">
           <form id="sinkingForm">
             <div class="sinking-form-grid">
               <div class="form-group">
@@ -178,15 +178,15 @@ function renderSinkingFundsContent(app) {
                 <label for="sinkingMonthlyAllocation">Monthly Allocation ($)</label>
                 <input type="number" id="sinkingMonthlyAllocation" min="0" step="0.01" placeholder="100" />
               </div>
-              <div class="form-group" id="annualCostGroup" style="display:none;">
+              <div class="form-group hidden" id="annualCostGroup">
                 <label for="sinkingAnnualCost">Annual Cost ($)</label>
                 <input type="number" id="sinkingAnnualCost" min="0" step="0.01" placeholder="1200" />
               </div>
-              <div class="form-group" id="targetAmountGroup" style="display:none;">
+              <div class="form-group hidden" id="targetAmountGroup">
                 <label for="sinkingTargetAmount">Target Amount ($)</label>
                 <input type="number" id="sinkingTargetAmount" min="0" step="0.01" placeholder="5000" />
               </div>
-              <div class="form-group" id="targetDateGroup" style="display:none;">
+              <div class="form-group hidden" id="targetDateGroup">
                 <label for="sinkingTargetDate">Target Date</label>
                 <input type="date" id="sinkingTargetDate" />
               </div>
@@ -244,7 +244,7 @@ function renderSinkingFundsContent(app) {
             <div class="sinking-badge ${badgeClass}">${progressPercent}%</div>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" style="width: ${Math.min(100, progressPercent)}%"></div>
+            <div class="progress-fill"></div>
           </div>
           <div class="sinking-card-details">
             <div class="detail-row">
@@ -608,6 +608,8 @@ window.handleAllocationMethodChange = function() {
   const method = document.getElementById('sinkingAllocationMethod').value;
   const fixedEl = document.getElementById('fixedAmountGroup');
   const annualEl = document.getElementById('annualCostGroup');
+  const targetAmountEl = document.getElementById('targetAmountGroup');
+  const targetDateEl = document.getElementById('targetDateGroup');
   if (fixedEl) {
     fixedEl.classList.toggle('visible', method === 'fixed');
     fixedEl.classList.toggle('hidden', method !== 'fixed');
@@ -616,8 +618,14 @@ window.handleAllocationMethodChange = function() {
     annualEl.classList.toggle('visible', method === 'annual');
     annualEl.classList.toggle('hidden', method !== 'annual');
   }
-  document.getElementById('targetAmountGroup').style.display = method === 'target_date' ? 'block' : 'none';
-  document.getElementById('targetDateGroup').style.display = method === 'target_date' ? 'block' : 'none';
+  if (targetAmountEl) {
+    targetAmountEl.classList.toggle('visible', method === 'target_date');
+    targetAmountEl.classList.toggle('hidden', method !== 'target_date');
+  }
+  if (targetDateEl) {
+    targetDateEl.classList.toggle('visible', method === 'target_date');
+    targetDateEl.classList.toggle('hidden', method !== 'target_date');
+  }
 };
 
 /**

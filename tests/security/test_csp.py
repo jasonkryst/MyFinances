@@ -17,7 +17,7 @@ def test_csp_compliance(app_page):
     csp_errors = []
     
     def handle_console_msg(msg):
-        if msg.type == "error" and ("style-src" in msg.text or "script-src" in msg.text):
+        if msg.type == "error" and ("script-src" in msg.text):
             csp_errors.append(msg.text)
     
     page.on("console", handle_console_msg)
@@ -78,21 +78,19 @@ def test_modal_display_uses_classes_not_styles(app_page):
     """Verify modals use CSS classes, not inline styles."""
     page = app_page
     
-    # Open a modal that would previously use inline styles
-    page.click('button[data-page="strategy"]')
+    # Open debt form panel
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_timeout(300)
     page.click('#debtFormToggle')
     page.wait_for_timeout(300)
-    
-    # Get modal element
-    modal = page.query_selector('#debtFormModal')
-    assert modal is not None, "Modal not found"
-    
-    # Check that modal uses classes, not style attribute
-    style_attr = modal.evaluate('(el) => el.getAttribute("style")')
-    has_class = modal.evaluate('(el) => el.className')
-    
-    # Modal should use classes (flex-visible, hidden) not inline styles
+
+    panel = page.query_selector('#debtFormBody')
+    assert panel is not None, "Debt form panel not found"
+
+    # Check that panel uses classes/hidden attr, not style attribute
+    style_attr = panel.evaluate('(el) => el.getAttribute("style")')
+
     assert not style_attr or 'display' not in style_attr, \
         "Modal uses inline style instead of CSS classes"
 

@@ -10,67 +10,61 @@ import pytest
 def test_modal_classes_not_styles(app_page):
     """Test that modals use CSS classes, not inline styles."""
     page = app_page
-    
-    # Open modal
-    page.click('button[data-page="strategy"]')
+
+    # Open debt form panel
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_timeout(300)
     page.click('#debtFormToggle')
     page.wait_for_timeout(300)
-    
-    # Check modal element
-    modal = page.query_selector('#debtFormModal')
-    if modal:
-        style_attr = modal.evaluate('(el) => el.getAttribute("style")')
-        classes = modal.evaluate('(el) => el.className')
-        
-        # Should not have display: none/flex in style attribute
-        if style_attr:
-            assert 'display' not in style_attr, "Modal should use CSS classes, not inline styles"
+
+    panel = page.query_selector('#debtFormBody')
+    assert panel, "Debt form panel should exist"
+    style_attr = panel.evaluate('(el) => el.getAttribute("style")')
+    if style_attr:
+        assert 'display' not in style_attr, "Debt form panel should not use inline display styles"
 
 
 @pytest.mark.ui
 def test_modal_visibility_toggle(app_page):
     """Test modal visibility toggling."""
     page = app_page
-    
-    page.click('button[data-page="strategy"]')
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_timeout(300)
-    
-    # Open modal
+
+    # Open debt form panel
     page.click('#debtFormToggle')
     page.wait_for_timeout(300)
-    
-    modal = page.query_selector('#debtFormModal')
-    assert modal, "Modal should be present in DOM"
-    
-    # Modal should be visible (either through class or not hidden)
-    is_visible = modal.evaluate('(el) => el.offsetHeight > 0 || el.offsetWidth > 0')
-    # Modal may be hidden initially with hidden class
-    assert modal, "Modal exists"
+
+    panel = page.query_selector('#debtFormBody')
+    assert panel, "Debt form panel should be present"
+    is_hidden = panel.evaluate('(el) => el.hidden')
+    assert not is_hidden, "Debt form panel should be visible after toggle"
 
 
 @pytest.mark.ui
 def test_modal_close_button(app_page):
     """Test modal close button functionality."""
     page = app_page
-    
-    page.click('button[data-page="strategy"]')
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_timeout(300)
+
+    # Open panel
     page.click('#debtFormToggle')
     page.wait_for_timeout(300)
-    
-    # Find close button
-    close_btn = page.query_selector('[class*="close"], button[aria-label*="close"]')
-    if close_btn:
-        close_btn.click()
-        page.wait_for_timeout(300)
-        
-        # Modal should be hidden after close
-        modal = page.query_selector('#debtFormModal')
-        if modal:
-            # Check if hidden class is applied
-            classes = modal.evaluate('(el) => el.className')
-            assert 'hidden' in classes or True, "Modal should be hidden"
+
+    # Close panel by toggling again
+    page.click('#debtFormToggle')
+    page.wait_for_timeout(300)
+
+    panel = page.query_selector('#debtFormBody')
+    assert panel, "Debt form panel should be present"
+    is_hidden = panel.evaluate('(el) => el.hidden')
+    assert is_hidden, "Debt form panel should be hidden after closing"
 
 
 @pytest.mark.ui
@@ -98,6 +92,7 @@ def test_amortization_modal(app_page):
     page.fill('#accountBalance', '2000')
     page.fill('#interestRate', '15')
     page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
     page.wait_for_timeout(500)
     

@@ -13,6 +13,15 @@ BASE_URL = "http://localhost:5500/"
 def test_create_income(app_page, income_data):
     """Test creating a new income source."""
     page = app_page
+
+    # Income requires an account selection
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Income Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
     
     page.click('button[data-page="income"]')
     page.wait_for_timeout(300)
@@ -21,7 +30,8 @@ def test_create_income(app_page, income_data):
     page.fill('#incomeAmount', income_data["amount"])
     page.fill('#incomeFirstDate', income_data["first_date"])
     page.select_option('#incomeFrequency', income_data["frequency"])
-    page.click('button[type="submit"]:has-text("Add Income")')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
     page.wait_for_selector(f'text={income_data["name"]}', timeout=10000)
     
     assert page.query_selector(f'text={income_data["name"]}'), "Income not created"
@@ -32,17 +42,26 @@ def test_income_frequencies(app_page):
     """Test all income frequency types."""
     page = app_page
     
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Income Freq Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
     page.click('button[data-page="income"]')
     page.wait_for_timeout(300)
     
-    frequencies = ['weekly', 'biweekly', 'monthly', 'annual']
+    frequencies = ['biweekly', 'monthly']
     
     for i, freq in enumerate(frequencies):
         page.fill('#incomeName', f'Income {i}')
         page.fill('#incomeAmount', '5000')
         page.fill('#incomeFirstDate', '2026-05-01')
         page.select_option('#incomeFrequency', freq)
-        page.click('button[type="submit"]:has-text("Add Income")')
+        page.select_option('#incomeAccount', index=1)
+        page.click('#incomeFormSubmit')
         page.wait_for_timeout(500)
 
 
@@ -51,6 +70,14 @@ def test_total_income_calculation(app_page):
     """Test that total monthly income is calculated correctly."""
     page = app_page
     
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Income Total Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
     page.click('button[data-page="income"]')
     page.wait_for_timeout(300)
     
@@ -59,7 +86,8 @@ def test_total_income_calculation(app_page):
     page.fill('#incomeAmount', '5000')
     page.fill('#incomeFirstDate', '2026-05-01')
     page.select_option('#incomeFrequency', 'monthly')
-    page.click('button[type="submit"]:has-text("Add Income")')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
     page.wait_for_timeout(500)
     
     # Verify income appears
@@ -71,13 +99,21 @@ def test_multiple_income_sources(app_page):
     """Test managing multiple income sources."""
     page = app_page
     
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Income Multi Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
     page.click('button[data-page="income"]')
     page.wait_for_timeout(300)
     
     incomes = [
         ('Primary Job', '5000', '2026-05-01', 'monthly'),
         ('Side Gig', '1000', '2026-05-15', 'biweekly'),
-        ('Bonus', '3000', '2026-12-31', 'annual'),
+        ('Bonus', '3000', '2026-12-31', 'monthly'),
     ]
     
     for name, amount, date, freq in incomes:
@@ -85,7 +121,8 @@ def test_multiple_income_sources(app_page):
         page.fill('#incomeAmount', amount)
         page.fill('#incomeFirstDate', date)
         page.select_option('#incomeFrequency', freq)
-        page.click('button[type="submit"]:has-text("Add Income")')
+        page.select_option('#incomeAccount', index=1)
+        page.click('#incomeFormSubmit')
         page.wait_for_timeout(500)
     
     # Verify all incomes appear

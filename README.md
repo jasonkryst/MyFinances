@@ -295,7 +295,7 @@ src/
 ---
 
 ## 📋 Features
-- **Dedicated HTML guide page** — the in-app help button opens `USAGE_GUIDE.html` in a new tab
+- **Dedicated HTML guide page** — the in-app help button opens `guide.html` in a new tab
 - **Theme-matched styling** — guide visuals follow the app look and dark mode preference
 - **Fixed back link** — a persistent **Back to Application** link at the top-left returns to the main app
 
@@ -413,7 +413,7 @@ src/
 
 ### Open the usage guide
 
-Click the **❓ Help** button in the header toolbar to open the full usage guide in a separate tab. The guide lives at `USAGE_GUIDE.html` and includes a fixed **Back to Application** link that returns you to `index.html`.
+Click the **❓ Help** button in the header toolbar to open the full usage guide in a separate tab. The guide lives at `guide.html` and includes a fixed **Back to Application** link that returns you to `index.html`.
 
 ### 1 — Add your debts
 
@@ -575,7 +575,7 @@ Enter a target date in the **Strategy** section. The app uses a binary-search al
 
 ```
 index.html                  — Main page with responsive nav + security headers
-USAGE_GUIDE.html           — In-app usage guide (opened by Help button)
+guide.html           — In-app usage guide (opened by Help button)
 styles.css                 — Responsive styles + dark mode + utilities + mobile menu
 src/
   ├─ app.js                — Main app controller & state management
@@ -620,7 +620,7 @@ tests/ (Reorganized May 31, 2026 — 25+ files, 85+ tests)
 - **SECURITY_AUDIT.md** — Complete security audit with findings & recommendations
 - **DEPLOYMENT.md** — Production deployment guides for Nginx, Apache, Docker
 - **IMPLEMENTATION_SUMMARY.md** — Security enhancement documentation
-- **USAGE_GUIDE.html** — In-app user guide
+- **guide.html** — In-app user guide
 
 ### Key Technologies
 

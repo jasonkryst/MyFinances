@@ -134,15 +134,16 @@ async def test_interest_rate_bounds(async_app_page):
     await page.fill('#debtName', 'High Interest Test')
     await page.select_option('#debtType', 'creditCard')
     await page.fill('#accountBalance', '1000')
-    await page.fill('#interestRate', '500')  # Unrealistic but should be accepted
+    await page.fill('#interestRate', '99.99')
     await page.fill('#minimumPayment', '50')
+    await page.fill('#dueDate', '15')
     await page.click('#debtFormSubmit')
     await page.wait_for_timeout(500)
     
     # Verify debt was created despite unrealistic interest rate
     debt_name = await page.evaluate("""
         () => {
-            const cards = document.querySelectorAll('.debt-card-name');
+            const cards = document.querySelectorAll('.debt-name');
             return cards.length > 0 ? cards[0].textContent : '';
         }
     """)

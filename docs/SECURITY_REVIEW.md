@@ -198,7 +198,7 @@ for (const d of validDebts) {
 #### Unsafe DOM Methods
 - ✅ No `innerHTML` with unescaped user data
 - ✅ All innerHTML assignments use `escapeHtml()`
-- ✅ Safe links: `window.open('USAGE_GUIDE.html')` (no user input)
+- ✅ Safe links: `window.open('guide.html')` (no user input)
 
 #### Object Prototype Pollution
 - ✅ `Object.assign()` only with controlled source objects

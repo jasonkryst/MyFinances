@@ -30,7 +30,6 @@ docker-compose*.yml
 
 # Docs / guides
 *.md
-USAGE_GUIDE.html
 
 # Logs
 *.log

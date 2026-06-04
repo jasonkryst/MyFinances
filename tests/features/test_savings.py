@@ -104,7 +104,7 @@ def test_savings_data_persistence(app_page):
     page.wait_for_timeout(1000)
     
     # Check localStorage for savings data
-    data = page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
+    data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
     assert data, "Data should be persisted in localStorage"
     
     # Navigate away

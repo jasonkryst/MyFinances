@@ -1,0 +1,290 @@
+/* ═══════════════════════════════════════════════════════════════
+   CSP-COMPLIANT UTILITY CLASSES
+   Replaces inline styles throughout the application
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Form and Layout Utilities */
+.form-no-margin { margin: 0; }
+.form-full-width { width: 100%; }
+.form-compact-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+
+/* Font and Text Styling */
+.label-compact {
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.text-sm-muted {
+    font-size: 0.78em;
+    color: #6b7280;
+}
+
+body.dark-mode .text-sm-muted {
+    color: #9ca3af;
+}
+
+.text-sm-label {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+body.dark-mode .text-sm-label {
+    color: #94a3b8;
+}
+
+/* Color Utilities */
+.text-muted-secondary { color: #9ca3af; }
+.text-original { color: #6b7280; }
+.text-monthly-interest { color: #6b7280; font-size: 0.78em; margin-left: 4px; }
+.text-due-date-hint { font-size: 0.78em; color: #6b7280; margin-top: 2px; }
+.text-pale { color: #d1d5db; }
+
+body.dark-mode .text-muted-secondary { color: #64748b; }
+body.dark-mode .text-original { color: #9ca3af; }
+
+/* Margin/Spacing Utilities */
+.margin-top-auto { margin-top: 10px; }
+.margin-bottom-6 { margin-bottom: 6px; }
+.margin-left-6 { margin-left: 6px; }
+.margin-top-2 { margin-top: 2px; }
+
+/* Progress Bar Utilities - Dynamic width via CSS custom property */
+.progress-dynamic {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #2563eb, #059669);
+    transition: width 0.4s ease;
+    width: var(--progress-width, 0%);
+}
+
+.progress-dynamic.complete {
+    background: #059669;
+}
+
+/* Calendar Legend and Event Utilities */
+.cal-legend-inline-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* Event styling via data attributes and classes */
+.cal-event-inline {
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin-top: 2px;
+    color: #fff;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    overflow: hidden;
+    cursor: default;
+}
+
+.cal-event-name-text {
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-event-amount-text {
+    display: block;
+    opacity: 0.92;
+}
+
+/* Ledger/Strategy Input Wrapper Utilities */
+.input-wrapper-flex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.input-compact {
+    width: 100px;
+}
+
+/* Label styling for filter controls */
+.filter-label {
+    font-weight: 600;
+}
+
+.select-styled {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border-color);
+    font-size: 1rem;
+}
+
+/* Text alignment utilities */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+
+/* Filter controls */
+.filter-controls {
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+/* Income/Bill inline edit form row */
+.inline-edit-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.inline-form-compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+/* Amount display utilities */
+.amount-secondary {
+    font-size: 0.78em;
+    color: #6b7280;
+    margin-left: 6px;
+}
+
+body.dark-mode .amount-secondary {
+    color: #9ca3af;
+}
+
+.amount-originally {
+    font-size: 0.78em;
+    color: #6b7280;
+    margin-left: 6px;
+}
+
+body.dark-mode .amount-originally {
+    color: #9ca3af;
+}
+
+.stimulus-badge {
+    color: #059669;
+    font-size: 0.9em;
+    display: block;
+    margin-top: 4px;
+}
+
+body.dark-mode .stimulus-badge {
+    color: #34d399;
+}
+
+/* Stimulus display input wrapper */
+.stimulus-display-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stimulus-value-input {
+    width: 100px;
+}
+
+/* Strategy result payment display */
+.result-payment {
+    font-size: 0.5em;
+    font-weight: 500;
+}
+
+body.dark-mode .result-payment {
+    font-size: 0.5em;
+    font-weight: 500;
+}
+
+/* Table display utilities */
+.table-full-width {
+    width: 100%;
+    min-width: 600px;
+}
+
+/* Position and layout utilities */
+.position-absolute { position: absolute; }
+.position-fixed { position: fixed; }
+.inset-0 { inset: 0; }
+
+/* Display utilities */
+.display-flex { display: flex; }
+.display-none { display: none; }
+.display-block { display: block; }
+.display-inline-flex { display: inline-flex; }
+.display-inline-block { display: inline-block; }
+
+/* Flex utilities */
+.flex-wrap { flex-wrap: wrap; }
+.flex-gap-4 { gap: 4px; }
+.flex-gap-6 { gap: 6px; }
+.flex-gap-8 { gap: 8px; }
+.flex-gap-10 { gap: 10px; }
+.align-items-center { align-items: center; }
+.align-items-flex-start { align-items: flex-start; }
+.justify-content-space-between { justify-content: space-between; }
+.justify-content-center { justify-content: center; }
+
+/* Pointer events */
+.pointer-events-none { pointer-events: none; }
+
+/* Z-index utilities */
+.z-index-9999 { z-index: 9999; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Background and border utilities for event chips */
+.bg-blue-debt { background: #2563eb; }
+.bg-green-income { background: #059669; }
+.bg-amber-bill { background: #d97706; }
+.bg-purple-expense { background: #8b5cf6; }
+.bg-cyan-recurring { background: #06b6d4; }
+
+/* Padding utilities */
+.p-0 { padding: 0; }
+.p-2 { padding: 2px; }
+.p-4 { padding: 4px; }
+.p-6 { padding: 6px; }
+.p-32 { padding: 32px 0; }
+
+/* Border radius utilities */
+.rounded-999 { border-radius: 999px; }
+.rounded-2 { border-radius: 2px; }
+
+/* Opacity utilities */
+.opacity-92 { opacity: 0.92; }
+.opacity-90 { opacity: 0.9; }
+
+/* Total amount display (for amortization tables) */
+.amount-total {
+    font-weight: bold;
+    border-left: 2px solid var(--border-color);
+}
+
+/* Amount color utilities for transactions */
+.text-expense {
+    color: #dc2626;
+}
+
+body.dark-mode .text-expense {
+    color: #ef4444;
+}
+
+.text-income {
+    color: #059669;
+}
+
+body.dark-mode .text-income {
+    color: #34d399;
+}

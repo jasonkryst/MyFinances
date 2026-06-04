@@ -12,7 +12,7 @@ def test_keyboard_navigation(app_page):
     page = app_page
     
     # Tab through page elements
-    page.press('Tab')
+    page.keyboard.press('Tab')
     page.wait_for_timeout(100)
     
     # Should be able to focus on interactive elements
@@ -133,3 +133,22 @@ def test_aria_attributes(app_page):
     
     # App should use ARIA where semantic HTML isn't sufficient
     assert isinstance(aria_elements, list), "ARIA attributes should be accessible"
+
+
+@pytest.mark.ui
+def test_help_link_opens_guide(app_page):
+    """Test the help control opens the usage guide in a new page."""
+    page = app_page
+
+    help_link = page.locator('#helpBtn')
+    assert help_link.get_attribute('href') == 'guide.html'
+    assert help_link.get_attribute('target') == '_blank'
+
+    with page.expect_popup() as popup_info:
+        help_link.click()
+
+    popup = popup_info.value
+    popup.wait_for_load_state('domcontentloaded')
+
+    assert popup.url.endswith('/guide.html')
+    popup.close()

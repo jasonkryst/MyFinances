@@ -178,7 +178,7 @@ def test_form_submission_security():
     # Check for forms
     if '<form' in content:
         # CSP should prevent dangerous form actions
-        assert 'CSP' in content, "Forms present but no CSP found"
+        assert 'Content-Security-Policy' in content, "Forms present but no CSP found"
 
 
 @pytest.mark.security

@@ -32,9 +32,14 @@ def test_responsive_button_sizing(app_page):
     
     buttons = page.query_selector_all('button')
     assert len(buttons) > 0, "No buttons found"
-    
+
+    visible_buttons = [
+        button for button in buttons
+        if button.evaluate('(el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length)')
+    ]
+
     # Get button dimensions
-    for button in buttons[:5]:  # Check first 5 buttons
+    for button in visible_buttons[:5]:  # Check first 5 visible buttons
         size = button.evaluate('(el) => ({width: el.offsetWidth, height: el.offsetHeight})')
         # Buttons should have reasonable dimensions
         assert size['height'] >= 30, "Button height too small for touch"
