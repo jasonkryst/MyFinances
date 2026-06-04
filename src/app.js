@@ -66,7 +66,7 @@ import {
     renderNetWorthWidget as renderNetWorthWidgetFeature
 } from './reports.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature } from './ui.js';
-import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth, APP_VERSION } from './utils.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
     addRecurringTemplate as addRecurringTemplateFeature,
@@ -122,6 +122,8 @@ export class DebtTrackerApp {
 
         this.initializeEventListeners();
         this.loadFromStorage();
+        const versionEl = document.getElementById('appVersion');
+        if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
     this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
 
         if (this.accounts.length > 0 && this.incomes.length > 0) {

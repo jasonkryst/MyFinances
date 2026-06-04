@@ -1,5 +1,7 @@
 // Formatting, date helpers, shared utilities
 
+export const APP_VERSION = '3.0.0';
+
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50")
 export function formatCurrency(value) {

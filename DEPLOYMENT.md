@@ -2,7 +2,7 @@
 
 This guide covers deployment options and security configurations for MyFinances.
 
-**Last Updated**: May 31, 2026 | **CSP Status**: Enhanced - 'unsafe-inline' removed
+**Last Updated**: June 4, 2026 | **CSP Status**: Enhanced - 'unsafe-inline' removed
 
 ## Quick Start - Local Development
 
@@ -195,92 +195,47 @@ server {
 
 ### Docker Deployment
 
-**File: `Dockerfile`**
+The repository ships with production-ready Docker files. The image is built on `nginx:1.27-alpine` and runs as the non-root `nginx` user.
 
-```dockerfile
-FROM nginx:alpine
+**Files provided:**
+- `Dockerfile` — multi-stage-ready build; copies only `index.html`, `styles.css`, and `src/`
+- `nginx.conf` — custom nginx config with all security headers and 1-year asset caching
+- `docker-compose.yml` — hardened Compose config (read-only filesystem, dropped capabilities)
+- `.dockerignore` — excludes tests, docs, Python cache, and editor files from the build context
 
-# Copy application files
-COPY . /usr/share/nginx/html/
-
-# Copy Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
-EXPOSE 80 443
-
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-**File: `nginx.conf`**
-
-```nginx
-server {
-    listen 80;
-    server_name _;
-
-    # Security Headers
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "DENY" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Single Page Application routing
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Deny access to hidden files and test directories
-    location ~ /\. {
-        deny all;
-    }
-
-    location ~ /tests/ {
-        deny all;
-    }
-}
-```
-
-**Build and Run:**
+**Build and run with Docker:**
 
 ```bash
+# Build the image
 docker build -t myfinances .
-docker run -d -p 80:80 -p 443:443 myfinances
+
+# Run on port 5500
+docker run -d -p 5500:80 --name myfinances myfinances
 ```
 
-### Docker Compose
+Access at: `http://localhost:5500`
 
-**File: `docker-compose.yml`**
-
-```yaml
-version: '3.8'
-
-services:
-  web:
-    build: .
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./index.html:/usr/share/nginx/html/index.html:ro
-      - ./styles.css:/usr/share/nginx/html/styles.css:ro
-      - ./src/:/usr/share/nginx/html/src/:ro
-    environment:
-      - NGINX_HOST=myfinances.local
-      - NGINX_PORT=80
-```
-
-**Run:**
+**Build and run with Docker Compose (recommended):**
 
 ```bash
-docker-compose up -d
+# Start (detached)
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop and remove container
+docker compose down
 ```
+
+Access at: `http://localhost:5500`
+
+**Security hardening applied in `docker-compose.yml`:**
+- `read_only: true` — container filesystem is read-only
+- `tmpfs` mounts for `/tmp`, `/var/cache/nginx`, `/var/run`
+- `no-new-privileges:true` — prevents privilege escalation
+- `cap_drop: ALL` with only `CHOWN`, `SETUID`, `SETGID`, `NET_BIND_SERVICE` re-added
+- Built-in healthcheck via `wget`
 
 ### GitHub Pages Deployment
 

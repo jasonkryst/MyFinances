@@ -16,6 +16,10 @@ All calculations happen locally in your browser — no accounts, no servers, no 
 # Development (Python)
 python -m http.server 5500
 
+# Docker (recommended for consistent environments)
+docker compose up -d        # Build and run at http://localhost:5500
+docker compose down         # Stop
+
 # Open browser
 http://localhost:5500
 
@@ -246,7 +250,7 @@ Run: `pytest tests/security/ -v` for current security test results
 - **Storage**: Browser localStorage only
 - **Charts**: Chart.js via CDN
 - **Styling**: Responsive CSS3 with mobile-first design
-- **Deployment**: Static files (any web server)
+- **Deployment**: Static files (any web server or Docker/nginx)
 
 ### Core Modules
 

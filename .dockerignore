@@ -1,0 +1,36 @@
+# Dependencies / package managers
+node_modules/
+*.lock
+
+# Test files
+tests/
+docs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Editor / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Docker files (not needed inside image)
+.dockerignore
+docker-compose*.yml
+
+# Docs / guides
+*.md
+USAGE_GUIDE.html
+
+# Logs
+*.log
