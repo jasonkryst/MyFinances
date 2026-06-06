@@ -54,19 +54,19 @@ export function renderAccountsList(app) {
         if (app.editingAccountId === a.id) {
             return `<div class="acct-card acct-card--editing">
                 <div class="acct-edit-grid">
-                    <div class="form-group" style="margin:0">
-                        <label style="font-size:0.8rem;font-weight:600">Name</label>
-                        <input type="text" id="ac-name-${a.id}" value="${escapeHtml(a.name)}" style="width:100%">
+                    <div class="form-group form-no-margin">
+                        <label class="label-compact">Name</label>
+                        <input type="text" id="ac-name-${a.id}" value="${escapeHtml(a.name)}" class="form-full-width">
                     </div>
-                    <div class="form-group" style="margin:0">
-                        <label style="font-size:0.8rem;font-weight:600">Type</label>
-                        <select id="ac-type-${a.id}" style="width:100%">
+                    <div class="form-group form-no-margin">
+                        <label class="label-compact">Type</label>
+                        <select id="ac-type-${a.id}" class="form-full-width">
                             ${ACCT_TYPES.map(t => `<option value="${t}" ${a.type===t?'selected':''}>${t}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="form-group" style="margin:0">
-                        <label style="font-size:0.8rem;font-weight:600">Starting Balance ($)</label>
-                        <input type="number" id="ac-bal-${a.id}" value="${a.startingBalance}" step="0.01" style="width:100%">
+                    <div class="form-group form-no-margin">
+                        <label class="label-compact">Starting Balance ($)</label>
+                        <input type="number" id="ac-bal-${a.id}" value="${a.startingBalance}" step="0.01" class="form-full-width">
                     </div>
                 </div>
                 <div class="acct-edit-actions">

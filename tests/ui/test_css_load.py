@@ -112,13 +112,8 @@ def test_form_styling(app_page):
 def test_modal_styling(app_page):
     """Test modal CSS styling."""
     page = app_page
-    
-    page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
-    page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
-    
-    modal = page.query_selector('#debtFormModal')
+
+    modal = page.query_selector('#amortizationModal')
     if modal:
         # Modal should have position styling
         position = modal.evaluate('(el) => window.getComputedStyle(el).position')

@@ -19,7 +19,7 @@ export function renderIncomeList(app) {
     if (!container) return;
 
     if (app.incomes.length === 0) {
-        container.innerHTML = `<p class="empty-income-msg" style="color:#9ca3af;font-style:italic;margin:8px 0 0 0;">No income sources added yet.</p>`;
+        container.innerHTML = `<p class="empty-income-msg text-muted-secondary">No income sources added yet.</p>`;
         if (summaryEl) { summaryEl.classList.add('hidden'); summaryEl.classList.remove('visible'); }
         return;
     }
@@ -32,28 +32,28 @@ export function renderIncomeList(app) {
                 <div class="income-card income-card--editing">
                     <div class="income-edit-form">
                         <div class="income-edit-grid">
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Name</label>
-                                <input type="text" id="ie-name-${inc.id}" value="${escapeHtml(inc.name)}" class="form-control" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Name</label>
+                                <input type="text" id="ie-name-${inc.id}" value="${escapeHtml(inc.name)}" class="form-control form-full-width">
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Amount per paycheck ($)</label>
-                                <input type="number" id="ie-amount-${inc.id}" value="${inc.amount}" min="0.01" step="0.01" class="form-control" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Amount per paycheck ($)</label>
+                                <input type="number" id="ie-amount-${inc.id}" value="${inc.amount}" min="0.01" step="0.01" class="form-control form-full-width">
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">First pay date</label>
-                                <input type="date" id="ie-date-${inc.id}" value="${inc.firstPayDate}" class="form-control" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">First pay date</label>
+                                <input type="date" id="ie-date-${inc.id}" value="${inc.firstPayDate}" class="form-control form-full-width">
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Frequency</label>
-                                <select id="ie-freq-${inc.id}" class="form-control" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Frequency</label>
+                                <select id="ie-freq-${inc.id}" class="form-control form-full-width">
                                     <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
                                     <option value="monthly"  ${inc.frequency === 'monthly' ? 'selected' : ''}>Once per month</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Account</label>
-                                <select id="ie-account-${inc.id}" class="form-control" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Account</label>
+                                <select id="ie-account-${inc.id}" class="form-control form-full-width">
                                     <option value="">— No account —</option>
                                     ${app.accounts.map(a => `<option value="${a.id}" ${inc.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
                                 </select>
@@ -326,21 +326,21 @@ export function renderBonusList(app) {
                     return `
                     <div class="bonus-card bonus-card--editing">
                         <div class="bonus-edit-grid">
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Label</label>
-                                <input type="text" id="be-name-${b.id}" value="${escapeHtml(b.name)}" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Label</label>
+                                <input type="text" id="be-name-${b.id}" value="${escapeHtml(b.name)}" class="form-full-width">
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Amount ($)</label>
-                                <input type="number" id="be-amount-${b.id}" value="${b.amount}" min="0.01" step="0.01" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Amount ($)</label>
+                                <input type="number" id="be-amount-${b.id}" value="${b.amount}" min="0.01" step="0.01" class="form-full-width">
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Date received</label>
-                                <input type="date" id="be-date-${b.id}" value="${b.date}" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Date received</label>
+                                <input type="date" id="be-date-${b.id}" value="${b.date}" class="form-full-width">
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Category</label>
-                                <select id="be-category-${b.id}" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Category</label>
+                                <select id="be-category-${b.id}" class="form-full-width">
                                     <option value="Bonus"      ${b.category==='Bonus'      ?'selected':''}>Bonus</option>
                                     <option value="Tax Refund" ${b.category==='Tax Refund' ?'selected':''}>Tax Refund</option>
                                     <option value="Cash Deposit" ${b.category==='Cash Deposit' ?'selected':''}>Cash Deposit</option>
@@ -348,15 +348,15 @@ export function renderBonusList(app) {
                                     <option value="Other"      ${b.category==='Other'      ?'selected':''}>Other</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin:0;">
-                                <label style="font-size:0.8rem;font-weight:600;">Account</label>
-                                <select id="be-account-${b.id}" style="width:100%;">
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Account</label>
+                                <select id="be-account-${b.id}" class="form-full-width">
                                     <option value="">— No account —</option>
                                     ${app.accounts.map(a => `<option value="${a.id}" ${b.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
-                        <div class="income-edit-actions" style="margin-top:10px;">
+                        <div class="income-edit-actions margin-top-auto">
                             <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}">Save</button>
                             <button class="btn btn-secondary btn-small" data-bonus-action="cancel">Cancel</button>
                         </div>

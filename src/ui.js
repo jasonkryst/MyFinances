@@ -130,13 +130,6 @@ export function initializeEventListeners(app) {
         exportJsonBtn.addEventListener('click', () => app.exportAllJSON());
     }
 
-    const helpBtn = document.getElementById('helpBtn');
-    if (helpBtn) {
-        helpBtn.addEventListener('click', () => {
-            window.open('USAGE_GUIDE.html', '_blank');
-        });
-    }
-
     const importJsonBtn = document.getElementById('importJsonBtn');
     const importJsonInput = document.getElementById('importJsonInput');
     if (importJsonBtn && importJsonInput) {
@@ -559,81 +552,45 @@ export function updateUI(app) {
 
 export function showMilestone(debtName) {
     const host = document.createElement('div');
-    host.style.position = 'fixed';
-    host.style.inset = '0';
-    host.style.pointerEvents = 'none';
-    host.style.zIndex = '9999';
-    host.style.overflow = 'hidden';
+    host.className = 'milestone-host';
 
     const toast = document.createElement('div');
+    toast.className = 'milestone-toast';
     toast.textContent = `${debtName} paid off today`;
-    toast.style.position = 'absolute';
-    toast.style.top = '24px';
-    toast.style.left = '50%';
-    toast.style.transform = 'translateX(-50%)';
-    toast.style.padding = '12px 18px';
-    toast.style.borderRadius = '999px';
-    toast.style.background = 'rgba(15, 23, 42, 0.92)';
-    toast.style.color = '#fff';
-    toast.style.fontWeight = '600';
-    toast.style.boxShadow = '0 12px 28px rgba(15, 23, 42, 0.28)';
-    toast.style.letterSpacing = '0.01em';
     host.appendChild(toast);
 
     const colors = ['#2563eb', '#059669', '#f59e0b', '#dc2626', '#7c3aed'];
     const count = 24;
-    for (let index = 0; index < count; index++) {
+    for (let i = 0; i < count; i++) {
         const piece = document.createElement('span');
-        const angle = (Math.PI * 2 * index) / count;
+        piece.className = 'milestone-confetti';
+        const angle = (Math.PI * 2 * i) / count;
         const distance = 120 + Math.random() * 180;
         const x = Math.cos(angle) * distance;
         const y = Math.sin(angle) * distance - 40;
-        piece.style.position = 'absolute';
-        piece.style.left = '50%';
-        piece.style.top = '18%';
-        piece.style.width = `${6 + Math.random() * 6}px`;
-        piece.style.height = `${10 + Math.random() * 8}px`;
-        piece.style.marginLeft = `-${3 + Math.random() * 3}px`;
-        piece.style.background = colors[index % colors.length];
-        piece.style.borderRadius = '2px';
-        piece.style.opacity = '0.95';
-        piece.style.transform = 'translate(-50%, -50%)';
+        // setProperty is CSP-safe — it mutates the CSSOM from JS, not an inline style attribute
+        piece.style.setProperty('--confetti-x', `${x}px`);
+        piece.style.setProperty('--confetti-y', `${y}px`);
+        piece.style.setProperty('--confetti-w', `${6 + Math.random() * 6}px`);
+        piece.style.setProperty('--confetti-h', `${10 + Math.random() * 8}px`);
+        piece.style.setProperty('--confetti-ml', `-${3 + Math.random() * 3}px`);
+        piece.style.setProperty('--confetti-bg', colors[i % colors.length]);
+        piece.style.setProperty('--confetti-dur', `${1100 + Math.random() * 500}ms`);
+        piece.style.setProperty('--confetti-rot', `${360 + i * 18}deg`);
         host.appendChild(piece);
-
-        const animation = piece.animate([
-            { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1 },
-            { transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${360 + index * 18}deg)`, opacity: 0 }
-        ], {
-            duration: 1100 + Math.random() * 500,
-            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-            fill: 'forwards'
-        });
-        animation.onfinish = () => piece.remove();
     }
 
     document.body.appendChild(host);
-    window.setTimeout(() => {
-        host.remove();
-    }, 1800);
+    window.setTimeout(() => host.remove(), 1800);
 }
 
 export function showNetWorthMilestone(message) {
     const host = document.createElement('div');
-    host.style.position = 'fixed';
-    host.style.top = '20px';
-    host.style.right = '20px';
-    host.style.zIndex = '9999';
+    host.className = 'networth-milestone-host';
 
     const toast = document.createElement('div');
+    toast.className = 'networth-milestone-toast';
     toast.textContent = message;
-    toast.style.background = 'linear-gradient(135deg, #2563eb, #10b981)';
-    toast.style.color = '#fff';
-    toast.style.padding = '12px 14px';
-    toast.style.borderRadius = '10px';
-    toast.style.boxShadow = '0 10px 22px rgba(15, 23, 42, 0.24)';
-    toast.style.fontWeight = '600';
-    toast.style.maxWidth = '360px';
-    toast.style.fontSize = '0.9rem';
     host.appendChild(toast);
 
     document.body.appendChild(host);

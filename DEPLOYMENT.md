@@ -198,7 +198,7 @@ server {
 The repository ships with production-ready Docker files. The image is built on `nginx:1.27-alpine` and runs as the non-root `nginx` user.
 
 **Files provided:**
-- `Dockerfile` — multi-stage-ready build; copies only `index.html`, `styles.css`, and `src/`
+- `Dockerfile` — multi-stage-ready build; copies `index.html`, `styles.css`, `styles-csp-classes.css`, `guide.html`, and `src/`
 - `nginx.conf` — custom nginx config with all security headers and 1-year asset caching
 - `docker-compose.yml` — hardened Compose config (read-only filesystem, dropped capabilities)
 - `.dockerignore` — excludes tests, docs, Python cache, and editor files from the build context
@@ -287,8 +287,8 @@ Using online tools:
 
 ```bash
 # Run tests
-python tests/smoke_playwright.py
-python tests/test_security.py
+pytest tests/ -v
+pytest tests/security/ -v         # Security tests only
 ```
 
 ## Performance Optimization

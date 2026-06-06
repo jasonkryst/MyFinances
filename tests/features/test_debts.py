@@ -36,6 +36,7 @@ def test_create_debt(app_page, debt_data):
     page.fill('#accountBalance', debt_data["balance"])
     page.fill('#interestRate', debt_data["interest_rate"])
     page.fill('#minimumPayment', debt_data["min_payment"])
+    page.fill('#dueDate', '15')
     
     # Submit
     page.click('#debtFormSubmit')
@@ -64,17 +65,23 @@ def test_debt_types(app_page):
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_timeout(300)
     
-    debt_types = ['creditCard', 'studentLoan', 'personalLoan', 'mortgage', 'autoLoan']
+    debt_types = ['creditCard', 'fixedAmount']
     
     for i, debt_type in enumerate(debt_types):
         page.click('#debtFormToggle')
         page.wait_for_timeout(300)
-        
+
         page.fill('#debtName', f'Debt Type {i}')
         page.select_option('#debtType', debt_type)
-        page.fill('#accountBalance', '1000')
-        page.fill('#interestRate', '5')
-        page.fill('#minimumPayment', '100')
+        if debt_type == 'creditCard':
+            page.fill('#accountBalance', '1000')
+            page.fill('#interestRate', '5')
+            page.fill('#minimumPayment', '100')
+            page.fill('#dueDate', '15')
+        else:
+            page.fill('#fixedAmount', '100')
+            page.fill('#fixedStartDate', '2026-01-01')
+            page.fill('#fixedEndDate', '2026-12-31')
         page.click('#debtFormSubmit')
         page.wait_for_timeout(500)
 
@@ -105,6 +112,7 @@ def test_debt_interest_calculation(app_page):
     page.fill('#accountBalance', '5000')
     page.fill('#interestRate', '18.5')
     page.fill('#minimumPayment', '150')
+    page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
     page.wait_for_timeout(500)
     
@@ -152,6 +160,7 @@ def test_amortization_schedule(app_page):
     page.fill('#accountBalance', '2000')
     page.fill('#interestRate', '15')
     page.fill('#minimumPayment', '75')
+    page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
     page.wait_for_timeout(500)
     
@@ -196,6 +205,7 @@ def test_net_worth_includes_debts(app_page):
     page.fill('#accountBalance', '3000')
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
     page.wait_for_timeout(500)
     

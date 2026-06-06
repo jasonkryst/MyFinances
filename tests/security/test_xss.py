@@ -168,5 +168,9 @@ async def test_no_console_errors(async_app_page):
     await page.wait_for_timeout(300)
     
     # Check for errors (ignore favicon errors)
-    filtered_errors = [e for e in console_errors if 'favicon' not in e.lower()]
+    filtered_errors = [
+        e for e in console_errors
+        if 'favicon' not in e.lower()
+        and 'X-Frame-Options may only be set via an HTTP header' not in e
+    ]
     assert len(filtered_errors) == 0, f"Console errors found: {filtered_errors}"

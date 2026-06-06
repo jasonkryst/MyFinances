@@ -86,7 +86,7 @@ export function calculateRequiredPayment(app) {
 
             resultEl.innerHTML = `<div class="target-result">
                 <div class="target-result-headline">✅ Payment Plan</div>
-                <span class="target-result-payment">${formatCurrency(monthlyPayment)}<span style="font-size:0.5em;font-weight:500;"> / month</span></span>
+                <span class="target-result-payment">${formatCurrency(monthlyPayment)}<span class="result-payment"> / month</span></span>
                 <div class="target-result-meta">
                     <span>📅 Payoff by <strong>${payoffDateStr}</strong></span>
                     <span>⏱ ${actualMonths} month${actualMonths !== 1 ? 's' : ''}</span>
@@ -152,7 +152,7 @@ export function calculateRequiredPayment(app) {
     if (!found) {
         resultEl.innerHTML = `<div class="target-result target-result--error">
             <div class="target-result-headline">❌ Unable to calculate</div>
-            <p style="margin:0;font-size:0.88rem;">This target date may be unreachable. Try a later date.</p>
+            <p class="margin-bottom-6">This target date may be unreachable. Try a later date.</p>
         </div>`;
         return;
     }
@@ -185,7 +185,7 @@ export function calculateRequiredPayment(app) {
 
     resultEl.innerHTML = `<div class="target-result ${panelClass}">
         <div class="target-result-headline">${headline}</div>
-        <span class="target-result-payment">${formatCurrency(requiredPayment)}<span style="font-size:0.5em;font-weight:500;"> / month</span></span>
+        <span class="target-result-payment">${formatCurrency(requiredPayment)}<span class="result-payment"> / month</span></span>
         <div class="target-result-meta">
             <span>📅 Payoff by <strong>${payoffDateStr}</strong></span>
             <span>⏱ ${actualMonths} month${actualMonths !== 1 ? 's' : ''}</span>
@@ -312,7 +312,7 @@ export function renderCalendarView(app, page = 0) {
     const legendDiv = document.createElement('div');
     legendDiv.className = 'cal-legend';
     legendDiv.innerHTML = `
-        <span class="cal-legend-item"><span class="cal-legend-swatch" style="background:#2563eb;"></span>Debt payment</span>
+        <span class="cal-legend-item"><span class="cal-legend-swatch bg-blue-debt"></span>Debt payment</span>
         ${hasIncome ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--income"></span>Payday</span>` : ''}
         ${hasBills ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bill"></span>Bill due</span>` : ''}
         <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--today"></span>Today</span>
@@ -377,7 +377,7 @@ export function renderCalendarView(app, page = 0) {
                 <span class="cal-day-num">${day}</span>`;
 
             for (const ev of events) {
-                gridHTML += `<div class="cal-event" style="background:${ev.color};" title="${escapeHtml(ev.name)}: ${formatCurrency(ev.payment)}">
+                gridHTML += `<div class="cal-event" data-event-bg="${ev.color}" title="${escapeHtml(ev.name)}: ${formatCurrency(ev.payment)}">
                     <span class="cal-event-name">${escapeHtml(ev.name)}</span>
                     <span class="cal-event-amount">${formatCurrency(ev.payment)}</span>
                 </div>`;
@@ -404,6 +404,8 @@ export function renderCalendarView(app, page = 0) {
         const monthBlock = document.createElement('div');
         monthBlock.className = 'cal-month';
         monthBlock.innerHTML = `<h4 class="cal-month-title">${monthLabel}</h4>${gridHTML}`;
+        monthBlock.querySelectorAll('[data-event-bg]').forEach(el =>
+            el.style.setProperty('--event-bg', el.dataset.eventBg));
         monthsRow.appendChild(monthBlock);
     }
 
@@ -634,7 +636,7 @@ export function renderDebtSummaryTable(app) {
 
     for (const summary of rows) {
         const dueDateStr = summary.dueDate
-            ? `<div style="font-size:0.78em;color:#6b7280;margin-top:2px;">Due: ${getDayOrdinal(summary.dueDate)} of month</div>`
+            ? `<div class="text-sm-muted margin-top-2">Due: ${getDayOrdinal(summary.dueDate)} of month</div>`
             : '';
 
         // Progress bar: based on originalBalance vs current accountBalance
@@ -655,7 +657,7 @@ export function renderDebtSummaryTable(app) {
         const progressBar = `
             <div class="summary-progress-wrap">
                 <div class="summary-progress-bar">
-                    <div class="summary-progress-fill${progressPct >= 100 ? ' summary-progress-fill--complete' : ''}" style="width:${progressPct}%"></div>
+                    <div class="summary-progress-fill${progressPct >= 100 ? ' summary-progress-fill--complete' : ''}" data-progress-width="${progressPct}"></div>
                 </div>
                 <div class="summary-progress-label">${progressPct}% paid off</div>
             </div>`;
@@ -664,7 +666,7 @@ export function renderDebtSummaryTable(app) {
         const iptdCell = summary.interestToDate !== null
             ? `<span class="iptd-value">${formatCurrency(summary.interestToDate)}</span>
                ${summary.debtStartDate ? `<div class="iptd-sub">since ${new Date(summary.debtStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>` : ''}`
-            : '<span style="color:#9ca3af;font-size:0.8em;">No start date</span>';
+            : '<span class="text-pale">No start date</span>';
         row.innerHTML = `
             <td>${escapeHtml(summary.name)}${dueDateStr}${progressBar}</td>
             <td class="min-due">${formatCurrency(summary.minDue)}</td>
@@ -676,6 +678,8 @@ export function renderDebtSummaryTable(app) {
             <td>${summary.payoffDate || '-'}</td>
             <td><button class="btn btn-small btn-secondary" data-amortization="${escapeHtml(summary.name)}">View</button></td>
         `;
+        row.querySelectorAll('[data-progress-width]').forEach(el =>
+            el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
         summaryBody.appendChild(row);
         // Milestone: show confetti if debt was just paid off this render
         if (summary.payoffDate) {
@@ -798,7 +802,7 @@ export function showAmortizationModal(app, debtName) {
     const wrapper = document.getElementById('amortizationTableWrapper');
     if (!modal || !title || !wrapper) return;
     title.textContent = `Amortization Schedule: ${debtName}`;
-    let html = '<div class="table-wrapper"><table style="min-width:600px"><thead><tr><th>Month</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody>';
+    let html = '<div class="table-wrapper"><table class="table-full-width"><thead><tr><th>Month</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody>';
     if (app.lastPaymentPlan) {
         for (let mi = 0; mi < app.lastPaymentPlan.length; mi++) {
             const monthData = app.lastPaymentPlan[mi];
@@ -916,7 +920,7 @@ export function displayPaymentSchedule(app) {
                     paymentStr += `<br><small>(+${formatCurrency(overage)})</small>`;
                 }
                 if (monthData.stimulusApplied && monthData.stimulusApplied[debtName]) {
-                    paymentStr += `<br><span style='color:#059669;font-size:0.9em;'>(Stimulus: ${formatCurrency(monthData.stimulusApplied[debtName])})</span>`;
+                    paymentStr += `<br><span class="stimulus-badge">(Stimulus: ${formatCurrency(monthData.stimulusApplied[debtName])})</span>`;
                 }
             }
             row.innerHTML += `<td class="amount">${paymentStr}</td>`;
@@ -925,14 +929,14 @@ export function displayPaymentSchedule(app) {
         const stimulusInputId = `stimulus-input-${mi}`;
         const stimDisplayNumber = Number(editableStimulusVal);
         const stimDisplayStr = !isFinite(stimDisplayNumber) ? '0.00' : stimDisplayNumber.toFixed(2);
-        const stimulusDisplay = `<input id="${stimulusInputId}" type="number" step="0.01" min="0" value="${stimDisplayStr}" style="width:100px;">`;
-        row.innerHTML += `<td class="amount" style="color:#059669;font-weight:600;">${stimulusDisplay}</td>`;
+        const stimulusDisplay = `<input id="${stimulusInputId}" type="number" step="0.01" min="0" value="${stimDisplayStr}" class="stimulus-value-input">`;
+        row.innerHTML += `<td class="amount stimulus-amount">${stimulusDisplay}</td>`;
 
         let totalPaidStr = formatCurrency(monthTotal);
         if (monthTotalOverage > 0) {
             totalPaidStr += `<br><small>(+${formatCurrency(monthTotalOverage)})</small>`;
         }
-        row.innerHTML += `<td class="amount" style="font-weight: bold; border-left: 2px solid var(--border-color);">${totalPaidStr}</td>`;
+        row.innerHTML += `<td class="amount amount-total">${totalPaidStr}</td>`;
 
         tableBody.appendChild(row);
 

@@ -44,6 +44,7 @@ def test_net_worth_calculation_basic(app_page):
     page.fill('#accountBalance', '3000')
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
     page.wait_for_timeout(500)
     
@@ -99,7 +100,7 @@ def test_net_worth_snapshot_capture(app_page):
             page.wait_for_timeout(500)
             
             # Snapshot should be saved
-            snapshots = page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
+            snapshots = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
             assert snapshots, "Snapshot data should be saved"
 
 
@@ -138,7 +139,7 @@ def test_multiple_assets_and_liabilities(app_page):
     page = app_page
     
     # Add multiple accounts
-    accounts = [('Checking', '5000'), ('Savings', '10000'), ('Money Market', '3000')]
+    accounts = [('Checking', '5000'), ('Savings', '10000'), ('Investment', '3000')]
     page.click('button[data-page="accounts"]')
     page.wait_for_timeout(300)
     
@@ -153,18 +154,27 @@ def test_multiple_assets_and_liabilities(app_page):
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_timeout(300)
+    page.click('#debtFormToggle')
+    page.wait_for_timeout(300)
     
-    debts = [('Credit Card', '2000'), ('Student Loan', '15000')]
+    debts = [('Credit Card', '2000'), ('Fixed Liability', '15000')]
     for i, (debt_type, amount) in enumerate(debts):
         if i > 0:
             page.click('#debtFormToggle')
             page.wait_for_timeout(300)
-        
+
         page.fill('#debtName', debt_type)
-        page.select_option('#debtType', 'creditCard' if i == 0 else 'studentLoan')
-        page.fill('#accountBalance', amount)
-        page.fill('#interestRate', '10')
-        page.fill('#minimumPayment', '100')
+        if i == 0:
+            page.select_option('#debtType', 'creditCard')
+            page.fill('#accountBalance', amount)
+            page.fill('#interestRate', '10')
+            page.fill('#minimumPayment', '100')
+            page.fill('#dueDate', '15')
+        else:
+            page.select_option('#debtType', 'fixedAmount')
+            page.fill('#fixedAmount', '250')
+            page.fill('#fixedStartDate', '2026-01-01')
+            page.fill('#fixedEndDate', '2031-01-01')
         page.click('#debtFormSubmit')
         page.wait_for_timeout(500)
     

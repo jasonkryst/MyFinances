@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
 **Last Updated**: May 30, 2026  
-**Current Version**: v3.1  
+**Current Version**: v3.0.2  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---

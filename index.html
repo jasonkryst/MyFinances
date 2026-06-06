@@ -4,12 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>MyFinances - Track Your Money</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-csp-classes.css">
+ </head>
 <body>
     <div id="confetti-container"></div>
     <div class="container">
@@ -25,7 +27,7 @@
                     <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
                     <button id="themeSwitcher" class="header-icon-btn" aria-label="Toggle dark mode">🌙</button>
-                    <button id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help">❓</button>
+                    <a id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>
                 </div>
             </div>
             <div class="header-hero">
@@ -469,7 +471,12 @@
                     </button>
                     <div class="target-date-body" id="targetDateBody" hidden>
                         <p class="target-date-desc">Enter a date and we'll calculate the monthly payment required to be debt-free by then.</p>
-                        <div class=\"target-date-row\">\n                            <div class=\"form-group form-group-flex-1\">\n                                <label for=\"targetPayoffDate\">Target Payoff Date</label>\n                                <input type=\"date\" id=\"targetPayoffDate\">\n                            </div>\n                            <div class=\"form-group form-group-flex-1\">
+                        <div class="target-date-row">
+                            <div class="form-group form-group-flex-1">
+                                <label for="targetPayoffDate">Target Payoff Date</label>
+                                <input type="date" id="targetPayoffDate">
+                            </div>
+                            <div class="form-group form-group-flex-1">
                                 <label for="targetPayoffStrategy">Strategy</label>
                                 <select id="targetPayoffStrategy">
                                     <option value="avalanche">Avalanche</option>

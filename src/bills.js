@@ -23,17 +23,17 @@ export function renderBillList(app) {
         if (app.editingBillId === bill.id) {
             return `<div class="budget-card budget-card--editing">
                 <div class="budget-edit-grid">
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Name</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Name</label>
                         <input type="text" id="be-name-${bill.id}" value="${escapeHtml(bill.name)}" class="form-control"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Amount ($)</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Amount ($)</label>
                         <input type="number" id="be-amount-${bill.id}" value="${bill.amount}" step="0.01" min="0" class="form-control"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Due Day</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Due Day</label>
                         <input type="number" id="be-dueday-${bill.id}" value="${bill.dueDay || ''}" min="1" max="31" class="form-control" placeholder="—"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Category</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Category</label>
                         <select id="be-cat-${bill.id}" class="form-control">
                             ${BILL_CATS.map(c => `<option value="${c}" ${bill.category===c?'selected':''}>${c}</option>`).join('')}
                         </select></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Account</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Account</label>
                         <select id="be-acct-${bill.id}" class="form-control">
                             <option value="">— No account —</option>
                             ${app.accounts.map(a => `<option value="${a.id}" ${bill.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}
@@ -115,17 +115,17 @@ export function renderExpenseList(app) {
         if (app.editingExpenseId === exp.id) {
             return `<div class="budget-card budget-card--editing">
                 <div class="budget-edit-grid">
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Name</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Name</label>
                         <input type="text" id="ee-name-${exp.id}" value="${escapeHtml(exp.name)}" class="form-control"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Cost</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Cost</label>
                         <input type="number" id="ee-amount-${exp.id}" value="${exp.budgetAmount}" step="0.01" min="0" class="form-control"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Date</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Date</label>
                         <input type="date" id="ee-date-${exp.id}" value="${exp.date instanceof Date ? exp.date.toISOString().split('T')[0] : (exp.date ? new Date(exp.date).toISOString().split('T')[0] : '')}" class="form-control"></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Category</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Category</label>
                         <select id="ee-cat-${exp.id}" class="form-control">
                             ${EXP_CATS.map(c => `<option value="${c}" ${exp.category===c?'selected':''}>${c}</option>`).join('')}
                         </select></div>
-                    <div class="form-group" style="margin:0"><label style="font-size:0.8rem;font-weight:600">Account</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">Account</label>
                         <select id="ee-acct-${exp.id}" class="form-control">
                             <option value="">— No account —</option>
                             ${app.accounts.map(a => `<option value="${a.id}" ${exp.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}

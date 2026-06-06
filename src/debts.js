@@ -381,7 +381,7 @@ export function renderDebtsList(app) {
                 cardHTML += `</div>
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label"><span>Time elapsed</span><span>${fixedPct}%</span></div>
-                        <div class="debt-progress-bar"><div class="debt-progress-fill${fixedPct >= 100 ? ' debt-progress-fill--complete' : ''}" style="width:${fixedPct}%"></div></div>
+                        <div class="debt-progress-bar"><div class="debt-progress-fill${fixedPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${fixedPct}"></div></div>
                     </div>`;
             } else {
                 const dailyRate = (debt.interestRate || 0) / 100 / 365;
@@ -394,16 +394,16 @@ export function renderDebtsList(app) {
                 cardHTML += `
                         <div class="debt-detail">
                             <strong>Balance:</strong> ${formatCurrency(debt.accountBalance)}
-                            ${origBal > debt.accountBalance ? `<span style="font-size:0.78em;color:#6b7280;margin-left:6px;">(was ${formatCurrency(origBal)})</span>` : ''}
+                            ${origBal > debt.accountBalance ? `<span class="amount-secondary">(was ${formatCurrency(origBal)})</span>` : ''}
                         </div>
                         <div class="debt-detail">
                             <strong>Interest:</strong> ${debt.interestRate.toFixed(2)}%
-                            <span style="font-size:0.78em;color:#6b7280;margin-left:4px;">≈ ${formatCurrency(monthlyInterest)}/mo</span>
+                            <span class="text-monthly-interest">≈ ${formatCurrency(monthlyInterest)}/mo</span>
                         </div>
                         <div class="debt-detail">
                             <strong>Min Payment:</strong> ${formatCurrency(debt.minimumPayment)}
                             ${debt.originalMinimumPayment !== undefined && debt.originalMinimumPayment !== debt.minimumPayment
-                                ? `<span style="font-size:0.78em;color:#6b7280;margin-left:6px;">(originally ${formatCurrency(debt.originalMinimumPayment)})</span>`
+                                ? `<span class="amount-secondary">(originally ${formatCurrency(debt.originalMinimumPayment)})</span>`
                                 : ''}
                             ${negAmortRisk ? `<span class="neg-amort-badge" title="Your minimum payment barely covers interest — the balance may never decrease!">⚠️ Neg. amortization risk</span>` : ''}
                         </div>
@@ -428,7 +428,7 @@ export function renderDebtsList(app) {
                 cardHTML += `</div>
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label"><span>Payoff progress</span><span>${progressPct}%</span></div>
-                        <div class="debt-progress-bar"><div class="debt-progress-fill${progressPct >= 100 ? ' debt-progress-fill--complete' : ''}" style="width:${progressPct}%"></div></div>
+                        <div class="debt-progress-bar"><div class="debt-progress-fill${progressPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${progressPct}"></div></div>
                     </div>`;
             }
 
@@ -446,6 +446,8 @@ export function renderDebtsList(app) {
                 </div>
             `;
             card.innerHTML = cardHTML;
+            card.querySelectorAll('[data-progress-width]').forEach(el =>
+                el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
         }
 
         debtsList.appendChild(card);

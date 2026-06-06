@@ -22,7 +22,7 @@ def test_export_data_format(app_page):
         assert export_btn, "Export button should be available"
         
         # Verify localStorage has valid data to export
-        data = page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
+        data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
         if data:
             try:
                 parsed = json.loads(data)
@@ -73,7 +73,7 @@ def test_import_json_file(app_page):
                 page.wait_for_timeout(1000)
                 
                 # Verify data was imported
-                stored_data = page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
+                stored_data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
                 assert stored_data, "Data should be imported"
         finally:
             os.unlink(temp_file)
@@ -126,7 +126,7 @@ def test_import_replaces_data(app_page):
                 page.wait_for_timeout(1000)
                 
                 # Data should be replaced
-                stored = page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
+                stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
                 assert stored, "Import should update data"
         finally:
             os.unlink(temp_file)
@@ -147,7 +147,7 @@ def test_roundtrip_export_import(app_page):
     page.wait_for_timeout(500)
     
     # Get current data
-    original_data = page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
+    original_data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
     
     if original_data:
         # Export and re-import
@@ -175,7 +175,7 @@ def test_roundtrip_export_import(app_page):
                     page.wait_for_timeout(1000)
                     
                     # Data should match
-                    reimported = page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
+                    reimported = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
                     assert reimported, "Roundtrip data preservation failed"
             finally:
                 os.unlink(temp_file)

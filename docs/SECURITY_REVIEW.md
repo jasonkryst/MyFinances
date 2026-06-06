@@ -1,4 +1,4 @@
-# Security Review - MyFinances v3.0
+# Security Review - MyFinances v3.0.2
 **Date**: May 29, 2026  
 **Status**: ✅ **PASSED** | **Risk Level**: LOW | **Actions Required**: None
 
@@ -46,7 +46,7 @@ MyFinances has completed a comprehensive security review including:
 ✓ Data integrity preserved after round-trip
 ```
 
-**Command**: `python tests/test_security.py`  
+**Command**: `pytest tests/security/ -v`  
 **Status**: All suites PASSED ✓
 
 ---
@@ -165,15 +165,16 @@ for (const d of validDebts) {
                connect-src 'self'; 
                object-src 'none'; 
                base-uri 'self'; 
-               form-action 'self'; 
-               frame-ancestors 'none'">
+               form-action 'self'">
 ```
+
+> **Note**: `frame-ancestors 'none'` is omitted from the meta tag (browsers ignore it there per spec). Clickjacking protection is provided by the `X-Frame-Options: DENY` HTTP header and by `frame-ancestors 'none'` in the server-level CSP header (see [DEPLOYMENT.md](../DEPLOYMENT.md)).
 
 **Verification**:
 - ✅ No inline scripts (`script-src 'self'` only)
 - ✅ No inline styles (`style-src 'self'` only)
 - ✅ Chart.js allowed from trusted CDN only
-- ✅ Clickjacking prevented (`frame-ancestors 'none'`)
+- ✅ Clickjacking prevented (`X-Frame-Options: DENY` header + server CSP `frame-ancestors 'none'`)
 - ✅ Form submission locked to same-origin
 - ✅ Object/embed blocked (`object-src 'none'`)
 
@@ -198,7 +199,7 @@ for (const d of validDebts) {
 #### Unsafe DOM Methods
 - ✅ No `innerHTML` with unescaped user data
 - ✅ All innerHTML assignments use `escapeHtml()`
-- ✅ Safe links: `window.open('USAGE_GUIDE.html')` (no user input)
+- ✅ Safe links: `window.open('guide.html')` (no user input)
 
 #### Object Prototype Pollution
 - ✅ `Object.assign()` only with controlled source objects
@@ -227,7 +228,7 @@ for (const d of validDebts) {
 ## 3. Infrastructure & Deployment Security
 
 ### Web Server Headers
-Documented in [DEPLOYMENT.md](DEPLOYMENT.md):
+Documented in [DEPLOYMENT.md](../DEPLOYMENT.md):
 - ✅ X-Content-Type-Options: nosniff
 - ✅ X-Frame-Options: DENY (clickjacking prevention)
 - ✅ X-XSS-Protection: 1; mode=block
@@ -284,11 +285,14 @@ Documented in [DEPLOYMENT.md](DEPLOYMENT.md):
 ## 6. Testing Approach
 
 ### Test Coverage
-1. **Automated Tests** (`tests/` folder):
-   - `test_security.py` — XSS, input validation, persistence
-   - `test_mobile_menu.py` — Accessibility, ARIA attributes
-   - `test_css_load.py` — CSS extraction, CSP compliance
-   - `smoke_playwright.py` — Full workflow integration
+1. **Automated Tests** (`tests/` folder — run with `pytest tests/ -v`):
+   - `tests/security/test_xss.py` — XSS prevention in all input fields
+   - `tests/security/test_csp.py` — CSP compliance, no inline style violations
+   - `tests/security/test_input_validation.py` — Bounds, special characters, unicode
+   - `tests/security/test_static_scan.py` — Static analysis, hardcoded secrets, dependencies
+   - `tests/ui/test_accessibility.py` — ARIA attributes, keyboard navigation
+   - `tests/ui/test_css_load.py` — CSS loading and CSP-safe utility classes
+   - `tests/integration/test_smoke.py` — Full workflow integration
 
 2. **Manual Code Review**:
    - All user input paths
@@ -308,7 +312,7 @@ Documented in [DEPLOYMENT.md](DEPLOYMENT.md):
 
 ### Deployment
 1. **Enable HTTPS** — Use TLS/SSL in production
-2. **Security Headers** — Deploy with recommended headers (see [DEPLOYMENT.md](DEPLOYMENT.md))
+2. **Security Headers** — Deploy with recommended headers (see [DEPLOYMENT.md](../DEPLOYMENT.md))
 3. **Browser Updates** — Keep browser current for security patches
 4. **Data Backups** — Regularly export JSON backups
 
@@ -366,7 +370,7 @@ Documented in [DEPLOYMENT.md](DEPLOYMENT.md):
 
 ### Security Status: ✅ PASSED
 
-MyFinances v3.0 demonstrates strong security fundamentals:
+MyFinances v3.0.2 demonstrates strong security fundamentals:
 
 1. **Defense in Depth** — Multiple layers of protection (CSP, input validation, output encoding)
 2. **No Critical Vulnerabilities** — Code review found no exploitable weaknesses
@@ -379,7 +383,7 @@ MyFinances v3.0 demonstrates strong security fundamentals:
 The application is suitable for production use with standard HTTPS/TLS deployment and recommended security headers.
 
 ### Next Steps
-1. Deploy with [DEPLOYMENT.md](DEPLOYMENT.md) security headers
+1. Deploy with [DEPLOYMENT.md](../DEPLOYMENT.md) security headers
 2. Monitor browser console for CSP violations
 3. Run security tests regularly (especially after updates)
 4. Maintain backup export schedule
@@ -393,7 +397,6 @@ The application is suitable for production use with standard HTTPS/TLS deploymen
 ---
 
 For detailed security information, see:
-- [SECURITY.md](SECURITY.md) — Implementation details
+- [SECURITY.md](../SECURITY.md) — Implementation details
 - [SECURITY_AUDIT.md](SECURITY_AUDIT.md) — Audit findings
-- [DEPLOYMENT.md](DEPLOYMENT.md) — Deployment security headers
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) — Recent changes
+- [DEPLOYMENT.md](../DEPLOYMENT.md) — Deployment security headers

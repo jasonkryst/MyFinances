@@ -82,9 +82,10 @@ font-src 'self';
 connect-src 'self';
 object-src 'none';
 base-uri 'self';
-form-action 'self';
-frame-ancestors 'none';
+form-action 'self'
 ```
+
+> **Note**: `frame-ancestors 'none'` is intentionally omitted from the meta tag — browsers ignore it there per spec. Add `frame-ancestors 'none'` to the server-level CSP HTTP header (see [DEPLOYMENT.md](DEPLOYMENT.md)) alongside `X-Frame-Options: DENY` for clickjacking protection.
 
 **Protection:**
 - Restricts scripts to self and trusted CDN only
@@ -237,14 +238,13 @@ The application includes automated security tests:
 
 ```bash
 # Run security test suite
-python tests/test_security.py
+pytest tests/security/ -v
 
 # Tests include:
 # - XSS Prevention: HTML/script tag injection
+# - CSP Compliance: No inline style or script violations
 # - Input Validation: Special characters, bounds
-# - Data Persistence: localStorage integrity
-# - File Import: Malicious JSON handling
-# - Export/Import: Functionality verification
+# - Static Analysis: Code patterns, no hardcoded secrets
 ```
 
 ### Test Coverage
@@ -284,7 +284,7 @@ If you discover a security vulnerability:
 - ✅ No sensitive data exposure
 - ✅ Proper error handling
 
-For full audit report, see: `SECURITY_AUDIT.md`
+For full audit report, see: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)
 
 ## Future Security Improvements
 

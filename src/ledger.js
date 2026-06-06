@@ -455,18 +455,18 @@ export function renderLedgerPage(app) {
         currentPage = 1;
     }
     let filterHtml = '';
-    filterHtml += `<div style="margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">`;
+    filterHtml += `<div class="filter-controls">`;
     if (accounts.length > 0) {
-        filterHtml += `<label for="ledgerAccountFilter" style="font-weight:600;">Account:</label>
-            <select id="ledgerAccountFilter" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
+        filterHtml += `<label for="ledgerAccountFilter" class="filter-label">Account:</label>
+            <select id="ledgerAccountFilter" class="select-styled">
                 <option value="all">All Accounts</option>`;
         for (const acct of accounts) {
             filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)}</option>`;
         }
         filterHtml += `</select>`;
     }
-    filterHtml += `<label for="ledgerDateRange" style="font-weight:600;">Show:</label>
-        <select id="ledgerDateRange" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
+    filterHtml += `<label for="ledgerDateRange" class="filter-label">Show:</label>
+        <select id="ledgerDateRange" class="select-styled">
             <option value="all"${selectedDateRange==='all'?' selected':''}>All</option>
             <option value="past"${selectedDateRange==='past'?' selected':''}>Past & Today Only</option>
             <option value="30"${selectedDateRange==='30'?' selected':''}>Next 30 Days</option>
@@ -474,8 +474,8 @@ export function renderLedgerPage(app) {
             <option value="60"${selectedDateRange==='60'?' selected':''}>Next 60 Days</option>
             <option value="90"${selectedDateRange==='90'?' selected':''}>Next 90 Days</option>
         </select>`;
-    filterHtml += `<label for="ledgerPageSize" style="font-weight:600;">Rows:</label>
-        <select id="ledgerPageSize" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border-color);font-size:1rem;">
+    filterHtml += `<label for="ledgerPageSize" class="filter-label">Rows:</label>
+        <select id="ledgerPageSize" class="select-styled">
             <option value="10"${selectedPageSize===10?' selected':''}>10</option>
             <option value="25"${selectedPageSize===25?' selected':''}>25</option>
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
@@ -552,11 +552,11 @@ export function renderLedgerPage(app) {
         </tr></thead>
         <tbody>`;
     if (pagedTransactions.length === 0) {
-        html += `<tr><td colspan="5" style="text-align:center;color:#888;padding:32px 0;">No transactions yet.</td></tr>`;
+        html += `<tr><td colspan="5" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
     } else {
         for (const tx of pagedTransactions) {
             const canOverride = !tx.isRollover && !!tx.transactionId;
-            const amountColor = tx.amount < 0 ? '#dc2626' : '#059669';
+            const amountColorClass = tx.amount < 0 ? 'text-expense' : 'text-income';
             const amountCell = tx.hasOverride
                 ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
                 : `<span>${formatCurrency(tx.amount)}</span>`;
@@ -567,8 +567,8 @@ export function renderLedgerPage(app) {
                 <td>${tx.date ? _formatLedgerDate(tx.date) : ''}</td>
                 <td>${escapeHtml(tx.account || '')}</td>
                 <td>${escapeHtml(tx.name || '')}</td>
-                <td style="text-align:right;color:${amountColor};">${amountCell}${overrideActions}</td>
-                <td style="text-align:right;">${formatCurrency(tx.balance)}</td>
+                <td class="text-right ${amountColorClass}">${amountCell}${overrideActions}</td>
+                <td class="text-right">${formatCurrency(tx.balance)}</td>
             </tr>`;
         }
     }
