@@ -377,7 +377,7 @@ export function renderCalendarView(app, page = 0) {
                 <span class="cal-day-num">${day}</span>`;
 
             for (const ev of events) {
-                gridHTML += `<div class="cal-event" style="--event-bg:${ev.color};" title="${escapeHtml(ev.name)}: ${formatCurrency(ev.payment)}">
+                gridHTML += `<div class="cal-event" data-event-bg="${ev.color}" title="${escapeHtml(ev.name)}: ${formatCurrency(ev.payment)}">
                     <span class="cal-event-name">${escapeHtml(ev.name)}</span>
                     <span class="cal-event-amount">${formatCurrency(ev.payment)}</span>
                 </div>`;
@@ -404,6 +404,8 @@ export function renderCalendarView(app, page = 0) {
         const monthBlock = document.createElement('div');
         monthBlock.className = 'cal-month';
         monthBlock.innerHTML = `<h4 class="cal-month-title">${monthLabel}</h4>${gridHTML}`;
+        monthBlock.querySelectorAll('[data-event-bg]').forEach(el =>
+            el.style.setProperty('--event-bg', el.dataset.eventBg));
         monthsRow.appendChild(monthBlock);
     }
 
@@ -655,7 +657,7 @@ export function renderDebtSummaryTable(app) {
         const progressBar = `
             <div class="summary-progress-wrap">
                 <div class="summary-progress-bar">
-                    <div class="summary-progress-fill${progressPct >= 100 ? ' summary-progress-fill--complete' : ''}" style="--progress-width:${progressPct}%"></div>
+                    <div class="summary-progress-fill${progressPct >= 100 ? ' summary-progress-fill--complete' : ''}" data-progress-width="${progressPct}"></div>
                 </div>
                 <div class="summary-progress-label">${progressPct}% paid off</div>
             </div>`;
@@ -676,6 +678,8 @@ export function renderDebtSummaryTable(app) {
             <td>${summary.payoffDate || '-'}</td>
             <td><button class="btn btn-small btn-secondary" data-amortization="${escapeHtml(summary.name)}">View</button></td>
         `;
+        row.querySelectorAll('[data-progress-width]').forEach(el =>
+            el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
         summaryBody.appendChild(row);
         // Milestone: show confetti if debt was just paid off this render
         if (summary.payoffDate) {

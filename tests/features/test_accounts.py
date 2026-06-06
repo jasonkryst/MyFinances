@@ -149,12 +149,9 @@ def test_account_form_submission(app_page):
 def assert_no_errors(page):
     """Helper to check for console errors."""
     if hasattr(page, 'console_errors'):
-        # Filter out CSP-related warnings and known non-critical messages
         filtered = [
             e for e in page.console_errors
             if 'favicon' not in e
-            and "Content Security Policy" not in e
-            and "X-Frame-Options" not in e
-            and "Executing inline script violates" not in e
+            and 'X-Frame-Options may only be set via an HTTP header' not in e
         ]
         assert len(filtered) == 0, f"Console errors: {filtered}"

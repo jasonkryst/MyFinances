@@ -61,8 +61,7 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 
 ### Documentation
 - [SECURITY.md](SECURITY.md) — Detailed security practices & implementation
-- [SECURITY_AUDIT.md](SECURITY_AUDIT.md) — Full security audit report (updated May 31, 2026)
-- [SECURITY_SCAN_REPORT.json](SECURITY_SCAN_REPORT.json) — Latest static scan output
+- [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) — Full security audit report (updated May 31, 2026)
 - [DEPLOYMENT.md](DEPLOYMENT.md) — Production deployment with security headers
 
 ### Recent Security Improvements (May 31, 2026)
@@ -112,9 +111,10 @@ font-src 'self';
 connect-src 'self';
 object-src 'none';
 base-uri 'self';
-form-action 'self';
-frame-ancestors 'none'
+form-action 'self'
 ```
+
+> **Note**: `frame-ancestors 'none'` is enforced via the `X-Frame-Options: DENY` HTTP header (see below) and by adding `frame-ancestors 'none'` to the server-level CSP header in [DEPLOYMENT.md](DEPLOYMENT.md). The `frame-ancestors` directive is ignored in `<meta>` CSP tags per the spec.
 
 ### Security Headers
 Production deployments include:
@@ -130,14 +130,14 @@ Production deployments include:
 The test suite has been completely reorganized for maximum cohesiveness and maintainability:
 
 ### Test Statistics
-- **Total Tests**: 85+ comprehensive tests
+- **Total Tests**: 103 comprehensive tests
 - **Test Files**: 25+ organized across 5 categories
 - **Coverage**: All major features + security + UI + accessibility
 - **Framework**: pytest with Playwright browser automation
 
 ### Test Categories
 
-#### 🔐 Security Tests (16 tests)
+#### 🔐 Security Tests (26 tests)
 - **XSS Prevention** — Input sanitization in all fields
 - **CSP Compliance** — Strict Content Security Policy enforcement
 - **Input Validation** — Bounds checking, unicode handling, special characters
@@ -145,7 +145,7 @@ The test suite has been completely reorganized for maximum cohesiveness and main
 
 Run: `pytest tests/security/ -v`
 
-#### 🎯 Feature Tests (40+ tests)
+#### 🎯 Feature Tests (40 tests)
 - **Accounts** — CRUD operations, account types, balance calculations
 - **Debts** — Liability management, interest calculation, amortization schedules
 - **Income** — Multiple income sources, frequency types, total calculations
@@ -158,7 +158,7 @@ Run: `pytest tests/security/ -v`
 
 Run: `pytest tests/features/ -v`
 
-#### 🎨 UI/UX Tests (21 tests)
+#### 🎨 UI/UX Tests (29 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing
 - **Modal Functionality** — Visibility toggling, close buttons, amortization displays
 - **Dark Mode** — Theme switching, color contrast, persistence
@@ -181,9 +181,9 @@ Run: `pytest tests/integration/ -v`
 pytest tests/ -v
 
 # Run by category
-pytest tests/security/ -v         # 16 security tests
-pytest tests/features/ -v         # 40+ feature tests
-pytest tests/ui/ -v               # 21 UI/UX tests
+pytest tests/security/ -v         # 26 security tests
+pytest tests/features/ -v         # 40 feature tests
+pytest tests/ui/ -v               # 29 UI/UX tests
 pytest tests/integration/ -v      # 8 integration tests
 
 # Run with markers
@@ -212,7 +212,7 @@ tests/
 
 ### Key Improvements (May 31, 2026)
 
-✅ **Reorganized Structure** — From 20 mixed files to 25+ organized files
+✅ **Reorganized Structure** — From 20 mixed files to 25+ organized files across 5 categories
 ✅ **Consolidated Duplicates** — Merged test_savings.py + test_savings2.py
 ✅ **Standardized Port** — All tests use `localhost:5500` consistently
 ✅ **Comprehensive Fixtures** — conftest.py with 10+ reusable fixtures
@@ -256,7 +256,9 @@ Run: `pytest tests/security/ -v` for current security test results
 
 ```
 index.html              Main page shell + responsive navigation
+guide.html              In-app usage guide (opened by Help button)
 styles.css              Responsive styles + dark mode + utilities
+styles-csp-classes.css  CSP-compliant utility classes (dynamic styles via CSS variables)
 src/
   ├─ app.js             Main controller & app state
   ├─ ui.js              Event listeners & page navigation
@@ -319,7 +321,7 @@ src/
 - **Inline editing** — click Edit on any debt card to populate the form for editing; the list updates immediately on save
 - **Update Balance** — quickly record a new balance for any credit-card debt while preserving the original balance for progress tracking
 - **Category labels** — tag debts (e.g. "Housing", "Credit Card") and filter the list by category
-- **Priority levels** — assign a 1–10 priority to each debt for custom strategy ordering
+- **Priority levels** — assign a 1–100 priority to each debt for custom strategy ordering
 
 ### Account Management
 - **Add accounts** — define checking, savings, cash, investment, credit card, loan, or other accounts with a name, type, and starting balance
@@ -427,7 +429,7 @@ Navigate to **Debts**. The page has a two-column layout: the **Add Debt form** s
 | APR | Annual interest rate, e.g. `18.9` |
 | Minimum Payment | The minimum you must pay each month |
 | Due Date | Day of month the payment is due (used in Calendar view) |
-| Priority | 1–10, used by Priority strategies |
+| Priority | 1–100, used by Priority strategies |
 | Opened Date | Optional — enables the Interest Paid to Date estimate |
 | Category | Optional label for filtering |
 
@@ -575,8 +577,9 @@ Enter a target date in the **Strategy** section. The app uses a binary-search al
 
 ```
 index.html                  — Main page with responsive nav + security headers
-guide.html           — In-app usage guide (opened by Help button)
-styles.css                 — Responsive styles + dark mode + utilities + mobile menu
+guide.html                  — In-app usage guide (opened by Help button)
+styles.css                  — Responsive styles + dark mode + utilities + mobile menu
+styles-csp-classes.css      — CSP-compliant utility classes + dynamic CSS variable rules
 src/
   ├─ app.js                — Main app controller & state management
   ├─ ui.js                 — Event listeners, navigation, mobile menu toggle
@@ -593,19 +596,19 @@ src/
   ├─ storage.js            — Persistence, import/export, data validation
   ├─ debtCalculator.js     — Pure calculation engine
   └─ utils.js              — Formatting, date utilities, sanitization
-tests/ (Reorganized May 31, 2026 — 25+ files, 85+ tests)
+tests/ (Reorganized May 31, 2026 — 25+ files, 103 tests)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
-  ├─ security/                — 16 security & compliance tests
+  ├─ security/                — 26 security & compliance tests
   │   ├─ test_xss.py
   │   ├─ test_csp.py
   │   ├─ test_input_validation.py
   │   └─ test_static_scan.py
-  ├─ features/                — 40+ feature-specific tests
+  ├─ features/                — 40 feature-specific tests
   │   ├─ test_accounts.py, test_debts.py, test_income.py
   │   ├─ test_expenses.py, test_recurring.py, test_ledger.py
   │   ├─ test_reports.py, test_savings.py, test_networth.py
-  ├─ ui/                      — 21 UI/UX & responsive tests
+  ├─ ui/                      — 29 UI/UX & responsive tests
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
   │   ├─ test_css_load.py, test_accessibility.py
   ├─ integration/              — 8 end-to-end workflow tests
@@ -617,7 +620,7 @@ tests/ (Reorganized May 31, 2026 — 25+ files, 85+ tests)
 
 - **README.md** — You are here
 - **SECURITY.md** — Security practices, deployment headers, vulnerability reporting
-- **SECURITY_AUDIT.md** — Complete security audit with findings & recommendations
+- **docs/SECURITY_AUDIT.md** — Complete security audit with findings & recommendations
 - **DEPLOYMENT.md** — Production deployment guides for Nginx, Apache, Docker
 - **IMPLEMENTATION_SUMMARY.md** — Security enhancement documentation
 - **guide.html** — In-app user guide
@@ -626,7 +629,7 @@ tests/ (Reorganized May 31, 2026 — 25+ files, 85+ tests)
 
 - **Frontend Framework**: Vanilla ES6+ JavaScript (no dependencies)
 - **Storage**: Browser localStorage (same-origin isolated)
-- **Charts**: Chart.js 3.x via CDN
+- **Charts**: Chart.js 4.4.3 via CDN
 - **Build**: No build step required (static files)
 - **Testing**: Playwright (browser automation)
 
@@ -679,9 +682,10 @@ font-src 'self';
 connect-src 'self';
 object-src 'none';
 base-uri 'self';
-form-action 'self';
-frame-ancestors 'none';
+form-action 'self'
 ```
+
+> **Note**: The meta tag omits `frame-ancestors 'none'` (browsers ignore it there per spec). Server deployments in [DEPLOYMENT.md](DEPLOYMENT.md) add it via the HTTP CSP header alongside `X-Frame-Options: DENY`.
 
 ---
 
@@ -714,10 +718,11 @@ frame-ancestors 'none';
 
 **Run all tests:**
 ```bash
-python tests/smoke_playwright.py    # Full application workflow
-python tests/test_security.py       # Security & input validation
-python tests/test_mobile_menu.py    # Mobile responsiveness
-python tests/test_css_load.py       # CSS loading verification
+pytest tests/ -v                  # All 103 tests
+pytest tests/security/ -v         # Security & CSP tests
+pytest tests/features/ -v         # Feature tests
+pytest tests/ui/ -v               # UI/UX & accessibility tests
+pytest tests/integration/ -v      # End-to-end workflow tests
 ```
 
 **Test Coverage:**
@@ -809,9 +814,10 @@ python -m http.server 5500
 
 ### Security Issues
 If you discover a security vulnerability:
-1. Create a GitHub issue
-2. **Include** steps to reproduce + impact assessment
-3. See [SECURITY.md](SECURITY.md) for more details
+1. **Do not** create a public GitHub issue
+2. Contact the repository owner privately
+3. **Include** steps to reproduce + impact assessment
+4. See [SECURITY.md](SECURITY.md) for more details
 
 ### Bug Reports
 - Open an issue with steps to reproduce
@@ -833,4 +839,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.0 — Updated May 29, 2026*
+*MyFinances v3.0.1 — Updated June 6, 2026*

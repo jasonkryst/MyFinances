@@ -551,11 +551,48 @@ export function updateUI(app) {
 }
 
 export function showMilestone(debtName) {
-    // Keep milestone feedback CSP-safe by avoiding runtime inline styles.
-    console.info(`${debtName} paid off today`);
+    const host = document.createElement('div');
+    host.className = 'milestone-host';
+
+    const toast = document.createElement('div');
+    toast.className = 'milestone-toast';
+    toast.textContent = `${debtName} paid off today`;
+    host.appendChild(toast);
+
+    const colors = ['#2563eb', '#059669', '#f59e0b', '#dc2626', '#7c3aed'];
+    const count = 24;
+    for (let i = 0; i < count; i++) {
+        const piece = document.createElement('span');
+        piece.className = 'milestone-confetti';
+        const angle = (Math.PI * 2 * i) / count;
+        const distance = 120 + Math.random() * 180;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance - 40;
+        // setProperty is CSP-safe — it mutates the CSSOM from JS, not an inline style attribute
+        piece.style.setProperty('--confetti-x', `${x}px`);
+        piece.style.setProperty('--confetti-y', `${y}px`);
+        piece.style.setProperty('--confetti-w', `${6 + Math.random() * 6}px`);
+        piece.style.setProperty('--confetti-h', `${10 + Math.random() * 8}px`);
+        piece.style.setProperty('--confetti-ml', `-${3 + Math.random() * 3}px`);
+        piece.style.setProperty('--confetti-bg', colors[i % colors.length]);
+        piece.style.setProperty('--confetti-dur', `${1100 + Math.random() * 500}ms`);
+        piece.style.setProperty('--confetti-rot', `${360 + i * 18}deg`);
+        host.appendChild(piece);
+    }
+
+    document.body.appendChild(host);
+    window.setTimeout(() => host.remove(), 1800);
 }
 
 export function showNetWorthMilestone(message) {
-    // Keep milestone feedback CSP-safe by avoiding runtime inline styles.
-    console.info(message);
+    const host = document.createElement('div');
+    host.className = 'networth-milestone-host';
+
+    const toast = document.createElement('div');
+    toast.className = 'networth-milestone-toast';
+    toast.textContent = message;
+    host.appendChild(toast);
+
+    document.body.appendChild(host);
+    window.setTimeout(() => host.remove(), 2600);
 }

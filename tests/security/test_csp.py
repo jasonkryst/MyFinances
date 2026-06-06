@@ -10,67 +10,88 @@ BASE_URL = "http://localhost:5500/"
 
 
 @pytest.mark.security
-def test_csp_compliance(app_page):
-    """Test that page complies with strict CSP policy."""
-    page = app_page
-    
+def test_csp_compliance(page):
+    """Test that page load and navigation produce no CSP violations.
+
+    Uses the bare `page` fixture (not `app_page`) so the listener is registered
+    before goto() — catching any violations raised during initial page parse/load.
+    """
     csp_errors = []
-    
+
     def handle_console_msg(msg):
-        if msg.type == "error" and ("script-src" in msg.text):
+        if msg.type == "error" and ("script-src" in msg.text or "style-src" in msg.text):
             csp_errors.append(msg.text)
-    
+
     page.on("console", handle_console_msg)
-    
-    # Trigger various interactions that toggle display
-    page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
-    
-    page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
-    
-    page.click('button[data-page="liabilities"]')
-    page.wait_for_timeout(300)
-    
-    page.click('button[data-page="savings"]')
-    page.wait_for_timeout(300)
-    
-    page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
-    
-    page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
-    
-    # Verify no CSP errors were logged
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+
+    # Trigger all page sections so dynamic rendering runs
+    for nav in ["accounts", "income", "liabilities", "savings", "strategy", "reports"]:
+        page.click(f'button[data-page="{nav}"]')
+        page.wait_for_timeout(300)
+
     assert len(csp_errors) == 0, f"CSP violations detected: {csp_errors}"
 
 
 @pytest.mark.security
 def test_css_load_no_csp_violation(app_page):
-    """Verify external CSS loads without CSP violations."""
+    """Verify both external stylesheets load without CSP violations."""
     page = app_page
-    
-    # Check that styles.css was successfully loaded
+
     stylesheets = page.evaluate("""
         () => Array.from(document.styleSheets).map(s => s.href || 'inline')
     """)
-    
+
     assert len(stylesheets) > 0, "No stylesheets loaded"
     assert any('styles.css' in str(s) for s in stylesheets), "styles.css not loaded"
+    assert any('styles-csp-classes.css' in str(s) for s in stylesheets), \
+        "styles-csp-classes.css not loaded — CSP utility classes will be missing"
 
 
 @pytest.mark.security
 def test_no_inline_styles_in_html(app_page):
-    """Verify no inline style attributes present in HTML."""
+    """Verify no regular CSS properties are set via inline style attributes.
+
+    CSS custom properties (--var-name) set by CSSOM setProperty() are CSP-safe and
+    expected. Regular properties (e.g. display:none, width:50%) in a style attribute
+    indicate an HTML-source inline style that would be blocked by style-src 'self'.
+    """
     page = app_page
-    
-    # Check for inline style attributes
-    inline_styles_count = page.evaluate("""
-        () => document.querySelectorAll('[style]').length
+
+    # Navigate all sections so JS renders dynamic content (debt cards, savings bars, etc.)
+    for nav in ["accounts", "income", "liabilities", "savings", "strategy", "reports"]:
+        page.click(f'button[data-page="{nav}"]')
+        page.wait_for_timeout(200)
+
+    violations = page.evaluate("""
+        () => {
+            // Exclude <canvas> — Chart.js sets display/box-sizing/dimensions on its own
+            // canvas elements via CSSOM. That is CSP-safe and outside our control.
+            const elements = document.querySelectorAll('[style]:not(canvas)');
+            const bad = [];
+            for (const el of elements) {
+                const decls = el.getAttribute('style')
+                    .split(';')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+                for (const decl of decls) {
+                    if (!decl.startsWith('--')) {
+                        bad.push({
+                            tag: el.tagName,
+                            cls: el.className,
+                            decl,
+                        });
+                    }
+                }
+            }
+            return bad;
+        }
     """)
-    
-    assert inline_styles_count == 0, \
-        f"Found {inline_styles_count} elements with inline style attributes"
+
+    assert len(violations) == 0, (
+        f"Found {len(violations)} non-custom-property inline style declaration(s) — "
+        f"these would be blocked by style-src 'self': {violations}"
+    )
 
 
 @pytest.mark.security
@@ -115,4 +136,5 @@ def test_security_headers_present(app_page):
     # Verify CSP content
     csp_content = csp_meta.evaluate('(el) => el.getAttribute("content")')
     assert "script-src 'self'" in csp_content, "CSP missing strict script-src"
+    assert "style-src 'self'" in csp_content, "CSP missing strict style-src"
     assert "unsafe-inline" not in csp_content, "CSP contains unsafe-inline"

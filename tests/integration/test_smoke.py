@@ -78,10 +78,7 @@ def test_smoke_full_workflow(app_page):
         filtered = [
             e for e in page.console_errors
             if 'favicon' not in e
-            and "directive 'frame-ancestors' is ignored" not in e
             and 'X-Frame-Options may only be set via an HTTP header' not in e
-            and "Executing inline script violates the following Content Security Policy directive" not in e
-            and "Applying inline style violates the following Content Security Policy directive" not in e
         ]
         assert len(filtered) == 0, f"Console errors: {filtered}"
 

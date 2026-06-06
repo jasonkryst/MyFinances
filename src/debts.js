@@ -381,7 +381,7 @@ export function renderDebtsList(app) {
                 cardHTML += `</div>
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label"><span>Time elapsed</span><span>${fixedPct}%</span></div>
-                        <div class="debt-progress-bar"><div class="debt-progress-fill${fixedPct >= 100 ? ' debt-progress-fill--complete' : ''}" style="--progress-width:${fixedPct}%"></div></div>
+                        <div class="debt-progress-bar"><div class="debt-progress-fill${fixedPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${fixedPct}"></div></div>
                     </div>`;
             } else {
                 const dailyRate = (debt.interestRate || 0) / 100 / 365;
@@ -428,7 +428,7 @@ export function renderDebtsList(app) {
                 cardHTML += `</div>
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label"><span>Payoff progress</span><span>${progressPct}%</span></div>
-                        <div class="debt-progress-bar"><div class="debt-progress-fill${progressPct >= 100 ? ' debt-progress-fill--complete' : ''}" style="--progress-width:${progressPct}%"></div></div>
+                        <div class="debt-progress-bar"><div class="debt-progress-fill${progressPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${progressPct}"></div></div>
                     </div>`;
             }
 
@@ -446,6 +446,8 @@ export function renderDebtsList(app) {
                 </div>
             `;
             card.innerHTML = cardHTML;
+            card.querySelectorAll('[data-progress-width]').forEach(el =>
+                el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
         }
 
         debtsList.appendChild(card);

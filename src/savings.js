@@ -31,6 +31,8 @@ export function renderSavingsPage(app) {
   `;
 
   section.innerHTML = html;
+  section.querySelectorAll('[data-progress-width]').forEach(el =>
+    el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
 }
 
 function renderEmergencyFundContent(app) {
@@ -116,7 +118,7 @@ function renderEmergencyFundContent(app) {
             <div class="emergency-badge ${badgeClass}">${progressPercent}%</div>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill"></div>
+            <div class="progress-fill" data-progress-width="${Math.min(100, progressPercent)}"></div>
           </div>
           <div class="emergency-card-details">
             <div class="detail-row">
@@ -244,7 +246,7 @@ function renderSinkingFundsContent(app) {
             <div class="sinking-badge ${badgeClass}">${progressPercent}%</div>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill"></div>
+            <div class="progress-fill" data-progress-width="${Math.min(100, progressPercent)}"></div>
           </div>
           <div class="sinking-card-details">
             <div class="detail-row">

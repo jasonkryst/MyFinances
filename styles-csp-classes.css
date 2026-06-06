@@ -288,3 +288,78 @@ body.dark-mode .text-expense {
 body.dark-mode .text-income {
     color: #34d399;
 }
+
+/* ── Milestone & Net-worth toast notifications (CSP-safe) ── */
+.milestone-host {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.milestone-toast {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.92);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+/* CSS custom properties set via element.style.setProperty() (CSP-safe) */
+.milestone-confetti {
+    position: absolute;
+    left: 50%;
+    top: 18%;
+    width: var(--confetti-w, 8px);
+    height: var(--confetti-h, 12px);
+    margin-left: var(--confetti-ml, -4px);
+    background: var(--confetti-bg, #2563eb);
+    border-radius: 2px;
+    opacity: 0.95;
+    transform: translate(-50%, -50%);
+    animation: confetti-burst var(--confetti-dur, 1300ms) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes confetti-burst {
+    from {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    to {
+        transform: translate(calc(-50% + var(--confetti-x, 0px)), calc(-50% + var(--confetti-y, 0px))) rotate(var(--confetti-rot, 360deg));
+        opacity: 0;
+    }
+}
+
+.networth-milestone-host {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.networth-milestone-toast {
+    background: linear-gradient(135deg, #2563eb, #10b981);
+    color: #fff;
+    padding: 12px 14px;
+    border-radius: 10px;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.24);
+    font-weight: 600;
+    max-width: 360px;
+    font-size: 0.9rem;
+    animation: toast-slide-in 0.3s ease forwards;
+}
+
+@keyframes toast-slide-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

@@ -84,25 +84,29 @@ def test_no_hardcoded_secrets():
     ]
     
     issues = []
-    
+
     for filename in os.listdir(src_dir):
-        if filename.endswith('.js'):
-            filepath = os.path.join(src_dir, filename)
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read().lower()
-            
+        if not filename.endswith('.js'):
+            continue
+        filepath = os.path.join(src_dir, filename)
+        with open(filepath, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            # Skip full-line comments
+            if stripped.startswith('//') or stripped.startswith('*'):
+                continue
+            lower = stripped.lower()
             for pattern in suspicious_patterns:
-                if pattern in content:
-                    # Check if it's just a comment or variable name
-                    if f'"{pattern}"' in content or f"'{pattern}'" in content:
-                        # This might be a hardcoded secret
-                        lines = content.split('\n')
-                        for i, line in enumerate(lines):
-                            if pattern in line and not line.strip().startswith('//'):
-                                issues.append(f"{filename}:{i+1} - potential hardcoded secret")
-    
-    # Allow some false positives but flag if too many issues
-    assert len(issues) < 5, f"Potential hardcoded secrets found: {issues}"
+                # Only flag when the pattern appears as a string literal value
+                if f'"{pattern}"' in lower or f"'{pattern}'" in lower:
+                    # Skip known-safe usages: sanitize helpers, localStorage key names
+                    if any(safe in lower for safe in ['sanitize', 'localstorage', 'storagekey']):
+                        continue
+                    issues.append(f"{filename}:{i+1}: {stripped}")
+
+    assert len(issues) == 0, f"Potential hardcoded secrets found: {issues}"
 
 
 @pytest.mark.security
@@ -183,31 +187,34 @@ def test_form_submission_security():
 
 @pytest.mark.security
 def test_no_debug_statements():
-    """Verify no debug logging in production code."""
+    """Verify no debug statements remain in production source code."""
     src_dir = os.path.join(PROJECT_ROOT, 'src')
-    
-    debug_patterns = [
-        'debugger;',
-        'console.log',
-        'console.debug',
-    ]
-    
-    issues = []
-    
+
+    debugger_hits = []
+    console_log_hits = []
+
     for filename in os.listdir(src_dir):
-        if filename.endswith('.js'):
-            filepath = os.path.join(src_dir, filename)
-            with open(filepath, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-            
-            for i, line in enumerate(lines):
-                for pattern in debug_patterns:
-                    if pattern in line and not line.strip().startswith('//'):
-                        # Some debug statements might be intentional, count them
-                        pass
-    
-    # Don't fail if some debug statements exist (they're not critical security issues)
-    # This is informational
+        if not filename.endswith('.js'):
+            continue
+        filepath = os.path.join(src_dir, filename)
+        with open(filepath, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith('//'):
+                continue
+            if 'debugger;' in line:
+                debugger_hits.append(f"{filename}:{i+1}: {stripped}")
+            elif 'console.log(' in line:
+                console_log_hits.append(f"{filename}:{i+1}: {stripped}")
+
+    assert len(debugger_hits) == 0, \
+        f"debugger statements found in production code: {debugger_hits}"
+    assert len(console_log_hits) == 0, (
+        f"console.log statements found in production source — "
+        f"use console.warn/error for intentional messages: {console_log_hits}"
+    )
 
 
 def main():

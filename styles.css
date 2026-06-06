@@ -4782,7 +4782,7 @@ body.dark-mode .badge-good { background: #451a03; color: #fcd34d; }
 body.dark-mode .badge-warning { background: #7f1d1d; color: #fca5a5; }
 .progress-bar { height: 8px; border-radius: 4px; background: #e5e7eb; overflow: hidden; margin: 10px 0; }
 body.dark-mode .progress-bar { background: #334155; }
-.progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #2563eb, #059669); transition: width 0.4s ease; }
+.progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #2563eb, #059669); transition: width 0.4s ease; width: var(--progress-width, 0%); }
 .emergency-card-details { margin: 12px 0; }
 .detail-row { display: flex; justify-content: space-between; font-size: 0.88rem; padding: 4px 0; color: #4b5563; }
 body.dark-mode .detail-row { color: #cbd5e1; }
