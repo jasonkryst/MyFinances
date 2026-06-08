@@ -71,8 +71,20 @@ def test_smoke_full_workflow(app_page):
     page.wait_for_timeout(500)
     reports_section = page.query_selector('#reportsSection')
     assert reports_section, "Reports section not found"
-    
-    # 7. Verify no console errors
+
+    # 7. Navigate to health dashboard and verify it renders with real data
+    page.click('button[data-page="health"]')
+    page.wait_for_timeout(600)
+    health_section = page.query_selector('#healthSection')
+    assert health_section, "Health section not found"
+    health_cards = page.query_selector_all('.health-metric-card')
+    assert len(health_cards) == 6, f"Expected 6 health metric cards, found {len(health_cards)}"
+    # With income + debt added above, cash flow should not be Break Even
+    health_text = health_section.text_content()
+    assert 'Surplus' in health_text or 'Deficit' in health_text, \
+        "Health dashboard should show Surplus or Deficit with real data"
+
+    # 8. Verify no console errors
     console_errors = []
     if hasattr(page, 'console_errors'):
         filtered = [

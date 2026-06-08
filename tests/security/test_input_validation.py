@@ -151,6 +151,66 @@ async def test_interest_rate_bounds(async_app_page):
 
 
 @pytest.mark.security
+async def test_health_dti_clamps_above_100_percent(async_app_page):
+    """Health DTI gauge value is clamped to 100% even when ratio exceeds 1."""
+    page = async_app_page
+
+    # Income $100, debt payments $500 → 500% DTI; gauge should cap at 100%
+    await page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Job', amount: 100,
+                         firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.debts = [{ id: 2, name: 'CC', accountBalance: 99999, originalBalance: 99999,
+                       minimumPayment: 500, interestRate: 18, dueDate: 1,
+                       debtType: 'creditCard' }];
+        app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+    }""")
+
+    await page.click('button[data-page="health"]')
+    await page.wait_for_timeout(500)
+
+    gauge_value = await page.evaluate("""() => {
+        const el = document.querySelector('.health-gauge-value');
+        return el ? parseFloat(el.textContent) : null;
+    }""")
+
+    assert gauge_value is not None, "DTI gauge value element not found"
+    assert gauge_value <= 100.0, f"DTI gauge should be capped at 100%, got {gauge_value}%"
+
+
+@pytest.mark.security
+async def test_health_savings_rate_clamps_above_100_percent(async_app_page):
+    """Health savings gauge is clamped to 100% when contributions exceed income."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Job', amount: 100,
+                         firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.emergencyFunds = [{
+            id: 9, name: 'EF', accountId: null,
+            currentAmount: 0, targetAmount: 5000, monthlyContribution: 9999
+        }];
+        app.debts = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.sinkingFunds = [];
+    }""")
+
+    await page.click('button[data-page="health"]')
+    await page.wait_for_timeout(500)
+
+    # The second .health-gauge-value is the savings rate gauge
+    gauge_values = await page.evaluate("""() =>
+        Array.from(document.querySelectorAll('.health-gauge-value'))
+             .map(el => parseFloat(el.textContent))
+    """)
+
+    assert len(gauge_values) >= 2, "Expected at least 2 gauge value elements"
+    savings_pct = gauge_values[1]
+    assert savings_pct <= 100.0, f"Savings gauge should be capped at 100%, got {savings_pct}%"
+
+
+@pytest.mark.security
 async def test_unicode_in_names(async_app_page):
     """Test that unicode characters are properly handled."""
     page = async_app_page

@@ -150,23 +150,93 @@ async def test_malicious_json_import(async_app_page):
 
 
 @pytest.mark.security
-async def test_no_console_errors(async_app_page):
-    """Verify no console errors during page interaction."""
+async def test_xss_in_health_budget_category(async_app_page):
+    """Test XSS prevention in bill category names rendered by the health dashboard."""
     page = async_app_page
-    
+
+    # Inject a bill whose category contains a script tag
+    await page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 5000,
+                         firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.bills = [{
+            id: 99, name: 'Util', dueDay: 1,
+            amount: 200,
+            category: '<script>window.__xss_health=1</script>Utilities'
+        }];
+        app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+    }""")
+
+    await page.click('button[data-page="health"]')
+    await page.wait_for_timeout(500)
+
+    # XSS payload should not have executed
+    xss_ran = await page.evaluate('() => window.__xss_health === 1')
+    assert not xss_ran, "XSS script in bill category executed on health page!"
+
+    # Category text should be escaped in the DOM
+    section_html = await page.evaluate(
+        '() => document.getElementById("healthSection")?.innerHTML || ""'
+    )
+    assert '<script>' not in section_html, "Unescaped <script> tag found in health section HTML"
+
+
+@pytest.mark.security
+async def test_xss_in_health_emergency_fund_account_name(async_app_page):
+    """Test XSS prevention in account names rendered in the emergency fund card."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{
+            id: 8001,
+            name: '<img src=x onerror="window.__xss_ef=1">EFund',
+            type: 'Savings',
+            startingBalance: 0
+        }];
+        app.emergencyFunds = [{
+            id: 8002, name: 'Safety Net', accountId: 8001,
+            currentAmount: 3000, targetAmount: 6000, monthlyContribution: 100
+        }];
+        app.incomes = []; app.debts = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.sinkingFunds = [];
+    }""")
+
+    await page.click('button[data-page="health"]')
+    await page.wait_for_timeout(500)
+
+    xss_ran = await page.evaluate('() => window.__xss_ef === 1')
+    assert not xss_ran, "XSS via account name in emergency fund card executed!"
+
+    section_html = await page.evaluate(
+        '() => document.getElementById("healthSection")?.innerHTML || ""'
+    )
+    assert '<img' not in section_html, "Unescaped <img> tag found in health emergency fund card"
+
+
+@pytest.mark.security
+async def test_no_console_errors(async_app_page):
+    """Verify no console errors during page interaction including the health dashboard."""
+    page = async_app_page
+
     console_errors = []
     page.on('console', lambda msg: (
         console_errors.append(msg.text) if msg.type == 'error' else None
     ))
-    
-    # Perform various interactions
+
+    # Perform various interactions including health dashboard
+    await page.click('button[data-page="health"]')
+    await page.wait_for_timeout(300)
     await page.click('button[data-page="accounts"]')
     await page.wait_for_timeout(300)
     await page.click('button[data-page="income"]')
     await page.wait_for_timeout(300)
     await page.click('button[data-page="liabilities"]')
     await page.wait_for_timeout(300)
-    
+    await page.click('button[data-page="health"]')
+    await page.wait_for_timeout(300)
+
     # Check for errors (ignore favicon errors)
     filtered_errors = [
         e for e in console_errors

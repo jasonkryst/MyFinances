@@ -83,6 +83,7 @@ import {
     switchSavingsSubTab as switchSavingsSubTabFeature,
     attachSavingsEventListeners as attachSavingsEventListenersFeature
 } from './savings.js';
+import { renderHealthDashboard as renderHealthDashboardFeature } from './health.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -140,7 +141,7 @@ export class DebtTrackerApp {
 
         this.updateUI();
         this.updateFormVisibility();
-        this.switchPage('accounts');
+        this.switchPage('health');
     }
 
     initializeEventListeners() {
@@ -760,6 +761,8 @@ export class DebtTrackerApp {
     renderSavingsPage() { return renderSavingsPageFeature(this); }
     switchSavingsSubTab(subTab) { return switchSavingsSubTabFeature(this, subTab); }
     attachSavingsEventListeners() { return attachSavingsEventListenersFeature(this); }
+
+    renderHealthDashboard() { return renderHealthDashboardFeature(this); }
 
     switchLiabilitiesSubTab(subTab) {
         this.liabilitiesSubTab = subTab;

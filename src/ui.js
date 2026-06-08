@@ -479,6 +479,7 @@ export function switchPage(app, pageName) {
     if (btn) btn.classList.add('active');
 
     const mapping = {
+        health: 'healthSection',
         accounts: 'accountsSection',
         liabilities: 'liabilitiesSection',
         income: 'incomeSection',
@@ -497,6 +498,7 @@ export function switchPage(app, pageName) {
         if (el) el.classList.add('active');
     }
 
+    if (pageName === 'health') app.renderHealthDashboard();
     if (pageName === 'accounts') {
         app.renderAccountsList();
         app.renderNetWorthWidget();

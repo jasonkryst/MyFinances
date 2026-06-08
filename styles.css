@@ -4834,3 +4834,149 @@ body.dark-mode .app-footer {
     color: #64748b;
     border-top-color: #334155;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Financial Health Dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.health-section { padding: 0; }
+
+.health-header { margin-bottom: 1.25rem; }
+.health-header h2 { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.2rem; }
+.health-subtitle { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+.health-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+@media (max-width: 680px) {
+    .health-metrics-grid { grid-template-columns: 1fr; }
+}
+
+.health-metric-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    box-shadow: var(--shadow);
+}
+
+.health-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.health-card-title { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
+.health-card-desc  { font-size: 0.78rem; color: var(--text-secondary); margin: 0; line-height: 1.45; }
+
+/* Badges */
+.health-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.health-badge--sm { font-size: 0.68rem; padding: 0.15rem 0.45rem; }
+
+.health-status--green  { background: #dcfce7; color: #15803d; }
+.health-status--yellow { background: #fef9c3; color: #a16207; }
+.health-status--red    { background: #fee2e2; color: #b91c1c; }
+body.dark-mode .health-status--green  { background: #14532d; color: #86efac; }
+body.dark-mode .health-status--yellow { background: #422006; color: #fde68a; }
+body.dark-mode .health-status--red    { background: #450a0a; color: #fca5a5; }
+
+/* Colored progress fills for health cards */
+.health-fill--green  { background: #16a34a !important; }
+.health-fill--yellow { background: #d97706 !important; }
+.health-fill--red    { background: #dc2626 !important; }
+
+/* Compact progress bar variant */
+.health-compact-bar { height: 6px !important; margin: 4px 0 !important; }
+
+/* Gauge */
+.health-gauge-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 130px;
+    height: 130px;
+    margin: 0 auto;
+}
+.health-gauge-canvas { width: 130px !important; height: 130px !important; }
+.health-gauge-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -46%);
+    text-align: center;
+    pointer-events: none;
+}
+.health-gauge-value { display: block; font-size: 1.4rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.health-gauge-label { display: block; font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+/* Detail row */
+.health-metric-detail { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-secondary); }
+
+/* Emergency Fund rows */
+.health-ef-row   { display: flex; flex-direction: column; gap: 0.2rem; }
+.health-ef-header { display: flex; justify-content: space-between; align-items: center; }
+.health-ef-name  { font-size: 0.83rem; font-weight: 500; color: var(--text-primary); }
+.health-ef-detail { font-size: 0.73rem; color: var(--text-secondary); }
+
+/* Timeline */
+.health-timeline-hero { display: flex; align-items: baseline; gap: 0.3rem; padding: 0.3rem 0; }
+.health-timeline-value { font-size: 2.4rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
+.health-timeline-unit  { font-size: 0.95rem; color: var(--text-secondary); }
+.health-timeline-date  { font-size: 0.78rem; color: var(--text-secondary); }
+.health-progress-label { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-secondary); }
+
+/* Cash flow */
+.health-cashflow-hero {
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    line-height: 1.1;
+}
+.health-cashflow-hero--positive { color: #16a34a; background: #f0fdf4; }
+.health-cashflow-hero--negative { color: #dc2626; background: #fef2f2; }
+body.dark-mode .health-cashflow-hero--positive { background: #14532d; }
+body.dark-mode .health-cashflow-hero--negative { background: #450a0a; }
+
+.health-cashflow-rows  { display: flex; flex-direction: column; gap: 0.3rem; }
+.health-cashflow-row   { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); }
+.health-cashflow-row--total {
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.health-cf-income  { color: #16a34a; font-weight: 500; }
+.health-cf-out     { color: var(--text-secondary); }
+.health-cf-deficit { color: #dc2626; font-weight: 600; }
+
+/* Budget allocation */
+.health-budget-row     { display: flex; flex-direction: column; gap: 0.15rem; }
+.health-budget-cat-hd  { display: flex; justify-content: space-between; align-items: center; }
+.health-budget-cat-name { font-size: 0.8rem; color: var(--text-primary); }
+.health-budget-cat-amt  { font-size: 0.7rem; color: var(--text-secondary); }
+
+/* Empty state */
+.health-empty-state  { display: flex; flex-direction: column; align-items: center; padding: 0.75rem; gap: 0.2rem; }
+.health-empty-value  { font-size: 1.6rem; font-weight: 700; color: var(--text-primary); }
+.health-empty--green { color: #16a34a; }
+.health-empty-sub    { font-size: 0.78rem; color: var(--text-secondary); text-align: center; }
+
+/* Nav links */
+.health-link { font-size: 0.76rem; color: var(--primary-color); text-decoration: none; cursor: pointer; margin-top: auto; display: inline-block; }
+.health-link:hover { text-decoration: underline; }

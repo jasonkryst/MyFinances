@@ -285,6 +285,8 @@ export function exportAllJSON(app) {
         expenses: app.expenses || [],
         ledgerAmountOverrides: app.ledgerAmountOverrides || {},
         recurringTemplates: app.recurringTemplates || [],
+        emergencyFunds: app.emergencyFunds || [],
+        sinkingFunds: app.sinkingFunds || [],
         monthlySnapshots: app.monthlySnapshots || [],
         netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
         strategy: {
@@ -457,6 +459,9 @@ export function importAllJSON(app, file, options = {}) {
         const incomingBills = clean.bills;
         const incomingExpenses = clean.expenses;
         const incomingLedgerAmountOverrides = clean.ledgerAmountOverrides;
+        const incomingRecurringTemplates = clean.recurringTemplates;
+        const incomingEmergencyFunds = clean.emergencyFunds;
+        const incomingSinkingFunds = clean.sinkingFunds;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
         const incomingStrategy = payload?.strategy || null;
@@ -465,7 +470,8 @@ export function importAllJSON(app, file, options = {}) {
         const validDebts = incomingDebts.filter(d => d && d.name);
 
         if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy
-            && incomingBills.length === 0 && incomingExpenses.length === 0) {
+            && incomingBills.length === 0 && incomingExpenses.length === 0
+            && incomingRecurringTemplates.length === 0) {
             if (typeof onNoData === 'function') {
                 onNoData();
             }
@@ -478,6 +484,7 @@ export function importAllJSON(app, file, options = {}) {
         if (incomingIncomes.length) parts.push(`${incomingIncomes.length} income source(s)`);
         if (incomingBills.length) parts.push(`${incomingBills.length} bill(s)`);
         if (incomingExpenses.length) parts.push(`${incomingExpenses.length} expense budget(s)`);
+        if (incomingRecurringTemplates.length) parts.push(`${incomingRecurringTemplates.length} recurring item(s)`);
         if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
         const shouldReplace = typeof requestImportMode === 'function'
@@ -485,12 +492,15 @@ export function importAllJSON(app, file, options = {}) {
             : true;
 
         if (shouldReplace) {
-            app.accounts = incomingAccounts.map((a, i) => ({ ...a, id: Date.now() + 500 + i }));
+            app.accounts = incomingAccounts;
             app.debts = validDebts.map((d, i) => ({ ...d, id: Date.now() + i }));
             app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
             app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
             app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
+            app.recurringTemplates = incomingRecurringTemplates.map((r, i) => ({ ...r, id: Date.now() + 4000 + i }));
+            app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
+            app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
@@ -519,11 +529,14 @@ export function importAllJSON(app, file, options = {}) {
             if (skipped > 0 && typeof onMergeDuplicates === 'function') {
                 onMergeDuplicates(toAdd.length, skipped);
             }
-            app.accounts = incomingAccounts.map((a, i) => ({ ...a, id: Date.now() + 500 + i }));
+            app.accounts = incomingAccounts;
             app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
             app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
             app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
+            app.recurringTemplates = incomingRecurringTemplates.map((r, i) => ({ ...r, id: Date.now() + 4000 + i }));
+            app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
+            app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];

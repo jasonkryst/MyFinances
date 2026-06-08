@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: May 30, 2026  
-**Current Version**: v3.0.2  
+**Last Updated**: June 8, 2026  
+**Current Version**: v3.1.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -71,30 +71,32 @@ this.monthlySnapshots = [
 ---
 
 #### 📈 Financial Health Dashboard
-**Priority**: HIGH | **Effort**: LOW-MEDIUM | **Status**: PROPOSED
+**Priority**: HIGH | **Effort**: LOW-MEDIUM | **Status**: IMPLEMENTED (June 8, 2026)
 
 **Description**:
-A single-page overview of key financial metrics using industry-standard indicators. Reuses existing calculations but presents them as gauges, progress bars, and summary cards.
+A single-page overview of key financial metrics using industry-standard indicators. Reuses existing calculations and presents them as gauges, progress bars, and summary cards.
 
-**Metrics to Display**:
-- **Debt-to-Income Ratio** — Debt payments ÷ Monthly income (warning if >40%)
-- **Savings Rate** — (Income - Expenses - Debt Payments) / Income (%)
-- **Emergency Fund Coverage** — Months of expenses currently saved
-- **Debt Payoff Timeline** — Years until debt-free at current pace
-- **Monthly Cash Flow** — Income vs. total outflows (surplus/deficit)
-- **Budget Health** — Over/under spent by category this month
+**Delivered Features**:
+- **Debt-to-Income Ratio** — Chart.js doughnut gauge; Healthy (<28%) / Moderate (<40%) / High Risk (≥40%) badge
+- **Savings Rate** — Emergency + sinking fund contributions as % of income; Strong / Moderate / Low badge
+- **Emergency Fund Coverage** — Per-fund months of coverage with progress bar; empty-state when no funds
+- **Debt Payoff Timeline** — Years to debt-free at minimum payments (avalanche); "Debt Free!" state when no debts; payoff date and % progress bar
+- **Monthly Cash Flow** — Income minus all outflows; Surplus / Break Even / Deficit badge with itemized breakdown
+- **Budget Allocation** — Bill + expense categories as % of income with color-coded progress bars; debt payments row included
+- Internal navigation links route to Savings, Liabilities, or Plan page from each card
+- Dark-mode-aware gauge background color
 
-**Why This Matters**:
-- One-glance assessment of financial health
-- Users recognize industry-standard metrics
-- Motivates with visual progress indicators
-- Could be default landing page
+**Implementation Notes**:
+- Implemented in `src/health.js` as `renderHealthDashboard(app)`
+- All user-sourced strings rendered via `escapeHtml()` (XSS safe)
+- Chart instances stored on `app._healthDtiChart` and `app._healthSavingsChart`; destroyed on re-render to prevent memory leaks
+- Gauge values clamped to [0, 100] regardless of raw ratio
 
-**UI/UX**:
-- Large gauge/progress bar for each metric
-- Color coding: red (unhealthy) → yellow (moderate) → green (healthy)
-- Hover tooltips explaining each metric
-- Links to relevant sections (e.g., "Adjust debt payments" from timeline)
+**Test Coverage**:
+- 18 feature tests in `tests/features/test_health.py` covering all six cards, nav links, empty states, and error-free rendering
+- 2 XSS tests in `tests/security/test_xss.py` (bill category names, emergency fund account names)
+- 2 validation tests in `tests/security/test_input_validation.py` (gauge clamping above 100%)
+- Health dashboard step added to `tests/integration/test_smoke.py`
 
 ---
 
@@ -384,23 +386,27 @@ Domain-specific tools for advanced users.
 
 ## 🚀 Implementation Roadmap by Release
 
-### v3.1 (Next Release - Q3 2026)
+### v3.1 (Released - June 8, 2026)
 **Focus**: Financial Visibility & Motivation
 
-- [ ] Financial Health Dashboard (HIGH impact, LOW-MEDIUM effort)
+- [x] Financial Health Dashboard (HIGH impact, LOW-MEDIUM effort)
 - [ ] Budget Alerts & Warnings (HIGH impact, LOW effort)
 - [x] Net Worth Tracker (HIGH impact, MEDIUM effort)
 
-**Why This Release**:
-- Reuses existing calculations
-- High user engagement impact
-- Foundation for future features
+**Shipped with v3.1**:
+- Financial Health Dashboard (`src/health.js`) with all six metric cards
+- Multi-account ledger: items without account links route to a sentinel bucket and appear in report-wide aggregations but are excluded from the per-account ledger view
+- Import/export: `recurringTemplates`, `emergencyFunds`, and `sinkingFunds` now fully round-trip through backup JSON
+- Import: account IDs are now preserved on import so all `accountId` cross-references in income, debt, bills, and recurring items remain valid after a restore
+- Reports tab: aggregations now include items not linked to any account (previously only linked items were counted)
+- Test suite expanded: 22 new tests covering the Health Dashboard (feature, security, integration)
 
 ---
 
-### v3.2 (Q4 2026)
+### v3.2 (Q3 2026)
 **Focus**: Goal Setting & Progress Tracking
 
+- [ ] Budget Alerts & Warnings (HIGH impact, LOW effort) — carried from v3.1
 - [ ] Savings Goals (MEDIUM-HIGH impact)
 - [ ] Spending Analysis (MEDIUM impact)
 - [ ] Enhanced Ledger Features (MEDIUM impact)
@@ -436,10 +442,7 @@ These can be implemented quickly and add immediate value:
    - Add totals by category below budget section
    - Show % of budget used
 
-3. **Dashboard Page** (2-3 hours)
-   - Compile existing metrics with visual gauges
-   - New default landing page
-   - Links to relevant sections
+3. ~~**Dashboard Page** (2-3 hours)~~ ✅ **Delivered in v3.1** — Financial Health Dashboard (`src/health.js`)
 
 4. **Bill Payment Status** (1 hour)
    - Add checkbox "Paid this month" to bills
@@ -525,13 +528,13 @@ this.reconciliationEntries = [];  // Account adjustments
 ## 📞 Feedback & Discussion
 
 **Status**: Open for feedback  
-**Last Review**: May 29, 2026  
-**Next Review**: June 30, 2026
+**Last Review**: June 8, 2026  
+**Next Review**: July 31, 2026
 
 Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECURITY.md#security-issues).
 
 ---
 
-**Version**: 1.0  
+**Version**: 1.1  
 **Status**: Active Roadmap  
-**Last Updated**: May 29, 2026
+**Last Updated**: June 8, 2026
