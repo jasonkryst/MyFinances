@@ -153,6 +153,24 @@ def recurring_data():
     }
 
 
+@pytest.fixture
+def health_data():
+    """App state for exercising all six health dashboard metric cards.
+
+    Inject via page.evaluate before calling app.switchPage('health').
+    Produces: ~4% DTI (Healthy), Surplus cash flow, no emergency fund.
+    """
+    return {
+        "income": {"id": 1, "name": "Salary", "amount": 5000,
+                   "firstPayDate": "2026-06-01", "frequency": "monthly"},
+        "debt": {"id": 2, "name": "Credit Card", "accountBalance": 2500,
+                 "originalBalance": 2500, "minimumPayment": 200,
+                 "interestRate": 18, "dueDate": 15, "debtType": "creditCard"},
+        "bill": {"id": 3, "name": "Rent", "amount": 1200,
+                 "dueDay": 1, "category": "Housing"},
+    }
+
+
 # Utility functions
 def assert_no_errors(page):
     """Assert that page has no console or page errors."""

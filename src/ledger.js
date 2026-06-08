@@ -67,14 +67,20 @@ export function makeLedgerTransactionId(tx) {
     return `${type}|${source}|${account}|${dateKey}`;
 }
 
+// Sentinel key for transactions that have no account linked.
+// These appear in report-wide queries (accountId = null) but are excluded
+// from the per-account ledger view and per-account balance calculations.
+const UNLINKED_KEY = '__unlinked__';
+
 function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToProject = 12) {
     const accountMap = {};
     for (const acct of app.accounts || []) {
         accountMap[acct.id] = { ...acct, txs: [] };
     }
+    accountMap[UNLINKED_KEY] = { id: UNLINKED_KEY, name: null, txs: [] };
 
     function addTx({ accountId, date, name, amount, type, sourceId, category }) {
-        if (!accountId || !accountMap[accountId]) return;
+        const key = accountId && accountMap[accountId] ? accountId : UNLINKED_KEY;
         const txDate = new Date(date);
         const tx = {
             date: txDate,
@@ -85,12 +91,12 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
             category
         };
         tx.transactionId = makeLedgerTransactionId({
-            accountId,
+            accountId: key,
             date: txDate,
             type,
             sourceId
         });
-        accountMap[accountId].txs.push(tx);
+        accountMap[key].txs.push(tx);
     }
 
     for (let m = 0; m < monthsToProject; m++) {
@@ -98,7 +104,7 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
         const month = (startMonth + m) % 12;
 
         for (const inc of app.incomes || []) {
-            if (!inc.accountId || !inc.amount) continue;
+            if (!inc.amount) continue;
             const paydays = getIncomePaydaysInMonth(inc, year, month);
             for (const payDate of paydays) {
                 addTx({
@@ -114,7 +120,6 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
         }
 
         for (const bonus of app.bonuses || []) {
-            if (!bonus.accountId) continue;
             if (bonus.date && bonus.amount) {
                 const bonusDate = new Date(bonus.date);
                 if (bonusDate.getFullYear() === year && bonusDate.getMonth() === month) {
@@ -132,7 +137,6 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
         }
 
         for (const debt of app.debts || []) {
-            if (!debt.accountId) continue;
             if (debt.dueDate && debt.minimumPayment) {
                 const due = new Date(year, month, debt.dueDate);
                 addTx({
@@ -148,7 +152,6 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
         }
 
         for (const bill of app.bills || []) {
-            if (!bill.accountId) continue;
             if (bill.dueDay && bill.amount) {
                 const due = new Date(year, month, bill.dueDay);
                 addTx({
@@ -164,7 +167,6 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
         }
 
         for (const exp of app.expenses || []) {
-            if (!exp.accountId) continue;
             if (exp.budgetAmount && exp.date) {
                 const expDate = new Date(exp.date);
                 if (expDate.getFullYear() === year && expDate.getMonth() === month) {
@@ -182,7 +184,6 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
         }
 
         for (const tmpl of app.recurringTemplates || []) {
-            if (!tmpl.accountId) continue;
             const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
             for (const occDate of occurrences) {
                 if (tmpl.type === 'reimbursement') {
@@ -271,6 +272,9 @@ export function getLedgerTransactionsForMonth(app, year, month, accountId = null
     const accountMap = buildProjectedAccountTransactions(app, year, month, 1);
     const out = [];
     for (const acctId in accountMap) {
+        // When filtering by a specific account, skip the unlinked sentinel
+        // (it never matches a numeric id anyway, but be explicit)
+        if (acctId === UNLINKED_KEY && accountId !== null) continue;
         if (accountId !== null && String(acctId) !== String(accountId)) continue;
         const acct = accountMap[acctId];
         for (const tx of acct.txs) {
@@ -278,7 +282,7 @@ export function getLedgerTransactionsForMonth(app, year, month, accountId = null
             out.push({
                 date: tx.date.toISOString(),
                 account: acct.name,
-                accountId: acctId,
+                accountId: acctId === UNLINKED_KEY ? null : acctId,
                 name: tx.name,
                 amount,
                 originalAmount: tx.originalAmount,
@@ -302,6 +306,7 @@ export function getLedgerTransactions(app) {
     const allTxs = [];
 
     for (const acctId in accountMap) {
+        if (acctId === UNLINKED_KEY) continue;
         const acct = accountMap[acctId];
         let lastMonth = null;
         let running = Number(acct.startingBalance) || 0;

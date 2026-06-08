@@ -1,0 +1,39 @@
+# ── AI / IDE tools ─────────────────────────────────────────────────────────────
+# Claude Code local settings (machine-specific)
+.claude/
+# Playwright MCP session logs and page snapshots
+.playwright-mcp/
+# Claude Code per-session memory (auto-managed)
+.remember/
+# Internal planning documents
+.plans/
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# ── Node / frontend build ───────────────────────────────────────────────────────
+node_modules/
+.npm/
+*.min.js.map
+
+# ── Environment & secrets ───────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── OS artifacts ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
