@@ -324,6 +324,17 @@ export function initializeEventListeners(app) {
             return;
         }
 
+        const forecastRangeBtn = event.target.closest('[data-forecast-range]');
+        if (forecastRangeBtn) {
+            const nextRange = parseInt(forecastRangeBtn.getAttribute('data-forecast-range'), 10);
+            if ([1, 2, 3, 6, 12].includes(nextRange)) {
+                app._forecastRangeMonths = nextRange;
+                app.saveToStorage();
+                app.renderReportsPage();
+            }
+            return;
+        }
+
         const captureBtn = event.target.closest('#captureSnapshotBtn');
         if (captureBtn) {
             app.captureNetWorthSnapshot({ source: 'manual' });

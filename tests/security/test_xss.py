@@ -16,7 +16,11 @@ BASE_URL = "http://localhost:5500/"
 async def test_xss_in_account_name(async_app_page):
     """Test XSS prevention in account names."""
     page = async_app_page
-    
+
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     # Attempt XSS payload
     await page.fill('#accountName', '<script>alert("xss")</script>')
     await page.select_option('#accountType', 'Checking')
@@ -244,3 +248,194 @@ async def test_no_console_errors(async_app_page):
         and 'X-Frame-Options may only be set via an HTTP header' not in e
     ]
     assert len(filtered_errors) == 0, f"Console errors found: {filtered_errors}"
+
+
+@pytest.mark.security
+async def test_xss_in_emergency_fund_notes(async_app_page):
+    """Test XSS prevention in the Emergency Fund notes field."""
+    page = async_app_page
+
+    # Emergency funds are linked to an account, so create one first
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+    await page.fill('#accountName', 'EF Checking')
+    await page.select_option('#accountType', 'Checking')
+    await page.fill('#accountStartingBalance', '1000')
+    await page.click('button:has-text("Add Account")')
+    await page.wait_for_timeout(500)
+
+    await page.click('button[data-page="savings"]')
+    await page.wait_for_timeout(300)
+    await page.click('#emergencyFormToggle')
+    await page.wait_for_timeout(300)
+
+    await page.select_option('#emergencyAccount', label='EF Checking')
+    await page.fill('#emergencyTarget', '5000')
+    await page.fill('#emergencyCurrent', '1000')
+    await page.fill('#emergencyContribution', '100')
+    await page.fill('#emergencyNotes', '<script>window.__xss_ef_notes=true</script>')
+    await page.click('#emergencyFormSubmit')
+    await page.wait_for_timeout(500)
+
+    xss_triggered = await page.evaluate('() => window.__xss_ef_notes === true')
+    assert not xss_triggered, "XSS payload executed via emergency fund notes!"
+
+    list_html = await page.evaluate('() => document.getElementById("emergencyList")?.innerHTML || ""')
+    assert '<script>' not in list_html, "Unescaped <script> tag found in emergency fund notes"
+
+
+@pytest.mark.security
+async def test_xss_in_ledger_transaction_name(async_app_page):
+    """Test XSS prevention in ledger transaction names (rendered from bill names)."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        const today = new Date();
+        app.accounts = [{ id: 7001, name: 'Ledger XSS', type: 'Checking', startingBalance: 1000 }];
+        app.bills = [{
+            id: 70, name: '<img src=x onerror="window.__xss_ledger=1">',
+            dueDay: today.getDate(), amount: 50, category: 'Other', accountId: 7001
+        }];
+        app.incomes = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.ledgerAmountOverrides = {};
+        app.switchPage('ledger');
+    }""")
+    await page.wait_for_timeout(300)
+
+    table_html = await page.evaluate('() => document.getElementById("ledgerTableContainer")?.innerHTML || ""')
+    assert '<img src=x' not in table_html, "Unescaped <img> tag found in ledger table"
+
+    xss_ran = await page.evaluate('() => window.__xss_ledger === 1')
+    assert not xss_ran, "XSS payload executed via ledger transaction name!"
+
+    # Open the override modal for the malicious transaction and confirm the
+    # name is also rendered safely there.
+    override_btn = await page.query_selector('[data-ledger-override]')
+    assert override_btn, "Expected an override button for the bill transaction"
+    await override_btn.click()
+    await page.wait_for_timeout(300)
+
+    modal_html = await page.evaluate('() => document.getElementById("ledgerOverrideModal")?.innerHTML || ""')
+    assert '<img src=x' not in modal_html, "Unescaped <img> tag found in ledger override modal"
+
+    xss_ran_modal = await page.evaluate('() => window.__xss_ledger === 1')
+    assert not xss_ran_modal, "XSS payload executed via ledger override modal!"
+
+
+@pytest.mark.security
+async def test_ledger_override_amount_extreme_values(async_app_page):
+    """Test the ledger amount-override modal handles negative and very large amounts safely."""
+    page = async_app_page
+
+    console_errors = []
+    page.on('console', lambda msg: (
+        console_errors.append(msg.text) if msg.type == 'error' else None
+    ))
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        const today = new Date();
+        app.accounts = [{ id: 7002, name: 'Override Bounds', type: 'Checking', startingBalance: 1000 }];
+        app.bills = [{
+            id: 71, name: 'Rent', dueDay: today.getDate(), amount: 50, category: 'Other', accountId: 7002
+        }];
+        app.incomes = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.ledgerAmountOverrides = {};
+        app.switchPage('ledger');
+    }""")
+    await page.wait_for_timeout(300)
+
+    override_btn = await page.query_selector('[data-ledger-override]')
+    assert override_btn, "Expected an override button for the bill transaction"
+    await override_btn.click()
+    await page.wait_for_timeout(300)
+
+    # A very large, negative override amount should be accepted without
+    # producing NaN/Infinity in the rendered ledger.
+    await page.fill('#ledgerOverrideAmountInput', '-99999999999999')
+    await page.click('#ledgerOverrideConfirmBtn')
+    await page.wait_for_timeout(300)
+
+    table_html = await page.evaluate('() => document.getElementById("ledgerTableContainer")?.innerHTML || ""')
+    assert 'NaN' not in table_html and 'Infinity' not in table_html, \
+        "Extreme override amount produced NaN/Infinity in ledger"
+
+    filtered_errors = [e for e in console_errors if 'favicon' not in e.lower()]
+    assert len(filtered_errors) == 0, f"Console errors found: {filtered_errors}"
+
+
+@pytest.mark.security
+async def test_xss_in_recurring_template_category(async_app_page):
+    """Test XSS prevention in recurring template category labels."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7101, name: 'Recurring XSS', type: 'Checking', startingBalance: 1000 }];
+        app.recurringTemplates = [{
+            id: 80, name: 'Streaming', type: 'subscription', amount: 15,
+            frequency: 'monthly', dayOfMonth: 1,
+            category: '<img src=x onerror="window.__xss_recurring=1">',
+            accountId: 7101, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: false, skippedMonths: []
+        }];
+        app.incomes = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.refreshRecurringAccountSelectors();
+        app.renderRecurringPage();
+        app.switchPage('recurring');
+    }""")
+    await page.wait_for_timeout(300)
+
+    section_html = await page.evaluate(
+        '() => document.getElementById("recurringSection")?.innerHTML || ""'
+    )
+    assert '<img src=x' not in section_html, "Unescaped <img> tag found in recurring template category"
+
+    xss_ran = await page.evaluate('() => window.__xss_recurring === 1')
+    assert not xss_ran, "XSS payload executed via recurring template category!"
+
+
+@pytest.mark.security
+async def test_xss_in_forecast_driver_name(async_app_page):
+    """Test that a malicious expense name is escaped (not rendered as HTML) in
+    the Cash Flow Forecast 'Driven by' note row."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const targetMonths = now.getMonth() + 2;
+        const year = now.getFullYear() + Math.floor(targetMonths / 12);
+        const month = targetMonths % 12;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-15`;
+
+        app.accounts = [{ id: 9001, name: 'Checking', type: 'Checking', startingBalance: 10000 }];
+        app.bills = [{ id: 10, name: 'Subscription', amount: 10, dueDay: 1, category: 'Other', accountId: 9001 }];
+        app.expenses = [{
+            id: 20,
+            name: '<img src=x onerror="window.__xss=true">',
+            budgetAmount: 1200, date: dateStr, category: 'Other', accountId: 9001
+        }];
+        app.incomes = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 2;
+        app._forecastAccountId = 'total';
+        app._forecastNotableThresholdPct = 130;
+        app.switchPage('reports');
+    }""")
+    await page.wait_for_timeout(300)
+
+    forecast_tab = await page.query_selector('[data-rptab="forecast"]')
+    await forecast_tab.click()
+    await page.wait_for_timeout(300)
+
+    img_in_table = await page.query_selector('#reportsCashFlowForecast .nw-history-table img')
+    assert img_in_table is None, "Malicious expense name was rendered as an HTML element (XSS)!"
+
+    xss_triggered = await page.evaluate('() => window.__xss === true')
+    assert not xss_triggered, "XSS payload executed via unescaped expense name!"

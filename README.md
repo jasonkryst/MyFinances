@@ -96,6 +96,18 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 - **Accounts Dashboard Widget** — Current net worth and change from the prior snapshot shown on Accounts page
 - **Export/Import Ready** — Snapshot history and milestone state are included in JSON backup flow
 
+### Cash Flow Forecast (NEW)
+- **Selectable Horizon** — Project account balances 1, 2, 3, 6, or 12 months ahead
+- **Total Cash Position or Per-Account** — View combined balances across all asset accounts (checking/savings/cash/investment) or drill into a single account
+- **Summary Stats & Chart** — Current, lowest, and highest projected balances, plus a line chart that highlights the lowest (red) and highest (green) months and turns red for any negative balance
+- **Notable Month Detection** — Months with outflow above a configurable threshold (default 130% of average) are flagged with their top spending drivers
+- **Negative-Balance Warnings** — Banner alert when a projected month-end balance goes negative
+- **Intra-Month Dip Detection (NEW)** — Surfaces mid-month cash crunches that month-end balances hide (e.g. rent due before a paycheck arrives):
+  - Warning banner when a month dips negative mid-month but recovers by month-end, with the dip date/amount and recovery balance
+  - "Lowest Projected" stat reflects the true intra-month low and its date, not just the lowest month-end balance
+  - Table notes flag "Dips to $X on \<date\> before recovering" for any month with a mid-month low below its ending balance
+- **Settings Persisted** — Horizon, account selection, and notable-month threshold are saved to localStorage and included in JSON export/import
+
 ---
 
 ## 🔐 Security & Compliance
@@ -130,14 +142,14 @@ Production deployments include:
 The test suite has been completely reorganized for maximum cohesiveness and maintainability:
 
 ### Test Statistics
-- **Total Tests**: 103 comprehensive tests
+- **Total Tests**: 140 comprehensive tests
 - **Test Files**: 25+ organized across 5 categories
 - **Coverage**: All major features + security + UI + accessibility
 - **Framework**: pytest with Playwright browser automation
 
 ### Test Categories
 
-#### 🔐 Security Tests (26 tests)
+#### 🔐 Security Tests (31 tests)
 - **XSS Prevention** — Input sanitization in all fields
 - **CSP Compliance** — Strict Content Security Policy enforcement
 - **Input Validation** — Bounds checking, unicode handling, special characters
@@ -145,7 +157,7 @@ The test suite has been completely reorganized for maximum cohesiveness and main
 
 Run: `pytest tests/security/ -v`
 
-#### 🎯 Feature Tests (40 tests)
+#### 🎯 Feature Tests (72 tests)
 - **Accounts** — CRUD operations, account types, balance calculations
 - **Debts** — Liability management, interest calculation, amortization schedules
 - **Income** — Multiple income sources, frequency types, total calculations
@@ -155,6 +167,8 @@ Run: `pytest tests/security/ -v`
 - **Reports** — Income vs expenses, money flow, net worth analytics
 - **Savings** — Emergency funds, sinking funds, persistence
 - **Net Worth** — Multi-asset calculations, historical snapshots, milestones
+- **Financial Health** — Debt-to-income, savings rate, emergency fund coverage, payoff timeline, cash flow, budget allocation
+- **Cash Flow Forecast** — Horizon/account selection, notable months & drivers, negative-balance warnings, intra-month dip detection
 
 Run: `pytest tests/features/ -v`
 
@@ -181,8 +195,8 @@ Run: `pytest tests/integration/ -v`
 pytest tests/ -v
 
 # Run by category
-pytest tests/security/ -v         # 26 security tests
-pytest tests/features/ -v         # 40 feature tests
+pytest tests/security/ -v         # 31 security tests
+pytest tests/features/ -v         # 72 feature tests
 pytest tests/ui/ -v               # 29 UI/UX tests
 pytest tests/integration/ -v      # 8 integration tests
 
@@ -271,6 +285,7 @@ src/
   ├─ savings.js         Emergency fund & sinking fund tracking
   ├─ ledger.js          Transaction ledger & amount overrides
   ├─ reports.js         Reports & calendar view
+  ├─ forecast.js        Cash Flow Forecast (Reports tab)
   ├─ charts.js          Chart rendering
   ├─ storage.js         Persistence & import/export
   ├─ debtCalculator.js  Pure calculation engine (no side effects)
@@ -396,6 +411,7 @@ src/
 - **Recurring integration** — all recurring template transactions are fully integrated into calendar events, income vs. expenses breakdown, and money flow calculations
 - **Variance Dashboard** — "What Changed" tab comparing current month vs previous month with color-coded deltas for income, expenses, recurring costs, debt minimums, and net available funds; quickly identify spending patterns and budget trends
 - **Net Worth tab** — dedicated reporting view with: historical net worth trend, liabilities comparison, asset growth vs debt reduction chart, snapshot history audit table, 3/6/12 month range selector, and manual snapshot capture
+- **🔮 Forecast tab** — projects account balances 1/2/3/6/12 months ahead for "Total Cash Position" or any individual account, with summary stats, a chart, notable-month outflow drivers, negative-balance warnings, and intra-month dip detection that flags mid-month cash crunches even when a month ends positive
 
 ### Interest Paid to Date
 - Record the date you opened each credit-card debt (`debtStartDate`)
@@ -592,22 +608,24 @@ src/
   ├─ savings.js            — Emergency fund & sinking fund tracking
   ├─ ledger.js             — Transaction ledger with amount overrides
   ├─ reports.js            — Reports & calendar views
+  ├─ forecast.js           — Cash Flow Forecast (Reports tab)
   ├─ charts.js             — Chart rendering & lifecycle
   ├─ storage.js            — Persistence, import/export, data validation
   ├─ debtCalculator.js     — Pure calculation engine
   └─ utils.js              — Formatting, date utilities, sanitization
-tests/ (Reorganized May 31, 2026 — 25+ files, 103 tests)
+tests/ (Reorganized May 31, 2026 — 25+ files, 140 tests)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
-  ├─ security/                — 26 security & compliance tests
+  ├─ security/                — 31 security & compliance tests
   │   ├─ test_xss.py
   │   ├─ test_csp.py
   │   ├─ test_input_validation.py
   │   └─ test_static_scan.py
-  ├─ features/                — 40 feature-specific tests
+  ├─ features/                — 72 feature-specific tests
   │   ├─ test_accounts.py, test_debts.py, test_income.py
   │   ├─ test_expenses.py, test_recurring.py, test_ledger.py
   │   ├─ test_reports.py, test_savings.py, test_networth.py
+  │   ├─ test_health.py, test_forecast.py
   ├─ ui/                      — 29 UI/UX & responsive tests
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
   │   ├─ test_css_load.py, test_accessibility.py
@@ -718,7 +736,7 @@ form-action 'self'
 
 **Run all tests:**
 ```bash
-pytest tests/ -v                  # All 103 tests
+pytest tests/ -v                  # All 140 tests
 pytest tests/security/ -v         # Security & CSP tests
 pytest tests/features/ -v         # Feature tests
 pytest tests/ui/ -v               # UI/UX & accessibility tests
@@ -839,4 +857,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.1.0 — Updated June 6, 2026*
+*MyFinances v3.2.0 — Updated June 10, 2026*

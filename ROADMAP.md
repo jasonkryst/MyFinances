@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 8, 2026  
-**Current Version**: v3.1.0  
+**Last Updated**: June 10, 2026  
+**Current Version**: v3.2.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -203,27 +203,37 @@ Interest Saved:     —           $1,100      $2,400
 ---
 
 #### 🔮 Cash Flow Forecasting
-**Priority**: MEDIUM | **Effort**: MEDIUM-HIGH | **Status**: PROPOSED
+**Priority**: MEDIUM | **Effort**: MEDIUM-HIGH | **Status**: IMPLEMENTED (June 10, 2026)
 
 **Description**:
-Project account balances forward 3/6/12 months based on current income, expenses, and debt payments. Identify periods of cash shortage or surplus.
+Project account balances forward 1/2/3/6/12 months based on current income, expenses, and debt payments. Identify periods of cash shortage or surplus — including mid-month dips that month-end balances alone don't reveal.
 
-**Features**:
-- Forecast account balances month-by-month
-- Identify lowest and highest projected balances
-- Warning if any month shows negative balance
-- Show impact of seasonal expenses
-- Compare baseline vs. with extra debt payment
+**Delivered Features**:
+- Reports › 🔮 Forecast tab with a selectable horizon (1/2/3/6/12 months)
+- Account selector — "Total Cash Position" (sum of all asset-type accounts) or any individual checking/savings/cash/investment account
+- Summary stats: Current Balance, Lowest Projected, Highest Projected
+- Line chart highlighting the lowest (red) and highest (green) projected month-end balances, with the trend line turning red for any negative balance
+- Notable-month detection — months whose total outflow exceeds a configurable threshold (default 130%, range 100-500%) of the average monthly outflow are flagged with their top 3 outflow drivers
+- Negative-balance warning banner when any projected month-end balance goes negative
+- **Intra-month running-low tracking** — walks each month's transactions in chronological order to find the lowest point the balance actually reaches (e.g. rent due before a paycheck arrives), even when the month ends positive:
+  - Warning banner for months that dip negative intra-month but recover by month-end, showing the dip date/amount and the recovery balance
+  - "Lowest Projected" stat reflects the true intra-month low (with its date) rather than just the lowest month-end balance
+  - Table rows flag "Dips to $X on \<date\> before recovering" for any month where the intra-month low is below the month-end balance
+- Horizon, account selection, and notable-month threshold are persisted to localStorage and round-trip through JSON export/import
 
-**Example**:
-```
-Account Forecast - Checking
-May 2026:   $2,500 (current)
-Jun 2026:   $2,800 ✓
-Jul 2026:   $1,200 ⚠️ (property tax due)
-Aug 2026:   $800   ⚠️ (lowest point)
-Sep 2026:   $3,200 ✓
-```
+**Why This Matters**:
+- Month-end balances can hide dangerous mid-month cash crunches (e.g. rent due on the 1st, paycheck not until the 15th)
+- Helps users plan around irregular or seasonal expenses before they cause an overdraft
+- Builds entirely on the existing ledger running-balance and account-projection infrastructure — no new data model
+
+**Implementation Notes**:
+- Implemented in `src/forecast.js` as `renderCashFlowForecast(app)`; `getAccountForecastSeries(app, accountId, monthsAhead)` in `src/ledger.js` provides the per-account month-by-month projection plus the intra-month low balance/date
+- "Total Cash Position" excludes liability-type accounts (`Credit Card`, `Loan`) via `getForecastAssetAccounts(app)`. Combining accounts re-merges every account's transactions chronologically per month to compute the combined intra-month low, since per-account lows can occur on different days and can't simply be summed
+- Floating-point comparisons use a `1e-9` epsilon to avoid false positives from rounding
+
+**Test Coverage**:
+- 13 feature tests in `tests/features/test_forecast.py` covering horizon/account selection, notable months and drivers, negative-balance warnings, and intra-month dip detection (per-account, combined "Total Cash Position", and no-dip cases)
+- XSS and end-to-end smoke test coverage for the Forecast tab
 
 ---
 
@@ -401,6 +411,10 @@ Domain-specific tools for advanced users.
 - Reports tab: aggregations now include items not linked to any account (previously only linked items were counted)
 - Test suite expanded: 22 new tests covering the Health Dashboard (feature, security, integration)
 
+**Shipped post-v3.1 (June 10, 2026)**:
+- Cash Flow Forecasting (`src/forecast.js`), originally planned for v3.3, shipped early — see Tier 2 entry above for details
+- Test suite expanded: 13 new tests covering the Forecast tab (`tests/features/test_forecast.py`)
+
 ---
 
 ### v3.2 (Q3 2026)
@@ -417,7 +431,7 @@ Domain-specific tools for advanced users.
 **Focus**: Scenario Planning & Forecasting
 
 - [ ] Multiple Scenario Comparison (MEDIUM impact)
-- [ ] Cash Flow Forecasting (MEDIUM impact)
+- [x] ~~Cash Flow Forecasting (MEDIUM impact)~~ — shipped early, June 10, 2026
 - [ ] Break-Even Analysis per Debt (MEDIUM impact)
 
 ---
@@ -537,4 +551,4 @@ Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECUR
 
 **Version**: 1.1  
 **Status**: Active Roadmap  
-**Last Updated**: June 8, 2026
+**Last Updated**: June 10, 2026
