@@ -16,7 +16,7 @@ BASE_URL = "http://localhost:5500/"
 async def test_xss_in_account_name(async_app_page):
     """Test XSS prevention in account names."""
     page = async_app_page
-    
+
     # Attempt XSS payload
     await page.fill('#accountName', '<script>alert("xss")</script>')
     await page.select_option('#accountType', 'Checking')
@@ -244,3 +244,44 @@ async def test_no_console_errors(async_app_page):
         and 'X-Frame-Options may only be set via an HTTP header' not in e
     ]
     assert len(filtered_errors) == 0, f"Console errors found: {filtered_errors}"
+
+
+@pytest.mark.security
+async def test_xss_in_forecast_driver_name(async_app_page):
+    """Test that a malicious expense name is escaped (not rendered as HTML) in
+    the Cash Flow Forecast 'Driven by' note row."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const targetMonths = now.getMonth() + 2;
+        const year = now.getFullYear() + Math.floor(targetMonths / 12);
+        const month = targetMonths % 12;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-15`;
+
+        app.accounts = [{ id: 9001, name: 'Checking', type: 'Checking', startingBalance: 10000 }];
+        app.bills = [{ id: 10, name: 'Subscription', amount: 10, dueDay: 1, category: 'Other', accountId: 9001 }];
+        app.expenses = [{
+            id: 20,
+            name: '<img src=x onerror="window.__xss=true">',
+            budgetAmount: 1200, date: dateStr, category: 'Other', accountId: 9001
+        }];
+        app.incomes = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 2;
+        app._forecastAccountId = 'total';
+        app._forecastNotableThresholdPct = 130;
+        app.switchPage('reports');
+    }""")
+    await page.wait_for_timeout(300)
+
+    forecast_tab = await page.query_selector('[data-rptab="forecast"]')
+    await forecast_tab.click()
+    await page.wait_for_timeout(300)
+
+    img_in_table = await page.query_selector('#reportsCashFlowForecast .nw-history-table img')
+    assert img_in_table is None, "Malicious expense name was rendered as an HTML element (XSS)!"
+
+    xss_triggered = await page.evaluate('() => window.__xss === true')
+    assert not xss_triggered, "XSS payload executed via unescaped expense name!"
