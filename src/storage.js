@@ -172,6 +172,15 @@ function sanitizeNetWorthSnapshot(record) {
     };
 }
 
+function sanitizeForecastSettings(record) {
+    const rawRange = sanitizeInteger(record?.rangeMonths, 1);
+    return {
+        rangeMonths: [1, 2, 3, 6, 12].includes(rawRange) ? rawRange : 1,
+        accountId: record?.accountId === 'total' ? 'total' : (normalizeText(record?.accountId, 30) || 'total'),
+        notableThresholdPct: sanitizeFiniteNumber(record?.notableThresholdPct, 130, { min: 100, max: 500 })
+    };
+}
+
 function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
@@ -195,7 +204,8 @@ function sanitizeParsedState(parsed = {}) {
             dateRange: normalizeText(parsed?.ledgerSettings?.dateRange, 20) || 'all',
             sortKey: normalizeText(parsed?.ledgerSettings?.sortKey, 20) || 'date',
             sortDir: parsed?.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc'
-        }
+        },
+        forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings)
     };
 }
 
@@ -224,6 +234,11 @@ export function saveToStorage(app) {
                 dateRange: app._ledgerDateRange || 'all',
                 sortKey: app._ledgerSortKey || 'date',
                 sortDir: app._ledgerSortDir || 'desc'
+            },
+            forecastSettings: {
+                rangeMonths: app._forecastRangeMonths || 1,
+                accountId: app._forecastAccountId || 'total',
+                notableThresholdPct: app._forecastNotableThresholdPct || 130
             },
             timestamp: new Date().toISOString()
         };
@@ -260,6 +275,10 @@ export function loadFromStorage(app) {
             app._ledgerDateRange = clean.ledgerSettings.dateRange;
             app._ledgerSortKey = clean.ledgerSettings.sortKey;
             app._ledgerSortDir = clean.ledgerSettings.sortDir;
+            // Restore forecast settings if present
+            app._forecastRangeMonths = clean.forecastSettings.rangeMonths;
+            app._forecastAccountId = clean.forecastSettings.accountId;
+            app._forecastNotableThresholdPct = clean.forecastSettings.notableThresholdPct;
         }
     } catch (error) {
         console.error('Error loading from localStorage:', error);
@@ -298,6 +317,11 @@ export function exportAllJSON(app) {
             dateRange: app._ledgerDateRange || 'all',
             sortKey: app._ledgerSortKey || 'date',
             sortDir: app._ledgerSortDir || 'desc'
+        },
+        forecastSettings: {
+            rangeMonths: app._forecastRangeMonths || 1,
+            accountId: app._forecastAccountId || 'total',
+            notableThresholdPct: app._forecastNotableThresholdPct || 130
         }
     };
 
@@ -466,6 +490,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
         const incomingStrategy = payload?.strategy || null;
         const incomingLedgerSettings = clean.ledgerSettings;
+        const incomingForecastSettings = clean.forecastSettings;
 
         const validDebts = incomingDebts.filter(d => d && d.name);
 
@@ -510,6 +535,11 @@ export function importAllJSON(app, file, options = {}) {
                 app._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
                 app._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
             }
+            if (incomingForecastSettings) {
+                app._forecastRangeMonths = incomingForecastSettings.rangeMonths || 1;
+                app._forecastAccountId = incomingForecastSettings.accountId || 'total';
+                app._forecastNotableThresholdPct = incomingForecastSettings.notableThresholdPct || 130;
+            }
         } else {
             const existingNames = new Set(app.debts.map(d => d.name.toLowerCase()));
             let skipped = 0;
@@ -545,6 +575,11 @@ export function importAllJSON(app, file, options = {}) {
                 app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
                 app._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
                 app._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
+            }
+            if (incomingForecastSettings) {
+                app._forecastRangeMonths = incomingForecastSettings.rangeMonths || 1;
+                app._forecastAccountId = incomingForecastSettings.accountId || 'total';
+                app._forecastNotableThresholdPct = incomingForecastSettings.notableThresholdPct || 130;
             }
         }
 
@@ -597,6 +632,10 @@ export function clearAllData(app, options = {}) {
     app._ledgerSortDir = 'desc';
     app._ledgerPage = 1;
     app._ledgerPageSize = 25;
+
+    app._forecastRangeMonths = 1;
+    app._forecastAccountId = 'total';
+    app._forecastNotableThresholdPct = 130;
 
     localStorage.removeItem(app.storageKey);
     localStorage.removeItem('debtTrackerTheme');

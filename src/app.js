@@ -120,6 +120,9 @@ export class DebtTrackerApp {
         this._savedStrategy = null;
         this.storageKey = 'debtTrackerData';
     this._netWorthRangeMonths = 6;
+    this._forecastRangeMonths = 1;
+    this._forecastAccountId = 'total';
+    this._forecastNotableThresholdPct = 130;
 
         this.initializeEventListeners();
         this.loadFromStorage();
