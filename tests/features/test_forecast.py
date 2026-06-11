@@ -300,6 +300,48 @@ def test_forecast_notable_month_shows_drivers(app_page):
 
 
 @pytest.mark.feature
+def test_forecast_threshold_input_updates_notable_months(app_page):
+    """Changing the notable-month threshold input updates which months show 'Driven by' drivers."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const targetMonths = now.getMonth() + 3;
+        const year = now.getFullYear() + Math.floor(targetMonths / 12);
+        const month = targetMonths % 12;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-15`;
+
+        app.accounts = [{ id: 9002, name: 'Checking', type: 'Checking', startingBalance: 10000 }];
+        app.bills = [{ id: 11, name: 'Subscription', amount: 100, dueDay: 1, category: 'Other', accountId: 9002 }];
+        app.expenses = [{ id: 21, name: 'Property Tax', budgetAmount: 1200, date: dateStr, category: 'Other', accountId: 9002 }];
+        app.incomes = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 6;
+        app._forecastAccountId = 'total';
+        delete app._forecastNotableThresholdPct;
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+    page.click('[data-rptab="forecast"]')
+    page.wait_for_timeout(300)
+
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert 'Driven by' in section_text, "Expected a notable-month driver row at the default threshold"
+
+    page.fill('#forecastThresholdInput', '500')
+    page.dispatch_event('#forecastThresholdInput', 'change')
+    page.wait_for_timeout(300)
+
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert 'Driven by' not in section_text, "Raising the threshold to 500% should clear the notable-month row"
+
+    threshold_value = page.evaluate('() => window.app._forecastNotableThresholdPct')
+    assert threshold_value == 500, "App state should reflect the updated threshold from the input"
+
+
+@pytest.mark.feature
 def test_forecast_horizon_button_changes_table_rows(app_page):
     """Clicking a horizon button changes the number of table rows."""
     page = app_page
