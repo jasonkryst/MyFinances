@@ -13,7 +13,11 @@ BASE_URL = "http://localhost:5500/"
 async def test_negative_balance(async_app_page):
     """Test that negative balances are handled properly."""
     page = async_app_page
-    
+
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     await page.fill('#accountName', 'Negative Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '-5000')
@@ -34,9 +38,13 @@ async def test_negative_balance(async_app_page):
 async def test_special_characters_in_names(async_app_page):
     """Test that special characters are properly handled in names."""
     page = async_app_page
-    
+
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     special_name = "O'Reilly & Associates <Co.>"
-    
+
     await page.fill('#accountName', special_name)
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1000')
@@ -58,9 +66,13 @@ async def test_special_characters_in_names(async_app_page):
 async def test_very_large_amount(async_app_page):
     """Test that very large amounts are handled."""
     page = async_app_page
-    
+
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     large_amount = "999999999999999"
-    
+
     await page.fill('#accountName', 'Large Amount Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', large_amount)
@@ -81,7 +93,11 @@ async def test_very_large_amount(async_app_page):
 async def test_decimal_amounts(async_app_page):
     """Test that decimal amounts are properly handled."""
     page = async_app_page
-    
+
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     await page.fill('#accountName', 'Decimal Test')
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1234.56')
@@ -102,7 +118,11 @@ async def test_decimal_amounts(async_app_page):
 async def test_empty_string_input(async_app_page):
     """Test handling of empty string inputs."""
     page = async_app_page
-    
+
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     # Try to submit form with empty name
     await page.fill('#accountName', '')
     await page.select_option('#accountType', 'Checking')
@@ -214,9 +234,13 @@ async def test_health_savings_rate_clamps_above_100_percent(async_app_page):
 async def test_unicode_in_names(async_app_page):
     """Test that unicode characters are properly handled."""
     page = async_app_page
-    
+
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     unicode_name = "中文 Test 日本語"
-    
+
     await page.fill('#accountName', unicode_name)
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')

@@ -17,6 +17,10 @@ async def test_xss_in_account_name(async_app_page):
     """Test XSS prevention in account names."""
     page = async_app_page
 
+    # Navigate to accounts
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+
     # Attempt XSS payload
     await page.fill('#accountName', '<script>alert("xss")</script>')
     await page.select_option('#accountType', 'Checking')
