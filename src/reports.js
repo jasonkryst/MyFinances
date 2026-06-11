@@ -6,6 +6,7 @@ import {
     escapeHtml
 } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledger.js';
+import { renderCashFlowForecast } from './forecast.js';
 
 export function incomeDaysInMonth(app, inc, year, month) {
     return getIncomePaydaysInMonth(inc, year, month).map(d => d.getDate());
@@ -41,7 +42,7 @@ export function updateReportMonthNav(app) {
 export function renderReportsPage(app) {
     updateReportMonthNav(app);
 
-    ['_rptIncomeChart', '_rptBillsChart', '_rptExpChart', '_rptMoneyFlowChart', '_rptOutflowChart', '_rptNetWorthTrendChart', '_rptNetWorthCompositionChart']
+    ['_rptIncomeChart', '_rptBillsChart', '_rptExpChart', '_rptMoneyFlowChart', '_rptOutflowChart', '_rptNetWorthTrendChart', '_rptNetWorthCompositionChart', '_rptForecastChart']
         .forEach(k => {
             if (app[k]) {
                 app[k].destroy();
@@ -54,6 +55,7 @@ export function renderReportsPage(app) {
     renderReportsMoneyFlow(app);
     renderReportsVariance(app);
     renderReportsNetWorth(app);
+    renderCashFlowForecast(app);
 }
 
 function toMonthKey(value) {

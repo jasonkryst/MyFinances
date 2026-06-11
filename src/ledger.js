@@ -299,6 +299,56 @@ export function getLedgerTransactionsForMonth(app, year, month, accountId = null
     return out;
 }
 
+// Project a single account's balance forward `monthsAhead` months from the
+// current calendar month. Index 0 is "Now" (the account's starting balance);
+// indices 1..monthsAhead are consecutive future months with a cumulative
+// running balance.
+export function getAccountForecastSeries(app, accountId, monthsAhead) {
+    const account = (app.accounts || []).find(a => a.id === accountId);
+    const startingBalance = account ? (account.startingBalance || 0) : 0;
+
+    const series = [{
+        label: 'Now',
+        income: 0,
+        outflow: 0,
+        net: 0,
+        balance: Math.round(startingBalance * 100) / 100
+    }];
+
+    const now = new Date();
+    let balance = startingBalance;
+
+    for (let i = 1; i <= monthsAhead; i++) {
+        const totalMonths = now.getMonth() + i;
+        const year = now.getFullYear() + Math.floor(totalMonths / 12);
+        const month = totalMonths % 12;
+
+        const txs = getLedgerTransactionsForMonth(app, year, month, accountId);
+        let income = 0;
+        let outflow = 0;
+        for (const tx of txs) {
+            if (tx.amount >= 0) income += tx.amount;
+            else outflow += Math.abs(tx.amount);
+        }
+        const net = income - outflow;
+        balance += net;
+
+        const label = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+        series.push({
+            year,
+            month,
+            label,
+            income: Math.round(income * 100) / 100,
+            outflow: Math.round(outflow * 100) / 100,
+            net: Math.round(net * 100) / 100,
+            balance: Math.round(balance * 100) / 100
+        });
+    }
+
+    return series;
+}
+
 // Gather all transactions for the ledger
 export function getLedgerTransactions(app) {
     const today = new Date();
