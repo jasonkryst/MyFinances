@@ -231,6 +231,118 @@ async def test_health_savings_rate_clamps_above_100_percent(async_app_page):
 
 
 @pytest.mark.security
+async def test_recurring_day_of_month_bounds(async_app_page):
+    """Test that out-of-range Day of Month values for recurring templates are clamped to 1-31."""
+    page = async_app_page
+
+    # Recurring templates require an account
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+    await page.fill('#accountName', 'Recurring Bounds Test')
+    await page.select_option('#accountType', 'Checking')
+    await page.fill('#accountStartingBalance', '1000')
+    await page.click('button:has-text("Add Account")')
+    await page.wait_for_timeout(500)
+
+    await page.click('button[data-page="recurring"]')
+    await page.wait_for_timeout(300)
+    await page.click('#recurringFormToggle')
+    await page.wait_for_timeout(300)
+
+    await page.fill('#recurringName', 'Bounds Test Sub')
+    await page.fill('#recurringAmount', '20')
+    await page.fill('#recurringDayOfMonth', '99')
+    await page.select_option('#recurringAccount', label='Recurring Bounds Test')
+    await page.fill('#recurringStartDate', '2026-01-01')
+    await page.click('#recurringFormSubmit')
+    await page.wait_for_timeout(500)
+
+    day_value = await page.evaluate("""() => {
+        const app = window.app;
+        const tmpl = (app.recurringTemplates || []).find(t => t.name === 'Bounds Test Sub');
+        return tmpl ? tmpl.dayOfMonth : null;
+    }""")
+
+    assert day_value is not None, "Recurring template was not created"
+    assert 1 <= day_value <= 31, f"dayOfMonth {day_value} was not clamped to 1-31"
+
+
+@pytest.mark.security
+async def test_savings_emergency_fund_numeric_bounds(async_app_page):
+    """Test numeric bounds validation for the Emergency Fund form."""
+    page = async_app_page
+
+    # Emergency funds are linked to an account, so create one first
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+    await page.fill('#accountName', 'EF Bounds Checking')
+    await page.select_option('#accountType', 'Checking')
+    await page.fill('#accountStartingBalance', '1000')
+    await page.click('button:has-text("Add Account")')
+    await page.wait_for_timeout(500)
+
+    await page.click('button[data-page="savings"]')
+    await page.wait_for_timeout(300)
+    await page.click('#emergencyFormToggle')
+    await page.wait_for_timeout(300)
+
+    # Capture alert() calls without relying on native dialog handling
+    await page.evaluate("() => { window.__alerts = []; window.alert = (m) => window.__alerts.push(m); }")
+
+    await page.select_option('#emergencyAccount', label='EF Bounds Checking')
+
+    # A zero target amount should be rejected
+    await page.fill('#emergencyTarget', '0')
+    await page.fill('#emergencyCurrent', '100')
+    await page.fill('#emergencyContribution', '50')
+    await page.click('#emergencyFormSubmit')
+    await page.wait_for_timeout(300)
+
+    alerts = await page.evaluate('() => window.__alerts')
+    assert any('valid values' in m.lower() for m in alerts), \
+        "Expected validation alert for zero target amount"
+    funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
+    assert funds_count == 0, "Fund should not be created with a zero target amount"
+
+    # A negative monthly contribution is rejected by the input's min="0"
+    # constraint, which blocks the form's submit event entirely.
+    await page.evaluate('() => { window.__alerts = []; }')
+    await page.fill('#emergencyTarget', '5000')
+    await page.fill('#emergencyContribution', '-50')
+
+    contribution_valid = await page.eval_on_selector('#emergencyContribution', 'el => el.checkValidity()')
+    assert not contribution_valid, "Negative monthly contribution should fail min=0 validation"
+
+    await page.click('#emergencyFormSubmit')
+    await page.wait_for_timeout(300)
+    funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
+    assert funds_count == 0, "Fund should not be created with a negative monthly contribution"
+
+    # A negative current amount is rejected the same way
+    await page.fill('#emergencyContribution', '50')
+    await page.fill('#emergencyCurrent', '-200')
+
+    current_valid = await page.eval_on_selector('#emergencyCurrent', 'el => el.checkValidity()')
+    assert not current_valid, "Negative current amount should fail min=0 validation"
+
+    await page.click('#emergencyFormSubmit')
+    await page.wait_for_timeout(300)
+    funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
+    assert funds_count == 0, "Fund should not be created with a negative current amount"
+
+    # With valid positive values, the fund is created and rendered cleanly
+    await page.fill('#emergencyCurrent', '1000')
+    await page.click('#emergencyFormSubmit')
+    await page.wait_for_timeout(300)
+
+    funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
+    assert funds_count == 1, "Fund should be created with valid positive values"
+
+    list_html = await page.evaluate('() => document.getElementById("emergencyList")?.innerHTML || ""')
+    assert 'NaN' not in list_html, "Emergency fund card rendering produced NaN"
+
+
+@pytest.mark.security
 async def test_unicode_in_names(async_app_page):
     """Test that unicode characters are properly handled."""
     page = async_app_page
