@@ -15,25 +15,52 @@ function computeForecastSeries(app, accountSetting, monthsAhead) {
     const assetAccounts = getForecastAssetAccounts(app);
 
     if (accountSetting === 'total') {
-        let combined = null;
-        for (const acct of assetAccounts) {
-            const series = getAccountForecastSeries(app, acct.id, monthsAhead);
-            if (!combined) {
-                combined = series.map(entry => ({ ...entry }));
-            } else {
-                for (let i = 0; i < combined.length; i++) {
-                    combined[i].income += series[i].income;
-                    combined[i].outflow += series[i].outflow;
-                    combined[i].net += series[i].net;
-                    combined[i].balance += series[i].balance;
-                }
+        const perAcctSeriesList = assetAccounts.map(acct => getAccountForecastSeries(app, acct.id, monthsAhead));
+
+        let combined = perAcctSeriesList[0].map(entry => ({ ...entry }));
+        for (let j = 1; j < perAcctSeriesList.length; j++) {
+            const series = perAcctSeriesList[j];
+            for (let i = 0; i < combined.length; i++) {
+                combined[i].income += series[i].income;
+                combined[i].outflow += series[i].outflow;
+                combined[i].net += series[i].net;
+                combined[i].balance += series[i].balance;
             }
         }
+
+        // The intra-month low for the combined total can't be derived from
+        // each account's individual low, since accounts may dip on different
+        // days. Re-merge every account's transactions for the month in
+        // chronological order and walk the combined running balance.
+        for (let i = 1; i < combined.length; i++) {
+            const monthTxs = [];
+            for (const acct of assetAccounts) {
+                monthTxs.push(...getLedgerTransactionsForMonth(app, combined[i].year, combined[i].month, acct.id));
+            }
+            monthTxs.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            let running = combined[i - 1].balance;
+            let lowBalance = running;
+            let lowDate = null;
+            for (const tx of monthTxs) {
+                running += tx.amount;
+                if (running < lowBalance - 1e-9) {
+                    lowBalance = running;
+                    lowDate = new Date(tx.date);
+                }
+            }
+            combined[i].lowBalance = lowBalance;
+            combined[i].lowDate = lowDate;
+        }
+
         for (const entry of combined) {
             entry.income = Math.round(entry.income * 100) / 100;
             entry.outflow = Math.round(entry.outflow * 100) / 100;
             entry.net = Math.round(entry.net * 100) / 100;
             entry.balance = Math.round(entry.balance * 100) / 100;
+            if (entry.lowBalance !== undefined) {
+                entry.lowBalance = Math.round(entry.lowBalance * 100) / 100;
+            }
         }
         return combined;
     }
@@ -50,8 +77,25 @@ function computeForecastStats(series) {
         if (entry.balance < lowest.balance) lowest = entry;
         if (entry.balance > highest.balance) highest = entry;
     }
-    const negativeMonth = projected.find(entry => entry.balance < 0) || null;
-    return { current: series[0].balance, lowest, highest, negativeMonth, projected };
+
+    // The deepest intra-month dip across the horizon, if any month actually
+    // dips below the lowest month-end balance. `lowDate` is null for months
+    // that don't dip below their carried-in starting balance, so those are
+    // skipped here.
+    let lowestPoint = null;
+    for (const entry of projected) {
+        const baseline = lowestPoint ? lowestPoint.balance : lowest.balance;
+        if (entry.lowDate && entry.lowBalance < baseline) {
+            lowestPoint = { balance: entry.lowBalance, date: entry.lowDate, monthLabel: entry.label };
+        }
+    }
+
+    const negativeMonth = projected.find(entry => entry.balance < 0 || entry.lowBalance < 0) || null;
+    return { current: series[0].balance, lowest, highest, negativeMonth, lowestPoint, projected };
+}
+
+function formatForecastDate(date) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function getOutflowDrivers(app, accountSetting, year, month) {
@@ -203,9 +247,18 @@ export function renderCashFlowForecast(app) {
         ))
         .join('');
 
-    const warningHtml = stats.negativeMonth
-        ? `<div class="cf-warning-banner">⚠️ Projected to go negative in <strong>${escapeHtml(stats.negativeMonth.label)}</strong>: ${formatCurrency(stats.negativeMonth.balance)}</div>`
-        : '';
+    let warningHtml = '';
+    if (stats.negativeMonth) {
+        const entry = stats.negativeMonth;
+        if (entry.balance < 0) {
+            warningHtml = `<div class="cf-warning-banner">⚠️ Projected to go negative in <strong>${escapeHtml(entry.label)}</strong>: ${formatCurrency(entry.balance)}</div>`;
+        } else if (entry.lowBalance < 0 && entry.lowDate) {
+            warningHtml = `<div class="cf-warning-banner">⚠️ Projected to dip negative in <strong>${escapeHtml(entry.label)}</strong> on ${escapeHtml(formatForecastDate(entry.lowDate))}: as low as ${formatCurrency(entry.lowBalance)} before recovering to ${formatCurrency(entry.balance)}</div>`;
+        }
+    }
+
+    const lowestLabel = stats.lowestPoint ? formatForecastDate(stats.lowestPoint.date) : stats.lowest.label;
+    const lowestBalance = stats.lowestPoint ? stats.lowestPoint.balance : stats.lowest.balance;
 
     const summaryHtml = `
         <div class="nw-report-summary">
@@ -214,8 +267,8 @@ export function renderCashFlowForecast(app) {
                 <strong>${formatCurrency(stats.current)}</strong>
             </div>
             <div class="nw-report-stat">
-                <span>Lowest Projected (${escapeHtml(stats.lowest.label)})</span>
-                <strong class="${stats.lowest.balance < 0 ? 'acct-balance--neg' : 'acct-balance--pos'}">${formatCurrency(stats.lowest.balance)}</strong>
+                <span>Lowest Projected (${escapeHtml(lowestLabel)})</span>
+                <strong class="${lowestBalance < 0 ? 'acct-balance--neg' : 'acct-balance--pos'}">${formatCurrency(lowestBalance)}</strong>
             </div>
             <div class="nw-report-stat">
                 <span>Highest Projected (${escapeHtml(stats.highest.label)})</span>
@@ -242,6 +295,13 @@ export function renderCashFlowForecast(app) {
             rowsHtml += `
                 <tr class="cf-notable-row${negative ? ' cf-row--negative' : ''}">
                     <td colspan="5">⚠️ Driven by: ${driversText}</td>
+                </tr>
+            `;
+        }
+        if (entry.lowDate && entry.lowBalance < 0 && entry.lowBalance < entry.balance - 1e-9) {
+            rowsHtml += `
+                <tr class="cf-notable-row cf-row--negative">
+                    <td colspan="5">⚠️ Dips to ${formatCurrency(entry.lowBalance)} on ${escapeHtml(formatForecastDate(entry.lowDate))} before recovering</td>
                 </tr>
             `;
         }

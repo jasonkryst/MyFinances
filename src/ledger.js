@@ -331,6 +331,21 @@ export function getAccountForecastSeries(app, accountId, monthsAhead) {
             else outflow += Math.abs(tx.amount);
         }
         const net = income - outflow;
+
+        // Walk the month's transactions in order to find the lowest the
+        // running balance dips to during the month, which can be below both
+        // the prior month's ending balance and this month's ending balance.
+        let running = balance;
+        let lowBalance = running;
+        let lowDate = null;
+        for (const tx of txs) {
+            running += tx.amount;
+            if (running < lowBalance - 1e-9) {
+                lowBalance = running;
+                lowDate = new Date(tx.date);
+            }
+        }
+
         balance += net;
 
         const label = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -342,7 +357,9 @@ export function getAccountForecastSeries(app, accountId, monthsAhead) {
             income: Math.round(income * 100) / 100,
             outflow: Math.round(outflow * 100) / 100,
             net: Math.round(net * 100) / 100,
-            balance: Math.round(balance * 100) / 100
+            balance: Math.round(balance * 100) / 100,
+            lowBalance: Math.round(lowBalance * 100) / 100,
+            lowDate
         });
     }
 

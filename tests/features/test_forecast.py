@@ -160,6 +160,109 @@ def test_forecast_negative_balance_warning(app_page):
     assert 'Projected to go negative' in section_text
     assert '-$400.00' in section_text, "Expected projected balance of -$400.00 (100 - 500)"
     assert section.query_selector('.cf-row--negative'), "Expected a negative-balance row in the table"
+    assert 'Dips to' not in section_text, \
+        "No separate intra-month dip note expected when the low equals the ending balance"
+
+
+@pytest.mark.feature
+def test_forecast_intramonth_dip_warning_when_recovers(app_page):
+    """A bill early in the month can push the balance negative even though
+    income later in the month brings it back positive by month-end. The
+    forecast should surface this intra-month low, not just the ending balance."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const targetMonths = now.getMonth() + 1;
+        const year = now.getFullYear() + Math.floor(targetMonths / 12);
+        const month = targetMonths % 12;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-15`;
+
+        app.accounts = [{ id: 9001, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.bills = [{ id: 10, name: 'Rent', amount: 1800, dueDay: 1, category: 'Housing', accountId: 9001 }];
+        app.incomes = [{ id: 1, name: 'Paycheck', amount: 2000, firstPayDate: dateStr, frequency: 'monthly', accountId: 9001 }];
+        app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 1;
+        app._forecastAccountId = 'total';
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+    page.click('[data-rptab="forecast"]')
+    page.wait_for_timeout(300)
+
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert 'Projected to dip negative' in section_text, "Expected an intra-month dip warning"
+    assert 'before recovering' in section_text
+    assert '-$800.00' in section_text, "Expected the intra-month low of -$800.00 (1000 - 1800)"
+    assert '$1,200.00' in section_text, "Expected the recovered ending balance of $1,200.00 (-800 + 2000)"
+
+
+@pytest.mark.feature
+def test_forecast_total_view_intramonth_dip_across_accounts(app_page):
+    """The Total Cash Position's intra-month low must be computed by merging
+    every account's transactions chronologically, not by summing each
+    account's individual low (which can occur on different days)."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const targetMonths = now.getMonth() + 1;
+        const year = now.getFullYear() + Math.floor(targetMonths / 12);
+        const month = targetMonths % 12;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-20`;
+
+        app.accounts = [
+            { id: 9001, name: 'Checking', type: 'Checking', startingBalance: 1000 },
+            { id: 9002, name: 'Savings', type: 'Savings', startingBalance: 500 }
+        ];
+        app.bills = [{ id: 10, name: 'Rent', amount: 1800, dueDay: 1, category: 'Housing', accountId: 9001 }];
+        app.incomes = [{ id: 1, name: 'Bonus Payout', amount: 2000, firstPayDate: dateStr, frequency: 'monthly', accountId: 9002 }];
+        app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 1;
+        app._forecastAccountId = 'total';
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+    page.click('[data-rptab="forecast"]')
+    page.wait_for_timeout(300)
+
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert 'Projected to dip negative' in section_text, "Expected the combined total to dip negative on the 1st"
+    assert 'before recovering' in section_text
+    assert '-$300.00' in section_text, "Expected the combined intra-month low of -$300.00 (1500 - 1800)"
+    assert '$1,700.00' in section_text, "Expected the recovered ending balance of $1,700.00 (-300 + 2000)"
+
+
+@pytest.mark.feature
+def test_forecast_no_dip_when_balance_monotonic(app_page):
+    """When income only increases the balance during the month, no
+    intra-month dip indicators should be shown."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 9001, name: 'Checking', type: 'Checking', startingBalance: 5000 }];
+        app.incomes = [{ id: 1, name: 'Salary', amount: 3000, firstPayDate: '2026-01-01', frequency: 'monthly', accountId: 9001 }];
+        app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 1;
+        app._forecastAccountId = 'total';
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+    page.click('[data-rptab="forecast"]')
+    page.wait_for_timeout(300)
+
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert 'Dips to' not in section_text
+    assert 'Projected to dip negative' not in section_text
 
 
 @pytest.mark.feature
