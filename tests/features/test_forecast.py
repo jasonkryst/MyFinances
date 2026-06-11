@@ -266,6 +266,77 @@ def test_forecast_no_dip_when_balance_monotonic(app_page):
 
 
 @pytest.mark.feature
+def test_forecast_income_only_months_no_notable_drivers(app_page):
+    """When every projected month has zero outflow, no notable-month drivers
+    are shown and the projected balance simply accumulates income."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 9003, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 1, name: 'Salary', amount: 500, firstPayDate: '2026-01-01', frequency: 'monthly', accountId: 9003 }];
+        app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 6;
+        app._forecastAccountId = 'total';
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+    page.click('[data-rptab="forecast"]')
+    page.wait_for_timeout(300)
+
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert 'Driven by' not in section_text, "No notable-month drivers should appear when there is no outflow"
+    assert 'NaN' not in section_text and 'Infinity' not in section_text, \
+        "Forecast should not produce NaN/Infinity with zero outflow"
+
+    rows = page.query_selector_all('#reportsCashFlowForecast .nw-history-table tbody tr')
+    assert len(rows) == 6, f"Expected 6 rows for a 6-month horizon, got {len(rows)}"
+
+    assert '$4,000.00' in section_text, "Expected ending balance of $4,000 after 6 months of $500 income"
+
+
+@pytest.mark.feature
+def test_forecast_total_view_sums_multiple_accounts_over_horizon(app_page):
+    """The Total Cash Position series sums each account's projected balance
+    across a multi-month horizon, and switching to a single account shows
+    that account's balance alone."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [
+            { id: 9101, name: 'Checking', type: 'Checking', startingBalance: 1000 },
+            { id: 9102, name: 'Savings', type: 'Savings', startingBalance: 2000 }
+        ];
+        app.incomes = [
+            { id: 1, name: 'Salary', amount: 500, firstPayDate: '2026-01-01', frequency: 'monthly', accountId: 9101 },
+            { id: 2, name: 'Interest', amount: 100, firstPayDate: '2026-01-05', frequency: 'monthly', accountId: 9102 }
+        ];
+        app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app._forecastRangeMonths = 3;
+        app._forecastAccountId = 'total';
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+    page.click('[data-rptab="forecast"]')
+    page.wait_for_timeout(300)
+
+    # Total view: (1000 + 2000) starting + 3 months * (500 + 100) income = 4800
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert '$4,800.00' in section_text, "Expected combined ending balance of $4,800.00 across both accounts"
+
+    # Switch to Checking only and verify its individual ending balance
+    page.select_option('#forecastAccountSelect', label='Checking')
+    page.wait_for_timeout(300)
+    section_text = page.query_selector('#reportsCashFlowForecast').text_content()
+    assert '$2,500.00' in section_text, "Expected Checking ending balance of $2,500.00 (1000 + 3*500)"
+
+
+@pytest.mark.feature
 def test_forecast_notable_month_shows_drivers(app_page):
     """A month with unusually high outflow is flagged with its top spending drivers."""
     page = app_page
