@@ -857,4 +857,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.1.0 — Updated June 10, 2026*
+*MyFinances v3.2.0 — Updated June 10, 2026*

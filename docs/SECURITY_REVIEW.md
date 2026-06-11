@@ -1,4 +1,4 @@
-# Security Review - MyFinances v3.1.0
+# Security Review - MyFinances v3.2.0
 **Date**: May 29, 2026  
 **Status**: ✅ **PASSED** | **Risk Level**: LOW | **Actions Required**: None
 
@@ -370,7 +370,7 @@ Documented in [DEPLOYMENT.md](../DEPLOYMENT.md):
 
 ### Security Status: ✅ PASSED
 
-MyFinances v3.1.0 demonstrates strong security fundamentals:
+MyFinances v3.2.0 demonstrates strong security fundamentals:
 
 1. **Defense in Depth** — Multiple layers of protection (CSP, input validation, output encoding)
 2. **No Critical Vulnerabilities** — Code review found no exploitable weaknesses
