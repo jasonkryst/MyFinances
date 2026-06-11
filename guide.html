@@ -273,6 +273,7 @@
                     <li><a href="#creating-plan">Creating a Payment Plan</a></li>
                     <li><a href="#viewing-reports">Viewing Reports</a></li>
                     <li><a href="#net-worth-tracking">Net Worth Tracking</a></li>
+                    <li><a href="#cash-flow-forecast">Cash Flow Forecast</a></li>
                     <li><a href="#viewing-transactions">Viewing Transactions</a></li>
                     <li><a href="#data-management">Data Management</a></li>
                     <li><a href="#tips-tricks">Tips and Tricks</a></li>
@@ -636,7 +637,7 @@
 
             <section class="guide-section" id="viewing-reports">
                 <h2>Viewing Reports</h2>
-                <p>The Reports page includes five tabs for analyzing your finances: Calendar, Income vs Expenses, Money Flow, What Changed, and Net Worth.</p>
+                <p>The Reports page includes six tabs for analyzing your finances: Calendar, Income vs Expenses, Money Flow, What Changed, Net Worth, and Forecast.</p>
 
                 <h3>Calendar Tab</h3>
                 <ul>
@@ -732,6 +733,45 @@
 
                 <div class="guide-note">The Accounts page also includes a Net Worth widget showing current net worth and change from your prior snapshot.</div>
                 <div class="guide-note">Milestones trigger every $5,000 gain in net worth from your first recorded snapshot.</div>
+            </section>
+
+            <section class="guide-section" id="cash-flow-forecast">
+                <h2>Cash Flow Forecast</h2>
+                <p>The Forecast tab projects your account balances forward so you can spot cash shortages before they happen — including dips that occur mid-month and recover by month-end.</p>
+
+                <h3>How to Use the Forecast Tab</h3>
+                <ol>
+                    <li>Go to <strong>Reports</strong> and select <strong>🔮 Forecast</strong></li>
+                    <li>Choose a <strong>Horizon</strong> of 1, 2, 3, 6, or 12 months</li>
+                    <li>Choose an <strong>Account</strong> — <strong>Total Cash Position</strong> sums all checking, savings, cash, and investment accounts (credit cards and loans are excluded), or pick a single account</li>
+                    <li>Adjust <strong>Flag months with outflow above</strong> (100-500%, default 130%) to control which months are flagged as notable</li>
+                </ol>
+
+                <h3>Summary Stats & Chart</h3>
+                <div class="guide-table-wrap">
+                    <table class="guide-table">
+                        <thead>
+                            <tr><th>Stat</th><th>What It Shows</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Current Balance</td><td>Today's balance for the selected account(s)</td></tr>
+                            <tr><td>Lowest Projected</td><td>The lowest point your balance is projected to reach over the horizon — including any mid-month dip — and the date it occurs</td></tr>
+                            <tr><td>Highest Projected</td><td>The highest projected month-end balance and the month it occurs</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>The chart plots projected month-end balances, marking the lowest point in red and the highest in green. Any portion of the line that dips below zero is drawn in red.</p>
+
+                <h3>Notable Months & Warnings</h3>
+                <ul>
+                    <li><strong>⚠️ Driven by:</strong> shown under any month whose total outflow exceeds your threshold, listing the top 3 expenses driving it</li>
+                    <li><strong>⚠️ Projected to go negative:</strong> shown if a month's <em>ending</em> balance is projected to drop below zero</li>
+                    <li><strong>⚠️ Projected to dip negative ... before recovering:</strong> shown if your balance is projected to go negative <em>during</em> a month — for example, a bill due before your next paycheck arrives — but recover to a positive balance by month-end</li>
+                    <li><strong>⚠️ Dips to ... before recovering:</strong> a row in the monthly table flagging any month where the lowest point reached during the month is below that month's ending balance, even if it never goes negative</li>
+                </ul>
+
+                <div class="guide-note"><strong>Why intra-month tracking matters:</strong> month-end balances alone can hide a cash crunch. If rent is due on the 1st but your paycheck doesn't arrive until the 15th, your account could briefly go negative even though the month ends comfortably positive. The "Lowest Projected" stat and the warning banners above reflect this true low point, not just the month-end balance.</div>
+                <div class="guide-note">Horizon, account selection, and the notable-month threshold are saved automatically and included in your JSON export/import.</div>
             </section>
 
             <section class="guide-section" id="viewing-transactions">
