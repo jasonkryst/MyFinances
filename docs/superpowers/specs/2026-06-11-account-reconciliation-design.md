@@ -28,7 +28,7 @@ entity collection:
 {
   id,                // Date.now()-based unique id
   accountId,         // int, references app.accounts[].id (may become orphaned if account deleted)
-  date,              // ISO date (YYYY-MM-DD), always today's date when the entry is created
+  date,              // ISO date (YYYY-MM-DD), user-editable, defaults to today
   previousBalance,   // account.startingBalance immediately before this reconciliation
   statementBalance,  // user-entered real balance from their bank/statement
   difference,        // statementBalance - previousBalance (stored for convenience/audit)
@@ -99,6 +99,7 @@ bound onto `DebtTrackerApp` in `app.js`.
 **Per-account reconcile card** (styled like `.acct-card`):
 - Account name/type icon (reuse `typeIcon` map from `accounts.js`)
 - "Current Tracked Balance" = `account.startingBalance`
+- "Statement Date" — `<input type="date">`, defaults to today (`sanitizeDateISO`-compatible `YYYY-MM-DD`)
 - "Statement Balance" number input
 - Live-computed difference (oninput handler, no save), color-coded:
   positive = green, negative = red, zero = neutral
@@ -121,9 +122,9 @@ bound onto `DebtTrackerApp` in `app.js`.
 - In `ledger.js`'s `renderLedgerPage`, when `selectedAccount !== 'all'`, add a
   **"🔄 Reconcile this account"** button to `filterHtml`.
 - New modal `#reconcileModal` in `index.html`, structured like the existing
-  `#ledgerOverrideModal` (title, current tracked balance, statement balance
-  input, note input, confirm/cancel/close buttons, Escape-to-close,
-  Enter-to-confirm).
+  `#ledgerOverrideModal` (title, current tracked balance, statement date
+  input defaulting to today, statement balance input, note input,
+  confirm/cancel/close buttons, Escape-to-close, Enter-to-confirm).
 - Button's click handler calls `app.openReconcileModal(accountId)` —
   cross-module call through the `app` instance (same pattern as
   `app.renderAccountsList()` from `ledger.js`), avoiding a circular import
@@ -143,6 +144,9 @@ styles live): `.recon-card`, `.recon-diff--pos/neg/zero`, `.recon-history-table`
 - `applyReconciliation` updates `account.startingBalance` to `statementBalance`
 - History entry recorded with correct `previousBalance`/`statementBalance`/`difference`/`date`
 - Reconciling with `difference === 0` still records an entry
+- A custom (past) statement date is stored on the entry as-is, and feeds the
+  *next* reconciliation's "expected transactions since {date}" range; an
+  invalid/missing date falls back to today's date
 - `getExpectedTransactionsInRange` returns correct transactions across a
   month boundary (e.g., range spanning end of one month into the next)
 - `deleteReconciliationEntry` removes the entry without altering `startingBalance`
@@ -156,6 +160,8 @@ styles live): `.recon-card`, `.recon-diff--pos/neg/zero`, `.recon-history-table`
 - Empty state renders when no accounts exist
 - Reconcile card shows correct current tracked balance and live difference
   color-coding as the statement balance input changes
+- Statement date input defaults to today and can be changed to a past date
+  before reconciling
 - Clicking "Reconcile" updates the account's balance shown on the Accounts
   page and adds a row to the history table with the "🔄 Balance
   Reconciliation" badge
