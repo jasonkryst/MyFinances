@@ -553,6 +553,9 @@ export function renderLedgerPage(app) {
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
             <option value="100"${selectedPageSize===100?' selected':''}>100</option>
         </select>`;
+    if (selectedAccount !== 'all') {
+        filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
+    }
     filterHtml += `</div>`;
     if (selectedAccount !== 'all') {
         transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
@@ -735,6 +738,14 @@ export function renderLedgerPage(app) {
             if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
         };
     });
+
+    const reconcileBtn = container.querySelector('#reconcileFromLedgerBtn');
+    if (reconcileBtn) {
+        reconcileBtn.onclick = () => {
+            const accountId = parseInt(reconcileBtn.getAttribute('data-ledger-reconcile'), 10);
+            if (typeof app.openReconcileModal === 'function') app.openReconcileModal(accountId);
+        };
+    }
     // --- End: renderLedgerPage logic ---
 }
 

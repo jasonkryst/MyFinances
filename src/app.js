@@ -84,6 +84,14 @@ import {
     attachSavingsEventListeners as attachSavingsEventListenersFeature
 } from './savings.js';
 import { renderHealthDashboard as renderHealthDashboardFeature } from './health.js';
+import {
+    renderReconciliationPage as renderReconciliationPageFeature,
+    applyReconciliation as applyReconciliationFeature,
+    reconcileAccount as reconcileAccountFeature,
+    deleteReconciliationEntry as deleteReconciliationEntryFeature,
+    getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
+    openReconcileModal as openReconcileModalFeature
+} from './reconciliation.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -105,6 +113,7 @@ export class DebtTrackerApp {
         this.sinkingFunds = [];
         this.monthlySnapshots = [];
         this.netWorthMilestonesAwarded = [];
+        this.reconciliations = [];
         this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
@@ -123,6 +132,7 @@ export class DebtTrackerApp {
     this._forecastRangeMonths = 1;
     this._forecastAccountId = 'total';
     this._forecastNotableThresholdPct = 130;
+    this._reconciliationAccountFilter = 'all';
 
         this.initializeEventListeners();
         this.loadFromStorage();
@@ -766,6 +776,13 @@ export class DebtTrackerApp {
     attachSavingsEventListeners() { return attachSavingsEventListenersFeature(this); }
 
     renderHealthDashboard() { return renderHealthDashboardFeature(this); }
+
+    renderReconciliationPage() { return renderReconciliationPageFeature(this); }
+    applyReconciliation(accountId, statementBalance, note, date) { return applyReconciliationFeature(this, accountId, statementBalance, note, date); }
+    reconcileAccount(accountId) { return reconcileAccountFeature(this, accountId); }
+    deleteReconciliationEntry(id) { return deleteReconciliationEntryFeature(this, id); }
+    getExpectedTransactionsInRange(accountId, startDate, endDate) { return getExpectedTransactionsInRangeFeature(this, accountId, startDate, endDate); }
+    openReconcileModal(accountId) { return openReconcileModalFeature(this, accountId); }
 
     switchLiabilitiesSubTab(subTab) {
         this.liabilitiesSubTab = subTab;

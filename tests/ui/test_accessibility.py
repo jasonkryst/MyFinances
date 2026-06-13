@@ -136,6 +136,81 @@ def test_aria_attributes(app_page):
 
 
 @pytest.mark.ui
+def test_reconcile_inputs_have_labels(app_page):
+    """Reconcile card inputs (date, balance, note) have associated <label> elements."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 8501, name: 'Recon Labels', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app._reconciliationAccountFilter = 'all';
+        app.switchPage('reconcile');
+    }""")
+    page.wait_for_timeout(300)
+
+    for field in ('date', 'balance', 'note'):
+        label = page.query_selector(f'label[for="recon-{field}-8501"]')
+        assert label, f"Expected a <label> for recon-{field}-8501"
+
+
+@pytest.mark.ui
+def test_reconcile_action_buttons_are_buttons(app_page):
+    """Reconcile and delete-history actions are rendered as <button> elements."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 8502, name: 'Recon Buttons', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app._reconciliationAccountFilter = 'all';
+        app.applyReconciliation(8502, 1100, '', '2026-06-10');
+        app.switchPage('reconcile');
+    }""")
+    page.wait_for_timeout(300)
+
+    reconcile_btn = page.query_selector('[data-recon-action="reconcile"][data-recon-id="8502"]')
+    assert reconcile_btn, "Expected a reconcile button"
+    assert reconcile_btn.evaluate('(el) => el.tagName') == 'BUTTON'
+
+    delete_btn = page.query_selector('[data-recon-action="delete-history"]')
+    assert delete_btn, "Expected a delete-history button"
+    assert delete_btn.evaluate('(el) => el.tagName') == 'BUTTON'
+
+
+@pytest.mark.ui
+def test_reconcile_modal_focus_and_keyboard_trap(app_page):
+    """Opening the reconcile modal focuses the balance input; Escape closes it."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 8503, name: 'Recon Focus', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app._reconciliationAccountFilter = 'all';
+        app.openReconcileModal(8503);
+    }""")
+    page.wait_for_timeout(300)
+
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'reconcileModalBalance', "Opening the modal should focus the balance input"
+
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(300)
+
+    modal_hidden = page.evaluate(
+        '() => document.getElementById("reconcileModal")?.classList.contains("hidden")'
+    )
+    assert modal_hidden, "Escape should close the reconcile modal"
+
+
+@pytest.mark.ui
 def test_help_link_opens_guide(app_page):
     """Test the help control opens the usage guide in a new page."""
     page = app_page

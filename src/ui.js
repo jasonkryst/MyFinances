@@ -498,7 +498,8 @@ export function switchPage(app, pageName) {
         strategy: 'strategySection',
         reports: 'reportsSection',
         ledger: 'ledgerSection',
-        recurring: 'recurringSection'
+        recurring: 'recurringSection',
+        reconcile: 'reconcileSection'
     };
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -540,6 +541,9 @@ export function switchPage(app, pageName) {
     if (pageName === 'recurring') {
         app.refreshRecurringAccountSelectors();
         app.renderRecurringPage();
+    }
+    if (pageName === 'reconcile') {
+        app.renderReconciliationPage();
     }
 }
 
