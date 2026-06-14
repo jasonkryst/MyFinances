@@ -334,7 +334,8 @@ export function addRecurringTemplate(app) {
         startDate,
         endDate,
         paused: false,
-        skippedMonths: []
+        skippedMonths: [],
+        paidMonths: []
     });
 
     app.saveToStorage();
@@ -365,6 +366,19 @@ export function skipRecurringOccurrence(app, id, monthKey, unskip = false) {
         t.skippedMonths = t.skippedMonths.filter(m => m !== monthKey);
     } else if (!t.skippedMonths.includes(monthKey)) {
         t.skippedMonths.push(monthKey);
+    }
+    app.saveToStorage();
+    app.renderRecurringPage();
+}
+
+export function markRecurringPaid(app, id, monthKey, unmark = false) {
+    const t = app.recurringTemplates?.find(x => x.id === id);
+    if (!t || !monthKey) return;
+    if (!t.paidMonths) t.paidMonths = [];
+    if (unmark) {
+        t.paidMonths = t.paidMonths.filter(m => m !== monthKey);
+    } else if (!t.paidMonths.includes(monthKey)) {
+        t.paidMonths.push(monthKey);
     }
     app.saveToStorage();
     app.renderRecurringPage();
