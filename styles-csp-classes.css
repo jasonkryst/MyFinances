@@ -46,6 +46,7 @@ body.dark-mode .text-sm-label {
 
 body.dark-mode .text-muted-secondary { color: #64748b; }
 body.dark-mode .text-original { color: #9ca3af; }
+body.dark-mode .text-monthly-interest { color: #9ca3af; }
 
 /* Margin/Spacing Utilities */
 .margin-top-auto { margin-top: 10px; }

@@ -114,10 +114,15 @@ export function showUpdateBalanceModal(app, debtId) {
     const minInput = document.getElementById('updateMinPaymentInput');
     minInput.value = (debt.minimumPayment ?? 0).toFixed(2);
 
+    const lastFocused = document.activeElement;
     modal.classList.add('flex-visible'); modal.classList.remove('hidden');
     setTimeout(() => balInput.focus(), 50);
 
-    const close = () => { modal.classList.add('hidden'); modal.classList.remove('flex-visible'); };
+    const close = () => {
+        modal.classList.add('hidden'); modal.classList.remove('flex-visible');
+        modal.onkeydown = null;
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    };
     document.getElementById('confirmUpdateBalance').onclick = () => {
         const newBal = parseFloat(balInput.value);
         if (isNaN(newBal) || newBal < 0) { alert('Please enter a valid balance (0 or more).'); return; }
@@ -129,6 +134,25 @@ export function showUpdateBalanceModal(app, debtId) {
     document.getElementById('cancelUpdateBalanceBtn').onclick = close;
     document.getElementById('cancelUpdateBalance').onclick = close;
     modal.onclick = (e) => { if (e.target === modal) close(); };
+    modal.onkeydown = (e) => {
+        if (e.key === 'Escape') {
+            close();
+            return;
+        }
+        if (e.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    };
 }
 
 export function updateDebtBalance(app, debtId, newBalance, newMinPayment) {

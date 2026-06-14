@@ -152,6 +152,5 @@ def assert_no_errors(page):
         filtered = [
             e for e in page.console_errors
             if 'favicon' not in e
-            and 'X-Frame-Options may only be set via an HTTP header' not in e
         ]
         assert len(filtered) == 0, f"Console errors: {filtered}"

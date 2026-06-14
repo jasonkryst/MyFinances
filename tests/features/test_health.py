@@ -378,6 +378,5 @@ def test_health_no_console_errors(app_page):
     filtered_errors = [
         e for e in (page.console_errors if hasattr(page, 'console_errors') else [])
         if 'favicon' not in e.lower()
-        and 'X-Frame-Options' not in e
     ]
     assert len(filtered_errors) == 0, f"Console errors on health page: {filtered_errors}"

@@ -128,11 +128,7 @@ def test_security_headers_present(app_page):
     # Check for X-Content-Type-Options
     xcontentype_meta = page.query_selector('meta[http-equiv="X-Content-Type-Options"]')
     assert xcontentype_meta is not None, "X-Content-Type-Options meta tag not found"
-    
-    # Check for X-Frame-Options
-    xframe_meta = page.query_selector('meta[http-equiv="X-Frame-Options"]')
-    assert xframe_meta is not None, "X-Frame-Options meta tag not found"
-    
+
     # Verify CSP content
     csp_content = csp_meta.evaluate('(el) => el.getAttribute("content")')
     assert "script-src 'self'" in csp_content, "CSP missing strict script-src"
