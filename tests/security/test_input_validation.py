@@ -343,6 +343,76 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
 
 
 @pytest.mark.security
+async def test_reconciliation_rejects_non_numeric_balance(async_app_page):
+    """applyReconciliation rejects a non-numeric statement balance, leaving balance and history unchanged."""
+    page = async_app_page
+
+    result = await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7501, name: 'Recon Validate', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        const res = app.applyReconciliation(7501, 'not-a-number', '', '2026-06-10');
+        return {
+            success: res.success,
+            balance: app.accounts[0].startingBalance,
+            historyCount: app.reconciliations.length
+        };
+    }""")
+
+    assert result['success'] is False
+    assert result['balance'] == 1000
+    assert result['historyCount'] == 0
+
+
+@pytest.mark.security
+async def test_reconciliation_accepts_negative_balance(async_app_page):
+    """applyReconciliation accepts a negative statement balance for liability-style accounts."""
+    page = async_app_page
+
+    result = await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7502, name: 'Recon Credit Card', type: 'Credit Card', startingBalance: -500 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        const res = app.applyReconciliation(7502, -650.25, '', '2026-06-10');
+        return {
+            success: res.success,
+            balance: app.accounts[0].startingBalance,
+            difference: app.reconciliations[0].difference
+        };
+    }""")
+
+    assert result['success'] is True
+    assert result['balance'] == -650.25
+    assert result['difference'] == -150.25
+
+
+@pytest.mark.security
+async def test_reconciliation_note_truncated_on_save_reload(async_app_page):
+    """A reconciliation note longer than 200 characters is truncated on save/reload."""
+    page = async_app_page
+
+    result = await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7503, name: 'Recon Truncate', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+
+        const longNote = 'x'.repeat(250);
+        app.applyReconciliation(7503, 1100, longNote, '2026-06-10');
+        app.saveToStorage();
+        app.loadFromStorage();
+        return { noteLength: app.reconciliations[0].note.length };
+    }""")
+
+    assert result['noteLength'] == 200
+
+
+@pytest.mark.security
 async def test_unicode_in_names(async_app_page):
     """Test that unicode characters are properly handled."""
     page = async_app_page

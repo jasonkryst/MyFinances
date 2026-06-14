@@ -5053,3 +5053,65 @@ body.dark-mode .health-cashflow-hero--negative { background: #450a0a; }
 /* Nav links */
 .health-link { font-size: 0.76rem; color: var(--primary-color); text-decoration: none; cursor: pointer; margin-top: auto; display: inline-block; }
 .health-link:hover { text-decoration: underline; }
+
+/* ── Account Reconciliation ── */
+.recon-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+}
+.recon-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.recon-card-info { flex: 1; min-width: 120px; }
+.recon-current-balance { display: block; font-size: 0.85rem; color: var(--text-secondary); }
+
+.recon-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.recon-diff-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+.recon-diff-label { color: var(--text-secondary); font-weight: 500; }
+.recon-diff--pos  { color: var(--success-color); }
+.recon-diff--neg  { color: var(--danger-color); }
+.recon-diff--zero { color: var(--text-secondary); }
+
+.recon-expected { margin-top: 12px; }
+.recon-expected summary { cursor: pointer; color: var(--primary-color); font-size: 0.9rem; }
+.recon-expected-empty { font-size: 0.85rem; color: var(--text-secondary); margin: 8px 0 0; }
+.recon-expected-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 0.85rem; }
+.recon-expected-table th, .recon-expected-table td {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.recon-history-table { margin-top: 8px; }
+
+.recon-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 10px;
+    background: #e0f2fe;
+    color: #075985;
+}
+body.dark-mode .recon-badge { background: #0c4a6e; color: #7dd3fc; }

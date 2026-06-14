@@ -439,3 +439,27 @@ async def test_xss_in_forecast_driver_name(async_app_page):
 
     xss_triggered = await page.evaluate('() => window.__xss === true')
     assert not xss_triggered, "XSS payload executed via unescaped expense name!"
+
+
+@pytest.mark.security
+async def test_xss_in_reconciliation_note(async_app_page):
+    """Test XSS prevention in the reconciliation note field, rendered in the history table."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7401, name: 'Recon XSS', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app._reconciliationAccountFilter = 'all';
+        app.applyReconciliation(7401, 1100, '<img src=x onerror="window.__xss_recon=1">', '2026-06-10');
+        app.switchPage('reconcile');
+    }""")
+    await page.wait_for_timeout(300)
+
+    section_html = await page.evaluate('() => document.getElementById("reconcileSection")?.innerHTML || ""')
+    assert '<img src=x' not in section_html, "Unescaped <img> tag found in reconciliation history"
+
+    xss_ran = await page.evaluate('() => window.__xss_recon === 1')
+    assert not xss_ran, "XSS payload executed via reconciliation note!"

@@ -1,6 +1,6 @@
 // LocalStorage import/export
 
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO } from './utils.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, todayISO } from './utils.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
@@ -181,6 +181,22 @@ function sanitizeForecastSettings(record) {
     };
 }
 
+function sanitizeReconciliation(record, idFallback) {
+    const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
+        ? record.createdAt
+        : new Date().toISOString();
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        accountId: sanitizeInteger(record?.accountId, null),
+        date: sanitizeDateISO(record?.date) || todayISO(),
+        previousBalance: sanitizeFiniteNumber(record?.previousBalance, 0),
+        statementBalance: sanitizeFiniteNumber(record?.statementBalance, NaN),
+        difference: sanitizeFiniteNumber(record?.difference, 0),
+        note: normalizeText(record?.note, 200),
+        createdAt
+    };
+}
+
 function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
@@ -205,7 +221,8 @@ function sanitizeParsedState(parsed = {}) {
             sortKey: normalizeText(parsed?.ledgerSettings?.sortKey, 20) || 'date',
             sortDir: parsed?.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc'
         },
-        forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings)
+        forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
+        reconciliations: (Array.isArray(parsed.reconciliations) ? parsed.reconciliations : []).map((r, i) => sanitizeReconciliation(r, now + 5500 + i)).filter(r => r.accountId !== null && Number.isFinite(r.statementBalance))
     };
 }
 
@@ -224,6 +241,7 @@ export function saveToStorage(app) {
             recurringTemplates: app.recurringTemplates || [],
             emergencyFunds: app.emergencyFunds || [],
             sinkingFunds: app.sinkingFunds || [],
+            reconciliations: app.reconciliations || [],
             monthlySnapshots: app.monthlySnapshots || [],
             netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
             perMonthStimulus: app.perMonthStimulus || [],
@@ -265,6 +283,7 @@ export function loadFromStorage(app) {
             app.recurringTemplates = clean.recurringTemplates;
             app.emergencyFunds = clean.emergencyFunds;
             app.sinkingFunds = clean.sinkingFunds;
+            app.reconciliations = clean.reconciliations;
             app.monthlySnapshots = clean.monthlySnapshots;
             app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;
             app.perMonthStimulus = clean.perMonthStimulus;
@@ -306,6 +325,7 @@ export function exportAllJSON(app) {
         recurringTemplates: app.recurringTemplates || [],
         emergencyFunds: app.emergencyFunds || [],
         sinkingFunds: app.sinkingFunds || [],
+        reconciliations: app.reconciliations || [],
         monthlySnapshots: app.monthlySnapshots || [],
         netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
         strategy: {
@@ -486,6 +506,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingRecurringTemplates = clean.recurringTemplates;
         const incomingEmergencyFunds = clean.emergencyFunds;
         const incomingSinkingFunds = clean.sinkingFunds;
+        const incomingReconciliations = clean.reconciliations;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
         const incomingStrategy = payload?.strategy || null;
@@ -526,6 +547,7 @@ export function importAllJSON(app, file, options = {}) {
             app.recurringTemplates = incomingRecurringTemplates.map((r, i) => ({ ...r, id: Date.now() + 4000 + i }));
             app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
             app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
+            app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
@@ -567,6 +589,7 @@ export function importAllJSON(app, file, options = {}) {
             app.recurringTemplates = incomingRecurringTemplates.map((r, i) => ({ ...r, id: Date.now() + 4000 + i }));
             app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
             app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
+            app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
@@ -618,6 +641,7 @@ export function clearAllData(app, options = {}) {
     app.perMonthStimulus = [];
     app.bonuses = [];
     app.ledgerAmountOverrides = {};
+    app.reconciliations = [];
 
     app.editingDebtId = null;
     app.editingIncomeId = null;
@@ -636,6 +660,7 @@ export function clearAllData(app, options = {}) {
     app._forecastRangeMonths = 1;
     app._forecastAccountId = 'total';
     app._forecastNotableThresholdPct = 130;
+    app._reconciliationAccountFilter = 'all';
 
     localStorage.removeItem(app.storageKey);
     localStorage.removeItem('debtTrackerTheme');

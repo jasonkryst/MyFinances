@@ -305,13 +305,30 @@ Polish and quality-of-life improvements.
 ---
 
 #### 🔧 Account Reconciliation Tool
-**Priority**: LOW-MEDIUM | **Effort**: MEDIUM | **Status**: PROPOSED
+**Priority**: LOW-MEDIUM | **Effort**: MEDIUM | **Status**: IMPLEMENTED (June 13, 2026)
 
-**Features**:
-- Compare app balance vs. real account balance
-- Adjust discrepancies with reconciliation entries
-- History of reconciliation adjustments
-- Find missing transactions
+**Delivered Features**:
+- New 🔄 Reconcile page with a card per account showing the current tracked balance, an editable statement date (defaults to today) and statement balance, and a live, color-coded difference as the statement balance is edited
+- "Expected transactions since {date}" details per account, listing bills/recurring items due since the last reconciliation (or the start of the month if none yet)
+- Reconciling updates the account's tracked balance and records a history entry (previous → statement balance, difference, date, note)
+- History table with an account filter and per-entry delete (does not revert the balance)
+- 🔄 Reconcile this account button on the Ledger page (when a single account is selected) opens a quick-reconcile modal with the same fields, plus Escape/Enter keyboard handling
+- `app.reconciliations` round-trips through localStorage and JSON export/import, with sanitization rejecting entries with a missing `accountId` or non-finite `statementBalance`
+- Orphaned history entries (account later deleted) render with an "Unknown account" label instead of crashing
+
+**Why This Matters**:
+- Lets users correct drift between the tracked balance and their bank's actual balance after fees, interest, or missed transactions
+- Surfaces upcoming/expected transactions so users can spot what's likely causing a discrepancy before adjusting the balance
+
+**Implementation Notes**:
+- Implemented in `src/reconciliation.js`: `renderReconciliationPage`, `applyReconciliation`, `reconcileAccount`, `deleteReconciliationEntry`, `getExpectedTransactionsInRange`, `openReconcileModal`
+- `getExpectedTransactionsInRange` reuses `getLedgerTransactionsForMonth` from `src/ledger.js`, walking month-by-month across the requested date range
+- `todayISO()` added to `src/utils.js`; `sanitizeReconciliation` added to `src/storage.js` following the existing sanitize/round-trip conventions
+
+**Test Coverage**:
+- 11 feature tests in `tests/features/test_reconciliation.py` covering `applyReconciliation`, history entries, expected-transactions lookups, sanitization, and import/export/clear round-trips
+- 8 UI tests in `tests/ui/test_reconciliation_actions.py` covering the empty state, live diff, history filter/delete, expected-transactions details, and the Ledger quick-reconcile modal
+- XSS, input-validation, and accessibility coverage added to `tests/security/test_xss.py`, `tests/security/test_input_validation.py`, and `tests/ui/test_accessibility.py`
 
 ---
 
@@ -415,6 +432,10 @@ Domain-specific tools for advanced users.
 - Cash Flow Forecasting (`src/forecast.js`), originally planned for v3.3, shipped early — see Tier 2 entry above for details
 - Test suite expanded: 13 new tests covering the Forecast tab (`tests/features/test_forecast.py`)
 
+**Shipped post-v3.1 (June 13, 2026)**:
+- Account Reconciliation Tool (`src/reconciliation.js`), originally planned for v3.4+, shipped early — see Tier 3 entry above for details
+- Test suite expanded: 26 new tests covering reconciliation (feature, UI, security, accessibility)
+
 ---
 
 ### v3.2 (Q3 2026)
@@ -438,7 +459,7 @@ Domain-specific tools for advanced users.
 
 ### v3.4+ (Future)
 - [ ] Bill Payment Tracker
-- [ ] Account Reconciliation
+- [x] ~~Account Reconciliation~~ — shipped early, June 13, 2026
 - [ ] Debt Consolidation Calculator
 - [ ] Advanced Tax/Retirement tools
 

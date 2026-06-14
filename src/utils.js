@@ -1,6 +1,6 @@
 // Formatting, date helpers, shared utilities
 
-export const APP_VERSION = '3.2.0';
+export const APP_VERSION = '3.3.0';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50")
@@ -45,6 +45,14 @@ export function sanitizeDateISO(value) {
     const date = new Date(`${text}T12:00:00`);
     if (Number.isNaN(date.getTime())) return null;
     return text;
+}
+
+export function todayISO() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
 }
 
 export function escapeHtml(value) {
