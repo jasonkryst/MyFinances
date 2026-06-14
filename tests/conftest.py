@@ -198,6 +198,8 @@ def create_debt(page, debt_data):
     page.fill('#accountBalance', debt_data["balance"])
     page.fill('#interestRate', debt_data["interest_rate"])
     page.fill('#minimumPayment', debt_data["min_payment"])
+    if debt_data["type"] == "creditCard":
+        page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
     page.wait_for_selector(f'text={debt_data["name"]}', timeout=10000)
 

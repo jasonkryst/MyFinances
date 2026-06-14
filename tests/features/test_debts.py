@@ -6,6 +6,8 @@ Tests debt CRUD operations and calculations.
 
 import pytest
 
+from tests.conftest import create_debt
+
 BASE_URL = "http://localhost:5500/"
 
 
@@ -212,3 +214,52 @@ def test_net_worth_includes_debts(app_page):
     # Check net worth (should be 10000 - 3000 = 7000)
     net_worth_widget = page.query_selector('#netWorthWidget')
     assert net_worth_widget, "Net worth widget not found"
+
+
+@pytest.mark.feature
+def test_debt_card_shows_run_a_plan_hint_before_calculation(app_page, debt_data):
+    """Before any payment plan is calculated, debt cards show a 'Run a plan to see' payoff hint."""
+    page = app_page
+    create_debt(page, debt_data)
+
+    card_text = page.evaluate("""() => {
+        const card = document.querySelector('#debtsList .debt-card');
+        return card ? card.textContent : '';
+    }""")
+    assert '📅 Payoff Date' in card_text, "Expected a Payoff Date label even before calculating a plan"
+    assert 'Run a plan to see' in card_text, "Expected a 'Run a plan to see' payoff hint before calculating a plan"
+
+
+@pytest.mark.feature
+def test_debt_card_shows_payoff_date_after_plan_calculation(app_page, debt_data):
+    """After calculating a payment plan, each debt card shows its projected payoff date."""
+    page = app_page
+    create_debt(page, debt_data)
+
+    page.click('button[data-page="strategy"]')
+    page.wait_for_timeout(300)
+    page.fill('#monthlyPayment', '200')
+    page.select_option('#paymentStrategy', 'avalanche')
+    page.click('#calculateBtn')
+    page.wait_for_timeout(500)
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.wait_for_timeout(300)
+
+    card_text = page.evaluate("""() => {
+        const card = document.querySelector('#debtsList .debt-card');
+        return card ? card.textContent : '';
+    }""")
+    assert '📅 Payoff Date' in card_text, "Expected a Payoff Date label after calculating a plan"
+    assert 'Run a plan to see' not in card_text, "Expected the 'Run a plan to see' hint to be replaced by an actual date"
+
+    summary_payoff_date = page.evaluate(
+        """(name) => {
+            const row = window.app._debtSummaryRows?.find(r => r.name === name);
+            return row ? row.payoffDate : null;
+        }""",
+        debt_data["name"]
+    )
+    assert summary_payoff_date, "Expected _debtSummaryRows to contain a payoffDate"
+    assert summary_payoff_date in card_text, "Debt card should display the same payoff date as the summary table"

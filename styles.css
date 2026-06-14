@@ -2005,6 +2005,16 @@ th.sort-active .sort-icon {
     color: var(--text-primary);
 }
 
+.text-muted {
+    color: var(--text-muted, #9ca3af);
+}
+body.dark-mode .text-muted {
+    color: #94a3b8;
+}
+.debt-payoff-detail--muted {
+    font-size: 0.82rem;
+}
+
 .debt-actions {
     display: flex;
     gap: 10px;
