@@ -4799,6 +4799,8 @@ body.dark-mode .recurring-badge--active  { background: #064e3b; color: #6ee7b7; 
 body.dark-mode .recurring-badge--paused  { background: #451a03; color: #fcd34d; }
 body.dark-mode .recurring-badge--skipped { background: #0c4a6e; color: #7dd3fc; }
 body.dark-mode .recurring-badge--pending { background: #1f2937; color: #9ca3af; }
+.recurring-badge--paid { background: #dbeafe; color: #1e40af; }
+body.dark-mode .recurring-badge--paid { background: #1e3a5f; color: #93c5fd; }
 .recurring-this-month {
     font-size: 0.8rem;
     color: var(--text-muted, #6b7280);
