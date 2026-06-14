@@ -267,9 +267,10 @@ export function renderCalendarView(app, page = 0) {
     const MONTHS_PER_PAGE = 1;
 
     const debtColors = {};
+    // Each color must reach 4.5:1 contrast with the white text in .cal-event (WCAG AA)
     const palette = [
-        '#2563eb', '#dc2626', '#d97706', '#7c3aed',
-        '#db2777', '#0891b2', '#65a30d', '#ea580c', '#6366f1'
+        '#2563eb', '#dc2626', '#b45309', '#7c3aed',
+        '#be185d', '#0e7490', '#4d7c0f', '#9a3412', '#4f46e5'
     ];
     let colorIdx = 0;
     for (const debt of app.debts) {

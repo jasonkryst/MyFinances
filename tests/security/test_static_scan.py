@@ -55,17 +55,26 @@ def test_csp_in_html():
 def test_security_headers_in_html():
     """Verify security headers are in HTML."""
     index_path = os.path.join(PROJECT_ROOT, 'index.html')
-    
+
     with open(index_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
-    required_headers = [
-        'X-Content-Type-Options',
-        'X-Frame-Options',
-    ]
-    
-    for header in required_headers:
-        assert header in content, f"Security header {header} not found in HTML"
+
+    assert 'X-Content-Type-Options' in content, "Security header X-Content-Type-Options not found in HTML"
+
+
+@pytest.mark.security
+def test_xframe_options_in_nginx_config():
+    """Verify X-Frame-Options is sent as a real HTTP header by the server.
+
+    Browsers ignore X-Frame-Options set via a <meta> tag, so clickjacking
+    protection must come from the server config used for deployment.
+    """
+    nginx_path = os.path.join(PROJECT_ROOT, 'nginx.conf')
+
+    with open(nginx_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    assert 'X-Frame-Options' in content, "X-Frame-Options header not found in nginx.conf"
 
 
 @pytest.mark.security

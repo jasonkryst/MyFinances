@@ -490,35 +490,10 @@ export function renderReportsCalendar(app) {
     gridHTML += '</div>';
 
     container.innerHTML = `<h3 class="rpt-cal-month-title">${monthLabel}</h3><div class="rpt-cal-legend">${legendItems.join('')}</div>${gridHTML}`;
-    
-    // Apply dynamic debt colors using CSS rules (CSP-compliant)
-    const debtEvts = container.querySelectorAll('[data-debt-color]');
-    if (debtEvts.length > 0) {
-        // Create a style tag for dynamic colors
-        const styleId = `debt-colors-${Date.now()}`;
-        const existingStyle = document.getElementById(styleId);
-        if (existingStyle) existingStyle.remove();
-        
-        const style = document.createElement('style');
-        style.id = styleId;
-        
-        let cssRules = '';
-        const colors = new Set();
-        for (const evt of debtEvts) {
-            const color = evt.getAttribute('data-debt-color');
-            if (color && !colors.has(color)) {
-                colors.add(color);
-                // Escape special characters in color for CSS
-                const escapedColor = color.replace(/'/g, '');
-                cssRules += `[data-debt-color="${escapedColor}"] { background: ${escapedColor} !important; }`;
-            }
-        }
-        
-        if (cssRules) {
-            style.textContent = cssRules;
-            document.head.appendChild(style);
-        }
-    }
+
+    // Apply dynamic debt colors via CSS custom property (CSP-compliant)
+    container.querySelectorAll('[data-debt-color]').forEach(el =>
+        el.style.setProperty('--debt-color', el.dataset.debtColor));
 }
 
 export function renderReportsIncomeExp(app) {
