@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 10, 2026  
-**Current Version**: v3.2.0  
+**Last Updated**: June 14, 2026  
+**Current Version**: v3.5.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -14,6 +14,47 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 2. **Enable motivation** — Display progress and milestones
 3. **Support decision-making** — Compare scenarios and forecast outcomes
 4. **Maintain simplicity** — Stay client-side, no servers, no complexity
+
+---
+
+## 🔑 Status Legend
+
+| Symbol | Meaning |
+|---|---|
+| ✅ | **Implemented** — shipped and available today |
+| 📋 | **Proposed** — not yet started |
+| ⏭️ | **Deferred** — folded into another roadmap item |
+
+---
+
+## 📌 At a Glance
+
+| Feature | Tier | Status | Notes |
+|---|---|---|---|
+| Net Worth Tracker & Historical Snapshots | 1 | ✅ | Delivered May 30, 2026 |
+| Financial Health Dashboard | 1 | ✅ | Delivered June 8, 2026 |
+| Budget Alerts & Overspend Warnings | 1 | 📋 | Absorbs Quick Wins #2 and #5 |
+| Savings Goals with Progress Tracking | 2 | 📋 | |
+| Spending Analysis by Category | 2 | 📋 | |
+| Multiple Scenario Comparison | 2 | 📋 | |
+| Cash Flow Forecasting | 2 | ✅ | Delivered June 10, 2026 — shipped early, was planned for v3.3 |
+| Break-Even Analysis per Debt | 2 | 📋 | |
+| Advanced Ledger Features | 3 | 📋 | |
+| Bill Payment Tracker | 3 | 📋 | "Mark as paid" seeded for Recurring Templates via Quick Win #4 |
+| Income Growth Projections | 3 | 📋 | |
+| Account Reconciliation Tool | 3 | ✅ | Delivered June 13, 2026 — shipped early, was planned for v3.4+ |
+| Debt Consolidation Calculator | 3 | 📋 | |
+| Custom Categories for Transactions | 4 | 📋 | |
+| Tax Planning Helpers | 4 | 📋 | |
+| Retirement Planning | 4 | 📋 | |
+| Credit Score Estimator | 4 | 📋 | |
+| Inflation Calculator | 4 | 📋 | |
+| Enhanced Data Export | 4 | 📋 | |
+| Quick Win #1: Debt Payoff Timeline Display | Quick Win | ✅ | Delivered June 14, 2026 |
+| Quick Win #2: Month-to-Date Spending Summary | Quick Win | ⏭️ | Folded into Budget Alerts & Overspend Warnings (Tier 1) |
+| Quick Win #3: Dashboard Page | Quick Win | ✅ | Delivered in v3.1 as Financial Health Dashboard |
+| Quick Win #4: Bill Payment Status | Quick Win | ✅ | Delivered June 14, 2026 — retargeted to Recurring Templates "Mark as paid" |
+| Quick Win #5: Budget Overspend Badges | Quick Win | ⏭️ | Folded into Budget Alerts & Overspend Warnings (Tier 1) |
 
 ---
 
@@ -282,14 +323,22 @@ Polish and quality-of-life improvements.
 ---
 
 #### 📅 Bill Payment Tracker
-**Priority**: MEDIUM | **Effort**: LOW | **Status**: PROPOSED
+**Priority**: MEDIUM | **Effort**: LOW | **Status**: PROPOSED (partially seeded)
+
+**Note**: The standalone "Bills" feature this item was originally written
+against (`#billForm`/`#billList`) was removed from the UI on May 29, 2026 in
+favor of Recurring Templates (`src/recurring.js`). The "mark as paid" piece of
+this item has been delivered for Recurring Templates via Quick Win #4
+(`paidMonths`). The remaining items below stay PROPOSED, but would need to be
+redefined against Recurring Templates rather than the old Bills model if
+pursued.
 
 **Features**:
-- Mark bills as "due" vs. "paid"
-- Track payment history and dates
-- Late payment warnings (bill due date passed)
-- Confirmation dates when payment sent
-- Monthly payment checklist
+- [x] Mark items as "due" vs. "paid" — delivered for Recurring Templates (Quick Win #4)
+- [ ] Track payment history and dates
+- [ ] Late payment warnings (occurrence date passed without being marked paid)
+- [ ] Confirmation dates when payment sent
+- [ ] Monthly payment checklist
 
 ---
 
@@ -469,23 +518,15 @@ Domain-specific tools for advanced users.
 
 These can be implemented quickly and add immediate value:
 
-1. **Debt Payoff Timeline Display** (30 min)
-   - Show "Payoff date: Dec 2026" on each debt card
-   - Already calculated, just needs display
+1. ~~**Debt Payoff Timeline Display** (30 min)~~ ✅ **Delivered June 14, 2026** — each debt card shows a "📅 Payoff Date" row sourced from `app._debtSummaryRows` (populated when the user clicks "Calculate Payment Plan" on the Plan page)
 
-2. **Month-to-Date Spending Summary** (1 hour)
-   - Add totals by category below budget section
-   - Show % of budget used
+2. ⏭️ **Month-to-Date Spending Summary** — **Deferred**, folded into Tier 1 "🛑 Budget Alerts & Overspend Warnings" (requires a per-category monthly budget limit concept that doesn't exist yet)
 
 3. ~~**Dashboard Page** (2-3 hours)~~ ✅ **Delivered in v3.1** — Financial Health Dashboard (`src/health.js`)
 
-4. **Bill Payment Status** (1 hour)
-   - Add checkbox "Paid this month" to bills
-   - Toggle state persistence
+4. ~~**Bill Payment Status** (1 hour)~~ ✅ **Delivered June 14, 2026** — retargeted to Recurring Templates: a "Mark as paid this month" toggle (`paidMonths` per template, mirrors `skippedMonths`). The standalone Bills feature this item originally targeted was removed in favor of Recurring Templates (May 29, 2026).
 
-5. **Budget Overspend Badges** (1-2 hours)
-   - Red badge with count of overspent categories
-   - Click to see details
+5. ⏭️ **Budget Overspend Badges** — **Deferred**, folded into Tier 1 "🛑 Budget Alerts & Overspend Warnings" (same underlying budget-limit concept as #2)
 
 ---
 
@@ -572,4 +613,4 @@ Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECUR
 
 **Version**: 1.1  
 **Status**: Active Roadmap  
-**Last Updated**: June 10, 2026
+**Last Updated**: June 14, 2026
