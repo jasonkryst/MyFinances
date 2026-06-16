@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 14, 2026  
-**Current Version**: v3.5.0  
+**Last Updated**: June 16, 2026  
+**Current Version**: v3.6.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -35,7 +35,7 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 | Financial Health Dashboard | 1 | ✅ | Delivered June 8, 2026 |
 | Budget Alerts & Overspend Warnings | 1 | 📋 | Absorbs Quick Wins #2 and #5 |
 | Savings Goals with Progress Tracking | 2 | 📋 | |
-| Spending Analysis by Category | 2 | 📋 | |
+| Spending Analysis by Category | 2 | ✅ | Delivered June 16, 2026 |
 | Multiple Scenario Comparison | 2 | 📋 | |
 | Cash Flow Forecasting | 2 | ✅ | Delivered June 10, 2026 — shipped early, was planned for v3.3 |
 | Break-Even Analysis per Debt | 2 | 📋 | |
@@ -197,7 +197,7 @@ On track: ✓ Yes
 ---
 
 #### 📊 Spending Analysis by Category
-**Priority**: MEDIUM | **Effort**: MEDIUM | **Status**: PROPOSED
+**Priority**: MEDIUM | **Effort**: MEDIUM | **Status**: ✅ DELIVERED June 16, 2026
 
 **Description**:
 Visual breakdown of where money is going. Pie charts, trend analysis, and category rankings help users understand spending patterns and identify areas to optimize.
@@ -613,4 +613,4 @@ Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECUR
 
 **Version**: 1.1  
 **Status**: Active Roadmap  
-**Last Updated**: June 14, 2026
+**Last Updated**: June 16, 2026

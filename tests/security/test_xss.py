@@ -462,3 +462,29 @@ async def test_xss_in_reconciliation_note(async_app_page):
 
     xss_ran = await page.evaluate('() => window.__xss_recon === 1')
     assert not xss_ran, "XSS payload executed via reconciliation note!"
+
+
+@pytest.mark.security
+def test_xss_in_spending_category_name(app_page):
+    """Category names containing HTML tags are escaped in the Spending tab ranked list and modal."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+    page.evaluate("""() => {
+        const app = window.app;
+        app.expenses = [{ id: 8801, name: 'Unsafe item', category: '<script>window._xssSpendingFired=true</script>', budgetAmount: 99, date: '2026-06-01', accountId: null }];
+        app.bills = []; app.recurringTemplates = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.incomes = []; app.bonuses = []; app.accounts = [];
+        app.ledgerAmountOverrides = {};
+        app._reportMonthOffset = 0;
+        app.renderReportsPage();
+    }""")
+    page.click('[data-rptab="spending"]')
+    page.wait_for_timeout(300)
+
+    xss_fired = page.evaluate('() => !!window._xssSpendingFired')
+    assert not xss_fired, "XSS script should not have executed in the spending ranked list"
+
+    raw_tag = page.evaluate('() => document.getElementById("spendingRankedList")?.innerHTML.includes("<script>")')
+    assert not raw_tag, "Raw <script> tag should not appear in ranked list innerHTML — it must be escaped"

@@ -118,6 +118,13 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 - **Automatic Monthly Reset** — Paid status is tracked per `'YYYY-MM'` month key (`paidMonths`), so each new month starts unmarked
 - **Export/Import Ready** — `paidMonths` round-trips through JSON backup like `skippedMonths`
 
+### Spending Analysis by Category (NEW)
+- **Spending Tab in Reports** — a dedicated "🏷️ Spending" tab joins the existing Calendar, Income vs Expenses, Money Flow, What Changed, Net Worth, and Forecast tabs
+- **Doughnut Pie Chart** — visual slice-by-slice breakdown of all outflows (expenses, bills, recurring subscriptions, debt minimums, savings contributions) for the selected month; click a slice to drill down
+- **Ranked Category List** — categories sorted by total spend with month-over-month % change badges (↑/↓)
+- **6-Month Stacked Bar Trend** — current month highlighted at full opacity; prior 5 months at reduced opacity; category union taken across all 6 months so no data is missing
+- **Drill-Down Modal** — click any category row or pie slice to see the individual transactions (name, date, type icon, amount)
+
 ---
 
 ## 🔐 Security & Compliance
@@ -867,4 +874,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.5.0 — Updated June 14, 2026*
+*MyFinances v3.6.0 — Updated June 16, 2026*
