@@ -121,7 +121,7 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
 
         for (const bonus of app.bonuses || []) {
             if (bonus.date && bonus.amount) {
-                const bonusDate = new Date(bonus.date);
+                const bonusDate = new Date(String(bonus.date).includes('T') ? bonus.date : bonus.date + 'T00:00:00');
                 if (bonusDate.getFullYear() === year && bonusDate.getMonth() === month) {
                     addTx({
                         accountId: bonus.accountId,
@@ -168,7 +168,7 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
 
         for (const exp of app.expenses || []) {
             if (exp.budgetAmount && exp.date) {
-                const expDate = new Date(exp.date);
+                const expDate = new Date(String(exp.date).includes('T') ? exp.date : exp.date + 'T00:00:00');
                 if (expDate.getFullYear() === year && expDate.getMonth() === month) {
                     addTx({
                         accountId: exp.accountId,
