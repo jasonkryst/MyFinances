@@ -5175,3 +5175,109 @@ body.dark-mode .recon-expected summary { color: #60a5fa; }
     color: #075985;
 }
 body.dark-mode .recon-badge { background: #0c4a6e; color: #7dd3fc; }
+
+/* ── Spending Analysis ───────────────────────────────────────────────────── */
+.spending-summary-strip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    color: var(--text-primary, #1e293b);
+}
+.spending-change-badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 9999px;
+}
+.spending-badge--up   { background: #fee2e2; color: #b91c1c; }
+.spending-badge--down { background: #dcfce7; color: #15803d; }
+body.dark-mode .spending-badge--up   { background: #450a0a; color: #fca5a5; }
+body.dark-mode .spending-badge--down { background: #052e16; color: #86efac; }
+
+.spending-hero-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+    align-items: start;
+}
+.spending-pie-wrap { position: relative; height: 280px; }
+
+.spending-ranked-list { display: flex; flex-direction: column; gap: 6px; }
+.spending-ranked-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: none;
+}
+body.dark-mode .spending-ranked-row { background: #1e293b; }
+.spending-ranked-row:hover { background: #f1f5f9; }
+body.dark-mode .spending-ranked-row:hover { background: #334155; }
+.spending-ranked-rank  { font-weight: 700; color: #64748b; font-size: 0.85rem; }
+.spending-ranked-name  { font-weight: 500; color: #1e293b; }
+.spending-ranked-total { font-weight: 700; color: #1e293b; }
+body.dark-mode .spending-ranked-name,
+body.dark-mode .spending-ranked-total { color: #e2e8f0; }
+.spending-ranked-change--up   { font-size: 0.78rem; font-weight: 600; color: #b91c1c; }
+.spending-ranked-change--down { font-size: 0.78rem; font-weight: 600; color: #15803d; }
+body.dark-mode .spending-ranked-change--up   { color: #fca5a5; }
+body.dark-mode .spending-ranked-change--down { color: #86efac; }
+
+.spending-bar-section { margin-top: 8px; }
+.spending-bar-title { font-size: 0.9rem; font-weight: 600; color: #1e293b; margin: 0 0 8px; }
+body.dark-mode .spending-bar-title { color: #e2e8f0; }
+.spending-bar-wrap { position: relative; height: 280px; }
+
+.spending-empty {
+    text-align: center;
+    color: #64748b;
+    padding: 48px 0;
+    font-size: 0.95rem;
+}
+
+/* Spending drill-down modal */
+.spending-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.spending-modal-title    { font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; }
+.spending-modal-subtitle { font-size: 0.85rem; color: #64748b; margin: 0; }
+.spending-modal-tx-list  {
+    max-height: 320px;
+    overflow-y: auto;
+    border-top: 1px solid #e5e7eb;
+    margin-bottom: 16px;
+}
+body.dark-mode .spending-modal-tx-list { border-top-color: #374151; }
+.spending-modal-tx-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+}
+body.dark-mode .spending-modal-tx-row { border-bottom-color: #1e293b; }
+.spending-modal-tx-name { font-weight: 500; color: #1e293b; }
+body.dark-mode .spending-modal-tx-name { color: #e2e8f0; }
+.spending-modal-tx-meta { font-size: 0.8rem; color: #64748b; }
+.spending-modal-tx-amt--neg { color: #b91c1c; font-weight: 600; font-size: 0.9rem; }
+body.dark-mode .spending-modal-tx-amt--neg { color: #fca5a5; }
+.spending-modal-footer  { text-align: right; }
+.spending-empty-detail  { text-align: center; color: #64748b; padding: 16px 0; }
+
+@media (max-width: 640px) {
+    .spending-hero-row    { grid-template-columns: 1fr; }
+    .spending-pie-wrap    { height: 220px; }
+}
