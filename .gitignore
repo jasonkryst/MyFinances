@@ -1,6 +1,8 @@
 # ── AI / IDE tools ─────────────────────────────────────────────────────────────
 # Claude Code local settings (machine-specific)
 .claude/
+# Superpowers brainstorm session files (auto-generated)
+.superpowers/
 # Playwright MCP session logs and page snapshots
 .playwright-mcp/
 # Claude Code per-session memory (auto-managed)
