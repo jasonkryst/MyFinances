@@ -437,3 +437,31 @@ async def test_unicode_in_names(async_app_page):
         }
     """)
     assert len(account_text) > 0, "Unicode name not stored"
+
+
+@pytest.mark.security
+async def test_sanitize_recurring_template_paid_months(async_app_page):
+    """sanitizeRecurringTemplate (via save/reload) strips malformed paidMonths
+    entries, keeping only 'YYYY-MM' strings."""
+    page = async_app_page
+
+    result = await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 8301, name: 'Paid Months Sanitize', type: 'Checking', startingBalance: 100 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
+        app.recurringTemplates = [{
+            id: 8302, name: 'Sanitize Sub', type: 'subscription', amount: 10,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
+            accountId: 8301, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: false, skippedMonths: [],
+            paidMonths: ['2026-06', 123, 'not-a-month', '26-06', '2026-006']
+        }];
+        app.saveToStorage();
+        app.loadFromStorage();
+        const t = app.recurringTemplates.find(x => x.id === 8302);
+        return { paidMonths: t ? t.paidMonths : null };
+    }""")
+
+    assert result['paidMonths'] == ['2026-06'], f"Expected only '2026-06' to survive sanitization, got {result['paidMonths']}"

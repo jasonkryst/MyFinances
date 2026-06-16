@@ -108,6 +108,16 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
   - Table notes flag "Dips to $X on \<date\> before recovering" for any month with a mid-month low below its ending balance
 - **Settings Persisted** — Horizon, account selection, and notable-month threshold are saved to localStorage and included in JSON export/import
 
+### Debt Payoff Date Display (NEW)
+- **Payoff Date on Every Debt Card** — Credit Card and Fixed Amount debts both show a "📅 Payoff Date" once a payment plan has been calculated on the Plan page
+- **"Run a Plan to See" Hint** — Shown until a plan is calculated, consistent with the existing "Total Interest (projected)" hint
+
+### Recurring Template "Mark as Paid This Month" (NEW)
+- **Paid Status Toggle** — Mark a subscription, reimbursement, or transfer as paid for the current month with a single click
+- **Distinct from Skip Month** — "Paid" confirms an occurrence that happened; "Skip" suppresses an occurrence that won't happen — both can be tracked independently
+- **Automatic Monthly Reset** — Paid status is tracked per `'YYYY-MM'` month key (`paidMonths`), so each new month starts unmarked
+- **Export/Import Ready** — `paidMonths` round-trips through JSON backup like `skippedMonths`
+
 ---
 
 ## 🔐 Security & Compliance
@@ -857,4 +867,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.2.0 — Updated June 10, 2026*
+*MyFinances v3.5.0 — Updated June 14, 2026*

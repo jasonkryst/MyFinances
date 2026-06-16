@@ -334,6 +334,11 @@ export function renderDebtsList(app) {
         const card = document.createElement('div');
         card.className = 'debt-card';
 
+        const summaryRow = app._debtSummaryRows?.find(r => r.name === debt.name);
+        const payoffDetailHTML = (summaryRow && summaryRow.payoffDate)
+            ? `<div class="debt-detail debt-payoff-detail"><strong>📅 Payoff Date:</strong> ${summaryRow.payoffDate}</div>`
+            : `<div class="debt-detail debt-payoff-detail debt-payoff-detail--muted"><strong>📅 Payoff Date:</strong> <span class="text-muted">Run a plan to see</span></div>`;
+
         if (app.editingDebtId === debt.id) {
             let editHTML = `
                 <div class="debt-info">
@@ -397,6 +402,7 @@ export function renderDebtsList(app) {
                         <div class="debt-detail">
                             <strong>Period:</strong> ${debt.fixedStartDate} to ${debt.fixedEndDate}
                         </div>
+                        ${payoffDetailHTML}
                         ${debt.priority ? `
                             <div class="debt-detail">
                                 <strong>Priority:</strong> ${debt.priority}/100
@@ -444,6 +450,7 @@ export function renderDebtsList(app) {
                             <span class="iptd-value">${formatCurrency(iptd.interestPaid)}</span>
                             <span class="iptd-sub">over ${iptd.days} days since ${iptd.start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
                         </div>` : ''}
+                        ${payoffDetailHTML}
                         ${debt.priority ? `
                             <div class="debt-detail">
                                 <strong>Priority:</strong> ${debt.priority}/100

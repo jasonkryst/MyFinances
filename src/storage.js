@@ -109,6 +109,7 @@ function sanitizeLedgerOverrides(overrides) {
 
 function sanitizeRecurringTemplate(record, idFallback) {
     const skippedMonths = Array.isArray(record?.skippedMonths) ? record.skippedMonths.filter(m => /^\d{4}-\d{2}$/.test(m)) : [];
+    const paidMonths = Array.isArray(record?.paidMonths) ? record.paidMonths.filter(m => /^\d{4}-\d{2}$/.test(m)) : [];
     const frequency = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'].includes(record?.frequency) ? record.frequency : 'monthly';
     const type = ['subscription', 'reimbursement', 'transfer'].includes(record?.type) ? record.type : 'subscription';
     return {
@@ -124,7 +125,8 @@ function sanitizeRecurringTemplate(record, idFallback) {
         startDate: sanitizeDateISO(record?.startDate),
         endDate: sanitizeDateISO(record?.endDate),
         paused: Boolean(record?.paused),
-        skippedMonths
+        skippedMonths,
+        paidMonths
     };
 }
 

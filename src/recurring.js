@@ -151,6 +151,8 @@ export function renderRecurringPage(app) {
         else if (action === 'unpause') app.pauseRecurringTemplate(id, false);
         else if (action === 'skip') app.skipRecurringOccurrence(id, mk, false);
         else if (action === 'unskip') app.skipRecurringOccurrence(id, mk, true);
+        else if (action === 'mark-paid') app.markRecurringPaid(id, mk, false);
+        else if (action === 'unmark-paid') app.markRecurringPaid(id, mk, true);
     };
 }
 
@@ -166,12 +168,15 @@ function _buildReadCard(app, t, year, month, monthKey) {
     const occurrences = getRecurringOccurrencesInMonth(t, year, month);
     const thisMonthTotal = occurrences.length * (t.amount || 0);
     const isSkippedThisMonth = Array.isArray(t.skippedMonths) && t.skippedMonths.includes(monthKey);
+    const isPaidThisMonth = Array.isArray(t.paidMonths) && t.paidMonths.includes(monthKey);
 
     let statusBadge;
     if (t.paused) {
         statusBadge = `<span class="recurring-badge recurring-badge--paused">⏸ Paused</span>`;
     } else if (isSkippedThisMonth) {
         statusBadge = `<span class="recurring-badge recurring-badge--skipped">⏭ Skipped this month</span>`;
+    } else if (occurrences.length > 0 && isPaidThisMonth) {
+        statusBadge = `<span class="recurring-badge recurring-badge--paid">✅ Paid this month</span>`;
     } else if (occurrences.length > 0) {
         statusBadge = `<span class="recurring-badge recurring-badge--active">✅ Active</span>`;
     } else {
@@ -221,6 +226,11 @@ function _buildReadCard(app, t, year, month, monthKey) {
             ${t.paused
                 ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}">▶ Resume</button>`
                 : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}">⏸ Pause</button>`}
+            ${(!t.paused && !isSkippedThisMonth && occurrences.length > 0)
+                ? (isPaidThisMonth
+                    ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unmark paid</button>`
+                    : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">✅ Mark as paid</button>`)
+                : ''}
             ${isSkippedThisMonth
                 ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unskip</button>`
                 : !t.paused
@@ -334,7 +344,8 @@ export function addRecurringTemplate(app) {
         startDate,
         endDate,
         paused: false,
-        skippedMonths: []
+        skippedMonths: [],
+        paidMonths: []
     });
 
     app.saveToStorage();
@@ -365,6 +376,19 @@ export function skipRecurringOccurrence(app, id, monthKey, unskip = false) {
         t.skippedMonths = t.skippedMonths.filter(m => m !== monthKey);
     } else if (!t.skippedMonths.includes(monthKey)) {
         t.skippedMonths.push(monthKey);
+    }
+    app.saveToStorage();
+    app.renderRecurringPage();
+}
+
+export function markRecurringPaid(app, id, monthKey, unmark = false) {
+    const t = app.recurringTemplates?.find(x => x.id === id);
+    if (!t || !monthKey) return;
+    if (!t.paidMonths) t.paidMonths = [];
+    if (unmark) {
+        t.paidMonths = t.paidMonths.filter(m => m !== monthKey);
+    } else if (!t.paidMonths.includes(monthKey)) {
+        t.paidMonths.push(monthKey);
     }
     app.saveToStorage();
     app.renderRecurringPage();

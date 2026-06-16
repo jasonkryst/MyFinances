@@ -105,3 +105,28 @@ def test_recurring_inline_edit_and_save(app_page):
 
     amount_text = page.evaluate('() => document.querySelector("#recurringList .recurring-amount")?.textContent || ""')
     assert '20.00' in amount_text, "Edited amount should be reflected in the card"
+
+
+@pytest.mark.ui
+def test_recurring_mark_and_unmark_paid(app_page):
+    """Test marking and unmarking the current month as paid for a recurring template."""
+    page = app_page
+    _seed_recurring_template(page)
+
+    mark_btn = page.query_selector('[data-recurring-action="mark-paid"][data-recurring-id="90"]')
+    assert mark_btn, "Expected a Mark as paid button"
+    mark_btn.click()
+    page.wait_for_timeout(300)
+
+    badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
+    assert 'Paid this month' in badge_text, "Template should show a Paid this month badge after marking as paid"
+
+    unmark_btn = page.query_selector('[data-recurring-action="unmark-paid"][data-recurring-id="90"]')
+    assert unmark_btn, "Expected an Unmark paid button after marking as paid"
+    unmark_btn.click()
+    page.wait_for_timeout(300)
+
+    badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
+    assert 'Paid this month' not in badge_text, "Template should no longer show a Paid this month badge after unmarking"
+    assert page.query_selector('[data-recurring-action="mark-paid"][data-recurring-id="90"]'), \
+        "Expected a Mark as paid button again after unmarking"

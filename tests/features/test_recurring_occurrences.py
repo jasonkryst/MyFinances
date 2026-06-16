@@ -97,3 +97,42 @@ def test_quarterly_recurrence_respects_end_date(app_page):
 
     assert len(_occurrences(page, template, 2026, 0)) == 1, "Expected an occurrence in January (within range)"
     assert len(_occurrences(page, template, 2026, 3)) == 0, "Expected no occurrence in April (past end date)"
+
+
+@pytest.mark.feature
+def test_mark_and_unmark_recurring_paid(app_page):
+    """markRecurringPaid toggles a month-key in paidMonths without affecting
+    getRecurringOccurrencesInMonth."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/recurring.js');
+        const template = {
+            id: 1, name: 'Streaming', type: 'subscription', amount: 15,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
+            accountId: 1, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: false, skippedMonths: [], paidMonths: []
+        };
+        const app = {
+            recurringTemplates: [template],
+            saveToStorage: () => {},
+            renderRecurringPage: () => {}
+        };
+
+        const before = mod.getRecurringOccurrencesInMonth(template, 2026, 5).length;
+
+        mod.markRecurringPaid(app, 1, '2026-06', false);
+        const afterMark = [...template.paidMonths];
+
+        mod.markRecurringPaid(app, 1, '2026-06', true);
+        const afterUnmark = [...template.paidMonths];
+
+        const after = mod.getRecurringOccurrencesInMonth(template, 2026, 5).length;
+
+        return { before, after, afterMark, afterUnmark };
+    }""")
+
+    assert result['afterMark'] == ['2026-06']
+    assert result['afterUnmark'] == []
+    assert result['before'] == result['after'] == 1
