@@ -22,7 +22,7 @@ async def test_main_nav_three_groups_exist(async_app_page):
 async def test_main_nav_group_labels(async_app_page):
     """Assert the three .nav-group-label spans read "Overview", "Manage", "Analyze" (in that order)."""
     labels = await async_app_page.query_selector_all('#topNav .nav-group-label')
-    texts = [await lb.inner_text() for lb in labels]
+    texts = [(await lb.text_content()).strip() for lb in labels]
     assert texts == ['Overview', 'Manage', 'Analyze']
 
 
