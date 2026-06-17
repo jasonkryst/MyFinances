@@ -485,9 +485,15 @@ export function attachLiabilitiesEventListeners(app) {
 }
 
 export function switchPage(app, pageName) {
-    document.querySelectorAll('.page-button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page-button').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-current', 'false');
+    });
     const btn = document.querySelector(`.page-button[data-page="${pageName}"]`);
-    if (btn) btn.classList.add('active');
+    if (btn) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-current', 'page');
+    }
 
     const mapping = {
         health: 'healthSection',
