@@ -1,6 +1,6 @@
 // Formatting, date helpers, shared utilities
 
-export const APP_VERSION = '3.6.2';
+export const APP_VERSION = '3.6.3';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50")
