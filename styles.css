@@ -197,6 +197,12 @@
     margin: 0;
 }
 
+@media (max-width: 480px) {
+    .modal-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .modal-form-group {
     margin: 0 0 12px;
 }
@@ -2864,6 +2870,11 @@ body.dark-mode .target-result--warn .target-result-payment {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+@media (max-width: 480px) {
+    .income-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
 @media (min-width: 900px) {
     .income-form-grid {
         grid-template-columns: repeat(5, 1fr);
@@ -3115,6 +3126,9 @@ body.dark-mode .bonus-form-toggle:hover { background: #334155; }
 @media (max-width: 768px) {
     .bonus-form-grid { grid-template-columns: 1fr 1fr; }
 }
+@media (max-width: 480px) {
+    .bonus-form-grid { grid-template-columns: 1fr; }
+}
 
 /* Bonus list */
 .bonus-list-wrap {
@@ -3162,6 +3176,9 @@ body.dark-mode .bonus-card--current { background: #052e16; }
 }
 @media (max-width: 768px) {
     .bonus-edit-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+    .bonus-edit-grid { grid-template-columns: 1fr; }
 }
 
 .bonus-card-info {
@@ -3542,6 +3559,9 @@ body.dark-mode .budget-card-meta { color: #94a3b8; }
 }
 @media (max-width: 600px) {
     .budget-edit-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+    .budget-edit-grid { grid-template-columns: 1fr; }
 }
 .budget-edit-actions {
     display: flex;
@@ -4711,6 +4731,9 @@ body.dark-mode .acct-mf-diff--neg { color: #f87171; }
     .acct-edit-grid { grid-template-columns: 1fr 1fr; }
     .acct-card-header { gap: 10px; }
 }
+@media (max-width: 480px) {
+    .acct-edit-grid { grid-template-columns: 1fr; }
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -4945,6 +4968,9 @@ body.dark-mode .recurring-this-month strong { color: #f1f5f9; }
     .recurring-form-grid { grid-template-columns: 1fr; }
     .recurring-edit-grid { grid-template-columns: 1fr 1fr; }
     .recurring-card-header { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+    .recurring-edit-grid { grid-template-columns: 1fr; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
