@@ -277,6 +277,7 @@ All existing `tests/ui/test_spending_ui.py` tests navigate to the Spending tab v
 |---|---|
 | `index.html` | Replace flat tab buttons with grouped structure (no new panels, no data-rptab changes) |
 | `styles.css` | Replace `.rpt-tab-bar` / `.rpt-tab-btn` / `.rpt-tab-btn--active` / mobile rules; add group/sep/label rules; add `--primary-hsl` vars |
+| `src/utils.js` | Bump `APP_VERSION` from `'3.6.0'` to `'3.6.1'` |
 | `tests/ui/test_reports_nav.py` | New file — 5 tests |
 
 No changes to `src/ui.js`, `src/reports.js`, or any other JS module.
