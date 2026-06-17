@@ -227,3 +227,172 @@ def test_help_link_opens_guide(app_page):
 
     assert popup.url.endswith('/guide.html')
     popup.close()
+
+
+@pytest.mark.ui
+def test_reports_nav_tablist_role(app_page):
+    """The Reports tab bar has role=tablist for screen reader semantics."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    role = page.evaluate(
+        '() => document.querySelector(".rpt-tab-bar")?.getAttribute("role")'
+    )
+    assert role == 'tablist', f"Expected role=tablist on .rpt-tab-bar, got: {role}"
+
+
+@pytest.mark.ui
+def test_reports_tab_buttons_have_role_tab(app_page):
+    """Every report tab button has role=tab."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    roles = page.evaluate("""
+        () => Array.from(document.querySelectorAll('.rpt-tab-btn'))
+                   .map(b => b.getAttribute('role'))
+    """)
+    assert all(r == 'tab' for r in roles), \
+        f"Not all tab buttons have role=tab: {roles}"
+
+
+@pytest.mark.ui
+def test_reports_active_tab_aria_selected_true(app_page):
+    """The active tab has aria-selected=true; all others have aria-selected=false."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    page.click('[data-rptab="networth"]')
+    page.wait_for_timeout(150)
+
+    result = page.evaluate("""
+        () => {
+            const btns = document.querySelectorAll('.rpt-tab-btn');
+            const trueCount  = [...btns].filter(b => b.getAttribute('aria-selected') === 'true').length;
+            const falseCount = [...btns].filter(b => b.getAttribute('aria-selected') === 'false').length;
+            const activeId   = [...btns].find(b => b.getAttribute('aria-selected') === 'true')?.getAttribute('data-rptab');
+            return { trueCount, falseCount, activeId };
+        }
+    """)
+    assert result['trueCount'] == 1, f"Expected exactly 1 aria-selected=true, got {result['trueCount']}"
+    assert result['falseCount'] == 6, f"Expected 6 aria-selected=false, got {result['falseCount']}"
+    assert result['activeId'] == 'networth', f"Expected networth to be selected, got {result['activeId']}"
+
+
+@pytest.mark.ui
+def test_reports_tab_buttons_have_aria_controls(app_page):
+    """Each tab button has aria-controls pointing to its panel id."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    mismatches = page.evaluate("""
+        () => {
+            const btns = document.querySelectorAll('.rpt-tab-btn[data-rptab]');
+            const errors = [];
+            for (const btn of btns) {
+                const tab   = btn.getAttribute('data-rptab');
+                const ctrl  = btn.getAttribute('aria-controls');
+                const panel = document.getElementById(ctrl);
+                if (ctrl !== 'rptPanel-' + tab) {
+                    errors.push(`${tab}: aria-controls="${ctrl}" (expected rptPanel-${tab})`);
+                }
+                if (!panel) {
+                    errors.push(`${tab}: panel #${ctrl} not found in DOM`);
+                }
+            }
+            return errors;
+        }
+    """)
+    assert mismatches == [], f"aria-controls mismatches: {mismatches}"
+
+
+@pytest.mark.ui
+def test_reports_group_separators_aria_hidden(app_page):
+    """Decorative group separator divs are aria-hidden so screen readers skip them."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    seps = page.evaluate("""
+        () => Array.from(document.querySelectorAll('.rpt-tab-group-sep'))
+                   .map(s => s.getAttribute('aria-hidden'))
+    """)
+    assert seps, "No .rpt-tab-group-sep elements found"
+    assert all(v == 'true' for v in seps), \
+        f"All separators must have aria-hidden=true, got: {seps}"
+
+
+@pytest.mark.ui
+def test_reports_group_labels_are_not_interactive(app_page):
+    """Group chip labels are <span> elements (not buttons), so they are not in the tab focus order."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    tags = page.evaluate("""
+        () => Array.from(document.querySelectorAll('.rpt-tab-group-label'))
+                   .map(el => el.tagName)
+    """)
+    assert all(t == 'SPAN' for t in tags), \
+        f"Group labels must be <span>, got: {tags}"
+
+
+@pytest.mark.ui
+def test_reports_tab_keyboard_focus_reachable(app_page):
+    """Pressing Tab from the nav bar reaches each tab button via keyboard."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    # Focus the first tab button
+    page.evaluate('() => document.querySelector(".rpt-tab-btn").focus()')
+    page.wait_for_timeout(100)
+
+    focused = page.evaluate('() => document.activeElement.classList.contains("rpt-tab-btn")')
+    assert focused, "Could not focus a .rpt-tab-btn via JS focus()"
+
+    # Tab forward through all 7 buttons
+    focused_tabs = set()
+    for _ in range(7):
+        tab_id = page.evaluate(
+            '() => document.activeElement.getAttribute("data-rptab")'
+        )
+        if tab_id:
+            focused_tabs.add(tab_id)
+        page.keyboard.press('Tab')
+        page.wait_for_timeout(50)
+
+    expected = {'calendar', 'spending', 'incomeexp', 'moneyflow', 'variance', 'networth', 'forecast'}
+    assert expected.issubset(focused_tabs), \
+        f"Not all tab buttons were reached via Tab key. Reached: {focused_tabs}"
+
+
+@pytest.mark.ui
+def test_reports_active_tab_has_focus_visible_outline(app_page):
+    """Tab buttons show a visible focus ring via :focus-visible (not suppressed)."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    # Check that :focus-visible outline is not 'none' in the stylesheet
+    has_focus_visible = page.evaluate("""
+        () => {
+            // Look for focus-visible rule in all stylesheets
+            for (const sheet of document.styleSheets) {
+                try {
+                    for (const rule of sheet.cssRules) {
+                        if (rule.selectorText && rule.selectorText.includes('rpt-tab-btn') &&
+                            rule.selectorText.includes('focus-visible')) {
+                            return rule.style.outline !== 'none' && rule.style.outline !== '';
+                        }
+                    }
+                } catch (e) {}
+            }
+            return false;
+        }
+    """)
+    assert has_focus_visible, \
+        ".rpt-tab-btn:focus-visible must define a non-none outline for keyboard users"
