@@ -234,7 +234,8 @@ def test_reports_nav_has_no_inline_styles():
         content = f.read()
 
     # Isolate just the tab-bar section between the rpt-tab-bar div and the first panel
-    start = content.find('class="rpt-tab-bar"')
+    # Anchor on the full opening tag so inline styles on the container div itself are caught
+    start = content.find('<div class="rpt-tab-bar"')
     end   = content.find('class="rpt-tab-panel', start)
     assert start != -1, "Could not find .rpt-tab-bar in index.html"
     nav_html = content[start:end]
