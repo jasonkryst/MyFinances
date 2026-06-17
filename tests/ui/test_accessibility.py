@@ -396,3 +396,74 @@ def test_reports_active_tab_has_focus_visible_outline(app_page):
     """)
     assert has_focus_visible, \
         ".rpt-tab-btn:focus-visible must define a non-none outline for keyboard users"
+
+
+# ── Main nav a11y ──────────────────────────────────────────────────────────
+
+@pytest.mark.ui
+async def test_main_nav_has_landmark_role(async_app_page):
+    """Main <nav> must have aria-label so it's a named navigation landmark."""
+    label = await async_app_page.get_attribute('nav.top-nav', 'aria-label')
+    assert label == 'Main navigation', \
+        f"<nav> aria-label should be 'Main navigation', got: {label!r}"
+
+
+@pytest.mark.ui
+async def test_main_nav_active_page_aria_current(async_app_page):
+    """Active page button must have aria-current='page'; others must have 'false'."""
+    # Health is active by default
+    active = await async_app_page.get_attribute('[data-page="health"]', 'aria-current')
+    assert active == 'page', f"Health button aria-current should be 'page', got: {active!r}"
+
+    for page in ['accounts', 'income', 'liabilities', 'recurring', 'savings',
+                 'strategy', 'reports', 'ledger', 'reconcile']:
+        val = await async_app_page.get_attribute(f'[data-page="{page}"]', 'aria-current')
+        assert val == 'false', \
+            f"Inactive button '{page}' aria-current should be 'false', got: {val!r}"
+
+
+@pytest.mark.ui
+async def test_main_nav_aria_current_updates_on_click(async_app_page):
+    """Clicking a page button must move aria-current='page' to the new button."""
+    await async_app_page.click('[data-page="reports"]')
+    await async_app_page.wait_for_timeout(200)
+    reports_val = await async_app_page.get_attribute('[data-page="reports"]', 'aria-current')
+    health_val  = await async_app_page.get_attribute('[data-page="health"]',  'aria-current')
+    assert reports_val == 'page',  f"reports aria-current should be 'page', got {reports_val!r}"
+    assert health_val  == 'false', f"health aria-current should be 'false', got {health_val!r}"
+
+
+@pytest.mark.ui
+async def test_main_nav_group_labels_are_spans(async_app_page):
+    """Group labels must be <span> (non-interactive) not <button>."""
+    tags = await async_app_page.evaluate('''() =>
+        [...document.querySelectorAll('#topNav .nav-group-label')]
+            .map(el => el.tagName.toLowerCase())
+    ''')
+    assert tags == ['span', 'span', 'span'], \
+        f"All .nav-group-label elements should be <span>, got: {tags}"
+
+
+@pytest.mark.ui
+async def test_main_nav_separators_aria_hidden(async_app_page):
+    """Group separators must be aria-hidden (decorative)."""
+    seps = await async_app_page.query_selector_all('.nav-group-sep')
+    assert len(seps) == 2, f"Expected 2 nav-group-sep elements, got {len(seps)}"
+    for sep in seps:
+        val = await sep.get_attribute('aria-hidden')
+        assert val == 'true', f"nav-group-sep must have aria-hidden='true', got: {val!r}"
+
+
+@pytest.mark.ui
+async def test_main_nav_all_pages_keyboard_reachable(async_app_page):
+    """All 10 page buttons must be reachable via Tab key (not hidden, not disabled)."""
+    btns = await async_app_page.query_selector_all('#topNav .page-button')
+    assert len(btns) == 10, f"Expected 10 .page-button elements in #topNav, got {len(btns)}"
+    for btn in btns:
+        # Must not be disabled or have tabindex=-1
+        disabled = await btn.get_attribute('disabled')
+        tabindex = await btn.get_attribute('tabindex')
+        assert disabled is None, \
+            f"page-button '{await btn.get_attribute('data-page')}' should not be disabled"
+        assert tabindex != '-1', \
+            f"page-button '{await btn.get_attribute('data-page')}' should not have tabindex=-1"
