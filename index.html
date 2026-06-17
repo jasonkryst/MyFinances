@@ -46,23 +46,40 @@
                     MyFinances
                 </h1>
             </div>
-            <nav class="top-nav" id="topNav">
+            <nav class="top-nav" id="topNav" aria-label="Main navigation">
                 <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navMenu">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
                 <div class="nav-menu" id="navMenu">
-                    <button class="page-button" data-page="health">Health</button>
-                    <button class="page-button" data-page="accounts">Accounts</button>
-                    <button class="page-button" data-page="income">Income</button>
-                    <button class="page-button" data-page="liabilities">Liabilities</button>
-                    <button class="page-button" data-page="recurring">Recurring</button>
-                    <button class="page-button" data-page="savings">Savings</button>
-                    <button class="page-button" data-page="strategy">Plan</button>
-                    <button class="page-button" data-page="reports">Reports</button>
-                    <button class="page-button" data-page="ledger">Ledger</button>
-                    <button class="page-button" data-page="reconcile">Reconcile</button>
+                    <div class="nav-group">
+                        <span class="nav-group-label">Overview</span>
+                        <div class="nav-group-btns">
+                            <button class="page-button" data-page="health" aria-current="page">Health</button>
+                            <button class="page-button" data-page="accounts">Accounts</button>
+                            <button class="page-button" data-page="income">Income</button>
+                        </div>
+                    </div>
+                    <div class="nav-group-sep" aria-hidden="true"></div>
+                    <div class="nav-group">
+                        <span class="nav-group-label">Manage</span>
+                        <div class="nav-group-btns">
+                            <button class="page-button" data-page="liabilities">Liabilities</button>
+                            <button class="page-button" data-page="recurring">Recurring</button>
+                            <button class="page-button" data-page="savings">Savings</button>
+                            <button class="page-button" data-page="strategy">Plan</button>
+                        </div>
+                    </div>
+                    <div class="nav-group-sep" aria-hidden="true"></div>
+                    <div class="nav-group">
+                        <span class="nav-group-label">Analyze</span>
+                        <div class="nav-group-btns">
+                            <button class="page-button" data-page="reports">Reports</button>
+                            <button class="page-button" data-page="ledger">Ledger</button>
+                            <button class="page-button" data-page="reconcile">Reconcile</button>
+                        </div>
+                    </div>
                 </div>
             </nav>
             <!-- ═══════════════════════════════════════════════════════════ -->
