@@ -629,14 +629,31 @@
                 </div>
 
                 <!-- Tab bar -->
-                <div class="rpt-tab-bar">
-                    <button class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" aria-selected="true">📅 Calendar</button>
-                    <button class="rpt-tab-btn" data-rptab="incomeexp" aria-selected="false">📊 Income vs Expenses</button>
-                    <button class="rpt-tab-btn" data-rptab="moneyflow" aria-selected="false">💰 Money Flow</button>
-                    <button class="rpt-tab-btn" data-rptab="variance" aria-selected="false">📈 What Changed</button>
-                    <button class="rpt-tab-btn" data-rptab="networth" aria-selected="false">📉 Net Worth</button>
-                    <button class="rpt-tab-btn" data-rptab="forecast" aria-selected="false">🔮 Forecast</button>
-                    <button class="rpt-tab-btn" data-rptab="spending" aria-selected="false">🏷️ Spending</button>
+                <div class="rpt-tab-bar" role="tablist" aria-label="Report sections">
+                    <div class="rpt-tab-group">
+                        <span class="rpt-tab-group-label">Activity</span>
+                        <div class="rpt-tab-group-tabs">
+                            <button class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" role="tab" aria-selected="true" aria-controls="rptPanel-calendar">📅 Calendar</button>
+                            <button class="rpt-tab-btn" data-rptab="spending" role="tab" aria-selected="false" aria-controls="rptPanel-spending">🏷️ Spending</button>
+                            <button class="rpt-tab-btn" data-rptab="incomeexp" role="tab" aria-selected="false" aria-controls="rptPanel-incomeexp">📊 Income vs Expenses</button>
+                        </div>
+                    </div>
+                    <div class="rpt-tab-group-sep" aria-hidden="true"></div>
+                    <div class="rpt-tab-group">
+                        <span class="rpt-tab-group-label">Trends</span>
+                        <div class="rpt-tab-group-tabs">
+                            <button class="rpt-tab-btn" data-rptab="moneyflow" role="tab" aria-selected="false" aria-controls="rptPanel-moneyflow">💰 Money Flow</button>
+                            <button class="rpt-tab-btn" data-rptab="variance" role="tab" aria-selected="false" aria-controls="rptPanel-variance">📈 What Changed</button>
+                            <button class="rpt-tab-btn" data-rptab="networth" role="tab" aria-selected="false" aria-controls="rptPanel-networth">📉 Net Worth</button>
+                        </div>
+                    </div>
+                    <div class="rpt-tab-group-sep" aria-hidden="true"></div>
+                    <div class="rpt-tab-group">
+                        <span class="rpt-tab-group-label">Planning</span>
+                        <div class="rpt-tab-group-tabs">
+                            <button class="rpt-tab-btn" data-rptab="forecast" role="tab" aria-selected="false" aria-controls="rptPanel-forecast">🔮 Forecast</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- ── Calendar panel ───────────────────────────────────── -->

@@ -226,12 +226,31 @@ def test_no_debug_statements():
     )
 
 
+@pytest.mark.security
+def test_reports_nav_has_no_inline_styles():
+    """Reports tab bar HTML must use CSS classes, never inline style= attributes (CSP requirement)."""
+    index_path = os.path.join(PROJECT_ROOT, 'index.html')
+    with open(index_path, encoding='utf-8') as f:
+        content = f.read()
+
+    # Isolate just the tab-bar section between the rpt-tab-bar div and the first panel
+    # Anchor on the full opening tag so inline styles on the container div itself are caught
+    start = content.find('<div class="rpt-tab-bar"')
+    end   = content.find('class="rpt-tab-panel', start)
+    assert start != -1, "Could not find .rpt-tab-bar in index.html"
+    nav_html = content[start:end]
+
+    assert 'style="' not in nav_html, (
+        "Reports nav contains inline style= attributes — use CSS classes instead (CSP blocks unsafe-inline)"
+    )
+
+
 def main():
     """Run all static security checks."""
     print("\n" + "="*60)
     print("STATIC SECURITY ANALYSIS")
     print("="*60 + "\n")
-    
+
     pytest.main([__file__, '-v', '-m', 'security'])
 
 
