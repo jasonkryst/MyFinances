@@ -664,6 +664,7 @@ body.dark-mode {
 
     /* ── Override all CSS custom properties for dark mode ── */
     --light-bg: #1e293b;
+    --primary-hsl: 213 93% 68%;
     --border-color: #334155;
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
@@ -874,6 +875,7 @@ body.dark-mode .cal-page-label {
 
 :root {
     --primary-color: #2563eb;
+    --primary-hsl: 217 89% 61%;
     --primary-hover: #1d4ed8;
     --success-color: #16a34a;
     --success-hover: #15803d;
@@ -3818,36 +3820,96 @@ body.dark-mode .cashflow-net--negative { background: #450a0a; color: #fca5a5; }
    REPORTS PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Tab bar ───────────────────────────────────────────────────────────── */
+/* ── Reports tab bar — grouped chip/pill nav ─────────────────────────────── */
 .rpt-tab-bar {
     display: flex;
-    border-bottom: 2px solid var(--border-color);
-    border-radius: 10px 10px 0 0;
-    margin-bottom: 0;
-    overflow-x: auto;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: white;
 }
+body.dark-mode .rpt-tab-bar {
+    background: var(--bg-color);
+}
+
+.rpt-tab-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rpt-tab-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: hsla(var(--primary-hsl), 0.10);
+    border: 1px solid hsla(var(--primary-hsl), 0.25);
+    color: var(--primary-color);
+    align-self: flex-start;
+    opacity: 0.55;
+    transition: opacity 0.15s;
+}
+.rpt-tab-group:has(.rpt-tab-btn--active) .rpt-tab-group-label {
+    opacity: 1;
+}
+
+.rpt-tab-group-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
 .rpt-tab-btn {
-    flex: 1;
-    min-width: 140px;
-    padding: 13px 20px;
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
-    font-size: 0.95rem;
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-muted);
     cursor: pointer;
-    transition: color 0.15s, border-bottom-color 0.15s;
     white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.rpt-tab-btn:hover { color: var(--primary-color); }
+.rpt-tab-btn:hover {
+    background: var(--light-bg);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+.rpt-tab-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
 .rpt-tab-btn--active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
 }
 body.dark-mode .rpt-tab-btn--active {
-    color: #60a5fa;
-    border-bottom-color: #60a5fa;
+    background: #60a5fa;
+    border-color: #60a5fa;
+    color: #0f172a;
+}
+body.dark-mode .rpt-tab-btn:hover {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+
+.rpt-tab-group-sep {
+    width: 1px;
+    height: 28px;
+    background: var(--border-color);
+    align-self: flex-end;
+    margin-bottom: 2px;
+    flex-shrink: 0;
 }
 
 /* ── Tab panels ────────────────────────────────────────────────────────── */
@@ -4231,7 +4293,9 @@ body.dark-mode .cf-row--negative td {
     .rpt-cal-cell     { min-height: 56px; }
     .rpt-cal-evt-amt  { display: none; }
     .rpt-cal-evt      { font-size: 0.58rem; }
-    .rpt-tab-btn      { min-width: 100px; font-size: 0.82rem; padding: 10px 10px; }
+    .rpt-tab-bar      { flex-wrap: nowrap; overflow-x: auto; gap: 8px; }
+    .rpt-tab-group-sep { display: none; }
+    .rpt-tab-btn      { font-size: 11px; padding: 7px 10px; }
     .rpt-moneyflow-wrap { height: 260px; }
 }
 
