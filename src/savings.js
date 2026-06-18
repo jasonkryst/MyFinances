@@ -77,8 +77,8 @@ function renderEmergencyFundContent(app) {
               </div>
             </div>
             <div class="emergency-form-actions">
-              <button type="submit" class="btn-primary" id="emergencyFormSubmit">Save Emergency Fund</button>
-              <button type="button" class="btn-secondary" id="emergencyCancelBtn">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="emergencyFormSubmit">Save Emergency Fund</button>
+              <button type="button" class="btn btn-secondary" id="emergencyCancelBtn">Cancel</button>
             </div>
           </form>
         </div>
@@ -136,9 +136,9 @@ function renderEmergencyFundContent(app) {
             ${fund.notes ? `<div class="detail-row"><span>Notes:</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
           </div>
           <div class="emergency-card-actions">
-            <button class="btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(fund.id)}">Edit</button>
-            <button class="btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(fund.id)}">+ Contribute</button>
-            <button class="btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(fund.id)}">Delete</button>
+            <button class="btn btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(fund.id)}">Edit</button>
+            <button class="btn btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(fund.id)}">+ Contribute</button>
+            <button class="btn btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(fund.id)}">Delete</button>
           </div>
         </div>
       `;
@@ -215,8 +215,8 @@ function renderSinkingFundsContent(app) {
               </div>
             </div>
             <div class="sinking-form-actions">
-              <button type="submit" class="btn-primary" id="sinkingFormSubmit">Save Sinking Fund</button>
-              <button type="button" class="btn-secondary" id="sinkingCancelBtn">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="sinkingFormSubmit">Save Sinking Fund</button>
+              <button type="button" class="btn btn-secondary" id="sinkingCancelBtn">Cancel</button>
             </div>
           </form>
         </div>
@@ -264,9 +264,9 @@ function renderSinkingFundsContent(app) {
             ${fund.notes ? `<div class="detail-row"><span>Notes:</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
           </div>
           <div class="sinking-card-actions">
-            <button class="btn-small btn-secondary" data-sinking-action="edit" data-sinking-id="${escapeHtml(fund.id)}">Edit</button>
-            <button class="btn-small btn-primary" data-sinking-action="contribute" data-sinking-id="${escapeHtml(fund.id)}">+ Contribute</button>
-            <button class="btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(fund.id)}">Delete</button>
+            <button class="btn btn-small btn-secondary" data-sinking-action="edit" data-sinking-id="${escapeHtml(fund.id)}">Edit</button>
+            <button class="btn btn-small btn-primary" data-sinking-action="contribute" data-sinking-id="${escapeHtml(fund.id)}">+ Contribute</button>
+            <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(fund.id)}">Delete</button>
           </div>
         </div>
       `;
