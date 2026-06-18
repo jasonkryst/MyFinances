@@ -230,6 +230,41 @@ def test_help_link_opens_guide(app_page):
 
 
 @pytest.mark.ui
+def test_guide_page_applies_dark_mode_from_localstorage(app_page):
+    """guide.html's externalized src/guideTheme.js applies dark mode based
+    on the same localStorage key the main app uses, so the guide visually
+    matches whatever theme the user left the app in.
+    """
+    page = app_page
+    page.evaluate("() => localStorage.setItem('debtTrackerTheme', 'dark')")
+
+    with page.expect_popup() as popup_info:
+        page.locator('#helpBtn').click()
+    popup = popup_info.value
+    popup.wait_for_load_state('domcontentloaded')
+
+    is_dark = popup.evaluate("() => document.body.classList.contains('dark-mode')")
+    assert is_dark, "guide.html should apply dark-mode class when debtTrackerTheme is 'dark'"
+    popup.close()
+
+
+@pytest.mark.ui
+def test_guide_page_stays_light_without_saved_theme(app_page):
+    """guide.html does not force dark mode when no theme preference is saved."""
+    page = app_page
+    page.evaluate("() => localStorage.removeItem('debtTrackerTheme')")
+
+    with page.expect_popup() as popup_info:
+        page.locator('#helpBtn').click()
+    popup = popup_info.value
+    popup.wait_for_load_state('domcontentloaded')
+
+    is_dark = popup.evaluate("() => document.body.classList.contains('dark-mode')")
+    assert not is_dark, "guide.html should not apply dark-mode class without a saved 'dark' theme"
+    popup.close()
+
+
+@pytest.mark.ui
 def test_reports_nav_tablist_role(app_page):
     """The Reports tab bar has role=tablist for screen reader semantics."""
     page = app_page
