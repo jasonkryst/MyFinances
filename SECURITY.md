@@ -79,7 +79,7 @@ script-src 'self' https://cdn.jsdelivr.net;
 style-src 'self';
 img-src 'self' data:;
 font-src 'self';
-connect-src 'self';
+connect-src 'self' https://cdn.jsdelivr.net;
 object-src 'none';
 base-uri 'self';
 form-action 'self'

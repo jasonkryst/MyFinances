@@ -74,11 +74,26 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 
 ## 🎯 Key Product Updates
 
-### Mobile-Responsive Navigation (NEW)
+### Grouped Main Navigation (NEW)
+- **Three Groups** — Top nav buttons are organized into labeled groups: **Overview** (Health, Accounts, Income), **Manage** (Liabilities, Recurring, Savings, Plan), **Analyze** (Reports, Ledger, Reconcile)
+- **Active Group Highlighting** — The group label dims/highlights based on whether the active page belongs to it
 - **Hamburger Menu** — Collapsible navigation on tablets and mobile (≤768px)
 - **Touch-Friendly** — 44x44px minimum button sizes on mobile
 - **Auto-Close** — Menu collapses after page selection
-- **Accessibility** — ARIA labels and keyboard navigation support
+- **Accessibility** — ARIA labels, `aria-current`, and keyboard navigation support
+
+### Financial Health Dashboard (NEW)
+- **Landing Page** — The "Health" tab (Overview group) is the app's default landing page
+- **Debt-to-Income Ratio** — Status badge (Healthy / Moderate / High Risk) based on monthly debt payments vs. income
+- **Savings Rate** — Status badge (Strong / Moderate / Low) based on monthly savings contributions vs. income
+- **Emergency Fund Runway** — Months of expenses covered, with status badges from "Critical" to "Excellent"
+- **At-a-Glance Metrics** — Pulls from accounts, debts, income, bills, expenses, and recurring templates without requiring a separate data entry step
+
+### Account Reconciliation (NEW)
+- **Reconcile Tab** — Compare an account's tracked balance against a real bank/card statement balance
+- **Expected Transactions** — Lists ledger-derived transactions expected in the statement period so discrepancies are easy to trace
+- **Adjustment Log** — Each reconciliation records previous balance, statement balance, difference, and an optional note, and adjusts the account's `startingBalance` going forward
+- **Export/Import Ready** — Reconciliation history (`app.reconciliations`) round-trips through JSON backup
 
 ### CSP-Compliant CSS Architecture (ENHANCED May 31, 2026)
 - **No Unsafe-Inline CSS** — All styles extracted to `styles.css`
@@ -137,7 +152,7 @@ script-src 'self' https://cdn.jsdelivr.net;
 style-src 'self';
 img-src 'self' data:;
 font-src 'self';
-connect-src 'self';
+connect-src 'self' https://cdn.jsdelivr.net;
 object-src 'none';
 base-uri 'self';
 form-action 'self'
@@ -154,19 +169,19 @@ Production deployments include:
 
 ---
 
-## 🧪 Testing Suite (Reorganized May 31, 2026)
+## 🧪 Testing Suite (Updated June 17, 2026)
 
 The test suite has been completely reorganized for maximum cohesiveness and maintainability:
 
 ### Test Statistics
-- **Total Tests**: 140 comprehensive tests
-- **Test Files**: 25+ organized across 5 categories
+- **Total Tests**: 264 comprehensive tests
+- **Test Files**: 30+ organized across 4 categories
 - **Coverage**: All major features + security + UI + accessibility
 - **Framework**: pytest with Playwright browser automation
 
 ### Test Categories
 
-#### 🔐 Security Tests (31 tests)
+#### 🔐 Security Tests (48 tests)
 - **XSS Prevention** — Input sanitization in all fields
 - **CSP Compliance** — Strict Content Security Policy enforcement
 - **Input Validation** — Bounds checking, unicode handling, special characters
@@ -174,34 +189,44 @@ The test suite has been completely reorganized for maximum cohesiveness and main
 
 Run: `pytest tests/security/ -v`
 
-#### 🎯 Feature Tests (72 tests)
+#### 🎯 Feature Tests (124 tests)
 - **Accounts** — CRUD operations, account types, balance calculations
 - **Debts** — Liability management, interest calculation, amortization schedules
+- **Debt Calculator** — Pure calculation engine (strategies, daily compounding, target-date back-calculation)
 - **Income** — Multiple income sources, frequency types, total calculations
 - **Expenses** — Bill tracking, expense categorization
-- **Recurring** — Transaction templates, auto-generation
+- **Bills** — Data model, sanitization, and calculation integration (no add/edit UI — see Known Gap note)
+- **Recurring** — Transaction templates, auto-generation, paid/skipped month tracking
 - **Ledger** — Transaction history, filtering, amount overrides
-- **Reports** — Income vs expenses, money flow, net worth analytics
+- **Reports** — Income vs expenses, money flow, net worth analytics, grouped report tabs
 - **Savings** — Emergency funds, sinking funds, persistence
 - **Net Worth** — Multi-asset calculations, historical snapshots, milestones
 - **Financial Health** — Debt-to-income, savings rate, emergency fund coverage, payoff timeline, cash flow, budget allocation
 - **Cash Flow Forecast** — Horizon/account selection, notable months & drivers, negative-balance warnings, intra-month dip detection
+- **Account Reconciliation** — Statement balance adjustments, expected-transaction matching
+- **Spending Analysis** — Category breakdowns, month-over-month trends
+- **Storage Import** — Sanitization on JSON import, legacy v1.0 format support
+- **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 
 Run: `pytest tests/features/ -v`
 
-#### 🎨 UI/UX Tests (29 tests)
+#### 🎨 UI/UX Tests (83 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing
 - **Modal Functionality** — Visibility toggling, close buttons, amortization displays
 - **Dark Mode** — Theme switching, color contrast, persistence
 - **CSS Loading** — External stylesheet, utility classes, responsive breakpoints
-- **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML
+- **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML, guide.html theme sync
+- **Main Nav** — Grouped nav active-state highlighting and keyboard reachability
+- **Reports Nav** — Tab bar grouping, sticky positioning, dark mode
+- **Debt/Recurring/Reconciliation Actions** — Inline edit, mark-paid, reconcile-modal flows
+- **Spending UI** — Pie/bar charts, ranked list, drill-down modal
 
 Run: `pytest tests/ui/ -v`
 
-#### 🔄 Integration Tests (8 tests)
+#### 🔄 Integration Tests (9 tests)
 - **End-to-End Workflows** — Complete user journeys (account → debt → net worth)
 - **Data Persistence** — Cross-navigation data integrity
-- **Import/Export** — JSON roundtrip validation, file handling
+- **Import/Export** — JSON roundtrip validation, file handling, CSV schedule export
 
 Run: `pytest tests/integration/ -v`
 
@@ -288,6 +313,7 @@ Run: `pytest tests/security/ -v` for current security test results
 ```
 index.html              Main page shell + responsive navigation
 guide.html              In-app usage guide (opened by Help button)
+guide.css               Styles for guide.html (externalized for CSP compliance)
 styles.css              Responsive styles + dark mode + utilities
 styles-csp-classes.css  CSP-compliant utility classes (dynamic styles via CSS variables)
 src/
@@ -297,17 +323,23 @@ src/
   ├─ debts.js           Debt management
   ├─ accounts.js        Account management
   ├─ income.js          Income tracking
-  ├─ bills.js           Bills & expense budgeting
+  ├─ bills.js           Bills & expense budgeting (data model only — see note below)
   ├─ recurring.js       Recurring transaction templates
   ├─ savings.js         Emergency fund & sinking fund tracking
   ├─ ledger.js          Transaction ledger & amount overrides
+  ├─ reconciliation.js  Account statement reconciliation
+  ├─ health.js          Financial health dashboard (DTI, savings rate, emergency runway)
+  ├─ spending.js        Spending analysis (category breakdowns, trends)
   ├─ reports.js         Reports & calendar view
   ├─ forecast.js        Cash Flow Forecast (Reports tab)
   ├─ charts.js          Chart rendering
   ├─ storage.js         Persistence & import/export
   ├─ debtCalculator.js  Pure calculation engine (no side effects)
+  ├─ guideTheme.js      Applies saved dark-mode theme to guide.html
   └─ utils.js           Shared utilities & formatters
 ```
+
+> **Known gap:** The standalone Bills UI (`#billForm`/`#billList`) was removed in favor of Recurring Templates, but `bills.js` still defines the full bills data model and calculation logic — `app.bills` is read by `accounts.js`, `health.js`, `ledger.js`, and `strategy.js`, and round-trips through import/export, so existing bills data continues to work. There is currently no reachable UI to add or edit a bill. See `ROADMAP.md`'s Bill Payment Tracker entry for context.
 
 ### Design Principles
 - **Client-Side Only** — No server dependencies
@@ -611,6 +643,7 @@ Enter a target date in the **Strategy** section. The app uses a binary-search al
 ```
 index.html                  — Main page with responsive nav + security headers
 guide.html                  — In-app usage guide (opened by Help button)
+guide.css                   — Styles for guide.html (externalized for CSP compliance)
 styles.css                  — Responsive styles + dark mode + utilities + mobile menu
 styles-csp-classes.css      — CSP-compliant utility classes + dynamic CSS variable rules
 src/
@@ -620,33 +653,39 @@ src/
   ├─ debts.js              — Debt management (CRUD & inline editing)
   ├─ accounts.js           — Account management & projections
   ├─ income.js             — Income sources & one-time entries
-  ├─ bills.js              — Bills & expense budgets
+  ├─ bills.js              — Bills & expense budgets (bills: data model only, no UI — see note above)
   ├─ recurring.js          — Recurring transaction templates
   ├─ savings.js            — Emergency fund & sinking fund tracking
   ├─ ledger.js             — Transaction ledger with amount overrides
+  ├─ reconciliation.js     — Account statement reconciliation
+  ├─ health.js             — Financial health dashboard (DTI, savings rate, emergency runway)
+  ├─ spending.js           — Spending analysis (category breakdowns, trends)
   ├─ reports.js            — Reports & calendar views
   ├─ forecast.js           — Cash Flow Forecast (Reports tab)
   ├─ charts.js             — Chart rendering & lifecycle
   ├─ storage.js            — Persistence, import/export, data validation
   ├─ debtCalculator.js     — Pure calculation engine
+  ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   └─ utils.js              — Formatting, date utilities, sanitization
-tests/ (Reorganized May 31, 2026 — 25+ files, 140 tests)
+tests/ (264 tests across 4 categories)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
-  ├─ security/                — 31 security & compliance tests
-  │   ├─ test_xss.py
-  │   ├─ test_csp.py
-  │   ├─ test_input_validation.py
-  │   └─ test_static_scan.py
-  ├─ features/                — 72 feature-specific tests
-  │   ├─ test_accounts.py, test_debts.py, test_income.py
-  │   ├─ test_expenses.py, test_recurring.py, test_ledger.py
-  │   ├─ test_reports.py, test_savings.py, test_networth.py
-  │   ├─ test_health.py, test_forecast.py
-  ├─ ui/                      — 29 UI/UX & responsive tests
+  ├─ security/                — 48 security & compliance tests
+  │   ├─ test_xss.py, test_csp.py
+  │   ├─ test_input_validation.py, test_static_scan.py
+  ├─ features/                — 124 feature-specific tests
+  │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
+  │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
+  │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
+  │   ├─ test_health.py, test_forecast.py, test_reconciliation.py
+  │   ├─ test_spending_analysis.py, test_storage_import.py, test_debt_calculator.py
+  │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py
+  ├─ ui/                      — 83 UI/UX & responsive tests
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
-  │   ├─ test_css_load.py, test_accessibility.py
-  ├─ integration/              — 8 end-to-end workflow tests
+  │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
+  │   ├─ test_debt_actions.py, test_recurring_actions.py, test_reports_actions.py
+  │   ├─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py
+  ├─ integration/              — 9 end-to-end workflow tests
   │   ├─ test_smoke.py, test_workflows.py
   └─ debug/                   — Legacy debug files (archived)
 ```
@@ -714,7 +753,7 @@ script-src 'self' https://cdn.jsdelivr.net;
 style-src 'self';
 img-src 'self' data:;
 font-src 'self';
-connect-src 'self';
+connect-src 'self' https://cdn.jsdelivr.net;
 object-src 'none';
 base-uri 'self';
 form-action 'self'
@@ -874,4 +913,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.6.0 — Updated June 16, 2026*
+*MyFinances v3.6.4 — Updated June 17, 2026*

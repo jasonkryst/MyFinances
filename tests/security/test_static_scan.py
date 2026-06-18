@@ -6,6 +6,7 @@ Runs static security checks on the codebase.
 
 import pytest
 import os
+import re
 import json
 import subprocess
 
@@ -75,6 +76,80 @@ def test_xframe_options_in_nginx_config():
         content = f.read()
 
     assert 'X-Frame-Options' in content, "X-Frame-Options header not found in nginx.conf"
+
+
+@pytest.mark.security
+def test_csp_meta_and_nginx_header_stay_in_sync():
+    """index.html's CSP <meta> tag and nginx.conf's CSP header must grant
+    the same origins, or production (served by nginx) and local dev
+    (served by python -m http.server, which only sees the meta tag) will
+    enforce different policies -- exactly the class of bug that caused
+    the Chart.js sourcemap connect-src violation fixed in this repo.
+    """
+    index_path = os.path.join(PROJECT_ROOT, 'index.html')
+    nginx_path = os.path.join(PROJECT_ROOT, 'nginx.conf')
+
+    with open(index_path, 'r', encoding='utf-8') as f:
+        index_content = f.read()
+    with open(nginx_path, 'r', encoding='utf-8') as f:
+        nginx_content = f.read()
+
+    meta_match = re.search(
+        r'<meta http-equiv="Content-Security-Policy" content="([^"]+)"', index_content
+    )
+    header_match = re.search(
+        r'add_header Content-Security-Policy "([^"]+)"', nginx_content
+    )
+    assert meta_match, "Could not find CSP meta tag in index.html"
+    assert header_match, "Could not find CSP header directive in nginx.conf"
+
+    def directive_map(policy):
+        directives = {}
+        for part in policy.split(';'):
+            part = part.strip()
+            if not part:
+                continue
+            name, *values = part.split()
+            directives[name] = set(values)
+        return directives
+
+    meta_directives = directive_map(meta_match.group(1))
+    header_directives = directive_map(header_match.group(1))
+
+    # nginx.conf is allowed extra server-only directives (e.g. frame-ancestors,
+    # which browsers ignore in a <meta> tag), but every directive present in
+    # BOTH must grant the same origins.
+    shared = set(meta_directives) & set(header_directives)
+    mismatches = {
+        name: (meta_directives[name], header_directives[name])
+        for name in shared
+        if meta_directives[name] != header_directives[name]
+    }
+    assert not mismatches, f"CSP directives differ between index.html and nginx.conf: {mismatches}"
+
+    # Every directive in the meta tag must also exist server-side.
+    missing_in_nginx = set(meta_directives) - set(header_directives)
+    assert not missing_in_nginx, f"Directives in index.html meta CSP missing from nginx.conf: {missing_in_nginx}"
+
+
+@pytest.mark.security
+def test_guide_html_has_no_inline_script_or_style():
+    """guide.html has no CSP <meta> tag of its own, but nginx.conf applies
+    the site CSP via HTTP header to every response in production, so any
+    inline <script>/<style> in guide.html would be silently blocked there
+    even though it works fine under the dev server. See the externalized
+    src/guideTheme.js fix for the script case.
+    """
+    guide_path = os.path.join(PROJECT_ROOT, 'guide.html')
+
+    with open(guide_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    assert re.search(r'<script>', content) is None, \
+        "guide.html has an inline <script> block -- blocked by nginx's CSP in production"
+    assert re.search(r'<style>', content) is None, \
+        "guide.html has an inline <style> block -- blocked by nginx's CSP in production"
+    assert 'style="' not in content, "guide.html has an inline style attribute"
 
 
 @pytest.mark.security

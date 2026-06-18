@@ -1,0 +1,243 @@
+:root {
+    --guide-content-max: 1050px;
+}
+
+body {
+    min-height: 100vh;
+    padding-top: 56px;
+}
+
+.back-to-app {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1000;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary-color);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-radius: 999px;
+    padding: 10px 14px;
+    box-shadow: var(--shadow);
+    transition: background 0.15s ease;
+}
+
+.back-to-app:hover {
+    background: var(--primary-hover);
+}
+
+.back-to-app:focus {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+.guide-container {
+    max-width: var(--guide-content-max);
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.guide-header {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    padding: 28px 22px 22px;
+    text-align: center;
+}
+
+.guide-header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+}
+
+.guide-header p {
+    margin-top: 10px;
+    opacity: 0.92;
+    font-size: 1rem;
+}
+
+.guide-main {
+    padding: 28px 22px 36px;
+}
+
+.toc {
+    background: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+}
+
+.toc h2 {
+    margin: 0 0 12px;
+    border: none;
+    padding: 0;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+}
+
+.toc ol {
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.8;
+}
+
+.toc a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.toc a:hover {
+    text-decoration: underline;
+}
+
+.guide-section {
+    margin-bottom: 22px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.guide-section h2 {
+    margin-top: 0;
+    margin-bottom: 14px;
+    font-size: 1.35rem;
+}
+
+.guide-section h3 {
+    margin-top: 18px;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.guide-section p,
+.guide-section li {
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.guide-section ul,
+.guide-section ol {
+    padding-left: 20px;
+}
+
+.guide-table-wrap {
+    overflow-x: auto;
+    margin: 10px 0 6px;
+}
+
+.guide-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 540px;
+}
+
+.guide-table th,
+.guide-table td {
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    text-align: left;
+    vertical-align: top;
+    font-size: 0.95rem;
+}
+
+.guide-table thead th {
+    background: var(--primary-color);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.guide-note {
+    border-left: 4px solid var(--primary-color);
+    background: var(--light-bg);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 10px 0;
+}
+
+.guide-warning {
+    border-left: 4px solid var(--danger-color);
+    background: #fff5f5;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 10px 0;
+}
+
+.guide-footer {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    margin-top: 20px;
+}
+
+body.dark-mode .guide-container {
+    background: #1e293b;
+}
+
+body.dark-mode .guide-section {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+body.dark-mode .toc {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+body.dark-mode .guide-table th,
+body.dark-mode .guide-table td {
+    border-color: #334155;
+}
+
+body.dark-mode .guide-table thead th {
+    background: #2563eb;
+}
+
+body.dark-mode .guide-note {
+    background: #0f172a;
+}
+
+body.dark-mode .guide-warning {
+    background: #3b0f0f;
+    color: #fecaca;
+}
+
+body.dark-mode .back-to-app {
+    background: #1d4ed8;
+    color: #ffffff;
+}
+
+body.dark-mode .back-to-app:hover {
+    background: #2563eb;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+        padding-top: 62px;
+    }
+
+    .guide-header {
+        padding: 22px 14px 16px;
+    }
+
+    .guide-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .guide-main {
+        padding: 16px 12px 24px;
+    }
+
+    .guide-section {
+        padding: 14px;
+    }
+}

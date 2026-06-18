@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 16, 2026  
-**Current Version**: v3.6.0  
+**Last Updated**: June 17, 2026  
+**Current Version**: v3.6.4  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -485,6 +485,18 @@ Domain-specific tools for advanced users.
 - Account Reconciliation Tool (`src/reconciliation.js`), originally planned for v3.4+, shipped early — see Tier 3 entry above for details
 - Test suite expanded: 26 new tests covering reconciliation (feature, UI, security, accessibility)
 
+**Shipped post-v3.1 (June 15-16, 2026)**:
+- Spending Analysis by Category (`src/spending.js`), originally planned for v3.2, shipped early — see Tier 2 entry for details
+- Main nav redesigned into three labeled groups (Overview/Manage/Analyze) with active-group highlighting, `aria-current`, and keyboard reachability
+- Reports nav redesigned with a sticky, grouped tab bar
+- Test suite expanded: tests covering spending analysis, grouped main nav, and grouped reports nav
+
+**Shipped post-v3.1 (June 16-17, 2026)**:
+- Fixed two CSP violations surfaced after the nav redesign: `connect-src` now allows `https://cdn.jsdelivr.net` (Chart.js sourcemap fetch) in both `index.html`'s meta tag and `nginx.conf`'s header; `guide.html`'s inline `<script>` and `<style>` blocks were externalized to `src/guideTheme.js` and `guide.css` so they aren't blocked by nginx's CSP header in production
+- Added a static test that asserts `index.html`'s CSP meta tag and `nginx.conf`'s CSP header stay in sync, to catch this class of bug going forward
+- Mobile button-height and main-nav label text-content test fixes
+- Test suite expanded to 264 tests (up from 140); added coverage for the dormant Bills data model/calculations (`tests/features/test_bills.py`) and CSV schedule export (`tests/integration/test_workflows.py`)
+
 ---
 
 ### v3.2 (Q3 2026)
@@ -492,7 +504,7 @@ Domain-specific tools for advanced users.
 
 - [ ] Budget Alerts & Warnings (HIGH impact, LOW effort) — carried from v3.1
 - [ ] Savings Goals (MEDIUM-HIGH impact)
-- [ ] Spending Analysis (MEDIUM impact)
+- [x] ~~Spending Analysis (MEDIUM impact)~~ — shipped early, June 16, 2026
 - [ ] Enhanced Ledger Features (MEDIUM impact)
 
 ---

@@ -33,6 +33,8 @@
     display: flex;
     align-items: flex-end;
     padding-bottom: 2px;
+    flex-basis: 100%;
+    margin-top: 8px;
 }
 
 .export-margin-top {
@@ -1037,6 +1039,18 @@ header p {
     position: relative;
 }
 
+.nav-toggle {
+    display: none;
+}
+
+.nav-menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 8px;
+}
+
 .nav-group {
     display: flex;
     flex-direction: column;
@@ -1544,7 +1558,8 @@ label {
 input[type="text"],
 input[type="number"],
 input[type="date"],
-select {
+select,
+textarea {
     width: 100%;
     padding: 12px;
     border: 2px solid var(--border-color);
@@ -1559,7 +1574,8 @@ select {
 input[type="text"]:focus,
 input[type="number"]:focus,
 input[type="date"]:focus,
-select:focus {
+select:focus,
+textarea:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -2260,6 +2276,7 @@ body.dark-mode .stimulus-amount {
     .nav-menu {
         display: none;
         flex-direction: column;
+        align-items: stretch;
         width: 100%;
     }
 
@@ -2269,9 +2286,10 @@ body.dark-mode .stimulus-amount {
 
     .nav-group-sep  { display: none; }
     .nav-group-label { display: none; }
-    .nav-group      { gap: 0; }
-    .nav-group-btns { flex-direction: column; }
+    .nav-group      { gap: 0; align-items: stretch; }
+    .nav-group-btns { flex-direction: column; align-items: stretch; }
     .page-button {
+        width: 100%;
         max-width: 100%;
         font-size: 0.9rem;
         padding: 14px 16px;
@@ -2314,6 +2332,12 @@ body.dark-mode .stimulus-amount {
 
     .strategy-controls .form-row {
         grid-template-columns: 1fr;
+    }
+
+    .strategy-controls .btn {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
     }
 
     .summary {
@@ -3479,7 +3503,7 @@ body.dark-mode .budget-form-card h3 { color: #f1f5f9; }
     gap: 10px;
     margin-bottom: 12px;
 }
-@media (max-width: 480px) { .budget-form-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .budget-form-grid { grid-template-columns: 1fr; } }
 .budget-form-grid .form-group { margin: 0; }
 
 /* Item cards */

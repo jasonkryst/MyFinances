@@ -32,6 +32,43 @@ def test_export_data_format(app_page):
 
 
 @pytest.mark.integration
+def test_export_schedule_as_csv(app_page):
+    """Calculating a payment plan and clicking Export as CSV downloads a
+    CSV file with the monthly schedule and debt summary sections."""
+    page = app_page
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    page.fill('#debtName', 'CSV Test Card')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '1000')
+    page.fill('#interestRate', '18')
+    page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=CSV Test Card', timeout=10000)
+
+    page.click('button[data-page="strategy"]')
+    page.fill('#monthlyPayment', '200')
+    page.click('#calculateBtn')
+    page.click('[data-rtab="schedule"]')
+    page.wait_for_selector('#exportBtn', timeout=10000)
+
+    with page.expect_download() as download_info:
+        page.click('#exportBtn')
+    download = download_info.value
+
+    assert download.suggested_filename.endswith('.csv')
+    path = download.path()
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    assert 'Month,' in content
+    assert 'Debt Summary' in content
+    assert 'CSV Test Card' in content
+
+
+@pytest.mark.integration
 def test_import_json_file(app_page):
     """Test importing JSON file."""
     page = app_page
