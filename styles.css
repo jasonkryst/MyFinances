@@ -5420,6 +5420,11 @@ body.dark-mode .spending-modal-tx-amt--neg { color: #fca5a5; }
 .spending-modal-footer  { text-align: right; }
 .spending-empty-detail  { text-align: center; color: #64748b; padding: 16px 0; }
 
+/* var(--primary-color) is too dark against the dark-mode page background for
+   small 10px text (WCAG 1.4.3 fails at ~3.45:1); use the lighter dark-mode
+   link color already established elsewhere (body.dark-mode .health-link). */
+body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
+
 @media (max-width: 640px) {
     .spending-hero-row    { grid-template-columns: 1fr; }
     .spending-pie-wrap    { height: 220px; }

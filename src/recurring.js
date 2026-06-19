@@ -317,7 +317,8 @@ function _buildEditCard(app, t) {
 export function addRecurringTemplate(app) {
     const name = normalizeText(document.getElementById('recurringName')?.value, 80);
     const type = document.getElementById('recurringType')?.value || 'subscription';
-    const amount = sanitizeFiniteNumber(document.getElementById('recurringAmount')?.value, NaN, { min: 0.01 });
+    const rawAmount = document.getElementById('recurringAmount')?.value;
+    const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const frequency = document.getElementById('recurringFrequency')?.value || 'monthly';
     const dayOfMonth = sanitizeInteger(document.getElementById('recurringDayOfMonth')?.value, 1, { min: 1, max: 31 });
     const category = normalizeText(document.getElementById('recurringCategory')?.value, 40) || 'Other';
@@ -327,7 +328,7 @@ export function addRecurringTemplate(app) {
     const endDate = sanitizeDateISO(document.getElementById('recurringEndDate')?.value) || null;
 
     if (!name) { alert('Please enter a name.'); return; }
-    if (!Number.isFinite(amount) || amount <= 0) { alert('Please enter a valid positive amount.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid positive amount.'); return; }
     if (!accountId) { alert('Please select an account.'); return; }
 
     if (!app.recurringTemplates) app.recurringTemplates = [];
@@ -415,7 +416,8 @@ export function saveEditRecurring(app, id) {
 
     const name = normalizeText(document.getElementById(`re-name-${id}`)?.value, 80);
     const type = document.getElementById(`re-type-${id}`)?.value || 'subscription';
-    const amount = sanitizeFiniteNumber(document.getElementById(`re-amount-${id}`)?.value, NaN, { min: 0.01 });
+    const rawAmount = document.getElementById(`re-amount-${id}`)?.value;
+    const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const frequency = document.getElementById(`re-freq-${id}`)?.value || 'monthly';
     const dayOfMonth = sanitizeInteger(document.getElementById(`re-day-${id}`)?.value, 1, { min: 1, max: 31 });
     const category = normalizeText(document.getElementById(`re-cat-${id}`)?.value, 40) || 'Other';
@@ -425,7 +427,7 @@ export function saveEditRecurring(app, id) {
     const endDate = sanitizeDateISO(document.getElementById(`re-end-${id}`)?.value) || null;
 
     if (!name) { alert('Please enter a name.'); return; }
-    if (!Number.isFinite(amount) || amount <= 0) { alert('Please enter a valid positive amount.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid positive amount.'); return; }
 
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],
