@@ -238,3 +238,7 @@ def pytest_configure(config):
         "markers",
         "slow: slow running tests"
     )
+    config.addinivalue_line(
+        "markers",
+        "a11y: standalone accessibility audit checks (run_a11y_audit.py findings)"
+    )

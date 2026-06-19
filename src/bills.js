@@ -438,11 +438,12 @@ export function cancelEditBill(app) {
 // Add a new expense budget from the expenseForm inputs.
 export function addExpense(app) {
     const name = normalizeText(document.getElementById('expenseName').value, 80);
-    const budgetAmount = sanitizeFiniteNumber(document.getElementById('expenseBudget').value, NaN, { min: 0 });
+    const rawAmount = document.getElementById('expenseBudget').value;
+    const budgetAmount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0 });
     const dateStr = sanitizeDateISO(document.getElementById('expenseDate').value);
     const category = normalizeText(document.getElementById('expenseCategory').value, 40);
     const accountId = parseInt(document.getElementById('expenseAccount')?.value) || null;
-    if (!name || isNaN(budgetAmount) || budgetAmount < 0 || !dateStr) {
+    if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) {
         alert('Please enter a valid expense name, amount, and date.');
         return;
     }
@@ -476,12 +477,13 @@ export function saveEditExpense(app, id) {
     const idx = app.expenses.findIndex(e => e.id === id);
     if (idx === -1) return;
     const name         = normalizeText(document.getElementById(`ee-name-${id}`).value, 80);
-    const budgetAmount = sanitizeFiniteNumber(document.getElementById(`ee-amount-${id}`).value, NaN, { min: 0 });
+    const rawAmount    = document.getElementById(`ee-amount-${id}`).value;
+    const budgetAmount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0 });
     const dateStr      = sanitizeDateISO(document.getElementById(`ee-date-${id}`).value);
     const category     = normalizeText(document.getElementById(`ee-cat-${id}`).value, 40);
     const acctEl       = document.getElementById(`ee-acct-${id}`);
     const accountId    = acctEl?.value ? parseInt(acctEl.value) : null;
-    if (!name || isNaN(budgetAmount) || budgetAmount < 0 || !dateStr) { alert('Invalid expense data.'); return; }
+    if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) { alert('Invalid expense data.'); return; }
     const date = new Date(dateStr + 'T00:00:00');
     app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date, category, accountId };
     app.editingExpenseId = null;

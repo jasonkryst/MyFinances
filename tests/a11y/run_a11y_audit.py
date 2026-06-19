@@ -284,12 +284,20 @@ def run_checks(page, label, results, include_contrast=True, include_structure=Tr
     results[label] = entry
 
 
-def main():
+def collect_audit_findings(headless=True):
+    """Run the full accessibility audit and return the raw findings dict.
+
+    This is the reusable core of the standalone script: it seeds the app
+    with SAMPLE_DATA, walks every SPA page (light + dark mode), the mobile
+    nav, key modals, and guide.html, and returns the same structure that
+    `main()` prints as JSON. Factored out so it can be called both from the
+    CLI entry point below and from `tests/a11y/test_a11y_audit.py`.
+    """
     results = {"console_errors": [], "pages": {}, "dark_mode_contrast": {},
                 "modals": {}, "mobile": {}, "guide": {}, "landmarks": {}}
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=headless)
 
         # ── Desktop pass ────────────────────────────────────────────────
         page = browser.new_page(viewport={"width": 1366, "height": 900})
@@ -433,6 +441,11 @@ def main():
 
         browser.close()
 
+    return results
+
+
+def main():
+    results = collect_audit_findings(headless=True)
     print(json.dumps(results, indent=2, default=str))
 
 

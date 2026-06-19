@@ -488,3 +488,116 @@ def test_xss_in_spending_category_name(app_page):
 
     raw_tag = page.evaluate('() => document.getElementById("spendingRankedList")?.innerHTML.includes("<script>")')
     assert not raw_tag, "Raw <script> tag should not appear in ranked list innerHTML — it must be escaped"
+
+
+@pytest.mark.security
+async def test_xss_in_reports_calendar_expense_name(async_app_page):
+    """Test XSS prevention in an expense name rendered as a calendar event in the Reports page."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        app.accounts = [{ id: 9101, name: 'Cal XSS', type: 'Checking', startingBalance: 1000 }];
+        app.expenses = [{
+            id: 90,
+            name: '<img src=x onerror="window.__xss_rptcal=1">',
+            budgetAmount: 75,
+            date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+            category: 'Other',
+            accountId: 9101
+        }];
+        app.incomes = []; app.bills = []; app.debts = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.ledgerAmountOverrides = {};
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+    }""")
+    await page.wait_for_timeout(300)
+
+    calendar_html = await page.evaluate(
+        '() => document.getElementById("reportsCalendar")?.innerHTML || ""'
+    )
+    assert '<img src=x' not in calendar_html, "Unescaped <img> tag found in reports calendar expense event"
+
+    xss_ran = await page.evaluate('() => window.__xss_rptcal === 1')
+    assert not xss_ran, "XSS payload executed via expense name in reports calendar!"
+
+
+@pytest.mark.security
+async def test_xss_in_recurring_template_name(async_app_page):
+    """Test XSS prevention in the recurring template *name* field (entered via the actual form)."""
+    page = async_app_page
+
+    # Recurring templates require an account
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+    await page.fill('#accountName', 'Recurring Name XSS')
+    await page.select_option('#accountType', 'Checking')
+    await page.fill('#accountStartingBalance', '500')
+    await page.click('button:has-text("Add Account")')
+    await page.wait_for_timeout(500)
+
+    await page.click('button[data-page="recurring"]')
+    await page.wait_for_timeout(300)
+    await page.click('#recurringFormToggle')
+    await page.wait_for_timeout(300)
+
+    await page.fill('#recurringName', '<script>window.__xss_recurring_name=1</script>')
+    await page.fill('#recurringAmount', '15')
+    await page.fill('#recurringDayOfMonth', '1')
+    await page.select_option('#recurringAccount', label='Recurring Name XSS')
+    await page.fill('#recurringStartDate', '2026-01-01')
+    await page.click('#recurringFormSubmit')
+    await page.wait_for_timeout(500)
+
+    section_html = await page.evaluate(
+        '() => document.getElementById("recurringSection")?.innerHTML || ""'
+    )
+    assert '<script>' not in section_html, "Unescaped <script> tag found in recurring template name"
+
+    xss_ran = await page.evaluate('() => window.__xss_recurring_name === 1')
+    assert not xss_ran, "XSS payload executed via recurring template name!"
+
+
+@pytest.mark.security
+async def test_xss_in_sinking_fund_name_and_notes(async_app_page):
+    """Test XSS prevention in the sinking fund *name* and *notes* fields (entered via the actual form)."""
+    page = async_app_page
+
+    # Sinking funds require an account
+    await page.click('button[data-page="accounts"]')
+    await page.wait_for_timeout(300)
+    await page.fill('#accountName', 'Sinking XSS')
+    await page.select_option('#accountType', 'Savings')
+    await page.fill('#accountStartingBalance', '0')
+    await page.click('button:has-text("Add Account")')
+    await page.wait_for_timeout(500)
+
+    await page.click('button[data-page="savings"]')
+    await page.wait_for_timeout(300)
+    await page.click('[data-savings-subtab="sinking"]')
+    await page.wait_for_timeout(300)
+    await page.click('#sinkingFormToggle')
+    await page.wait_for_timeout(300)
+
+    await page.fill('#sinkingName', '<script>window.__xss_sinking_name=1</script>')
+    await page.select_option('#sinkingAllocationMethod', 'fixed')
+    await page.fill('#sinkingMonthlyAllocation', '50')
+    await page.fill('#sinkingCurrentAmount', '0')
+    await page.select_option('#sinkingAccount', label='Sinking XSS')
+    await page.fill('#sinkingNotes', '<img src=x onerror="window.__xss_sinking_notes=1">')
+    await page.click('#sinkingFormSubmit')
+    await page.wait_for_timeout(500)
+
+    section_html = await page.evaluate(
+        '() => document.getElementById("savingsSection")?.innerHTML || ""'
+    )
+    assert '<script>' not in section_html, "Unescaped <script> tag found in sinking fund name"
+    assert '<img src=x' not in section_html, "Unescaped <img> tag found in sinking fund notes"
+
+    xss_ran_name = await page.evaluate('() => window.__xss_sinking_name === 1')
+    assert not xss_ran_name, "XSS payload executed via sinking fund name!"
+
+    xss_ran_notes = await page.evaluate('() => window.__xss_sinking_notes === 1')
+    assert not xss_ran_notes, "XSS payload executed via sinking fund notes!"

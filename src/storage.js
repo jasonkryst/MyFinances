@@ -358,6 +358,11 @@ export function exportAllJSON(app) {
     URL.revokeObjectURL(url);
 }
 
+// Quote a CSV field per RFC 4180, doubling any embedded quotes.
+function csvField(value) {
+    return `"${String(value).replace(/"/g, '""')}"`;
+}
+
 // Export the current payment plan to a downloadable CSV file.
 export function exportToCSV(app, options = {}) {
     const { onMissingPlan } = options;
@@ -379,7 +384,7 @@ export function exportToCSV(app, options = {}) {
         }
     }
 
-    let csv = 'Month,' + debtNames.join(',') + ',Stimulus Applied,Total Paid\n';
+    let csv = 'Month,' + debtNames.map(csvField).join(',') + ',Stimulus Applied,Total Paid\n';
 
     for (const monthData of app.lastPaymentPlan) {
         const monthName = DebtCalculator.getMonthName(monthData.month - 1);
@@ -452,7 +457,7 @@ export function exportToCSV(app, options = {}) {
 
     for (const [debtName, summary] of sortedDebts) {
         const payoffDate = summary.isFixedAmount ? (summary.lastPaymentDate || '') : (summary.payoffDate || '');
-        csv += `"${debtName}","${summary.totalPaid.toFixed(2)}","${summary.principalPaid.toFixed(2)}","${summary.interestPaid.toFixed(2)}","${payoffDate}"\n`;
+        csv += `${csvField(debtName)},"${summary.totalPaid.toFixed(2)}","${summary.principalPaid.toFixed(2)}","${summary.interestPaid.toFixed(2)}","${payoffDate}"\n`;
     }
 
     const blob = new Blob([csv], { type: 'text/csv' });
