@@ -3,7 +3,8 @@
 import {
     getIncomePaydaysInMonth,
     formatCurrency,
-    escapeHtml
+    escapeHtml,
+    renderChartDataTable
 } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledger.js';
 import { renderCashFlowForecast } from './forecast.js';
@@ -336,6 +337,12 @@ export function renderReportsNetWorth(app) {
                     x: { ticks: { color: labelColor }, grid: { color: gridColor } }
                 }
             }
+        });
+
+        renderChartDataTable('rptNetWorthTrendChart', {
+            caption: 'Net worth trend over time',
+            columns: ['Month', 'Net Worth', 'Liabilities'],
+            rows: labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx])])
         });
     }
 

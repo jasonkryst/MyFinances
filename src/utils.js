@@ -1,6 +1,6 @@
 // Formatting, date helpers, shared utilities
 
-export const APP_VERSION = '3.8.0';
+export const APP_VERSION = '3.9.0';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50")
@@ -62,6 +62,32 @@ export function escapeHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+// Build (or replace) a visually-hidden <table> data-equivalent next to a chart
+// canvas, so screen-reader users get the same information sighted users get
+// from the chart. Looked up by the canvas's immediate parent element.
+export function renderChartDataTable(canvasId, { caption, columns, rows }) {
+    const canvas = document.getElementById(canvasId);
+    const host = canvas ? canvas.parentElement : null;
+    if (!host) return;
+
+    const tableId = `${canvasId}-sr-table`;
+    const existing = document.getElementById(tableId);
+    if (existing) existing.remove();
+
+    const theadHtml = `<tr>${columns.map(c => `<th scope="col">${escapeHtml(c)}</th>`).join('')}</tr>`;
+    const tbodyHtml = rows.map(row =>
+        `<tr>${row.map(cell => `<td>${escapeHtml(String(cell))}</td>`).join('')}</tr>`
+    ).join('');
+
+    host.insertAdjacentHTML('beforeend', `
+        <table id="${tableId}" class="sr-only chart-sr-table">
+            <caption>${escapeHtml(caption)}</caption>
+            <thead>${theadHtml}</thead>
+            <tbody>${tbodyHtml}</tbody>
+        </table>
+    `);
 }
 
 export function getDayOrdinal(day) {

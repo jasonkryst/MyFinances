@@ -8,7 +8,11 @@
     <link rel="stylesheet" href="guide.css">
 </head>
 <body>
-    <a class="back-to-app" href="index.html" aria-label="Back to application">← Back to Application</a>
+    <a href="#guideContent" class="skip-link">Skip to guide content</a>
+    <a class="back-to-app" href="index.html" aria-label="Back to application">
+        <span class="back-to-app-text-full">← Back to Application</span>
+        <span class="back-to-app-text-short">← Back</span>
+    </a>
     <div class="guide-container">
         <header class="guide-header">
             <h1>MyFinances Usage Guide</h1>
@@ -17,8 +21,12 @@
 
         <main class="guide-main">
             <nav class="toc" aria-label="Table of Contents">
-                <h2>Table of Contents</h2>
-                <ol>
+                <button class="toc-toggle" id="tocToggle" type="button" aria-expanded="false" aria-controls="tocList" aria-label="Table of Contents">
+                    <span class="toc-toggle-label" aria-hidden="true">📑 Table of Contents</span>
+                    <svg class="toc-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <h2 class="toc-heading">Table of Contents</h2>
+                <ol id="tocList" class="toc-list">
                     <li><a href="#getting-started">Getting Started</a></li>
                     <li><a href="#financial-health">Financial Health Dashboard</a></li>
                     <li><a href="#adding-debts">Adding Debts</a></li>
@@ -38,6 +46,7 @@
                 </ol>
             </nav>
 
+            <div class="guide-content" id="guideContent">
             <section class="guide-section" id="getting-started">
                 <h2>Getting Started</h2>
                 <h3>What is MyFinances?</h3>
@@ -91,9 +100,9 @@
                     <table class="guide-table">
                         <thead>
                             <tr>
-                                <th>Field</th>
-                                <th>What to Enter</th>
-                                <th>Notes</th>
+                                <th scope="col">Field</th>
+                                <th scope="col">What to Enter</th>
+                                <th scope="col">Notes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -127,8 +136,8 @@
                     <table class="guide-table">
                         <thead>
                             <tr>
-                                <th>Field</th>
-                                <th>What to Enter</th>
+                                <th scope="col">Field</th>
+                                <th scope="col">What to Enter</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -150,9 +159,9 @@
                     <table class="guide-table">
                         <thead>
                             <tr>
-                                <th>Field</th>
-                                <th>What to Enter</th>
-                                <th>Notes</th>
+                                <th scope="col">Field</th>
+                                <th scope="col">What to Enter</th>
+                                <th scope="col">Notes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -197,7 +206,7 @@
                 <h3>Expense Fields</h3>
                 <table class="guide-table">
                     <thead>
-                        <tr><th>Field</th><th>Description</th></tr>
+                        <tr><th scope="col">Field</th><th scope="col">Description</th></tr>
                     </thead>
                     <tbody>
                         <tr><td>Name</td><td>e.g. "Groceries", "Gym membership"</td></tr>
@@ -233,7 +242,7 @@
                 <h3>Template Configuration</h3>
                 <table class="guide-table">
                     <thead>
-                        <tr><th>Field</th><th>Options</th><th>Notes</th></tr>
+                        <tr><th scope="col">Field</th><th scope="col">Options</th><th scope="col">Notes</th></tr>
                     </thead>
                     <tbody>
                         <tr><td>Name</td><td>Any label</td><td>e.g. "Netflix", "Client Reimbursement"</td></tr>
@@ -285,7 +294,7 @@
                     <li>Fill in the form:
                         <div class="guide-table-wrap">
                             <table class="guide-table">
-                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <thead><tr><th scope="col">Field</th><th scope="col">Description</th></tr></thead>
                                 <tbody>
                                     <tr><td>Account</td><td>Bank account this emergency fund belongs to</td></tr>
                                     <tr><td>Target Amount ($)</td><td>Your emergency fund goal (e.g. $10,000)</td></tr>
@@ -317,7 +326,7 @@
                     <li>Fill in the form:
                         <div class="guide-table-wrap">
                             <table class="guide-table">
-                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <thead><tr><th scope="col">Field</th><th scope="col">Description</th></tr></thead>
                                 <tbody>
                                     <tr><td>Goal Name</td><td>Name of the savings goal (e.g. "Vacation", "Car Repairs")</td></tr>
                                     <tr><td>Allocation Method</td><td>Choose one of three methods (see below)</td></tr>
@@ -337,7 +346,7 @@
                     <li><strong>Fixed Monthly Amount</strong> — set a specific amount to save each month (e.g. $150/month for vacation)
                         <div class="guide-table-wrap">
                             <table class="guide-table">
-                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <thead><tr><th scope="col">Field</th><th scope="col">Description</th></tr></thead>
                                 <tbody>
                                     <tr><td>Monthly Allocation ($)</td><td>Amount to set aside each month</td></tr>
                                     <tr><td>Target Amount ($)</td><td>Your savings goal total</td></tr>
@@ -348,7 +357,7 @@
                     <li><strong>Annual Cost ÷ 12</strong> — provide an annual cost and the app divides it into monthly chunks (e.g. annual car insurance $1,200 = $100/month)
                         <div class="guide-table-wrap">
                             <table class="guide-table">
-                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <thead><tr><th scope="col">Field</th><th scope="col">Description</th></tr></thead>
                                 <tbody>
                                     <tr><td>Annual Cost ($)</td><td>Total annual cost (e.g. $1,200 for insurance)</td></tr>
                                     <tr><td>Target Amount ($)</td><td>Same as annual cost (auto-filled)</td></tr>
@@ -359,7 +368,7 @@
                     <li><strong>Target Date Planning</strong> — specify a target amount and date; the app calculates the monthly allocation needed (e.g. save $5,000 by December 31 = $417/month)
                         <div class="guide-table-wrap">
                             <table class="guide-table">
-                                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                                <thead><tr><th scope="col">Field</th><th scope="col">Description</th></tr></thead>
                                 <tbody>
                                     <tr><td>Target Amount ($)</td><td>Your savings goal total (e.g. $5,000)</td></tr>
                                     <tr><td>Target Date</td><td>Date you want to reach that amount (e.g. 2026-12-31)</td></tr>
@@ -391,9 +400,9 @@
                     <table class="guide-table">
                         <thead>
                             <tr>
-                                <th>Strategy</th>
-                                <th>Order</th>
-                                <th>Best For</th>
+                                <th scope="col">Strategy</th>
+                                <th scope="col">Order</th>
+                                <th scope="col">Best For</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -468,7 +477,7 @@
                 <div class="guide-table-wrap">
                     <table class="guide-table">
                         <thead>
-                            <tr><th>Metric</th><th>Description</th></tr>
+                            <tr><th scope="col">Metric</th><th scope="col">Description</th></tr>
                         </thead>
                         <tbody>
                             <tr><td>Total Assets</td><td>Sum of positive projected account balances for the selected month</td></tr>
@@ -498,7 +507,7 @@
                 <div class="guide-table-wrap">
                     <table class="guide-table">
                         <thead>
-                            <tr><th>Column</th><th>What It Shows</th></tr>
+                            <tr><th scope="col">Column</th><th scope="col">What It Shows</th></tr>
                         </thead>
                         <tbody>
                             <tr><td>Date</td><td>Snapshot date for that monthly record</td></tr>
@@ -541,7 +550,7 @@
                 <div class="guide-table-wrap">
                     <table class="guide-table">
                         <thead>
-                            <tr><th>Stat</th><th>What It Shows</th></tr>
+                            <tr><th scope="col">Stat</th><th scope="col">What It Shows</th></tr>
                         </thead>
                         <tbody>
                             <tr><td>Current Balance</td><td>Today's balance for the selected account(s)</td></tr>
@@ -638,9 +647,15 @@
             </section>
 
             <p class="guide-footer">Guide theme follows your app style and dark mode preference automatically.</p>
+            </div><!-- /guide-content -->
         </main>
     </div>
 
+    <button id="backToTop" class="back-to-top" type="button" aria-label="Back to top">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+    </button>
+
     <script src="src/guideTheme.js"></script>
+    <script src="src/guideNav.js"></script>
 </body>
 </html>

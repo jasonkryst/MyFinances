@@ -4,6 +4,24 @@ import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, 
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
+// Browsers commonly cap localStorage somewhere in the 5-10MB range. We can't
+// query the real per-browser limit, so we warn against a conservative 5MB
+// estimate rather than risk silent write failures once a user is near
+// whatever their actual ceiling turns out to be.
+export const STORAGE_ESTIMATED_QUOTA_BYTES = 5 * 1024 * 1024;
+export const STORAGE_QUOTA_WARNING_RATIO = 0.8;
+
+export function getStorageUsageInfo(serializedJson) {
+    const bytes = new Blob([serializedJson]).size;
+    const pct = bytes / STORAGE_ESTIMATED_QUOTA_BYTES;
+    return {
+        bytes,
+        limitBytes: STORAGE_ESTIMATED_QUOTA_BYTES,
+        pct,
+        nearLimit: pct >= STORAGE_QUOTA_WARNING_RATIO
+    };
+}
+
 function sanitizeAccount(record, idFallback) {
     return {
         id: sanitizeInteger(record?.id, idFallback),
@@ -262,9 +280,23 @@ export function saveToStorage(app) {
             },
             timestamp: new Date().toISOString()
         };
-        localStorage.setItem(app.storageKey, JSON.stringify(data));
+        const json = JSON.stringify(data);
+        localStorage.setItem(app.storageKey, json);
+
+        const usage = getStorageUsageInfo(json);
+        if (usage.nearLimit) {
+            if (!app._storageQuotaWarned && typeof app.showStorageQuotaWarning === 'function') {
+                app.showStorageQuotaWarning(usage);
+            }
+            app._storageQuotaWarned = true;
+        } else {
+            app._storageQuotaWarned = false;
+        }
     } catch (error) {
         console.error('Error saving to localStorage:', error);
+        if (typeof app.showStorageQuotaWarning === 'function') {
+            app.showStorageQuotaWarning({ bytes: null, limitBytes: STORAGE_ESTIMATED_QUOTA_BYTES, pct: 1, nearLimit: true, writeFailed: true });
+        }
     }
 }
 

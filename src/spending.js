@@ -1,5 +1,5 @@
 import { getLedgerTransactionsForMonth } from './ledger.js';
-import { escapeHtml, formatCurrency } from './utils.js';
+import { escapeHtml, formatCurrency, renderChartDataTable } from './utils.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -208,6 +208,12 @@ export function renderReportsSpending(app) {
                 }
             }
         });
+
+        renderChartDataTable('rptSpendingPieChart', {
+            caption: `Spending by category — ${monthLabel}`,
+            columns: ['Category', 'Amount'],
+            rows: categories.map(c => [c.category, formatCurrency(c.total)])
+        });
     }
 
     // 6-month stacked bar chart
@@ -247,6 +253,12 @@ export function renderReportsSpending(app) {
                     tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } }
                 }
             }
+        });
+
+        renderChartDataTable('rptSpendingBarChart', {
+            caption: '6-month spending trend by category',
+            columns: ['Month', ...barDatasets.map(ds => ds.label)],
+            rows: months.map((m, idx) => [m.label, ...barDatasets.map(ds => formatCurrency(ds.data[idx]))])
         });
     }
 }

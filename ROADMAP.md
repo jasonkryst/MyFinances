@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 19, 2026  
-**Current Version**: v3.8.0  
+**Last Updated**: June 20, 2026  
+**Current Version**: v3.9.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -534,14 +534,14 @@ Identified while reviewing the current featureset against the audit results — 
 - **FIRE / net-worth goal calculator** — extends the existing Net Worth Tracker with a target net-worth + timeline projection, reusing `monthlySnapshots` trend data.
 
 #### 🎨 UI/UX
-- **Command palette / quick-jump (Ctrl+K)** — fast keyboard navigation across the now 10-page app; pairs well with the recent grouped-nav redesign.
+- ~~**Command palette / quick-jump (Ctrl+K)**~~ ✅ **Delivered June 20, 2026** — `src/commandPalette.js`; opens via Ctrl/Cmd+K or the toolbar 🔍 button, fuzzy-filters across all 10 pages plus common actions (export/import JSON, theme toggle, calculate plan).
 - **Customizable Health Dashboard card order** — let users reorder/hide the six health cards (drag-and-drop or simple up/down controls), persisted like other preferences.
 - **Print-friendly Reports view** — a `@media print` stylesheet for the Reports page so users can print/PDF a monthly summary without browser print clutter.
 - **Empty-state onboarding flow** — guided first-run walkthrough (create first account → add income/debt → see Health dashboard populate) for new users instead of a single guide.html page.
 
 #### ♿ Accessibility
-- **`prefers-reduced-motion` support** — Chart.js animations and modal transitions currently always animate; respect the OS-level reduced-motion preference.
-- **Screen-reader data-table fallback for charts** — every Chart.js canvas (Health gauges, Spending pie/bar, Forecast line, Net Worth trend) has no text-equivalent table for screen-reader users; add a visually-hidden `<table>` alternative per chart.
+- ~~**`prefers-reduced-motion` support**~~ ✅ **Delivered June 20, 2026** — a global CSS media query collapses all transitions/animations to near-instant, and `Chart.defaults.animation` is disabled app-wide when the OS prefers reduced motion.
+- ~~**Screen-reader data-table fallback for charts**~~ ✅ **Delivered June 20, 2026** — a shared `renderChartDataTable()` helper (`src/utils.js`) builds a visually-hidden `.sr-only` `<table>` alongside the Health gauges, Spending pie/bar, Forecast line, and Net Worth trend charts.
 - **High-contrast theme option** — a third theme beyond light/dark tuned for WCAG AAA contrast, for users who need it beyond the already-passing AA baseline.
 - *(Process item, not a UI feature — tracked in Tier 0 above)* dedicated Strategy results-tab-bar a11y regression tests.
 
@@ -557,8 +557,8 @@ Identified while reviewing the current featureset against the audit results — 
 - **Lightweight build step evaluation** — the project deliberately has no build step (CLAUDE.md), which keeps things simple but means no minification/tree-shaking; worth an explicit decision record on whether that tradeoff still holds as `src/` grows past 20 modules, rather than revisiting it ad hoc.
 
 #### 🗄️ BED (Storage / data-layer logic)
-- **`tests/features/test_strategy.py`** — the one `src/` module with no dedicated feature-test file (Tier 0, test-suite audit gap #1).
-- **localStorage quota monitoring** — `storage.js` has no check for approaching the ~5-10MB browser quota; large multi-year ledgers could eventually hit it silently. Add a soft warning before writes start failing.
+- ~~**`tests/features/test_strategy.py`**~~ ✅ Already closed (Tier 0, test-suite audit gap #1) — see line 53 above.
+- ~~**localStorage quota monitoring**~~ ✅ **Delivered June 20, 2026** — `storage.js` now estimates the serialized payload size against a conservative 5MB quota on every save and shows a dismissible warning banner above ~80% usage (or on an actual write failure).
 - **Web Worker for `debtCalculator.js`** — the daily-compounding payoff engine runs synchronously on the main thread; fine today, but a future "10 debts × 30-year amortization schedule" scenario could janky the UI. Worth profiling before committing to this.
 - **Formal storage-schema migration framework** — sanitizers currently double as the de facto migration layer (format `"3.0"` plus legacy v1.0 support). As more format versions accumulate, consider an explicit `migrations/` pipeline keyed by version number rather than growing the sanitizers further.
 
@@ -606,6 +606,14 @@ Identified while reviewing the current featureset against the audit results — 
 - Test suite expanded to 342 tests (41 files) — zero regressions
 - v3.7.0: minor version bump for the Tier 0 audit-fix work above
 - v3.8.0: closed the remaining M1 test-coverage gap — `saveEditIncome`/`saveEditBonus` (the inline-edit negative-amount paths) had no dedicated regression tests even though the underlying validation fix already covered them; added `test_edit_income_negative_amount_rejected` and `test_edit_bonus_negative_amount_rejected`. Test suite now at 344 tests (41 files), zero regressions
+
+**Shipped post-v3.1 (June 20, 2026)**:
+- Command palette / quick-jump (Ctrl+K) — `src/commandPalette.js`
+- `prefers-reduced-motion` support across CSS transitions/animations and Chart.js
+- Screen-reader data-table fallback for all four chart groups (Health, Spending, Forecast, Net Worth)
+- localStorage quota monitoring with a dismissible soft-warning banner
+- Fixed an unclosed Markdown code fence in this repo's root `README.md` "Quick Start" section that was swallowing the entire Security & Privacy section into a code block
+- v3.9.0: minor version bump for the five items above. Test suite expanded from 344→365 tests (41→45 files), zero regressions
 
 ---
 

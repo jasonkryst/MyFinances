@@ -2,8 +2,10 @@
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors } from './accounts.js';
 import { escapeHtml } from './utils.js';
+import { initCommandPalette } from './commandPalette.js';
 
 export function initializeEventListeners(app) {
+    initCommandPalette(app);
     const themeSwitcher = document.getElementById('themeSwitcher');
     const applyTheme = (theme) => {
         const isDark = theme === 'dark';
@@ -606,6 +608,34 @@ export function showMilestone(debtName) {
 
     document.body.appendChild(host);
     window.setTimeout(() => host.remove(), 1800);
+}
+
+export function showStorageQuotaWarning(usage) {
+    if (document.getElementById('storageQuotaBanner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'storageQuotaBanner';
+    banner.className = 'storage-quota-banner';
+    banner.setAttribute('role', 'alert');
+
+    const text = document.createElement('span');
+    if (usage.writeFailed) {
+        text.textContent = 'Your saved data could not be written to browser storage — it may be full. Export a backup now to avoid losing data.';
+    } else {
+        const mb = (usage.bytes / (1024 * 1024)).toFixed(1);
+        const pct = Math.round(usage.pct * 100);
+        text.textContent = `Your saved data is using about ${mb} MB (${pct}% of typical browser storage limits). Consider exporting a backup and trimming old records.`;
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'storage-quota-banner-close';
+    closeBtn.setAttribute('aria-label', 'Dismiss storage warning');
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => banner.remove());
+
+    banner.appendChild(text);
+    banner.appendChild(closeBtn);
+    document.body.appendChild(banner);
 }
 
 export function showNetWorthMilestone(message) {

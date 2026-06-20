@@ -1,7 +1,7 @@
 // Cash Flow Forecasting: project account balances forward and surface
 // notable months, negative-balance warnings, and lowest/highest points.
 
-import { formatCurrency, escapeHtml, sanitizeFiniteNumber } from './utils.js';
+import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable } from './utils.js';
 import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledger.js';
 
 const LIABILITY_TYPES = ['Credit Card', 'Loan'];
@@ -187,6 +187,12 @@ function renderForecastChart(app, series, stats) {
                 y: { ticks: { color: labelColor, callback: v => formatCurrency(v) }, grid: { color: gridColor } }
             }
         }
+    });
+
+    renderChartDataTable('cfForecastChart', {
+        caption: 'Projected cash flow balance forecast',
+        columns: ['Month', 'Projected Balance'],
+        rows: series.map(entry => [entry.label, formatCurrency(entry.balance)])
     });
 }
 
