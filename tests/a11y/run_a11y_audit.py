@@ -376,6 +376,13 @@ def collect_audit_findings(headless=True):
         try:
             page.evaluate("() => { window.app.calculatePaymentPlanFromInputs(); }")
             page.wait_for_timeout(300)
+            # The "View" amortization button lives in the Debt Summary results
+            # tab, which is not the default-active tab (Overview is) - switch
+            # to it first or the button is present but zero-size/unclickable.
+            debt_summary_tab = page.query_selector('[data-rtab="debt-summary"]')
+            if debt_summary_tab:
+                debt_summary_tab.click()
+                page.wait_for_timeout(200)
             amort_btn = page.query_selector('[data-amortization]')
             if amort_btn:
                 amort_btn.click()

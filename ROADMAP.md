@@ -1,8 +1,67 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 17, 2026  
+**Last Updated**: June 19, 2026  
 **Current Version**: v3.6.4  
 **Status**: Production-Ready (Security Audit: LOW Risk)
+
+---
+
+## 🔍 Latest Audit Results (June 19, 2026)
+
+Fresh security, accessibility, and test-suite audits were run against the current codebase (324 tests, post-PR #18). Full reports:
+
+| Audit | Result | Report |
+|---|---|---|
+| Security | ✅ LOW risk — 0 Critical/High, 1 Medium, 2 Low, 51/51 security tests pass | [`docs/audit/security/SECURITY_AUDIT_2026-06-19.md`](docs/audit/security/SECURITY_AUDIT_2026-06-19.md) |
+| Accessibility (WCAG 2.1 AA) | ✅ 0 Serious/Moderate defects across 10 pages × 2 themes, mobile, 3 modals, guide.html | [`docs/audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md`](docs/audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md) |
+| Test Suite | ✅ 324/324 passing; gap analysis across all 41 test files vs. 20 `src/` modules | [`docs/audit/test/TEST_SUITE_AUDIT_2026-06-19.md`](docs/audit/test/TEST_SUITE_AUDIT_2026-06-19.md) |
+
+The app remains in good shape overall. The technical-debt items these audits surfaced are tracked in **Tier 0** below, ahead of new feature work, since two independent audits (security + test-suite) converged on the same bug class.
+
+---
+
+## 🛠️ Tier 0: Audit-Driven Technical Debt (Do First)
+
+#### Fix negative-amount validation bypass in Income/Bonus/Fixed-Debt forms
+**Priority**: HIGH | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Security audit M1 + Test-suite audit gap #1
+
+`sanitizeFiniteNumber(raw, NaN, {min: 0.01})` clamps a negative input **up to 0.01** rather than to the fallback, so the subsequent `amount <= 0` check never fires. This exact bug class was found and fixed in `src/bills.js` (`addExpense`/`saveEditExpense`) and `src/recurring.js` (`addRecurringTemplate`/`saveEditRecurring`) this session — but is still live in:
+- `src/income.js`: `addIncome`, `saveEditIncome`, `addBonus`, `saveEditBonus`
+- `src/debts.js`: fixed-amount debt type branch in `addDebt`
+
+A negative income/bonus/payment amount is silently saved as `$0.01` instead of being rejected, which can quietly skew cash-flow forecasts, health-dashboard ratios, and net-worth snapshots. Fix: validate against the raw input string before clamping, matching the `bills.js`/`recurring.js` pattern. Add `tests/features/test_income.py::test_add_income_negative_amount_rejected` (and bonus/debt equivalents).
+
+---
+
+#### Escape caught-exception messages consistently
+**Priority**: LOW | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Security audit L1
+
+`src/ui.js:123` renders `err.message` into `innerHTML` without `escapeHtml()`, unlike the equivalent paths in `src/strategy.js:102,542`. Not currently exploitable (message text isn't user-controlled today) but inconsistent with the rest of the codebase's convention — fix for defense-in-depth before any future exception path echoes user input.
+
+---
+
+#### Document/harden the `accounts.js` raw-`innerHTML` option-list helper
+**Priority**: LOW | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Security audit L2
+
+`src/accounts.js:16` (`el.innerHTML = opts`) has no escaping contract at its boundary; all current callers pre-escape, but nothing stops a future caller from passing raw text. Add a contract comment or defensive escaping.
+
+---
+
+#### Close test-coverage gaps flagged by the test-suite audit
+**Priority**: MEDIUM | **Effort**: MEDIUM | **Status**: 📋 PROPOSED | **Source**: Test-suite audit, Section 7
+
+1. `tests/features/test_strategy.py` (new file) — `strategy.js` is the only `src/` module with no dedicated feature-test file; cover strategy switching (Avalanche/Snowball/Priority-Lowest/Priority-Highest) and stimulus-amount validation.
+2. `tests/features/test_accounts.py::test_delete_account_with_linked_items_orphans_gracefully` — account deletion with linked income/debts/bills/recurring items has no test (the reverse direction — orphaned reconciliation history — is already covered).
+3. `tests/ui/test_charts.py` (new file) — assert Chart.js instances are `.destroy()`'d on re-render across health/spending/forecast/networth charts, to catch a memory-leak regression.
+4. `tests/ui/test_guide_theme.py` (new file) — `guideTheme.js` has zero automated coverage; the only verification today is manual.
+5. Add `.results-tab-btn`/`.results-tab-panel` a11y tests to `tests/ui/test_accessibility.py` mirroring the existing Reports-tab-bar tests (a11y audit finding A2 — the Strategy results tab bar is implemented correctly but has no regression coverage).
+
+---
+
+#### Housekeeping: relocate `tests/debug/`
+**Priority**: LOW | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Test-suite audit, Section 6
+
+`tests/debug/` holds 10 ad-hoc manual debugging scripts with no `test_*` functions (pytest silently no-ops on them). Move to a `scripts/` or `tools/` directory outside `tests/` so the test tree only contains real tests.
 
 ---
 
@@ -31,6 +90,9 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 
 | Feature | Tier | Status | Notes |
 |---|---|---|---|
+| Fix Income/Bonus/Fixed-Debt negative-amount validation bypass | 0 | 📋 | Security audit M1 + test-suite audit gap #1 |
+| Close audit-flagged test-coverage gaps (strategy, charts, guideTheme, account orphans) | 0 | 📋 | Test-suite audit Section 7 |
+| Escape exception messages / harden `accounts.js` option helper | 0 | 📋 | Security audit L1/L2 |
 | Net Worth Tracker & Historical Snapshots | 1 | ✅ | Delivered May 30, 2026 |
 | Financial Health Dashboard | 1 | ✅ | Delivered June 8, 2026 |
 | Budget Alerts & Overspend Warnings | 1 | 📋 | Absorbs Quick Wins #2 and #5 |
@@ -460,6 +522,48 @@ Domain-specific tools for advanced users.
 
 ---
 
+### Tier 5: New Ideas (June 19, 2026 Audit Cycle)
+
+Identified while reviewing the current featureset against the audit results — not yet effort/priority-ranked against the existing tiers above, but worth tracking. Grouped by the lens that surfaced them.
+
+#### 🧩 Featureset
+- **PWA / offline installability** — add a manifest + service worker so the app can be installed and used offline; fits the "client-side only, no server" architecture naturally and improves mobile usability.
+- **Bank statement / CSV transaction import** — a mapping wizard to bulk-import transactions into the ledger, rather than manual entry only. Bigger lift than Enhanced Data Export (Tier 4) since it's import, not export.
+- **Reminders for due bills/recurring items** — browser Notification API (with explicit opt-in) or an in-app "due soon" digest on the Health dashboard, building on `recurringTemplates`' existing occurrence-date math.
+- **Scheduled/auto-export reminders** — since there's no cloud backup, periodically nudge users (e.g. "last export was 45 days ago") to export their JSON backup, directly addressing the single-point-of-failure risk of localStorage-only persistence.
+- **FIRE / net-worth goal calculator** — extends the existing Net Worth Tracker with a target net-worth + timeline projection, reusing `monthlySnapshots` trend data.
+
+#### 🎨 UI/UX
+- **Command palette / quick-jump (Ctrl+K)** — fast keyboard navigation across the now 10-page app; pairs well with the recent grouped-nav redesign.
+- **Customizable Health Dashboard card order** — let users reorder/hide the six health cards (drag-and-drop or simple up/down controls), persisted like other preferences.
+- **Print-friendly Reports view** — a `@media print` stylesheet for the Reports page so users can print/PDF a monthly summary without browser print clutter.
+- **Empty-state onboarding flow** — guided first-run walkthrough (create first account → add income/debt → see Health dashboard populate) for new users instead of a single guide.html page.
+
+#### ♿ Accessibility
+- **`prefers-reduced-motion` support** — Chart.js animations and modal transitions currently always animate; respect the OS-level reduced-motion preference.
+- **Screen-reader data-table fallback for charts** — every Chart.js canvas (Health gauges, Spending pie/bar, Forecast line, Net Worth trend) has no text-equivalent table for screen-reader users; add a visually-hidden `<table>` alternative per chart.
+- **High-contrast theme option** — a third theme beyond light/dark tuned for WCAG AAA contrast, for users who need it beyond the already-passing AA baseline.
+- *(Process item, not a UI feature — tracked in Tier 0 above)* dedicated Strategy results-tab-bar a11y regression tests.
+
+#### 🔒 Security
+- **Optional passphrase-encrypted localStorage** — client-side encryption (e.g. WebCrypto AES-GCM) of the persisted JSON blob, opt-in, for users on shared devices — the app already has no server, so this stays fully consistent with the privacy-first model.
+- **"Lock app" / idle session timeout** — auto-blur/hide financial data after N minutes of inactivity on a shared device, independent of the encryption feature above.
+- **Automated SRI/CSP regression check in CI** — the Chart.js CDN `integrity` hash and CSP sync are currently verified by manual audit + one static test; consider a CI step that re-fetches the pinned Chart.js version's hash periodically to catch silent CDN drift.
+- *(Bug fixes, tracked in Tier 0 above)* income/debt validation bypass, exception-message escaping, `accounts.js` option-list helper contract.
+
+#### 🖥️ FED (Frontend / UI layer)
+- **`tests/ui/test_charts.py`** — chart-instance-destroyed-on-rerender coverage (Tier 0, test-suite audit gap #3).
+- **`tests/ui/test_guide_theme.py`** — close the only `src/` file with zero automated coverage (Tier 0, test-suite audit gap #4).
+- **Lightweight build step evaluation** — the project deliberately has no build step (CLAUDE.md), which keeps things simple but means no minification/tree-shaking; worth an explicit decision record on whether that tradeoff still holds as `src/` grows past 20 modules, rather than revisiting it ad hoc.
+
+#### 🗄️ BED (Storage / data-layer logic)
+- **`tests/features/test_strategy.py`** — the one `src/` module with no dedicated feature-test file (Tier 0, test-suite audit gap #1).
+- **localStorage quota monitoring** — `storage.js` has no check for approaching the ~5-10MB browser quota; large multi-year ledgers could eventually hit it silently. Add a soft warning before writes start failing.
+- **Web Worker for `debtCalculator.js`** — the daily-compounding payoff engine runs synchronously on the main thread; fine today, but a future "10 debts × 30-year amortization schedule" scenario could janky the UI. Worth profiling before committing to this.
+- **Formal storage-schema migration framework** — sanitizers currently double as the de facto migration layer (format `"3.0"` plus legacy v1.0 support). As more format versions accumulate, consider an explicit `migrations/` pipeline keyed by version number rather than growing the sanitizers further.
+
+---
+
 ## 🚀 Implementation Roadmap by Release
 
 ### v3.1 (Released - June 8, 2026)
@@ -616,13 +720,13 @@ this.reconciliationEntries = [];  // Account adjustments
 ## 📞 Feedback & Discussion
 
 **Status**: Open for feedback  
-**Last Review**: June 8, 2026  
+**Last Review**: June 19, 2026  
 **Next Review**: July 31, 2026
 
 Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECURITY.md#security-issues).
 
 ---
 
-**Version**: 1.1  
+**Version**: 1.2  
 **Status**: Active Roadmap  
-**Last Updated**: June 16, 2026
+**Last Updated**: June 19, 2026
