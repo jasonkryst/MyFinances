@@ -8,6 +8,8 @@
 
 This supersedes `SECURITY_AUDIT.md` and `SECURITY_REVIEW.md` (both dated May 29–31, 2026), which predate the Reconciliation, Cash Flow Forecasting, Spending Analysis, and Accessibility-audit features, and predate this session's test-suite expansion (264→324 tests) and bug-fix pass. Nothing here was auto-fixed — this is audit-only, for review and prioritization.
 
+> **Resolution update (June 19, 2026, v3.8.0)**: Finding **M1** below has been fixed in `src/income.js` and `src/debts.js` (validate the raw input string before clamping, matching the existing `bills.js`/`recurring.js` pattern), with regression tests added for all 5 call sites — see [`ROADMAP.md`](../../../ROADMAP.md) Tier 0. The findings text below is left unmodified as the historical record of the audit; see ROADMAP.md for current remediation status.
+
 ---
 
 ## Executive Summary
