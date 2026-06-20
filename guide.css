@@ -35,6 +35,55 @@ body {
     outline-offset: 2px;
 }
 
+.back-to-app-text-short {
+    display: none;
+}
+
+.back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 999px;
+    background: var(--primary-color);
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.back-to-top--visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.back-to-top:hover {
+    background: var(--primary-hover);
+}
+
+.back-to-top:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+body.dark-mode .back-to-top {
+    background: #1d4ed8;
+}
+
+body.dark-mode .back-to-top:hover {
+    background: #2563eb;
+}
+
 .guide-container {
     max-width: var(--guide-content-max);
     margin: 0 auto;
@@ -64,17 +113,64 @@ body {
 
 .guide-main {
     padding: 28px 22px 36px;
+    display: flex;
+    align-items: flex-start;
+    gap: 26px;
+}
+
+.guide-content {
+    flex: 1;
+    min-width: 0;
 }
 
 .toc {
+    flex: 0 0 250px;
+    position: sticky;
+    top: 72px;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
     background: var(--light-bg);
     border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 16px 18px;
-    margin-bottom: 24px;
 }
 
-.toc h2 {
+.toc-toggle {
+    display: none;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: none;
+    border: none;
+    color: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+.toc-toggle-chevron {
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.toc-toggle[aria-expanded="true"] .toc-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+.toc-toggle:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+.toc a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.toc-heading {
     margin: 0 0 12px;
     border: none;
     padding: 0;
@@ -82,7 +178,7 @@ body {
     color: var(--text-primary);
 }
 
-.toc ol {
+.toc-list {
     margin: 0;
     padding-left: 20px;
     line-height: 1.8;
@@ -222,7 +318,7 @@ body.dark-mode .back-to-app:hover {
 @media (max-width: 768px) {
     body {
         padding: 12px;
-        padding-top: 62px;
+        padding-top: 76px;
     }
 
     .guide-header {
@@ -234,10 +330,76 @@ body.dark-mode .back-to-app:hover {
     }
 
     .guide-main {
+        display: block;
         padding: 16px 12px 24px;
+    }
+
+    .guide-content {
+        width: 100%;
     }
 
     .guide-section {
         padding: 14px;
+        scroll-margin-top: 64px;
+    }
+
+    .toc {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        flex: none;
+        max-height: none;
+        overflow: visible;
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0;
+        margin-bottom: 0;
+    }
+
+    .toc-toggle {
+        display: flex;
+        justify-content: flex-end;
+        height: 50px;
+        padding: 0 16px;
+        background: var(--light-bg);
+    }
+
+    .toc-heading {
+        display: none;
+    }
+
+    .toc-list {
+        display: none;
+        position: fixed;
+        top: 50px;
+        left: 0;
+        right: 0;
+        max-height: calc(100vh - 50px);
+        overflow-y: auto;
+        margin: 0;
+        padding: 12px 18px 16px 38px;
+        background: var(--light-bg);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .toc-list.toc-list--open {
+        display: block;
+    }
+}
+
+@media (max-width: 380px) {
+    .back-to-app-text-full {
+        display: none;
+    }
+
+    .back-to-app-text-short {
+        display: inline;
+    }
+
+    .toc-toggle-label {
+        display: none;
     }
 }

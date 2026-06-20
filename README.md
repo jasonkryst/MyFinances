@@ -31,8 +31,9 @@ pytest tests/ui/ -v               # UI/UX tests only
 pytest tests/integration/ -v      # End-to-end tests only
 pytest -m "security" -v           # All security tests by marker
 pytest -m "not slow" -v           # Skip slow tests
+```
 
-# See [tests/README.md](tests/README.md) for comprehensive test documentation
+See [tests/README.md](tests/README.md) for comprehensive test documentation.
 
 For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -140,6 +141,25 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 - **6-Month Stacked Bar Trend** — current month highlighted at full opacity; prior 5 months at reduced opacity; category union taken across all 6 months so no data is missing
 - **Drill-Down Modal** — click any category row or pie slice to see the individual transactions (name, date, type icon, amount)
 
+### Command Palette / Quick-Jump (NEW)
+- **Ctrl+K (or Cmd+K)** — opens a searchable command palette from anywhere in the app; also reachable via the 🔍 toolbar button
+- **Jump to Any Page** — fuzzy-filters across all 10 top-level pages plus common actions (export/import JSON, toggle dark mode, calculate payment plan)
+- **Keyboard-First** — Arrow keys to move selection, Enter to activate, Escape to close and restore focus to whatever was focused before opening
+- **Accessible** — `role="dialog"`/`role="listbox"`/`aria-activedescendant` semantics, with mouse-click and backdrop-click fallbacks
+
+### Reduced Motion Support (NEW)
+- **Respects OS Preference** — when `prefers-reduced-motion: reduce` is set, all CSS transitions/animations (confetti, toasts, accordion toggles, hover effects) collapse to near-instant
+- **Chart.js Animations Disabled** — `Chart.defaults.animation` is turned off app-wide so every chart (gauges, pie/bar/line charts) renders without entrance or update animation under reduced motion
+
+### Screen-Reader Chart Data Tables (NEW)
+- **Text Equivalent for Every Chart** — Health gauges, Spending pie/bar charts, the Cash Flow Forecast line chart, and the Net Worth trend chart each get a visually-hidden (`.sr-only`) `<table>` with the same data, so screen-reader users aren't limited to a `<canvas>` with no accessible content
+- **Kept in Sync** — tables are rebuilt on every chart re-render via a shared `renderChartDataTable()` helper in `utils.js`
+
+### localStorage Quota Monitoring (NEW)
+- **Soft Usage Warning** — every save estimates the serialized payload size against a conservative 5MB browser-storage estimate and shows a dismissible banner once usage crosses ~80%
+- **Write-Failure Fallback** — if a write still fails (quota actually exceeded), the same banner explains the failure and recommends exporting a backup immediately
+- **Self-Resetting** — the warning re-arms itself if usage drops back under the threshold and is crossed again later
+
 ---
 
 ## 🔐 Security & Compliance
@@ -169,13 +189,13 @@ Production deployments include:
 
 ---
 
-## 🧪 Testing Suite (Updated June 19, 2026)
+## 🧪 Testing Suite (Updated June 20, 2026)
 
 The test suite is organized by functional category for maximum cohesiveness and maintainability:
 
 ### Test Statistics
-- **Total Tests**: 344 comprehensive tests, all passing
-- **Test Files**: 41 organized across 5 categories
+- **Total Tests**: 365 comprehensive tests, all passing
+- **Test Files**: 45 organized across 5 categories
 - **Coverage**: All major features + security + UI + accessibility, including positive and negative/edge-case paths for every sanitizer and calculation primitive
 - **Framework**: pytest with Playwright browser automation
 
@@ -189,7 +209,7 @@ The test suite is organized by functional category for maximum cohesiveness and 
 
 Run: `pytest tests/security/ -v`
 
-#### 🎯 Feature Tests (179 tests)
+#### 🎯 Feature Tests (184 tests)
 - **Accounts** — CRUD operations, account types, balance calculations, graceful orphaning of items linked to a deleted account
 - **Debts** — Liability management, interest calculation, amortization schedules, negative fixed-amount-payment rejection
 - **Debt Calculator** — Pure calculation engine: strategies (incl. multi-debt priority-lowest/highest ordering), daily compounding, target-date back-calculator, fixedAmount date-window boundaries, stimulus edge cases
@@ -208,10 +228,11 @@ Run: `pytest tests/security/ -v`
 - **Spending Analysis** — Category breakdowns, month-over-month trends
 - **Storage Import** — Direct unit tests of the `utils.js` sanitizer primitives, adversarial/negative-input import tests for every record-type sanitizer (net worth snapshots, forecast settings, emergency/sinking funds, bonuses, ledger overrides), legacy v1.0 format support
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
+- **localStorage Quota Monitoring** — Soft warning banner above the ~80% estimated-quota threshold, dismissibility, no-duplicate-banner on repeated saves, and re-arming after dropping back under threshold
 
 Run: `pytest tests/features/ -v`
 
-#### 🎨 UI/UX Tests (95 tests)
+#### 🎨 UI/UX Tests (111 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing
 - **Modal Functionality** — Visibility toggling, close buttons, amortization displays
 - **Dark Mode** — Theme switching, color contrast, persistence, corrupted-localStorage fallback
@@ -223,6 +244,9 @@ Run: `pytest tests/features/ -v`
 - **Reports Nav / Actions** — Tab bar grouping, sticky positioning, dark mode, tab-switching panel visibility
 - **Debt/Recurring/Reconciliation Actions** — Inline edit, mark-paid, reconcile-modal flows
 - **Spending UI** — Pie/bar charts, ranked list, drill-down modal
+- **Command Palette** — Ctrl+K / toolbar open, filtering, empty-state, arrow-key navigation, Enter-to-navigate, Escape/backdrop close with focus restoration, action commands (theme toggle)
+- **Reduced Motion** — CSS transition-duration collapse and `Chart.defaults.animation` disabled under `prefers-reduced-motion: reduce`; left enabled otherwise
+- **Chart Accessibility** — `.sr-only` data-table fallback present (with caption + rows) for health gauges, spending pie/bar, forecast, and net worth trend charts
 
 Run: `pytest tests/ui/ -v`
 
@@ -246,8 +270,8 @@ pytest tests/ -v
 
 # Run by category
 pytest tests/security/ -v         # 51 security tests
-pytest tests/features/ -v         # 179 feature tests
-pytest tests/ui/ -v               # 95 UI/UX tests
+pytest tests/features/ -v         # 184 feature tests
+pytest tests/ui/ -v               # 111 UI/UX tests
 pytest tests/a11y/ -v             # 8 accessibility audit tests
 pytest tests/integration/ -v      # 11 integration tests
 
@@ -270,8 +294,8 @@ tests/
 ├── conftest.py              # Shared fixtures, test data, helpers
 ├── README.md                # Comprehensive test documentation
 ├── security/                # Security & compliance tests (4 files)
-├── features/                # Feature-specific tests (19 files)
-├── ui/                      # UI/UX & responsive tests (12 files)
+├── features/                # Feature-specific tests (21 files)
+├── ui/                      # UI/UX & responsive tests (17 files)
 ├── a11y/                    # Site-wide accessibility audit (1 file + standalone script)
 ├── integration/             # End-to-end tests (2 files)
 └── debug/                   # Legacy debug files (archived)
@@ -921,4 +945,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.8.0 — Updated June 19, 2026*
+*MyFinances v3.9.0 — Updated June 20, 2026*

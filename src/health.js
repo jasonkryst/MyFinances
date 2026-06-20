@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml } from './utils.js';
+import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 
 function dtiStatus(ratio) {
     if (ratio < 0.28) return { cls: 'health-status--green', label: 'Healthy' };
@@ -340,6 +340,25 @@ export function renderHealthDashboard(app) {
 
     renderGauge(app, '_healthDtiChart',     'healthDtiGauge',     dtiPct,     dtiSt.cls,     gaugeGray);
     renderGauge(app, '_healthSavingsChart', 'healthSavingsGauge', savingsPct, savingsSt.cls, gaugeGray);
+
+    renderChartDataTable('healthDtiGauge', {
+        caption: 'Debt-to-Income Ratio',
+        columns: ['Metric', 'Value'],
+        rows: [
+            ['Debt-to-Income Ratio', `${dtiPct.toFixed(1)}%`],
+            ['Monthly debt payments', formatCurrency(totalDebtMin)],
+            ['Monthly income', formatCurrency(monthlyIncome)]
+        ]
+    });
+    renderChartDataTable('healthSavingsGauge', {
+        caption: 'Savings Rate',
+        columns: ['Metric', 'Value'],
+        rows: [
+            ['Savings Rate', `${savingsPct.toFixed(1)}%`],
+            ['Monthly amount saved', formatCurrency(totalSavingsContrib)],
+            ['Monthly income', formatCurrency(monthlyIncome)]
+        ]
+    });
 
     section.querySelectorAll('[data-health-nav]').forEach(link => {
         link.addEventListener('click', e => {

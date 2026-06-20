@@ -18,6 +18,10 @@
         <header>
             <div class="header-top">
                 <div class="header-toolbar">
+                    <button id="commandPaletteBtn" class="header-icon-btn" title="Quick jump (Ctrl+K)" aria-label="Open quick jump command palette">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </button>
+                    <div class="header-toolbar-divider"></div>
                     <button id="exportJsonBtn" class="header-icon-btn" title="Export backup (debts, income, strategy) as JSON" aria-label="Export JSON">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </button>
@@ -891,6 +895,18 @@
             <div class="modal-actions">
                 <button id="reconcileModalConfirmBtn" class="btn btn-success">Reconcile</button>
                 <button id="reconcileModalCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Command Palette / Quick Jump (Ctrl+K) -->
+    <div id="commandPaletteOverlay" class="modal-overlay cmdpal-overlay hidden" role="dialog" aria-modal="true" aria-label="Quick jump command palette" tabindex="-1">
+        <div class="cmdpal-panel">
+            <input type="text" id="commandPaletteInput" class="cmdpal-input" placeholder="Jump to a page or run a command…" role="combobox" aria-expanded="true" aria-controls="commandPaletteList" aria-autocomplete="list" aria-label="Search pages and commands" autocomplete="off">
+            <ul id="commandPaletteList" class="cmdpal-list" role="listbox" aria-label="Matching commands"></ul>
+            <div class="cmdpal-footer">
+                <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> Navigate</span>
+                <span><kbd>Enter</kbd> Select</span>
+                <span><kbd>Esc</kbd> Close</span>
             </div>
         </div>
     </div>

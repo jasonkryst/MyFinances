@@ -65,7 +65,7 @@ import {
     captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
     renderNetWorthWidget as renderNetWorthWidgetFeature
 } from './reports.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature } from './ui.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
 import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth, APP_VERSION } from './utils.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
@@ -134,6 +134,14 @@ export class DebtTrackerApp {
     this._forecastAccountId = 'total';
     this._forecastNotableThresholdPct = 130;
     this._reconciliationAccountFilter = 'all';
+
+        // Respect prefers-reduced-motion: Chart.js animates every render by
+        // default (entry animation + per-update transitions), which CSS alone
+        // can't reach since it's driven by canvas drawing, not DOM transitions.
+        if (typeof Chart !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            Chart.defaults.animation = false;
+            Chart.defaults.transitions.active.animation.duration = 0;
+        }
 
         this.initializeEventListeners();
         this.loadFromStorage();
@@ -484,6 +492,10 @@ export class DebtTrackerApp {
 
     showNetWorthMilestone(message) {
         return showNetWorthMilestoneFeature(message);
+    }
+
+    showStorageQuotaWarning(usage) {
+        return showStorageQuotaWarningFeature(usage);
     }
 
     /**

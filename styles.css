@@ -28,6 +28,19 @@
     top: 0;
 }
 
+/* Respect OS-level reduced-motion preference: shrink all CSS transitions/
+   animations (confetti, toasts, accordion toggles, hover effects, etc.) down
+   to effectively instant rather than disabling them outright, which keeps
+   end-state styles correct without relying on per-component opt-outs. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* Inline styles extracted for CSP compliance */
 .target-date-flex-row {
     display: flex;
@@ -962,6 +975,7 @@ header {
     font-size: 1rem;
     transition: background 0.15s, color 0.15s;
     line-height: 1;
+    text-decoration: none;
 }
 
 .header-icon-btn:hover {
