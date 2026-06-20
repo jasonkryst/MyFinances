@@ -157,13 +157,14 @@ export function renderIncomeList(app) {
 // Add a new income source
 export function addIncome(app) {
     const name = normalizeText(document.getElementById('incomeName').value, 80);
-    const amount = sanitizeFiniteNumber(document.getElementById('incomeAmount').value, NaN, { min: 0.01 });
+    const rawAmount = document.getElementById('incomeAmount').value;
+    const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const firstPayDate = sanitizeDateISO(document.getElementById('incomeFirstDate').value);
     const frequency = document.getElementById('incomeFrequency').value;
     const accountId = parseInt(document.getElementById('incomeAccount')?.value);
 
     if (!name) { alert('Please enter a name for this income source.'); return; }
-    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
     if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
     if (!accountId || isNaN(accountId)) { alert('Please select an account for this income source.'); return; }
 
@@ -208,13 +209,14 @@ export function saveEditIncome(app, incomeId) {
     if (!nameEl || !amountEl || !dateEl || !freqEl) return;
 
     const name        = normalizeText(nameEl.value, 80);
-    const amount      = sanitizeFiniteNumber(amountEl.value, NaN, { min: 0.01 });
+    const rawAmount   = amountEl.value;
+    const amount      = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const firstPayDate = sanitizeDateISO(dateEl.value);
     const frequency   = freqEl.value;
     const accountId   = accountEl?.value ? parseInt(accountEl.value) : null;
 
     if (!name)                        { alert('Please enter a name.');            return; }
-    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.');     return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount.');     return; }
     if (!firstPayDate)                { alert('Please select a first pay date.');  return; }
 
     const idx = app.incomes.findIndex(i => i.id === incomeId);
@@ -230,13 +232,14 @@ export function saveEditIncome(app, incomeId) {
 // Bonus CRUD
 export function addBonus(app) {
     const name      = normalizeText(document.getElementById('bonusName').value, 80);
-    const amount    = sanitizeFiniteNumber(document.getElementById('bonusAmount').value, NaN, { min: 0.01 });
+    const rawAmount = document.getElementById('bonusAmount').value;
+    const amount    = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const date      = sanitizeDateISO(document.getElementById('bonusDate').value);
     const category  = normalizeText(document.getElementById('bonusCategory').value, 40);
     const accountId = parseInt(document.getElementById('bonusAccount')?.value) || null;
 
     if (!name)                        { alert('Please enter a label for this one-time entry.'); return; }
-    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
     if (!date)                        { alert('Please enter the date received.'); return; }
 
     app.bonuses.push({ id: Date.now(), name, amount, date, category, accountId });
@@ -276,13 +279,14 @@ export function saveEditBonus(app, bonusId) {
     if (!nameEl || !amtEl || !dateEl || !catEl) return;
 
     const name = normalizeText(nameEl.value, 80);
-    const amount = sanitizeFiniteNumber(amtEl.value, NaN, { min: 0.01 });
+    const rawAmount = amtEl.value;
+    const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const date = sanitizeDateISO(dateEl.value);
     const category = normalizeText(catEl.value, 40);
     const accountId = accountEl && accountEl.value ? parseInt(accountEl.value) : null;
 
     if (!name) { alert('Please enter a name for this one-time entry.'); return; }
-    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
     if (!date) { alert('Please enter the date received.'); return; }
 
     const idx = app.bonuses.findIndex(b => b.id === bonusId);

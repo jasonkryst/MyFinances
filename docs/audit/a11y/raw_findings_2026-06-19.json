@@ -1,0 +1,1584 @@
+{
+  "console_errors": [],
+  "pages": {
+    "health": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "Financial Health"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Health",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Manage",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        }
+      ]
+    },
+    "accounts": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "\ud83c\udfe6 Accounts"
+        },
+        {
+          "level": 3,
+          "text": "Net Worth"
+        },
+        {
+          "level": 3,
+          "text": "Add Account"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Accounts",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Manage",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        }
+      ]
+    },
+    "income": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "\ud83d\udcb0 Income Sources"
+        },
+        {
+          "level": 3,
+          "text": "Add Income Source"
+        },
+        {
+          "level": 4,
+          "text": "One-time Bonuses & Deposits"
+        },
+        {
+          "level": 4,
+          "text": "\ud83d\udcc5 Estimated Income Summary"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Income",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Manage",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        }
+      ]
+    },
+    "liabilities": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "\ud83d\udcb3 Liabilities"
+        },
+        {
+          "level": 2,
+          "text": "Your Debts"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Overview",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Liabilities",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        }
+      ]
+    },
+    "recurring": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "\ud83d\udd01 Recurring Templates"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Overview",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Recurring",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        }
+      ]
+    },
+    "savings": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "Emergency Fund"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Overview",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Savings",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        }
+      ]
+    },
+    "strategy": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "Payment Plan"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Overview",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Plan",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        }
+      ]
+    },
+    "reports": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "\ud83d\udcc8 Reports"
+        },
+        {
+          "level": 3,
+          "text": "June 2026"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Overview",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Reports",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        }
+      ]
+    },
+    "ledger": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "\ud83d\udcd2 Ledger"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Overview",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Ledger",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        }
+      ]
+    },
+    "reconcile": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances"
+        },
+        {
+          "level": 2,
+          "text": "\ud83d\udd04 Reconcile"
+        },
+        {
+          "level": 3,
+          "text": "History"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [
+        {
+          "tag": "DIV",
+          "id": "spendingDrilldownModal",
+          "attr": "aria-labelledby",
+          "refId": "spendingDrilldownTitle"
+        }
+      ],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "BUTTON",
+          "class": "header-icon-btn",
+          "text": "\ud83c\udf19",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "A",
+          "class": "header-icon-btn",
+          "text": "\u2753",
+          "color": "rgba(255, 255, 255, 0.8)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 40,
+          "fontWeight": 700
+        },
+        {
+          "tag": "SPAN",
+          "class": "nav-group-label",
+          "text": "Overview",
+          "color": "rgba(255, 255, 255, 0.6)",
+          "bg": "rgba(255, 255, 255, 0.18)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 9,
+          "fontWeight": 700
+        },
+        {
+          "tag": "BUTTON",
+          "class": "page-button active",
+          "text": "Reconcile",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgba(255, 255, 255, 0.15)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 11,
+          "fontWeight": 600
+        }
+      ]
+    }
+  },
+  "dark_mode_contrast": {
+    "health": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Health",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Manage",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      }
+    ],
+    "accounts": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Accounts",
+        "color": "rgba(255, 255, 255, 0.996)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Manage",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      }
+    ],
+    "income": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Income",
+        "color": "rgba(255, 255, 255, 0.996)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Manage",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      }
+    ],
+    "liabilities": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Overview",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Liabilities",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      }
+    ],
+    "recurring": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Overview",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Recurring",
+        "color": "rgba(255, 255, 255, 0.996)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      }
+    ],
+    "savings": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Overview",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Savings",
+        "color": "rgba(255, 255, 255, 0.996)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      }
+    ],
+    "strategy": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Overview",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Plan",
+        "color": "rgba(255, 255, 255, 0.996)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      }
+    ],
+    "reports": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Overview",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Reports",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.15)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      }
+    ],
+    "ledger": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Overview",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button",
+        "text": "Reports",
+        "color": "rgba(255, 255, 255, 0.63)",
+        "bg": "rgba(255, 255, 255, 0.01)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Ledger",
+        "color": "rgba(255, 255, 255, 0.97)",
+        "bg": "rgba(255, 255, 255, 0.137)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      }
+    ],
+    "reconcile": [
+      {
+        "tag": "BUTTON",
+        "class": "header-icon-btn",
+        "text": "\u2600\ufe0f",
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(255, 255, 255, 0.12)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 16,
+        "fontWeight": 400
+      },
+      {
+        "tag": "SPAN",
+        "class": "nav-group-label",
+        "text": "Overview",
+        "color": "rgba(255, 255, 255, 0.6)",
+        "bg": "rgba(255, 255, 255, 0.18)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 9,
+        "fontWeight": 700
+      },
+      {
+        "tag": "BUTTON",
+        "class": "page-button active",
+        "text": "Reconcile",
+        "color": "rgba(255, 255, 255, 0.97)",
+        "bg": "rgba(255, 255, 255, 0.137)",
+        "ratio": 1,
+        "threshold": 4.5,
+        "fontSize": 11,
+        "fontWeight": 600
+      }
+    ]
+  },
+  "modals": {
+    "update_balance": {
+      "update_balance_focus": {
+        "id": "updateBalanceInput",
+        "tag": "INPUT",
+        "modalHidden": false
+      },
+      "update_balance_after_escape": {
+        "modalHidden": true,
+        "activeId": ""
+      }
+    },
+    "reconcile": {
+      "open_focus": {
+        "id": "reconcileModalBalance",
+        "modalHidden": false
+      },
+      "after_escape": {
+        "modalHidden": true
+      }
+    },
+    "amortization": {
+      "open_focus": {
+        "id": "closeAmortization",
+        "tag": "BUTTON",
+        "modalHidden": false
+      },
+      "after_escape": {
+        "modalHidden": true,
+        "activeId": ""
+      }
+    },
+    "tab_order_accounts": [
+      {
+        "tag": "BODY",
+        "id": "",
+        "text": "Skip to main content\n    \n    "
+      },
+      {
+        "tag": "A",
+        "id": "",
+        "text": "Skip to main content"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "exportJsonBtn",
+        "text": ""
+      },
+      {
+        "tag": "BUTTON",
+        "id": "importJsonBtn",
+        "text": ""
+      },
+      {
+        "tag": "BUTTON",
+        "id": "themeSwitcher",
+        "text": "\ud83c\udf19"
+      },
+      {
+        "tag": "A",
+        "id": "helpBtn",
+        "text": "\u2753"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "text": "Health"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "text": "Accounts"
+      }
+    ]
+  },
+  "mobile": {
+    "tap_targets": [],
+    "nav_toggle_aria_expanded": {
+      "before": "false",
+      "after": "true"
+    },
+    "nav_menu_visible_after_open": true
+  },
+  "guide": {
+    "guide": {
+      "headings": [
+        {
+          "level": 1,
+          "text": "MyFinances Usage Guide"
+        },
+        {
+          "level": 2,
+          "text": "Table of Contents"
+        },
+        {
+          "level": 2,
+          "text": "Getting Started"
+        },
+        {
+          "level": 3,
+          "text": "What is MyFinances?"
+        },
+        {
+          "level": 3,
+          "text": "Key Features"
+        },
+        {
+          "level": 3,
+          "text": "Navigation Basics"
+        },
+        {
+          "level": 2,
+          "text": "Financial Health Dashboard"
+        },
+        {
+          "level": 3,
+          "text": "Health Metrics"
+        },
+        {
+          "level": 2,
+          "text": "Adding Debts"
+        },
+        {
+          "level": 3,
+          "text": "How to Add a Debt"
+        },
+        {
+          "level": 3,
+          "text": "Editing and Deleting"
+        },
+        {
+          "level": 2,
+          "text": "Setting Up Accounts"
+        },
+        {
+          "level": 2,
+          "text": "Tracking Income"
+        },
+        {
+          "level": 3,
+          "text": "Income Summary"
+        },
+        {
+          "level": 3,
+          "text": "One-time Bonuses and Deposits"
+        },
+        {
+          "level": 2,
+          "text": "Managing Expenses"
+        },
+        {
+          "level": 3,
+          "text": "How to Add an Expense"
+        },
+        {
+          "level": 3,
+          "text": "Expense Fields"
+        },
+        {
+          "level": 2,
+          "text": "Recurring Transaction Templates"
+        },
+        {
+          "level": 3,
+          "text": "What Are Recurring Templates?"
+        },
+        {
+          "level": 3,
+          "text": "How to Add a Recurring Template"
+        },
+        {
+          "level": 3,
+          "text": "Template Configuration"
+        },
+        {
+          "level": 3,
+          "text": "Pausing and Skipping"
+        },
+        {
+          "level": 3,
+          "text": "Marking as Paid"
+        },
+        {
+          "level": 2,
+          "text": "Managing Savings"
+        },
+        {
+          "level": 3,
+          "text": "What Are Emergency Funds and Sinking Funds?"
+        },
+        {
+          "level": 3,
+          "text": "Emergency Fund"
+        },
+        {
+          "level": 4,
+          "text": "To Add or Edit an Emergency Fund"
+        },
+        {
+          "level": 3,
+          "text": "Sinking Funds (Goal-Based Savings)"
+        },
+        {
+          "level": 4,
+          "text": "To Add a Sinking Fund"
+        },
+        {
+          "level": 4,
+          "text": "Allocation Methods"
+        },
+        {
+          "level": 3,
+          "text": "Viewing Savings Impact"
+        },
+        {
+          "level": 2,
+          "text": "Creating a Payment Plan"
+        },
+        {
+          "level": 3,
+          "text": "Strategies"
+        },
+        {
+          "level": 3,
+          "text": "Results Areas"
+        },
+        {
+          "level": 2,
+          "text": "Viewing Reports"
+        },
+        {
+          "level": 3,
+          "text": "Calendar Tab"
+        },
+        {
+          "level": 3,
+          "text": "Income vs Expenses Tab"
+        },
+        {
+          "level": 3,
+          "text": "Money Flow Tab"
+        },
+        {
+          "level": 3,
+          "text": "What Changed (Variance Dashboard) Tab"
+        },
+        {
+          "level": 2,
+          "text": "Net Worth Tracking"
+        },
+        {
+          "level": 3,
+          "text": "What Is Captured in a Snapshot"
+        },
+        {
+          "level": 3,
+          "text": "How to Use the Net Worth Tab"
+        },
+        {
+          "level": 3,
+          "text": "Snapshot History Table Columns"
+        },
+        {
+          "level": 3,
+          "text": "Spending by Category"
+        },
+        {
+          "level": 2,
+          "text": "Cash Flow Forecast"
+        },
+        {
+          "level": 3,
+          "text": "How to Use the Forecast Tab"
+        },
+        {
+          "level": 3,
+          "text": "Summary Stats & Chart"
+        },
+        {
+          "level": 3,
+          "text": "Notable Months & Warnings"
+        },
+        {
+          "level": 2,
+          "text": "Viewing Transactions"
+        },
+        {
+          "level": 3,
+          "text": "Ledger Filters"
+        },
+        {
+          "level": 3,
+          "text": "Overriding Transaction Amounts"
+        },
+        {
+          "level": 2,
+          "text": "Account Reconciliation"
+        },
+        {
+          "level": 3,
+          "text": "How to Reconcile an Account"
+        },
+        {
+          "level": 2,
+          "text": "Data Management"
+        },
+        {
+          "level": 3,
+          "text": "Exporting Data"
+        },
+        {
+          "level": 3,
+          "text": "Importing Data"
+        },
+        {
+          "level": 3,
+          "text": "Exporting Schedule to CSV"
+        },
+        {
+          "level": 3,
+          "text": "Clearing All Data"
+        },
+        {
+          "level": 2,
+          "text": "Tips and Tricks"
+        }
+      ],
+      "orphaned_inputs": [],
+      "unnamed_interactive": [],
+      "images_no_alt": [],
+      "dangling_aria_refs": [],
+      "duplicate_ids": [],
+      "contrast_issues": [
+        {
+          "tag": "H1",
+          "class": null,
+          "text": "MyFinances Usage Guide",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 3,
+          "fontSize": 35.2,
+          "fontWeight": 700
+        },
+        {
+          "tag": "P",
+          "class": null,
+          "text": "Privacy-first personal finance tracking ",
+          "color": "rgb(255, 255, 255)",
+          "bg": "rgb(255, 255, 255)",
+          "ratio": 1,
+          "threshold": 4.5,
+          "fontSize": 16,
+          "fontWeight": 400
+        }
+      ]
+    }
+  },
+  "landmarks": {
+    "index": {
+      "lang": "en",
+      "hasMain": true,
+      "navCount": 1,
+      "h1Count": 1,
+      "title": "MyFinances - Track Your Money"
+    },
+    "guide": {
+      "lang": "en",
+      "hasMain": true,
+      "navCount": 1,
+      "h1Count": 1,
+      "title": "MyFinances Usage Guide"
+    }
+  }
+}

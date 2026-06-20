@@ -6,7 +6,7 @@ _A modern, privacy-first web app to track accounts, debts, income, and spending,
 
 All calculations happen locally in your browser — no accounts, no servers, no tracking.
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: May 31, 2026 (Updated) | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: June 19, 2026 (Updated) | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
 
 ---
 
@@ -174,8 +174,8 @@ Production deployments include:
 The test suite is organized by functional category for maximum cohesiveness and maintainability:
 
 ### Test Statistics
-- **Total Tests**: 324 comprehensive tests, all passing
-- **Test Files**: 37 organized across 5 categories
+- **Total Tests**: 342 comprehensive tests, all passing
+- **Test Files**: 41 organized across 5 categories
 - **Coverage**: All major features + security + UI + accessibility, including positive and negative/edge-case paths for every sanitizer and calculation primitive
 - **Framework**: pytest with Playwright browser automation
 
@@ -189,11 +189,12 @@ The test suite is organized by functional category for maximum cohesiveness and 
 
 Run: `pytest tests/security/ -v`
 
-#### 🎯 Feature Tests (169 tests)
-- **Accounts** — CRUD operations, account types, balance calculations
-- **Debts** — Liability management, interest calculation, amortization schedules
+#### 🎯 Feature Tests (177 tests)
+- **Accounts** — CRUD operations, account types, balance calculations, graceful orphaning of items linked to a deleted account
+- **Debts** — Liability management, interest calculation, amortization schedules, negative fixed-amount-payment rejection
 - **Debt Calculator** — Pure calculation engine: strategies (incl. multi-debt priority-lowest/highest ordering), daily compounding, target-date back-calculator, fixedAmount date-window boundaries, stimulus edge cases
-- **Income** — Multiple income sources, frequency types, total calculations
+- **Strategy/Payment Plan** — Switching between Avalanche/Snowball/Priority strategies, strategy comparison panel, per-month stimulus input (valid + non-numeric fallback)
+- **Income** — Multiple income sources, frequency types, total calculations, negative income/bonus amount rejection
 - **Expenses** — Add/edit/delete via UI, amount/date validation (empty, negative, zero, malformed), category totals
 - **Bills** — Data model, sanitization, and calculation integration (no add/edit UI — see Known Gap note)
 - **Recurring** — Templates across all frequencies, pause/resume persistence, skip-month, account linkage, amount/date validation
@@ -210,12 +211,14 @@ Run: `pytest tests/security/ -v`
 
 Run: `pytest tests/features/ -v`
 
-#### 🎨 UI/UX Tests (85 tests)
+#### 🎨 UI/UX Tests (95 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing
 - **Modal Functionality** — Visibility toggling, close buttons, amortization displays
 - **Dark Mode** — Theme switching, color contrast, persistence, corrupted-localStorage fallback
 - **CSS Loading** — External stylesheet, utility classes, responsive breakpoints
-- **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML, guide.html theme sync
+- **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML, Results tab bar (`.results-tab-btn`/`.results-tab-panel`) tablist semantics
+- **Guide Theme** — `guide.html` dark/light mode sync with the main app's saved theme preference (`tests/ui/test_guide_theme.py`)
+- **Charts** — Chart.js instance destroy-before-recreate on repeated re-render (balance, health DTI, net worth trend, forecast)
 - **Main Nav** — Grouped nav active-state highlighting and keyboard reachability
 - **Reports Nav / Actions** — Tab bar grouping, sticky positioning, dark mode, tab-switching panel visibility
 - **Debt/Recurring/Reconciliation Actions** — Inline edit, mark-paid, reconcile-modal flows
@@ -243,8 +246,8 @@ pytest tests/ -v
 
 # Run by category
 pytest tests/security/ -v         # 51 security tests
-pytest tests/features/ -v         # 169 feature tests
-pytest tests/ui/ -v               # 85 UI/UX tests
+pytest tests/features/ -v         # 177 feature tests
+pytest tests/ui/ -v               # 95 UI/UX tests
 pytest tests/a11y/ -v             # 8 accessibility audit tests
 pytest tests/integration/ -v      # 11 integration tests
 
@@ -664,38 +667,44 @@ src/
   ├─ debtCalculator.js     — Pure calculation engine
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   └─ utils.js              — Formatting, date utilities, sanitization
-tests/ (324 tests across 5 categories)
+tests/ (342 tests across 5 categories)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/                — 51 security & compliance tests
   │   ├─ test_xss.py, test_csp.py
   │   ├─ test_input_validation.py, test_static_scan.py
-  ├─ features/                — 169 feature-specific tests
+  ├─ features/                — 177 feature-specific tests
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
   │   ├─ test_health.py, test_forecast.py, test_reconciliation.py
   │   ├─ test_spending_analysis.py, test_storage_import.py, test_debt_calculator.py
-  │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py
-  ├─ ui/                      — 85 UI/UX & responsive tests
+  │   ├─ test_strategy.py, test_main_nav_groups.py, test_reports_nav_groups.py
+  ├─ ui/                      — 95 UI/UX & responsive tests
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
+  │   ├─ test_charts.py, test_guide_theme.py
   │   ├─ test_debt_actions.py, test_recurring_actions.py, test_reports_actions.py
   │   ├─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py
   ├─ a11y/                    — 8 site-wide accessibility audit tests
   │   └─ test_a11y_audit.py, run_a11y_audit.py
   ├─ integration/              — 11 end-to-end workflow tests
   │   ├─ test_smoke.py, test_workflows.py
-  └─ debug/                   — Legacy debug files (archived)
+  └─ (debug scripts relocated to tools/debug/ — not part of the pytest suite)
+tools/
+  └─ debug/                   — Ad-hoc manual debugging scripts (no test_* functions; run directly with python, not pytest)
 ```
 
 ### Documentation Files
 
 - **README.md** — You are here
+- **ROADMAP.md** — Planned features, known gaps, and audit-driven technical debt tracking
 - **SECURITY.md** — Security practices, deployment headers, vulnerability reporting
-- **docs/SECURITY_AUDIT.md** — Complete security audit with findings & recommendations
+- **docs/audit/security/** — Security audit reports with findings & recommendations
+- **docs/audit/a11y/** — Site-wide accessibility audit reports
+- **docs/audit/test/** — Test suite audit/coverage reports
 - **DEPLOYMENT.md** — Production deployment guides for Nginx, Apache, Docker
-- **IMPLEMENTATION_SUMMARY.md** — Security enhancement documentation
+- **docs/implementation/IMPLEMENTATION_SUMMARY.md** — Security enhancement documentation
 - **guide.html** — In-app user guide
 
 ### Key Technologies
@@ -912,4 +921,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.6.4 — Updated June 19, 2026*
+*MyFinances v3.7.0 — Updated June 19, 2026*

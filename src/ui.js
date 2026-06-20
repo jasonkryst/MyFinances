@@ -1,6 +1,7 @@
 // UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors } from './accounts.js';
+import { escapeHtml } from './utils.js';
 
 export function initializeEventListeners(app) {
     const themeSwitcher = document.getElementById('themeSwitcher');
@@ -120,7 +121,7 @@ export function initializeEventListeners(app) {
             } catch (err) {
                 console.error('Error invoking calculateRequiredPayment from click handler', err);
                 const resultEl = document.getElementById('targetPayoffResult');
-                if (resultEl) resultEl.innerHTML = `<div class="target-result target-result--error">Error: ${err && err.message ? err.message : String(err)}</div>`;
+                if (resultEl) resultEl.innerHTML = `<div class="target-result target-result--error">Error: ${escapeHtml(err && err.message ? err.message : String(err))}</div>`;
             }
         });
     }

@@ -154,3 +154,58 @@ def assert_no_errors(page):
             if 'favicon' not in e
         ]
         assert len(filtered) == 0, f"Console errors: {filtered}"
+
+
+@pytest.mark.feature
+def test_delete_account_with_linked_items_orphans_gracefully(app_page):
+    """Deleting an account that has linked income/bills/debts doesn't crash;
+    the linked items survive with a now-dangling accountId, and computeAccountBalance
+    (and every render that depends on it) tolerates the missing account.
+    """
+    page = app_page
+
+    # Create the account that will be deleted.
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Orphan Source Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    # Link an income source to it.
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.fill('#incomeName', 'Linked Salary')
+    page.fill('#incomeAmount', '4000')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
+
+    # Delete the account it's linked to.
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.click('[data-account-action="delete"]')
+    page.wait_for_timeout(300)
+
+    assert_no_errors(page)
+
+    # The account is gone...
+    assert page.query_selector('text=Orphan Source Account') is None, \
+        "Deleted account should no longer appear in the accounts list"
+
+    # ...but the linked income record survives with its dangling accountId.
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    assert page.query_selector('text=Linked Salary'), \
+        "Income linked to a deleted account should survive, not be deleted along with it"
+
+    # Navigating through pages that read computeAccountBalance for every income/account
+    # must not throw even though the income's accountId no longer resolves.
+    page.click('button[data-page="health"]')
+    page.wait_for_timeout(300)
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(300)
+    assert_no_errors(page)

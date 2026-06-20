@@ -9,6 +9,18 @@ import pytest
 BASE_URL = "http://localhost:5500/"
 
 
+def _create_income_account(page, name="Income Validation Account"):
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', name)
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+
+
 @pytest.mark.feature
 def test_create_income(app_page, income_data):
     """Test creating a new income source."""
@@ -128,3 +140,50 @@ def test_multiple_income_sources(app_page):
     # Verify all incomes appear
     for name, _, _, _ in incomes:
         assert page.query_selector(f'text={name}'), f"{name} not found"
+
+
+@pytest.mark.feature
+def test_add_income_negative_amount_rejected(app_page):
+    """Negative income amounts are rejected, not silently clamped to $0.01.
+
+    addIncome() previously validated the post-clamp value
+    (sanitizeFiniteNumber(raw, NaN, { min: 0.01 })), so a negative input was
+    clamped up to 0.01 *before* the `amount <= 0` check ran, and that check
+    could never be true. Fixed in src/income.js to validate the raw input
+    string before clamping, matching the pattern already applied to
+    src/bills.js and src/recurring.js.
+    """
+    page = app_page
+    _create_income_account(page)
+
+    page.fill('#incomeName', 'Negative Salary')
+    page.fill('#incomeAmount', '-500')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Negative Salary') is None, (
+        "A negative income amount should be rejected, not silently saved as $0.01"
+    )
+
+
+@pytest.mark.feature
+def test_add_bonus_negative_amount_rejected(app_page):
+    """Negative one-time bonus/deposit amounts are rejected, not clamped to $0.01."""
+    page = app_page
+    _create_income_account(page)
+
+    page.click('#bonusFormToggle')
+    page.wait_for_timeout(200)
+    page.fill('#bonusName', 'Negative Bonus')
+    page.fill('#bonusAmount', '-200')
+    page.fill('#bonusDate', '2026-05-01')
+    page.select_option('#bonusCategory', label='Bonus')
+    page.click('#bonusForm button[type="submit"]')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Negative Bonus') is None, (
+        "A negative bonus amount should be rejected, not silently saved as $0.01"
+    )

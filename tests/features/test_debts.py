@@ -263,3 +263,42 @@ def test_debt_card_shows_payoff_date_after_plan_calculation(app_page, debt_data)
     )
     assert summary_payoff_date, "Expected _debtSummaryRows to contain a payoffDate"
     assert summary_payoff_date in card_text, "Debt card should display the same payoff date as the summary table"
+
+
+@pytest.mark.feature
+def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
+    """Negative fixed-amount debt payments are rejected, not silently clamped to $0.01.
+
+    addDebt()'s fixedAmount branch previously validated the post-clamp value
+    (sanitizeFiniteNumber(raw, NaN, { min: 0.01 })), so a negative input was
+    clamped up to 0.01 *before* the `fixedAmount <= 0` check ran. Fixed in
+    src/debts.js to validate the raw input string before clamping, matching
+    the pattern already applied to src/bills.js and src/recurring.js.
+    """
+    page = app_page
+
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Fixed Debt Account')
+    page.select_option('#accountType', label='Credit Card')
+    page.fill('#accountStartingBalance', '0')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(500)
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.wait_for_timeout(300)
+    page.click('#debtFormToggle')
+    page.wait_for_timeout(300)
+
+    page.fill('#debtName', 'Negative Fixed Debt')
+    page.select_option('#debtType', 'fixedAmount')
+    page.fill('#fixedAmount', '-100')
+    page.fill('#fixedStartDate', '2026-01-01')
+    page.fill('#fixedEndDate', '2026-12-31')
+    page.click('#debtFormSubmit')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Negative Fixed Debt') is None, (
+        "A negative fixed-amount debt payment should be rejected, not silently saved as $0.01"
+    )
