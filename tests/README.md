@@ -5,7 +5,7 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 342 Tests Passing across 5 categories (security, features, ui, a11y, integration)
+- ✅ 344 Tests Passing across 5 categories (security, features, ui, a11y, integration)
 - ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, and Account Reconciliation
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
@@ -80,7 +80,7 @@ tests/
 │   ├── test_csp.py            # CSP compliance tests
 │   ├── test_input_validation.py # Input sanitization tests
 │   └── test_static_scan.py     # Static security scanning
-├── features/                   # Feature-specific tests (177 tests)
+├── features/                   # Feature-specific tests (179 tests)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning)
 │   ├── test_debts.py           # Debt/liability management
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
@@ -185,7 +185,7 @@ tests/
 
 #### test_income.py
 - **Tests:** Income source management
-- **Coverage:** Add income, recurring frequency, total income calculation, negative income/bonus amount rejection
+- **Coverage:** Add income, recurring frequency, total income calculation, negative income/bonus amount rejection on both the add and inline-edit (`saveEditIncome`/`saveEditBonus`) paths
 - **Fixtures:** `income_data`, `create_income`
 - **Status:** ✅ PASSING
 
@@ -549,4 +549,4 @@ Refer to:
 ---
 
 **Last Updated:** June 19, 2026  
-**Test Suite Status:** ✅ Fully Passing (342 tests)
+**Test Suite Status:** ✅ Fully Passing (344 tests)

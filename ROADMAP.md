@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
 **Last Updated**: June 19, 2026  
-**Current Version**: v3.7.0  
+**Current Version**: v3.8.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -16,7 +16,7 @@ Fresh security, accessibility, and test-suite audits were run against the codeba
 | Accessibility (WCAG 2.1 AA) | ✅ 0 Serious/Moderate defects across 10 pages × 2 themes, mobile, 3 modals, guide.html | [`docs/audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md`](docs/audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md) |
 | Test Suite | ✅ 324/324 passing; gap analysis across all 41 test files vs. 20 `src/` modules | [`docs/audit/test/TEST_SUITE_AUDIT_2026-06-19.md`](docs/audit/test/TEST_SUITE_AUDIT_2026-06-19.md) |
 
-The app remains in good shape overall. The technical-debt items these audits surfaced were tracked in **Tier 0** below, ahead of new feature work, since two independent audits (security + test-suite) converged on the same bug class. **All 5 Tier 0 items are now complete** — the fixes and new tests brought the suite from 324 to 342 passing tests (38→41 test files), with zero regressions.
+The app remains in good shape overall. The technical-debt items these audits surfaced were tracked in **Tier 0** below, ahead of new feature work, since two independent audits (security + test-suite) converged on the same bug class. **All 5 Tier 0 items are now complete** — the fixes and new tests brought the suite from 324 to 344 passing tests (38→41 test files), with zero regressions. M1's two inline-edit call sites (`saveEditIncome`, `saveEditBonus`) initially shipped without their own regression tests; that gap is now closed (`test_edit_income_negative_amount_rejected`, `test_edit_bonus_negative_amount_rejected`).
 
 ---
 
@@ -29,7 +29,7 @@ The app remains in good shape overall. The technical-debt items these audits sur
 - `src/income.js`: `addIncome`, `saveEditIncome`, `addBonus`, `saveEditBonus`
 - `src/debts.js`: fixed-amount debt type branch in `addDebt`
 
-Fixed by validating against the raw input string before clamping, matching the `bills.js`/`recurring.js` pattern. Regression tests added: `tests/features/test_income.py::test_add_income_negative_amount_rejected`, `test_add_bonus_negative_amount_rejected`, `tests/features/test_debts.py::test_add_fixed_amount_debt_negative_amount_rejected`.
+Fixed by validating against the raw input string before clamping, matching the `bills.js`/`recurring.js` pattern. Regression tests added for all 5 affected call sites, including the two inline-edit paths (`saveEditIncome`, `saveEditBonus`) that the `addIncome`/`addBonus`-only tests didn't exercise: `tests/features/test_income.py::test_add_income_negative_amount_rejected`, `test_add_bonus_negative_amount_rejected`, `test_edit_income_negative_amount_rejected`, `test_edit_bonus_negative_amount_rejected`, `tests/features/test_debts.py::test_add_fixed_amount_debt_negative_amount_rejected`.
 
 ---
 
@@ -90,9 +90,9 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 
 | Feature | Tier | Status | Notes |
 |---|---|---|---|
-| Fix Income/Bonus/Fixed-Debt negative-amount validation bypass | 0 | 📋 | Security audit M1 + test-suite audit gap #1 |
-| Close audit-flagged test-coverage gaps (strategy, charts, guideTheme, account orphans) | 0 | 📋 | Test-suite audit Section 7 |
-| Escape exception messages / harden `accounts.js` option helper | 0 | 📋 | Security audit L1/L2 |
+| Fix Income/Bonus/Fixed-Debt negative-amount validation bypass | 0 | ✅ | Security audit M1 + test-suite audit gap #1 — fixed, incl. inline-edit paths |
+| Close audit-flagged test-coverage gaps (strategy, charts, guideTheme, account orphans) | 0 | ✅ | Test-suite audit Section 7 |
+| Escape exception messages / harden `accounts.js` option helper | 0 | ✅ | Security audit L1/L2 |
 | Net Worth Tracker & Historical Snapshots | 1 | ✅ | Delivered May 30, 2026 |
 | Financial Health Dashboard | 1 | ✅ | Delivered June 8, 2026 |
 | Budget Alerts & Overspend Warnings | 1 | 📋 | Absorbs Quick Wins #2 and #5 |
@@ -604,6 +604,8 @@ Identified while reviewing the current featureset against the audit results — 
 **Shipped post-v3.1 (June 19, 2026)**:
 - Test suite expanded from 264→324 tests, then a fresh security/a11y/test-suite audit cycle surfaced 5 Tier 0 technical-debt items (see above), all now fixed: negative-amount validation bypass in Income/Bonus/Fixed-Debt forms, exception-message escaping in `src/ui.js`, an `accounts.js` `innerHTML` contract comment, 5 new test-coverage gaps closed, and `tests/debug/` relocated to `tools/debug/`
 - Test suite expanded to 342 tests (41 files) — zero regressions
+- v3.7.0: minor version bump for the Tier 0 audit-fix work above
+- v3.8.0: closed the remaining M1 test-coverage gap — `saveEditIncome`/`saveEditBonus` (the inline-edit negative-amount paths) had no dedicated regression tests even though the underlying validation fix already covered them; added `test_edit_income_negative_amount_rejected` and `test_edit_bonus_negative_amount_rejected`. Test suite now at 344 tests (41 files), zero regressions
 
 ---
 

@@ -174,7 +174,7 @@ Production deployments include:
 The test suite is organized by functional category for maximum cohesiveness and maintainability:
 
 ### Test Statistics
-- **Total Tests**: 342 comprehensive tests, all passing
+- **Total Tests**: 344 comprehensive tests, all passing
 - **Test Files**: 41 organized across 5 categories
 - **Coverage**: All major features + security + UI + accessibility, including positive and negative/edge-case paths for every sanitizer and calculation primitive
 - **Framework**: pytest with Playwright browser automation
@@ -189,12 +189,12 @@ The test suite is organized by functional category for maximum cohesiveness and 
 
 Run: `pytest tests/security/ -v`
 
-#### 🎯 Feature Tests (177 tests)
+#### 🎯 Feature Tests (179 tests)
 - **Accounts** — CRUD operations, account types, balance calculations, graceful orphaning of items linked to a deleted account
 - **Debts** — Liability management, interest calculation, amortization schedules, negative fixed-amount-payment rejection
 - **Debt Calculator** — Pure calculation engine: strategies (incl. multi-debt priority-lowest/highest ordering), daily compounding, target-date back-calculator, fixedAmount date-window boundaries, stimulus edge cases
 - **Strategy/Payment Plan** — Switching between Avalanche/Snowball/Priority strategies, strategy comparison panel, per-month stimulus input (valid + non-numeric fallback)
-- **Income** — Multiple income sources, frequency types, total calculations, negative income/bonus amount rejection
+- **Income** — Multiple income sources, frequency types, total calculations, negative income/bonus amount rejection on both add and inline-edit paths
 - **Expenses** — Add/edit/delete via UI, amount/date validation (empty, negative, zero, malformed), category totals
 - **Bills** — Data model, sanitization, and calculation integration (no add/edit UI — see Known Gap note)
 - **Recurring** — Templates across all frequencies, pause/resume persistence, skip-month, account linkage, amount/date validation
@@ -246,7 +246,7 @@ pytest tests/ -v
 
 # Run by category
 pytest tests/security/ -v         # 51 security tests
-pytest tests/features/ -v         # 177 feature tests
+pytest tests/features/ -v         # 179 feature tests
 pytest tests/ui/ -v               # 95 UI/UX tests
 pytest tests/a11y/ -v             # 8 accessibility audit tests
 pytest tests/integration/ -v      # 11 integration tests
@@ -667,13 +667,13 @@ src/
   ├─ debtCalculator.js     — Pure calculation engine
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   └─ utils.js              — Formatting, date utilities, sanitization
-tests/ (342 tests across 5 categories)
+tests/ (344 tests across 5 categories)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/                — 51 security & compliance tests
   │   ├─ test_xss.py, test_csp.py
   │   ├─ test_input_validation.py, test_static_scan.py
-  ├─ features/                — 177 feature-specific tests
+  ├─ features/                — 179 feature-specific tests
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
@@ -921,4 +921,4 @@ If you discover a security vulnerability:
 
 ---
 
-*MyFinances v3.7.0 — Updated June 19, 2026*
+*MyFinances v3.8.0 — Updated June 19, 2026*

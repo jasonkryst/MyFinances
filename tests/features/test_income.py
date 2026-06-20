@@ -187,3 +187,73 @@ def test_add_bonus_negative_amount_rejected(app_page):
     assert page.query_selector('text=Negative Bonus') is None, (
         "A negative bonus amount should be rejected, not silently saved as $0.01"
     )
+
+
+@pytest.mark.feature
+def test_edit_income_negative_amount_rejected(app_page):
+    """saveEditIncome() rejects a negative amount instead of clamping to $0.01.
+
+    Same bug class as test_add_income_negative_amount_rejected, but on the
+    inline-edit path (src/income.js saveEditIncome), which validates the raw
+    input string the same way addIncome() does.
+    """
+    page = app_page
+    _create_income_account(page)
+
+    page.fill('#incomeName', 'Edit Salary Target')
+    page.fill('#incomeAmount', '2000')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('text=Edit Salary Target', timeout=10000)
+
+    page.click('[data-income-action="edit"]')
+    page.wait_for_timeout(200)
+
+    amount_input = page.query_selector('input[id^="ie-amount-"]')
+    assert amount_input, "Expected the inline-edit amount input to be present"
+    amount_input.fill('-750')
+    page.click('[data-income-action="save"]')
+    page.wait_for_timeout(300)
+
+    stored_amount = page.evaluate(
+        "() => window.app.incomes.find(i => i.name === 'Edit Salary Target')?.amount"
+    )
+    assert stored_amount == 2000, (
+        f"A negative edited income amount should be rejected, leaving the prior value "
+        f"intact, not silently saved as $0.01 (got {stored_amount!r})"
+    )
+
+
+@pytest.mark.feature
+def test_edit_bonus_negative_amount_rejected(app_page):
+    """saveEditBonus() rejects a negative amount instead of clamping to $0.01."""
+    page = app_page
+    _create_income_account(page)
+
+    page.click('#bonusFormToggle')
+    page.wait_for_timeout(200)
+    page.fill('#bonusName', 'Edit Bonus Target')
+    page.fill('#bonusAmount', '300')
+    page.fill('#bonusDate', '2026-05-01')
+    page.select_option('#bonusCategory', label='Bonus')
+    page.click('#bonusForm button[type="submit"]')
+    page.wait_for_selector('text=Edit Bonus Target', timeout=10000)
+
+    page.click('[data-bonus-action="edit"]')
+    page.wait_for_timeout(200)
+
+    amount_input = page.query_selector('input[id^="be-amount-"]')
+    assert amount_input, "Expected the inline-edit amount input to be present"
+    amount_input.fill('-100')
+    page.click('[data-bonus-action="save"]')
+    page.wait_for_timeout(300)
+
+    stored_amount = page.evaluate(
+        "() => window.app.bonuses.find(b => b.name === 'Edit Bonus Target')?.amount"
+    )
+    assert stored_amount == 300, (
+        f"A negative edited bonus amount should be rejected, leaving the prior value "
+        f"intact, not silently saved as $0.01 (got {stored_amount!r})"
+    )
