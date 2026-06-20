@@ -5,7 +5,7 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 324 Tests Passing across 5 categories (security, features, ui, a11y, integration)
+- ✅ 342 Tests Passing across 5 categories (security, features, ui, a11y, integration)
 - ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, and Account Reconciliation
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
@@ -80,8 +80,8 @@ tests/
 │   ├── test_csp.py            # CSP compliance tests
 │   ├── test_input_validation.py # Input sanitization tests
 │   └── test_static_scan.py     # Static security scanning
-├── features/                   # Feature-specific tests (169 tests)
-│   ├── test_accounts.py        # Account management
+├── features/                   # Feature-specific tests (177 tests)
+│   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning)
 │   ├── test_debts.py           # Debt/liability management
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
 │   ├── test_health.py          # Financial Health Dashboard
@@ -98,13 +98,16 @@ tests/
 │   ├── test_forecast.py        # Cash Flow Forecast
 │   ├── test_reconciliation.py  # Account reconciliation
 │   ├── test_spending_analysis.py # Spending category breakdowns
-│   └── test_storage_import.py  # Sanitizer unit tests + adversarial import tests
-├── ui/                         # UI/UX and responsive tests (85 tests)
+│   ├── test_storage_import.py  # Sanitizer unit tests + adversarial import tests
+│   └── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
+├── ui/                         # UI/UX and responsive tests (95 tests)
 │   ├── test_mobile.py          # Mobile responsiveness
 │   ├── test_modals.py          # Modal visibility and behavior
 │   ├── test_dark_mode.py       # Dark mode functionality, corrupted-theme fallback
 │   ├── test_css_load.py        # CSS loading and styling
-│   ├── test_accessibility.py  # Keyboard navigation, ARIA, semantic HTML
+│   ├── test_accessibility.py  # Keyboard navigation, ARIA, semantic HTML, Results tab bar
+│   ├── test_charts.py          # Chart.js destroy-before-recreate on repeated re-render
+│   ├── test_guide_theme.py     # guide.html dark-mode sync with saved theme preference
 │   ├── test_main_nav.py        # Main nav active-state & keyboard reachability
 │   ├── test_reports_nav.py     # Reports tab bar grouping/sticky positioning
 │   ├── test_debt_actions.py    # Debt card inline actions
@@ -115,15 +118,12 @@ tests/
 ├── a11y/                        # Site-wide accessibility audit (8 tests)
 │   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable via CLI)
 │   └── test_a11y_audit.py      # Pytest wiring: asserts zero Serious findings from the audit
-├── integration/                 # End-to-end workflow tests (11 tests)
-│   ├── test_smoke.py            # Full application smoke test
-│   └── test_workflows.py        # Multi-step workflows, import/export, clear-data/reimport
-└── debug/                       # Legacy debug files (archived)
-    ├── debug_app.py
-    ├── debug_income_visibility.py
-    ├── debug_menu.py
-    └── ... (other debug files)
+└── integration/                 # End-to-end workflow tests (11 tests)
+    ├── test_smoke.py            # Full application smoke test
+    └── test_workflows.py        # Multi-step workflows, import/export, clear-data/reimport
 ```
+
+> Ad-hoc manual debugging scripts (no `test_*` functions) live in `tools/debug/`, outside the `tests/` tree, so `tests/` only contains real pytest-collected tests.
 
 ---
 
@@ -173,19 +173,19 @@ tests/
 
 #### test_accounts.py
 - **Tests:** Account CRUD operations, net worth calculations
-- **Coverage:** Add, edit, delete accounts; account types (checking, savings, credit card)
+- **Coverage:** Add, edit, delete accounts; account types (checking, savings, credit card); deleting an account with a linked income source orphans gracefully (no crash in health/reports rendering)
 - **Fixtures:** `account_data`, `create_account`
 - **Status:** ✅ PASSING
 
 #### test_debts.py
 - **Tests:** Debt management and amortization
-- **Coverage:** Add debt, calculate interest, payment schedule, payoff strategies
+- **Coverage:** Add debt, calculate interest, payment schedule, payoff strategies, negative fixed-amount-payment rejection
 - **Fixtures:** `debt_data`, `create_debt`
 - **Status:** ✅ PASSING
 
 #### test_income.py
 - **Tests:** Income source management
-- **Coverage:** Add income, recurring frequency, total income calculation
+- **Coverage:** Add income, recurring frequency, total income calculation, negative income/bonus amount rejection
 - **Fixtures:** `income_data`, `create_income`
 - **Status:** ✅ PASSING
 
@@ -216,6 +216,11 @@ tests/
 - **Coverage:** Net worth calculation, assets, liabilities, trends
 - **Status:** ✅ PASSING
 
+#### test_strategy.py
+- **Tests:** Payment strategy switching and the per-month stimulus input
+- **Coverage:** Avalanche/Snowball/Priority-Lowest/Priority-Highest switching with no console errors, strategy comparison panel row count, stimulus amount raising a month's total paid, non-numeric stimulus input falling back to 0 (not NaN)
+- **Status:** ✅ PASSING
+
 ---
 
 ### 🎨 UI Tests (`tests/ui/`)
@@ -240,6 +245,16 @@ tests/
 #### test_css_load.py
 - **Tests:** CSS loading and style application
 - **Coverage:** External stylesheet, utility classes, responsive breakpoints
+- **Status:** ✅ PASSING
+
+#### test_charts.py
+- **Tests:** Chart.js instance lifecycle on repeated re-render
+- **Coverage:** Balance, health-DTI, net-worth-trend, and cash-flow-forecast charts each have exactly one live `Chart.getChart()` instance (no leaked duplicates) and produce no console/page errors after 3 repeated recalculations/tab-switches
+- **Status:** ✅ PASSING
+
+#### test_guide_theme.py
+- **Tests:** `guide.html` dark-mode sync via `src/guideTheme.js`
+- **Coverage:** Dark mode applied when `debtTrackerTheme` is `'dark'`; stays light when the key is absent; stays light when explicitly `'light'`
 - **Status:** ✅ PASSING
 
 ---
@@ -529,9 +544,9 @@ To run tests in CI pipeline:
 Refer to:
 - **Playwright Docs:** https://playwright.dev/python/
 - **Pytest Docs:** https://docs.pytest.org/
-- **App Docs:** See README.md and IMPLEMENTATION_SUMMARY.md
+- **App Docs:** See README.md and docs/implementation/IMPLEMENTATION_SUMMARY.md
 
 ---
 
 **Last Updated:** June 19, 2026  
-**Test Suite Status:** ✅ Fully Passing (324 tests)
+**Test Suite Status:** ✅ Fully Passing (342 tests)

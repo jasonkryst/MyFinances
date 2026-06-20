@@ -43,11 +43,12 @@ export function addDebt(app) {
     };
 
     if (debtType === 'fixedAmount') {
-        const fixedAmount = sanitizeFiniteNumber(document.getElementById('fixedAmount').value, NaN, { min: 0.01 });
+        const rawFixedAmount = document.getElementById('fixedAmount').value;
+        const fixedAmount = sanitizeFiniteNumber(rawFixedAmount, NaN, { min: 0.01 });
         const fixedStartDate = sanitizeDateISO(document.getElementById('fixedStartDate').value);
         const fixedEndDate = sanitizeDateISO(document.getElementById('fixedEndDate').value);
 
-        if (isNaN(fixedAmount) || fixedAmount <= 0 || !fixedStartDate || !fixedEndDate) {
+        if (!rawFixedAmount || isNaN(Number(rawFixedAmount)) || Number(rawFixedAmount) <= 0 || !fixedStartDate || !fixedEndDate) {
             alert('Please fill in all required fixed-amount debt fields.');
             return;
         }

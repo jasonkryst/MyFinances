@@ -8,60 +8,60 @@
 
 ## 🔍 Latest Audit Results (June 19, 2026)
 
-Fresh security, accessibility, and test-suite audits were run against the current codebase (324 tests, post-PR #18). Full reports:
+Fresh security, accessibility, and test-suite audits were run against the codebase (324 tests, post-PR #18). Full reports:
 
 | Audit | Result | Report |
 |---|---|---|
-| Security | ✅ LOW risk — 0 Critical/High, 1 Medium, 2 Low, 51/51 security tests pass | [`docs/audit/security/SECURITY_AUDIT_2026-06-19.md`](docs/audit/security/SECURITY_AUDIT_2026-06-19.md) |
+| Security | ✅ LOW risk — 0 Critical/High, 1 Medium (now fixed, see Tier 0), 2 Low, 51/51 security tests pass | [`docs/audit/security/SECURITY_AUDIT_2026-06-19.md`](docs/audit/security/SECURITY_AUDIT_2026-06-19.md) |
 | Accessibility (WCAG 2.1 AA) | ✅ 0 Serious/Moderate defects across 10 pages × 2 themes, mobile, 3 modals, guide.html | [`docs/audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md`](docs/audit/a11y/A11Y_AUDIT_REPORT_2026-06-19.md) |
 | Test Suite | ✅ 324/324 passing; gap analysis across all 41 test files vs. 20 `src/` modules | [`docs/audit/test/TEST_SUITE_AUDIT_2026-06-19.md`](docs/audit/test/TEST_SUITE_AUDIT_2026-06-19.md) |
 
-The app remains in good shape overall. The technical-debt items these audits surfaced are tracked in **Tier 0** below, ahead of new feature work, since two independent audits (security + test-suite) converged on the same bug class.
+The app remains in good shape overall. The technical-debt items these audits surfaced were tracked in **Tier 0** below, ahead of new feature work, since two independent audits (security + test-suite) converged on the same bug class. **All 5 Tier 0 items are now complete** — the fixes and new tests brought the suite from 324 to 342 passing tests (38→41 test files), with zero regressions.
 
 ---
 
-## 🛠️ Tier 0: Audit-Driven Technical Debt (Do First)
+## 🛠️ Tier 0: Audit-Driven Technical Debt — ✅ COMPLETE
 
 #### Fix negative-amount validation bypass in Income/Bonus/Fixed-Debt forms
-**Priority**: HIGH | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Security audit M1 + Test-suite audit gap #1
+**Priority**: HIGH | **Effort**: LOW | **Status**: ✅ DONE | **Source**: Security audit M1 + Test-suite audit gap #1
 
-`sanitizeFiniteNumber(raw, NaN, {min: 0.01})` clamps a negative input **up to 0.01** rather than to the fallback, so the subsequent `amount <= 0` check never fires. This exact bug class was found and fixed in `src/bills.js` (`addExpense`/`saveEditExpense`) and `src/recurring.js` (`addRecurringTemplate`/`saveEditRecurring`) this session — but is still live in:
+`sanitizeFiniteNumber(raw, NaN, {min: 0.01})` clamps a negative input **up to 0.01** rather than to the fallback, so the subsequent `amount <= 0` check never fires. This exact bug class was found and fixed in `src/bills.js` (`addExpense`/`saveEditExpense`) and `src/recurring.js` (`addRecurringTemplate`/`saveEditRecurring`) earlier this session, and has now also been fixed in:
 - `src/income.js`: `addIncome`, `saveEditIncome`, `addBonus`, `saveEditBonus`
 - `src/debts.js`: fixed-amount debt type branch in `addDebt`
 
-A negative income/bonus/payment amount is silently saved as `$0.01` instead of being rejected, which can quietly skew cash-flow forecasts, health-dashboard ratios, and net-worth snapshots. Fix: validate against the raw input string before clamping, matching the `bills.js`/`recurring.js` pattern. Add `tests/features/test_income.py::test_add_income_negative_amount_rejected` (and bonus/debt equivalents).
+Fixed by validating against the raw input string before clamping, matching the `bills.js`/`recurring.js` pattern. Regression tests added: `tests/features/test_income.py::test_add_income_negative_amount_rejected`, `test_add_bonus_negative_amount_rejected`, `tests/features/test_debts.py::test_add_fixed_amount_debt_negative_amount_rejected`.
 
 ---
 
 #### Escape caught-exception messages consistently
-**Priority**: LOW | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Security audit L1
+**Priority**: LOW | **Effort**: LOW | **Status**: ✅ DONE | **Source**: Security audit L1
 
-`src/ui.js:123` renders `err.message` into `innerHTML` without `escapeHtml()`, unlike the equivalent paths in `src/strategy.js:102,542`. Not currently exploitable (message text isn't user-controlled today) but inconsistent with the rest of the codebase's convention — fix for defense-in-depth before any future exception path echoes user input.
+`src/ui.js:123` rendered `err.message` into `innerHTML` without `escapeHtml()`, unlike the equivalent paths in `src/strategy.js:102,542`. Now wrapped in `escapeHtml()` for defense-in-depth consistency with the rest of the codebase.
 
 ---
 
 #### Document/harden the `accounts.js` raw-`innerHTML` option-list helper
-**Priority**: LOW | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Security audit L2
+**Priority**: LOW | **Effort**: LOW | **Status**: ✅ DONE | **Source**: Security audit L2
 
-`src/accounts.js:16` (`el.innerHTML = opts`) has no escaping contract at its boundary; all current callers pre-escape, but nothing stops a future caller from passing raw text. Add a contract comment or defensive escaping.
+`src/accounts.js:16` (`el.innerHTML = opts`) had no escaping contract at its boundary. Added a contract comment documenting that callers must pre-escape via `escapeHtml()` before reaching the `innerHTML` assignment.
 
 ---
 
 #### Close test-coverage gaps flagged by the test-suite audit
-**Priority**: MEDIUM | **Effort**: MEDIUM | **Status**: 📋 PROPOSED | **Source**: Test-suite audit, Section 7
+**Priority**: MEDIUM | **Effort**: MEDIUM | **Status**: ✅ DONE | **Source**: Test-suite audit, Section 7
 
-1. `tests/features/test_strategy.py` (new file) — `strategy.js` is the only `src/` module with no dedicated feature-test file; cover strategy switching (Avalanche/Snowball/Priority-Lowest/Priority-Highest) and stimulus-amount validation.
-2. `tests/features/test_accounts.py::test_delete_account_with_linked_items_orphans_gracefully` — account deletion with linked income/debts/bills/recurring items has no test (the reverse direction — orphaned reconciliation history — is already covered).
-3. `tests/ui/test_charts.py` (new file) — assert Chart.js instances are `.destroy()`'d on re-render across health/spending/forecast/networth charts, to catch a memory-leak regression.
-4. `tests/ui/test_guide_theme.py` (new file) — `guideTheme.js` has zero automated coverage; the only verification today is manual.
-5. Add `.results-tab-btn`/`.results-tab-panel` a11y tests to `tests/ui/test_accessibility.py` mirroring the existing Reports-tab-bar tests (a11y audit finding A2 — the Strategy results tab bar is implemented correctly but has no regression coverage).
+1. `tests/features/test_strategy.py` (new file, 4 tests) — covers strategy switching (Avalanche/Snowball/Priority-Lowest/Priority-Highest), the strategy comparison panel, and stimulus-amount validation (including non-numeric fallback to zero).
+2. `tests/features/test_accounts.py::test_delete_account_with_linked_items_orphans_gracefully` — account deletion with a linked income source now has regression coverage; confirms the orphaned `accountId` doesn't crash health/reports rendering.
+3. `tests/ui/test_charts.py` (new file, 4 tests) — confirms Chart.js instances are `.destroy()`'d on re-render across the balance, health-DTI, net-worth-trend, and forecast charts.
+4. `tests/ui/test_guide_theme.py` (new file, 3 tests) — `guideTheme.js` dark-mode propagation now has automated coverage (dark, no-saved-theme, and explicit-light cases).
+5. Added 5 `.results-tab-btn`/`.results-tab-panel` a11y tests to `tests/ui/test_accessibility.py` mirroring the existing Reports-tab-bar tests (a11y audit finding A2).
 
 ---
 
 #### Housekeeping: relocate `tests/debug/`
-**Priority**: LOW | **Effort**: LOW | **Status**: 📋 PROPOSED | **Source**: Test-suite audit, Section 6
+**Priority**: LOW | **Effort**: LOW | **Status**: ✅ DONE | **Source**: Test-suite audit, Section 6
 
-`tests/debug/` holds 10 ad-hoc manual debugging scripts with no `test_*` functions (pytest silently no-ops on them). Move to a `scripts/` or `tools/` directory outside `tests/` so the test tree only contains real tests.
+`tests/debug/` held 10 ad-hoc manual debugging scripts with no `test_*` functions (pytest silently no-op'd on them). Relocated to `tools/debug/`, outside the `tests/` tree, so `tests/` only contains real pytest-collected tests.
 
 ---
 
@@ -600,6 +600,10 @@ Identified while reviewing the current featureset against the audit results — 
 - Added a static test that asserts `index.html`'s CSP meta tag and `nginx.conf`'s CSP header stay in sync, to catch this class of bug going forward
 - Mobile button-height and main-nav label text-content test fixes
 - Test suite expanded to 264 tests (up from 140); added coverage for the dormant Bills data model/calculations (`tests/features/test_bills.py`) and CSV schedule export (`tests/integration/test_workflows.py`)
+
+**Shipped post-v3.1 (June 19, 2026)**:
+- Test suite expanded from 264→324 tests, then a fresh security/a11y/test-suite audit cycle surfaced 5 Tier 0 technical-debt items (see above), all now fixed: negative-amount validation bypass in Income/Bonus/Fixed-Debt forms, exception-message escaping in `src/ui.js`, an `accounts.js` `innerHTML` contract comment, 5 new test-coverage gaps closed, and `tests/debug/` relocated to `tools/debug/`
+- Test suite expanded to 342 tests (41 files) — zero regressions
 
 ---
 

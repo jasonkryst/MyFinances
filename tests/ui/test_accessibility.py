@@ -6,6 +6,19 @@ Tests keyboard navigation, ARIA labels, and screen reader compatibility.
 
 import pytest
 
+from tests.conftest import create_debt
+
+def _calculate_plan(page, debt_data):
+    """Create a debt and run a payment plan so the Results tab bar renders."""
+    create_debt(page, debt_data)
+    page.click('button[data-page="strategy"]')
+    page.wait_for_timeout(300)
+    page.fill('#monthlyPayment', '200')
+    page.select_option('#paymentStrategy', 'avalanche')
+    page.click('#calculateBtn')
+    page.wait_for_timeout(500)
+
+
 @pytest.mark.ui
 def test_keyboard_navigation(app_page):
     """Test keyboard navigation through app."""
@@ -229,39 +242,7 @@ def test_help_link_opens_guide(app_page):
     popup.close()
 
 
-@pytest.mark.ui
-def test_guide_page_applies_dark_mode_from_localstorage(app_page):
-    """guide.html's externalized src/guideTheme.js applies dark mode based
-    on the same localStorage key the main app uses, so the guide visually
-    matches whatever theme the user left the app in.
-    """
-    page = app_page
-    page.evaluate("() => localStorage.setItem('debtTrackerTheme', 'dark')")
-
-    with page.expect_popup() as popup_info:
-        page.locator('#helpBtn').click()
-    popup = popup_info.value
-    popup.wait_for_load_state('domcontentloaded')
-
-    is_dark = popup.evaluate("() => document.body.classList.contains('dark-mode')")
-    assert is_dark, "guide.html should apply dark-mode class when debtTrackerTheme is 'dark'"
-    popup.close()
-
-
-@pytest.mark.ui
-def test_guide_page_stays_light_without_saved_theme(app_page):
-    """guide.html does not force dark mode when no theme preference is saved."""
-    page = app_page
-    page.evaluate("() => localStorage.removeItem('debtTrackerTheme')")
-
-    with page.expect_popup() as popup_info:
-        page.locator('#helpBtn').click()
-    popup = popup_info.value
-    popup.wait_for_load_state('domcontentloaded')
-
-    is_dark = popup.evaluate("() => document.body.classList.contains('dark-mode')")
-    assert not is_dark, "guide.html should not apply dark-mode class without a saved 'dark' theme"
-    popup.close()
+    # See tests/ui/test_guide_theme.py for guide.html dark-mode propagation coverage.
 
 
 @pytest.mark.ui
@@ -502,3 +483,94 @@ async def test_main_nav_all_pages_keyboard_reachable(async_app_page):
             f"page-button '{await btn.get_attribute('data-page')}' should not be disabled"
         assert tabindex != '-1', \
             f"page-button '{await btn.get_attribute('data-page')}' should not have tabindex=-1"
+
+
+@pytest.mark.ui
+def test_results_tab_bar_has_tablist_role(app_page, debt_data):
+    """The Results tab bar has role=tablist for screen reader semantics."""
+    page = app_page
+    _calculate_plan(page, debt_data)
+
+    role = page.evaluate(
+        '() => document.querySelector(".results-tab-bar")?.getAttribute("role")'
+    )
+    assert role == 'tablist', f"Expected role=tablist on .results-tab-bar, got: {role}"
+
+
+@pytest.mark.ui
+def test_results_tab_buttons_have_role_tab(app_page, debt_data):
+    """Every Results tab button has role=tab."""
+    page = app_page
+    _calculate_plan(page, debt_data)
+
+    roles = page.evaluate("""
+        () => Array.from(document.querySelectorAll('.results-tab-btn'))
+                   .map(b => b.getAttribute('role'))
+    """)
+    assert len(roles) == 3, f"Expected 3 Results tab buttons, got {len(roles)}"
+    assert all(r == 'tab' for r in roles), \
+        f"Not all Results tab buttons have role=tab: {roles}"
+
+
+@pytest.mark.ui
+def test_results_active_tab_aria_selected_true(app_page, debt_data):
+    """The active Results tab has aria-selected=true; all others have aria-selected=false."""
+    page = app_page
+    _calculate_plan(page, debt_data)
+
+    page.click('[data-rtab="schedule"]')
+    page.wait_for_timeout(150)
+
+    result = page.evaluate("""
+        () => {
+            const btns = document.querySelectorAll('.results-tab-btn');
+            const trueCount  = [...btns].filter(b => b.getAttribute('aria-selected') === 'true').length;
+            const falseCount = [...btns].filter(b => b.getAttribute('aria-selected') === 'false').length;
+            const activeId   = [...btns].find(b => b.getAttribute('aria-selected') === 'true')?.getAttribute('data-rtab');
+            return { trueCount, falseCount, activeId };
+        }
+    """)
+    assert result['trueCount'] == 1, f"Expected exactly 1 aria-selected=true, got {result['trueCount']}"
+    assert result['falseCount'] == 2, f"Expected 2 aria-selected=false, got {result['falseCount']}"
+    assert result['activeId'] == 'schedule', f"Expected schedule to be selected, got {result['activeId']}"
+
+
+@pytest.mark.ui
+def test_results_tab_buttons_have_aria_controls(app_page, debt_data):
+    """Each Results tab button has aria-controls pointing to an existing panel id."""
+    page = app_page
+    _calculate_plan(page, debt_data)
+
+    mismatches = page.evaluate("""
+        () => {
+            const btns = document.querySelectorAll('.results-tab-btn[data-rtab]');
+            const errors = [];
+            btns.forEach(b => {
+                const controls = b.getAttribute('aria-controls');
+                if (!controls || !document.getElementById(controls)) {
+                    errors.push(b.getAttribute('data-rtab'));
+                }
+            });
+            return errors;
+        }
+    """)
+    assert mismatches == [], f"Tab buttons with missing/invalid aria-controls: {mismatches}"
+
+
+@pytest.mark.ui
+def test_results_tab_panel_switch_updates_active_panel(app_page, debt_data):
+    """Clicking a Results tab activates only its corresponding panel."""
+    page = app_page
+    _calculate_plan(page, debt_data)
+
+    page.click('[data-rtab="debt-summary"]')
+    page.wait_for_timeout(150)
+
+    result = page.evaluate("""
+        () => {
+            const panels = document.querySelectorAll('.results-tab-panel');
+            const activeIds = [...panels].filter(p => p.classList.contains('results-tab-panel--active')).map(p => p.id);
+            return activeIds;
+        }
+    """)
+    assert result == ['rPanel-debt-summary'], f"Expected only rPanel-debt-summary active, got {result}"

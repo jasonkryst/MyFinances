@@ -5,6 +5,8 @@ import { getLedgerTransactionsForMonth } from './ledger.js';
 
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
+    // opts must already be fully escaped HTML before reaching el.innerHTML below —
+    // account name/type are wrapped in escapeHtml() here, not at the assignment site.
     const opts = [
         `<option value="">— No account —</option>`,
         ...app.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`)
