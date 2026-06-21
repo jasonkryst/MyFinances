@@ -375,3 +375,44 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
             assert_no_errors(page)
     finally:
         os.unlink(temp_file)
+
+
+@pytest.mark.integration
+def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
+    """Clearing all data removes the storageKey entirely, so the next page
+    load is indistinguishable from a true first run and the setup wizard
+    must reappear, letting the user reconsider the reconciliation mode.
+
+    Uses the raw `page` fixture (not `app_page`) because `app_page`'s
+    init script re-seeds localStorage on every navigation, including the
+    reload this test relies on, which would mask the true first-run state
+    we're asserting on."""
+    from tests.conftest import BASE_URL
+
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
+    page.click('#setupWizardVisibleBtn')
+    page.wait_for_timeout(200)
+
+    page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
+
+    page.click('button[data-page="strategy"]')
+    page.wait_for_selector('#clearDataBtn', timeout=10000)
+    page.click('#clearDataBtn')
+    page.wait_for_timeout(500)
+
+    cleared_data = page.evaluate(
+        '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
+    )
+    assert not cleared_data, "App data should be removed after Clear All Data"
+
+    page.reload(wait_until="networkidle")
+
+    modal = page.query_selector('#setupWizardModal')
+    assert modal, "Setup wizard modal should exist in the DOM"
+    classes = modal.get_attribute('class') or ''
+    assert 'flex-visible' in classes, "Setup wizard should reappear after a full data clear"
+
+    page.click('#setupWizardVisibleBtn')
+    setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
+    assert setting is False, "Choosing a fresh mode after the reset should not be influenced by the prior setting"

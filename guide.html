@@ -40,7 +40,7 @@
                     <li><a href="#net-worth-tracking">Net Worth Tracking</a></li>
                     <li><a href="#cash-flow-forecast">Cash Flow Forecast</a></li>
                     <li><a href="#viewing-transactions">Viewing Transactions</a></li>
-                    <li><a href="#account-reconciliation">Account Reconciliation</a></li>
+                    <li><a href="#account-reconciliation">Account Reconciliation &amp; Settings</a></li>
                     <li><a href="#data-management">Data Management</a></li>
                     <li><a href="#tips-tricks">Tips and Tricks</a></li>
                 </ol>
@@ -431,10 +431,10 @@
                 <h3>Calendar Tab</h3>
                 <ul>
                     <li>Month-by-month calendar view of all transactions</li>
-                    <li>Income paydays marked with 💰</li>
-                    <li>Recurring template occurrences marked with 🔄</li>
-                    <li>Expenses marked with 🛒</li>
+                    <li>Each day with activity shows a small colored dot per event type (income, bill, expense, recurring, debt, bonus) plus an event count — click or tap any day to open a modal with the full details (name, icon, and amount per event)</li>
+                    <li>Income paydays marked with 💰, recurring occurrences with 🔄, expenses with 🛒 inside the day modal</li>
                     <li>Debt payments and other events color-coded by type</li>
+                    <li>Day cells are keyboard-accessible — focus a day and press Enter or Space to open its modal</li>
                     <li>Navigate forward/backward through months</li>
                 </ul>
 
@@ -605,10 +605,21 @@
                     <li>Go to the Reconcile tab and choose the account you want to reconcile</li>
                     <li>Review the list of expected transactions for the statement period — these are derived from your ledger (income, debts, bills, expenses, and recurring templates)</li>
                     <li>Enter the statement balance from your bank or card, an optional date, and an optional note</li>
-                    <li>Submit to log the reconciliation — the account's balance updates to match the statement, and the difference is recorded</li>
+                    <li>Submit to log the reconciliation — the difference is recorded, and whether the account's tracked balance updates depends on your Reconciliation Mode setting (see below)</li>
                 </ol>
 
                 <div class="guide-note">Each reconciliation entry records the previous balance, the statement balance, the difference between them, and your note, so you have a running history of adjustments per account. This history is included in your JSON export/import.</div>
+
+                <h3>Reconciliation Mode</h3>
+                <p>A global setting controls what a reconciliation does to the account's tracked balance:</p>
+                <ul>
+                    <li><strong>Adjust balance</strong> — the statement balance becomes the account's new tracked balance going forward (the classic "snap to statement" behavior)</li>
+                    <li><strong>Visible only</strong> — the reconciliation is recorded and shown, but the account keeps using its computed balance; nothing is overwritten</li>
+                </ul>
+                <p>The first time you open the app with no saved data, a setup wizard asks you to pick a mode. If you're an existing user, your data already loads in <strong>Visible only</strong> mode by default. Change the mode any time from the <strong>Settings</strong> modal — open it via the gear icon in the toolbar, or by searching "Settings" in the command palette (<kbd>Ctrl/Cmd+K</kbd>).</p>
+
+                <h3>Reconciliations on the Ledger</h3>
+                <p>Every reconciliation also appears as a marker row (🔄 Balance Reconciliation) on the Ledger page, showing the previous balance, the statement balance, and the difference — regardless of which mode you're in. This keeps the ledger transparent about every adjustment made to an account, even ones that don't move the running balance.</p>
             </section>
 
             <section class="guide-section" id="data-management">

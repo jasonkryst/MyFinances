@@ -8,12 +8,13 @@ its render/update animations.
 
 import pytest
 
-from tests.conftest import create_debt
+from tests.conftest import create_debt, SKIP_FIRST_RUN_WIZARD_SCRIPT
 
 
 def _make_tracked_page(browser, reduced_motion=None):
     ctx = browser.new_context(reduced_motion=reduced_motion)
     page = ctx.new_page()
+    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
     page.console_errors = []
     page.page_errors = []
     page.on('console', lambda msg: page.console_errors.append(msg.text)

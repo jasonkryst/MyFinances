@@ -4133,19 +4133,60 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
     gap: 3px;
 }
 .rpt-cal-cell {
-    min-height: 72px;
+    min-height: 52px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 4px 5px;
     background: var(--card-bg);
     overflow: hidden;
     font-size: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 .rpt-cal-empty { background: transparent; border-color: transparent; }
-.rpt-cal-has-events { border-color: #c7d2fe; }
+.rpt-cal-has-events {
+    border-color: #c7d2fe;
+    cursor: pointer;
+}
+.rpt-cal-has-events:hover,
+.rpt-cal-has-events:focus-visible {
+    background: #eef2ff;
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+}
+body.dark-mode .rpt-cal-has-events:hover,
+body.dark-mode .rpt-cal-has-events:focus-visible {
+    background: #312e81;
+}
 .rpt-cal-today { background: #eff6ff; border-color: #2563eb; border-width: 2px; }
 body.dark-mode .rpt-cal-has-events { border-color: #4338ca; }
 body.dark-mode .rpt-cal-today { background: #1e3a5f; border-color: #2563eb; }
+
+.rpt-cal-dots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 2px;
+}
+.rpt-cal-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.rpt-cal-dot--income { background: #047857; }
+.rpt-cal-dot--bill   { background: #92400e; }
+.rpt-cal-dot--expense { background: #7c3aed; }
+.rpt-cal-dot--recurring { background: #0e7490; }
+.rpt-cal-dot--bonus  { background: #b45309; }
+.rpt-cal-dot--debt   { background: #2563eb; }
+.rpt-cal-count {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
 
 .rpt-cal-day-num {
     display: block;
@@ -4185,6 +4226,27 @@ body.dark-mode .rpt-cal-today .rpt-cal-day-num {
 .rpt-cal-evt--recurring { background: #0e7490; }
 .rpt-cal-evt--bonus  { background: #b45309; }
 .rpt-cal-evt--debt-dynamic { background: var(--debt-color, #2563eb); }
+
+/* Day-detail modal event list (full names/amounts, opened by tapping a day) */
+.rpt-cal-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+.rpt-cal-modal-evt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #fff;
+    font-size: 0.9rem;
+}
+.rpt-cal-modal-evt .rpt-cal-evt-amt { font-weight: 700; }
 
 /* Net worth reports panel */
 .nw-report-header {
@@ -4377,9 +4439,7 @@ body.dark-mode .cf-row--negative td {
 }
 
 @media (max-width: 640px) {
-    .rpt-cal-cell     { min-height: 56px; }
-    .rpt-cal-evt-amt  { display: none; }
-    .rpt-cal-evt      { font-size: 0.58rem; }
+    .rpt-cal-cell     { min-height: 44px; }
     .rpt-tab-bar      { flex-wrap: nowrap; overflow-x: auto; gap: 8px; }
     .rpt-tab-group-sep { display: none; }
     .rpt-tab-btn      { font-size: 11px; padding: 7px 10px; }
@@ -5332,6 +5392,51 @@ body.dark-mode .recon-expected summary { color: #60a5fa; }
     color: #075985;
 }
 body.dark-mode .recon-badge { background: #0c4a6e; color: #7dd3fc; }
+
+/* ── Ledger: reconciliation marker rows ──────────────────────────────────── */
+.ledger-row--reconciliation { font-style: italic; color: var(--text-secondary); }
+.ledger-recon-diff { font-weight: 600; }
+
+/* ── Settings ─────────────────────────────────────────────────────────────── */
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.settings-toggle-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+/* ── First-run setup wizard ───────────────────────────────────────────────── */
+.setup-wizard-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 18px;
+}
+.setup-wizard-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    color: var(--text-primary, #1e293b);
+}
+.setup-wizard-choice:hover,
+.setup-wizard-choice:focus-visible {
+    border-color: var(--primary-color);
+}
+.setup-wizard-choice span {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
 
 /* ── Spending Analysis ───────────────────────────────────────────────────── */
 .spending-summary-strip {

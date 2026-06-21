@@ -465,6 +465,31 @@ async def test_xss_in_reconciliation_note(async_app_page):
 
 
 @pytest.mark.security
+async def test_xss_in_reconciliation_ledger_row_account_name(async_app_page):
+    """Reconciliation marker rows on the Ledger page render the account name
+    through escapeHtml just like every other row type."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7601, name: '<img src=x onerror="window.__xss_recon_ledger=1">', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
+        app.applyReconciliation(7601, 1100, '', new Date().toISOString().slice(0, 10));
+        app.switchPage('ledger');
+    }""")
+    await page.wait_for_timeout(300)
+
+    container_html = await page.evaluate('() => document.getElementById("ledgerTableContainer")?.innerHTML || ""')
+    assert '<img src=x' not in container_html, "Unescaped <img> tag found in ledger reconciliation row"
+
+    xss_ran = await page.evaluate('() => window.__xss_recon_ledger === 1')
+    assert not xss_ran, "XSS payload executed via reconciliation row account name on the ledger!"
+
+
+@pytest.mark.security
 def test_xss_in_spending_category_name(app_page):
     """Category names containing HTML tags are escaped in the Spending tab ranked list and modal."""
     page = app_page
@@ -522,6 +547,46 @@ async def test_xss_in_reports_calendar_expense_name(async_app_page):
 
     xss_ran = await page.evaluate('() => window.__xss_rptcal === 1')
     assert not xss_ran, "XSS payload executed via expense name in reports calendar!"
+
+
+@pytest.mark.security
+async def test_xss_in_calendar_day_modal_event_name(async_app_page):
+    """Test XSS prevention in an expense name rendered inside the Reports
+    Calendar day-detail modal (opened by clicking a compact day cell)."""
+    page = async_app_page
+
+    await page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        app.accounts = [{ id: 9102, name: 'Cal Modal XSS', type: 'Checking', startingBalance: 1000 }];
+        app.expenses = [{
+            id: 91,
+            name: '<img src=x onerror="window.__xss_rptcalmodal=1">',
+            budgetAmount: 75,
+            date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+            category: 'Other',
+            accountId: 9102
+        }];
+        app.incomes = []; app.bills = []; app.debts = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.ledgerAmountOverrides = {};
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+    }""")
+    await page.wait_for_timeout(300)
+
+    cell = await page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    assert cell, "Expected a day cell with events to open the modal"
+    await cell.click()
+    await page.wait_for_timeout(200)
+
+    modal_html = await page.evaluate(
+        '() => document.getElementById("calendarDayModalBody")?.innerHTML || ""'
+    )
+    assert '<img src=x' not in modal_html, "Unescaped <img> tag found in calendar day modal body"
+
+    xss_ran = await page.evaluate('() => window.__xss_rptcalmodal === 1')
+    assert not xss_ran, "XSS payload executed via expense name in calendar day modal!"
 
 
 @pytest.mark.security

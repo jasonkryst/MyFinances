@@ -201,6 +201,21 @@ function sanitizeForecastSettings(record) {
     };
 }
 
+function sanitizeSetting(record) {
+    const key = normalizeText(record?.key, 60);
+    if (!key) return null;
+    const rawValue = record?.value;
+    let value;
+    if (typeof rawValue === 'boolean' || typeof rawValue === 'number') {
+        value = rawValue;
+    } else if (typeof rawValue === 'string') {
+        value = normalizeText(rawValue, 200);
+    } else {
+        return null;
+    }
+    return { key, value };
+}
+
 function sanitizeReconciliation(record, idFallback) {
     const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
         ? record.createdAt
@@ -242,7 +257,8 @@ function sanitizeParsedState(parsed = {}) {
             sortDir: parsed?.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc'
         },
         forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
-        reconciliations: (Array.isArray(parsed.reconciliations) ? parsed.reconciliations : []).map((r, i) => sanitizeReconciliation(r, now + 5500 + i)).filter(r => r.accountId !== null && Number.isFinite(r.statementBalance))
+        reconciliations: (Array.isArray(parsed.reconciliations) ? parsed.reconciliations : []).map((r, i) => sanitizeReconciliation(r, now + 5500 + i)).filter(r => r.accountId !== null && Number.isFinite(r.statementBalance)),
+        settings: (Array.isArray(parsed.settings) ? parsed.settings : []).map(sanitizeSetting).filter(Boolean)
     };
 }
 
@@ -262,6 +278,7 @@ export function saveToStorage(app) {
             emergencyFunds: app.emergencyFunds || [],
             sinkingFunds: app.sinkingFunds || [],
             reconciliations: app.reconciliations || [],
+            settings: app.settings || [],
             monthlySnapshots: app.monthlySnapshots || [],
             netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
             perMonthStimulus: app.perMonthStimulus || [],
@@ -318,6 +335,7 @@ export function loadFromStorage(app) {
             app.emergencyFunds = clean.emergencyFunds;
             app.sinkingFunds = clean.sinkingFunds;
             app.reconciliations = clean.reconciliations;
+            app.settings = clean.settings;
             app.monthlySnapshots = clean.monthlySnapshots;
             app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;
             app.perMonthStimulus = clean.perMonthStimulus;
@@ -347,7 +365,7 @@ export function exportAllJSON(app) {
     }));
 
     const payload = {
-        version: '3.0',
+        version: '4.0.0',
         exportedAt: new Date().toISOString(),
         accounts: app.accounts || [],
         debts: normalisedDebts,
@@ -360,6 +378,7 @@ export function exportAllJSON(app) {
         emergencyFunds: app.emergencyFunds || [],
         sinkingFunds: app.sinkingFunds || [],
         reconciliations: app.reconciliations || [],
+        settings: app.settings || [],
         monthlySnapshots: app.monthlySnapshots || [],
         netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
         strategy: {
@@ -546,6 +565,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingEmergencyFunds = clean.emergencyFunds;
         const incomingSinkingFunds = clean.sinkingFunds;
         const incomingReconciliations = clean.reconciliations;
+        const incomingSettings = clean.settings;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
         const incomingStrategy = payload?.strategy || null;
@@ -587,6 +607,7 @@ export function importAllJSON(app, file, options = {}) {
             app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
             app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
             app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
+            app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
@@ -629,6 +650,7 @@ export function importAllJSON(app, file, options = {}) {
             app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
             app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
             app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
+            app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
@@ -681,6 +703,7 @@ export function clearAllData(app, options = {}) {
     app.bonuses = [];
     app.ledgerAmountOverrides = {};
     app.reconciliations = [];
+    app.settings = [];
 
     app.editingDebtId = null;
     app.editingIncomeId = null;

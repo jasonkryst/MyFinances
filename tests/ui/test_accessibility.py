@@ -224,6 +224,87 @@ def test_reconcile_modal_focus_and_keyboard_trap(app_page):
 
 
 @pytest.mark.ui
+def test_settings_button_has_accessible_label(app_page):
+    """The gear toolbar button must be reachable via keyboard and announce
+    its purpose via aria-label, matching the other header-icon-btn controls."""
+    page = app_page
+
+    btn = page.query_selector('#settingsBtn')
+    assert btn, "Expected a #settingsBtn gear toolbar button"
+    aria_label = btn.get_attribute('aria-label')
+    assert aria_label, "Settings button should have an aria-label"
+    assert btn.get_attribute('tabindex') != '-1'
+
+
+@pytest.mark.ui
+def test_settings_modal_focus_and_keyboard_trap(app_page):
+    """Opening the Settings modal focuses the checkbox; Escape closes it."""
+    page = app_page
+
+    page.click('#settingsBtn')
+    page.wait_for_timeout(300)
+
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'settingReconciliationAdjusts', "Opening Settings should focus the checkbox"
+
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(300)
+
+    modal_hidden = page.evaluate(
+        '() => document.getElementById("settingsModal")?.classList.contains("hidden")'
+    )
+    assert modal_hidden, "Escape should close the Settings modal"
+
+
+@pytest.mark.ui
+def test_setup_wizard_modal_has_dialog_role_and_label(app_page):
+    """The setup wizard modal markup follows the same dialog ARIA pattern as
+    the other modals (role=dialog, aria-modal, aria-labelledby)."""
+    page = app_page
+
+    modal = page.query_selector('#setupWizardModal')
+    assert modal, "Expected #setupWizardModal in the DOM"
+    assert modal.get_attribute('role') == 'dialog'
+    assert modal.get_attribute('aria-modal') == 'true'
+    assert modal.get_attribute('aria-labelledby')
+
+
+@pytest.mark.ui
+def test_calendar_day_modal_has_dialog_role_and_focus_management(app_page):
+    """The Reports Calendar day-detail modal follows the same dialog ARIA
+    pattern as the other modals, and focuses its close button on open."""
+    page = app_page
+
+    modal = page.query_selector('#calendarDayModal')
+    assert modal, "Expected #calendarDayModal in the DOM"
+    assert modal.get_attribute('role') == 'dialog'
+    assert modal.get_attribute('aria-modal') == 'true'
+    assert modal.get_attribute('aria-labelledby')
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const rptDate = new Date();
+        const isoMonth = String(rptDate.getMonth() + 1).padStart(2, '0');
+        app.accounts = [{ id: 9301, name: 'A11y Cal', type: 'Checking', startingBalance: 500 }];
+        app.incomes = [{
+            id: 9302, name: 'A11y Paycheck', amount: 100, accountId: 9301,
+            frequency: 'monthly', firstDate: `${rptDate.getFullYear()}-${isoMonth}-05`
+        }];
+        app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+    cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    assert cell, "Expected at least one day cell with events"
+    cell.click()
+    page.wait_for_timeout(200)
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'calendarDayModalCloseBtn'
+
+
+@pytest.mark.ui
 def test_help_link_opens_guide(app_page):
     """Test the help control opens the usage guide in a new page."""
     page = app_page

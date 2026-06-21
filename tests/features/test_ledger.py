@@ -228,3 +228,104 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     assert abs(float(stored_overrides[tx_id_2]['amount']) - 222.22) < 0.01, (
         f"Second override amount was overwritten/corrupted: {stored_overrides[tx_id_2]}"
     )
+
+
+def _seed_account_for_recon_ledger(page):
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 8001, name: 'Recon Ledger Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+    }""")
+
+
+@pytest.mark.feature
+def test_reconciliation_appears_as_ledger_row(app_page):
+    """A reconciliation entry dated within the projected window shows up as
+    a 'Balance Reconciliation' row in getLedgerTransactions output."""
+    page = app_page
+    _seed_account_for_recon_ledger(page)
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/utils.js');
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
+        app.applyReconciliation(8001, 1200, 'Spot check', mod.todayISO());
+        const txs = await import('/src/ledger.js').then(m => m.getLedgerTransactions(app));
+        return txs.filter(tx => tx.type === 'reconciliation');
+    }""")
+
+    assert len(result) == 1
+    row = result[0]
+    assert row['name'] == 'Balance Reconciliation'
+    assert row['transactionId'] is None
+    assert row['amount'] == 0
+    assert row['meta']['previousBalance'] == 1000
+    assert row['meta']['statementBalance'] == 1200
+    assert row['meta']['difference'] == 200
+
+
+@pytest.mark.feature
+def test_reconciliation_row_contributes_zero_to_running_balance_visible_mode(app_page):
+    """In visible-only mode, the reconciliation row must not move the
+    running balance shown on the ledger (only future real transactions do)."""
+    page = app_page
+    _seed_account_for_recon_ledger(page)
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/utils.js');
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
+        const today = mod.todayISO();
+        app.applyReconciliation(8001, 1200, '', today);
+        const txs = await import('/src/ledger.js').then(m => m.getLedgerTransactions(app));
+        const reconRow = txs.find(tx => tx.type === 'reconciliation');
+        return { balance: reconRow.balance, accountStartingBalance: app.accounts[0].startingBalance };
+    }""")
+
+    assert result['accountStartingBalance'] == 1000, "Visible mode must not mutate the account balance"
+    assert result['balance'] == 1000, "Reconciliation row must not move the running balance"
+
+
+@pytest.mark.feature
+def test_reconciliation_row_not_editable_via_override_modal(app_page):
+    """Reconciliation rows have transactionId: null (mirroring the rollover
+    row convention) so they're naturally excluded from the amount-override
+    flow without needing a special-cased guard."""
+    page = app_page
+    _seed_account_for_recon_ledger(page)
+
+    page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/utils.js');
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
+        app.applyReconciliation(8001, 1200, '', mod.todayISO());
+    }""")
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+
+    override_present = page.evaluate("""() => {
+        const rows = Array.from(document.querySelectorAll('.ledger-row--reconciliation'));
+        return rows.some(row => row.querySelector('[data-ledger-override]'));
+    }""")
+    assert override_present is False
+
+
+@pytest.mark.feature
+def test_reconciliation_excluded_from_expected_transactions_list(app_page):
+    """getExpectedTransactionsInRange (used on the Reconcile page) should not
+    surface the reconciliation events themselves as 'expected' transactions."""
+    page = app_page
+    _seed_account_for_recon_ledger(page)
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/utils.js');
+        const today = mod.todayISO();
+        app.applyReconciliation(8001, 1200, '', today);
+        return app.getExpectedTransactionsInRange(8001, today, today);
+    }""")
+
+    assert all(tx['type'] != 'reconciliation' for tx in result)

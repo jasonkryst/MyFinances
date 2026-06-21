@@ -457,6 +457,13 @@ export function renderReportsCalendar(app) {
         gridHTML += '<div class="rpt-cal-cell rpt-cal-empty"></div>';
     }
 
+    // Day cells render only a compact count of dots — full event details
+    // (name, amount, icon) are shown in the day modal on click, since the
+    // inline chips this used to render don't fit at any width without
+    // wrapping or clipping. Data needed to render the modal is kept here
+    // rather than re-derived on click.
+    const dayDataMap = {};
+
     for (let day = 1; day <= daysInMonth; day++) {
         const incomes = dayIncome[day] || [];
         const bills = dayBills[day] || [];
@@ -467,42 +474,106 @@ export function renderReportsCalendar(app) {
         const hasEvts = incomes.length || bills.length || expenses.length || recurring.length || debts.length || bonuses.length;
         const isToday = day === today;
 
-        gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"><span class="rpt-cal-day-num">${day}</span>`;
-
-        for (const inc of incomes) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--income" title="💰 ${escapeHtml(inc.name)}: ${formatCurrency(inc.amount)}"><span class="rpt-cal-evt-name">💰 ${escapeHtml(inc.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`;
-        }
-        for (const bill of bills) {
-            const amount = Math.abs(bill.amount || 0);
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bill" title="🧾 ${escapeHtml(bill.name)}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🧾 ${escapeHtml(bill.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
-        }
-        for (const exp of expenses) {
-            const amount = Math.abs(exp.amount || 0);
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--expense" title="🛒 ${escapeHtml(exp.name)}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🛒 ${escapeHtml(exp.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
-        }
-        for (const rec of recurring) {
-            const amount = Math.abs(rec.amount || 0);
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--recurring" title="🔄 ${escapeHtml(rec.name)}: ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">🔄 ${escapeHtml(rec.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
-        }
-        for (const debt of debts) {
-            const amount = Math.abs(debt.amount || 0);
-            const debtColor = debt._color ? debt._color.replace(/'/g, '') : '#2563eb';
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--debt-dynamic" data-debt-color="${debtColor}" title="💳 ${escapeHtml(debt.name)}: min ${formatCurrency(amount)}"><span class="rpt-cal-evt-name">💳 ${escapeHtml(debt.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
-        }
-        for (const b of bonuses) {
-            gridHTML += `<div class="rpt-cal-evt rpt-cal-evt--bonus" title="🎁 ${escapeHtml(b.name)}: ${formatCurrency(b.amount)}"><span class="rpt-cal-evt-name">🎁 ${escapeHtml(b.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(b.amount)}</span></div>`;
+        if (hasEvts) {
+            dayDataMap[day] = { incomes, bills, expenses, recurring, debts, bonuses };
         }
 
-        gridHTML += '</div>';
+        const dotTypes = [
+            incomes.length && 'income',
+            bills.length && 'bill',
+            expenses.length && 'expense',
+            recurring.length && 'recurring',
+            debts.length && 'debt',
+            bonuses.length && 'bonus'
+        ].filter(Boolean);
+        const eventCount = incomes.length + bills.length + expenses.length + recurring.length + debts.length + bonuses.length;
+
+        const dotsHTML = dotTypes.map(t => `<span class="rpt-cal-dot rpt-cal-dot--${t}"></span>`).join('');
+        const clickableAttrs = hasEvts ? ` data-cal-day="${day}" tabindex="0" role="button" aria-label="${eventCount} event${eventCount === 1 ? '' : 's'} on ${escapeHtml(monthLabel)} ${day}"` : '';
+
+        gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"${clickableAttrs}>
+            <span class="rpt-cal-day-num">${day}</span>
+            ${hasEvts ? `<span class="rpt-cal-dots">${dotsHTML}</span><span class="rpt-cal-count">${eventCount}</span>` : ''}
+        </div>`;
     }
 
     gridHTML += '</div>';
 
     container.innerHTML = `<h3 class="rpt-cal-month-title">${monthLabel}</h3><div class="rpt-cal-legend">${legendItems.join('')}</div>${gridHTML}`;
 
-    // Apply dynamic debt colors via CSS custom property (CSP-compliant)
-    container.querySelectorAll('[data-debt-color]').forEach(el =>
+    app._reportsCalendarDayData = { monthLabel, dayDataMap };
+
+    const openDay = (day) => openCalendarDayModal(app, day);
+    container.querySelectorAll('[data-cal-day]').forEach(el => {
+        el.addEventListener('click', () => openDay(Number(el.dataset.calDay)));
+        el.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openDay(Number(el.dataset.calDay));
+            }
+        });
+    });
+}
+
+/**
+ * Render the full event list for one calendar day into the day-detail modal.
+ */
+export function openCalendarDayModal(app, day) {
+    const modal = document.getElementById('calendarDayModal');
+    const titleEl = document.getElementById('calendarDayModalTitle');
+    const bodyEl = document.getElementById('calendarDayModalBody');
+    const closeBtn = document.getElementById('calendarDayModalCloseBtn');
+    const data = app._reportsCalendarDayData;
+    if (!modal || !titleEl || !bodyEl || !closeBtn || !data || !data.dayDataMap[day]) return;
+
+    const { incomes, bills, expenses, recurring, debts, bonuses } = data.dayDataMap[day];
+    titleEl.textContent = `${data.monthLabel} ${day}`;
+
+    let html = '';
+    for (const inc of incomes) {
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--income"><span class="rpt-cal-evt-name">💰 ${escapeHtml(inc.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`;
+    }
+    for (const bill of bills) {
+        const amount = Math.abs(bill.amount || 0);
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--bill"><span class="rpt-cal-evt-name">🧾 ${escapeHtml(bill.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
+    }
+    for (const exp of expenses) {
+        const amount = Math.abs(exp.amount || 0);
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--expense"><span class="rpt-cal-evt-name">🛒 ${escapeHtml(exp.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
+    }
+    for (const rec of recurring) {
+        const amount = Math.abs(rec.amount || 0);
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--recurring"><span class="rpt-cal-evt-name">🔄 ${escapeHtml(rec.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(amount)}</span></div>`;
+    }
+    for (const debt of debts) {
+        const amount = Math.abs(debt.amount || 0);
+        const debtColor = debt._color ? debt._color.replace(/'/g, '') : '#2563eb';
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--debt-dynamic" data-debt-color="${debtColor}"><span class="rpt-cal-evt-name">💳 ${escapeHtml(debt.name)}</span><span class="rpt-cal-evt-amt">min ${formatCurrency(amount)}</span></div>`;
+    }
+    for (const b of bonuses) {
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--bonus"><span class="rpt-cal-evt-name">🎁 ${escapeHtml(b.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(b.amount)}</span></div>`;
+    }
+    bodyEl.innerHTML = html;
+    bodyEl.querySelectorAll('[data-debt-color]').forEach(el =>
         el.style.setProperty('--debt-color', el.dataset.debtColor));
+
+    const close = () => {
+        modal.classList.add('hidden'); modal.classList.remove('flex-visible');
+        modal.onkeydown = null;
+    };
+    closeBtn.onclick = close;
+    modal.onclick = (event) => {
+        if (event.target === modal) close();
+    };
+    modal.onkeydown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            close();
+        }
+    };
+
+    modal.classList.add('flex-visible'); modal.classList.remove('hidden');
+    setTimeout(() => closeBtn.focus(), 30);
 }
 
 export function renderReportsIncomeExp(app) {

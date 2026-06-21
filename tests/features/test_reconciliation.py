@@ -12,16 +12,22 @@ from datetime import date
 import pytest
 
 
-def _seed_reconciliation_account(page):
-    """Create a single checking account with no other collections."""
-    page.evaluate("""() => {
+def _seed_reconciliation_account(page, adjusts_balance=True):
+    """Create a single checking account with no other collections.
+
+    Defaults to adjust-balance mode so existing balance-mutation assertions
+    keep testing that behavior explicitly; pass adjusts_balance=False to
+    exercise the (now default-for-everyone) visible-only mode.
+    """
+    page.evaluate("""(adjustsBalance) => {
         const app = window.app;
         app.accounts = [{ id: 7001, name: 'Recon Checking', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: adjustsBalance }];
         app._reconciliationAccountFilter = 'all';
-    }""")
+    }""", adjusts_balance)
 
 
 @pytest.mark.feature
@@ -86,6 +92,58 @@ def test_apply_reconciliation_records_zero_difference(app_page):
     assert result['success'] is True
     assert result['historyCount'] == 1
     assert result['difference'] == 0
+
+
+@pytest.mark.feature
+def test_apply_reconciliation_visible_mode_does_not_change_balance(app_page):
+    """With reconciliationAdjustsBalance=false, the account balance is left
+    untouched but the history entry is still recorded."""
+    page = app_page
+    _seed_reconciliation_account(page, adjusts_balance=False)
+
+    result = page.evaluate("""() => {
+        const app = window.app;
+        const res = app.applyReconciliation(7001, 1250.50, 'Visible only', '2026-06-10');
+        return {
+            success: res.success,
+            balance: app.accounts[0].startingBalance,
+            historyCount: app.reconciliations.length,
+            entry: app.reconciliations[0]
+        };
+    }""")
+
+    assert result['success'] is True
+    assert result['balance'] == 1000, "Visible mode must not mutate startingBalance"
+    assert result['historyCount'] == 1
+    entry = result['entry']
+    assert entry['previousBalance'] == 1000
+    assert entry['statementBalance'] == 1250.50
+    assert entry['difference'] == 250.50
+
+
+@pytest.mark.feature
+def test_apply_reconciliation_defaults_to_visible_mode_when_no_setting_present(app_page):
+    """If app.settings has no reconciliationAdjustsBalance entry at all
+    (e.g. an existing user who predates this feature), the default is
+    visible-only: no balance mutation."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7001, name: 'Recon Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app.settings = [];
+        app._reconciliationAccountFilter = 'all';
+    }""")
+
+    result = page.evaluate("""() => {
+        const app = window.app;
+        app.applyReconciliation(7001, 1500, '', '2026-06-10');
+        return { balance: app.accounts[0].startingBalance };
+    }""")
+
+    assert result['balance'] == 1000
 
 
 @pytest.mark.feature
@@ -248,11 +306,12 @@ def test_clear_all_data_resets_reconciliations(app_page):
         app._reconciliationAccountFilter = '7001';
         const mod = await import('/src/storage.js');
         mod.clearAllData(app, {});
-        return { historyCount: app.reconciliations.length, filter: app._reconciliationAccountFilter };
+        return { historyCount: app.reconciliations.length, filter: app._reconciliationAccountFilter, settings: app.settings };
     }""")
 
     assert result['historyCount'] == 0
     assert result['filter'] == 'all'
+    assert result['settings'] == []
 
 
 @pytest.mark.feature
