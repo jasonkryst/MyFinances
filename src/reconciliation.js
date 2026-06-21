@@ -3,6 +3,7 @@
 
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO } from './utils.js';
 import { getLedgerTransactionsForMonth, renderLedgerPage } from './ledger.js';
+import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 
 const TYPE_ICON = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -31,6 +32,7 @@ export function getExpectedTransactionsInRange(app, accountId, startDate, endDat
     while (year < endYear || (year === endYear && month <= endMonth)) {
         const monthTxs = getLedgerTransactionsForMonth(app, year, month, accountId);
         for (const tx of monthTxs) {
+            if (tx.type === 'reconciliation') continue;
             const txDate = new Date(tx.date);
             if (txDate >= start && txDate <= end) {
                 results.push(tx);
@@ -58,7 +60,10 @@ export function applyReconciliation(app, accountId, statementBalance, note, date
     if (!account) return { success: false };
 
     const previousBalance = account.startingBalance;
-    account.startingBalance = balance;
+    const adjustsBalance = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
+    if (adjustsBalance) {
+        account.startingBalance = balance;
+    }
 
     const entry = {
         id: Date.now(),

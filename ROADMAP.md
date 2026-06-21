@@ -1,8 +1,35 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 20, 2026  
-**Current Version**: v3.9.0  
+**Last Updated**: June 21, 2026  
+**Current Version**: v4.0.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
+
+---
+
+## ✅ Ledger Table Scroll + Reports Calendar Tap-to-Open-Modal (June 21, 2026)
+
+The Ledger table is now wrapped in the same horizontal-scroll `.table-wrapper` pattern
+used by the Payment Plan Schedule table, so no column gets cut off at narrower widths.
+The Reports Calendar's day cells no longer cram full event chips into each cell — they
+now show a day number plus small colored dot indicators (one per event type) and an
+event count, and clicking or tapping a day (or pressing Enter/Space when it's focused)
+opens a `#calendarDayModal` dialog with the full event list (icon, name, amount per
+event). This applies uniformly at every screen width, not just mobile. See
+`src/reports.js` (`renderReportsCalendar`, `openCalendarDayModal`), the new
+`#calendarDayModal` markup in `index.html`, and the `.rpt-cal-dot`/`.rpt-cal-modal-*`
+styles in `styles.css`.
+
+## ✅ Reconciliations on the Ledger + Reconciliation Mode Setting (v4.0.0, June 21, 2026)
+
+Reconciliations now appear as marker rows on the unified Ledger for transparency, and a
+new generic, extensible `app.settings` array (storage format bumped to `4.0.0`) backs a
+global reconciliation mode: **Adjust balance** (a reconciliation becomes the account's new
+true balance going forward — today's existing behavior) or **Visible only** (the
+reconciliation is recorded and shown on the ledger but never mutates `startingBalance`).
+A first-run setup wizard asks new users to choose once; existing users default silently
+to visible-only and can change the mode any time via the new Settings modal (gear icon
+or command palette). See `src/settings.js`, `src/setupWizard.js`, and the ledger/
+reconciliation changes in `src/ledger.js` / `src/reconciliation.js`.
 
 ---
 

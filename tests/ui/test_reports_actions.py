@@ -1,10 +1,87 @@
 #!/usr/bin/env python3
 """
 Reports Page Action Tests
-Tests the Net Worth "Capture Snapshot Now" button.
+Tests the Net Worth "Capture Snapshot Now" button, and the Reports Calendar
+day-detail modal (compact dot indicators + click/keyboard-triggered modal).
 """
 
 import pytest
+
+
+def _seed_calendar_day(page):
+    """Seed a single income event landing on the 5th of the current report month."""
+    page.evaluate("""() => {
+        const app = window.app;
+        const rptDate = new Date();
+        const isoDay = String(5).padStart(2, '0');
+        const isoMonth = String(rptDate.getMonth() + 1).padStart(2, '0');
+        app.accounts = [{ id: 9201, name: 'Cal Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{
+            id: 9202, name: 'Cal Paycheck', amount: 1500, accountId: 9201,
+            frequency: 'monthly', firstDate: `${rptDate.getFullYear()}-${isoMonth}-${isoDay}`
+        }];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.monthlySnapshots = [];
+        app.switchPage('reports');
+    }""")
+    page.wait_for_timeout(300)
+
+
+@pytest.mark.ui
+def test_calendar_day_with_events_is_clickable_and_shows_dots(app_page):
+    """A day with events renders compact dot indicators and is keyboard/click reachable."""
+    page = app_page
+    _seed_calendar_day(page)
+
+    cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    assert cell, "Expected at least one day cell with events"
+    assert cell.get_attribute('role') == 'button'
+    assert cell.get_attribute('tabindex') == '0'
+    dots = cell.query_selector_all('.rpt-cal-dot')
+    assert len(dots) >= 1, "Day cell should render at least one compact event dot"
+
+    # The old inline per-event chip markup should no longer be rendered in the cell itself.
+    assert cell.query_selector('.rpt-cal-evt') is None
+
+
+@pytest.mark.ui
+def test_calendar_day_click_opens_modal_with_full_event_details(app_page):
+    """Clicking a day cell with events opens the day-detail modal showing the full event list."""
+    page = app_page
+    _seed_calendar_day(page)
+
+    cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    cell.click()
+    page.wait_for_timeout(200)
+
+    modal = page.query_selector('#calendarDayModal')
+    assert modal
+    assert 'flex-visible' in (modal.get_attribute('class') or '')
+
+    body_text = page.query_selector('#calendarDayModalBody').text_content()
+    assert 'Cal Paycheck' in body_text
+    assert '$1,500.00' in body_text
+
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(200)
+    modal = page.query_selector('#calendarDayModal')
+    assert 'hidden' in (modal.get_attribute('class') or '')
+
+
+@pytest.mark.ui
+def test_calendar_day_keyboard_enter_opens_modal(app_page):
+    """Enter/Space on a focused day cell opens the modal (keyboard parity with click)."""
+    page = app_page
+    _seed_calendar_day(page)
+
+    cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    cell.focus()
+    page.keyboard.press('Enter')
+    page.wait_for_timeout(200)
+
+    modal = page.query_selector('#calendarDayModal')
+    assert 'flex-visible' in (modal.get_attribute('class') or '')
 
 
 @pytest.mark.ui

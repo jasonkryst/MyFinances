@@ -10,6 +10,8 @@ This supersedes `SECURITY_AUDIT.md` and `SECURITY_REVIEW.md` (both dated May 29�
 
 > **Resolution update (June 19, 2026, v3.8.0)**: Finding **M1** below has been fixed in `src/income.js` and `src/debts.js` (validate the raw input string before clamping, matching the existing `bills.js`/`recurring.js` pattern), with regression tests added for all 5 call sites — see [`ROADMAP.md`](../../../ROADMAP.md) Tier 0. The findings text below is left unmodified as the historical record of the audit; see ROADMAP.md for current remediation status.
 
+> **Update (June 21, 2026, v4.0.0)**: Storage format moved to `4.0.0` with a new generic `app.settings` array (`src/settings.js`), backing a reconciliation-mode setting and a first-run setup wizard. The array is sanitized on load/import via a new `sanitizeSetting()` in `src/storage.js`: keys are run through `normalizeText(key, 60)` and dropped if empty after stripping `<>"\``/control characters; values are kept only if `boolean`, `number`, or a `normalizeText`-cleaned/length-capped string — objects, arrays, and functions are dropped entirely. New adversarial coverage: `tests/security/test_input_validation.py::test_sanitize_setting_rejects_xss_and_object_values`, `tests/security/test_xss.py::test_xss_in_reconciliation_ledger_row_account_name`. No new injection surface introduced — same `escapeHtml()`-at-render-site pattern is followed for the new reconciliation ledger marker rows.
+
 ---
 
 ## Executive Summary

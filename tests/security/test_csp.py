@@ -25,6 +25,13 @@ def test_csp_compliance(page):
     page.on("console", handle_console_msg)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
 
+    # Dismiss the first-run setup wizard (true first run on a bare `page`)
+    # before clicking nav buttons, otherwise the modal overlay intercepts clicks.
+    wizard = page.query_selector('#setupWizardModal.flex-visible')
+    if wizard:
+        page.click('#setupWizardVisibleBtn')
+        page.wait_for_timeout(200)
+
     # Trigger all page sections so dynamic rendering runs
     for nav in ["accounts", "income", "liabilities", "savings", "strategy", "reports"]:
         page.click(f'button[data-page="{nav}"]')

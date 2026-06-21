@@ -93,8 +93,10 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 ### Account Reconciliation (NEW)
 - **Reconcile Tab** — Compare an account's tracked balance against a real bank/card statement balance
 - **Expected Transactions** — Lists ledger-derived transactions expected in the statement period so discrepancies are easy to trace
-- **Adjustment Log** — Each reconciliation records previous balance, statement balance, difference, and an optional note, and adjusts the account's `startingBalance` going forward
-- **Export/Import Ready** — Reconciliation history (`app.reconciliations`) round-trips through JSON backup
+- **Adjustment Log** — Each reconciliation records previous balance, statement balance, difference, and an optional note
+- **Reconciliation Mode (NEW)** — A global setting (changeable any time via the Settings modal — gear icon or command palette) controls whether a reconciliation **adjusts** the account's `startingBalance` going forward, or is **visible only** on the ledger without changing the tracked balance. A first-run setup wizard asks new users to choose once; existing users default to visible-only.
+- **Reconciliations on the Ledger (NEW)** — Every reconciliation appears as a marker row on the unified Ledger, showing the previous → statement balance and the difference, for full transparency regardless of mode
+- **Export/Import Ready** — Reconciliation history (`app.reconciliations`) and the settings array (`app.settings`) round-trip through JSON backup
 
 ### CSP-Compliant CSS Architecture (ENHANCED May 31, 2026)
 - **No Unsafe-Inline CSS** — All styles extracted to `styles.css`
@@ -416,7 +418,7 @@ src/
 - **Link to accounts** — assign income sources, one-time entries (bonuses/deposits), debts, recurring templates, and expense budgets to specific accounts
 - **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, recurring transactions, and expenses for the current month, including any ledger amount overrides
 - **Money Flow report** — the Reports › Money Flow tab includes a per-account balance table alongside the cumulative cash-flow chart
-- **Export / Import** — accounts are included in the JSON backup (version 3.0 format)
+- **Export / Import** — accounts are included in the JSON backup (version 4.0.0 format)
 
 ### Income Tracking
 - **Add income sources** — name, amount per paycheck, first pay date, and frequency (bi-weekly or monthly)
@@ -480,6 +482,7 @@ src/
 
 ### Calendar & Reports
 - **Month-by-month calendar** — paginated calendar with income paydays, recurring template occurrences, expenses, debt payments, and bonuses pinned to their dates
+- **Tap-to-open day detail (NEW)** — day cells stay compact (a count of small colored dots, one per event type) at every screen width; click/tap a day, or focus it and press Enter/Space, to open a modal with the full event list (icon, name, amount)
 - **Reports sections** — Income vs. Expenses chart showing income, recurring costs, and debt minimums; Money Flow chart tracking cumulative income/outflow/net day-by-day through the month; Variance Dashboard comparing this month vs last month with clear deltas for income, expenses, recurring costs, and debt; account balance projections for each account
 - **Recurring integration** — all recurring template transactions are fully integrated into calendar events, income vs. expenses breakdown, and money flow calculations
 - **Variance Dashboard** — "What Changed" tab comparing current month vs previous month with color-coded deltas for income, expenses, recurring costs, debt minimums, and net available funds; quickly identify spending patterns and budget trends
@@ -612,7 +615,7 @@ The **⬇ Export** and **⬆ Import** buttons sit in the top-right corner of eve
 
 ```json
 {
-  "version": "3.0",
+  "version": "4.0.0",
   "exportedAt": "2026-05-26T12:00:00.000Z",
   "accounts": [ { "id": 1, "name": "Chase Checking", "type": "Checking", "startingBalance": 2500 } ],
   "debts":    [ { "id": 1, "name": "Visa", "accountBalance": 4200, "accountId": 1, ... } ],

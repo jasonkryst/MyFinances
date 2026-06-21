@@ -93,6 +93,8 @@ import {
     getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
     openReconcileModal as openReconcileModalFeature
 } from './reconciliation.js';
+import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
+import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -115,6 +117,7 @@ export class DebtTrackerApp {
         this.monthlySnapshots = [];
         this.netWorthMilestonesAwarded = [];
         this.reconciliations = [];
+        this.settings = [];
         this.ledgerAmountOverrides = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
@@ -143,11 +146,15 @@ export class DebtTrackerApp {
             Chart.defaults.transitions.active.animation.duration = 0;
         }
 
+        const isFirstRun = localStorage.getItem(this.storageKey) === null;
+
         this.initializeEventListeners();
         this.loadFromStorage();
         const versionEl = document.getElementById('appVersion');
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
     this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
+    initSettingsModalFeature(this);
+    maybeShowSetupWizardFeature(this, isFirstRun);
 
         if (this.accounts.length > 0 && this.incomes.length > 0) {
             const firstAccountId = this.accounts[0].id;
@@ -797,6 +804,9 @@ export class DebtTrackerApp {
     deleteReconciliationEntry(id) { return deleteReconciliationEntryFeature(this, id); }
     getExpectedTransactionsInRange(accountId, startDate, endDate) { return getExpectedTransactionsInRangeFeature(this, accountId, startDate, endDate); }
     openReconcileModal(accountId) { return openReconcileModalFeature(this, accountId); }
+
+    getSetting(key, defaultValue) { return getSettingFeature(this, key, defaultValue); }
+    setSetting(key, value) { return setSettingFeature(this, key, value); }
 
     switchLiabilitiesSubTab(subTab) {
         this.liabilitiesSubTab = subTab;

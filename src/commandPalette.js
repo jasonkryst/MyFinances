@@ -47,6 +47,12 @@ function buildCommands(app) {
                 app.switchPage('strategy');
                 app.calculatePaymentPlanFromInputs();
             }
+        },
+        {
+            label: 'Settings',
+            hint: 'Action',
+            icon: '⚙️',
+            run: () => document.getElementById('settingsBtn')?.click()
         }
     ];
 }

@@ -31,6 +31,8 @@
                     <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
                     <button id="themeSwitcher" class="header-icon-btn" aria-label="Toggle dark mode">🌙</button>
+                    <div class="header-toolbar-divider"></div>
+                    <button id="settingsBtn" class="header-icon-btn" title="Settings" aria-label="Open settings">⚙️</button>
                     <a id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>
                 </div>
             </div>
@@ -896,6 +898,48 @@
                 <button id="reconcileModalConfirmBtn" class="btn btn-success">Reconcile</button>
                 <button id="reconcileModalCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>
+        </div>
+    </div>
+    <!-- Settings -->
+    <div id="settingsModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="settingsModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="settingsModalTitle">Settings</h3>
+            <div class="form-group modal-form-group">
+                <label class="settings-toggle-row" for="settingReconciliationAdjusts">
+                    <input type="checkbox" id="settingReconciliationAdjusts">
+                    <span>Reconciliations adjust the tracked balance</span>
+                </label>
+                <p class="modal-helper-text">When on, reconciling an account replaces its tracked balance with the statement balance you enter. When off, reconciliations are recorded and shown on the Ledger for transparency, but the tracked balance keeps being computed from your transactions.</p>
+            </div>
+            <div class="modal-actions">
+                <button id="settingsModalDoneBtn" class="btn btn-success">Done</button>
+            </div>
+        </div>
+    </div>
+    <!-- First-run setup -->
+    <div id="setupWizardModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="setupWizardTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="setupWizardTitle">Welcome to MyFinances</h3>
+            <p class="modal-description">Before you get started, choose how account reconciliations should behave. You can change this later from Settings.</p>
+            <div class="setup-wizard-choices">
+                <button type="button" id="setupWizardAdjustBtn" class="setup-wizard-choice">
+                    <strong>Adjust the balance</strong>
+                    <span>A reconciliation becomes the new true balance as of that date.</span>
+                </button>
+                <button type="button" id="setupWizardVisibleBtn" class="setup-wizard-choice">
+                    <strong>Visible only</strong>
+                    <span>A reconciliation is recorded and shown on the Ledger, but never changes your tracked balance.</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Reports Calendar day detail -->
+    <div id="calendarDayModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="calendarDayModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="calendarDayModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="calendarDayModalTitle"></h3>
+            <div id="calendarDayModalBody" class="rpt-cal-modal-body"></div>
         </div>
     </div>
     <!-- Command Palette / Quick Jump (Ctrl+K) -->

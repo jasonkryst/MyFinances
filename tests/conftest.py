@@ -47,9 +47,24 @@ def page(browser) -> Page:
     page.close()
 
 
+# Seeds localStorage with an already-onboarded, empty-but-valid state before
+# any page script runs, so the first-run setup wizard (shown only when
+# localStorage has no debtTrackerData key at all) doesn't pop up and block
+# interaction in every other test. Tests that specifically want to exercise
+# first-run/onboarding behavior should clear storage themselves and reload.
+SKIP_FIRST_RUN_WIZARD_SCRIPT = """
+    try {
+        if (!localStorage.getItem('debtTrackerData')) {
+            localStorage.setItem('debtTrackerData', JSON.stringify({ accounts: [], debts: [], settings: [] }));
+        }
+    } catch (e) {}
+"""
+
+
 @pytest.fixture
 def app_page(page) -> Page:
     """Navigate to the app and return ready page."""
+    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     return page
 
@@ -91,6 +106,7 @@ async def async_page(async_browser):
 @pytest.fixture
 async def async_app_page(async_page):
     """Navigate to app and return ready async page."""
+    await async_page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
     await async_page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     return async_page
 

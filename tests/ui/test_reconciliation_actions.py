@@ -21,6 +21,7 @@ def _seed_reconciliation_account(page, with_bill=False):
         app.incomes = []; app.bonuses = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
+        app.settings = [{{ key: 'reconciliationAdjustsBalance', value: true }}];
         app._reconciliationAccountFilter = 'all';
         app.switchPage('reconcile');
     }}""")
@@ -185,6 +186,7 @@ def test_ledger_reconcile_button_and_modal(app_page):
         app.incomes = []; app.bonuses = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
         app.switchPage('ledger');
     }""")
     page.wait_for_timeout(300)
@@ -232,6 +234,7 @@ def test_reconcile_modal_escape_and_enter(app_page):
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
         app.openReconcileModal(8004);
     }""")
     page.wait_for_timeout(300)

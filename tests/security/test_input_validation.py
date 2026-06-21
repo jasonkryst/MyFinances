@@ -377,6 +377,7 @@ async def test_reconciliation_accepts_negative_balance(async_app_page):
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
         const res = app.applyReconciliation(7502, -650.25, '', '2026-06-10');
         return {
             success: res.success,
@@ -465,3 +466,34 @@ async def test_sanitize_recurring_template_paid_months(async_app_page):
     }""")
 
     assert result['paidMonths'] == ['2026-06'], f"Expected only '2026-06' to survive sanitization, got {result['paidMonths']}"
+
+
+@pytest.mark.security
+async def test_sanitize_setting_rejects_xss_and_object_values(async_app_page):
+    """sanitizeSetting (via save/reload) escapes/truncates string values via
+    normalizeText, and drops entries whose value is an object/array/function
+    rather than a boolean, number, or string."""
+    page = async_app_page
+
+    result = await page.evaluate("""() => {
+        const app = window.app;
+        app.settings = [
+            { key: 'xssString', value: '<script>alert(1)</script>' },
+            { key: 'objectValue', value: { evil: true } },
+            { key: 'arrayValue', value: [1, 2, 3] },
+            { key: 'boolValue', value: true },
+            { key: '<img src=x onerror=alert(1)>', value: 'attempted key xss' }
+        ];
+        app.saveToStorage();
+        app.loadFromStorage();
+        return app.settings;
+    }""")
+
+    by_key = {s['key']: s for s in result}
+    assert 'objectValue' not in by_key, "Object values must be dropped"
+    assert 'arrayValue' not in by_key, "Array values must be dropped"
+    assert by_key['boolValue']['value'] is True
+    assert '<' not in by_key['xssString']['value'] and '>' not in by_key['xssString']['value'], (
+        "normalizeText should strip angle brackets from string setting values"
+    )
+    assert all('<' not in k and '>' not in k for k in by_key), "normalizeText should strip angle brackets from setting keys too"

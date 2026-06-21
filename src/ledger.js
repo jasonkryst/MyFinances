@@ -55,7 +55,8 @@ function toLedgerTxOutput(app, tx) {
         category: tx.category,
         sourceId: tx.sourceId,
         transactionId: tx.transactionId,
-        isRollover: tx.type === 'rollover'
+        isRollover: tx.type === 'rollover',
+        meta: tx.meta || null
     };
 }
 
@@ -261,6 +262,36 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
         }
     }
 
+    // Reconciliation entries are recorded against real calendar dates rather
+    // than generated per projected month, so they're folded in separately
+    // here and only kept if their date falls inside the projected window.
+    const windowMonths = new Set();
+    for (let m = 0; m < monthsToProject; m++) {
+        const y = startYear + Math.floor((startMonth + m) / 12);
+        const mo = (startMonth + m) % 12;
+        windowMonths.add(`${y}-${mo}`);
+    }
+    for (const recon of app.reconciliations || []) {
+        if (!recon.accountId || !accountMap[recon.accountId]) continue;
+        const reconDate = new Date(`${recon.date}T00:00:00`);
+        if (!windowMonths.has(`${reconDate.getFullYear()}-${reconDate.getMonth()}`)) continue;
+        accountMap[recon.accountId].txs.push({
+            date: reconDate,
+            name: 'Balance Reconciliation',
+            originalAmount: 0,
+            type: 'reconciliation',
+            sourceId: recon.id,
+            category: 'Reconciliation',
+            transactionId: null,
+            meta: {
+                previousBalance: recon.previousBalance,
+                statementBalance: recon.statementBalance,
+                difference: recon.difference,
+                note: recon.note
+            }
+        });
+    }
+
     for (const acctId in accountMap) {
         accountMap[acctId].txs.sort((a, b) => a.date - b.date);
     }
@@ -410,7 +441,8 @@ export function getLedgerTransactions(app) {
                 type: tx.type,
                 category: tx.category,
                 sourceId: tx.sourceId,
-                transactionId: tx.transactionId
+                transactionId: tx.transactionId,
+                meta: tx.meta || null
             });
             lastMonth = txMonth;
         }
@@ -617,7 +649,7 @@ export function renderLedgerPage(app) {
         return app._ledgerSortDir === 'asc' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
     };
     let html = filterHtml;
-    html += `<table class="ledger-table">
+    html += `<div class="table-wrapper"><table class="ledger-table">
         <thead><tr>
             <th data-key="date">Date ${sortIcon('date')}</th>
             <th data-key="account">Account ${sortIcon('account')}</th>
@@ -630,24 +662,33 @@ export function renderLedgerPage(app) {
         html += `<tr><td colspan="5" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
     } else {
         for (const tx of pagedTransactions) {
-            const canOverride = !tx.isRollover && !!tx.transactionId;
-            const amountColorClass = tx.amount < 0 ? 'text-expense' : 'text-income';
-            const amountCell = tx.hasOverride
-                ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
-                : `<span>${formatCurrency(tx.amount)}</span>`;
+            const isReconciliation = tx.type === 'reconciliation';
+            const canOverride = !tx.isRollover && !isReconciliation && !!tx.transactionId;
+            const amountColorClass = isReconciliation ? '' : (tx.amount < 0 ? 'text-expense' : 'text-income');
+            const reconDiffClass = isReconciliation && tx.meta
+                ? (tx.meta.difference > 0 ? 'recon-diff--pos' : tx.meta.difference < 0 ? 'recon-diff--neg' : 'recon-diff--zero')
+                : '';
+            const amountCell = isReconciliation
+                ? `<span class="ledger-recon-diff ${reconDiffClass}">${tx.meta ? formatCurrency(tx.meta.difference) : formatCurrency(tx.amount)}</span>`
+                : tx.hasOverride
+                    ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
+                    : `<span>${formatCurrency(tx.amount)}</span>`;
+            const nameCell = isReconciliation && tx.meta
+                ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>`
+                : escapeHtml(tx.name || '');
             const overrideActions = canOverride
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit override' : 'Override'}</button>${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
                 : '';
-            html += `<tr>
+            html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
                 <td>${tx.date ? _formatLedgerDate(tx.date) : ''}</td>
                 <td>${escapeHtml(tx.account || '')}</td>
-                <td>${escapeHtml(tx.name || '')}</td>
+                <td>${nameCell}</td>
                 <td class="text-right ${amountColorClass}">${amountCell}${overrideActions}</td>
                 <td class="text-right">${formatCurrency(tx.balance)}</td>
             </tr>`;
         }
     }
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
     html += `<div class="ledger-pagination">
         <div class="ledger-page-summary">Showing ${startItem}-${endItem} of ${totalRows}</div>
         <div class="ledger-page-controls">
