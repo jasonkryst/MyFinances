@@ -203,3 +203,34 @@ def test_cashflow_donut_chart_has_png_export_button(app_page, account_data, inco
     # Check for the donut chart export button
     btn = page.query_selector('#cashflowDonutChart-export-btn')
     assert btn, "Expected a PNG export button next to the cash flow donut chart"
+
+
+@pytest.mark.ui
+def test_reports_income_chart_has_png_export_button(app_page, account_data, income_data):
+    """The Reports > Income vs Expenses panel's income chart has a PNG export button."""
+    page = app_page
+
+    # First create an account (required for income)
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    # Create income
+    page.click('button[data-page="income"]')
+    page.fill('#incomeName', income_data["name"])
+    page.fill('#incomeAmount', income_data["amount"])
+    page.fill('#incomeFirstDate', income_data["first_date"])
+    page.select_option('#incomeFrequency', income_data["frequency"])
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector(f'text={income_data["name"]}', timeout=10000)
+
+    page.click('button[data-page="reports"]')
+    page.click('[data-rptab="incomeexp"]')
+    page.wait_for_timeout(300)
+
+    btn = page.query_selector('#rptIncomeChart-export-btn')
+    assert btn, "Expected a PNG export button next to the Reports income chart"

@@ -4,7 +4,8 @@ import {
     getIncomePaydaysInMonth,
     formatCurrency,
     escapeHtml,
-    renderChartDataTable
+    renderChartDataTable,
+    addChartImageExportButton
 } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledger.js';
 import { renderCashFlowForecast } from './forecast.js';
@@ -344,6 +345,7 @@ export function renderReportsNetWorth(app) {
             columns: ['Month', 'Net Worth', 'Liabilities'],
             rows: labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx])])
         });
+        addChartImageExportButton('rptNetWorthTrendChart', app._rptNetWorthTrendChart, 'net-worth-trend-chart');
     }
 
     const compCanvas = document.getElementById('rptNetWorthCompositionChart');
@@ -370,6 +372,7 @@ export function renderReportsNetWorth(app) {
                 }
             }
         });
+        addChartImageExportButton('rptNetWorthCompositionChart', app._rptNetWorthCompositionChart, 'net-worth-composition-chart');
     }
 }
 
@@ -759,6 +762,7 @@ export function renderReportsIncomeExp(app) {
                     }
                 }
             });
+            addChartImageExportButton('rptIncomeChart', app._rptIncomeChart, 'income-by-source-chart');
         }
     }
 
@@ -786,6 +790,7 @@ export function renderReportsIncomeExp(app) {
                     }
                 }
             });
+            addChartImageExportButton('rptOutflowChart', app._rptOutflowChart, 'outflow-by-category-chart');
         }
     }
 }
@@ -917,6 +922,7 @@ export function renderReportsMoneyFlow(app) {
             }
         }]
     });
+    addChartImageExportButton('rptMoneyFlowChart', app._rptMoneyFlowChart, 'money-flow-chart');
 }
 
 export function renderReportsVariance(app) {
