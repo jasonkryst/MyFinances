@@ -5548,3 +5548,24 @@ body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
     .spending-hero-row    { grid-template-columns: 1fr; }
     .spending-pie-wrap    { height: 220px; }
 }
+
+/* ── Chart PNG export ───────────────────────────────────────────────────── */
+.chart-export-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 6px;
+}
+.chart-export-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.chart-export-btn:hover {
+    color: var(--text-color);
+    border-color: var(--primary-color);
+}

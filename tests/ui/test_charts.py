@@ -143,3 +143,26 @@ def test_forecast_chart_survives_repeated_rerender(app_page, account_data):
             "() => !!Chart.getChart(document.getElementById('cfForecastChart'))"
         )
         assert chart_attached, "Expected exactly one live Chart.js instance attached to #cfForecastChart"
+
+
+@pytest.mark.ui
+def test_balance_chart_has_png_export_button(app_page, debt_data):
+    """The debt balance chart on the Strategy page shows a PNG export
+    button that triggers a download when clicked."""
+    page = app_page
+    _calculate_plan(page, debt_data)
+
+    # Navigate to the chart tab to render the balance chart
+    page.click('[data-rtab="schedule"]')
+    page.wait_for_timeout(150)
+    page.click('button[data-tab="chart"]')
+    page.wait_for_timeout(300)
+
+    btn = page.query_selector('#balanceChart-export-btn')
+    assert btn, "Expected a PNG export button next to the balance chart"
+    assert btn.get_attribute('aria-label')
+
+    with page.expect_download() as download_info:
+        btn.click()
+    download = download_info.value
+    assert download.suggested_filename.endswith('.png')

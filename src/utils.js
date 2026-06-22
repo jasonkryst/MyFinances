@@ -90,6 +90,37 @@ export function renderChartDataTable(canvasId, { caption, columns, rows }) {
     `);
 }
 
+// Insert a small "download as PNG" button above a Chart.js canvas. Idempotent
+// across re-renders: removes any toolbar it previously inserted for this canvas.
+export function addChartImageExportButton(canvasId, chart, filename) {
+    const canvas = document.getElementById(canvasId);
+    const host = canvas ? canvas.parentElement : null;
+    if (!host || !chart) return;
+
+    const btnId = `${canvasId}-export-btn`;
+    const existingBtn = document.getElementById(btnId);
+    if (existingBtn) {
+        const toolbar = existingBtn.closest('.chart-export-toolbar');
+        if (toolbar) toolbar.remove();
+    }
+
+    host.insertAdjacentHTML('afterbegin', `
+        <div class="chart-export-toolbar">
+            <button type="button" class="chart-export-btn" id="${btnId}" aria-label="Download chart as PNG image">⬇️ PNG</button>
+        </div>
+    `);
+
+    document.getElementById(btnId).addEventListener('click', () => {
+        const url = chart.toBase64Image('image/png', 1);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}-${new Date().toISOString().split('T')[0]}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+}
+
 export function getDayOrdinal(day) {
     const j = day % 10;
     const k = day % 100;
