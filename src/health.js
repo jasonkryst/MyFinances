@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml, renderChartDataTable, addChartImageExportButton } from './utils.js';
 
 function dtiStatus(ratio) {
     if (ratio < 0.28) return { cls: 'health-status--green', label: 'Healthy' };
@@ -394,4 +394,5 @@ function renderGauge(app, chartKey, canvasId, pct, statusCls, bgColor) {
             }
         }
     });
+    addChartImageExportButton(canvasId, app[chartKey], canvasId);
 }

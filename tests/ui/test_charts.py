@@ -234,3 +234,21 @@ def test_reports_income_chart_has_png_export_button(app_page, account_data, inco
 
     btn = page.query_selector('#rptIncomeChart-export-btn')
     assert btn, "Expected a PNG export button next to the Reports income chart"
+
+
+@pytest.mark.ui
+def test_health_dti_gauge_has_png_export_button(app_page, health_data):
+    """The Health dashboard's Debt-to-Income gauge has a PNG export button."""
+    page = app_page
+    page.evaluate("""(data) => {
+        const app = window.app;
+        app.incomes = [data.income];
+        app.debts = [data.debt];
+        app.bills = [data.bill];
+        app.accounts = [];
+        app.switchPage('health');
+    }""", health_data)
+    page.wait_for_timeout(300)
+
+    btn = page.query_selector('#healthDtiGauge-export-btn')
+    assert btn, "Expected a PNG export button next to the DTI gauge"
