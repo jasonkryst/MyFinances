@@ -7,7 +7,7 @@ so re-rendering a page never throws "Canvas is already in use" or leaks chart in
 
 import pytest
 
-from tests.conftest import create_debt, assert_no_errors
+from tests.conftest import create_debt, create_income, assert_no_errors
 
 
 def _calculate_plan(page, debt_data):
@@ -166,3 +166,40 @@ def test_balance_chart_has_png_export_button(app_page, debt_data):
         btn.click()
     download = download_info.value
     assert download.suggested_filename.endswith('.png')
+
+
+@pytest.mark.ui
+def test_cashflow_donut_chart_has_png_export_button(app_page, account_data, income_data):
+    """The Budget page's cash flow donut chart has a PNG export button."""
+    page = app_page
+
+    # First create an account (required for income)
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    # Create income
+    page.click('button[data-page="income"]')
+    page.fill('#incomeName', income_data["name"])
+    page.fill('#incomeAmount', income_data["amount"])
+    page.fill('#incomeFirstDate', income_data["first_date"])
+    page.select_option('#incomeFrequency', income_data["frequency"])
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector(f'text={income_data["name"]}', timeout=10000)
+
+    # Navigate to the Expenses tab to see the cash flow summary and charts
+    page.click('button[data-page="liabilities"]')
+    page.click('button[data-liabilities-subtab="expenses"]')
+    page.wait_for_timeout(300)
+    charts_tab = page.query_selector('.cashflow-tab[data-tab="charts"]')
+    if charts_tab:
+        charts_tab.click()
+        page.wait_for_timeout(300)
+
+    # Check for the donut chart export button
+    btn = page.query_selector('#cashflowDonutChart-export-btn')
+    assert btn, "Expected a PNG export button next to the cash flow donut chart"
