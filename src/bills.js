@@ -1,5 +1,5 @@
 // Bills and expenses
-import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, addChartImageExportButton } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 
 
 // Render the full Budget page: bill cards, expense cards, cashflow summary.
@@ -333,7 +333,6 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                 }
             }
         });
-        addChartImageExportButton('cashflowDonutChart', app._cashflowDonutChart, 'cashflow-breakdown-chart');
     }
 
     const barCanvas = document.getElementById('cashflowBarChart');
@@ -375,7 +374,6 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                 }
             }
         });
-        addChartImageExportButton('cashflowBarChart', app._cashflowBarChart, 'cashflow-by-category-chart');
     }
 }
 

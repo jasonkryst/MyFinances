@@ -545,7 +545,7 @@ Domain-specific tools for advanced users.
 - ✅ CSV export with custom columns — column-picker modal on the Ledger page (`#ledgerExportCsvBtn`), exports the currently filtered/sorted view.
 - ✅ Monthly/yearly summary reports — new "Summary" tab on the Reports page with a Monthly/Yearly toggle.
 - ✅ PDF report generation — "Print / Save as PDF" button on the Reports page, using the browser's native print-to-PDF (no new dependency).
-- ✅ Chart export as images — every Chart.js canvas app-wide now has a PNG download button (`chart.toBase64Image()`).
+- ❌ Chart export as images — removed post-launch per UI/UX feedback (per-chart PNG buttons cluttered the chart views).
 
 ---
 

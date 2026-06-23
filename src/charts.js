@@ -1,5 +1,5 @@
 // Charts and visualizations
-import { computeMonthlyIncomeForMonth, addChartImageExportButton } from './utils.js';
+import { computeMonthlyIncomeForMonth } from './utils.js';
 
 export function renderBalanceChart(app) {
     if (!app.lastPaymentPlan) return;
@@ -73,7 +73,6 @@ export function renderBalanceChart(app) {
             }
         }
     });
-    addChartImageExportButton('balanceChart', app.balanceChart, 'debt-balance-chart');
 }
 
 export function renderPieChart(app) {
@@ -112,7 +111,6 @@ export function renderPieChart(app) {
             }
         }
     });
-    addChartImageExportButton('pieChart', app.pieChart, 'principal-vs-interest-chart');
 }
 
 export function renderProgressChart(app) {
@@ -239,7 +237,6 @@ export function renderProgressChart(app) {
             }
         }
     });
-    addChartImageExportButton('progressChart', app.progressChart, 'payoff-progress-chart');
 }
 
 export function renderDebtDistributionChart(app) {
@@ -303,7 +300,6 @@ export function renderDebtDistributionChart(app) {
             }
         }
     });
-    addChartImageExportButton('debtDistributionChart', app.debtDistributionChart, 'debt-distribution-chart');
 }
 
 export function renderDebtToIncomeChart(app) {
@@ -363,5 +359,4 @@ export function renderDebtToIncomeChart(app) {
             }
         }
     });
-    addChartImageExportButton('debtToIncomeChart', app.debtToIncomeChart, 'debt-to-income-chart');
 }

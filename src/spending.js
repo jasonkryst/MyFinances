@@ -1,5 +1,5 @@
 import { getLedgerTransactionsForMonth } from './ledger.js';
-import { escapeHtml, formatCurrency, renderChartDataTable, addChartImageExportButton } from './utils.js';
+import { escapeHtml, formatCurrency, renderChartDataTable } from './utils.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -209,7 +209,6 @@ export function renderReportsSpending(app) {
             }
         });
 
-        addChartImageExportButton('rptSpendingPieChart', app._rptSpendingPieChart, 'spending-by-category-chart');
 
         renderChartDataTable('rptSpendingPieChart', {
             caption: `Spending by category — ${monthLabel}`,
@@ -257,7 +256,6 @@ export function renderReportsSpending(app) {
             }
         });
 
-        addChartImageExportButton('rptSpendingBarChart', app._rptSpendingBarChart, 'spending-trend-chart');
 
         renderChartDataTable('rptSpendingBarChart', {
             caption: '6-month spending trend by category',
