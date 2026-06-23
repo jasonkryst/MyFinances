@@ -541,12 +541,66 @@ function openLedgerOverrideModal(app, tx) {
     setTimeout(() => input.focus(), 30);
 }
 
+// Filter (account + date-range) and sort the ledger transaction list, reading
+// the same app._ledgerAccountFilter / app._ledgerDateRange / app._ledgerSortKey /
+// app._ledgerSortDir state renderLedgerPage uses. No pagination is applied here;
+// callers slice the page window themselves.
+export function getFilteredSortedLedgerTransactions(app) {
+    let transactions = getLedgerTransactions(app);
+    const selectedAccount = app._ledgerAccountFilter || 'all';
+    const selectedDateRange = app._ledgerDateRange || '30';
+
+    if (selectedAccount !== 'all') {
+        transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (selectedDateRange !== 'all') {
+        transactions = transactions.filter(tx => {
+            const txDate = new Date(tx.date);
+            const txDateOnly = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+            if (selectedDateRange === 'past') {
+                return txDateOnly <= todayStart;
+            } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
+                const days = parseInt(selectedDateRange, 10);
+                const futureLimit = new Date(todayStart.getTime() + days * 24 * 60 * 60 * 1000);
+                return txDateOnly >= todayStart && txDateOnly < futureLimit;
+            } else if (selectedDateRange === 'month') {
+                const y = now.getFullYear();
+                const m = now.getMonth();
+                const endOfNextMonth = new Date(y, m + 2, 0, 23, 59, 59, 999);
+                return txDateOnly >= todayStart && txDateOnly <= endOfNextMonth;
+            }
+            return true;
+        });
+    }
+
+    const sortKey = app._ledgerSortKey || 'date';
+    const sortDir = app._ledgerSortDir || 'desc';
+    transactions.sort((a, b) => {
+        let vA = a[sortKey], vB = b[sortKey];
+        if (sortKey === 'amount' || sortKey === 'balance') {
+            vA = Number(vA); vB = Number(vB);
+        } else if (sortKey === 'date') {
+            vA = new Date(vA); vB = new Date(vB);
+        } else {
+            vA = (vA || '').toString().toLowerCase();
+            vB = (vB || '').toString().toLowerCase();
+        }
+        if (vA < vB) return sortDir === 'asc' ? -1 : 1;
+        if (vA > vB) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    return transactions;
+}
+
 // Render the Ledger page
 export function renderLedgerPage(app) {
     // --- Begin: renderLedgerPage logic from app.js ---
     const container = document.getElementById('ledgerTableContainer');
     if (!container) return;
-    let transactions = getLedgerTransactions(app);
     const accounts = app.accounts || [];
     let selectedAccount = app._ledgerAccountFilter || 'all';
     let selectedDateRange = app._ledgerDateRange || '30';
@@ -558,6 +612,7 @@ export function renderLedgerPage(app) {
     if (isNaN(currentPage) || currentPage < 1) {
         currentPage = 1;
     }
+    let transactions = getFilteredSortedLedgerTransactions(app);
     let filterHtml = '';
     filterHtml += `<div class="filter-controls">`;
     if (accounts.length > 0) {
@@ -589,46 +644,6 @@ export function renderLedgerPage(app) {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
     }
     filterHtml += `</div>`;
-    if (selectedAccount !== 'all') {
-        transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
-    }
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (selectedDateRange !== 'all') {
-        transactions = transactions.filter(tx => {
-            const txDate = new Date(tx.date);
-            const txDateOnly = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
-            if (selectedDateRange === 'past') {
-                return txDateOnly <= todayStart;
-            } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
-                const days = parseInt(selectedDateRange, 10);
-                const futureLimit = new Date(todayStart.getTime() + days * 24 * 60 * 60 * 1000);
-                return txDateOnly >= todayStart && txDateOnly < futureLimit;
-            } else if (selectedDateRange === 'month') {
-                const y = now.getFullYear();
-                const m = now.getMonth();
-                const endOfNextMonth = new Date(y, m + 2, 0, 23, 59, 59, 999);
-                return txDateOnly >= todayStart && txDateOnly <= endOfNextMonth;
-            }
-            return true;
-        });
-    }
-    let sortKey = app._ledgerSortKey || 'date';
-    let sortDir = app._ledgerSortDir || 'desc';
-    transactions.sort((a, b) => {
-        let vA = a[sortKey], vB = b[sortKey];
-        if (sortKey === 'amount' || sortKey === 'balance') {
-            vA = Number(vA); vB = Number(vB);
-        } else if (sortKey === 'date') {
-            vA = new Date(vA); vB = new Date(vB);
-        } else {
-            vA = (vA || '').toString().toLowerCase();
-            vB = (vB || '').toString().toLowerCase();
-        }
-        if (vA < vB) return sortDir === 'asc' ? -1 : 1;
-        if (vA > vB) return sortDir === 'asc' ? 1 : -1;
-        return 0;
-    });
 
     const totalRows = transactions.length;
     const totalPages = Math.max(1, Math.ceil(totalRows / selectedPageSize));

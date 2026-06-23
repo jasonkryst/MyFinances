@@ -94,6 +94,7 @@ import {
     getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
     openReconcileModal as openReconcileModalFeature
 } from './reconciliation.js';
+import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledger.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 
@@ -741,6 +742,11 @@ export class DebtTrackerApp {
      */
     computeAccountBalance(accountId, year = null, month = null) {
         return computeAccountBalanceFeature(this, accountId, year, month);
+    }
+
+    /** Return the Ledger page's filtered (account + date-range) and sorted transaction list, unpaginated. */
+    getFilteredSortedLedgerTransactions() {
+        return getFilteredSortedLedgerTransactionsFeature(this);
     }
 
     /** Render the full accounts list on the Accounts page. */

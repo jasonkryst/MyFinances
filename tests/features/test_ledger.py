@@ -55,6 +55,29 @@ def test_ledger_filtering(app_page):
     # Filters should be available if implemented
 
 
+@pytest.mark.feature
+def test_get_filtered_sorted_ledger_transactions_respects_account_filter(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [
+            { id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 },
+            { id: 2, name: 'Savings', type: 'Savings', startingBalance: 500 }
+        ];
+        app.incomes = [
+            { id: 10, name: 'Job A', amount: 1000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' },
+            { id: 11, name: 'Job B', amount: 500, accountId: 2, frequency: 'monthly', firstDate: '2026-06-01' }
+        ];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = []; app._ledgerAccountFilter = '1'; app._ledgerDateRange = 'all';
+        app._ledgerSortKey = 'date'; app._ledgerSortDir = 'desc';
+    }""")
+    txs = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+    assert all(tx['accountId'] == 1 or str(tx['accountId']) == '1' for tx in txs)
+    assert any(tx['name'] == 'Job A' for tx in txs)
+    assert not any(tx['name'] == 'Job B' for tx in txs)
+
+
 def _seed_income_for_ledger(page, name="Override Salary", amount=4000):
     """Create an account, then an income source linked to it, via the UI so
     the ledger has at least one overridable transaction (income paydays
