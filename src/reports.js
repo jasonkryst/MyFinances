@@ -1186,6 +1186,7 @@ export function renderReportsSummary(app) {
     const netWorthSection = metrics.netWorth ? `
         <h4 class="rpt-section-title">Net Worth</h4>
         <table class="nw-history-table">
+            <caption class="sr-only">Net worth details for ${escapeHtml(metrics.periodLabel)}</caption>
             <tbody>
                 <tr><td>Net Worth</td><td class="text-right">${formatCurrency(metrics.netWorth.netWorth)}</td></tr>
                 <tr><td>Total Assets</td><td class="text-right">${formatCurrency(metrics.netWorth.totalAssets)}</td></tr>
@@ -1205,6 +1206,7 @@ export function renderReportsSummary(app) {
         </div>
         <h4 class="rpt-section-title">Cash Flow</h4>
         <table class="nw-history-table">
+            <caption class="sr-only">Cash flow summary for ${escapeHtml(metrics.periodLabel)}</caption>
             <tbody>
                 ${cashFlowRows}
                 <tr class="${netCls}"><td><strong>Net Remaining</strong></td><td class="text-right"><strong>${formatCurrency(cf.net)}</strong></td></tr>
@@ -1212,6 +1214,7 @@ export function renderReportsSummary(app) {
         </table>
         <h4 class="rpt-section-title">Account Balances</h4>
         <table class="nw-history-table">
+            <caption class="sr-only">Account balances for ${escapeHtml(metrics.periodLabel)}</caption>
             <thead><tr><th>Account</th><th>Start</th><th>End</th><th>Change</th></tr></thead>
             <tbody>${accountRows}</tbody>
         </table>

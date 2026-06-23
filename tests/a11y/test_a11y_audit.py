@@ -253,3 +253,19 @@ def test_mobile_nav_toggle_aria_expanded_updates(audit_results):
     assert mobile.get("nav_menu_visible_after_open") is True, (
         "#navMenu should become visible after opening the mobile nav toggle"
     )
+
+
+@pytest.mark.a11y
+def test_summary_report_tables_have_captions(app_page):
+    """Summary Report tables must have a <caption> for screen-reader context,
+    matching the pattern used by the Net Worth history table."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.click('[data-rptab="summary"]')
+    page.wait_for_timeout(200)
+
+    tables = page.query_selector_all('#reportsSummary table')
+    assert len(tables) >= 2, "Expected at least Cash Flow and Account Balances tables"
+    for table in tables:
+        caption = table.query_selector('caption')
+        assert caption is not None, "Each Summary Report table must have a <caption>"
