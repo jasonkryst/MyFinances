@@ -386,7 +386,7 @@ def test_reports_active_tab_aria_selected_true(app_page):
         }
     """)
     assert result['trueCount'] == 1, f"Expected exactly 1 aria-selected=true, got {result['trueCount']}"
-    assert result['falseCount'] == 6, f"Expected 6 aria-selected=false, got {result['falseCount']}"
+    assert result['falseCount'] == 7, f"Expected 7 aria-selected=false, got {result['falseCount']}"
     assert result['activeId'] == 'networth', f"Expected networth to be selected, got {result['activeId']}"
 
 
