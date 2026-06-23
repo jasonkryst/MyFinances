@@ -1,6 +1,7 @@
 // LocalStorage import/export
 
 import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, todayISO } from './utils.js';
+import { getFilteredSortedLedgerTransactions } from './ledger.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
@@ -410,7 +411,7 @@ export function exportAllJSON(app) {
 }
 
 // Quote a CSV field per RFC 4180, doubling any embedded quotes.
-function csvField(value) {
+export function csvField(value) {
     return `"${String(value).replace(/"/g, '""')}"`;
 }
 
@@ -516,6 +517,53 @@ export function exportToCSV(app, options = {}) {
     const a = document.createElement('a');
     a.href = url;
     a.download = `debt-plan-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+const LEDGER_EXPORT_COLUMN_LABELS = {
+    date: 'Date',
+    account: 'Account',
+    name: 'Transaction',
+    amount: 'Amount',
+    category: 'Category',
+    balance: 'Running Balance',
+    type: 'Type'
+};
+export const LEDGER_EXPORT_COLUMN_KEYS = Object.keys(LEDGER_EXPORT_COLUMN_LABELS);
+
+function ledgerExportCellValue(tx, key) {
+    switch (key) {
+        case 'date': return tx.date ? new Date(tx.date).toISOString().slice(0, 10) : '';
+        case 'account': return tx.account || '';
+        case 'name': return tx.name || '';
+        case 'amount': return Number(tx.amount || 0).toFixed(2);
+        case 'category': return tx.category || '';
+        case 'balance': return Number(tx.balance || 0).toFixed(2);
+        case 'type': return tx.type || '';
+        default: return '';
+    }
+}
+
+// Export the currently filtered/sorted Ledger view to CSV with user-selected columns.
+export function exportLedgerToCSV(app, columns) {
+    const selectedColumns = (Array.isArray(columns) ? columns : []).filter(c => LEDGER_EXPORT_COLUMN_KEYS.includes(c));
+    if (selectedColumns.length === 0) return;
+
+    const transactions = getFilteredSortedLedgerTransactions(app);
+
+    let csv = selectedColumns.map(c => csvField(LEDGER_EXPORT_COLUMN_LABELS[c])).join(',') + '\n';
+    for (const tx of transactions) {
+        csv += selectedColumns.map(c => csvField(ledgerExportCellValue(tx, c))).join(',') + '\n';
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ledger-export-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

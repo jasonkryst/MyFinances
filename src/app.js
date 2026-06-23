@@ -31,7 +31,7 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature } from './storage.js';
+import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature } from './storage.js';
 import {
     renderIncomeList,
     addIncome,
@@ -270,6 +270,10 @@ export class DebtTrackerApp {
         return exportToCSVFeature(this, {
             onMissingPlan: () => alert('Please calculate a payment plan first')
         });
+    }
+
+    exportLedgerToCSV(columns) {
+        return exportLedgerToCSVFeature(this, columns);
     }
 
     /**
