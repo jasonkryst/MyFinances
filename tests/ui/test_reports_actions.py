@@ -138,6 +138,20 @@ def test_net_worth_capture_snapshot_button(app_page):
 
 
 @pytest.mark.ui
+def test_reports_print_button_calls_window_print(app_page):
+    """The Reports page Print button invokes window.print()."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
+    page.click('#rptPrintBtn')
+    page.wait_for_timeout(100)
+
+    assert page.evaluate('() => window.__printCalled') is True
+
+
+@pytest.mark.ui
 def test_report_tab_switching_toggles_panel_visibility(app_page):
     """Clicking each report tab (data-rptab) should activate its panel and
     deactivate the others, mirroring the schedule-tab pattern used elsewhere."""

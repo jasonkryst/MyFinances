@@ -315,6 +315,10 @@ export function initializeEventListeners(app) {
     if (rptNextMonth) {
         rptNextMonth.addEventListener('click', () => app.nextReportMonth());
     }
+    const rptPrintBtn = document.getElementById('rptPrintBtn');
+    if (rptPrintBtn) {
+        rptPrintBtn.addEventListener('click', () => window.print());
+    }
 
     document.addEventListener('click', event => {
         const rangeBtn = event.target.closest('[data-networth-range]');

@@ -224,6 +224,18 @@ def test_reconcile_modal_focus_and_keyboard_trap(app_page):
 
 
 @pytest.mark.ui
+def test_reports_print_button_has_accessible_label(app_page):
+    """#rptPrintBtn must have a non-empty aria-label for screen readers."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+    btn = page.query_selector('#rptPrintBtn')
+    assert btn
+    label = btn.get_attribute('aria-label')
+    assert label and len(label.strip()) > 0
+
+
+@pytest.mark.ui
 def test_settings_button_has_accessible_label(app_page):
     """The gear toolbar button must be reachable via keyboard and announce
     its purpose via aria-label, matching the other header-icon-btn controls."""
