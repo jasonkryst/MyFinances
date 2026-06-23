@@ -338,6 +338,24 @@ def test_main_nav_has_no_inline_styles():
     )
 
 
+@pytest.mark.security
+def test_no_new_external_origins_introduced():
+    """The CSP's script-src/style-src allowlist must still only reference
+    'self' and the existing Chart.js CDN origin — Enhanced Data Export adds
+    no PDF or image library, so no new origin should appear."""
+    index_path = os.path.join(PROJECT_ROOT, 'index.html')
+    with open(index_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    csp_match = re.search(r'Content-Security-Policy" content="([^"]+)"', html)
+    assert csp_match, "Expected a CSP meta tag in index.html"
+    csp = csp_match.group(1)
+    assert "cdn.jsdelivr.net" in csp
+    assert "'self'" in csp
+    forbidden_hosts = ['jspdf', 'html2canvas', 'unpkg.com', 'cdnjs.cloudflare.com']
+    for host in forbidden_hosts:
+        assert host not in csp.lower(), f"Unexpected new external dependency origin in CSP: {host}"
+
+
 def main():
     """Run all static security checks."""
     print("\n" + "="*60)
