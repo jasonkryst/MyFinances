@@ -1124,9 +1124,8 @@ export function computeReportsSummaryMetrics(app, rangeType, baseDate = getRepor
     const endMonthKey = `${year}-${String(endMonth + 1).padStart(2, '0')}`;
     const series = getSnapshotSeries(app, 240);
     const endSnapshot = series.find(s => String(s.date).slice(0, 7) === endMonthKey) || null;
-    const startMonthKey = rangeType === 'year' ? `${year}-01` : endMonthKey;
     const startSnapshot = rangeType === 'year'
-        ? (series.find(s => String(s.date).slice(0, 7) === startMonthKey) || null)
+        ? (series.find(s => String(s.date).slice(0, 7).startsWith(`${year}-`)) || null)
         : ([...series].reverse().find(s => String(s.date).slice(0, 7) < endMonthKey) || null);
 
     const netWorth = endSnapshot ? {
