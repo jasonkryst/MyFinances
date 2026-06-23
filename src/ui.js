@@ -348,6 +348,16 @@ export function initializeEventListeners(app) {
             app.renderReportsPage();
             app.renderNetWorthWidget();
         }
+
+        const summaryRangeBtn = event.target.closest('[data-rpt-summary-range]');
+        if (summaryRangeBtn) {
+            const next = summaryRangeBtn.getAttribute('data-rpt-summary-range');
+            if (next === 'month' || next === 'year') {
+                app._reportSummaryRange = next;
+                app.renderReportsPage();
+            }
+            return;
+        }
     });
 
     const amortizationModal = document.getElementById('amortizationModal');

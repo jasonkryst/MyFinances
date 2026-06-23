@@ -205,3 +205,23 @@ def test_variance_report_income_expense_delta(app_page):
     # Net Available = income - expenses - recurring - debtMin = 3000 - 500 - 0 - 0 = 2500
     assert '$2,500.00' in variance_text, \
         f"Expected Net Available of $2,500.00 for current month, got: {variance_text}"
+
+
+@pytest.mark.feature
+def test_summary_metrics_month_cash_flow(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0');
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 2, name: 'Salary', amount: 3000, accountId: 1, frequency: 'monthly', firstDate: `${y}-${m}-01` }];
+        app.bills = [{ id: 3, name: 'Rent', amount: 1200, dueDay: 1, category: 'Housing', accountId: 1 }];
+        app.debts = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.monthlySnapshots = [];
+    }""")
+    metrics = page.evaluate("() => window.app.computeReportsSummaryMetrics('month')")
+    assert metrics['cashFlow']['income'] == 3000
+    assert metrics['cashFlow']['bills'] == 1200
+    assert metrics['cashFlow']['net'] == 1800
+    assert metrics['rangeType'] == 'month'

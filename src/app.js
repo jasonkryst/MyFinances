@@ -63,7 +63,8 @@ import {
     nextReportMonth as nextReportMonthFeature,
     renderReportsPage as renderReportsPageFeature,
     captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
-    renderNetWorthWidget as renderNetWorthWidgetFeature
+    renderNetWorthWidget as renderNetWorthWidgetFeature,
+    computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
 } from './reports.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
 import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth, APP_VERSION } from './utils.js';
@@ -771,6 +772,10 @@ export class DebtTrackerApp {
 
     renderNetWorthWidget() {
         return renderNetWorthWidgetFeature(this);
+    }
+
+    computeReportsSummaryMetrics(rangeType, baseDate) {
+        return computeReportsSummaryMetricsFeature(this, rangeType, baseDate);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
