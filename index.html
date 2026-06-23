@@ -889,6 +889,28 @@
             </div>
         </div>
     </div>
+
+    <div id="ledgerExportModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerExportTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="ledgerExportCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="ledgerExportTitle">Export Ledger to CSV</h3>
+            <p class="modal-description">Choose which columns to include. Exports the currently filtered and sorted view.</p>
+            <div class="form-group modal-form-group" id="ledgerExportColumnList">
+                <label><input type="checkbox" id="ledgerExportCol-date" value="date" checked> Date</label>
+                <label><input type="checkbox" id="ledgerExportCol-account" value="account" checked> Account</label>
+                <label><input type="checkbox" id="ledgerExportCol-name" value="name" checked> Transaction Name</label>
+                <label><input type="checkbox" id="ledgerExportCol-amount" value="amount" checked> Amount</label>
+                <label><input type="checkbox" id="ledgerExportCol-category" value="category" checked> Category</label>
+                <label><input type="checkbox" id="ledgerExportCol-balance" value="balance" checked> Running Balance</label>
+                <label><input type="checkbox" id="ledgerExportCol-type" value="type" checked> Type</label>
+            </div>
+            <p class="modal-helper-text" id="ledgerExportEmptyWarning" hidden>No transactions match the current filters — nothing to export.</p>
+            <div class="modal-actions">
+                <button id="ledgerExportConfirmBtn" class="btn btn-success">Export CSV</button>
+                <button id="ledgerExportCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
     <div id="reconcileModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reconcileModalTitle" tabindex="-1">
         <div class="modal-content">
             <button id="reconcileModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>

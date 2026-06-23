@@ -416,3 +416,36 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     page.click('#setupWizardVisibleBtn')
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
     assert setting is False, "Choosing a fresh mode after the reset should not be influenced by the prior setting"
+
+
+@pytest.mark.integration
+def test_ledger_export_csv_with_column_picker(app_page):
+    """Opening the Ledger export modal, unchecking a column, and confirming
+    downloads a CSV containing only the selected columns."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 2, name: 'Paycheck', amount: 2000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app.switchPage('ledger');
+    }""")
+    page.wait_for_timeout(300)
+
+    page.click('#ledgerExportCsvBtn')
+    page.wait_for_timeout(200)
+    modal = page.query_selector('#ledgerExportModal')
+    assert modal and 'flex-visible' in (modal.get_attribute('class') or '')
+
+    page.uncheck('#ledgerExportCol-category')
+
+    with page.expect_download() as download_info:
+        page.click('#ledgerExportConfirmBtn')
+    download = download_info.value
+
+    assert download.suggested_filename.endswith('.csv')
+    path = download.path()
+    with open(path, 'r', encoding='utf-8') as f:
+        header = f.readline()
+    assert 'Category' not in header
+    assert 'Transaction' in header

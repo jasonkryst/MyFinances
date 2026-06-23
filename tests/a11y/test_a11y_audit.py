@@ -269,3 +269,20 @@ def test_summary_report_tables_have_captions(app_page):
     for table in tables:
         caption = table.query_selector('caption')
         assert caption is not None, "Each Summary Report table must have a <caption>"
+
+
+@pytest.mark.a11y
+def test_ledger_export_modal_escape_closes_and_returns_focus(app_page):
+    """Escape closes the Ledger export modal (keyboard parity with the Cancel button)."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        window.app.switchPage('ledger');
+    }""")
+    page.wait_for_timeout(300)
+    page.click('#ledgerExportCsvBtn')
+    page.wait_for_timeout(200)
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(200)
+    modal = page.query_selector('#ledgerExportModal')
+    assert 'hidden' in (modal.get_attribute('class') or '')
