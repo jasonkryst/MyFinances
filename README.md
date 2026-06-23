@@ -162,6 +162,12 @@ MyFinances prioritizes your financial data security with enterprise-grade protec
 - **Write-Failure Fallback** — if a write still fails (quota actually exceeded), the same banner explains the failure and recommends exporting a backup immediately
 - **Self-Resetting** — the warning re-arms itself if usage drops back under the threshold and is crossed again later
 
+### Enhanced Data Export (NEW)
+- **Ledger CSV Export with Custom Columns** — an "⬇️ Export CSV" button on the Ledger page opens a column-picker modal (date, account, transaction name, amount, category, running balance, type); exports respect the ledger's current account/date-range filter and sort order, and the selected columns persist between sessions
+- **Summary Report Tab** — a new "Summary" tab on the Reports page with a Monthly/Yearly toggle, showing cash flow, per-account balance changes, and net worth for the selected period
+- **Print / Save as PDF** — a "🖨️ Print" button on the Reports page triggers the browser's native print dialog (Save as PDF works there too); a `@media print` stylesheet hides navigation/controls and prints only the active report tab
+- **Chart PNG Export** — every Chart.js canvas app-wide (Health gauges, Spending charts, Forecast, Net Worth, Money Flow, Income vs Expenses, Bills) has a small "⬇️ PNG" button to download that chart as an image
+
 ---
 
 ## 🔐 Security & Compliance

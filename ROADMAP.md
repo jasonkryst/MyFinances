@@ -138,7 +138,7 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 | Retirement Planning | 4 | 📋 | |
 | Credit Score Estimator | 4 | 📋 | |
 | Inflation Calculator | 4 | 📋 | |
-| Enhanced Data Export | 4 | 📋 | |
+| Enhanced Data Export | 4 | ✅ | Delivered June 23, 2026 |
 | Quick Win #1: Debt Payoff Timeline Display | Quick Win | ✅ | Delivered June 14, 2026 |
 | Quick Win #2: Month-to-Date Spending Summary | Quick Win | ⏭️ | Folded into Budget Alerts & Overspend Warnings (Tier 1) |
 | Quick Win #3: Dashboard Page | Quick Win | ✅ | Delivered in v3.1 as Financial Health Dashboard |
@@ -539,13 +539,13 @@ Domain-specific tools for advanced users.
 ---
 
 #### 📄 Enhanced Data Export
-**Priority**: LOW | **Effort**: MEDIUM | **Status**: PROPOSED
+**Priority**: LOW | **Effort**: MEDIUM | **Status**: ✅ **Delivered June 23, 2026**
 
 **Features**:
-- CSV export with custom columns
-- Monthly/yearly summary reports
-- PDF report generation
-- Chart export as images
+- ✅ CSV export with custom columns — column-picker modal on the Ledger page (`#ledgerExportCsvBtn`), exports the currently filtered/sorted view.
+- ✅ Monthly/yearly summary reports — new "Summary" tab on the Reports page with a Monthly/Yearly toggle.
+- ✅ PDF report generation — "Print / Save as PDF" button on the Reports page, using the browser's native print-to-PDF (no new dependency).
+- ✅ Chart export as images — every Chart.js canvas app-wide now has a PNG download button (`chart.toBase64Image()`).
 
 ---
 
@@ -563,7 +563,7 @@ Identified while reviewing the current featureset against the audit results — 
 #### 🎨 UI/UX
 - ~~**Command palette / quick-jump (Ctrl+K)**~~ ✅ **Delivered June 20, 2026** — `src/commandPalette.js`; opens via Ctrl/Cmd+K or the toolbar 🔍 button, fuzzy-filters across all 10 pages plus common actions (export/import JSON, theme toggle, calculate plan).
 - **Customizable Health Dashboard card order** — let users reorder/hide the six health cards (drag-and-drop or simple up/down controls), persisted like other preferences.
-- **Print-friendly Reports view** — a `@media print` stylesheet for the Reports page so users can print/PDF a monthly summary without browser print clutter.
+- ~~**Print-friendly Reports view**~~ ✅ **Delivered June 23, 2026** — a `@media print` stylesheet plus a "Print / Save as PDF" button on the Reports page; doubles as the PDF mechanism for Enhanced Data Export (Tier 4).
 - **Empty-state onboarding flow** — guided first-run walkthrough (create first account → add income/debt → see Health dashboard populate) for new users instead of a single guide.html page.
 
 #### ♿ Accessibility
