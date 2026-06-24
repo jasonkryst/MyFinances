@@ -126,9 +126,9 @@ function renderReconcileCard(app, acct) {
     const expected = getExpectedTransactionsInRange(app, acct.id, lastDate, today);
     const expectedHtml = expected.length === 0
         ? `<p class="recon-expected-empty">No expected transactions in this period.</p>`
-        : `<table class="recon-expected-table"><thead><tr><th>Date</th><th>Name</th><th>Amount</th><th>Category</th></tr></thead><tbody>${
+        : `<div class="recon-table-wrap"><table class="recon-expected-table"><thead><tr><th>Date</th><th>Name</th><th>Amount</th><th>Category</th></tr></thead><tbody>${
             expected.map(tx => `<tr><td>${_formatDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(tx.category || '')}</td></tr>`).join('')
-        }</tbody></table>`;
+        }</tbody></table></div>`;
 
     return `<div class="recon-card">
         <div class="recon-card-header">
@@ -218,10 +218,12 @@ function renderReconciliationHistory(app) {
     }
 
     return `<h3>History</h3>${filterHtml}
+        <div class="recon-table-wrap">
         <table class="recon-history-table ledger-table">
             <thead><tr><th>Date</th><th>Account</th><th>Event</th><th>Previous → Statement</th><th></th></tr></thead>
             <tbody>${rowsHtml}</tbody>
-        </table>`;
+        </table>
+        </div>`;
 }
 
 function attachReconciliationHistoryEvents(app, section) {
@@ -245,20 +247,34 @@ export function renderReconciliationPage(app) {
     const section = document.getElementById('reconcileSection');
     if (!section) return;
 
+    const headerHtml = `<div class="page-header-row">
+        <h2>🔄 Reconcile</h2>
+        <button type="button" class="page-print-btn" id="reconcilePrintBtn" title="Print this page" aria-label="Print the Reconcile page">🖨️ Print</button>
+    </div>`;
+
     if (!app.accounts || app.accounts.length === 0) {
-        section.innerHTML = `<h2>🔄 Reconcile</h2><p class="acct-empty-msg">No accounts yet. Add an account first to reconcile its balance.</p>`;
+        section.innerHTML = `${headerHtml}<p class="acct-empty-msg">No accounts yet. Add an account first to reconcile its balance.</p>`;
+        attachReconcilePrintEvent();
         return;
     }
 
     const cardsHtml = app.accounts.map(acct => renderReconcileCard(app, acct)).join('');
     const historyHtml = renderReconciliationHistory(app);
 
-    section.innerHTML = `<h2>🔄 Reconcile</h2>${cardsHtml}${historyHtml}`;
+    section.innerHTML = `${headerHtml}${cardsHtml}${historyHtml}`;
 
     for (const acct of app.accounts) {
         attachReconcileCardEvents(app, acct.id);
     }
     attachReconciliationHistoryEvents(app, section);
+    attachReconcilePrintEvent();
+}
+
+function attachReconcilePrintEvent() {
+    const reconcilePrintBtn = document.getElementById('reconcilePrintBtn');
+    if (reconcilePrintBtn) {
+        reconcilePrintBtn.addEventListener('click', () => window.print());
+    }
 }
 
 export function openReconcileModal(app, accountId) {

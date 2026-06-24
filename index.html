@@ -92,7 +92,10 @@
             <!-- Ledger Section                                            -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="ledger-section page-section" id="ledgerSection">
-                <h2>📒 Ledger</h2>
+                <div class="page-header-row">
+                    <h2>📒 Ledger</h2>
+                    <button type="button" class="page-print-btn" id="ledgerPrintBtn" title="Print this page" aria-label="Print the Ledger page">🖨️ Print</button>
+                </div>
                 <div id="ledgerTableContainer"></div>
             </section>
         </header>
@@ -152,7 +155,10 @@
 
             <!-- Liabilities Section (Debts & Expenses combined with subtabs) -->
             <section class="liabilities-section page-section" id="liabilitiesSection">
-                <h2>💳 Liabilities</h2>
+                <div class="page-header-row">
+                    <h2>💳 Liabilities</h2>
+                    <button type="button" class="page-print-btn" id="liabilitiesPrintBtn" title="Print this page" aria-label="Print the Liabilities page">🖨️ Print</button>
+                </div>
                 <div class="liabilities-container">
                     <div class="liabilities-subtabs">
                         <button class="liabilities-subtab-btn active" data-liabilities-subtab="debts">💳 Debts</button>
@@ -473,7 +479,10 @@
 
             <!-- Plan Section (Strategy + Results combined) -->
             <section class="strategy-section page-section" id="strategySection">
-                <h2>Payment Plan</h2>
+                <div class="page-header-row">
+                    <h2>Payment Plan</h2>
+                    <button type="button" class="page-print-btn" id="strategyPrintBtn" title="Print this page" aria-label="Print the Payment Plan page">🖨️ Print</button>
+                </div>
 
                 <!-- ── Strategy controls ─────────────────────────────────── -->
                 <div class="strategy-controls">
@@ -734,7 +743,10 @@
             <!-- Recurring Templates Section                                 -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="recurring-section page-section" id="recurringSection">
-                <h2>🔁 Recurring Templates</h2>
+                <div class="page-header-row">
+                    <h2>🔁 Recurring Templates</h2>
+                    <button type="button" class="page-print-btn" id="recurringPrintBtn" title="Print this page" aria-label="Print the Recurring Templates page">🖨️ Print</button>
+                </div>
                 <p class="recurring-intro">Track recurring non-debt entries — subscriptions, reimbursements, and transfers. Each template generates projected ledger entries each month. You can pause a template or skip a specific month at any time.</p>
 
                 <!-- Add Template Form -->
@@ -828,7 +840,6 @@
             <!-- Reconcile Section                                            -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="reconcile-section page-section" id="reconcileSection">
-                <h2>🔄 Reconcile</h2>
                 <!-- Content dynamically rendered by renderReconciliationPage() -->
             </section>
 
@@ -836,7 +847,6 @@
             <!-- Savings Section (Emergency Fund & Sinking Funds)           -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="savings-section page-section" id="savingsSection">
-                <h2>💰 Savings</h2>
                 <!-- Content dynamically rendered by renderSavingsPage() -->
             </section>
 
