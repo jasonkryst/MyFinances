@@ -189,6 +189,7 @@ function renderForecastChart(app, series, stats) {
         }
     });
 
+
     renderChartDataTable('cfForecastChart', {
         caption: 'Projected cash flow balance forecast',
         columns: ['Month', 'Projected Balance'],

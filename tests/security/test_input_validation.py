@@ -497,3 +497,26 @@ async def test_sanitize_setting_rejects_xss_and_object_values(async_app_page):
         "normalizeText should strip angle brackets from string setting values"
     )
     assert all('<' not in k and '>' not in k for k in by_key), "normalizeText should strip angle brackets from setting keys too"
+
+
+@pytest.mark.security
+def test_ledger_csv_export_quotes_fields_against_csv_injection(app_page):
+    """A transaction name starting with '=' (a CSV-injection vector if opened
+    in Excel) must be quoted by csvField() the same way commas already are,
+    not emitted as a raw leading '=' that a spreadsheet would evaluate."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 2, name: '=2+2', amount: 100, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app._ledgerAccountFilter = 'all'; app._ledgerDateRange = 'all';
+        app._ledgerSortKey = 'date'; app._ledgerSortDir = 'desc';
+    }""")
+    with page.expect_download() as download_info:
+        page.evaluate("() => window.app.exportLedgerToCSV(['date', 'account', 'name', 'amount'])")
+    download = download_info.value
+    path = download.path()
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    assert '"=2+2"' in content, "Transaction name must be wrapped in quotes by csvField()"

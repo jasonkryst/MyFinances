@@ -315,6 +315,10 @@ export function initializeEventListeners(app) {
     if (rptNextMonth) {
         rptNextMonth.addEventListener('click', () => app.nextReportMonth());
     }
+    const rptPrintBtn = document.getElementById('rptPrintBtn');
+    if (rptPrintBtn) {
+        rptPrintBtn.addEventListener('click', () => window.print());
+    }
 
     document.addEventListener('click', event => {
         const rangeBtn = event.target.closest('[data-networth-range]');
@@ -343,6 +347,16 @@ export function initializeEventListeners(app) {
             app.captureNetWorthSnapshot({ source: 'manual' });
             app.renderReportsPage();
             app.renderNetWorthWidget();
+        }
+
+        const summaryRangeBtn = event.target.closest('[data-rpt-summary-range]');
+        if (summaryRangeBtn) {
+            const next = summaryRangeBtn.getAttribute('data-rpt-summary-range');
+            if (next === 'month' || next === 'year') {
+                app._reportSummaryRange = next;
+                app.renderReportsPage();
+            }
+            return;
         }
     });
 

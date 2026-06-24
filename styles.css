@@ -609,6 +609,16 @@ body.dark-mode .amortization-modal-content td {
     color: #fff;
     outline: 2px solid #2563eb;
 }
+.rpt-print-btn {
+    width: auto;
+    height: 32px;
+    border-radius: 6px;
+    padding: 0 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    gap: 6px;
+    margin-left: 4px;
+}
 .rpt-month-label {
     font-size: 1.08rem;
     font-weight: 600;
@@ -5547,4 +5557,33 @@ body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
 @media (max-width: 640px) {
     .spending-hero-row    { grid-template-columns: 1fr; }
     .spending-pie-wrap    { height: 220px; }
+}
+
+/* ── Print stylesheet (Reports page) ────────────────────────────────────── */
+@media print {
+    header, nav.top-nav, .rpt-tab-bar,
+    .rpt-month-btn, button, select, input, .nw-range-buttons,
+    .filter-controls, .ledger-pagination {
+        display: none !important;
+    }
+    .page-section { display: none !important; }
+    .page-section.active { display: block !important; }
+    .rpt-tab-panel { display: none !important; }
+    .rpt-tab-panel.rpt-tab-panel--active { display: block !important; }
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    .rpt-chart-card, .nw-history-card, .acct-mf-section {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+    .rpt-chart-canvas-wrap, .rpt-moneyflow-wrap {
+        height: 320px !important;
+    }
+    .rpt-month-label {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
 }

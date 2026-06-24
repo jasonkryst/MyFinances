@@ -138,6 +138,20 @@ def test_net_worth_capture_snapshot_button(app_page):
 
 
 @pytest.mark.ui
+def test_reports_print_button_calls_window_print(app_page):
+    """The Reports page Print button invokes window.print()."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_timeout(200)
+
+    page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
+    page.click('#rptPrintBtn')
+    page.wait_for_timeout(100)
+
+    assert page.evaluate('() => window.__printCalled') is True
+
+
+@pytest.mark.ui
 def test_report_tab_switching_toggles_panel_visibility(app_page):
     """Clicking each report tab (data-rptab) should activate its panel and
     deactivate the others, mirroring the schedule-tab pattern used elsewhere."""
@@ -176,3 +190,21 @@ def test_report_tab_switching_toggles_panel_visibility(app_page):
             other_panel = page.query_selector(f'#rptPanel-{other}')
             assert 'rpt-tab-panel--active' not in other_panel.get_attribute('class'), \
                 f"Panel '{other}' should not be active while '{tab}' is selected"
+
+
+@pytest.mark.ui
+def test_summary_tab_monthly_yearly_toggle(app_page):
+    """Switching to the Summary tab and toggling Yearly updates the period label."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.click('[data-rptab="summary"]')
+    page.wait_for_timeout(200)
+
+    heading = page.query_selector('#reportsSummary h3')
+    assert heading and 'Summary Report' in heading.text_content()
+
+    page.click('[data-rpt-summary-range="year"]')
+    page.wait_for_timeout(200)
+    heading = page.query_selector('#reportsSummary h3')
+    import datetime
+    assert str(datetime.date.today().year) in heading.text_content()

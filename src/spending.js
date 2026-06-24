@@ -209,6 +209,7 @@ export function renderReportsSpending(app) {
             }
         });
 
+
         renderChartDataTable('rptSpendingPieChart', {
             caption: `Spending by category — ${monthLabel}`,
             columns: ['Category', 'Amount'],
@@ -254,6 +255,7 @@ export function renderReportsSpending(app) {
                 }
             }
         });
+
 
         renderChartDataTable('rptSpendingBarChart', {
             caption: '6-month spending trend by category',

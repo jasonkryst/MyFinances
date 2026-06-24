@@ -4,22 +4,23 @@ GROUPS = {
     'activity': ['calendar', 'spending', 'incomeexp'],
     'trends':   ['moneyflow', 'variance', 'networth'],
     'planning': ['forecast'],
+    'print':    ['summary'],
 }
 
 @pytest.mark.feature
 def test_reports_nav_three_groups_exist(app_page):
-    """Three .rpt-tab-group elements exist inside .rpt-tab-bar."""
+    """Four .rpt-tab-group elements exist inside .rpt-tab-bar."""
     page = app_page
     page.click('button[data-page="reports"]')
     page.wait_for_timeout(200)
 
     count = page.evaluate('() => document.querySelectorAll(".rpt-tab-group").length')
-    assert count == 3, f"Expected 3 tab groups, got {count}"
+    assert count == 4, f"Expected 4 tab groups, got {count}"
 
 
 @pytest.mark.feature
 def test_reports_nav_group_labels(app_page):
-    """Group chip labels read Activity, Trends, Planning."""
+    """Group chip labels read Activity, Trends, Planning, Print."""
     page = app_page
     page.click('button[data-page="reports"]')
     page.wait_for_timeout(200)
@@ -28,7 +29,7 @@ def test_reports_nav_group_labels(app_page):
         () => Array.from(document.querySelectorAll('.rpt-tab-group-label'))
                    .map(el => el.textContent.trim())
     """)
-    assert labels == ['Activity', 'Trends', 'Planning'], f"Got: {labels}"
+    assert labels == ['Activity', 'Trends', 'Planning', 'Print'], f"Got: {labels}"
 
 
 @pytest.mark.feature
@@ -52,7 +53,7 @@ def test_reports_nav_tabs_in_correct_groups(app_page):
 
 @pytest.mark.feature
 def test_reports_nav_all_seven_tabs_present(app_page):
-    """All 7 original tabs are still reachable after restructure."""
+    """All tabs (including the new Summary tab) are reachable after restructure."""
     page = app_page
     page.click('button[data-page="reports"]')
     page.wait_for_timeout(200)

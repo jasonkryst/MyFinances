@@ -2,6 +2,7 @@
 
 import { getIncomePaydaysInMonth, formatCurrency } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
+import { getSetting, setSetting } from './settings.js';
 
 function getDateKey(date) {
     const d = new Date(date);
@@ -541,12 +542,115 @@ function openLedgerOverrideModal(app, tx) {
     setTimeout(() => input.focus(), 30);
 }
 
+const LEDGER_EXPORT_COLUMN_KEYS = ['date', 'account', 'name', 'amount', 'category', 'balance', 'type'];
+
+function openLedgerExportModal(app) {
+    const modal = document.getElementById('ledgerExportModal');
+    const confirmBtn = document.getElementById('ledgerExportConfirmBtn');
+    const cancelBtn = document.getElementById('ledgerExportCancelBtn');
+    const closeBtn = document.getElementById('ledgerExportCloseBtn');
+    const warning = document.getElementById('ledgerExportEmptyWarning');
+    if (!modal || !confirmBtn || !cancelBtn || !closeBtn || !warning) return;
+
+    const savedColumns = (getSetting(app, 'ledgerExportColumns', LEDGER_EXPORT_COLUMN_KEYS.join(',')) || '')
+        .split(',')
+        .filter(c => LEDGER_EXPORT_COLUMN_KEYS.includes(c));
+    const activeColumns = savedColumns.length > 0 ? savedColumns : LEDGER_EXPORT_COLUMN_KEYS;
+    for (const key of LEDGER_EXPORT_COLUMN_KEYS) {
+        const checkbox = document.getElementById(`ledgerExportCol-${key}`);
+        if (checkbox) checkbox.checked = activeColumns.includes(key);
+    }
+
+    const hasRows = getFilteredSortedLedgerTransactions(app).length > 0;
+    warning.hidden = hasRows;
+    confirmBtn.disabled = !hasRows;
+
+    const close = () => {
+        modal.classList.add('hidden'); modal.classList.remove('flex-visible');
+        modal.onkeydown = null;
+    };
+
+    confirmBtn.onclick = () => {
+        const columns = LEDGER_EXPORT_COLUMN_KEYS.filter(key => document.getElementById(`ledgerExportCol-${key}`)?.checked);
+        if (columns.length === 0) return;
+        setSetting(app, 'ledgerExportColumns', columns.join(','));
+        app.exportLedgerToCSV(columns);
+        close();
+    };
+    cancelBtn.onclick = close;
+    closeBtn.onclick = close;
+    modal.onclick = (event) => { if (event.target === modal) close(); };
+    modal.onkeydown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            close();
+        }
+    };
+
+    modal.classList.add('flex-visible'); modal.classList.remove('hidden');
+    setTimeout(() => closeBtn.focus(), 30);
+}
+
+// Filter (account + date-range) and sort the ledger transaction list, reading
+// the same app._ledgerAccountFilter / app._ledgerDateRange / app._ledgerSortKey /
+// app._ledgerSortDir state renderLedgerPage uses. No pagination is applied here;
+// callers slice the page window themselves.
+export function getFilteredSortedLedgerTransactions(app) {
+    let transactions = getLedgerTransactions(app);
+    const selectedAccount = app._ledgerAccountFilter || 'all';
+    const selectedDateRange = app._ledgerDateRange || '30';
+
+    if (selectedAccount !== 'all') {
+        transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (selectedDateRange !== 'all') {
+        transactions = transactions.filter(tx => {
+            const txDate = new Date(tx.date);
+            const txDateOnly = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+            if (selectedDateRange === 'past') {
+                return txDateOnly <= todayStart;
+            } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
+                const days = parseInt(selectedDateRange, 10);
+                const futureLimit = new Date(todayStart.getTime() + days * 24 * 60 * 60 * 1000);
+                return txDateOnly >= todayStart && txDateOnly < futureLimit;
+            } else if (selectedDateRange === 'month') {
+                const y = now.getFullYear();
+                const m = now.getMonth();
+                const endOfNextMonth = new Date(y, m + 2, 0, 23, 59, 59, 999);
+                return txDateOnly >= todayStart && txDateOnly <= endOfNextMonth;
+            }
+            return true;
+        });
+    }
+
+    const sortKey = app._ledgerSortKey || 'date';
+    const sortDir = app._ledgerSortDir || 'desc';
+    transactions.sort((a, b) => {
+        let vA = a[sortKey], vB = b[sortKey];
+        if (sortKey === 'amount' || sortKey === 'balance') {
+            vA = Number(vA); vB = Number(vB);
+        } else if (sortKey === 'date') {
+            vA = new Date(vA); vB = new Date(vB);
+        } else {
+            vA = (vA || '').toString().toLowerCase();
+            vB = (vB || '').toString().toLowerCase();
+        }
+        if (vA < vB) return sortDir === 'asc' ? -1 : 1;
+        if (vA > vB) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    return transactions;
+}
+
 // Render the Ledger page
 export function renderLedgerPage(app) {
     // --- Begin: renderLedgerPage logic from app.js ---
     const container = document.getElementById('ledgerTableContainer');
     if (!container) return;
-    let transactions = getLedgerTransactions(app);
     const accounts = app.accounts || [];
     let selectedAccount = app._ledgerAccountFilter || 'all';
     let selectedDateRange = app._ledgerDateRange || '30';
@@ -558,6 +662,7 @@ export function renderLedgerPage(app) {
     if (isNaN(currentPage) || currentPage < 1) {
         currentPage = 1;
     }
+    let transactions = getFilteredSortedLedgerTransactions(app);
     let filterHtml = '';
     filterHtml += `<div class="filter-controls">`;
     if (accounts.length > 0) {
@@ -585,50 +690,11 @@ export function renderLedgerPage(app) {
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
             <option value="100"${selectedPageSize===100?' selected':''}>100</option>
         </select>`;
+    filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
     if (selectedAccount !== 'all') {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
     }
     filterHtml += `</div>`;
-    if (selectedAccount !== 'all') {
-        transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
-    }
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (selectedDateRange !== 'all') {
-        transactions = transactions.filter(tx => {
-            const txDate = new Date(tx.date);
-            const txDateOnly = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
-            if (selectedDateRange === 'past') {
-                return txDateOnly <= todayStart;
-            } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
-                const days = parseInt(selectedDateRange, 10);
-                const futureLimit = new Date(todayStart.getTime() + days * 24 * 60 * 60 * 1000);
-                return txDateOnly >= todayStart && txDateOnly < futureLimit;
-            } else if (selectedDateRange === 'month') {
-                const y = now.getFullYear();
-                const m = now.getMonth();
-                const endOfNextMonth = new Date(y, m + 2, 0, 23, 59, 59, 999);
-                return txDateOnly >= todayStart && txDateOnly <= endOfNextMonth;
-            }
-            return true;
-        });
-    }
-    let sortKey = app._ledgerSortKey || 'date';
-    let sortDir = app._ledgerSortDir || 'desc';
-    transactions.sort((a, b) => {
-        let vA = a[sortKey], vB = b[sortKey];
-        if (sortKey === 'amount' || sortKey === 'balance') {
-            vA = Number(vA); vB = Number(vB);
-        } else if (sortKey === 'date') {
-            vA = new Date(vA); vB = new Date(vB);
-        } else {
-            vA = (vA || '').toString().toLowerCase();
-            vB = (vB || '').toString().toLowerCase();
-        }
-        if (vA < vB) return sortDir === 'asc' ? -1 : 1;
-        if (vA > vB) return sortDir === 'asc' ? 1 : -1;
-        return 0;
-    });
 
     const totalRows = transactions.length;
     const totalPages = Math.max(1, Math.ceil(totalRows / selectedPageSize));
@@ -786,6 +852,11 @@ export function renderLedgerPage(app) {
             const accountId = parseInt(reconcileBtn.getAttribute('data-ledger-reconcile'), 10);
             if (typeof app.openReconcileModal === 'function') app.openReconcileModal(accountId);
         };
+    }
+
+    const exportCsvBtn = container.querySelector('#ledgerExportCsvBtn');
+    if (exportCsvBtn) {
+        exportCsvBtn.onclick = () => openLedgerExportModal(app);
     }
     // --- End: renderLedgerPage logic ---
 }

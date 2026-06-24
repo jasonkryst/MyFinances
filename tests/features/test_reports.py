@@ -205,3 +205,52 @@ def test_variance_report_income_expense_delta(app_page):
     # Net Available = income - expenses - recurring - debtMin = 3000 - 500 - 0 - 0 = 2500
     assert '$2,500.00' in variance_text, \
         f"Expected Net Available of $2,500.00 for current month, got: {variance_text}"
+
+
+@pytest.mark.feature
+def test_summary_metrics_month_cash_flow(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0');
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 2, name: 'Salary', amount: 3000, accountId: 1, frequency: 'monthly', firstDate: `${y}-${m}-01` }];
+        app.bills = [{ id: 3, name: 'Rent', amount: 1200, dueDay: 1, category: 'Housing', accountId: 1 }];
+        app.debts = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.monthlySnapshots = [];
+    }""")
+    metrics = page.evaluate("() => window.app.computeReportsSummaryMetrics('month')")
+    assert metrics['cashFlow']['income'] == 3000
+    assert metrics['cashFlow']['bills'] == 1200
+    assert metrics['cashFlow']['net'] == 1800
+    assert metrics['rangeType'] == 'month'
+
+
+@pytest.mark.feature
+def test_summary_metrics_year_net_worth_change_without_january_snapshot(app_page):
+    """Yearly net-worth delta should use the earliest in-year snapshot (e.g. March),
+    not require an exact January snapshot. Regression test: previously this returned
+    null for netChange/assetGrowth/debtDrop when no January snapshot existed.
+
+    Note: for rangeType 'year', computeReportsSummaryMetrics always uses December
+    (month index 11) as the end month, regardless of the current date."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const y = now.getFullYear();
+        app.accounts = []; app.incomes = []; app.bills = []; app.debts = [];
+        app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.monthlySnapshots = [
+            { date: `${y}-03-15`, netWorth: 10000, totalAssets: 15000, totalLiabilities: 5000 },
+            { date: `${y}-12-15`, netWorth: 12500, totalAssets: 17000, totalLiabilities: 4500 }
+        ];
+    }""")
+    metrics = page.evaluate("() => window.app.computeReportsSummaryMetrics('year')")
+    assert metrics['rangeType'] == 'year'
+    assert metrics['netWorth'] is not None
+    assert metrics['netWorth']['netChange'] == 2500
+    assert metrics['netWorth']['assetGrowth'] == 2000
+    assert metrics['netWorth']['debtDrop'] == 500

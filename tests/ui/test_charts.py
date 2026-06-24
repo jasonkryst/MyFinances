@@ -7,7 +7,7 @@ so re-rendering a page never throws "Canvas is already in use" or leaks chart in
 
 import pytest
 
-from tests.conftest import create_debt, assert_no_errors
+from tests.conftest import create_debt, create_income, assert_no_errors
 
 
 def _calculate_plan(page, debt_data):

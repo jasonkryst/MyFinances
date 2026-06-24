@@ -199,3 +199,45 @@ def test_legacy_import_without_settings_key_defaults_cleanly(app_page):
 
     assert result['settings'] == []
     assert result['adjustsBalance'] is False
+
+
+@pytest.mark.feature
+def test_ledger_export_columns_setting_round_trips_through_storage(app_page):
+    """ledgerExportColumns is a comma-joined string value persisted via the
+    generic setSetting/sanitizeSetting pipeline (no per-key sanitizer needed,
+    since storage.js's sanitizeSetting already constrains it to a bounded
+    string). It must survive a save/reload round-trip intact."""
+    page = app_page
+
+    result = page.evaluate("""() => {
+        const app = window.app;
+        app.settings = [];
+        app.setSetting('ledgerExportColumns', 'date,account,amount');
+        app.saveToStorage();
+        app.loadFromStorage();
+        return app.getSetting('ledgerExportColumns', null);
+    }""")
+
+    assert result == 'date,account,amount'
+
+
+@pytest.mark.feature
+def test_ledger_export_columns_setting_with_garbage_value_is_bounded_string(app_page):
+    """Even if localStorage/import contains a garbage value for
+    ledgerExportColumns, sanitizeSetting still constrains it to a bounded
+    string (<=200 chars) rather than allowing arbitrary objects through —
+    the read-time whitelist in openLedgerExportModal then filters it against
+    the known column keys."""
+    page = app_page
+
+    result = page.evaluate("""() => {
+        const app = window.app;
+        app.settings = [{ key: 'ledgerExportColumns', value: 'bogus,columns,not,real' }];
+        app.saveToStorage();
+        app.loadFromStorage();
+        return app.getSetting('ledgerExportColumns', null);
+    }""")
+
+    # sanitizeSetting accepts any bounded string value at the storage layer;
+    # the column whitelist is enforced at read-time in openLedgerExportModal.
+    assert result == 'bogus,columns,not,real'

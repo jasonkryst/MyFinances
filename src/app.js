@@ -31,7 +31,7 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature } from './storage.js';
+import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature } from './storage.js';
 import {
     renderIncomeList,
     addIncome,
@@ -63,7 +63,8 @@ import {
     nextReportMonth as nextReportMonthFeature,
     renderReportsPage as renderReportsPageFeature,
     captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
-    renderNetWorthWidget as renderNetWorthWidgetFeature
+    renderNetWorthWidget as renderNetWorthWidgetFeature,
+    computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
 } from './reports.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
 import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth, APP_VERSION } from './utils.js';
@@ -93,6 +94,7 @@ import {
     getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
     openReconcileModal as openReconcileModalFeature
 } from './reconciliation.js';
+import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledger.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 
@@ -268,6 +270,10 @@ export class DebtTrackerApp {
         return exportToCSVFeature(this, {
             onMissingPlan: () => alert('Please calculate a payment plan first')
         });
+    }
+
+    exportLedgerToCSV(columns) {
+        return exportLedgerToCSVFeature(this, columns);
     }
 
     /**
@@ -742,6 +748,11 @@ export class DebtTrackerApp {
         return computeAccountBalanceFeature(this, accountId, year, month);
     }
 
+    /** Return the Ledger page's filtered (account + date-range) and sorted transaction list, unpaginated. */
+    getFilteredSortedLedgerTransactions() {
+        return getFilteredSortedLedgerTransactionsFeature(this);
+    }
+
     /** Render the full accounts list on the Accounts page. */
     renderAccountsList() {
         return renderAccountsList(this);
@@ -771,6 +782,10 @@ export class DebtTrackerApp {
 
     renderNetWorthWidget() {
         return renderNetWorthWidgetFeature(this);
+    }
+
+    computeReportsSummaryMetrics(rangeType, baseDate) {
+        return computeReportsSummaryMetricsFeature(this, rangeType, baseDate);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
