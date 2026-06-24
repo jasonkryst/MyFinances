@@ -319,6 +319,14 @@ export function initializeEventListeners(app) {
     if (rptPrintBtn) {
         rptPrintBtn.addEventListener('click', () => window.print());
     }
+    const accountsPrintBtn = document.getElementById('accountsPrintBtn');
+    if (accountsPrintBtn) {
+        accountsPrintBtn.addEventListener('click', () => window.print());
+    }
+    const incomePrintBtn = document.getElementById('incomePrintBtn');
+    if (incomePrintBtn) {
+        incomePrintBtn.addEventListener('click', () => window.print());
+    }
 
     document.addEventListener('click', event => {
         const rangeBtn = event.target.closest('[data-networth-range]');

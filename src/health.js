@@ -152,7 +152,10 @@ export function renderHealthDashboard(app) {
     // ── HTML ───────────────────────────────────────────────────────────────────
     section.innerHTML = `
         <div class="health-header">
-            <h2>Financial Health</h2>
+            <div class="page-header-row">
+                <h2>Financial Health</h2>
+                <button type="button" class="page-print-btn" id="healthPrintBtn" title="Print this page" aria-label="Print the Health page">🖨️ Print</button>
+            </div>
             <p class="health-subtitle">A one-glance assessment of your financial well-being for ${now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.</p>
         </div>
         <div class="health-metrics-grid">
@@ -366,6 +369,11 @@ export function renderHealthDashboard(app) {
             app.switchPage(link.dataset.healthNav);
         });
     });
+
+    const healthPrintBtn = document.getElementById('healthPrintBtn');
+    if (healthPrintBtn) {
+        healthPrintBtn.addEventListener('click', () => window.print());
+    }
 }
 
 function renderGauge(app, chartKey, canvasId, pct, statusCls, bgColor) {
