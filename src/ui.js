@@ -319,6 +319,30 @@ export function initializeEventListeners(app) {
     if (rptPrintBtn) {
         rptPrintBtn.addEventListener('click', () => window.print());
     }
+    const accountsPrintBtn = document.getElementById('accountsPrintBtn');
+    if (accountsPrintBtn) {
+        accountsPrintBtn.addEventListener('click', () => window.print());
+    }
+    const incomePrintBtn = document.getElementById('incomePrintBtn');
+    if (incomePrintBtn) {
+        incomePrintBtn.addEventListener('click', () => window.print());
+    }
+    const liabilitiesPrintBtn = document.getElementById('liabilitiesPrintBtn');
+    if (liabilitiesPrintBtn) {
+        liabilitiesPrintBtn.addEventListener('click', () => window.print());
+    }
+    const recurringPrintBtn = document.getElementById('recurringPrintBtn');
+    if (recurringPrintBtn) {
+        recurringPrintBtn.addEventListener('click', () => window.print());
+    }
+    const strategyPrintBtn = document.getElementById('strategyPrintBtn');
+    if (strategyPrintBtn) {
+        strategyPrintBtn.addEventListener('click', () => window.print());
+    }
+    const ledgerPrintBtn = document.getElementById('ledgerPrintBtn');
+    if (ledgerPrintBtn) {
+        ledgerPrintBtn.addEventListener('click', () => window.print());
+    }
 
     document.addEventListener('click', event => {
         const rangeBtn = event.target.closest('[data-networth-range]');

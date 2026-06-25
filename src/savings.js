@@ -10,6 +10,10 @@ export function renderSavingsPage(app) {
   const currentSubTab = app.savingsSubTab || 'emergency';
 
   let html = `
+    <div class="page-header-row">
+      <h2>💰 Savings</h2>
+      <button type="button" class="page-print-btn" id="savingsPrintBtn" title="Print this page" aria-label="Print the Savings page">🖨️ Print</button>
+    </div>
     <div class="savings-container">
       <div class="savings-subtabs">
         <button class="savings-subtab-btn ${currentSubTab === 'emergency' ? 'active' : ''}" data-savings-subtab="emergency">🏦 Emergency Fund</button>
@@ -296,6 +300,11 @@ export function switchSavingsSubTab(app, subTab) {
 export function attachSavingsEventListeners(app) {
   const section = document.getElementById('savingsSection');
   if (!section) return;
+
+  const savingsPrintBtn = document.getElementById('savingsPrintBtn');
+  if (savingsPrintBtn) {
+    savingsPrintBtn.addEventListener('click', () => window.print());
+  }
 
   // Subtab switching
   section.querySelectorAll('.savings-subtab-btn').forEach(btn => {

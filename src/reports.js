@@ -1179,6 +1179,7 @@ export function renderReportsSummary(app) {
 
     const netWorthSection = metrics.netWorth ? `
         <h4 class="rpt-section-title">Net Worth</h4>
+        <div class="nw-history-table-wrap">
         <table class="nw-history-table">
             <caption class="sr-only">Net worth details for ${escapeHtml(metrics.periodLabel)}</caption>
             <tbody>
@@ -1188,7 +1189,8 @@ export function renderReportsSummary(app) {
                 ${metrics.netWorth.netChange !== null ? `<tr><td>Net Change</td><td class="text-right">${formatCurrency(metrics.netWorth.netChange)}</td></tr>` : ''}
                 ${metrics.netWorth.debtDrop !== null ? `<tr><td>Debt Reduction</td><td class="text-right">${formatCurrency(metrics.netWorth.debtDrop)}</td></tr>` : ''}
             </tbody>
-        </table>` : '<p class="rpt-empty-msg">No net worth snapshot recorded for this period yet.</p>';
+        </table>
+        </div>` : '<p class="rpt-empty-msg">No net worth snapshot recorded for this period yet.</p>';
 
     container.innerHTML = `
         <div class="nw-report-header">
@@ -1199,6 +1201,7 @@ export function renderReportsSummary(app) {
             </div>
         </div>
         <h4 class="rpt-section-title">Cash Flow</h4>
+        <div class="nw-history-table-wrap">
         <table class="nw-history-table">
             <caption class="sr-only">Cash flow summary for ${escapeHtml(metrics.periodLabel)}</caption>
             <tbody>
@@ -1206,11 +1209,14 @@ export function renderReportsSummary(app) {
                 <tr class="${netCls}"><td><strong>Net Remaining</strong></td><td class="text-right"><strong>${formatCurrency(cf.net)}</strong></td></tr>
             </tbody>
         </table>
+        </div>
         <h4 class="rpt-section-title">Account Balances</h4>
+        <div class="nw-history-table-wrap">
         <table class="nw-history-table">
             <caption class="sr-only">Account balances for ${escapeHtml(metrics.periodLabel)}</caption>
             <thead><tr><th>Account</th><th>Start</th><th>End</th><th>Change</th></tr></thead>
             <tbody>${accountRows}</tbody>
         </table>
+        </div>
         ${netWorthSection}`;
 }

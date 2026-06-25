@@ -1,10 +1,24 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 21, 2026  
-**Current Version**: v4.0.0  
+**Last Updated**: June 24, 2026  
+**Current Version**: v4.1.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
+
+## ✅ Print Button on Every Remaining Page (v4.1.0, June 24, 2026)
+
+Every page now has a "🖨️ Print" button, completing the print-friendly rollout that
+started with Reports/Health/Accounts/Income. Liabilities, Recurring, Plan (Strategy),
+and Ledger get a static button next to their `<h2>` (wired once in `src/ui.js`, same
+pattern as Accounts/Income); Savings and Reconcile re-render their whole section on
+every change, so their buttons are injected into the template and re-wired on each
+render (`src/savings.js`, `src/reconciliation.js`). The `@media print` stylesheet in
+`styles.css` was extended to hide each page's data-entry form/control cards
+(`.debts-form-card`, `.budget-form-card`, `.recurring-form-card`,
+`.emergency-form-card`, `.sinking-form-card`, `.strategy-controls`,
+`.target-date-panel`, `.recon-form-grid`, `.recon-expected`) so only read-only content
+prints. Covered by `tests/ui/test_remaining_pages_print.py`.
 
 ## ✅ Ledger Table Scroll + Reports Calendar Tap-to-Open-Modal (June 21, 2026)
 
@@ -563,7 +577,7 @@ Identified while reviewing the current featureset against the audit results — 
 #### 🎨 UI/UX
 - ~~**Command palette / quick-jump (Ctrl+K)**~~ ✅ **Delivered June 20, 2026** — `src/commandPalette.js`; opens via Ctrl/Cmd+K or the toolbar 🔍 button, fuzzy-filters across all 10 pages plus common actions (export/import JSON, theme toggle, calculate plan).
 - **Customizable Health Dashboard card order** — let users reorder/hide the six health cards (drag-and-drop or simple up/down controls), persisted like other preferences.
-- ~~**Print-friendly Reports view**~~ ✅ **Delivered June 23, 2026** — a `@media print` stylesheet plus a "Print / Save as PDF" button on the Reports page; doubles as the PDF mechanism for Enhanced Data Export (Tier 4).
+- ~~**Print-friendly Reports view**~~ ✅ **Delivered June 23, 2026, extended to all pages June 24, 2026** — a `@media print` stylesheet plus a "Print / Save as PDF" button on every page (Reports, Health, Accounts, Income, Liabilities, Recurring, Savings, Plan, Ledger, Reconcile); doubles as the PDF mechanism for Enhanced Data Export (Tier 4).
 - **Empty-state onboarding flow** — guided first-run walkthrough (create first account → add income/debt → see Health dashboard populate) for new users instead of a single guide.html page.
 
 #### ♿ Accessibility

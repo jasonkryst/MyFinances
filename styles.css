@@ -642,6 +642,45 @@ body.dark-mode .rpt-month-btn:hover, body.dark-mode .rpt-month-btn:focus {
     color: #fff;
     outline: 2px solid #2563eb;
 }
+
+/* ── Per-page print button (Health, Accounts, Income) ──────────────────── */
+.page-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.page-print-btn {
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    transition: background 0.15s, color 0.15s;
+}
+.page-print-btn:hover, .page-print-btn:focus {
+    background: #1e40af;
+    color: #fff;
+    outline: 2px solid #2563eb;
+}
+body.dark-mode .page-print-btn {
+    background: #2563eb;
+    color: #fff;
+}
+body.dark-mode .page-print-btn:hover, body.dark-mode .page-print-btn:focus {
+    background: #1e40af;
+    color: #fff;
+    outline: 2px solid #2563eb;
+}
 body.dark-mode .rpt-month-label {
     color: #60a5fa;
 }
@@ -5381,6 +5420,7 @@ body.dark-mode .health-link { color: #60a5fa; }
 .recon-expected summary { cursor: pointer; color: var(--primary-color); font-size: 0.9rem; }
 body.dark-mode .recon-expected summary { color: #60a5fa; }
 .recon-expected-empty { font-size: 0.85rem; color: var(--text-secondary); margin: 8px 0 0; }
+.recon-table-wrap { overflow-x: auto; }
 .recon-expected-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 0.85rem; }
 .recon-expected-table th, .recon-expected-table td {
     text-align: left;
@@ -5559,7 +5599,7 @@ body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
     .spending-pie-wrap    { height: 220px; }
 }
 
-/* ── Print stylesheet (Reports page) ────────────────────────────────────── */
+/* ── Print stylesheet (Reports, Health, Accounts, Income pages) ─────────── */
 @media print {
     header, nav.top-nav, .rpt-tab-bar,
     .rpt-month-btn, button, select, input, .nw-range-buttons,
@@ -5570,6 +5610,13 @@ body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
     .page-section.active { display: block !important; }
     .rpt-tab-panel { display: none !important; }
     .rpt-tab-panel.rpt-tab-panel--active { display: block !important; }
+    .account-form-card, .income-form-card, .bonus-section, .health-link,
+    .debts-form-card, .budget-form-card, .recurring-form-card,
+    .emergency-form-card, .sinking-form-card,
+    .strategy-controls, .target-date-panel,
+    .recon-form-grid, .recon-expected {
+        display: none !important;
+    }
     body {
         background: white !important;
         color: black !important;
