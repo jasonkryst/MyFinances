@@ -5447,6 +5447,42 @@ body.dark-mode .recon-badge { background: #0c4a6e; color: #7dd3fc; }
 .ledger-row--reconciliation { font-style: italic; color: var(--text-secondary); }
 .ledger-recon-diff { font-weight: 600; }
 
+.ledger-recon-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+    cursor: help;
+    user-select: none;
+    transition: background 0.15s, color 0.15s;
+}
+.ledger-recon-info:hover,
+.ledger-recon-info:focus { outline: none; background: var(--text-secondary); color: var(--card-bg); }
+
+.ledger-recon-info--active {
+    background: var(--primary-color);
+    color: #fff;
+}
+.ledger-recon-info--active:hover,
+.ledger-recon-info--active:focus { background: var(--primary-dark, var(--primary-color)); color: #fff; }
+
+body.dark-mode .ledger-recon-info { background: #1e3a5f; color: #93c5fd; }
+body.dark-mode .ledger-recon-info:hover,
+body.dark-mode .ledger-recon-info:focus { background: #93c5fd; color: #0f172a; }
+body.dark-mode .ledger-recon-info--active { background: #3b82f6; color: #fff; }
+body.dark-mode .ledger-recon-info--active:hover,
+body.dark-mode .ledger-recon-info--active:focus { background: #60a5fa; color: #0f172a; }
+
 /* ── Settings ─────────────────────────────────────────────────────────────── */
 .settings-toggle-row {
     display: flex;
