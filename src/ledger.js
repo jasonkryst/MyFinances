@@ -2,7 +2,7 @@
 
 import { getIncomePaydaysInMonth, formatCurrency } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
-import { getSetting, setSetting } from './settings.js';
+import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 
 function getDateKey(date) {
     const d = new Date(date);
@@ -403,6 +403,7 @@ export function getLedgerTransactions(app) {
     const today = new Date();
     const accountMap = buildProjectedAccountTransactions(app, today.getFullYear(), today.getMonth(), 12);
     const allTxs = [];
+    const adjustsBalance = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
 
     for (const acctId in accountMap) {
         if (acctId === UNLINKED_KEY) continue;
@@ -428,7 +429,17 @@ export function getLedgerTransactions(app) {
                 });
             }
 
-            const amount = getEffectiveAmount(app, tx);
+            // When the "reconciliation adjusts balance" setting is on, treat the
+            // reconciliation row as a hard reset point: snap running to the
+            // statement balance rather than adding its (always-zero) originalAmount.
+            // This ensures the balance column at the reconciliation row shows the
+            // authoritative statement balance, and all subsequent rows project from it.
+            let amount;
+            if (tx.type === 'reconciliation' && tx.meta && adjustsBalance) {
+                amount = tx.meta.statementBalance - running;
+            } else {
+                amount = getEffectiveAmount(app, tx);
+            }
             running += amount;
             tx.balance = running;
 
@@ -449,7 +460,18 @@ export function getLedgerTransactions(app) {
         }
     }
 
-    allTxs.sort((a, b) => b.date - a.date);
+    // Sort newest-first. For same-millisecond timestamps, synthetic rows
+    // (rollover, reconciliation) sort after real transactions so that the
+    // real transaction's balance appears above the carry-over/snap row —
+    // matching the expectation that real activity is "newer" than the
+    // synthetic bookkeeping event on the same date.
+    allTxs.sort((a, b) => {
+        const dateDiff = b.date - a.date;
+        if (dateDiff !== 0) return dateDiff;
+        const aPriority = (a.type === 'rollover' || a.type === 'reconciliation') ? 1 : 0;
+        const bPriority = (b.type === 'rollover' || b.type === 'reconciliation') ? 1 : 0;
+        return aPriority - bPriority;
+    });
     return allTxs.map(tx => toLedgerTxOutput(app, tx));
 }
 
@@ -714,6 +736,8 @@ export function renderLedgerPage(app) {
         if (app._ledgerSortKey !== key) return '<span class="sort-icon">⇅</span>';
         return app._ledgerSortDir === 'asc' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
     };
+    const reconAdjusts = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
+
     let html = filterHtml;
     html += `<div class="table-wrapper"><table class="ledger-table">
         <thead><tr>
@@ -739,8 +763,17 @@ export function renderLedgerPage(app) {
                 : tx.hasOverride
                     ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
                     : `<span>${formatCurrency(tx.amount)}</span>`;
+
+            let reconInfoIcon = '';
+            if (isReconciliation && tx.meta) {
+                const tipText = reconAdjusts
+                    ? `Running balance snaps to statement balance (${formatCurrency(tx.meta.statementBalance)}) at this row.\nTransactions after this point project forward from that balance.\n\nReconciliation Adjusts Balance: On`
+                    : `Informational only — the running balance is not changed by this row.\nEnable "Reconciliation Adjusts Balance" in Settings to have the balance snap to the statement balance at reconciliation points.\n\nReconciliation Adjusts Balance: Off`;
+                reconInfoIcon = `<span class="ledger-recon-info${reconAdjusts ? ' ledger-recon-info--active' : ''}" title="${escapeHtml(tipText)}" aria-label="Reconciliation balance info" tabindex="0">ℹ</span>`;
+            }
+
             const nameCell = isReconciliation && tx.meta
-                ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>`
+                ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
                 : escapeHtml(tx.name || '');
             const overrideActions = canOverride
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit override' : 'Override'}</button>${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
