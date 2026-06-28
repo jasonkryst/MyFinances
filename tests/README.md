@@ -5,8 +5,8 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 344 Tests Passing across 5 categories (security, features, ui, a11y, integration)
-- ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, and Account Reconciliation
+- ✅ 452 Tests Passing across 5 categories (security, features, ui, a11y, integration)
+- ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, and Settings
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
 - ✅ 100% CSP Compliance Verified
@@ -75,52 +75,63 @@ pytest --cov=. --cov-report=html
 tests/
 ├── conftest.py                 # Shared fixtures and utilities
 ├── README.md                   # This file
-├── security/                   # Security and compliance tests (51 tests)
-│   ├── test_xss.py            # XSS prevention tests
-│   ├── test_csp.py            # CSP compliance tests
-│   ├── test_input_validation.py # Input sanitization tests
-│   └── test_static_scan.py     # Static security scanning
-├── features/                   # Feature-specific tests (179 tests)
+├── security/                   # Security and compliance tests (56 tests)
+│   ├── test_xss.py            # XSS prevention tests across all input surfaces
+│   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
+│   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
+│   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
+├── features/                   # Feature-specific tests (203 tests)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning)
-│   ├── test_debts.py           # Debt/liability management
+│   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
-│   ├── test_health.py          # Financial Health Dashboard
-│   ├── test_income.py          # Income source management
+│   ├── test_health.py          # Financial Health Dashboard (all six metric cards)
+│   ├── test_income.py          # Income sources, add + inline-edit negative-amount rejection
 │   ├── test_expenses.py        # Expense tracking (add/edit/delete, validation)
 │   ├── test_bills.py           # Bill data model, sanitization, calculation integration
-│   ├── test_recurring.py       # Recurring transactions
-│   ├── test_recurring_occurrences.py # Recurring occurrence generation (frequency edge cases)
-│   ├── test_ledger.py          # Ledger, history, amount-override modal
-│   ├── test_reports.py         # Reports functionality
+│   ├── test_recurring.py       # Recurring transactions (CRUD, mark-as-paid, validation)
+│   ├── test_recurring_occurrences.py # Frequency-edge-case occurrence generation
+│   ├── test_ledger.py          # Ledger filters, amount-override modal, CSV export column picker
+│   ├── test_reports.py         # Reports functionality, tab grouping, date-boundary handling
 │   ├── test_reports_nav_groups.py # Reports tab grouping structure
-│   ├── test_main_nav_groups.py # Main nav grouping structure
-│   ├── test_networth.py        # Net worth tracking
-│   ├── test_forecast.py        # Cash Flow Forecast
-│   ├── test_reconciliation.py  # Account reconciliation
-│   ├── test_spending_analysis.py # Spending category breakdowns
+│   ├── test_main_nav_groups.py # Main nav grouping structure (Overview/Manage/Analyze)
+│   ├── test_networth.py        # Net worth tracking, snapshots, milestones
+│   ├── test_savings.py         # Emergency fund & sinking funds, persistence
+│   ├── test_forecast.py        # Cash Flow Forecast (horizon, dip detection, drivers)
+│   ├── test_reconciliation.py  # Account reconciliation, expected transactions, import/export
+│   ├── test_spending_analysis.py # Spending category breakdowns, month-over-month trends
 │   ├── test_storage_import.py  # Sanitizer unit tests + adversarial import tests
+│   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
+│   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   └── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
-├── ui/                         # UI/UX and responsive tests (95 tests)
-│   ├── test_mobile.py          # Mobile responsiveness
-│   ├── test_modals.py          # Modal visibility and behavior
-│   ├── test_dark_mode.py       # Dark mode functionality, corrupted-theme fallback
-│   ├── test_css_load.py        # CSS loading and styling
-│   ├── test_accessibility.py  # Keyboard navigation, ARIA, semantic HTML, Results tab bar
+├── ui/                         # UI/UX and responsive tests (170 tests)
+│   ├── test_mobile.py          # Mobile responsiveness, hamburger menu, touch sizing
+│   ├── test_modals.py          # Modal visibility, close buttons, calendar day-detail
+│   ├── test_dark_mode.py       # Dark mode toggle, persistence, corrupted-localStorage fallback
+│   ├── test_css_load.py        # External stylesheet, utility classes, responsive breakpoints
+│   ├── test_accessibility.py   # Keyboard nav, ARIA labels, semantic HTML, Results tab-bar
 │   ├── test_charts.py          # Chart.js destroy-before-recreate on repeated re-render
-│   ├── test_guide_theme.py     # guide.html dark-mode sync with saved theme preference
-│   ├── test_main_nav.py        # Main nav active-state & keyboard reachability
-│   ├── test_reports_nav.py     # Reports tab bar grouping/sticky positioning
-│   ├── test_debt_actions.py    # Debt card inline actions
+│   ├── test_chart_accessibility.py # .sr-only data-table fallback for health/spending/forecast/net-worth charts
+│   ├── test_guide_theme.py     # guide.html dark-mode sync via guideTheme.js
+│   ├── test_guide_nav.py       # guide.html sticky nav, back-link, mobile behavior
+│   ├── test_reduced_motion.py  # CSS transitions collapse + Chart.defaults.animation disabled
+│   ├── test_command_palette.py # Ctrl+K open/filter/navigate/close; action commands
+│   ├── test_setup_wizard.py    # First-run modal, setting persistence, skip flow
+│   ├── test_overview_print.py  # Print button on Health, Accounts, Income pages
+│   ├── test_remaining_pages_print.py # Print button on Liabilities, Recurring, Plan, Savings, Ledger, Reconcile
+│   ├── test_table_mobile_scroll.py   # Ledger/reconciliation/report tables scroll in .table-wrapper on narrow viewports
+│   ├── test_main_nav.py        # Main nav active-state highlighting, keyboard reachability
+│   ├── test_reports_nav.py     # Reports tab bar grouping, sticky positioning, dark mode
+│   ├── test_debt_actions.py    # Debt card inline edit, delete, payoff-date display
 │   ├── test_recurring_actions.py # Recurring pause/skip/edit/mark-paid actions
-│   ├── test_reports_actions.py # Reports tab switching, snapshot capture
-│   ├── test_reconciliation_actions.py # Reconcile-modal flows
+│   ├── test_reports_actions.py # Reports tab switching, snapshot capture, spending drill-down
+│   ├── test_reconciliation_actions.py # Reconcile-modal flows, history filter/delete
 │   └── test_spending_ui.py     # Spending charts, ranked list, drill-down modal
-├── a11y/                        # Site-wide accessibility audit (8 tests)
-│   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable via CLI)
+├── a11y/                        # Site-wide accessibility audit (10 tests)
+│   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable directly)
 │   └── test_a11y_audit.py      # Pytest wiring: asserts zero Serious findings from the audit
-└── integration/                 # End-to-end workflow tests (11 tests)
-    ├── test_smoke.py            # Full application smoke test
-    └── test_workflows.py        # Multi-step workflows, import/export, clear-data/reimport
+└── integration/                 # End-to-end workflow tests (13 tests)
+    ├── test_smoke.py            # Full application smoke test (account → debt → net worth)
+    └── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
 ```
 
 > Ad-hoc manual debugging scripts (no `test_*` functions) live in `tools/debug/`, outside the `tests/` tree, so `tests/` only contains real pytest-collected tests.
@@ -391,12 +402,19 @@ def test_full_workflow():
 | Recurring | N/A | ✅ | ✅ | ✅ | ✅ |
 | Ledger | N/A | ✅ | ✅ | ✅ | ✅ |
 | Reports | N/A | ✅ | ✅ | ✅ | ✅ |
+| Savings | N/A | ✅ | N/A | N/A | N/A |
 | Net Worth | N/A | ✅ | ✅ | ✅ | ✅ |
 | **Health Dashboard** | N/A | ✅ | ✅ | ✅ | ✅ |
 | Cash Flow Forecast | N/A | ✅ | ✅ | N/A | N/A |
 | Account Reconciliation | N/A | ✅ | ✅ | N/A | ✅ |
 | Spending Analysis | N/A | ✅ | ✅ | N/A | ✅ |
 | Storage Import/Sanitizers | ✅ | ✅ | N/A | ✅ | ✅ |
+| Storage Quota Monitoring | N/A | ✅ | N/A | N/A | N/A |
+| Settings / Recon Mode | N/A | ✅ | ✅ | N/A | N/A |
+| Command Palette | N/A | N/A | ✅ | N/A | N/A |
+| Print / Save as PDF | N/A | N/A | ✅ | N/A | N/A |
+| Reduced Motion | N/A | N/A | ✅ | N/A | N/A |
+| Chart Accessibility | N/A | N/A | ✅ | N/A | N/A |
 | Dark Mode | N/A | ✅ | ✅ | ⚠️ | N/A |
 | Mobile | N/A | ✅ | ✅ | ✅ | N/A |
 | CSP | N/A | ✅ | ✅ | ✅ | ✅ |
@@ -548,5 +566,5 @@ Refer to:
 
 ---
 
-**Last Updated:** June 19, 2026  
-**Test Suite Status:** ✅ Fully Passing (344 tests)
+**Last Updated:** June 28, 2026  
+**Test Suite Status:** ✅ Fully Passing (452 tests / 51 files)

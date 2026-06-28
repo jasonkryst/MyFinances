@@ -1,8 +1,14 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 24, 2026  
-**Current Version**: v4.1.0  
+**Last Updated**: June 28, 2026  
+**Current Version**: v4.2.1  
 **Status**: Production-Ready (Security Audit: LOW Risk)
+
+---
+
+## ✅ Ledger Running Balance Accuracy & Reconciliation Info Icon (v4.2.0, June 28, 2026)
+
+Reconciliation entries now **snap the running balance** to the statement balance when "Reconciliation Adjusts Balance" mode is active, so the balance column is authoritative and all subsequent rows project forward from it correctly. A **sort tiebreaker** ensures synthetic rows (rollover, reconciliation markers) always appear below same-date real transactions in newest-first view, eliminating confusing balance jumps from unstable ordering. An **inline ℹ info icon** is added to every reconciliation marker row: muted-grey when the mode is off (informational only), primary-blue when on (balance-snapping active); tooltip text explains the current behaviour and references the setting by name; keyboard-accessible via `tabindex`.
 
 ---
 
@@ -131,6 +137,10 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 
 | Feature | Tier | Status | Notes |
 |---|---|---|---|
+| Ledger running balance accuracy + reconciliation info icon | — | ✅ | v4.2.0, June 28, 2026 |
+| Print button on all remaining pages + mobile table scroll | — | ✅ | v4.1.0, June 24, 2026 |
+| Reconciliations on ledger + reconciliation mode setting | — | ✅ | v4.0.0, June 21, 2026 |
+| Command palette, reduced motion, chart a11y, quota monitoring | — | ✅ | v3.9.0, June 20, 2026 |
 | Fix Income/Bonus/Fixed-Debt negative-amount validation bypass | 0 | ✅ | Security audit M1 + test-suite audit gap #1 — fixed, incl. inline-edit paths |
 | Close audit-flagged test-coverage gaps (strategy, charts, guideTheme, account orphans) | 0 | ✅ | Test-suite audit Section 7 |
 | Escape exception messages / harden `accounts.js` option helper | 0 | ✅ | Security audit L1/L2 |
@@ -563,16 +573,18 @@ Domain-specific tools for advanced users.
 
 ---
 
-### Tier 5: New Ideas (June 19, 2026 Audit Cycle)
+### Tier 5: New Ideas & Next Audit Items
 
-Identified while reviewing the current featureset against the audit results — not yet effort/priority-ranked against the existing tiers above, but worth tracking. Grouped by the lens that surfaced them.
+Surfaced during audit cycles and ongoing development — not yet fully prioritized against the tiers above. **Next formal audit recommended**: July 2026 (the app has grown ~90 tests and 10 source modules since the June 19 audit). Grouped by the lens that surfaced them.
 
 #### 🧩 Featureset
-- **PWA / offline installability** — add a manifest + service worker so the app can be installed and used offline; fits the "client-side only, no server" architecture naturally and improves mobile usability.
+- **PWA / offline installability** — add a manifest + service worker so the app can be installed and used offline; fits the "client-side only, no server" architecture naturally and improves mobile usability. (Promoted candidate for v4.4)
 - **Bank statement / CSV transaction import** — a mapping wizard to bulk-import transactions into the ledger, rather than manual entry only. Bigger lift than Enhanced Data Export (Tier 4) since it's import, not export.
-- **Reminders for due bills/recurring items** — browser Notification API (with explicit opt-in) or an in-app "due soon" digest on the Health dashboard, building on `recurringTemplates`' existing occurrence-date math.
-- **Scheduled/auto-export reminders** — since there's no cloud backup, periodically nudge users (e.g. "last export was 45 days ago") to export their JSON backup, directly addressing the single-point-of-failure risk of localStorage-only persistence.
-- **FIRE / net-worth goal calculator** — extends the existing Net Worth Tracker with a target net-worth + timeline projection, reusing `monthlySnapshots` trend data.
+- **Reminders for due bills/recurring items** — browser Notification API (with explicit opt-in) or an in-app "due soon" digest on the Health dashboard, building on `recurringTemplates`' existing occurrence-date math. (Promoted candidate for v4.4)
+- **Scheduled/auto-export reminders** — since there's no cloud backup, periodically nudge users (e.g. "last export was 45 days ago") to export their JSON backup, directly addressing the single-point-of-failure risk of localStorage-only persistence. (Promoted candidate for v4.4)
+- **FIRE / net-worth goal calculator** — extends the existing Net Worth Tracker with a target net-worth + timeline projection, reusing `monthlySnapshots` trend data. (Promoted candidate for v4.4)
+- **Guide page content audit** — `guide.html` was written against the original feature set; many features added since (Health Dashboard, Reconciliation, Command Palette, Forecast, Spending Analysis, Settings) are not fully covered. Low effort, high value for new users.
+- **Savings Goals scope clarification** — the Tier 2 "Savings Goals" entry overlaps significantly with the existing Sinking Funds feature (target amount, deadline, monthly allocation); the remaining gap is cross-fund aggregation and a unified goal-progress view, not a separate data model. Should be scoped accordingly before implementation.
 
 #### 🎨 UI/UX
 - ~~**Command palette / quick-jump (Ctrl+K)**~~ ✅ **Delivered June 20, 2026** — `src/commandPalette.js`; opens via Ctrl/Cmd+K or the toolbar 🔍 button, fuzzy-filters across all 10 pages plus common actions (export/import JSON, theme toggle, calculate plan).
@@ -656,31 +668,51 @@ Identified while reviewing the current featureset against the audit results — 
 - Fixed an unclosed Markdown code fence in this repo's root `README.md` "Quick Start" section that was swallowing the entire Security & Privacy section into a code block
 - v3.9.0: minor version bump for the five items above. Test suite expanded from 344→365 tests (41→45 files), zero regressions
 
+**Shipped post-v3.1 (June 21, 2026)**:
+- Reconciliations now appear as marker rows on the unified Ledger regardless of mode (v4.0.0)
+- Reconciliation Mode setting — Adjust Balance vs. Visible Only — backed by new extensible `app.settings` array (`src/settings.js`); storage format bumped to `"4.0.0"`
+- First-run setup wizard (`src/setupWizard.js`) asks new users to choose mode once; existing users default silently to Visible Only; changeable via Settings modal (⚙ gear icon or command palette)
+- Reports Calendar: day cells now show compact dot-count indicators; click/Enter opens `#calendarDayModal` with full event list at every viewport width
+- Print / Save as PDF added to Health, Accounts, Income, and Reports pages
+- Test suite: new `tests/features/test_settings.py`, `tests/ui/test_setup_wizard.py`, `tests/ui/test_overview_print.py` and a11y expansion for the setup-wizard modal
+
+**Shipped post-v3.1 (June 24, 2026)**:
+- Print button on Liabilities, Recurring, Plan, Savings, Ledger, and Reconcile pages — completes the print-friendly rollout across every page (v4.1.0)
+- Mobile horizontal-scroll fix for five tables in Reports, Reconciliation, and Ledger that were missing `.table-wrapper`
+- Test suite expanded: `tests/ui/test_remaining_pages_print.py`, `tests/ui/test_table_mobile_scroll.py`
+
+**Shipped post-v3.1 (June 28, 2026)**:
+- Ledger running balance snaps to statement balance in "Adjust Balance" mode; sort tiebreaker for same-date synthetic rows (v4.2.0)
+- Inline ℹ info icon on every reconciliation ledger marker row (muted / blue, tooltip, keyboard-accessible)
+- README reorganized: `Key Product Updates` release-notes extracted to new `CHANGELOG.md`; duplicate Security, Privacy, and Testing sections consolidated; all test counts updated (452 tests / 51 files)
+
 ---
 
-### v3.2 (Q3 2026)
-**Focus**: Goal Setting & Progress Tracking
+### v4.3 (Q3 2026 — target)
+**Focus**: Budget Awareness & Goal Tracking
 
-- [ ] Budget Alerts & Warnings (HIGH impact, LOW effort) — carried from v3.1
-- [ ] Savings Goals (MEDIUM-HIGH impact)
-- [x] ~~Spending Analysis (MEDIUM impact)~~ — shipped early, June 16, 2026
-- [ ] Enhanced Ledger Features (MEDIUM impact)
+- [ ] Budget Alerts & Overspend Warnings (HIGH impact, LOW effort) — carried since v3.1; requires per-category budget-limit concept
+- [ ] Savings Goals (MEDIUM-HIGH impact) — clarify overlap with existing Sinking Funds before scoping
+- [ ] Break-Even Analysis per Debt (MEDIUM impact) — largely a UI addition on top of existing calc engine
+- [ ] Advanced Ledger Features — scope to ledger search/filter by name and flag/note capability
 
 ---
 
-### v3.3 (Q1 2027)
-**Focus**: Scenario Planning & Forecasting
+### v4.4 (Q4 2026 — target)
+**Focus**: Scenario Planning & Proactive Alerts
 
 - [ ] Multiple Scenario Comparison (MEDIUM impact)
-- [x] ~~Cash Flow Forecasting (MEDIUM impact)~~ — shipped early, June 10, 2026
-- [ ] Break-Even Analysis per Debt (MEDIUM impact)
+- [ ] Scheduled/auto-export reminders (LOW effort, HIGH value for localStorage-only app)
+- [ ] Reminders for due bills/recurring items (Notification API, opt-in)
 
 ---
 
-### v3.4+ (Future)
-- [ ] Bill Payment Tracker
-- [x] ~~Account Reconciliation~~ — shipped early, June 13, 2026
+### v5.x+ (Future)
+- [ ] Bill Payment Tracker — remaining pieces (late payment warnings, payment history) to be redefined against Recurring Templates
+- [ ] Income Growth Projections — natural extension of Cash Flow Forecast
 - [ ] Debt Consolidation Calculator
+- [ ] PWA / offline installability
+- [ ] FIRE / net-worth goal calculator (extends existing Net Worth Tracker)
 - [ ] Advanced Tax/Retirement tools
 
 ---
@@ -775,13 +807,13 @@ this.reconciliationEntries = [];  // Account adjustments
 ## 📞 Feedback & Discussion
 
 **Status**: Open for feedback  
-**Last Review**: June 19, 2026  
+**Last Review**: June 28, 2026  
 **Next Review**: July 31, 2026
 
 Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECURITY.md#security-issues).
 
 ---
 
-**Version**: 1.2  
+**Version**: 1.3  
 **Status**: Active Roadmap  
-**Last Updated**: June 19, 2026
+**Last Updated**: June 28, 2026
