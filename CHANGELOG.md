@@ -7,6 +7,21 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.3.0] — 2026-06-30
+
+### Added
+- **Break-Even Analysis per Debt** — each credit-card debt card now shows a Payoff Analysis badge comparing your plan payment to minimum-payment-only: months to payoff, total interest, months saved, and interest saved; no-plan state shows a minimum-only estimate with a clear banner
+- **Min-type toggle** — switch the minimum-payment scenario between Fixed (constant minimum) and % of Balance (recalculated each month) directly on the badge; updates live without page reload
+- **Mini payoff chart** — Chart.js line chart on each debt card showing balance decay over time for both scenarios; fully accessible via a companion screen-reader data table
+- **Accelerate modal** — "Accelerate this debt →" button opens a modal with a live extra-payment preview: type an amount and instantly see new payoff date, interest saved, and a comparison chart; "Apply to Plan" navigates to the Plan page with the new total pre-filled
+- **Interest Saved / Months Saved columns** — two new sortable columns in the Plan page Debt Summary table showing per-debt savings vs. minimum-only; `fixedAmount` debts show `—`; footnote explains the comparison baseline
+- **13 Playwright tests** (`tests/features/test_break_even.py`) — 8 positive + 5 negative/edge cases covering badge no-plan state, plan-active auto-render, min-type toggle, accelerate modal open/preview/apply, plan table columns, fixed-amount exclusion, 0% APR, balance=minimum, invalid percent, $0 extra, negative extra
+
+### Fixed
+- Dark mode contrast for `.break-even-show-link` (blue-400 `#60a5fa`), `.break-even-savings--positive`, `.be-col-saved`, and `.accelerate-preview-delta` (green-400 `#4ade80`) — matches the established dark mode color palette
+
+---
+
 ## [4.2.1] — 2026-06-28
 
 ### Changed
