@@ -33,6 +33,14 @@ function renderBreakEvenBadge(app, debt, container) {
     const minPct = parseFloat(section?.querySelector('.be-min-pct')?.value) || 2;
 
     const revealed = section?.dataset.revealed === 'true';
+
+    // Must destroy before DOM removal — Chart.js cleanup requires canvas still attached.
+    const existingChartId = `be-chart-${debt.id}`;
+    if (app._breakEvenCharts && app._breakEvenCharts[existingChartId]) {
+        try { app._breakEvenCharts[existingChartId].destroy(); } catch (_) { /* ignore */ }
+        delete app._breakEvenCharts[existingChartId];
+    }
+
     if (!hasPlan && !revealed) {
         // No plan, not yet shown — render the "Show" link
         container.querySelector('.break-even-section')?.remove();
