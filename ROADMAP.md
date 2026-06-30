@@ -1,8 +1,14 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 28, 2026  
-**Current Version**: v4.2.1  
+**Last Updated**: June 30, 2026  
+**Current Version**: v4.3.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
+
+---
+
+## ✅ Break-Even Analysis per Debt (v4.3.0, June 30, 2026)
+
+Each credit-card debt card now shows a **Payoff Analysis badge** comparing the user's plan payment to a minimum-payment-only scenario: months to payoff, total interest, and the exact months and dollars saved. A **min-type toggle** switches the minimum scenario between fixed and percent-of-balance and re-renders live. A **mini Chart.js line chart** shows the balance decay for both scenarios with a companion screen-reader data table. The **Accelerate modal** (opened by "Accelerate this debt →") lets users type an extra payment and instantly preview the new payoff date and interest saved, with "Apply to Plan" wiring the total into the Strategy page. The **Plan page Debt Summary table** gains two new sortable columns — Interest Saved and Months Saved — with null-safe sort and a source footnote. Fixed-amount debts are excluded throughout. 13 new Playwright tests cover badge states, modal interactions, table columns, and negative edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra). See `src/breakEven.js` (new calculation module), `src/debts.js` (badge + modal), `src/strategy.js` (table columns).
 
 ---
 
@@ -151,7 +157,7 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 | Spending Analysis by Category | 2 | ✅ | Delivered June 16, 2026 |
 | Multiple Scenario Comparison | 2 | 📋 | |
 | Cash Flow Forecasting | 2 | ✅ | Delivered June 10, 2026 — shipped early, was planned for v3.3 |
-| Break-Even Analysis per Debt | 2 | 📋 | |
+| Break-Even Analysis per Debt | 2 | ✅ | v4.3.0, June 30, 2026 — badge, accelerate modal, plan table columns |
 | Advanced Ledger Features | 3 | 📋 | |
 | Bill Payment Tracker | 3 | 📋 | "Mark as paid" seeded for Recurring Templates via Quick Win #4 |
 | Income Growth Projections | 3 | 📋 | |

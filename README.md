@@ -113,6 +113,8 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Priority levels** — assign 1–100 priority for custom strategy ordering
 - **Payoff Date display** — every debt card shows a 📅 Payoff Date sourced from the plan calculation; shows "Run a plan to see" hint until a plan exists
 - **Interest Paid to Date** — estimate shown on each debt card, based on original balance and opened date
+- **Payoff Analysis badge** — each credit-card debt card shows a break-even comparison: your plan payment vs. minimum-only, with months saved and interest saved; no-plan state shows minimum-only estimate with a clear banner; toggle between Fixed and % of Balance minimum-payment mode
+- **Accelerate modal** — "Accelerate this debt →" button opens a live-preview modal: type an extra monthly payment and instantly see updated payoff date and interest saved; "Apply to Plan" wires the total into the Strategy page
 
 ---
 
@@ -188,6 +190,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Negative-amortisation warning** — badge flags any debt where the minimum payment is below the monthly interest
 - **Strategy comparison panel** — runs all four strategies and shows interest/time saved vs. your current choice
 - **What-If simulator** — drag a slider to add extra monthly payment and instantly see months saved / interest saved
+- **Break-Even Analysis** — per-debt module (`src/breakEven.js`) runs two single-debt simulations (plan vs. minimum-only) to compute months saved, interest saved, and balance-over-time series for mini charts; supports both fixed-minimum and percent-of-balance modes
 - **Target Payoff Date** — enter a desired payoff date; binary-search back-calculator (up to 60 iterations) finds the required monthly payment
 
 ### Charts (Chart.js)
@@ -305,23 +308,25 @@ src/
   ├─ forecast.js           — Cash Flow Forecast (Reports tab)
   ├─ charts.js             — Chart rendering & lifecycle
   ├─ storage.js            — Persistence, import/export, data validation
+  ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only comparison)
   ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   └─ utils.js              — Formatting, date utilities, sanitization, chart tables
-tests/ (452 tests across 51 files)
+tests/ (465 tests across 52 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/ (56 tests)     — XSS, CSP, input validation, static scan
   │   ├─ test_xss.py, test_csp.py
   │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (203 tests)    — Per-feature CRUD, calculations, business logic
+  ├─ features/ (216 tests)    — Per-feature CRUD, calculations, business logic
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
   │   ├─ test_health.py, test_forecast.py, test_reconciliation.py
   │   ├─ test_spending_analysis.py, test_storage_import.py, test_storage_quota.py
   │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
-  │   └─ test_main_nav_groups.py, test_reports_nav_groups.py
+  │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py
+  │   └─ test_break_even.py
   ├─ ui/ (170 tests)          — UI/UX, responsiveness, accessibility
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
@@ -417,11 +422,11 @@ form-action 'self'
 
 ---
 
-## 🧪 Testing Suite (Updated June 28, 2026)
+## 🧪 Testing Suite (Updated June 30, 2026)
 
 ### Test Statistics
-- **Total Tests**: 452 comprehensive tests, all passing
-- **Test Files**: 51 organized across 5 categories
+- **Total Tests**: 465 comprehensive tests, all passing
+- **Test Files**: 52 organized across 5 categories
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
@@ -433,7 +438,7 @@ form-action 'self'
 - **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
 - **Static Analysis** — Code patterns, hardcoded secrets, dependencies
 
-#### 🎯 Feature Tests (203 tests)
+#### 🎯 Feature Tests (216 tests)
 - **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
 - **Debt Calculator** — Strategies (incl. multi-debt priority ordering), daily compounding, back-calculator, stimulus edge cases
@@ -454,6 +459,7 @@ form-action 'self'
 - **Storage Import** — Sanitizer primitives, adversarial inputs for all record types, legacy v1.0 format
 - **Storage Quota** — Soft warning at ~80%, dismissibility, re-arming, hard-failure on write error
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
+- **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
 
 #### 🎨 UI/UX Tests (170 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
@@ -486,9 +492,9 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 452 tests
+pytest tests/ -v                  # All 465 tests
 pytest tests/security/ -v         # 56 security tests
-pytest tests/features/ -v         # 203 feature tests
+pytest tests/features/ -v         # 216 feature tests
 pytest tests/ui/ -v               # 170 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
 pytest tests/integration/ -v      # 13 integration tests
@@ -585,4 +591,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.2.1 — Updated June 28, 2026*
+*MyFinances v4.3.0 — Updated June 30, 2026*
