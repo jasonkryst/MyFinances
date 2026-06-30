@@ -5755,6 +5755,12 @@ body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
 .break-even-show-link:hover {
     color: var(--accent-hover, #1d4ed8);
 }
+body.dark-mode .break-even-show-link {
+    color: #60a5fa;
+}
+body.dark-mode .break-even-show-link:hover {
+    color: #93c5fd;
+}
 .break-even-accelerate-btn {
     margin-top: 0.5rem;
     font-size: 0.8rem;
