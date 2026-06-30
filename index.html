@@ -589,11 +589,14 @@
                                         <th data-sort="interestPaid"   class="sortable">Est. Interest Paid <span class="sort-icon">↕</span></th>
                                         <th data-sort="interestToDate" class="sortable">Est. Interest Paid to Date <span class="sort-icon">↕</span></th>
                                         <th data-sort="payoffDate"     class="sortable">Estimated Payoff Date <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestSaved"  class="sortable">Interest Saved <span class="sort-icon">↕</span></th>
+                                        <th data-sort="monthsSaved"    class="sortable">Months Saved <span class="sort-icon">↕</span></th>
                                         <th>Amortization</th>
                                     </tr>
                                 </thead>
                                 <tbody id="debtSummaryTableBody"></tbody>
                             </table>
+                            <p class="debt-summary-footnote">Interest/months saved vs. minimum-payment-only scenario.</p>
                         </div>
                     </div>
 
@@ -862,6 +865,40 @@
 
     <script src="src/debtCalculator.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous"></script>
+    <!-- Accelerate Debt Modal -->
+    <div id="accelerateDebtModal" class="accelerate-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="accelerateDebtTitle" tabindex="-1">
+        <div class="accelerate-modal-content">
+            <button id="accelerateCloseBtn" class="accelerate-modal-close" aria-label="Close">&times;</button>
+            <h3 id="accelerateDebtTitle">Accelerate: Debt</h3>
+            <div class="accelerate-row">
+                <label>Current plan payment</label>
+                <span id="accelerateBasePay">—</span>
+            </div>
+            <div class="accelerate-row">
+                <label for="accelerateExtraPay">Extra payment /mo</label>
+                <input type="number" id="accelerateExtraPay" min="0" step="1" value="0" aria-label="Extra monthly payment">
+            </div>
+            <hr class="accelerate-divider">
+            <div class="accelerate-total">New total: <span id="accelerateNewTotal">—</span></div>
+            <div class="accelerate-preview" id="acceleratePreviewBox">
+                <div class="accelerate-preview-row">
+                    <span>Payoff</span>
+                    <span><span id="acceleratePayoff">—</span> <span class="accelerate-preview-delta" id="acceleratePayoffDelta"></span></span>
+                </div>
+                <div class="accelerate-preview-row">
+                    <span>Interest</span>
+                    <span><span id="accelerateInterest">—</span> <span class="accelerate-preview-delta" id="accelerateInterestDelta"></span></span>
+                </div>
+            </div>
+            <div class="accelerate-chart-wrap">
+                <canvas id="accelerateChart" aria-label="Accelerated vs current payoff balance chart"></canvas>
+            </div>
+            <div class="accelerate-actions">
+                <button id="accelerateApplyBtn" class="btn btn-primary btn-small">Apply to Plan</button>
+                <button id="accelerateCloseBtnFooter" class="btn btn-secondary btn-small">Close</button>
+            </div>
+        </div>
+    </div>
     <!-- Update Balance Modal (top-level so position:fixed works from any page) -->
     <div id="updateBalanceModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1">
         <div class="modal-content">
