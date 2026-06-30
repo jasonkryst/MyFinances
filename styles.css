@@ -5670,3 +5670,202 @@ body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
         font-weight: 700;
     }
 }
+
+/* ── Break-Even Analysis ───────────────────────────────────────── */
+.break-even-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+}
+.break-even-header {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.break-even-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+}
+.break-even-toggle-row select,
+.break-even-toggle-row input[type="number"] {
+    font-size: 0.8rem;
+    padding: 0.1rem 0.3rem;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #111827);
+    width: 4.5rem;
+}
+.break-even-row {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    margin-bottom: 0.2rem;
+    align-items: baseline;
+}
+.break-even-label {
+    color: var(--text-secondary, #6b7280);
+    min-width: 5.5rem;
+    font-weight: 500;
+}
+.break-even-value {
+    color: var(--text-primary, #111827);
+}
+.break-even-savings {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+}
+.break-even-savings--positive {
+    color: #15803d;
+}
+.break-even-no-plan-banner {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #6b7280);
+    background: var(--surface-muted, #f9fafb);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    margin-bottom: 0.5rem;
+}
+.break-even-chart-wrap {
+    position: relative;
+    height: 100px;
+    margin-top: 0.5rem;
+}
+.break-even-show-link {
+    font-size: 0.82rem;
+    color: var(--accent, #2563eb);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: underline;
+}
+.break-even-show-link:hover {
+    color: var(--accent-hover, #1d4ed8);
+}
+.break-even-accelerate-btn {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.6rem;
+}
+
+/* ── Accelerate Modal ───────────────────────────────────────────── */
+.accelerate-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.accelerate-modal-content {
+    background: var(--card-bg, #fff);
+    border-radius: 10px;
+    padding: 1.5rem;
+    width: min(420px, 92vw);
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.accelerate-modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: var(--text-secondary, #6b7280);
+    line-height: 1;
+}
+.accelerate-modal-close:hover { color: var(--text-primary, #111827); }
+.accelerate-modal-content h3 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.accelerate-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.88rem;
+    margin-bottom: 0.5rem;
+}
+.accelerate-row label {
+    color: var(--text-secondary, #6b7280);
+    font-weight: 500;
+}
+.accelerate-row input[type="number"] {
+    width: 7rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    font-size: 0.88rem;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #111827);
+}
+.accelerate-divider {
+    border: none;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    margin: 0.75rem 0;
+}
+.accelerate-total {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+.accelerate-preview {
+    background: var(--surface-muted, #f9fafb);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.accelerate-preview-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+.accelerate-preview-delta {
+    font-size: 0.78rem;
+    color: #15803d;
+    font-weight: 600;
+}
+.accelerate-chart-wrap {
+    position: relative;
+    height: 120px;
+    margin-bottom: 0.75rem;
+}
+.accelerate-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+/* ── Plan summary table — saved columns ────────────────────────── */
+.be-col-saved {
+    color: #15803d;
+    font-weight: 600;
+}
+.be-col-zero {
+    color: var(--text-secondary, #6b7280);
+}
+.debt-summary-footnote {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #6b7280);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
