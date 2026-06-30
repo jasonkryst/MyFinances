@@ -668,11 +668,7 @@ export function renderDebtsList(app) {
         if (!toggleEl) return;
         const card = toggleEl.closest('.debt-card');
         if (!card) return;
-        const debtId = parseInt(
-            card.querySelector('[data-debt-action="edit"], [data-debt-action="delete"], [data-be-accelerate]')?.getAttribute('data-debt-id') ||
-            card.querySelector('[data-be-accelerate]')?.getAttribute('data-be-accelerate'),
-            10
-        );
+        const debtId = parseInt(card.querySelector('[data-debt-action="delete"]')?.getAttribute('data-debt-id'), 10);
         const debt = app.debts.find(d => d.id === debtId);
         if (debt) renderBreakEvenBadge(app, debt, card);
     };
@@ -727,6 +723,7 @@ export function showAccelerateModal(app, debtId) {
         // Update chart
         if (app._accelerateChart) {
             try { app._accelerateChart.destroy(); } catch (_) { /* ignore */ }
+            app._accelerateChart = null;
         }
         const canvas = document.getElementById('accelerateChart');
         if (canvas && typeof Chart !== 'undefined') {
@@ -751,6 +748,11 @@ export function showAccelerateModal(app, debtId) {
                         y: { ticks: { callback: v => `$${Math.round(v)}`, font: { size: 10 } } }
                     }
                 }
+            });
+            renderChartDataTable('accelerateChart', {
+                caption: `Accelerate: ${debt.name} — balance over time`,
+                columns: ['Month', formatCurrency(totalPay) + '/mo', ...(baseResult && extra > 0 ? [formatCurrency(basePay) + '/mo'] : [])],
+                rows: labels.map((lbl, i) => [lbl, formatCurrency(newData[i] ?? 0), ...(baseResult && extra > 0 ? [formatCurrency(baseData[i] ?? 0)] : [])])
             });
         }
     }
