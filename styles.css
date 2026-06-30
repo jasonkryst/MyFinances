@@ -5761,6 +5761,11 @@ body.dark-mode .break-even-show-link {
 body.dark-mode .break-even-show-link:hover {
     color: #93c5fd;
 }
+body.dark-mode .break-even-savings--positive,
+body.dark-mode .be-col-saved,
+body.dark-mode .accelerate-preview-delta {
+    color: #4ade80;
+}
 .break-even-accelerate-btn {
     margin-top: 0.5rem;
     font-size: 0.8rem;
