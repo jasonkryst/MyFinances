@@ -23,6 +23,8 @@ function runFixedScenario(debt, monthlyPayment) {
             debtType: 'creditCard',
             accountBalance: debt.accountBalance,
             interestRate: debt.interestRate || 0,
+            // Cap at stored minimum so the engine's "payment < minimum" guard never fires;
+            // the || monthlyPayment fallback is never reached (caller guarantees minimumPayment > 0).
             minimumPayment: Math.min(monthlyPayment, debt.minimumPayment || monthlyPayment),
             dueDate: debt.dueDate || 1,
         };
@@ -93,6 +95,7 @@ export function computeBreakEven(debt, options = {}) {
 
     const minType = options.minType || 'fixed';
     const minPct = options.minPct > 0 ? options.minPct : 2;
+    if (options.planPayment !== undefined && options.planPayment <= 0) return null;
     const planPayment = options.planPayment > 0 ? options.planPayment : minPayment;
 
     const planScenario = runFixedScenario(debt, planPayment);
