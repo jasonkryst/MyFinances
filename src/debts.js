@@ -663,7 +663,7 @@ export function renderDebtsList(app) {
         if (action === 'delete') app.deleteDebt(id);
     };
 
-    debtsList.addEventListener('change', (event) => {
+    debtsList.onchange = (event) => {
         const toggleEl = event.target.closest('.be-min-type, .be-min-pct');
         if (!toggleEl) return;
         const card = toggleEl.closest('.debt-card');
@@ -675,7 +675,7 @@ export function renderDebtsList(app) {
         );
         const debt = app.debts.find(d => d.id === debtId);
         if (debt) renderBreakEvenBadge(app, debt, card);
-    });
+    };
 }
 
 export function startEdit(app, debtId) {
