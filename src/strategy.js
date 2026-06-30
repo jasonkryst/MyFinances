@@ -10,6 +10,7 @@ import {
     computeInterestPaidToDate,
     escapeHtml
 } from './utils.js';
+import { computeBreakEven } from './breakEven.js';
 
 /**
  * Run the main payment-plan calculation from the Plan section inputs.
@@ -632,6 +633,9 @@ export function renderDebtSummaryTable(app) {
             return (aVal - bVal) * dir;
         }
         if (col === 'name') return aVal.localeCompare(bVal) * dir;
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
         return (aVal - bVal) * dir;
     });
 
@@ -668,6 +672,16 @@ export function renderDebtSummaryTable(app) {
             ? `<span class="iptd-value">${formatCurrency(summary.interestToDate)}</span>
                ${summary.debtStartDate ? `<div class="iptd-sub">since ${new Date(summary.debtStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>` : ''}`
             : '<span class="text-pale">No start date</span>';
+        const iSavedCell = summary.interestSaved != null
+            ? (summary.interestSaved > 0
+                ? `<span class="be-col-saved">${formatCurrency(summary.interestSaved)}</span>`
+                : `<span class="be-col-zero">$0.00</span>`)
+            : '—';
+        const mSavedCell = summary.monthsSaved != null
+            ? (summary.monthsSaved > 0
+                ? `<span class="be-col-saved">${summary.monthsSaved} mo</span>`
+                : `<span class="be-col-zero">0</span>`)
+            : '—';
         row.innerHTML = `
             <td>${escapeHtml(summary.name)}${dueDateStr}${progressBar}</td>
             <td class="min-due">${formatCurrency(summary.minDue)}</td>
@@ -677,6 +691,8 @@ export function renderDebtSummaryTable(app) {
             <td class="interest">${formatCurrency(summary.interestPaid)}</td>
             <td>${iptdCell}</td>
             <td>${summary.payoffDate || '-'}</td>
+            <td>${iSavedCell}</td>
+            <td>${mSavedCell}</td>
             <td><button class="btn btn-small btn-secondary" data-amortization="${escapeHtml(summary.name)}">View</button></td>
         `;
         row.querySelectorAll('[data-progress-width]').forEach(el =>
@@ -768,13 +784,27 @@ export function displayDebtSummary(app) {
     app._debtSummaryRows = Object.entries(debtSummaryMap).map(([name, summary]) => {
         const origDebt = originalDebts[name] || {};
         const iptd = computeInterestPaidToDate(origDebt);
+
+        let interestSaved = null;
+        let monthsSaved = null;
+        if (!summary.isFixedAmount && origDebt.accountBalance > 0) {
+            const planPayment = app.lastPaymentPlan?.[0]?.payments?.find(p => p.debtName === name)?.payment || origDebt.minimumPayment;
+            const be = computeBreakEven(origDebt, { minType: 'fixed', planPayment });
+            if (be) {
+                interestSaved = be.interestSaved;
+                monthsSaved = be.monthsSaved;
+            }
+        }
+
         return {
             name,
             ...summary,
             payoffDate: summary.isFixedAmount ? (summary.lastPaymentDate || null) : summary.payoffDate,
             interestToDate: iptd ? iptd.interestPaid : null,
             debtStartDate: origDebt.debtStartDate || null,
-            order: debtOrderMap[name]
+            order: debtOrderMap[name],
+            interestSaved,
+            monthsSaved,
         };
     });
     app._debtSummarySort = app._debtSummarySort || { col: 'order', dir: 1 };

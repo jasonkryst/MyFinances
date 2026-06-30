@@ -8,7 +8,8 @@ import {
     renderDebtsList as renderDebtsListFeature,
     startEdit as startEditDebtFeature,
     cancelInlineEdit as cancelInlineEditDebtFeature,
-    saveInlineEdit as saveInlineEditDebtFeature
+    saveInlineEdit as saveInlineEditDebtFeature,
+    showAccelerateModal as showAccelerateModalFeature
 } from './debts.js';
 import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature } from './accounts.js';
 import {
@@ -587,6 +588,10 @@ export class DebtTrackerApp {
     // ─── Update Balance Modal ─────────────────────────────────────────────────
     showUpdateBalanceModal(debtId) {
         return showUpdateBalanceModalFeature(this, debtId);
+    }
+
+    showAccelerateModal(debtId) {
+        return showAccelerateModalFeature(this, debtId);
     }
 
     /**
