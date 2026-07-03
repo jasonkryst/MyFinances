@@ -7,6 +7,10 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.3.1] — 2026-07-01
+### Fixed
+- **Modal Dialog** - Fixes issues with dark mode theme colors.
+
 ## [4.3.0] — 2026-06-30
 
 ### Added
