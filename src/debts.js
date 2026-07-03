@@ -42,12 +42,12 @@ function renderBreakEvenBadge(app, debt, container) {
     }
 
     if (!hasPlan && !revealed) {
-        // No plan, not yet shown — render the "Show" link
+        // No plan, not yet shown — render the "Show" action button
         container.querySelector('.break-even-section')?.remove();
         const s = document.createElement('div');
         s.className = 'break-even-section';
         s.dataset.revealed = 'false';
-        s.innerHTML = `<button class="break-even-show-link" data-be-show="${debt.id}">Show payoff estimate</button>`;
+        s.innerHTML = `<button class="btn btn-secondary btn-small break-even-show-btn" data-be-show="${debt.id}">Show payoff estimate</button>`;
         container.querySelector('.debt-details').after(s);
         return;
     }
