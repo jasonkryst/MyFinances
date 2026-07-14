@@ -153,11 +153,13 @@
                             <tr><td>Account Name</td><td>Example: Main Checking, Emergency Fund</td></tr>
                             <tr><td>Account Type</td><td>Checking, Savings, Cash, Investment, Credit Card, Loan, Other</td></tr>
                             <tr><td>Starting Balance</td><td>Current balance for that account</td></tr>
+                            <tr><td>Interest Rate (% APY)</td><td>Optional annual rate for interest-bearing accounts (e.g. 4.5 for a high-yield savings account); leave blank for 0%</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="guide-note">Each account card includes projected end-of-month balance based on linked income, debt payments, recurring items, and expenses.</div>
+                <div class="guide-note"><strong>Interest Income:</strong> When an account has an interest rate above 0%, a monthly <em>Interest</em> deposit is automatically added to the Ledger on the last day of each month — calculated as APY ÷ 12 on the account's projected end-of-month balance, compounding month over month. The projection is an estimate: when your bank posts the real amount, use the Ledger's <em>Override</em> button on the Interest row to record the true value, and future months will compound on it. Months where the projected balance is zero or negative earn no interest.</div>
             </section>
 
             <section class="guide-section" id="tracking-income">

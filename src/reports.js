@@ -100,7 +100,7 @@ function computeSnapshotMetrics(app, snapshotDate = new Date()) {
             debtPaymentMade += Math.abs(tx.amount || 0);
             continue;
         }
-        if (tx.type === 'income' || tx.type === 'bonus' || (tx.type === 'recurring' && tx.amount > 0)) {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest' || (tx.type === 'recurring' && tx.amount > 0)) {
             incomeReceived += Math.abs(tx.amount || 0);
         }
     }
@@ -403,7 +403,7 @@ export function renderReportsCalendar(app) {
 
     for (const tx of monthTxs) {
         const day = new Date(tx.date).getDate();
-        if (tx.type === 'income') {
+        if (tx.type === 'income' || tx.type === 'interest') {
             if (!dayIncome[day]) dayIncome[day] = [];
             dayIncome[day].push(tx);
             continue;
@@ -595,7 +595,7 @@ export function renderReportsIncomeExp(app) {
     let totalSavings = 0;
 
     for (const tx of monthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus') {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
             totalIncome += tx.amount;
             continue;
         }
@@ -643,7 +643,7 @@ export function renderReportsIncomeExp(app) {
 
     const incomeBySource = {};
     for (const tx of monthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus') {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
             incomeBySource[tx.name] = (incomeBySource[tx.name] || 0) + tx.amount;
         }
     }
@@ -936,7 +936,7 @@ export function renderReportsVariance(app) {
     // Calculate totals for current month
     let currIncome = 0, currExpenses = 0, currRecurring = 0, currDebtMin = 0, currSavings = 0;
     for (const tx of currMonthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus') {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
             currIncome += tx.amount;
         } else if (tx.type === 'expense') {
             currExpenses += Math.abs(tx.amount || 0);
@@ -954,7 +954,7 @@ export function renderReportsVariance(app) {
     // Calculate totals for previous month
     let prevIncome = 0, prevExpenses = 0, prevRecurring = 0, prevDebtMin = 0, prevSavings = 0;
     for (const tx of prevMonthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus') {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
             prevIncome += tx.amount;
         } else if (tx.type === 'expense') {
             prevExpenses += Math.abs(tx.amount || 0);
@@ -1083,7 +1083,7 @@ export function computeReportsSummaryMetrics(app, rangeType, baseDate = getRepor
     for (const m of months) {
         const txs = getLedgerTransactionsForMonth(app, year, m);
         for (const tx of txs) {
-            if (tx.type === 'income' || tx.type === 'bonus') {
+            if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
                 income += tx.amount;
             } else if (tx.type === 'bill') {
                 bills += Math.abs(tx.amount || 0);

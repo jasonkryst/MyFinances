@@ -70,6 +70,10 @@ export function renderAccountsList(app) {
                         <label class="label-compact">Starting Balance ($)</label>
                         <input type="number" id="ac-bal-${a.id}" value="${a.startingBalance}" step="0.01" class="form-full-width">
                     </div>
+                    <div class="form-group form-no-margin">
+                        <label class="label-compact">Interest Rate (% APY)</label>
+                        <input type="number" id="ac-rate-${a.id}" value="${Number(a.interestRate) || 0}" step="0.01" min="0" max="100" class="form-full-width">
+                    </div>
                 </div>
                 <div class="acct-edit-actions">
                     <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}">Save</button>
@@ -104,6 +108,7 @@ export function renderAccountsList(app) {
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(a.name)}</span>
                     <span class="acct-type-badge">${escapeHtml(a.type)}</span>
+                    ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
                 </div>
                 <div class="acct-balances">
                     <div class="acct-balance-item">
@@ -145,11 +150,12 @@ export function addAccount(app) {
     const name = normalizeText(document.getElementById('accountName').value, 80);
     const type = normalizeText(document.getElementById('accountType').value, 30);
     const startingBalance = sanitizeFiniteNumber(document.getElementById('accountStartingBalance').value, NaN);
+    const interestRate = sanitizeFiniteNumber(document.getElementById('accountInterestRate')?.value, 0, { min: 0, max: 100 });
 
     if (!name) { alert('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { alert('Please enter a starting balance (use 0 if unknown).'); return; }
 
-    app.accounts.push({ id: Date.now(), name, type, startingBalance });
+    app.accounts.push({ id: Date.now(), name, type, startingBalance, interestRate });
     app.saveToStorage();
     app.renderAccountsList();
     app.renderNetWorthWidget();
@@ -182,9 +188,10 @@ export function saveEditAccount(app, id) {
     const name = normalizeText(document.getElementById(`ac-name-${id}`)?.value, 80);
     const type = normalizeText(document.getElementById(`ac-type-${id}`)?.value, 30);
     const startingBalance = sanitizeFiniteNumber(document.getElementById(`ac-bal-${id}`)?.value, NaN);
+    const interestRate = sanitizeFiniteNumber(document.getElementById(`ac-rate-${id}`)?.value, 0, { min: 0, max: 100 });
     if (!name) { alert('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { alert('Please enter a valid starting balance.'); return; }
-    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance };
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate };
     app.editingAccountId = null;
     app.saveToStorage();
     app.renderAccountsList();
