@@ -81,6 +81,14 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
     }
     accountMap[UNLINKED_KEY] = { id: UNLINKED_KEY, name: null, txs: [] };
 
+    // Running balances used to compute monthly interest deposits (#30).
+    // Seeded from startingBalance and carried across the projected window so
+    // interest compounds month over month.
+    const interestBalances = {};
+    for (const acct of app.accounts || []) {
+        interestBalances[acct.id] = Number(acct.startingBalance) || 0;
+    }
+
     function addTx({ accountId, date, name, amount, type, sourceId, category }) {
         const key = accountId && accountMap[accountId] ? accountId : UNLINKED_KEY;
         const txDate = new Date(date);
@@ -104,6 +112,15 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
     for (let m = 0; m < monthsToProject; m++) {
         const year = startYear + Math.floor((startMonth + m) / 12);
         const month = (startMonth + m) % 12;
+
+        // Snapshot per-account tx counts so "this month's transactions" is
+        // defined by generation pass, not by date — a bill with dueDay 31
+        // generated for February date-overflows into March but still belongs
+        // to February's balance.
+        const monthStartTxCounts = {};
+        for (const acctId in accountMap) {
+            monthStartTxCounts[acctId] = accountMap[acctId].txs.length;
+        }
 
         for (const inc of app.incomes || []) {
             if (!inc.amount) continue;
@@ -260,6 +277,36 @@ function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToP
                     category: 'Savings'
                 });
             }
+        }
+
+        // Monthly interest deposits (#30): APY/12 on the projected
+        // end-of-month balance, posted on the last day of the month.
+        // Override-aware in both directions — the base balance uses effective
+        // amounts, and an overridden interest amount feeds later months.
+        for (const acct of app.accounts || []) {
+            const monthTxs = accountMap[acct.id].txs.slice(monthStartTxCounts[acct.id]);
+            let balance = interestBalances[acct.id];
+            for (const tx of monthTxs) {
+                balance += getEffectiveAmount(app, tx);
+            }
+            const rate = Number(acct.interestRate) || 0;
+            if (rate > 0 && balance > 0) {
+                const interest = Math.round(balance * (rate / 100 / 12) * 100) / 100;
+                if (interest > 0) {
+                    addTx({
+                        accountId: acct.id,
+                        date: new Date(year, month + 1, 0),
+                        name: 'Interest',
+                        amount: interest,
+                        type: 'interest',
+                        sourceId: acct.id,
+                        category: 'Interest'
+                    });
+                    const txList = accountMap[acct.id].txs;
+                    balance += getEffectiveAmount(app, txList[txList.length - 1]);
+                }
+            }
+            interestBalances[acct.id] = balance;
         }
     }
 
