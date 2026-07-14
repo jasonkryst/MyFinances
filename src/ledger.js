@@ -397,12 +397,26 @@ export function getAccountForecastSeries(app, accountId, monthsAhead) {
     const now = new Date();
     let balance = startingBalance;
 
+    // Build the whole horizon in a single pass and bucket transactions by
+    // month. A per-month rebuild (getLedgerTransactionsForMonth in a loop)
+    // re-seeds each month's interest from the static startingBalance, so
+    // interest would show flat instead of compounding — this keeps the
+    // Forecast tab consistent with the Ledger page (#30).
+    const startTotalMonths = now.getMonth() + 1;
+    const startYear = now.getFullYear() + Math.floor(startTotalMonths / 12);
+    const startMonth = startTotalMonths % 12;
+    const horizonMap = buildProjectedAccountTransactions(app, startYear, startMonth, monthsAhead);
+    const horizonAcct = horizonMap[accountId];
+    const horizonTxs = horizonAcct ? horizonAcct.txs : [];
+
     for (let i = 1; i <= monthsAhead; i++) {
         const totalMonths = now.getMonth() + i;
         const year = now.getFullYear() + Math.floor(totalMonths / 12);
         const month = totalMonths % 12;
 
-        const txs = getLedgerTransactionsForMonth(app, year, month, accountId);
+        const txs = horizonTxs
+            .filter(tx => tx.date.getFullYear() === year && tx.date.getMonth() === month)
+            .map(tx => ({ date: tx.date, amount: getEffectiveAmount(app, tx) }));
         let income = 0;
         let outflow = 0;
         for (const tx of txs) {

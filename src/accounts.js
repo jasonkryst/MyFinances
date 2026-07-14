@@ -108,7 +108,7 @@ export function renderAccountsList(app) {
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(a.name)}</span>
                     <span class="acct-type-badge">${escapeHtml(a.type)}</span>
-                    ${Number(a.interestRate) > 0 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
+                    ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
                 </div>
                 <div class="acct-balances">
                     <div class="acct-balance-item">

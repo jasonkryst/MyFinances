@@ -354,3 +354,60 @@ def test_interest_absent_from_reports_when_rate_zero(app_page):
     income_text = _reports_income_stat_text(page)
     assert '$0.00' in income_text, \
         f"Reports income should be $0.00 with no income sources, got: {income_text}"
+
+
+# ---------- forecast ----------
+
+@pytest.mark.feature
+def test_interest_compounds_in_account_forecast_series(app_page):
+    """getAccountForecastSeries compounds interest month over month, matching the Ledger
+    (a per-month rebuild would show flat interest instead)."""
+    page = app_page
+    _seed_account(page, rate=12, balance=1000)
+
+    incomes = page.evaluate("""async () => {
+        const mod = await import('/src/ledger.js');
+        const series = mod.getAccountForecastSeries(window.app, 1, 3);
+        // series[0] is 'Now'; forecast months are indices 1..3
+        return series.slice(1).map(s => s.income);
+    }""")
+
+    assert abs(incomes[0] - 10.00) < 0.001, f"Month 1 interest should be 10.00: {incomes[0]}"
+    assert abs(incomes[1] - 10.10) < 0.001, f"Month 2 should compound to 10.10: {incomes[1]}"
+    assert abs(incomes[2] - 10.20) < 0.001, f"Month 3 should compound to ~10.20: {incomes[2]}"
+    assert incomes[1] > incomes[0] and incomes[2] > incomes[1], \
+        f"Forecast interest should grow each month, got {incomes}"
+
+
+# ---------- review follow-ups ----------
+
+@pytest.mark.feature
+def test_interest_in_reports_summary_metrics(app_page):
+    """computeReportsSummaryMetrics (feeds net-worth snapshots) counts interest as income."""
+    page = app_page
+    _seed_account(page, rate=12, balance=1000)
+
+    income = page.evaluate("""async () => {
+        const mod = await import('/src/reports.js');
+        // 'month' range over the current report month
+        return mod.computeReportsSummaryMetrics(window.app, 'month').cashFlow.income;
+    }""")
+    assert abs(income - 10.00) < 0.001, \
+        f"Summary-metrics income should include $10 interest, got {income}"
+
+
+@pytest.mark.feature
+def test_sub_cent_rate_shows_no_badge(app_page):
+    """A rate below 0.01% (only reachable via import) shows no APY badge, since it
+    displays as 0.00% and generates no interest."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Tiny Rate', type: 'Savings',
+                          startingBalance: 1000, interestRate: 0.001 }];
+        app.saveToStorage();
+        app.switchPage('accounts');
+    }""")
+    page.wait_for_selector('text=Tiny Rate')
+    assert page.query_selector('.acct-rate-badge') is None, \
+        "A sub-0.01% rate should not render an APY badge"
