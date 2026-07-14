@@ -228,3 +228,91 @@ def test_interest_is_projection_only_not_persisted(app_page):
         "Interest transactions must not be persisted"
     assert '"interestRate":12' in stored.replace(" ", ""), \
         "The account's interestRate should be persisted"
+
+
+# ---------- accounts UI ----------
+
+@pytest.mark.feature
+def test_add_account_with_interest_rate_shows_badge(app_page):
+    """Creating an account with a rate persists it and shows the APY badge."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+
+    page.fill('#accountName', 'Rate Savings')
+    page.select_option('#accountType', label='Savings')
+    page.fill('#accountStartingBalance', '1000')
+    page.fill('#accountInterestRate', '2.5')
+    page.click('#accountFormSubmit')
+    page.wait_for_selector('text=Rate Savings', timeout=10000)
+
+    rate = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Rate Savings')?.interestRate")
+    assert rate == 2.5, f"interestRate not saved from form: {rate}"
+
+    badge = page.text_content('.acct-rate-badge')
+    assert badge is not None and '2.50% APY' in badge, f"APY badge missing/wrong: {badge}"
+
+
+@pytest.mark.feature
+def test_edit_account_interest_rate_inline(app_page):
+    """The inline edit card exposes the rate and saves changes."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'EditMe', type: 'Savings',
+                          startingBalance: 500, interestRate: 1 }];
+        app.saveToStorage();
+        app.switchPage('accounts');
+    }""")
+    page.wait_for_selector('text=EditMe')
+
+    page.click('[data-account-action="edit"][data-account-id="1"]')
+    page.wait_for_selector('#ac-rate-1')
+    page.fill('#ac-rate-1', '3.75')
+    page.click('[data-account-action="save"][data-account-id="1"]')
+    page.wait_for_selector('.acct-rate-badge')
+
+    rate = page.evaluate("() => window.app.accounts[0].interestRate")
+    assert rate == 3.75, f"Edited rate not saved: {rate}"
+    assert '3.75% APY' in page.text_content('.acct-rate-badge')
+
+
+@pytest.mark.feature
+def test_zero_rate_account_shows_no_badge(app_page):
+    """Leaving the rate blank stores 0 and renders no badge."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+
+    page.fill('#accountName', 'Plain Checking')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '100')
+    page.click('#accountFormSubmit')
+    page.wait_for_selector('text=Plain Checking', timeout=10000)
+
+    rate = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Plain Checking')?.interestRate")
+    assert rate == 0, f"Blank rate should store 0: {rate}"
+    assert page.query_selector('.acct-rate-badge') is None, \
+        "No APY badge should render for a 0% account"
+
+
+@pytest.mark.feature
+def test_negative_rate_input_clamped_to_zero(app_page):
+    """A negative rate typed into the form is clamped to 0 (no badge)."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+
+    page.fill('#accountName', 'Neg Rate')
+    page.select_option('#accountType', label='Savings')
+    page.fill('#accountStartingBalance', '100')
+    page.fill('#accountInterestRate', '-3')
+    page.click('#accountFormSubmit')
+    page.wait_for_selector('text=Neg Rate', timeout=10000)
+
+    rate = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Neg Rate')?.interestRate")
+    assert rate == 0, f"Negative rate should clamp to 0: {rate}"
+    assert page.query_selector('.acct-rate-badge') is None
