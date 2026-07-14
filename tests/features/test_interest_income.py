@@ -316,3 +316,41 @@ def test_negative_rate_input_clamped_to_zero(app_page):
         "() => window.app.accounts.find(a => a.name === 'Neg Rate')?.interestRate")
     assert rate == 0, f"Negative rate should clamp to 0: {rate}"
     assert page.query_selector('.acct-rate-badge') is None
+
+
+# ---------- reports ----------
+
+def _reports_income_stat_text(page):
+    """Text of the Income stat card in the Income-vs-Expenses strip."""
+    return page.evaluate("""() => {
+        const strip = document.querySelector('#reportsIncomeExp');
+        if (!strip) return '';
+        const card = strip.querySelector('.rpt-stat--income');
+        return card ? card.textContent : '';
+    }""")
+
+
+@pytest.mark.feature
+def test_interest_counts_as_income_in_reports(app_page):
+    """The Reports Income stat includes the interest deposit."""
+    page = app_page
+    _seed_account(page, rate=12, balance=1000)
+    page.evaluate("() => window.app.switchPage('reports')")
+    page.wait_for_timeout(300)
+
+    income_text = _reports_income_stat_text(page)
+    assert '10.00' in income_text, \
+        f"Reports income should include $10.00 interest, got: {income_text}"
+
+
+@pytest.mark.feature
+def test_interest_absent_from_reports_when_rate_zero(app_page):
+    """No phantom income appears for 0%-rate accounts."""
+    page = app_page
+    _seed_account(page, rate=0, balance=1000)
+    page.evaluate("() => window.app.switchPage('reports')")
+    page.wait_for_timeout(300)
+
+    income_text = _reports_income_stat_text(page)
+    assert '$0.00' in income_text, \
+        f"Reports income should be $0.00 with no income sources, got: {income_text}"
