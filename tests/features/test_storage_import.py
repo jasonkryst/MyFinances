@@ -660,3 +660,49 @@ def test_import_legacy_v1_bare_debts_array_format(app_page):
 
     assert result['debtCount'] == 2, "Both legacy debts should be imported"
     assert set(result['names']) == {'Legacy Card One', 'Legacy Card Two'}
+
+
+@pytest.mark.feature
+def test_import_sanitizes_account_interest_rate(app_page):
+    """interestRate is clamped to [0,100]; non-numeric/missing defaults to 0."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/storage.js');
+        const payload = {
+            debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
+                      accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
+            accounts: [
+                { id: 1, name: 'Neg Rate', type: 'Savings', startingBalance: 100, interestRate: -5 },
+                { id: 2, name: 'Huge Rate', type: 'Savings', startingBalance: 100, interestRate: 200 },
+                { id: 3, name: 'Junk Rate', type: 'Savings', startingBalance: 100, interestRate: 'abc' },
+                { id: 4, name: 'No Rate', type: 'Savings', startingBalance: 100 },
+                { id: 5, name: 'Valid Rate', type: 'Savings', startingBalance: 100, interestRate: 4.5 }
+            ]
+        };
+        const file = new File([JSON.stringify(payload)], 'rates.json', { type: 'application/json' });
+        return new Promise(resolve => {
+            mod.importAllJSON(app, file, {});
+            setTimeout(() => resolve(app.accounts.map(a => a.interestRate)), 300);
+        });
+    }""")
+
+    assert result == [0, 100, 0, 0, 4.5], \
+        f"interestRate sanitization wrong: {result} (expected [0, 100, 0, 0, 4.5])"
+
+
+@pytest.mark.feature
+def test_interest_rate_survives_storage_round_trip(app_page):
+    """A valid interestRate persists through saveToStorage -> reload."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'HYSA', type: 'Savings', startingBalance: 1000, interestRate: 4.5 }];
+        app.saveToStorage();
+    }""")
+    page.reload(wait_until="networkidle")
+
+    rate = page.evaluate("() => window.app.accounts[0]?.interestRate")
+    assert rate == 4.5, f"interestRate lost on reload: {rate}"

@@ -28,7 +28,8 @@ function sanitizeAccount(record, idFallback) {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),
         type: normalizeText(record?.type, 30) || 'Other',
-        startingBalance: sanitizeFiniteNumber(record?.startingBalance, 0)
+        startingBalance: sanitizeFiniteNumber(record?.startingBalance, 0),
+        interestRate: sanitizeFiniteNumber(record?.interestRate, 0, { min: 0, max: 100 })
     };
 }
 
