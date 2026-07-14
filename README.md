@@ -96,7 +96,8 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ---
 
 ### Account Management
-- **Account types** — Checking, Savings, Cash, Investment, Credit Card, Loan, or Other; name and starting balance
+- **Account types** — Checking, Savings, Cash, Investment, Credit Card, Loan, or Other; name, starting balance, and optional interest rate (% APY)
+- **Interest income** — optional per-account interest rate (% APY); auto-generates a monthly Interest deposit in the Ledger (last day of month, APY ÷ 12 on projected end-of-month balance, compounding), overridable with the true posted amount
 - **Account linking** — income sources, one-time entries (bonuses/deposits), debts, recurring templates, and expense budgets can all be linked to an account
 - **Projected monthly balance** — each account card shows a projected end-of-month balance: starting balance ± all linked income, debt payments, recurring transactions, and expenses for the current month, including any ledger amount overrides
 - **Net worth widget** — current net worth and change from the prior snapshot shown on the Accounts page
