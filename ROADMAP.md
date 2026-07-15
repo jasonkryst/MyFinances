@@ -618,6 +618,7 @@ Surfaced during audit cycles and ongoing development — not yet fully prioritiz
 #### 🗄️ BED (Storage / data-layer logic)
 - ~~**`tests/features/test_strategy.py`**~~ ✅ Already closed (Tier 0, test-suite audit gap #1) — see line 53 above.
 - ~~**localStorage quota monitoring**~~ ✅ **Delivered June 20, 2026** — `storage.js` now estimates the serialized payload size against a conservative 5MB quota on every save and shows a dismissible warning banner above ~80% usage (or on an actual write failure).
+- ~~**Storage abstraction layer**~~ ✅ **Delivered July 14, 2026 (#41)** — `storage.js` now persists through `app.storageAdapter` (`src/storageAdapters.js`) instead of calling `localStorage` directly; users can pick Local Storage or Session Storage from Settings, with auto-migration on switch. The adapter interface stays synchronous — a future async backend (IndexedDB, a remote API) would need the interface promoted to Promises and every call site touched, which is *not* done here.
 - **Web Worker for `debtCalculator.js`** — the daily-compounding payoff engine runs synchronously on the main thread; fine today, but a future "10 debts × 30-year amortization schedule" scenario could janky the UI. Worth profiling before committing to this.
 - **Formal storage-schema migration framework** — sanitizers currently double as the de facto migration layer (format `"3.0"` plus legacy v1.0 support). As more format versions accumulate, consider an explicit `migrations/` pipeline keyed by version number rather than growing the sanitizers further.
 
