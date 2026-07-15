@@ -8,7 +8,7 @@ screen-reader users get the same information sighted users get from the chart.
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, current_month_iso
 
 
 def _assert_sr_table(page, canvas_id, min_rows=1):
@@ -48,11 +48,11 @@ def test_spending_charts_have_sr_tables(app_page):
     page = app_page
     page.click('button[data-page="reports"]')
     page.wait_for_timeout(200)
-    page.evaluate("""() => {
+    page.evaluate("""(dates) => {
         const app = window.app;
         app.expenses = [
-            { id: 9101, name: 'Rent', category: 'Housing', budgetAmount: 950, date: '2026-06-01', accountId: null },
-            { id: 9102, name: 'Groceries', category: 'Food', budgetAmount: 180, date: '2026-06-10', accountId: null }
+            { id: 9101, name: 'Rent', category: 'Housing', budgetAmount: 950, date: dates.rent, accountId: null },
+            { id: 9102, name: 'Groceries', category: 'Food', budgetAmount: 180, date: dates.groceries, accountId: null }
         ];
         app.bills = []; app.recurringTemplates = []; app.debts = [];
         app.emergencyFunds = []; app.sinkingFunds = [];
@@ -60,7 +60,7 @@ def test_spending_charts_have_sr_tables(app_page):
         app.ledgerAmountOverrides = {};
         app._reportMonthOffset = 0;
         app.renderReportsPage();
-    }""")
+    }""", {"rent": current_month_iso(1), "groceries": current_month_iso(10)})
     page.click('[data-rptab="spending"]')
     page.wait_for_timeout(400)
 

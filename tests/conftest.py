@@ -4,6 +4,8 @@ Shared pytest fixtures and configuration for MyFinances test suite.
 Provides common browser setup, test data, and utility functions.
 """
 
+from datetime import date
+
 import pytest
 from playwright.sync_api import sync_playwright, Browser, Page
 from playwright.async_api import async_playwright
@@ -11,6 +13,20 @@ from playwright.async_api import async_playwright
 # Configuration
 BASE_URL = "http://localhost:5500/"
 HEADLESS = True
+
+
+def current_month_iso(day=1):
+    """ISO date string for `day` in the real current calendar month.
+
+    Report rendering (e.g. renderReportsSpending) derives "this month" from
+    the browser's live `new Date()`, not from seeded fixture data. Tests that
+    hardcode a fixed year-month (e.g. '2026-06-01') for data meant to land in
+    "this month" silently start failing once the wall clock passes that month.
+    Use this helper instead for any seed data that must fall in the current
+    report month.
+    """
+    today = date.today()
+    return f"{today.year:04d}-{today.month:02d}-{day:02d}"
 
 
 # Sync fixtures
