@@ -33,6 +33,7 @@ import {
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
 import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature } from './storage.js';
+import { createStorageAdapter, getStorageBackendPreference } from './storageAdapters.js';
 import {
     renderIncomeList,
     addIncome,
@@ -135,6 +136,8 @@ export class DebtTrackerApp {
         this._savedMonthlyPayment = null;
         this._savedStrategy = null;
         this.storageKey = 'debtTrackerData';
+        this._storageBackendKind = getStorageBackendPreference();
+        this.storageAdapter = createStorageAdapter(this._storageBackendKind);
     this._netWorthRangeMonths = 6;
     this._forecastRangeMonths = 1;
     this._forecastAccountId = 'total';
@@ -149,7 +152,7 @@ export class DebtTrackerApp {
             Chart.defaults.transitions.active.animation.duration = 0;
         }
 
-        const isFirstRun = localStorage.getItem(this.storageKey) === null;
+        const isFirstRun = this.storageAdapter.get(this.storageKey) === null;
 
         this.initializeEventListeners();
         this.loadFromStorage();

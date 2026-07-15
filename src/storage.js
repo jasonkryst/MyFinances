@@ -2,6 +2,7 @@
 
 import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, todayISO } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledger.js';
+import { createStorageAdapter, getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
@@ -300,7 +301,7 @@ export function saveToStorage(app) {
             timestamp: new Date().toISOString()
         };
         const json = JSON.stringify(data);
-        localStorage.setItem(app.storageKey, json);
+        app.storageAdapter.set(app.storageKey, json);
 
         const usage = getStorageUsageInfo(json);
         if (usage.nearLimit) {
@@ -322,7 +323,7 @@ export function saveToStorage(app) {
 // Restore state from localStorage
 export function loadFromStorage(app) {
     try {
-        const data = localStorage.getItem(app.storageKey);
+        const data = app.storageAdapter.get(app.storageKey);
         if (data) {
             const parsed = JSON.parse(data);
             const clean = sanitizeParsedState(parsed);
