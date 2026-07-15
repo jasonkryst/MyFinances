@@ -1,14 +1,16 @@
 import pytest
 
+from tests.conftest import current_month_iso
+
 def _seed_and_navigate(page):
     """Seed spending data and open the Spending tab."""
     page.click('button[data-page="reports"]')
     page.wait_for_timeout(200)
-    page.evaluate("""() => {
+    page.evaluate("""(dates) => {
         const app = window.app;
         app.expenses = [
-            { id: 9001, name: 'Rent', category: 'Housing', budgetAmount: 950, date: '2026-06-01', accountId: null },
-            { id: 9002, name: 'Groceries', category: 'Food', budgetAmount: 180, date: '2026-06-10', accountId: null }
+            { id: 9001, name: 'Rent', category: 'Housing', budgetAmount: 950, date: dates.rent, accountId: null },
+            { id: 9002, name: 'Groceries', category: 'Food', budgetAmount: 180, date: dates.groceries, accountId: null }
         ];
         app.bills = []; app.recurringTemplates = []; app.debts = [];
         app.emergencyFunds = []; app.sinkingFunds = [];
@@ -16,7 +18,7 @@ def _seed_and_navigate(page):
         app.ledgerAmountOverrides = {};
         app._reportMonthOffset = 0;
         app.renderReportsPage();
-    }""")
+    }""", {"rent": current_month_iso(1), "groceries": current_month_iso(10)})
     page.click('[data-rptab="spending"]')
     page.wait_for_timeout(300)
 
