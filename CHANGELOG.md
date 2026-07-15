@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.6.1] — 2026-07-15
+
+### Fixed
+- **Ledger running-balance summation bug (#46)** — same-date rows (a "Balance Rollover" marker landing on the same day as that month's own transaction, two same-day real transactions, or a reconciliation sharing a date with either) could display in an order that didn't match the true running-balance chain. The tie-break lived only in `getLedgerTransactions`'s own fixed descending sort and used a type-priority heuristic (rollover/reconciliation always last); the actual on-screen order comes from `getFilteredSortedLedgerTransactions`'s separate sort, which had no tie-break at all and simply preserved whatever order rows arrived in — correct by accident under the default descending view, but visibly wrong under ascending (a $0.00 rollover row could appear to silently shift the balance by the amount of an adjacent transaction). Replaced the heuristic with a `_seq` field recording the true order each row's balance was computed in, and made the display sort break same-date ties by `_seq` in the same direction as the primary date sort. Added 7 tests (`tests/features/test_ledger.py`) covering the rollover/transaction collision, plain same-day real-transaction ties, a three-way rollover+bill+reconciliation collision, overrides applied to a colliding transaction, and multi-account independence — each verified in both ascending and descending sort.
+
+---
+
 ## [4.6.0] — 2026-07-14
 
 ### Added

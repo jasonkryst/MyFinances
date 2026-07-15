@@ -1,8 +1,14 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: June 30, 2026  
-**Current Version**: v4.3.0  
+**Last Updated**: July 15, 2026  
+**Current Version**: v4.6.1  
 **Status**: Production-Ready (Security Audit: LOW Risk)
+
+---
+
+## ✅ Ledger Running Balance Tie-Break Fix (v4.6.1, July 15, 2026)
+
+The v4.2.0 same-date sort tiebreaker (below) turned out to be incomplete: it only special-cased rollover/reconciliation rows, used a fixed type-priority instead of the rows' true computed order, and — critically — only lived in `getLedgerTransactions`'s own internal sort. The Ledger table and CSV export actually render through the separate `getFilteredSortedLedgerTransactions`, which had no tie-break of its own and simply preserved whatever order rows arrived in. That happened to look right under the default newest-first view but broke visibly under an ascending sort: a same-date "Balance Rollover" row (or two same-day real transactions) could display in an order where its $0.00 (or otherwise unrelated) amount appeared to silently shift the running balance — issue #46's "Summation Bug". Fixed by giving every row a `_seq` field recording the true order its balance was computed in, and breaking same-date ties by `_seq` in whichever direction the primary date sort is running, in both `getLedgerTransactions` and `getFilteredSortedLedgerTransactions`. 7 new tests in `tests/features/test_ledger.py` cover the rollover collision, plain same-day real-transaction ties, a three-way rollover+bill+reconciliation collision, an override applied to a colliding transaction, and multi-account independence, each checked in both ascending and descending sort.
 
 ---
 
