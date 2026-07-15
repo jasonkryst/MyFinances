@@ -359,6 +359,22 @@ export function loadFromStorage(app) {
     }
 }
 
+// Switch the active persistence backend, migrating current in-memory state
+// into the new backend and removing the old backend's copy so nothing is
+// left behind (e.g. financial data lingering in localStorage after a user
+// picks Session Storage for privacy).
+export function switchStorageBackend(app, kind) {
+    const normalized = kind === 'session' ? 'session' : 'local';
+    if (normalized === app._storageBackendKind) return;
+
+    const oldAdapter = app.storageAdapter;
+    app.storageAdapter = createStorageAdapter(normalized);
+    app._storageBackendKind = normalized;
+    app.saveToStorage();
+    oldAdapter.remove(app.storageKey);
+    setStorageBackendPreference(normalized);
+}
+
 // Export a full app backup as JSON.
 export function exportAllJSON(app) {
     const normalisedDebts = app.debts.map(d => ({
@@ -774,7 +790,10 @@ export function clearAllData(app, options = {}) {
     app._forecastNotableThresholdPct = 130;
     app._reconciliationAccountFilter = 'all';
 
-    localStorage.removeItem(app.storageKey);
+    app.storageAdapter.remove(app.storageKey);
+    app.storageAdapter = createStorageAdapter('local');
+    app._storageBackendKind = 'local';
+    setStorageBackendPreference('local');
     localStorage.removeItem('debtTrackerTheme');
 
     app.updateUI();

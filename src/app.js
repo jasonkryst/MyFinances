@@ -32,7 +32,7 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature } from './storage.js';
+import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature } from './storage.js';
 import { createStorageAdapter, getStorageBackendPreference } from './storageAdapters.js';
 import {
     renderIncomeList,
@@ -530,6 +530,14 @@ export class DebtTrackerApp {
      */
     loadFromStorage() {
         return loadFromStorage(this);
+    }
+
+    /**
+     * Switch the active persistence backend ('local' | 'session'),
+     * migrating current data into the new backend and clearing the old one.
+     */
+    switchStorageBackend(kind) {
+        return switchStorageBackendFeature(this, kind);
     }
 
     /**

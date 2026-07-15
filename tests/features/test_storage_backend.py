@@ -67,3 +67,101 @@ def test_session_preference_makes_app_read_write_session_storage(page):
     assert result['session'] is not None
     assert 'Test Debt' in result['session']
     assert result['local'] is None
+
+
+@pytest.mark.feature
+def test_switch_to_session_migrates_data_and_clears_local(app_page):
+    """switchStorageBackend('session') copies current data into
+    sessionStorage and removes the localStorage copy."""
+    page = app_page
+
+    result = page.evaluate(f"""() => {{
+        window.app.debts = [{_TEST_DEBT.replace("Test Debt", "Migrate Me")}];
+        window.app.saveToStorage();
+        window.app.switchStorageBackend('session');
+        return {{
+            local: localStorage.getItem('debtTrackerData'),
+            session: sessionStorage.getItem('debtTrackerData'),
+            pref: localStorage.getItem('debtTrackerStorageBackend'),
+            backend: window.app._storageBackendKind
+        }};
+    }}""")
+
+    assert result['backend'] == 'session'
+    assert result['local'] is None
+    assert result['session'] is not None
+    assert 'Migrate Me' in result['session']
+    assert result['pref'] == 'session'
+
+
+@pytest.mark.feature
+def test_switch_back_to_local_migrates_data_and_clears_session(app_page):
+    """Switching session -> local migrates again and clears the session
+    copy, so no stale copy is left in either backend."""
+    page = app_page
+
+    result = page.evaluate(f"""() => {{
+        window.app.debts = [{_TEST_DEBT.replace("Test Debt", "Round Trip")}];
+        window.app.switchStorageBackend('session');
+        window.app.switchStorageBackend('local');
+        return {{
+            local: localStorage.getItem('debtTrackerData'),
+            session: sessionStorage.getItem('debtTrackerData')
+        }};
+    }}""")
+
+    assert result['session'] is None
+    assert result['local'] is not None
+    assert 'Round Trip' in result['local']
+
+
+@pytest.mark.feature
+def test_switch_to_same_backend_is_noop(app_page):
+    """Switching to the currently-active backend doesn't wipe data."""
+    page = app_page
+
+    result = page.evaluate(f"""() => {{
+        window.app.debts = [{_TEST_DEBT.replace("Test Debt", "Stay Put")}];
+        window.app.saveToStorage();
+        window.app.switchStorageBackend('local');
+        return localStorage.getItem('debtTrackerData');
+    }}""")
+
+    assert result is not None
+    assert 'Stay Put' in result
+
+
+@pytest.mark.feature
+def test_backend_preference_persists_across_reload(app_page):
+    """The chosen backend survives a page reload."""
+    page = app_page
+
+    page.evaluate("() => window.app.switchStorageBackend('session')")
+    page.reload(wait_until="networkidle")
+
+    backend = page.evaluate("() => window.app._storageBackendKind")
+    assert backend == 'session'
+
+
+@pytest.mark.feature
+def test_clear_all_data_clears_active_backend_and_resets_preference(app_page):
+    """clearAllData wipes whichever backend is active and resets the
+    preference back to 'local', mirroring how it already resets the theme
+    preference to a blank-slate state."""
+    page = app_page
+
+    result = page.evaluate("""() => {
+        window.app.switchStorageBackend('session');
+        window.app.clearAllData();
+        return {
+            session: sessionStorage.getItem('debtTrackerData'),
+            local: localStorage.getItem('debtTrackerData'),
+            pref: localStorage.getItem('debtTrackerStorageBackend'),
+            backend: window.app._storageBackendKind
+        };
+    }""")
+
+    assert result['session'] is None
+    assert result['local'] is None
+    assert result['pref'] == 'local'
+    assert result['backend'] == 'local'
