@@ -165,3 +165,37 @@ def test_clear_all_data_clears_active_backend_and_resets_preference(app_page):
     assert result['local'] is None
     assert result['pref'] == 'local'
     assert result['backend'] == 'local'
+
+
+@pytest.mark.feature
+def test_switch_storage_backend_failed_write_preserves_old_copy(app_page):
+    """If the write to the new backend fails (e.g. quota exceeded, storage
+    blocked), switchStorageBackend must not delete the old backend's copy or
+    flip the active backend/preference — the user's only persisted data must
+    survive the failed switch attempt."""
+    page = app_page
+
+    result = page.evaluate("""() => {
+        window.app.debts = [{ id: 1, name: 'Keep Me', category: 'Other', debtType: 'creditCard', accountBalance: 15, originalBalance: 15, interestRate: 0, minimumPayment: 5, originalMinimumPayment: 5, priority: 1 }];
+        window.app.saveToStorage();
+
+        const originalSetItem = window.sessionStorage.setItem.bind(window.sessionStorage);
+        window.sessionStorage.setItem = () => { throw new Error('simulated quota exceeded'); };
+
+        window.app.switchStorageBackend('session');
+
+        window.sessionStorage.setItem = originalSetItem;
+
+        return {
+            backend: window.app._storageBackendKind,
+            local: localStorage.getItem('debtTrackerData'),
+            session: sessionStorage.getItem('debtTrackerData'),
+            pref: localStorage.getItem('debtTrackerStorageBackend')
+        };
+    }""")
+
+    assert result['backend'] == 'local'
+    assert result['local'] is not None
+    assert 'Keep Me' in result['local']
+    assert result['session'] is None
+    assert result['pref'] == 'local'

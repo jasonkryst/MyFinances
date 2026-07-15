@@ -2,7 +2,7 @@
 
 import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, todayISO } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledger.js';
-import { createStorageAdapter, getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
+import { createStorageAdapter, setStorageBackendPreference } from './storageAdapters.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
@@ -312,11 +312,13 @@ export function saveToStorage(app) {
         } else {
             app._storageQuotaWarned = false;
         }
+        return true;
     } catch (error) {
         console.error('Error saving to localStorage:', error);
         if (typeof app.showStorageQuotaWarning === 'function') {
             app.showStorageQuotaWarning({ bytes: null, limitBytes: STORAGE_ESTIMATED_QUOTA_BYTES, pct: 1, nearLimit: true, writeFailed: true });
         }
+        return false;
     }
 }
 
@@ -368,9 +370,21 @@ export function switchStorageBackend(app, kind) {
     if (normalized === app._storageBackendKind) return;
 
     const oldAdapter = app.storageAdapter;
+    const oldKind = app._storageBackendKind;
     app.storageAdapter = createStorageAdapter(normalized);
     app._storageBackendKind = normalized;
-    app.saveToStorage();
+    const saved = app.saveToStorage();
+    if (!saved) {
+        // Migration write failed (e.g. quota exceeded, storage blocked) —
+        // revert to the old backend so nothing is lost or flipped. The old
+        // backend's copy is untouched (never removed), and the persisted
+        // preference is re-synced to the old kind so it can't drift out of
+        // step with the actual active adapter.
+        app.storageAdapter = oldAdapter;
+        app._storageBackendKind = oldKind;
+        setStorageBackendPreference(oldKind);
+        return;
+    }
     oldAdapter.remove(app.storageKey);
     setStorageBackendPreference(normalized);
 }
