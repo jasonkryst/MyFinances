@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.6.0] — 2026-07-14
+
+### Added
+- **Storage abstraction layer (#41)** — `storage.js` now persists through a swappable adapter (`src/storageAdapters.js`) instead of calling `localStorage` directly. Users can choose Local Storage (default, persists across visits) or Session Storage (cleared when the tab closes) from the Settings modal; switching migrates existing data into the new backend and clears the old copy. The adapter interface stays synchronous by design — a documented seam for a future async backend (e.g. IndexedDB) exists but isn't implemented in this change. See `docs/superpowers/specs/2026-07-14-storage-abstraction-design.md`.
+
+---
+
 ## [4.5.0] — 2026-07-14
 
 ### Fixed

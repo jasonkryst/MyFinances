@@ -178,3 +178,64 @@ def test_command_palette_has_settings_entry(app_page):
 
     item.click()
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+
+
+@pytest.mark.ui
+def test_settings_modal_shows_current_storage_backend(app_page):
+    """Opening Settings reflects the active storage backend in the select."""
+    page = app_page
+
+    page.click('#settingsBtn')
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+
+    value = page.evaluate("() => document.getElementById('settingStorageBackend').value")
+    assert value == 'local'
+
+
+@pytest.mark.ui
+def test_settings_modal_switching_backend_migrates_on_done(app_page):
+    """Selecting Session Storage and clicking Done switches the active
+    backend and migrates existing data into it."""
+    page = app_page
+
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 1, name: 'UI Switch Debt', category: 'Other', debtType: 'creditCard', accountBalance: 10, originalBalance: 10, interestRate: 0, minimumPayment: 5, originalMinimumPayment: 5, priority: 1 }];
+        window.app.saveToStorage();
+    }""")
+
+    page.click('#settingsBtn')
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.select_option('#settingStorageBackend', 'session')
+    page.click('#settingsModalDoneBtn')
+    page.wait_for_timeout(200)
+
+    result = page.evaluate("""() => ({
+        backend: window.app._storageBackendKind,
+        session: sessionStorage.getItem('debtTrackerData'),
+        local: localStorage.getItem('debtTrackerData')
+    })""")
+    assert result['backend'] == 'session'
+    assert result['session'] is not None
+    assert 'UI Switch Debt' in result['session']
+    assert result['local'] is None
+
+
+@pytest.mark.ui
+def test_settings_modal_escape_does_not_switch_backend(app_page):
+    """Pressing Escape after changing the select, without clicking Done,
+    leaves the active backend unchanged — matching the existing
+    reconciliation-checkbox discard-on-escape behavior."""
+    page = app_page
+
+    page.click('#settingsBtn')
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'settingReconciliationAdjusts'",
+        timeout=2000
+    )
+    page.select_option('#settingStorageBackend', 'session')
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(200)
+
+    backend = page.evaluate("() => window.app._storageBackendKind")
+    assert backend == 'local'

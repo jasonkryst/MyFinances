@@ -1005,6 +1005,14 @@
                 </label>
                 <p class="modal-helper-text">When on, reconciling an account replaces its tracked balance with the statement balance you enter. When off, reconciliations are recorded and shown on the Ledger for transparency, but the tracked balance keeps being computed from your transactions.</p>
             </div>
+            <div class="form-group modal-form-group">
+                <label for="settingStorageBackend">Data Storage</label>
+                <select id="settingStorageBackend">
+                    <option value="local">Local Storage (persists across visits)</option>
+                    <option value="session">Session Storage (cleared when this tab closes)</option>
+                </select>
+                <p class="modal-helper-text">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
+            </div>
             <div class="modal-actions">
                 <button id="settingsModalDoneBtn" class="btn btn-success">Done</button>
             </div>
