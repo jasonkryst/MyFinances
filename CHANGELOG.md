@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.5.0] — 2026-07-14
+
+### Fixed
+- **Spending report UI tests (#43)** — `tests/ui/test_spending_ui.py` and `tests/ui/test_chart_accessibility.py::test_spending_charts_have_sr_tables` seeded expense fixtures with a hardcoded `2026-06` date; since `renderReportsSpending()` derives "this month" from the live system clock, the fixtures silently fell out of range once the wall clock passed June, leaving the Spending tab in its empty state for 7 tests. Added a `current_month_iso()` test helper (`tests/conftest.py`) and seed expense dates against the real current month instead
+
+---
+
 ## [4.4.1] — 2026-07-15
 
 ### Added
