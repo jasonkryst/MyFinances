@@ -7,6 +7,16 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.4.1] — 2026-07-15
+
+### Added
+- **10 Playwright tests** (`tests/features/test_accounts.py`) — dedicated Accounts-page coverage for the interest-rate APY badge introduced in 4.4.0 (#45): threshold boundary (0.01% shows, 0.009% doesn't), whole-number and max-rate (100%) formatting, per-card scoping across multiple mixed-rate accounts, badge removal on edit-to-zero, reload persistence, and import-clamped/invalid-rate display
+
+### Changed
+- Synced `README.md` and `tests/README.md` test counts/file listings with actual suite state (497 tests / 54 files); both had drifted since 4.3.0
+
+---
+
 ## [4.4.0] — 2026-07-14
 
 ### Added

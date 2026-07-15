@@ -5,7 +5,7 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 452 Tests Passing across 5 categories (security, features, ui, a11y, integration)
+- ✅ 497 Tests Passing across 5 categories (security, features, ui, a11y, integration)
 - ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, and Settings
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
@@ -80,10 +80,12 @@ tests/
 │   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
 │   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
 │   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
-├── features/                   # Feature-specific tests (203 tests)
-│   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning)
+├── features/                   # Feature-specific tests (247 tests)
+│   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning, interest-rate badge display)
 │   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
+│   ├── test_break_even.py      # Per-debt break-even analysis (badge, accelerate modal, plan table columns)
+│   ├── test_interest_income.py # Interest income engine, compounding, accounts UI badge, Reports/Forecast integration
 │   ├── test_health.py          # Financial Health Dashboard (all six metric cards)
 │   ├── test_income.py          # Income sources, add + inline-edit negative-amount rejection
 │   ├── test_expenses.py        # Expense tracking (add/edit/delete, validation)
@@ -129,9 +131,10 @@ tests/
 ├── a11y/                        # Site-wide accessibility audit (10 tests)
 │   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable directly)
 │   └── test_a11y_audit.py      # Pytest wiring: asserts zero Serious findings from the audit
-└── integration/                 # End-to-end workflow tests (13 tests)
+└── integration/                 # End-to-end workflow tests (14 tests)
     ├── test_smoke.py            # Full application smoke test (account → debt → net worth)
-    └── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
+    ├── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
+    └── test_interest_income_workflow.py # End-to-end interest income workflow
 ```
 
 > Ad-hoc manual debugging scripts (no `test_*` functions) live in `tools/debug/`, outside the `tests/` tree, so `tests/` only contains real pytest-collected tests.
