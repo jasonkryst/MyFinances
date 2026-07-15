@@ -313,13 +313,13 @@ src/
   ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   └─ utils.js              — Formatting, date utilities, sanitization, chart tables
-tests/ (465 tests across 52 files)
+tests/ (497 tests across 54 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/ (56 tests)     — XSS, CSP, input validation, static scan
   │   ├─ test_xss.py, test_csp.py
   │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (216 tests)    — Per-feature CRUD, calculations, business logic
+  ├─ features/ (247 tests)    — Per-feature CRUD, calculations, business logic
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
@@ -327,7 +327,7 @@ tests/ (465 tests across 52 files)
   │   ├─ test_spending_analysis.py, test_storage_import.py, test_storage_quota.py
   │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
   │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py
-  │   └─ test_break_even.py
+  │   └─ test_break_even.py, test_interest_income.py
   ├─ ui/ (170 tests)          — UI/UX, responsiveness, accessibility
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
@@ -339,8 +339,8 @@ tests/ (465 tests across 52 files)
   │   └─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py
   ├─ a11y/ (10 tests)         — Site-wide WCAG 2.1 AA accessibility audit
   │   └─ test_a11y_audit.py, run_a11y_audit.py
-  └─ integration/ (13 tests)  — End-to-end workflows, import/export, data persistence
-      ├─ test_smoke.py, test_workflows.py
+  └─ integration/ (14 tests)  — End-to-end workflows, import/export, data persistence
+      ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
 tools/
   └─ debug/                   — Ad-hoc manual debugging scripts (not part of pytest suite)
 ```
@@ -423,11 +423,11 @@ form-action 'self'
 
 ---
 
-## 🧪 Testing Suite (Updated June 30, 2026)
+## 🧪 Testing Suite (Updated July 14, 2026)
 
 ### Test Statistics
-- **Total Tests**: 465 comprehensive tests, all passing
-- **Test Files**: 52 organized across 5 categories
+- **Total Tests**: 497 comprehensive tests, all passing
+- **Test Files**: 54 organized across 5 categories
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
@@ -439,9 +439,10 @@ form-action 'self'
 - **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
 - **Static Analysis** — Code patterns, hardcoded secrets, dependencies
 
-#### 🎯 Feature Tests (216 tests)
-- **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion
+#### 🎯 Feature Tests (247 tests)
+- **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion; interest-rate (% APY) badge display — threshold/formatting boundaries, multi-account scoping, edit-to-clear, reload persistence, import clamping
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
+- **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
 - **Debt Calculator** — Strategies (incl. multi-debt priority ordering), daily compounding, back-calculator, stimulus edge cases
 - **Strategy / Plan** — Avalanche/Snowball/Priority switching, comparison panel, stimulus validation
 - **Income** — Sources, frequencies, totals, negative-amount rejection (add + inline edit paths)
@@ -484,7 +485,7 @@ form-action 'self'
 #### ♿ Accessibility Audit (10 tests)
 Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs, duplicate IDs, orphaned form inputs, unnamed interactive elements, missing alt text, computed WCAG 1.4.3 colour contrast, modal Escape-to-close, mobile nav `aria-expanded`.
 
-#### 🔄 Integration Tests (13 tests)
+#### 🔄 Integration Tests (14 tests)
 - **End-to-End Workflows** — Complete user journeys (account → debt → net worth → reconciliation)
 - **Data Persistence** — Cross-navigation data integrity
 - **Import/Export** — JSON roundtrip, CSV schedule export (incl. comma/quote escaping), full clear-all-data → reimport → render-every-page consistency check
@@ -493,12 +494,12 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 465 tests
+pytest tests/ -v                  # All 497 tests
 pytest tests/security/ -v         # 56 security tests
-pytest tests/features/ -v         # 216 feature tests
+pytest tests/features/ -v         # 247 feature tests
 pytest tests/ui/ -v               # 170 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
-pytest tests/integration/ -v      # 13 integration tests
+pytest tests/integration/ -v      # 14 integration tests
 pytest -m "security" -v           # All security tests by marker
 pytest -m "not slow" -v           # Skip slow tests
 ```
