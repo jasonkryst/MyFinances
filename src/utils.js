@@ -170,6 +170,10 @@ export function countIncomePaydaysInMonth(income, year, month) {
     return getIncomePaydaysInMonth(income, year, month).length;
 }
 
+export function incomeDaysInMonth(inc, year, month) {
+    return getIncomePaydaysInMonth(inc, year, month).map(d => d.getDate());
+}
+
 export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
     const firstDate = income.firstPayDate || income.firstDate;
     const first = new Date((firstDate || '') + 'T12:00:00');

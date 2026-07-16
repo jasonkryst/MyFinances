@@ -1,7 +1,7 @@
 // Reports page logic: month navigation, calendar, charts
 
 import {
-    getIncomePaydaysInMonth,
+    incomeDaysInMonth,
     formatCurrency,
     escapeHtml,
     renderChartDataTable,
@@ -10,10 +10,6 @@ import {
 import { getLedgerTransactionsForMonth } from './ledger.js';
 import { renderCashFlowForecast } from './forecast.js';
 import { renderReportsSpending } from './spending.js';
-
-export function incomeDaysInMonth(app, inc, year, month) {
-    return getIncomePaydaysInMonth(inc, year, month).map(d => d.getDate());
-}
 
 export function prevReportMonth(app) {
     app._reportMonthOffset--;
