@@ -3,6 +3,8 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledger.js';
 
+export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
+
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
     // opts must already be fully escaped HTML before reaching el.innerHTML below —
@@ -47,7 +49,7 @@ export function renderAccountsList(app) {
     }
 
     const ACCT_TYPES = ['Checking','Savings','Cash','Investment','Credit Card','Loan','Other'];
-    const typeIcon = { Checking:'🏦', Savings:'💰', Cash:'💵', Investment:'📈', 'Credit Card':'💳', Loan:'🏠', Other:'🗂️' };
+    const typeIcon = ACCOUNT_TYPE_ICONS;
 
     const now = new Date();
     const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });

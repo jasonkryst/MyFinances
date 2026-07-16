@@ -10,6 +10,7 @@ import {
 import { getLedgerTransactionsForMonth } from './ledger.js';
 import { renderCashFlowForecast } from './forecast.js';
 import { renderReportsSpending } from './spending.js';
+import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 
 export function prevReportMonth(app) {
     app._reportMonthOffset--;
@@ -828,7 +829,7 @@ export function renderReportsMoneyFlow(app) {
 
     let acctSectionHTML = '';
     if (app.accounts && app.accounts.length > 0) {
-        const typeIcon = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
+        const typeIcon = ACCOUNT_TYPE_ICONS;
         const acctRows = app.accounts.map(a => {
             const proj = app.computeAccountBalance(a.id, year, month);
             const diff = proj - a.startingBalance;

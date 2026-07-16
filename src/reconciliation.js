@@ -4,8 +4,7 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO, formatShortDate } from './utils.js';
 import { getLedgerTransactionsForMonth, renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
-
-const TYPE_ICON = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
+import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -127,7 +126,7 @@ function renderReconcileCard(app, acct) {
 
     return `<div class="recon-card">
         <div class="recon-card-header">
-            <span class="acct-type-icon">${TYPE_ICON[acct.type] || '🗂️'}</span>
+            <span class="acct-type-icon">${ACCOUNT_TYPE_ICONS[acct.type] || '🗂️'}</span>
             <div class="recon-card-info">
                 <span class="acct-card-name">${escapeHtml(acct.name)}</span>
                 <span class="recon-current-balance">Current Tracked Balance: ${formatCurrency(acct.startingBalance)}</span>
