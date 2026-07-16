@@ -81,6 +81,11 @@ export function todayISO() {
     return dateToISO(new Date());
 }
 
+export function getReportDate(app) {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + app._reportMonthOffset, 1);
+}
+
 export function escapeHtml(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')

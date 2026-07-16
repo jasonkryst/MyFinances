@@ -1,5 +1,5 @@
 import { getLedgerTransactionsForMonth } from './ledger.js';
-import { escapeHtml, formatCurrency, renderChartDataTable } from './utils.js';
+import { escapeHtml, formatCurrency, renderChartDataTable, getReportDate } from './utils.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -53,11 +53,6 @@ export function computeSpendingByCategory(app, year, month) {
     }
     result.sort((a, b) => b.total - a.total);
     return result;
-}
-
-function _getReportDate(app) {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth() + (app._reportMonthOffset || 0), 1);
 }
 
 function _changeBadgeHTML(change, prevLabel, cls) {
@@ -121,7 +116,7 @@ export function renderReportsSpending(app) {
     if (app._rptSpendingPieChart) { app._rptSpendingPieChart.destroy(); app._rptSpendingPieChart = null; }
     if (app._rptSpendingBarChart) { app._rptSpendingBarChart.destroy(); app._rptSpendingBarChart = null; }
 
-    const d = _getReportDate(app);
+    const d = getReportDate(app);
     const year = d.getFullYear(), month = d.getMonth();
     const monthLabel = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
