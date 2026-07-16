@@ -32,7 +32,7 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature } from './storage.js';
+import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature } from './storage.js';
 import { createStorageAdapter, getStorageBackendPreference } from './storageAdapters.js';
 import {
     renderIncomeList,
@@ -161,6 +161,7 @@ export class DebtTrackerApp {
     this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
     initSettingsModalFeature(this);
     maybeShowSetupWizardFeature(this, isFirstRun);
+    backfillIncomeAccountIds(this);
 
         this.updateUI();
         this.updateFormVisibility();

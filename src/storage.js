@@ -359,8 +359,6 @@ export function loadFromStorage(app) {
     } catch (error) {
         console.error('Error loading from localStorage:', error);
     }
-
-    backfillIncomeAccountIds(app);
 }
 
 // Legacy incomes predating the income/account linking feature may have no
@@ -368,7 +366,19 @@ export function loadFromStorage(app) {
 // account for balance projections. Must run after both app.accounts and
 // app.incomes are populated for the session (fresh installs leave both
 // arrays empty, so this is a no-op for them).
-function backfillIncomeAccountIds(app) {
+//
+// NOT called from loadFromStorage(): it's invoked explicitly from the
+// DebtTrackerApp constructor in app.js, deliberately placed AFTER
+// captureNetWorthSnapshot() (same spot as the original inline loop this
+// function replaced). captureNetWorthSnapshot() -> computeAccountBalance()
+// excludes transactions from incomes with no accountId from any specific
+// account's balance. If this backfill ran before that snapshot, a legacy
+// income's transactions would newly count toward account totals for "this
+// load" only, silently changing the computed/persisted netWorth and
+// possibly triggering a milestone notification. Keep the call in the
+// constructor, in this position, unless that ordering dependency no longer
+// applies.
+export function backfillIncomeAccountIds(app) {
     if (app.accounts.length > 0 && app.incomes.length > 0) {
         const firstAccountId = app.accounts[0].id;
         let changed = false;
