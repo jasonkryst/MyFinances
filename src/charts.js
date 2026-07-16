@@ -1,5 +1,5 @@
 // Charts and visualizations
-import { computeMonthlyIncomeForMonth } from './utils.js';
+import { computeMonthlyIncomeForMonth, formatCurrency } from './utils.js';
 
 export function renderBalanceChart(app) {
     if (!app.lastPaymentPlan) return;
@@ -59,7 +59,7 @@ export function renderBalanceChart(app) {
                 tooltip: {
                     mode: 'index', intersect: false,
                     callbacks: {
-                        label: ctx => `${ctx.dataset.label}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(ctx.parsed.y)}`
+                        label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`
                     }
                 }
             },
@@ -104,7 +104,7 @@ export function renderPieChart(app) {
                         label: ctx => {
                             const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
                             const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
-                            return `${ctx.label}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(ctx.parsed)} (${pct}%)`;
+                            return `${ctx.label}: ${formatCurrency(ctx.parsed)} (${pct}%)`;
                         }
                     }
                 }
@@ -206,10 +206,7 @@ export function renderProgressChart(app) {
                             if (label) {
                                 label += ': ';
                             }
-                            label += new Intl.NumberFormat('en-US', {
-                                style: 'currency',
-                                currency: 'USD'
-                            }).format(context.parsed.y);
+                            label += formatCurrency(context.parsed.y);
                             return label;
                         }
                     }
@@ -269,7 +266,7 @@ export function renderDebtDistributionChart(app) {
     if (data.length === 0) return;
 
     const colors = labels.map((_, i) => palette[i % palette.length]);
-    const fmt = v => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+    const fmt = v => formatCurrency(v);
     const total = data.reduce((a, b) => a + b, 0);
 
     app.debtDistributionChart = new Chart(canvas.getContext('2d'), {
@@ -328,7 +325,7 @@ export function renderDebtToIncomeChart(app) {
     const debtPmt = Math.min(monthlyPayment, monthlyTotal);
     const remaining = Math.max(0, monthlyTotal - debtPmt);
 
-    const fmt = v => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+    const fmt = v => formatCurrency(v);
 
     app.debtToIncomeChart = new Chart(canvas.getContext('2d'), {
         type: 'pie',
