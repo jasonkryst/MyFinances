@@ -229,6 +229,11 @@ export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
     return { monthlyTotal };
 }
 
+export function dailyCompoundInterest(balance, aprPct, days) {
+    const dailyRate = (aprPct || 0) / 100 / 365;
+    return balance * (Math.pow(1 + dailyRate, days) - 1);
+}
+
 export function computeInterestPaidToDate(debt) {
     const isCC = !debt.debtType || debt.debtType === 'creditCard';
     if (!debt.debtStartDate || !isCC) return null;

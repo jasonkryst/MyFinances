@@ -1,5 +1,5 @@
 // Debt management and calculations
-import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable, formatShortDate, formatMonthYear } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable, formatShortDate, formatMonthYear } from './utils.js';
 import { computeBreakEven } from './breakEven.js';
 
 function recalculateIfConfigured(app) {
@@ -552,8 +552,7 @@ export function renderDebtsList(app) {
                         <div class="debt-progress-bar"><div class="debt-progress-fill${fixedPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${fixedPct}"></div></div>
                     </div>`;
             } else {
-                const dailyRate = (debt.interestRate || 0) / 100 / 365;
-                const monthlyInterest = debt.accountBalance * (Math.pow(1 + dailyRate, 30) - 1);
+                const monthlyInterest = dailyCompoundInterest(debt.accountBalance, debt.interestRate, 30);
                 const negAmortRisk = debt.minimumPayment <= monthlyInterest && debt.minimumPayment > 0;
                 const origBal = debt.originalBalance || debt.accountBalance;
                 const progressPct = origBal > 0 ? Math.min(100, Math.round((origBal - debt.accountBalance) / origBal * 100)) : 0;
