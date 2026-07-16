@@ -35,6 +35,15 @@ export function parseFiniteOrNull(value) {
     return Number.isFinite(n) ? n : null;
 }
 
+// Formats a bare "YYYY-MM-DD" string, an ISO datetime string, or a Date object as "Mon D, YYYY".
+// Bare dates are padded with T12:00:00 before parsing so they don't roll back a day in
+// negative-UTC-offset timezones (new Date("2026-07-15") parses as UTC midnight).
+export function formatShortDate(value) {
+    const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {
     const n = Number.parseInt(value, 10);
     if (!Number.isFinite(n)) return fallback;

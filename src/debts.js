@@ -1,5 +1,5 @@
 // Debt management and calculations
-import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable, formatShortDate } from './utils.js';
 import { computeBreakEven } from './breakEven.js';
 
 function recalculateIfConfigured(app) {
@@ -580,7 +580,7 @@ export function renderDebtsList(app) {
                         </div>
                         ${debt.debtStartDate ? `
                         <div class="debt-detail">
-                            <strong>Opened:</strong> ${new Date(debt.debtStartDate + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            <strong>Opened:</strong> ${formatShortDate(debt.debtStartDate)}
                         </div>` : ''}
                         ${iptd ? `
                         <div class="debt-detail iptd-detail">

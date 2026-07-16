@@ -1,6 +1,6 @@
 // Ledger logic: rendering, transaction gathering
 
-import { getIncomePaydaysInMonth, formatCurrency, escapeHtml, dateToISO, parseFiniteOrNull } from './utils.js';
+import { getIncomePaydaysInMonth, formatCurrency, escapeHtml, dateToISO, parseFiniteOrNull, formatShortDate } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 
@@ -563,7 +563,7 @@ function openLedgerOverrideModal(app, tx) {
 
     nameEl.textContent = tx.name || '';
     accountEl.textContent = tx.account || '';
-    dateEl.textContent = tx.date ? _formatLedgerDate(tx.date) : '';
+    dateEl.textContent = tx.date ? formatShortDate(tx.date) : '';
     originalEl.textContent = formatCurrency(tx.originalAmount);
     input.value = Number(tx.amount || 0).toFixed(2);
 
@@ -839,7 +839,7 @@ export function renderLedgerPage(app) {
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit override' : 'Override'}</button>${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
                 : '';
             html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
-                <td>${tx.date ? _formatLedgerDate(tx.date) : ''}</td>
+                <td>${tx.date ? formatShortDate(tx.date) : ''}</td>
                 <td>${escapeHtml(tx.account || '')}</td>
                 <td>${nameCell}</td>
                 <td class="text-right ${amountColorClass}">${amountCell}${overrideActions}</td>
@@ -952,10 +952,4 @@ export function renderLedgerPage(app) {
         exportCsvBtn.onclick = () => openLedgerExportModal(app);
     }
     // --- End: renderLedgerPage logic ---
-}
-
-// Helper for formatting ledger dates (copied from app.js)
-function _formatLedgerDate(dateStr) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
