@@ -57,7 +57,8 @@ function toLedgerTxOutput(app, tx) {
         sourceId: tx.sourceId,
         transactionId: tx.transactionId,
         isRollover: tx.type === 'rollover',
-        meta: tx.meta || null
+        meta: tx.meta || null,
+        _seq: tx._seq
     };
 }
 
@@ -466,6 +467,14 @@ export function getLedgerTransactions(app) {
     const allTxs = [];
     const adjustsBalance = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
 
+    // Monotonic counter reflecting the true order each row's running balance
+    // was computed in (per account, oldest to newest). Same-date rows (e.g. a
+    // "Balance Rollover" and the transaction that triggered it) can't be
+    // ordered by date alone, so the display sort breaks ties using this —
+    // never by a fixed type-priority — so the tie-break stays correct
+    // whether the ledger is sorted ascending or descending (#46).
+    let seq = 0;
+
     for (const acctId in accountMap) {
         if (acctId === UNLINKED_KEY) continue;
         const acct = accountMap[acctId];
@@ -486,7 +495,8 @@ export function getLedgerTransactions(app) {
                     type: 'rollover',
                     category: 'Balance',
                     sourceId: null,
-                    transactionId: null
+                    transactionId: null,
+                    _seq: seq++
                 });
             }
 
@@ -515,23 +525,22 @@ export function getLedgerTransactions(app) {
                 category: tx.category,
                 sourceId: tx.sourceId,
                 transactionId: tx.transactionId,
-                meta: tx.meta || null
+                meta: tx.meta || null,
+                _seq: seq++
             });
             lastMonth = txMonth;
         }
     }
 
-    // Sort newest-first. For same-millisecond timestamps, synthetic rows
-    // (rollover, reconciliation) sort after real transactions so that the
-    // real transaction's balance appears above the carry-over/snap row —
-    // matching the expectation that real activity is "newer" than the
-    // synthetic bookkeeping event on the same date.
+    // Sort newest-first. For same-millisecond timestamps, break ties by
+    // _seq (descending) rather than a fixed type-priority: whichever row's
+    // balance was computed later in the true running-balance chain is the
+    // "newer" one and belongs on top, regardless of whether it's a real
+    // transaction or a synthetic rollover/reconciliation row (#46).
     allTxs.sort((a, b) => {
         const dateDiff = b.date - a.date;
         if (dateDiff !== 0) return dateDiff;
-        const aPriority = (a.type === 'rollover' || a.type === 'reconciliation') ? 1 : 0;
-        const bPriority = (b.type === 'rollover' || b.type === 'reconciliation') ? 1 : 0;
-        return aPriority - bPriority;
+        return b._seq - a._seq;
     });
     return allTxs.map(tx => toLedgerTxOutput(app, tx));
 }
@@ -723,6 +732,18 @@ export function getFilteredSortedLedgerTransactions(app) {
         }
         if (vA < vB) return sortDir === 'asc' ? -1 : 1;
         if (vA > vB) return sortDir === 'asc' ? 1 : -1;
+        // Same-date rows (e.g. a "Balance Rollover" and the transaction that
+        // triggered it) can't be ordered by date alone. Break the tie by
+        // _seq — the true order their running balance was computed in — and
+        // flip it along with sortDir, same as the date comparison above.
+        // Leaving ties unresolved here let the running-balance column go
+        // inconsistent whenever the ledger was sorted ascending (#46),
+        // because it silently fell back to whatever order the rows already
+        // arrived in from getLedgerTransactions (always its own fixed
+        // descending convention) instead of respecting the requested sortDir.
+        if (sortKey === 'date' && typeof a._seq === 'number' && typeof b._seq === 'number' && a._seq !== b._seq) {
+            return sortDir === 'asc' ? a._seq - b._seq : b._seq - a._seq;
+        }
         return 0;
     });
 

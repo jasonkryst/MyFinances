@@ -352,3 +352,274 @@ def test_reconciliation_excluded_from_expected_transactions_list(app_page):
     }""")
 
     assert all(tx['type'] != 'reconciliation' for tx in result)
+
+
+def _seed_monthly_bill_for_rollover_collision(page):
+    """A bill due on the 1st of every month guarantees that the
+    auto-generated 'Balance Rollover' row (inserted whenever the month
+    changes, dated the 1st of the new month) lands on the exact same date
+    as that month's own transaction — the same-day collision from issue #46.
+    """
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.bills = [{ id: 1, name: 'Rent', amount: 100, dueDay: 1, accountId: 1, category: 'Housing' }];
+        app.incomes = []; app.bonuses = []; app.debts = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app._ledgerAccountFilter = '1'; app._ledgerDateRange = 'all';
+        app._ledgerPage = 1;
+    }""")
+
+
+def _assert_running_balance_internally_consistent(transactions, sort_dir):
+    """For any two adjacent rows in the displayed order, whichever row is
+    chronologically later must equal (chronologically earlier row's balance
+    + later row's own amount). This is the invariant a running-balance
+    column must satisfy no matter how same-date rows are ordered; issue #46
+    was a same-date 'Balance Rollover' row violating it (a $0.00 row that
+    appeared to silently shift the balance)."""
+    assert len(transactions) >= 2, "Need at least 2 rows to check adjacency"
+    for i in range(len(transactions) - 1):
+        row_a = transactions[i]      # earlier in display order
+        row_b = transactions[i + 1]  # later in display order
+        if sort_dir == 'asc':
+            # row_b is chronologically later than row_a
+            expected = row_a['balance'] + row_b['amount']
+            actual = row_b['balance']
+        else:
+            # row_a is chronologically later than row_b
+            expected = row_b['balance'] + row_a['amount']
+            actual = row_a['balance']
+        assert abs(actual - expected) < 0.005, (
+            f"Row {i} vs {i + 1} ({sort_dir}) broke the running-balance chain: "
+            f"expected {expected}, got {actual}. Rows: {row_a} | {row_b}"
+        )
+
+
+@pytest.mark.feature
+def test_ledger_running_balance_consistent_ascending_with_rollover_collision(app_page):
+    """Issue #46: sorting the ledger ascending (oldest first) must keep the
+    running-balance column internally consistent even when a 'Balance
+    Rollover' row shares its date with that month's own transaction."""
+    page = app_page
+    _seed_monthly_bill_for_rollover_collision(page)
+
+    page.evaluate("""() => {
+        window.app._ledgerSortKey = 'date';
+        window.app._ledgerSortDir = 'asc';
+    }""")
+    transactions = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+
+    assert any(tx['type'] == 'rollover' for tx in transactions), \
+        "Fixture should produce at least one Balance Rollover row"
+    _assert_running_balance_internally_consistent(transactions, 'asc')
+
+
+@pytest.mark.feature
+def test_ledger_running_balance_consistent_descending_with_rollover_collision(app_page):
+    """Issue #46, descending direction: same invariant as the ascending
+    test, checked against the ledger's default (newest-first) sort."""
+    page = app_page
+    _seed_monthly_bill_for_rollover_collision(page)
+
+    page.evaluate("""() => {
+        window.app._ledgerSortKey = 'date';
+        window.app._ledgerSortDir = 'desc';
+    }""")
+    transactions = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+
+    assert any(tx['type'] == 'rollover' for tx in transactions), \
+        "Fixture should produce at least one Balance Rollover row"
+    _assert_running_balance_internally_consistent(transactions, 'desc')
+
+
+@pytest.mark.feature
+def test_ledger_rollover_row_balance_reflects_true_carry_in_value(app_page):
+    """The specific defect from issue #46's screenshot: the Balance Rollover
+    row must sit next to the transaction it logically precedes such that its
+    $0.00 amount never appears to move the balance. Concretely, in ascending
+    order the rollover (representing the carry-in balance, before that
+    month's transaction posts) must be listed BEFORE the same-day
+    transaction, not after it."""
+    page = app_page
+    _seed_monthly_bill_for_rollover_collision(page)
+
+    page.evaluate("""() => {
+        window.app._ledgerSortKey = 'date';
+        window.app._ledgerSortDir = 'asc';
+    }""")
+    transactions = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+
+    rollover_index = next(i for i, tx in enumerate(transactions) if tx['type'] == 'rollover')
+    same_date_tx_index = next(
+        i for i, tx in enumerate(transactions)
+        if tx['type'] != 'rollover' and tx['date'] == transactions[rollover_index]['date']
+    )
+    assert rollover_index < same_date_tx_index, (
+        "Ascending order: Balance Rollover (the pre-transaction carry-in balance) "
+        "must be listed before the same-day transaction it precedes"
+    )
+
+
+@pytest.mark.feature
+def test_ledger_multiple_real_transactions_on_same_day_balance_consistent(app_page):
+    """Two independent real transactions (both bills, so their generated
+    dates are exact-midnight ties, not just same calendar day) landing on
+    the same date must still chain correctly in both sort directions. This
+    is the general form of #46: any same-date tie — not just rollover rows —
+    needs a tie-break that flips with sort direction instead of a fixed
+    type-priority."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.bills = [
+            { id: 1, name: 'Rent', amount: 400, dueDay: 15, accountId: 1, category: 'Housing' },
+            { id: 2, name: 'Utilities', amount: 150, dueDay: 15, accountId: 1, category: 'Utilities' }
+        ];
+        app.incomes = []; app.debts = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app._ledgerAccountFilter = '1'; app._ledgerDateRange = 'all';
+    }""")
+
+    for sort_dir in ('asc', 'desc'):
+        page.evaluate(f"""() => {{
+            window.app._ledgerSortKey = 'date';
+            window.app._ledgerSortDir = '{sort_dir}';
+        }}""")
+        transactions = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+        _assert_running_balance_internally_consistent(transactions, sort_dir)
+
+
+@pytest.mark.feature
+def test_ledger_rollover_bill_and_reconciliation_three_way_collision(app_page):
+    """A rarer but real scenario: a Balance Rollover, a recurring bill, and a
+    manual reconciliation can all land on the exact same calendar date (the
+    1st of a month, with reconciliation-adjusts-balance on). Even with three
+    rows tied on one date, the chain must stay internally consistent in both
+    directions, the tie order must follow true computed sequence (rollover,
+    then bill, then reconciliation, since that's the order their balances
+    were actually derived in), and the reconciliation row must still snap to
+    the exact statement balance regardless of where it lands."""
+    page = app_page
+    _seed_monthly_bill_for_rollover_collision(page)
+
+    setup = page.evaluate("""() => {
+        const app = window.app;
+        const today = new Date();
+        const target = new Date(today.getFullYear(), today.getMonth() + 2, 1);
+        const y = target.getFullYear();
+        const m = String(target.getMonth() + 1).padStart(2, '0');
+        const dateStr = `${y}-${m}-01`;
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
+        app.reconciliations = [{
+            id: 9001, accountId: 1, date: dateStr,
+            previousBalance: 0, statementBalance: 5000, difference: 5000, note: 'test'
+        }];
+        return { dateStr };
+    }""")
+
+    for sort_dir, expected_order in (
+        ('asc', ['rollover', 'bill', 'reconciliation']),
+        ('desc', ['reconciliation', 'bill', 'rollover']),
+    ):
+        page.evaluate(f"""() => {{
+            window.app._ledgerSortKey = 'date';
+            window.app._ledgerSortDir = '{sort_dir}';
+        }}""")
+        transactions = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+
+        same_date = [tx for tx in transactions if tx['date'][:10] == setup['dateStr']]
+        assert len(same_date) == 3, f"Expected rollover+bill+reconciliation collision, got {same_date}"
+        assert [tx['type'] for tx in same_date] == expected_order, (
+            f"{sort_dir}: got {[tx['type'] for tx in same_date]}, expected {expected_order}"
+        )
+
+        # Check the three-way collision's own internal math directly, rather
+        # than reusing the whole-list chain helper: the reconciliation row
+        # always reports amount=0 (its real snap delta lives in
+        # tx.meta.difference, shown separately by the renderer) and removing
+        # it from a full-projection list would falsely "break" the chain at
+        # every later month's now-adjusted balance — a test artifact, not a
+        # real inconsistency.
+        rollover_row = next(tx for tx in same_date if tx['type'] == 'rollover')
+        bill_row = next(tx for tx in same_date if tx['type'] == 'bill')
+        recon_row = next(tx for tx in same_date if tx['type'] == 'reconciliation')
+        assert abs(bill_row['balance'] - (rollover_row['balance'] + bill_row['amount'])) < 0.005, (
+            "Bill balance must equal the rollover carry-in plus the bill's own amount"
+        )
+        assert abs(recon_row['balance'] - 5000) < 0.005, \
+            "Reconciliation row must snap exactly to the statement balance"
+
+
+@pytest.mark.feature
+def test_ledger_override_on_collision_transaction_keeps_balance_consistent(app_page):
+    """Applying an amount override to the transaction that collides with a
+    Balance Rollover must not break the running-balance chain — the override
+    changes the delta actually applied, but the chain must still add up
+    around it in both sort directions."""
+    page = app_page
+    _seed_monthly_bill_for_rollover_collision(page)
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/ledger.js');
+        app._ledgerSortKey = 'date'; app._ledgerSortDir = 'asc';
+        const before = app.getFilteredSortedLedgerTransactions();
+        const billTx = before.find(tx => tx.type === 'bill');
+        mod.setLedgerAmountOverride(app, billTx.transactionId, -250, {
+            originalAmount: billTx.originalAmount,
+            transactionName: billTx.name,
+            accountId: billTx.accountId,
+            date: billTx.date
+        });
+        const asc = app.getFilteredSortedLedgerTransactions();
+        app._ledgerSortDir = 'desc';
+        const desc = app.getFilteredSortedLedgerTransactions();
+        return { asc, desc, overriddenId: billTx.transactionId };
+    }""")
+
+    for direction in ('asc', 'desc'):
+        rows = result[direction]
+        overridden = next(tx for tx in rows if tx['transactionId'] == result['overriddenId'])
+        assert overridden['amount'] == -250, "Override must be reflected in the row's amount"
+        assert overridden['hasOverride'] is True
+        _assert_running_balance_internally_consistent(rows, direction)
+
+
+@pytest.mark.feature
+def test_ledger_multi_account_rollover_collisions_stay_independent(app_page):
+    """Two accounts each with their own rollover/bill collision on the same
+    calendar date must not cross-contaminate: each account's running-balance
+    chain must stay consistent on its own, independent of how the two
+    accounts' same-date rows happen to interleave in the merged, unfiltered
+    (all-accounts) list."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [
+            { id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 },
+            { id: 2, name: 'Savings', type: 'Savings', startingBalance: 2000, interestRate: 0 }
+        ];
+        app.bills = [
+            { id: 1, name: 'Rent', amount: 100, dueDay: 1, accountId: 1, category: 'Housing' },
+            { id: 2, name: 'Storage', amount: 50, dueDay: 1, accountId: 2, category: 'Other' }
+        ];
+        app.incomes = []; app.debts = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.reconciliations = [];
+        app._ledgerAccountFilter = 'all'; app._ledgerDateRange = 'all';
+    }""")
+
+    for sort_dir in ('asc', 'desc'):
+        page.evaluate(f"""() => {{
+            window.app._ledgerSortKey = 'date';
+            window.app._ledgerSortDir = '{sort_dir}';
+        }}""")
+        transactions = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+        for acct_id in ('1', '2'):
+            acct_txs = [tx for tx in transactions if str(tx['accountId']) == acct_id]
+            assert len(acct_txs) >= 2
+            _assert_running_balance_internally_consistent(acct_txs, sort_dir)
