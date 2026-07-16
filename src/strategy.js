@@ -8,7 +8,8 @@ import {
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth,
     computeInterestPaidToDate,
-    escapeHtml
+    escapeHtml,
+    formatMonthYear
 } from './utils.js';
 import { computeBreakEven } from './breakEven.js';
 
@@ -670,7 +671,7 @@ export function renderDebtSummaryTable(app) {
         const row = document.createElement('tr');
         const iptdCell = summary.interestToDate !== null
             ? `<span class="iptd-value">${formatCurrency(summary.interestToDate)}</span>
-               ${summary.debtStartDate ? `<div class="iptd-sub">since ${new Date(summary.debtStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>` : ''}`
+               ${summary.debtStartDate ? `<div class="iptd-sub">since ${formatMonthYear(summary.debtStartDate)}</div>` : ''}`
             : '<span class="text-pale">No start date</span>';
         const iSavedCell = summary.interestSaved != null
             ? (summary.interestSaved > 0

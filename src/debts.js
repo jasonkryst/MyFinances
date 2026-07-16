@@ -1,5 +1,5 @@
 // Debt management and calculations
-import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable, formatShortDate } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable, formatShortDate, formatMonthYear } from './utils.js';
 import { computeBreakEven } from './breakEven.js';
 
 function recalculateIfConfigured(app) {
@@ -586,7 +586,7 @@ export function renderDebtsList(app) {
                         <div class="debt-detail iptd-detail">
                             <strong>Est. interest paid to date:</strong>
                             <span class="iptd-value">${formatCurrency(iptd.interestPaid)}</span>
-                            <span class="iptd-sub">over ${iptd.days} days since ${iptd.start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                            <span class="iptd-sub">over ${iptd.days} days since ${formatMonthYear(iptd.start)}</span>
                         </div>` : ''}
                         ${payoffDetailHTML}
                         ${debt.priority ? `
