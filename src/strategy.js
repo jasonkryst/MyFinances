@@ -551,17 +551,6 @@ export function renderStrategyIncomeWidget(app) {
     if (!widget) return;
     if (app.incomes.length === 0) { widget.classList.add('hidden'); widget.classList.remove('visible'); return; }
 
-    const fmt = (value) => {
-        if (typeof formatCurrency === 'function') {
-            return formatCurrency(value);
-        }
-        const numeric = Number(value) || 0;
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(numeric);
-    };
-
     const now = new Date();
     const { monthlyTotal } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
     const totalDebtMin = app.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
@@ -585,20 +574,20 @@ export function renderStrategyIncomeWidget(app) {
     if (totalBills > 0 || totalExpenses > 0) {
         const netClass = netAfterAll >= 0 ? 'strategy-net--positive' : 'strategy-net--negative';
         const bonusBit = bonusThisMonth > 0
-            ? ` · Bonuses: ${fmt(bonusThisMonth)}` : '';
+            ? ` · Bonuses: ${formatCurrency(bonusThisMonth)}` : '';
         netHtml = `<div class="strategy-net ${netClass}">
             Net after all obligations:
-            <strong>${fmt(netAfterAll)}</strong>
-            <span class="strategy-net-breakdown">(Bills: ${fmt(totalBills)} · Expenses: ${fmt(totalExpenses)} · Debt mins: ${fmt(totalDebtMin)}${bonusBit})</span>
+            <strong>${formatCurrency(netAfterAll)}</strong>
+            <span class="strategy-net-breakdown">(Bills: ${formatCurrency(totalBills)} · Expenses: ${formatCurrency(totalExpenses)} · Debt mins: ${formatCurrency(totalDebtMin)}${bonusBit})</span>
         </div>`;
     }
 
     const bonusChip = bonusThisMonth > 0
-        ? `<span class="strategy-bonus-chip">+${fmt(bonusThisMonth)} bonus this month</span>` : '';
+        ? `<span class="strategy-bonus-chip">+${formatCurrency(bonusThisMonth)} bonus this month</span>` : '';
 
     widget.classList.add('visible'); widget.classList.remove('hidden');
     widget.innerHTML = `
-        💰 Expected income this month: <strong>${fmt(monthlyTotal)}</strong> ${bonusChip}
+        💰 Expected income this month: <strong>${formatCurrency(monthlyTotal)}</strong> ${bonusChip}
         ${ratioHtml}
         ${netHtml}`;
 }
