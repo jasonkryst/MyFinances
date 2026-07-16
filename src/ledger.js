@@ -1,6 +1,6 @@
 // Ledger logic: rendering, transaction gathering
 
-import { getIncomePaydaysInMonth, formatCurrency } from './utils.js';
+import { getIncomePaydaysInMonth, formatCurrency, escapeHtml } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 
@@ -10,15 +10,6 @@ function getDateKey(date) {
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
-}
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 }
 
 function parseFiniteNumber(value) {
