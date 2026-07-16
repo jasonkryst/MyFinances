@@ -1,5 +1,6 @@
 // Bills and expenses
 import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
+import { buildAccountOptionsHtml } from './accounts.js';
 
 
 // Render the full Budget page: bill cards, expense cards, cashflow summary.
@@ -35,8 +36,7 @@ export function renderBillList(app) {
                         </select></div>
                     <div class="form-group form-no-margin"><label class="label-compact">Account</label>
                         <select id="be-acct-${bill.id}" class="form-control">
-                            <option value="">— No account —</option>
-                            ${app.accounts.map(a => `<option value="${a.id}" ${bill.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}
+                            ${buildAccountOptionsHtml(app.accounts, bill.accountId, { emptyLabel: '— No account —' })}
                         </select></div>
                 </div>
                 <div class="budget-edit-actions">
@@ -127,8 +127,7 @@ export function renderExpenseList(app) {
                         </select></div>
                     <div class="form-group form-no-margin"><label class="label-compact">Account</label>
                         <select id="ee-acct-${exp.id}" class="form-control">
-                            <option value="">— No account —</option>
-                            ${app.accounts.map(a => `<option value="${a.id}" ${exp.accountId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}
+                            ${buildAccountOptionsHtml(app.accounts, exp.accountId, { emptyLabel: '— No account —' })}
                         </select></div>
                 </div>
                 <div class="budget-edit-actions">

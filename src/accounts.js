@@ -22,6 +22,14 @@ export function refreshAccountSelectors(app) {
     }
 }
 
+export function buildAccountOptionsHtml(accounts, selectedId, { emptyLabel } = {}) {
+    const empty = emptyLabel ? `<option value="">${emptyLabel}</option>` : '';
+    const options = (accounts || []).map(a =>
+        `<option value="${a.id}"${selectedId === a.id ? ' selected' : ''}>${escapeHtml(a.name)}</option>`
+    ).join('');
+    return empty + options;
+}
+
 export function computeAccountBalance(app, accountId, year = null, month = null) {
     const acct = app.accounts.find(a => a.id === accountId);
     if (!acct) return 0;

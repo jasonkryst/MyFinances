@@ -11,6 +11,7 @@ import {
     escapeHtml,
     formatShortDate
 } from './utils.js';
+import { buildAccountOptionsHtml } from './accounts.js';
 
 
 // Render the income list and summary panel inside the Income page.
@@ -55,8 +56,7 @@ export function renderIncomeList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">Account</label>
                                 <select id="ie-account-${inc.id}" class="form-control form-full-width">
-                                    <option value="">— No account —</option>
-                                    ${app.accounts.map(a => `<option value="${a.id}" ${inc.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+                                    ${buildAccountOptionsHtml(app.accounts, inc.accountId, { emptyLabel: '— No account —' })}
                                 </select>
                             </div>
                         </div>
@@ -356,8 +356,7 @@ export function renderBonusList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">Account</label>
                                 <select id="be-account-${b.id}" class="form-full-width">
-                                    <option value="">— No account —</option>
-                                    ${app.accounts.map(a => `<option value="${a.id}" ${b.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+                                    ${buildAccountOptionsHtml(app.accounts, b.accountId, { emptyLabel: '— No account —' })}
                                 </select>
                             </div>
                         </div>

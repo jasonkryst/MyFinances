@@ -1,4 +1,5 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
+import { buildAccountOptionsHtml } from './accounts.js';
 
 /**
  * Render the Savings page with toggleable Emergency Fund and Sinking Funds sections
@@ -53,8 +54,7 @@ function renderEmergencyFundContent(app) {
               <div class="form-group">
                 <label for="emergencyAccount">Account</label>
                 <select id="emergencyAccount" required>
-                  <option value="">-- Select Account --</option>
-                  ${app.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('')}
+                  ${buildAccountOptionsHtml(app.accounts, null, { emptyLabel: '-- Select Account --' })}
                 </select>
               </div>
               <div class="form-group">
@@ -203,8 +203,7 @@ function renderSinkingFundsContent(app) {
               <div class="form-group">
                 <label for="sinkingAccount">Account</label>
                 <select id="sinkingAccount" required>
-                  <option value="">-- Select Account --</option>
-                  ${app.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('')}
+                  ${buildAccountOptionsHtml(app.accounts, null, { emptyLabel: '-- Select Account --' })}
                 </select>
               </div>
               <div class="form-group">

@@ -8,6 +8,7 @@ import {
     sanitizeDateISO,
     escapeHtml
 } from './utils.js';
+import { buildAccountOptionsHtml } from './accounts.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -242,12 +243,8 @@ function _buildReadCard(app, t, year, month, monthKey) {
 }
 
 function _buildEditCard(app, t) {
-    const accountOptions = (app.accounts || []).map(a =>
-        `<option value="${a.id}" ${t.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
-    ).join('');
-    const targetOptions = `<option value="">— None —</option>` + (app.accounts || []).map(a =>
-        `<option value="${a.id}" ${t.targetAccountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
-    ).join('');
+    const accountOptions = buildAccountOptionsHtml(app.accounts, t.accountId);
+    const targetOptions = buildAccountOptionsHtml(app.accounts, t.targetAccountId, { emptyLabel: '— None —' });
 
     const typeOpts = TYPES.map(tp =>
         `<option value="${tp}" ${t.type === tp ? 'selected' : ''}>${escapeHtml(TYPE_LABELS[tp])}</option>`
