@@ -69,7 +69,7 @@ import {
     computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
 } from './reports.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
-import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth, APP_VERSION } from './utils.js';
+import { APP_VERSION } from './utils.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
     addRecurringTemplate as addRecurringTemplateFeature,
@@ -439,18 +439,6 @@ export class DebtTrackerApp {
      */
     renderStrategyIncomeWidget() {
         return renderStrategyIncomeWidgetFeature(this);
-    }
-
-    // Compatibility shim for any stale callsites that still expect app.computeMonthlyIncome().
-    computeMonthlyIncome() {
-        const now = new Date();
-        return computeMonthlyIncomeForMonth(this.incomes, this.bonuses, now.getFullYear(), now.getMonth());
-    }
-
-    // Compatibility shim for stale callsites expecting app.computeMonthlyBonuses().
-    computeMonthlyBonuses() {
-        const now = new Date();
-        return computeMonthlyBonusesForMonth(this.bonuses, now.getFullYear(), now.getMonth());
     }
 
     /**
