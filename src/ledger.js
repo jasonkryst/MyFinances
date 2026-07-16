@@ -1,20 +1,15 @@
 // Ledger logic: rendering, transaction gathering
 
-import { getIncomePaydaysInMonth, formatCurrency, escapeHtml, dateToISO } from './utils.js';
+import { getIncomePaydaysInMonth, formatCurrency, escapeHtml, dateToISO, parseFiniteOrNull } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
-
-function parseFiniteNumber(value) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
-}
 
 function getOverrideAmount(app, txId) {
     if (!txId) return null;
     const map = app.ledgerAmountOverrides || {};
     const entry = map[txId];
     if (!entry) return null;
-    return parseFiniteNumber(entry.amount);
+    return parseFiniteOrNull(entry.amount);
 }
 
 function getEffectiveAmount(app, tx) {
@@ -530,13 +525,13 @@ export function getLedgerTransactions(app) {
 
 export function setLedgerAmountOverride(app, transactionId, amount, metadata = {}) {
     if (!transactionId) return;
-    const parsed = parseFiniteNumber(amount);
+    const parsed = parseFiniteOrNull(amount);
     if (parsed === null) return;
     if (!app.ledgerAmountOverrides) app.ledgerAmountOverrides = {};
 
     app.ledgerAmountOverrides[transactionId] = {
         amount: parsed,
-        originalAmount: parseFiniteNumber(metadata.originalAmount),
+        originalAmount: parseFiniteOrNull(metadata.originalAmount),
         transactionName: metadata.transactionName || null,
         accountId: metadata.accountId || null,
         date: metadata.date || null,
@@ -578,7 +573,7 @@ function openLedgerOverrideModal(app, tx) {
     };
 
     confirmBtn.onclick = () => {
-        const parsed = parseFiniteNumber(input.value);
+        const parsed = parseFiniteOrNull(input.value);
         if (parsed === null) {
             alert('Please enter a valid number.');
             return;

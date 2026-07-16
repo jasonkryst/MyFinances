@@ -30,6 +30,11 @@ export function sanitizeFiniteNumber(value, fallback = 0, { min = null, max = nu
     return n;
 }
 
+export function parseFiniteOrNull(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+}
+
 export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {
     const n = Number.parseInt(value, 10);
     if (!Number.isFinite(n)) return fallback;
