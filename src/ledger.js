@@ -1,16 +1,8 @@
 // Ledger logic: rendering, transaction gathering
 
-import { getIncomePaydaysInMonth, formatCurrency, escapeHtml } from './utils.js';
+import { getIncomePaydaysInMonth, formatCurrency, escapeHtml, dateToISO } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
-
-function getDateKey(date) {
-    const d = new Date(date);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-}
 
 function parseFiniteNumber(value) {
     const n = Number(value);
@@ -54,7 +46,7 @@ function toLedgerTxOutput(app, tx) {
 }
 
 export function makeLedgerTransactionId(tx) {
-    const dateKey = getDateKey(tx.date);
+    const dateKey = dateToISO(tx.date);
     const account = String(tx.accountId ?? '');
     const type = String(tx.type ?? 'other');
     const source = String(tx.sourceId ?? 'none');

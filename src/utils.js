@@ -47,12 +47,15 @@ export function sanitizeDateISO(value) {
     return text;
 }
 
-export function todayISO() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
+export function dateToISO(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+}
+
+export function todayISO() {
+    return dateToISO(new Date());
 }
 
 export function escapeHtml(value) {
