@@ -46,7 +46,7 @@ function toLedgerTxOutput(app, tx) {
 }
 
 export function makeLedgerTransactionId(tx) {
-    const dateKey = dateToISO(tx.date);
+    const dateKey = dateToISO(new Date(tx.date));
     const account = String(tx.accountId ?? '');
     const type = String(tx.type ?? 'other');
     const source = String(tx.sourceId ?? 'none');
