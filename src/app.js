@@ -162,18 +162,6 @@ export class DebtTrackerApp {
     initSettingsModalFeature(this);
     maybeShowSetupWizardFeature(this, isFirstRun);
 
-        if (this.accounts.length > 0 && this.incomes.length > 0) {
-            const firstAccountId = this.accounts[0].id;
-            let changed = false;
-            for (let index = 0; index < this.incomes.length; index++) {
-                if (!this.incomes[index].accountId || isNaN(this.incomes[index].accountId)) {
-                    this.incomes[index].accountId = firstAccountId;
-                    changed = true;
-                }
-            }
-            if (changed) this.saveToStorage();
-        }
-
         this.updateUI();
         this.updateFormVisibility();
         this.switchPage('health');

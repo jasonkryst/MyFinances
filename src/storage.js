@@ -359,6 +359,27 @@ export function loadFromStorage(app) {
     } catch (error) {
         console.error('Error loading from localStorage:', error);
     }
+
+    backfillIncomeAccountIds(app);
+}
+
+// Legacy incomes predating the income/account linking feature may have no
+// accountId. Assign them the first account so every income resolves to an
+// account for balance projections. Must run after both app.accounts and
+// app.incomes are populated for the session (fresh installs leave both
+// arrays empty, so this is a no-op for them).
+function backfillIncomeAccountIds(app) {
+    if (app.accounts.length > 0 && app.incomes.length > 0) {
+        const firstAccountId = app.accounts[0].id;
+        let changed = false;
+        for (let index = 0; index < app.incomes.length; index++) {
+            if (!app.incomes[index].accountId || isNaN(app.incomes[index].accountId)) {
+                app.incomes[index].accountId = firstAccountId;
+                changed = true;
+            }
+        }
+        if (changed) saveToStorage(app);
+    }
 }
 
 // Switch the active persistence backend, migrating current in-memory state
