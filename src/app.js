@@ -68,7 +68,7 @@ import {
     renderNetWorthWidget as renderNetWorthWidgetFeature,
     computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
 } from './reports.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
 import { APP_VERSION } from './utils.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
@@ -828,20 +828,7 @@ export class DebtTrackerApp {
     setSetting(key, value) { return setSettingFeature(this, key, value); }
 
     switchLiabilitiesSubTab(subTab) {
-        this.liabilitiesSubTab = subTab;
-        const section = document.getElementById('liabilitiesSection');
-        if (!section) return;
-        
-        // Update button states
-        section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.liabilitiesSubtab === subTab);
-        });
-        
-        // Show/hide panels
-        section.querySelectorAll('.liabilities-subtab-panel').forEach(panel => {
-            panel.classList.toggle('visible', panel.dataset.subtab === subTab);
-            panel.classList.toggle('hidden', panel.dataset.subtab !== subTab);
-        });
+        switchLiabilitiesSubTabFeature(this, subTab);
     }
 }
 
