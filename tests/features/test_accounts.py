@@ -291,7 +291,7 @@ def test_imported_account_with_clamped_rate_shows_correct_badge(app_page):
     page = app_page
     page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -319,7 +319,7 @@ def test_imported_account_with_invalid_rate_shows_no_badge(app_page):
     page = app_page
     page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],

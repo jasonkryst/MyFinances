@@ -45,7 +45,7 @@ def test_bills_survive_import_with_sanitization(app_page):
     result = page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             accounts: app.accounts,
             bills: [{ id: 42, name: 'Electricity', amount: '120', dueDay: 15,
