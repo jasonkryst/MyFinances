@@ -72,13 +72,15 @@ import { renderCalendarView as renderCalendarViewFeature } from './strategyCalen
 import {
     prevReportMonth as prevReportMonthFeature,
     nextReportMonth as nextReportMonthFeature,
-    renderReportsPage as renderReportsPageFeature,
-    computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
+    renderReportsPage as renderReportsPageFeature
 } from './reports.js';
 import {
     captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
     renderNetWorthWidget as renderNetWorthWidgetFeature
 } from './reportsNetWorth.js';
+import {
+    computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
+} from './reportsSummary.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
 import { APP_VERSION } from './utils.js';
 import {
