@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.7.0] — 2026-07-17
+
+### Changed
+- **Internal src/ reorganization** — split six oversized modules (`reports.js`, `strategy.js`, `ledger.js`, `debts.js`, `storage.js`, `app.js`) into 15 new focused files (`sanitizers.js`, `dataExport.js`, `ledgerTransactions.js`, `ledgerOverrides.js`, `strategyPlanCalculation.js`, `strategyCalendar.js`, `strategyComparison.js`, `strategySummaryTable.js`, `strategyScheduleTable.js`, `debtBreakEven.js`, `reportsNetWorth.js`, `reportsCalendar.js`, `reportsCashFlow.js`, `reportsVariance.js`, `reportsSummary.js`), and consolidated a dozen instances of copy-pasted logic into shared helpers in `utils.js` and `accounts.js` (date formatting, `escapeHtml`, currency formatting, account-type icons, account `<option>`-list building, and a `recalculatePaymentPlan` helper unifying five near-duplicate payment-recalculation blocks). Fixed a real timezone-rollback bug found during the date-formatter consolidation (some copies padded bare `YYYY-MM-DD` strings before formatting and some didn't, which could render the wrong day near UTC midnight). Two misplaced functions moved to their correct modules (`switchLiabilitiesSubTab` to `ui.js`, an income-record migration to `storage.js`), and dead code removed (`app.js` compatibility shims, a defensive `formatCurrency` fallback with no live path). Pure refactor — no user-facing behavior change; see `docs/superpowers/specs/2026-07-16-src-reorganization-design.md` and `docs/superpowers/plans/2026-07-16-src-reorganization.md`.
+
+---
+
 ## [4.6.1] — 2026-07-15
 
 ### Fixed
