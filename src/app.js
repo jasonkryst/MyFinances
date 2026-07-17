@@ -8,9 +8,9 @@ import {
     renderDebtsList as renderDebtsListFeature,
     startEdit as startEditDebtFeature,
     cancelInlineEdit as cancelInlineEditDebtFeature,
-    saveInlineEdit as saveInlineEditDebtFeature,
-    showAccelerateModal as showAccelerateModalFeature
+    saveInlineEdit as saveInlineEditDebtFeature
 } from './debts.js';
+import { showAccelerateModal as showAccelerateModalFeature } from './debtBreakEven.js';
 import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature } from './accounts.js';
 import {
     renderBudgetPage,
