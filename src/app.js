@@ -60,9 +60,9 @@ import {
     displayPaymentSchedule as displayPaymentScheduleFeature,
     displayInterestComparison as displayInterestComparisonFeature,
     displayWhatIfSimulator as displayWhatIfSimulatorFeature,
-    renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature,
-    renderCalendarView as renderCalendarViewFeature
+    renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature
 } from './strategy.js';
+import { renderCalendarView as renderCalendarViewFeature } from './strategyCalendar.js';
 import {
     prevReportMonth as prevReportMonthFeature,
     nextReportMonth as nextReportMonthFeature,
