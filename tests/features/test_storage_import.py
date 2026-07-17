@@ -25,7 +25,7 @@ def test_import_malformed_json_triggers_invalid_callback(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const file = new File(['{ this is not valid json'], 'bad.json', { type: 'application/json' });
         return new Promise(resolve => {
             let invalidCalled = false;
@@ -50,7 +50,7 @@ def test_import_sanitizes_adversarial_account_and_debt_fields(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             accounts: [{
                 id: 'not-a-number', name: '<script>alert(1)</script>Checking',
@@ -101,7 +101,7 @@ def test_import_bare_array_payload_treated_as_debts(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = [
             { id: 1, name: 'Array Debt', debtType: 'creditCard',
               accountBalance: 1000, interestRate: 10, minimumPayment: 25, dueDate: 5 }
@@ -133,7 +133,7 @@ def test_import_empty_payload_triggers_no_data_callback(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = { foo: 'bar', randomField: 123 };
         const file = new File([JSON.stringify(payload)], 'empty.json', { type: 'application/json' });
         return new Promise(resolve => {
@@ -157,7 +157,7 @@ def test_import_oversized_file_triggers_too_large_callback(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const bigArray = new Array(200000).fill({
             id: 1, name: 'Pad', debtType: 'creditCard',
             accountBalance: 1, interestRate: 1, minimumPayment: 1, dueDate: 1
@@ -316,7 +316,7 @@ def test_import_sanitizes_adversarial_net_worth_snapshot(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -359,7 +359,7 @@ def test_import_sanitizes_adversarial_forecast_settings(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -393,7 +393,7 @@ def test_import_sanitizes_adversarial_emergency_fund(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -431,7 +431,7 @@ def test_import_sanitizes_adversarial_sinking_fund(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -478,7 +478,7 @@ def test_import_sanitizes_adversarial_bonus(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -518,7 +518,7 @@ def test_import_rejects_non_object_ledger_overrides(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -551,7 +551,7 @@ def test_import_drops_ledger_override_with_non_finite_amount(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
@@ -595,7 +595,7 @@ def test_import_legacy_v1_format_with_version_field(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             version: '1.0',
             debts: [
@@ -641,7 +641,7 @@ def test_import_legacy_v1_bare_debts_array_format(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = [
             { id: 1, name: 'Legacy Card One', debtType: 'creditCard',
               accountBalance: 1000, interestRate: 12, minimumPayment: 30, dueDate: 5 },
@@ -669,7 +669,7 @@ def test_import_sanitizes_account_interest_rate(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         const payload = {
             debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
                       accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
