@@ -1,21 +1,9 @@
 // Ledger transaction aggregation: pure computation, no DOM.
 
-import { getIncomePaydaysInMonth, dateToISO, parseFiniteOrNull } from './utils.js';
+import { getIncomePaydaysInMonth, dateToISO } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
-
-function getOverrideAmount(app, txId) {
-    if (!txId) return null;
-    const map = app.ledgerAmountOverrides || {};
-    const entry = map[txId];
-    if (!entry) return null;
-    return parseFiniteOrNull(entry.amount);
-}
-
-function getEffectiveAmount(app, tx) {
-    const overrideAmount = getOverrideAmount(app, tx.transactionId);
-    return overrideAmount !== null ? overrideAmount : tx.originalAmount;
-}
+import { getOverrideAmount, getEffectiveAmount } from './ledgerOverrides.js';
 
 export function toLedgerTxOutput(app, tx) {
     const overrideAmount = getOverrideAmount(app, tx.transactionId);

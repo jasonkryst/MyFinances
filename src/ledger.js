@@ -1,97 +1,9 @@
 // Ledger logic: rendering, amount overrides
 
-import { formatCurrency, escapeHtml, parseFiniteOrNull, formatShortDate } from './utils.js';
+import { formatCurrency, escapeHtml, formatShortDate } from './utils.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
-
-export function setLedgerAmountOverride(app, transactionId, amount, metadata = {}) {
-    if (!transactionId) return;
-    const parsed = parseFiniteOrNull(amount);
-    if (parsed === null) return;
-    if (!app.ledgerAmountOverrides) app.ledgerAmountOverrides = {};
-
-    app.ledgerAmountOverrides[transactionId] = {
-        amount: parsed,
-        originalAmount: parseFiniteOrNull(metadata.originalAmount),
-        transactionName: metadata.transactionName || null,
-        accountId: metadata.accountId || null,
-        date: metadata.date || null,
-        updatedAt: new Date().toISOString()
-    };
-}
-
-export function clearLedgerAmountOverride(app, transactionId) {
-    if (!transactionId || !app.ledgerAmountOverrides) return;
-    delete app.ledgerAmountOverrides[transactionId];
-}
-
-function openLedgerOverrideModal(app, tx) {
-    const modal = document.getElementById('ledgerOverrideModal');
-    if (!modal || !tx || tx.isRollover || !tx.transactionId) return;
-
-    const nameEl = document.getElementById('ledgerOverrideTxName');
-    const accountEl = document.getElementById('ledgerOverrideAccount');
-    const dateEl = document.getElementById('ledgerOverrideDate');
-    const originalEl = document.getElementById('ledgerOverrideOriginal');
-    const input = document.getElementById('ledgerOverrideAmountInput');
-    const confirmBtn = document.getElementById('ledgerOverrideConfirmBtn');
-    const cancelBtn = document.getElementById('ledgerOverrideCancelBtn');
-    const closeBtn = document.getElementById('ledgerOverrideCloseBtn');
-
-    if (!nameEl || !accountEl || !dateEl || !originalEl || !input || !confirmBtn || !cancelBtn || !closeBtn) {
-        return;
-    }
-
-    nameEl.textContent = tx.name || '';
-    accountEl.textContent = tx.account || '';
-    dateEl.textContent = tx.date ? formatShortDate(tx.date) : '';
-    originalEl.textContent = formatCurrency(tx.originalAmount);
-    input.value = Number(tx.amount || 0).toFixed(2);
-
-    const close = () => {
-        modal.classList.add('hidden'); modal.classList.remove('flex-visible');
-        modal.onkeydown = null;
-    };
-
-    confirmBtn.onclick = () => {
-        const parsed = parseFiniteOrNull(input.value);
-        if (parsed === null) {
-            alert('Please enter a valid number.');
-            return;
-        }
-        setLedgerAmountOverride(app, tx.transactionId, parsed, {
-            originalAmount: tx.originalAmount,
-            transactionName: tx.name,
-            accountId: tx.accountId,
-            date: tx.date
-        });
-        app.saveToStorage();
-        close();
-        renderLedgerPage(app);
-        if (typeof app.renderReportsPage === 'function') app.renderReportsPage();
-        if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
-    };
-
-    cancelBtn.onclick = close;
-    closeBtn.onclick = close;
-    modal.onclick = (event) => {
-        if (event.target === modal) close();
-    };
-    modal.onkeydown = (event) => {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            close();
-            return;
-        }
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            confirmBtn.click();
-        }
-    };
-
-    modal.classList.add('flex-visible'); modal.classList.remove('hidden');
-    setTimeout(() => input.focus(), 30);
-}
+import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
 
 const LEDGER_EXPORT_COLUMN_KEYS = ['date', 'account', 'name', 'amount', 'category', 'balance', 'type'];
 
@@ -338,7 +250,7 @@ export function renderLedgerPage(app) {
             const txId = btn.getAttribute('data-ledger-override');
             const tx = transactions.find(item => item.transactionId === txId);
             if (!tx || tx.isRollover) return;
-            openLedgerOverrideModal(app, tx);
+            openLedgerOverrideModal(app, tx, () => renderLedgerPage(app));
         };
     });
 

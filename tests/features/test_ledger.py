@@ -565,7 +565,7 @@ def test_ledger_override_on_collision_transaction_keeps_balance_consistent(app_p
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerOverrides.js');
         app._ledgerSortKey = 'date'; app._ledgerSortDir = 'asc';
         const before = app.getFilteredSortedLedgerTransactions();
         const billTx = before.find(tx => tx.type === 'bill');
