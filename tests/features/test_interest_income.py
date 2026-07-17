@@ -117,7 +117,7 @@ def test_override_feeds_next_months_compounding(app_page):
 
     result = page.evaluate("""async () => {
         const mod = await import('/src/ledgerTransactions.js');
-        const ledgerMod = await import('/src/ledger.js');
+        const ledgerMod = await import('/src/ledgerOverrides.js');
         const app = window.app;
         const before = mod.getLedgerTransactions(app)
             .filter(t => t.type === 'interest')
