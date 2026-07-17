@@ -55,11 +55,13 @@ import {
 } from './strategyPlanCalculation.js';
 import {
     displayPaymentPlan as displayPaymentPlanFeature,
-    displayDebtSummary as displayDebtSummaryFeature,
-    showAmortizationModal as showAmortizationModalFeature,
     displayPaymentSchedule as displayPaymentScheduleFeature,
     renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature
 } from './strategy.js';
+import {
+    displayDebtSummary as displayDebtSummaryFeature,
+    showAmortizationModal as showAmortizationModalFeature
+} from './strategySummaryTable.js';
 import {
     displayInterestComparison as displayInterestComparisonFeature,
     displayWhatIfSimulator as displayWhatIfSimulatorFeature
