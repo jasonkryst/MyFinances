@@ -97,7 +97,7 @@ import {
     getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
     openReconcileModal as openReconcileModalFeature
 } from './reconciliation.js';
-import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledger.js';
+import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 

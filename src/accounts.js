@@ -1,7 +1,7 @@
 // Account management
 
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
-import { getLedgerTransactionsForMonth } from './ledger.js';
+import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 

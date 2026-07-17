@@ -2,7 +2,7 @@
 // notable months, negative-balance warnings, and lowest/highest points.
 
 import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate } from './utils.js';
-import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledger.js';
+import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 
 const LIABILITY_TYPES = ['Credit Card', 'Loan'];
 const HORIZON_OPTIONS = [1, 2, 3, 6, 12];

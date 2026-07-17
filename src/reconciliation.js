@@ -2,7 +2,8 @@
 // log adjustments, and surface expected transactions since the last reconciliation.
 
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO, formatShortDate } from './utils.js';
-import { getLedgerTransactionsForMonth, renderLedgerPage } from './ledger.js';
+import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 

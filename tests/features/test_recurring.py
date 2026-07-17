@@ -174,7 +174,7 @@ def test_recurring_skip_month_excludes_only_that_month(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const ledgerMod = await import('/src/ledger.js');
+        const ledgerMod = await import('/src/ledgerTransactions.js');
         app.recurringTemplates = [{
             id: 9001, name: 'Internet Bill', type: 'subscription', amount: 60,
             frequency: 'monthly', dayOfMonth: 1, category: 'Utilities',

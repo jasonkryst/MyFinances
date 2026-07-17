@@ -7,7 +7,7 @@ import {
     renderChartDataTable,
     getReportDate
 } from './utils.js';
-import { getLedgerTransactionsForMonth } from './ledger.js';
+import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { renderCashFlowForecast } from './forecast.js';
 import { renderReportsSpending } from './spending.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';

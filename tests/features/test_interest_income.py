@@ -28,7 +28,7 @@ def _seed_account(page, rate, balance=1000):
 def _interest_txs(page):
     """All type='interest' rows from the 12-month ledger, oldest first."""
     return page.evaluate("""async () => {
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerTransactions.js');
         return mod.getLedgerTransactions(window.app)
             .filter(t => t.type === 'interest')
             .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -49,7 +49,7 @@ def test_interest_posts_on_last_day_of_month(app_page):
     _seed_account(page, rate=12, balance=1000)
 
     tx = page.evaluate("""async () => {
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerTransactions.js');
         const now = new Date();
         const txs = mod.getLedgerTransactionsForMonth(
             window.app, now.getFullYear(), now.getMonth());
@@ -93,7 +93,7 @@ def test_interest_transaction_id_is_deterministic(app_page):
     _seed_account(page, rate=12, balance=1000)
 
     result = page.evaluate("""async () => {
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerTransactions.js');
         const txs = mod.getLedgerTransactions(window.app)
             .filter(t => t.type === 'interest')
             .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -116,12 +116,13 @@ def test_override_feeds_next_months_compounding(app_page):
     _seed_account(page, rate=12, balance=1000)
 
     result = page.evaluate("""async () => {
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerTransactions.js');
+        const ledgerMod = await import('/src/ledger.js');
         const app = window.app;
         const before = mod.getLedgerTransactions(app)
             .filter(t => t.type === 'interest')
             .sort((a, b) => new Date(a.date) - new Date(b.date));
-        mod.setLedgerAmountOverride(app, before[0].transactionId, 50, {
+        ledgerMod.setLedgerAmountOverride(app, before[0].transactionId, 50, {
             originalAmount: before[0].originalAmount
         });
         const after = mod.getLedgerTransactions(app)
@@ -218,7 +219,7 @@ def test_interest_is_projection_only_not_persisted(app_page):
     _seed_account(page, rate=12, balance=1000)
     # Force a full ledger build, then re-save
     page.evaluate("""async () => {
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerTransactions.js');
         mod.getLedgerTransactions(window.app);
         window.app.saveToStorage();
     }""")
@@ -366,7 +367,7 @@ def test_interest_compounds_in_account_forecast_series(app_page):
     _seed_account(page, rate=12, balance=1000)
 
     incomes = page.evaluate("""async () => {
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerTransactions.js');
         const series = mod.getAccountForecastSeries(window.app, 1, 3);
         // series[0] is 'Now'; forecast months are indices 1..3
         return series.slice(1).map(s => s.income);

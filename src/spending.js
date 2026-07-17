@@ -1,4 +1,4 @@
-import { getLedgerTransactionsForMonth } from './ledger.js';
+import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { escapeHtml, formatCurrency, renderChartDataTable, getReportDate } from './utils.js';
 
 export const PALETTE = [
