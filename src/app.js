@@ -55,9 +55,11 @@ import {
 } from './strategyPlanCalculation.js';
 import {
     displayPaymentPlan as displayPaymentPlanFeature,
-    displayPaymentSchedule as displayPaymentScheduleFeature,
     renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature
 } from './strategy.js';
+import {
+    displayPaymentSchedule as displayPaymentScheduleFeature
+} from './strategyScheduleTable.js';
 import {
     displayDebtSummary as displayDebtSummaryFeature,
     showAmortizationModal as showAmortizationModalFeature
