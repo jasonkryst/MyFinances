@@ -73,10 +73,12 @@ import {
     prevReportMonth as prevReportMonthFeature,
     nextReportMonth as nextReportMonthFeature,
     renderReportsPage as renderReportsPageFeature,
-    captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
-    renderNetWorthWidget as renderNetWorthWidgetFeature,
     computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
 } from './reports.js';
+import {
+    captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
+    renderNetWorthWidget as renderNetWorthWidgetFeature
+} from './reportsNetWorth.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
 import { APP_VERSION } from './utils.js';
 import {
