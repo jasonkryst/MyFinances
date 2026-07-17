@@ -389,7 +389,7 @@ def test_interest_in_reports_summary_metrics(app_page):
     _seed_account(page, rate=12, balance=1000)
 
     income = page.evaluate("""async () => {
-        const mod = await import('/src/reports.js');
+        const mod = await import('/src/reportsSummary.js');
         // 'month' range over the current report month
         return mod.computeReportsSummaryMetrics(window.app, 'month').cashFlow.income;
     }""")
