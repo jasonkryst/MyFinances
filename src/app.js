@@ -58,10 +58,12 @@ import {
     displayDebtSummary as displayDebtSummaryFeature,
     showAmortizationModal as showAmortizationModalFeature,
     displayPaymentSchedule as displayPaymentScheduleFeature,
-    displayInterestComparison as displayInterestComparisonFeature,
-    displayWhatIfSimulator as displayWhatIfSimulatorFeature,
     renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature
 } from './strategy.js';
+import {
+    displayInterestComparison as displayInterestComparisonFeature,
+    displayWhatIfSimulator as displayWhatIfSimulatorFeature
+} from './strategyComparison.js';
 import { renderCalendarView as renderCalendarViewFeature } from './strategyCalendar.js';
 import {
     prevReportMonth as prevReportMonthFeature,
