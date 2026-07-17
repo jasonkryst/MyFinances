@@ -51,7 +51,9 @@ import {
 } from './income.js';
 import {
     calculatePaymentPlanFromInputs as calculatePaymentPlanFromInputsFeature,
-    calculateRequiredPayment as calculateRequiredPaymentFeature,
+    calculateRequiredPayment as calculateRequiredPaymentFeature
+} from './strategyPlanCalculation.js';
+import {
     displayPaymentPlan as displayPaymentPlanFeature,
     displayDebtSummary as displayDebtSummaryFeature,
     showAmortizationModal as showAmortizationModalFeature,

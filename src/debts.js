@@ -1,23 +1,17 @@
 // Debt management and calculations
 import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable, formatShortDate, formatMonthYear } from './utils.js';
 import { computeBreakEven } from './breakEven.js';
+import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 
 function recalculateIfConfigured(app) {
-    try {
-        const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
-        const strategy = document.getElementById('paymentStrategy').value;
-        if (monthlyPayment && !isNaN(monthlyPayment) && monthlyPayment > 0) {
-            const result = DebtCalculator.calculatePaymentPlan(
-                app.debts,
-                monthlyPayment,
-                strategy,
-                app.perMonthStimulus && app.perMonthStimulus.length > 0 ? app.perMonthStimulus : 0
-            );
-            app.lastPaymentPlan = result.paymentPlan;
-            app.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
-        }
-    } catch (err) {
-        console.error('Error recalculating plan after debt change', err);
+    const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
+    const strategy = document.getElementById('paymentStrategy').value;
+    if (monthlyPayment && !isNaN(monthlyPayment) && monthlyPayment > 0) {
+        recalculatePaymentPlan(app, {
+            monthlyPayment, strategy,
+            stimulus: app.perMonthStimulus && app.perMonthStimulus.length > 0 ? app.perMonthStimulus : 0,
+            onError: (err) => console.error('Error recalculating plan after debt change', err)
+        });
     }
 }
 
@@ -343,21 +337,14 @@ export function saveEdit(app) {
 
     app.saveToStorage();
     app.updateUI();
-    try {
-        const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
-        const strategy = document.getElementById('paymentStrategy').value;
-        if (monthlyPayment && !isNaN(monthlyPayment) && monthlyPayment > 0) {
-            const result = DebtCalculator.calculatePaymentPlan(
-                app.debts,
-                monthlyPayment,
-                strategy,
-                app.perMonthStimulus && app.perMonthStimulus.length > 0 ? app.perMonthStimulus : 0
-            );
-            app.lastPaymentPlan = result.paymentPlan;
-            app.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
-        }
-    } catch (err) {
-        console.error('Error recalculating after saveEdit', err);
+    const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
+    const strategy = document.getElementById('paymentStrategy').value;
+    if (monthlyPayment && !isNaN(monthlyPayment) && monthlyPayment > 0) {
+        recalculatePaymentPlan(app, {
+            monthlyPayment, strategy,
+            stimulus: app.perMonthStimulus && app.perMonthStimulus.length > 0 ? app.perMonthStimulus : 0,
+            onError: (err) => console.error('Error recalculating after saveEdit', err)
+        });
     }
 
     app.cancelEdit();
