@@ -294,21 +294,36 @@ src/
   ├─ commandPalette.js     — Ctrl+K command palette
   ├─ settings.js           — App settings (reconciliation mode, etc.)
   ├─ setupWizard.js        — First-run setup wizard
-  ├─ strategy.js           — Debt payoff calculations & results rendering
+  ├─ strategy.js           — Payment-plan orchestrator & income widget
+  ├─ strategyPlanCalculation.js — Payment-plan calculation entry points
+  ├─ strategyCalendar.js   — Payment calendar view
+  ├─ strategyComparison.js — Interest comparison & what-if simulator
+  ├─ strategySummaryTable.js — Debt summary table & amortization modal
+  ├─ strategyScheduleTable.js — Payment schedule table
   ├─ debts.js              — Debt management (CRUD & inline editing)
+  ├─ debtBreakEven.js      — Break-even badge, mini chart & accelerate-debt modal
   ├─ accounts.js           — Account management & balance projections
   ├─ income.js             — Income sources & one-time entries
   ├─ bills.js              — Bills data model (no standalone add UI — use Recurring)
   ├─ recurring.js          — Recurring transaction templates
   ├─ savings.js            — Emergency fund & sinking fund tracking
-  ├─ ledger.js             — Transaction ledger with amount overrides & CSV export
+  ├─ ledger.js             — Transaction ledger page rendering & CSV export
+  ├─ ledgerTransactions.js — Ledger transaction aggregation (pure computation)
+  ├─ ledgerOverrides.js    — Per-transaction manual amount overrides
   ├─ reconciliation.js     — Account statement reconciliation
   ├─ health.js             — Financial health dashboard (DTI, savings rate, runway)
   ├─ spending.js           — Spending analysis (category breakdowns, trends)
-  ├─ reports.js            — Reports & calendar views
+  ├─ reports.js            — Reports page orchestrator (month nav)
+  ├─ reportsNetWorth.js    — Net worth snapshots & widget
+  ├─ reportsCalendar.js    — Reports calendar grid & day-detail modal
+  ├─ reportsCashFlow.js    — Income/expense & money flow reports
+  ├─ reportsVariance.js    — Budget variance report
+  ├─ reportsSummary.js     — Reports summary metrics
   ├─ forecast.js           — Cash Flow Forecast (Reports tab)
   ├─ charts.js             — Chart rendering & lifecycle
-  ├─ storage.js            — Persistence, import/export, data validation
+  ├─ storage.js            — Persistence (save/load/quota/backend switching)
+  ├─ sanitizers.js         — Sanitizers for persisted/imported record shapes
+  ├─ dataExport.js         — JSON/CSV export & import
   ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only comparison)
   ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
