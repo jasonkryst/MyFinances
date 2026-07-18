@@ -263,7 +263,7 @@ def test_export_import_round_trip_preserves_reconciliations(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         app.accounts = [{ id: 7101, name: 'Recon Import', type: 'Checking', startingBalance: 500 }];
         app.reconciliations = [];
 

@@ -275,7 +275,7 @@ def test_reconciliation_appears_as_ledger_row(app_page):
         const mod = await import('/src/utils.js');
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
         app.applyReconciliation(8001, 1200, 'Spot check', mod.todayISO());
-        const txs = await import('/src/ledger.js').then(m => m.getLedgerTransactions(app));
+        const txs = await import('/src/ledgerTransactions.js').then(m => m.getLedgerTransactions(app));
         return txs.filter(tx => tx.type === 'reconciliation');
     }""")
 
@@ -302,7 +302,7 @@ def test_reconciliation_row_contributes_zero_to_running_balance_visible_mode(app
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
         const today = mod.todayISO();
         app.applyReconciliation(8001, 1200, '', today);
-        const txs = await import('/src/ledger.js').then(m => m.getLedgerTransactions(app));
+        const txs = await import('/src/ledgerTransactions.js').then(m => m.getLedgerTransactions(app));
         const reconRow = txs.find(tx => tx.type === 'reconciliation');
         return { balance: reconRow.balance, accountStartingBalance: app.accounts[0].startingBalance };
     }""")
@@ -565,7 +565,7 @@ def test_ledger_override_on_collision_transaction_keeps_balance_consistent(app_p
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/ledger.js');
+        const mod = await import('/src/ledgerOverrides.js');
         app._ledgerSortKey = 'date'; app._ledgerSortDir = 'asc';
         const before = app.getFilteredSortedLedgerTransactions();
         const billTx = before.find(tx => tx.type === 'bill');

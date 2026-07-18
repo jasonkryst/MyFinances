@@ -8,9 +8,9 @@ import {
     renderDebtsList as renderDebtsListFeature,
     startEdit as startEditDebtFeature,
     cancelInlineEdit as cancelInlineEditDebtFeature,
-    saveInlineEdit as saveInlineEditDebtFeature,
-    showAccelerateModal as showAccelerateModalFeature
+    saveInlineEdit as saveInlineEditDebtFeature
 } from './debts.js';
+import { showAccelerateModal as showAccelerateModalFeature } from './debtBreakEven.js';
 import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature } from './accounts.js';
 import {
     renderBudgetPage,
@@ -32,7 +32,8 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature } from './storage.js';
+import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature } from './storage.js';
+import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import { createStorageAdapter, getStorageBackendPreference } from './storageAdapters.js';
 import {
     renderIncomeList,
@@ -50,26 +51,38 @@ import {
 } from './income.js';
 import {
     calculatePaymentPlanFromInputs as calculatePaymentPlanFromInputsFeature,
-    calculateRequiredPayment as calculateRequiredPaymentFeature,
+    calculateRequiredPayment as calculateRequiredPaymentFeature
+} from './strategyPlanCalculation.js';
+import {
     displayPaymentPlan as displayPaymentPlanFeature,
-    displayDebtSummary as displayDebtSummaryFeature,
-    showAmortizationModal as showAmortizationModalFeature,
-    displayPaymentSchedule as displayPaymentScheduleFeature,
-    displayInterestComparison as displayInterestComparisonFeature,
-    displayWhatIfSimulator as displayWhatIfSimulatorFeature,
-    renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature,
-    renderCalendarView as renderCalendarViewFeature
+    renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature
 } from './strategy.js';
+import {
+    displayPaymentSchedule as displayPaymentScheduleFeature
+} from './strategyScheduleTable.js';
+import {
+    displayDebtSummary as displayDebtSummaryFeature,
+    showAmortizationModal as showAmortizationModalFeature
+} from './strategySummaryTable.js';
+import {
+    displayInterestComparison as displayInterestComparisonFeature,
+    displayWhatIfSimulator as displayWhatIfSimulatorFeature
+} from './strategyComparison.js';
+import { renderCalendarView as renderCalendarViewFeature } from './strategyCalendar.js';
 import {
     prevReportMonth as prevReportMonthFeature,
     nextReportMonth as nextReportMonthFeature,
-    renderReportsPage as renderReportsPageFeature,
-    captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
-    renderNetWorthWidget as renderNetWorthWidgetFeature,
-    computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
+    renderReportsPage as renderReportsPageFeature
 } from './reports.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
-import { computeMonthlyIncomeForMonth, computeMonthlyBonusesForMonth, APP_VERSION } from './utils.js';
+import {
+    captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
+    renderNetWorthWidget as renderNetWorthWidgetFeature
+} from './reportsNetWorth.js';
+import {
+    computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
+} from './reportsSummary.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
+import { APP_VERSION } from './utils.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
     addRecurringTemplate as addRecurringTemplateFeature,
@@ -96,7 +109,7 @@ import {
     getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
     openReconcileModal as openReconcileModalFeature
 } from './reconciliation.js';
-import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledger.js';
+import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 
@@ -161,18 +174,7 @@ export class DebtTrackerApp {
     this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
     initSettingsModalFeature(this);
     maybeShowSetupWizardFeature(this, isFirstRun);
-
-        if (this.accounts.length > 0 && this.incomes.length > 0) {
-            const firstAccountId = this.accounts[0].id;
-            let changed = false;
-            for (let index = 0; index < this.incomes.length; index++) {
-                if (!this.incomes[index].accountId || isNaN(this.incomes[index].accountId)) {
-                    this.incomes[index].accountId = firstAccountId;
-                    changed = true;
-                }
-            }
-            if (changed) this.saveToStorage();
-        }
+    backfillIncomeAccountIds(this);
 
         this.updateUI();
         this.updateFormVisibility();
@@ -439,18 +441,6 @@ export class DebtTrackerApp {
      */
     renderStrategyIncomeWidget() {
         return renderStrategyIncomeWidgetFeature(this);
-    }
-
-    // Compatibility shim for any stale callsites that still expect app.computeMonthlyIncome().
-    computeMonthlyIncome() {
-        const now = new Date();
-        return computeMonthlyIncomeForMonth(this.incomes, this.bonuses, now.getFullYear(), now.getMonth());
-    }
-
-    // Compatibility shim for stale callsites expecting app.computeMonthlyBonuses().
-    computeMonthlyBonuses() {
-        const now = new Date();
-        return computeMonthlyBonusesForMonth(this.bonuses, now.getFullYear(), now.getMonth());
     }
 
     /**
@@ -840,20 +830,7 @@ export class DebtTrackerApp {
     setSetting(key, value) { return setSettingFeature(this, key, value); }
 
     switchLiabilitiesSubTab(subTab) {
-        this.liabilitiesSubTab = subTab;
-        const section = document.getElementById('liabilitiesSection');
-        if (!section) return;
-        
-        // Update button states
-        section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.liabilitiesSubtab === subTab);
-        });
-        
-        // Show/hide panels
-        section.querySelectorAll('.liabilities-subtab-panel').forEach(panel => {
-            panel.classList.toggle('visible', panel.dataset.subtab === subTab);
-            panel.classList.toggle('hidden', panel.dataset.subtab !== subTab);
-        });
+        switchLiabilitiesSubTabFeature(this, subTab);
     }
 }
 

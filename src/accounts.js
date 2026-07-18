@@ -1,7 +1,9 @@
 // Account management
 
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
-import { getLedgerTransactionsForMonth } from './ledger.js';
+import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+
+export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
@@ -18,6 +20,14 @@ export function refreshAccountSelectors(app) {
         el.innerHTML = opts;
         if (app.accounts.find(a => String(a.id) === prev)) el.value = prev;
     }
+}
+
+export function buildAccountOptionsHtml(accounts, selectedId, { emptyLabel } = {}) {
+    const empty = emptyLabel ? `<option value="">${emptyLabel}</option>` : '';
+    const options = (accounts || []).map(a =>
+        `<option value="${a.id}"${selectedId === a.id ? ' selected' : ''}>${escapeHtml(a.name)}</option>`
+    ).join('');
+    return empty + options;
 }
 
 export function computeAccountBalance(app, accountId, year = null, month = null) {
@@ -47,7 +57,7 @@ export function renderAccountsList(app) {
     }
 
     const ACCT_TYPES = ['Checking','Savings','Cash','Investment','Credit Card','Loan','Other'];
-    const typeIcon = { Checking:'🏦', Savings:'💰', Cash:'💵', Investment:'📈', 'Credit Card':'💳', Loan:'🏠', Other:'🗂️' };
+    const typeIcon = ACCOUNT_TYPE_ICONS;
 
     const now = new Date();
     const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });

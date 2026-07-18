@@ -8,8 +8,10 @@ import {
     normalizeText,
     sanitizeFiniteNumber,
     sanitizeDateISO,
-    escapeHtml
+    escapeHtml,
+    formatShortDate
 } from './utils.js';
+import { buildAccountOptionsHtml } from './accounts.js';
 
 
 // Render the income list and summary panel inside the Income page.
@@ -54,8 +56,7 @@ export function renderIncomeList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">Account</label>
                                 <select id="ie-account-${inc.id}" class="form-control form-full-width">
-                                    <option value="">— No account —</option>
-                                    ${app.accounts.map(a => `<option value="${a.id}" ${inc.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+                                    ${buildAccountOptionsHtml(app.accounts, inc.accountId, { emptyLabel: '— No account —' })}
                                 </select>
                             </div>
                         </div>
@@ -67,7 +68,7 @@ export function renderIncomeList(app) {
                 </div>`;
         }
 
-        const dateStr = new Date(inc.firstPayDate + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        const dateStr = formatShortDate(inc.firstPayDate);
         const now = new Date();
         const pdays = countIncomePaydaysInMonth(inc, now.getFullYear(), now.getMonth());
         const pdayLabel = pdays === 1 ? '1 payday this month' : `${pdays} paydays this month`;
@@ -75,7 +76,7 @@ export function renderIncomeList(app) {
         const upcomingDates = getNextIncomePayDates(inc, 3);
         const upcomingHTML = upcomingDates.length
             ? upcomingDates.map(d => {
-                const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const label = formatShortDate(d);
                 return `<span class="income-upcoming-chip">${label}</span>`;
             }).join('')
             : '';
@@ -323,7 +324,7 @@ export function renderBonusList(app) {
             ${app.bonuses.map(b => {
                 const d = new Date(b.date + 'T12:00:00');
                 const isThisMonth = d.getFullYear() === year && d.getMonth() === month;
-                const dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                const dateStr = formatShortDate(d);
                 const badgeCls = catBadgeClass[b.category] || 'bonus-cat--other';
 
                 if (app.editingBonusId === b.id) {
@@ -355,8 +356,7 @@ export function renderBonusList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">Account</label>
                                 <select id="be-account-${b.id}" class="form-full-width">
-                                    <option value="">— No account —</option>
-                                    ${app.accounts.map(a => `<option value="${a.id}" ${b.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+                                    ${buildAccountOptionsHtml(app.accounts, b.accountId, { emptyLabel: '— No account —' })}
                                 </select>
                             </div>
                         </div>

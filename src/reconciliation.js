@@ -1,16 +1,11 @@
 // Account reconciliation: compare tracked balances against statement balances,
 // log adjustments, and surface expected transactions since the last reconciliation.
 
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO } from './utils.js';
-import { getLedgerTransactionsForMonth, renderLedgerPage } from './ledger.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO, formatShortDate } from './utils.js';
+import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
-
-const TYPE_ICON = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
-
-function _formatDate(dateStr) {
-    const d = new Date(`${dateStr}T12:00:00`);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -127,12 +122,12 @@ function renderReconcileCard(app, acct) {
     const expectedHtml = expected.length === 0
         ? `<p class="recon-expected-empty">No expected transactions in this period.</p>`
         : `<div class="recon-table-wrap"><table class="recon-expected-table"><thead><tr><th>Date</th><th>Name</th><th>Amount</th><th>Category</th></tr></thead><tbody>${
-            expected.map(tx => `<tr><td>${_formatDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(tx.category || '')}</td></tr>`).join('')
+            expected.map(tx => `<tr><td>${formatShortDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(tx.category || '')}</td></tr>`).join('')
         }</tbody></table></div>`;
 
     return `<div class="recon-card">
         <div class="recon-card-header">
-            <span class="acct-type-icon">${TYPE_ICON[acct.type] || '🗂️'}</span>
+            <span class="acct-type-icon">${ACCOUNT_TYPE_ICONS[acct.type] || '🗂️'}</span>
             <div class="recon-card-info">
                 <span class="acct-card-name">${escapeHtml(acct.name)}</span>
                 <span class="recon-current-balance">Current Tracked Balance: ${formatCurrency(acct.startingBalance)}</span>
@@ -158,7 +153,7 @@ function renderReconcileCard(app, acct) {
         </div>
         <button class="btn btn-primary" data-recon-action="reconcile" data-recon-id="${acct.id}">Reconcile</button>
         <details class="recon-expected">
-            <summary>Expected transactions since ${_formatDate(lastDate)}</summary>
+            <summary>Expected transactions since ${formatShortDate(lastDate)}</summary>
             ${expectedHtml}
         </details>
     </div>`;
@@ -208,7 +203,7 @@ function renderReconciliationHistory(app) {
             const account = (app.accounts || []).find(a => a.id === entry.accountId);
             const accountName = account ? escapeHtml(account.name) : 'Unknown account';
             return `<tr>
-                <td>${_formatDate(entry.date)}</td>
+                <td>${formatShortDate(entry.date)}</td>
                 <td>${accountName}</td>
                 <td><span class="recon-badge">🔄 Balance Reconciliation</span>${entry.note ? ` ${escapeHtml(entry.note)}` : ''}</td>
                 <td class="${_diffClass(entry.difference)}">${formatCurrency(entry.previousBalance)} → ${formatCurrency(entry.statementBalance)} (${formatCurrency(entry.difference)})</td>

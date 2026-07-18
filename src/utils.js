@@ -1,6 +1,6 @@
 // Formatting, date helpers, shared utilities
 
-export const APP_VERSION = '4.6.1';
+export const APP_VERSION = '4.7.0';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50")
@@ -30,6 +30,29 @@ export function sanitizeFiniteNumber(value, fallback = 0, { min = null, max = nu
     return n;
 }
 
+export function parseFiniteOrNull(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+}
+
+// Formats a bare "YYYY-MM-DD" string, an ISO datetime string, or a Date object as "Mon D, YYYY".
+// Bare dates are padded with T12:00:00 before parsing so they don't roll back a day in
+// negative-UTC-offset timezones (new Date("2026-07-15") parses as UTC midnight).
+export function formatShortDate(value) {
+    const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Formats a bare "YYYY-MM-DD" string, an ISO datetime string, or a Date object as "Mon YYYY".
+// Bare dates are padded with T12:00:00 before parsing so they don't roll back a day in
+// negative-UTC-offset timezones (new Date("2026-07-15") parses as UTC midnight).
+export function formatMonthYear(value) {
+    const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
 export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {
     const n = Number.parseInt(value, 10);
     if (!Number.isFinite(n)) return fallback;
@@ -47,12 +70,20 @@ export function sanitizeDateISO(value) {
     return text;
 }
 
-export function todayISO() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
+export function dateToISO(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+}
+
+export function todayISO() {
+    return dateToISO(new Date());
+}
+
+export function getReportDate(app) {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + app._reportMonthOffset, 1);
 }
 
 export function escapeHtml(value) {
@@ -139,6 +170,10 @@ export function countIncomePaydaysInMonth(income, year, month) {
     return getIncomePaydaysInMonth(income, year, month).length;
 }
 
+export function incomeDaysInMonth(inc, year, month) {
+    return getIncomePaydaysInMonth(inc, year, month).map(d => d.getDate());
+}
+
 export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
     const firstDate = income.firstPayDate || income.firstDate;
     const first = new Date((firstDate || '') + 'T12:00:00');
@@ -201,6 +236,11 @@ export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
     }
     monthlyTotal += computeMonthlyBonusesForMonth(bonuses, year, month);
     return { monthlyTotal };
+}
+
+export function dailyCompoundInterest(balance, aprPct, days) {
+    const dailyRate = (aprPct || 0) / 100 / 365;
+    return balance * (Math.pow(1 + dailyRate, days) - 1);
 }
 
 export function computeInterestPaidToDate(debt) {

@@ -513,6 +513,23 @@ export function updateFormVisibility() {
     }
 }
 
+export function switchLiabilitiesSubTab(app, subTab) {
+    app.liabilitiesSubTab = subTab;
+    const section = document.getElementById('liabilitiesSection');
+    if (!section) return;
+
+    // Update button states
+    section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.liabilitiesSubtab === subTab);
+    });
+
+    // Show/hide panels
+    section.querySelectorAll('.liabilities-subtab-panel').forEach(panel => {
+        panel.classList.toggle('visible', panel.dataset.subtab === subTab);
+        panel.classList.toggle('hidden', panel.dataset.subtab !== subTab);
+    });
+}
+
 export function attachLiabilitiesEventListeners(app) {
     const section = document.getElementById('liabilitiesSection');
     if (!section) return;

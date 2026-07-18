@@ -1,8 +1,8 @@
 // Cash Flow Forecasting: project account balances forward and surface
 // notable months, negative-balance warnings, and lowest/highest points.
 
-import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable } from './utils.js';
-import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledger.js';
+import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate } from './utils.js';
+import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 
 const LIABILITY_TYPES = ['Credit Card', 'Loan'];
 const HORIZON_OPTIONS = [1, 2, 3, 6, 12];
@@ -92,10 +92,6 @@ function computeForecastStats(series) {
 
     const negativeMonth = projected.find(entry => entry.balance < 0 || entry.lowBalance < 0) || null;
     return { current: series[0].balance, lowest, highest, negativeMonth, lowestPoint, projected };
-}
-
-function formatForecastDate(date) {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function getOutflowDrivers(app, accountSetting, year, month) {
@@ -260,11 +256,11 @@ export function renderCashFlowForecast(app) {
         if (entry.balance < 0) {
             warningHtml = `<div class="cf-warning-banner">⚠️ Projected to go negative in <strong>${escapeHtml(entry.label)}</strong>: ${formatCurrency(entry.balance)}</div>`;
         } else if (entry.lowBalance < 0 && entry.lowDate) {
-            warningHtml = `<div class="cf-warning-banner">⚠️ Projected to dip negative in <strong>${escapeHtml(entry.label)}</strong> on ${escapeHtml(formatForecastDate(entry.lowDate))}: as low as ${formatCurrency(entry.lowBalance)} before recovering to ${formatCurrency(entry.balance)}</div>`;
+            warningHtml = `<div class="cf-warning-banner">⚠️ Projected to dip negative in <strong>${escapeHtml(entry.label)}</strong> on ${escapeHtml(formatShortDate(entry.lowDate))}: as low as ${formatCurrency(entry.lowBalance)} before recovering to ${formatCurrency(entry.balance)}</div>`;
         }
     }
 
-    const lowestLabel = stats.lowestPoint ? formatForecastDate(stats.lowestPoint.date) : stats.lowest.label;
+    const lowestLabel = stats.lowestPoint ? formatShortDate(stats.lowestPoint.date) : stats.lowest.label;
     const lowestBalance = stats.lowestPoint ? stats.lowestPoint.balance : stats.lowest.balance;
 
     const summaryHtml = `
@@ -308,7 +304,7 @@ export function renderCashFlowForecast(app) {
         if (entry.lowDate && entry.lowBalance < 0 && entry.lowBalance < entry.balance - 1e-9) {
             rowsHtml += `
                 <tr class="cf-notable-row cf-row--negative">
-                    <td colspan="5">⚠️ Dips to ${formatCurrency(entry.lowBalance)} on ${escapeHtml(formatForecastDate(entry.lowDate))} before recovering</td>
+                    <td colspan="5">⚠️ Dips to ${formatCurrency(entry.lowBalance)} on ${escapeHtml(formatShortDate(entry.lowDate))} before recovering</td>
                 </tr>
             `;
         }

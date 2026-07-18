@@ -118,7 +118,7 @@ def test_export_json_reports_version_4_0_0(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         let captured = null;
         const originalCreateObjectURL = URL.createObjectURL;
         URL.createObjectURL = (blob) => { captured = blob; return 'blob:mock'; };
@@ -143,7 +143,7 @@ def test_export_import_round_trip_preserves_settings(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         app.accounts = [];
         app.settings = [];
 
@@ -175,7 +175,7 @@ def test_legacy_import_without_settings_key_defaults_cleanly(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/storage.js');
+        const mod = await import('/src/dataExport.js');
         app.accounts = [];
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
 
