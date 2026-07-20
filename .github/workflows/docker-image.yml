@@ -28,7 +28,7 @@ jobs:
           VERSION="${TAG#v}"
           VERSION="${VERSION#V}"
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
-          GHCR_IMAGE="ghcr.io/${OWNER_LC}/bookwheel"
+          GHCR_IMAGE="ghcr.io/${OWNER_LC}/myfinances"
 
           if [[ "${VERSION}" == *"-"* ]]; then
             IS_LATEST="false"
