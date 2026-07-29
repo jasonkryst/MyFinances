@@ -136,3 +136,17 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Chrome for Lighthouse CI
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+      - name: Run Lighthouse CI
+        run: npx lhci autorun
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
