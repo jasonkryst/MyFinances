@@ -62,7 +62,7 @@ Pure sanity check — confirms the Dockerfile still builds; no push, no registry
 
 ### `trivy`
 
-Depends on `docker-build` (needs the image). Same two-step pattern as ThePlayground:
+Runs independently in parallel (like ThePlayground's, it does **not** declare `needs: docker-build` — it rebuilds the image itself rather than sharing an artifact, matching the reference workflow exactly). Same two-step pattern as ThePlayground:
 
 1. Checkout, `docker build -t myfinances:ci .`
 2. `aquasecurity/trivy-action@v0.36.0`, `severity: CRITICAL,HIGH`, `ignore-unfixed: true`, `exit-code: 1` — **gates** the job on fixable high-severity CVEs.
