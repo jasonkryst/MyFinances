@@ -7,7 +7,10 @@
         "http://localhost:5500/",
         "http://localhost:5500/guide.html"
       ],
-      "numberOfRuns": 3
+      "numberOfRuns": 3,
+      "settings": {
+        "chromeFlags": "--no-sandbox --disable-dev-shm-usage --disable-gpu"
+      }
     },
     "assert": {
       "assertions": {

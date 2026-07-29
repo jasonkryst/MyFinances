@@ -1,5 +1,5 @@
 # Stage 1: Use a minimal build stage (no build tools needed for pure static app)
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.29-alpine AS production
 
 # Remove default nginx config and content
 # Strip the 'user' directive from the main nginx.conf — it causes a warning
