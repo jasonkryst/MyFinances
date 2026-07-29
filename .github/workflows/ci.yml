@@ -101,3 +101,38 @@ jobs:
             sleep 1
           done
       - run: pytest tests/a11y -v
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t myfinances:ci .
+
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t myfinances:ci .
+      - name: Vulnerability gate (fixable CRITICAL/HIGH findings)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: myfinances:ci
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1
+      - name: Full vulnerability report (all severities, including unfixed)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: myfinances:ci
+          format: sarif
+          output: trivy-results.sarif
+      - name: Upload scan results to the Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
