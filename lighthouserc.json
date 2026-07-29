@@ -1,0 +1,24 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "python -m http.server 5500",
+      "startServerReadyPattern": "Serving HTTP",
+      "url": [
+        "http://localhost:5500/",
+        "http://localhost:5500/guide.html"
+      ],
+      "numberOfRuns": 3
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.8 }],
+        "categories:accessibility": ["error", { "minScore": 0.8 }],
+        "categories:best-practices": ["error", { "minScore": 0.8 }],
+        "categories:seo": ["error", { "minScore": 0.8 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
