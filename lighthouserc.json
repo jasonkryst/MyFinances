@@ -1,7 +1,7 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "python -m http.server 5500",
+      "startServerCommand": "python3 -u -m http.server 5500",
       "startServerReadyPattern": "Serving HTTP",
       "url": [
         "http://localhost:5500/",
