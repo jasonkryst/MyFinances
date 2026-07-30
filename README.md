@@ -1,5 +1,8 @@
-
 # MyFinances
+
+[![CI](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml)
+[![Copilot](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer)
+[![Docker Release](https://github.com/jasonkryst/MyFinances/actions/workflows/docker-image.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/docker-image.yml)
 
 _A modern, privacy-first web app to track accounts, debts, income, and spending, helping you plan and visualize your path to financial freedom._
 
