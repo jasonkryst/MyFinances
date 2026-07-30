@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-features:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install playwright pytest pytest-asyncio
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: pytest tests/features -v
+
+  test-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install playwright pytest pytest-asyncio
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: pytest tests/integration -v
+
+  test-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install playwright pytest pytest-asyncio
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: pytest tests/ui -v
+
+  test-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install playwright pytest pytest-asyncio
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: pytest tests/security -v
+
+  test-a11y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install playwright pytest pytest-asyncio
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: pytest tests/a11y -v
+
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t myfinances:ci .
+
+  trivy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t myfinances:ci .
+      - name: Vulnerability gate (fixable CRITICAL/HIGH findings)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: myfinances:ci
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1
+      - name: Full vulnerability report (all severities, including unfixed)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: myfinances:ci
+          format: sarif
+          output: trivy-results.sarif
+      - name: Upload scan results to the Security tab
+        if: always() && hashFiles('trivy-results.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Chrome for Lighthouse CI
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.15.1 autorun
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
