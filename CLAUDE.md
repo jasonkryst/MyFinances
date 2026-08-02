@@ -61,6 +61,9 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
 - `saveToStorage()` estimates the serialized payload size against a conservative 5MB quota on every save and calls `app.showStorageQuotaWarning()` (defined in `ui.js`) once usage crosses ~80%, or on an actual `setItem` failure.
 - `utils.js` also hosts shared formatting/date/number helpers (`formatShortDate`, `formatMonthYear`, `dateToISO`, `parseFiniteOrNull`, `getReportDate`, `incomeDaysInMonth`, `dailyCompoundInterest`) — check there before adding a new local date/number formatter in a feature module.
 
+### Versioning
+`APP_VERSION` (`src/utils.js`) is a hand-maintained semver string shown in the app footer — there's no `package.json`/build step to derive it from, so it's the single source of truth for the running app's version. Every bump must land alongside a matching `## [x.y.z] — YYYY-MM-DD` entry at the top of `CHANGELOG.md`; `tests/features/test_versioning.py` enforces that the two stay in sync (and that changelog headings stay in descending order), since nothing else previously caught a version-only commit with no changelog entry (see #59).
+
 ### Calculation engine
 `src/debtCalculator.js` (`DebtCalculator`, global) is a pure, side-effect-free engine for payoff schedules — daily-compounding interest, four strategies (Avalanche, Snowball, Priority-Lowest, Priority-Highest), per-month stimulus, and a binary-search back-calculator for target payoff dates. Keep it free of DOM/state access; all rendering happens in `strategy.js`.
 
