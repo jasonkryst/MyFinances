@@ -1,0 +1,18 @@
+{
+  "name": "myfinances-dev-tooling",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dev-only Jest + Stryker mutation-testing toolchain for MyFinances' pure JS modules. Not part of the shipped app (see CLAUDE.md).",
+  "scripts": {
+    "test:unit": "jest",
+    "test:mutation": "stryker run"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@stryker-mutator/core": "^8.2.0",
+    "@stryker-mutator/jest-runner": "^8.2.0",
+    "babel-jest": "^29.7.0",
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0"
+  }
+}

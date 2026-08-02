@@ -25,6 +25,8 @@ build/
 node_modules/
 .npm/
 *.min.js.map
+.stryker-tmp/
+reports/
 
 # ── Environment & secrets ───────────────────────────────────────────────────────
 .env
