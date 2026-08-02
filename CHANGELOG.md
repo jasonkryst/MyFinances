@@ -7,6 +7,22 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.7.2] — 2026-07-29
+
+### Added
+- **CI workflow (Story #57)** — `.github/workflows/ci.yml` runs pytest by category (security/feature/ui/integration), a Docker build, a Trivy image scan, and a Lighthouse audit (`lighthouserc.json`) on every push/PR. See `docs/superpowers/specs/2026-07-28-github-actions-ci-workflow-design.md` and `docs/superpowers/plans/2026-07-28-github-actions-ci-workflow.md`.
+- **README CI/Docker badges** — CI, Copilot review, and Docker release status badges added to `README.md`.
+
+### Fixed
+- **CI reliability** — headless Chrome now launches with `--no-sandbox` under CI's containerized runner; the Docker base image was bumped to resolve known CVEs; the pytest job's broken pip cache was removed, `@lhci/cli` pinned to a real published version, server-readiness detection fixed, job timeouts added, and SARIF upload guarded so it doesn't fail on fork PRs (which don't have upload permissions).
+
+### Changed
+- **Docker image renamed** from `bookwheel` to `myfinances` in `docker-image.yml` to match the project name.
+
+_Note: `4.7.1` was a version-only commit with no accompanying changes and has no changelog entry — see [#59](https://github.com/jasonkryst/MyFinances/issues/59)._
+
+---
+
 ## [4.7.0] — 2026-07-17
 
 ### Changed
