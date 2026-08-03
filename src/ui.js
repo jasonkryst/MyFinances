@@ -199,6 +199,13 @@ export function initializeEventListeners(app) {
         });
     }
 
+    const bonusAdviceBtn = document.getElementById('bonusAdviceBtn');
+    if (bonusAdviceBtn) {
+        bonusAdviceBtn.addEventListener('click', () => {
+            app.showBonusAdvice();
+        });
+    }
+
     const recurringForm = document.getElementById('recurringForm');
     if (recurringForm) {
         recurringForm.addEventListener('submit', e => {
