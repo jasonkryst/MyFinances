@@ -488,7 +488,8 @@ def test_import_sanitizes_adversarial_bonus(app_page):
                 amount: -1000,
                 date: '2026-06-18',
                 category: '<script>alert(1)</script>',
-                accountId: 'not-a-number'
+                accountId: 'not-a-number',
+                purpose: '<script>alert(1)</script>'
             }]
         };
         const file = new File([JSON.stringify(payload)], 'bonus.json', { type: 'application/json' });
@@ -505,6 +506,33 @@ def test_import_sanitizes_adversarial_bonus(app_page):
     assert '<' not in bonus['category'] and '>' not in bonus['category'], \
         "category should have unsafe characters stripped"
     assert isinstance(bonus['id'], int), "Bonus id should be sanitized to an integer"
+    assert bonus['purpose'] is None, "purpose outside the allow-list should sanitize to null, not pass through raw"
+
+
+@pytest.mark.feature
+def test_import_preserves_valid_bonus_purpose(app_page):
+    """A valid purpose value ('cashFlow' or 'savings') survives export -> import round-trip."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/dataExport.js');
+        const payload = {
+            debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
+                      accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
+            bonuses: [
+                { id: 1, name: 'Year-end bonus', amount: 500, date: '2026-06-18', category: 'Bonus', purpose: 'cashFlow' },
+                { id: 2, name: 'Tax refund', amount: 300, date: '2026-06-19', category: 'Tax Refund', purpose: 'savings' }
+            ]
+        };
+        const file = new File([JSON.stringify(payload)], 'bonus.json', { type: 'application/json' });
+        return new Promise(resolve => {
+            mod.importAllJSON(app, file, {});
+            setTimeout(() => resolve(app.bonuses.map(b => b.purpose)), 300);
+        });
+    }""")
+
+    assert result == ['cashFlow', 'savings'], f"Valid purpose values should round-trip unchanged, got {result}"
 
 
 # ---------------------------------------------------------------------------
