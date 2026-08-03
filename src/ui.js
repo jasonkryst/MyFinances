@@ -109,6 +109,11 @@ export function initializeEventListeners(app) {
         categoryFilter.addEventListener('change', () => app.renderDebtsList());
     }
 
+    const debtInterestFilter = document.getElementById('debtInterestFilter');
+    if (debtInterestFilter) {
+        debtInterestFilter.addEventListener('change', () => app.renderDebtsList());
+    }
+
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => app.cancelEdit());

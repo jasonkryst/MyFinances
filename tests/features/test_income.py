@@ -533,3 +533,110 @@ def test_bonus_advice_elimination_plan_pays_off_all_debts(app_page):
     assert 'Debt A' in panel_text and 'Debt B' in panel_text and 'Debt C' in panel_text, \
         f"Expected all three debts listed as eliminated, got: {panel_text}"
     assert len(page.console_errors) == 0, f"Console errors: {page.console_errors}"
+
+
+# ---------------------------------------------------------------------------
+# Bonus Advisor: "Pay Off Debts Now uses" interest filter
+# ---------------------------------------------------------------------------
+
+def _create_debts_for_advice_interest_filter(page):
+    """A 0%-rate debt (No Interest Card, balance 300) and an interest-bearing
+    debt (Interest Bearing Card, balance 400, rate 18%), for testing that the
+    Bonus Advisor's elimination-plan filter actually narrows the candidate
+    pool rather than just being decorative.
+    """
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Advice Filter Account')
+    page.select_option('#accountType', label='Credit Card')
+    page.fill('#accountStartingBalance', '0')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.wait_for_timeout(300)
+
+    debts = [
+        ('No Interest Card', '300', '0', '20'),
+        ('Interest Bearing Card', '400', '18', '30'),
+    ]
+    for name, balance, rate, min_pmt in debts:
+        page.click('#debtFormToggle')
+        page.wait_for_timeout(200)
+        page.fill('#debtName', name)
+        page.select_option('#debtType', 'creditCard')
+        page.fill('#accountBalance', balance)
+        page.fill('#interestRate', rate)
+        page.fill('#minimumPayment', min_pmt)
+        page.fill('#dueDate', '15')
+        page.click('#debtFormSubmit')
+        page.wait_for_timeout(300)
+
+
+@pytest.mark.feature
+def test_bonus_advice_filter_no_interest_only_ignores_interest_bearing_debt(app_page):
+    """With the filter set to 'No Interest Only', a $300 bonus eliminates the
+    0%-rate card and never considers the interest-bearing one, even though
+    both together would otherwise be candidates.
+    """
+    page = app_page
+    _create_debts_for_advice_interest_filter(page)
+
+    _open_bonus_form(page)
+    page.fill('#bonusName', 'No Interest Filter Test')
+    page.fill('#bonusAmount', '300')
+    page.fill('#bonusDate', '2026-05-01')
+    page.select_option('#bonusAdviceInterestFilter', 'noInterest')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'No Interest Card' in panel_text, f"Expected the 0%-rate card eliminated, got: {panel_text}"
+    assert 'Interest Bearing Card' not in panel_text, \
+        f"Interest-bearing card should be excluded by the filter, got: {panel_text}"
+
+
+@pytest.mark.feature
+def test_bonus_advice_filter_interest_bearing_only_ignores_no_interest_debt(app_page):
+    """With the filter set to 'Interest Bearing Only', a $300 bonus can't
+    eliminate the (excluded) 0%-rate card even though it's smaller — the
+    remainder goes toward the interest-bearing card instead.
+    """
+    page = app_page
+    _create_debts_for_advice_interest_filter(page)
+
+    _open_bonus_form(page)
+    page.fill('#bonusName', 'Interest Bearing Filter Test')
+    page.fill('#bonusAmount', '300')
+    page.fill('#bonusDate', '2026-05-01')
+    page.select_option('#bonusAdviceInterestFilter', 'interestBearing')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'No Interest Card' not in panel_text, \
+        f"0%-rate card should be excluded by the filter, got: {panel_text}"
+    assert 'Interest Bearing Card' in panel_text, \
+        f"Expected the interest-bearing card as the remainder target, got: {panel_text}"
+
+
+@pytest.mark.feature
+def test_bonus_advice_filter_no_matching_debts_shows_message(app_page):
+    """Filtering to 'No Interest Only' when every debt is interest-bearing
+    shows a clear 'no debts match' message instead of a bare $0.00 or crash.
+    """
+    page = app_page
+    _create_debt_for_advisor(page)  # single interest-bearing debt, rate 20%
+
+    _open_bonus_form(page)
+    page.fill('#bonusName', 'No Match Filter Test')
+    page.fill('#bonusAmount', '300')
+    page.fill('#bonusDate', '2026-05-01')
+    page.select_option('#bonusAdviceInterestFilter', 'noInterest')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'No debts match the selected filter' in panel_text, f"Got: {panel_text}"
+    assert len(page.console_errors) == 0, f"Console errors: {page.console_errors}"

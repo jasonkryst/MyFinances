@@ -13,16 +13,18 @@ import { dailyCompoundInterest, formatCurrency, escapeHtml, sanitizeFiniteNumber
  * @param {number} params.monthlyPayment
  * @param {string} params.strategy
  * @param {number} params.accountRate - annual APY percent, 0 if none available
+ * @param {string} [params.eliminationFilter] - '' (any), 'interestBearing', or
+ *   'noInterest' — narrows which debts the "Pay Off Debts Now" plan considers.
  * @returns {{ cashFlow: object, savings: object }}
  */
-export function calculateBonusAdvice({ bonusAmount, debts, monthlyPayment, strategy, accountRate }) {
+export function calculateBonusAdvice({ bonusAmount, debts, monthlyPayment, strategy, accountRate, eliminationFilter }) {
     return {
-        cashFlow: calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy),
+        cashFlow: calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy, eliminationFilter),
         savings: calculateSavingsAdvice(bonusAmount, accountRate)
     };
 }
 
-function calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy) {
+function calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy, eliminationFilter) {
     const hasDebts = Array.isArray(debts) && debts.length > 0;
     const hasInterestBearingDebt = hasDebts && debts.some(d => d.debtType !== 'fixedAmount');
 
@@ -59,7 +61,7 @@ function calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy) {
             interestSaved,
             monthsSaved,
             freedMonthly: parseFloat(freedMonthly.toFixed(2)),
-            eliminationPlan: calculateEliminationPlan(bonusAmount, debts)
+            eliminationPlan: calculateEliminationPlan(bonusAmount, debts, eliminationFilter)
         };
     } catch (err) {
         return { applicable: false, reason: 'Unable to calculate a payment plan for your current debts.' };
@@ -73,16 +75,35 @@ function calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy) {
  * Deliberately not the interest-optimal use of the money (that's
  * calculateCashFlowAdvice's avalanche/snowball-strategy result above) — this
  * answers "how much can I stop paying every month, right now."
+ * @param {string} [interestFilter] - '' (any), 'interestBearing' (rate > 0
+ *   only), or 'noInterest' (rate === 0 only, e.g. a 0%-promo card) — narrows
+ *   the candidate pool before the smallest-balance-first elimination pass.
  */
-function calculateEliminationPlan(bonusAmount, debts) {
-    const interestBearing = debts
-        .filter(d => d.debtType !== 'fixedAmount')
-        .sort((a, b) => (a.accountBalance || 0) - (b.accountBalance || 0));
+function calculateEliminationPlan(bonusAmount, debts, interestFilter) {
+    let candidates = debts.filter(d => d.debtType !== 'fixedAmount');
+    if (interestFilter === 'interestBearing') {
+        candidates = candidates.filter(d => (d.interestRate || 0) > 0);
+    } else if (interestFilter === 'noInterest') {
+        candidates = candidates.filter(d => !((d.interestRate || 0) > 0));
+    }
+
+    if (candidates.length === 0) {
+        return {
+            noCandidates: true,
+            eliminatedDebts: [],
+            remainderApplied: 0,
+            remainderTargetName: null,
+            monthlyInterestReduction: 0,
+            freedMonthly: 0
+        };
+    }
+
+    candidates = candidates.slice().sort((a, b) => (a.accountBalance || 0) - (b.accountBalance || 0));
 
     let remaining = bonusAmount;
     const eliminatedDebts = [];
     const surviving = [];
-    for (const debt of interestBearing) {
+    for (const debt of candidates) {
         const balance = debt.accountBalance || 0;
         if (remaining >= balance) {
             remaining -= balance;
@@ -144,7 +165,8 @@ export function showBonusAdvice(app) {
         debts: app.debts || [],
         monthlyPayment: getConfiguredMonthlyPayment(app),
         strategy: document.getElementById('paymentStrategy')?.value || 'avalanche',
-        accountRate: getAccountRate(app, accountId)
+        accountRate: getAccountRate(app, accountId),
+        eliminationFilter: document.getElementById('bonusAdviceInterestFilter')?.value || ''
     });
 
     resultEl.innerHTML = renderAdviceHtml(advice);
@@ -166,6 +188,14 @@ function getAccountRate(app, accountId) {
 }
 
 function renderEliminationPlanHtml(plan) {
+    if (plan.noCandidates) {
+        return `
+        <div class="bonus-advice-subsection">
+            <h6 class="bonus-advice-subtitle">🎯 Pay Off Debts Now</h6>
+            <div class="bonus-advice-stat">No debts match the selected filter</div>
+        </div>`;
+    }
+
     const eliminatedNames = plan.eliminatedDebts.map(d => escapeHtml(d.name));
     const eliminatedLine = eliminatedNames.length > 0
         ? `<div class="bonus-advice-stat">✅ Eliminates: ${eliminatedNames.join(', ')}</div>`

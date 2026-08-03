@@ -316,7 +316,14 @@ export function renderDebtsList(app) {
 
     let filteredDebts = app.debts;
     if (categoryFilter && categoryFilter.value) {
-        filteredDebts = app.debts.filter(d => d.category === categoryFilter.value);
+        filteredDebts = filteredDebts.filter(d => d.category === categoryFilter.value);
+    }
+
+    const interestFilter = document.getElementById('debtInterestFilter');
+    if (interestFilter && interestFilter.value === 'interestBearing') {
+        filteredDebts = filteredDebts.filter(d => (d.interestRate || 0) > 0);
+    } else if (interestFilter && interestFilter.value === 'noInterest') {
+        filteredDebts = filteredDebts.filter(d => !((d.interestRate || 0) > 0));
     }
 
     for (const debt of filteredDebts) {
