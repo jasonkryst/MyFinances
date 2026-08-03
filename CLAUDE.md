@@ -34,6 +34,14 @@ pytest tests/features/test_debts.py::test_add_debt -v
 ```
 `pytest.ini` sets `asyncio_mode = auto`. Custom markers (`security`, `feature`, `ui`, `integration`, `slow`) are registered in `tests/conftest.py`.
 
+### Mutation testing
+```bash
+npm install
+npm run test:unit       # Jest unit tests — tests/unit/*.test.js
+npm run test:mutation    # Stryker — mutates the tested functions in src/debtCalculator.js, src/utils.js, src/sanitizers.js and re-runs the Jest suite per mutant
+```
+This is a separate, dev-only toolchain from the Python/Playwright suite above — Node/Jest/Stryker are never shipped to the browser (`index.html` is unaffected). `stryker.config.mjs`'s `mutate` array uses line-range globs scoped to exactly the functions covered by `tests/unit/*.test.js` (not whole files) — the pure, DOM-free `calculatePaymentPlan`/`formatDate`/`calculateMonthsBetweenDates` in `debtCalculator.js`, most of `utils.js`'s formatting/sanitizing helpers, and the record-shape sanitizers in `sanitizers.js` that don't need `app`/DOM state. Feature modules taking `app`/DOM state are out of scope. See `docs/superpowers/specs/2026-08-02-stryker-js-mutation-testing-design.md`.
+
 ## Architecture
 
 ### No build step — two script-loading modes

@@ -522,6 +522,15 @@ pytest -m "security" -v           # All security tests by marker
 pytest -m "not slow" -v           # Skip slow tests
 ```
 
+### 🧬 Mutation Testing (Jest + Stryker)
+A separate, dev-only Node toolchain mutation-tests the pure calculation/formatting/sanitization functions in `src/debtCalculator.js`, `src/utils.js`, and `src/sanitizers.js` — not the Python suite above. It runs as the `mutation-testing` job in CI (`.github/workflows/ci.yml`).
+
+```bash
+npm install
+npm run test:unit        # Jest unit tests
+npm run test:mutation     # Stryker mutation run (HTML report at reports/mutation/mutation.html)
+```
+
 ### Security Scan Results (June 19, 2026)
 
 | Severity | Count | Status |
