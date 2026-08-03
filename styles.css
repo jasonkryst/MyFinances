@@ -3332,6 +3332,20 @@ body.dark-mode .bonus-purpose--savings  { background: #1e1b4b; color: #a5b4fc; }
 
 .bonus-advice-trigger {
     margin-top: 12px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.bonus-advice-filter-label {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.bonus-advice-filter {
+    min-width: 150px;
 }
 
 .bonus-advice {

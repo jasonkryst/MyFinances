@@ -302,3 +302,79 @@ def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
     assert page.query_selector('text=Negative Fixed Debt') is None, (
         "A negative fixed-amount debt payment should be rejected, not silently saved as $0.01"
     )
+
+
+# ---------------------------------------------------------------------------
+# Debts list "Interest" filter dropdown
+# ---------------------------------------------------------------------------
+
+def _create_interest_and_no_interest_debts(page):
+    """One 0%-rate debt and one interest-bearing debt, for filter tests."""
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Interest Filter Account')
+    page.select_option('#accountType', label='Credit Card')
+    page.fill('#accountStartingBalance', '0')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.wait_for_timeout(300)
+
+    debts = [
+        ('No Interest Card', '300', '0', '20'),
+        ('Interest Bearing Card', '400', '18', '30'),
+    ]
+    for name, balance, rate, min_pmt in debts:
+        page.click('#debtFormToggle')
+        page.wait_for_timeout(200)
+        page.fill('#debtName', name)
+        page.select_option('#debtType', 'creditCard')
+        page.fill('#accountBalance', balance)
+        page.fill('#interestRate', rate)
+        page.fill('#minimumPayment', min_pmt)
+        page.fill('#dueDate', '15')
+        page.click('#debtFormSubmit')
+        page.wait_for_timeout(300)
+
+
+@pytest.mark.feature
+def test_debt_interest_filter_shows_only_interest_bearing(app_page):
+    """Selecting 'Interest Bearing Only' hides the 0%-rate debt."""
+    page = app_page
+    _create_interest_and_no_interest_debts(page)
+
+    page.select_option('#debtInterestFilter', 'interestBearing')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Interest Bearing Card') is not None
+    assert page.query_selector('text=No Interest Card') is None
+
+
+@pytest.mark.feature
+def test_debt_interest_filter_shows_only_no_interest(app_page):
+    """Selecting 'No Interest Only' hides the interest-bearing debt."""
+    page = app_page
+    _create_interest_and_no_interest_debts(page)
+
+    page.select_option('#debtInterestFilter', 'noInterest')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=No Interest Card') is not None
+    assert page.query_selector('text=Interest Bearing Card') is None
+
+
+@pytest.mark.feature
+def test_debt_interest_filter_any_shows_both(app_page):
+    """The default 'Any' option shows every debt regardless of rate."""
+    page = app_page
+    _create_interest_and_no_interest_debts(page)
+
+    page.select_option('#debtInterestFilter', 'interestBearing')
+    page.wait_for_timeout(200)
+    page.select_option('#debtInterestFilter', '')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=No Interest Card') is not None
+    assert page.query_selector('text=Interest Bearing Card') is not None
