@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.7.3] — 2026-08-02
+
+### Added
+- **Stryker.js mutation testing (#52)** — new dev-only Jest + Stryker toolchain (`package.json`, `stryker.config.mjs`) mutation-tests the pure `src/debtCalculator.js`, `src/utils.js`, and `src/sanitizers.js` functions covered by new `tests/unit/*.test.js`. `stryker.config.mjs`'s `mutate` scope uses line ranges limited to the tested functions (a whole-file scope produced a ~22% score dominated by untested-function no-coverage mutants); the resulting real local score (47.04%) sets the `thresholds` (`low: 47`, `break: 37`, `high: 52`). Wired into a new `mutation-testing` CI job. See `docs/superpowers/specs/2026-08-02-stryker-js-mutation-testing-design.md` and `docs/superpowers/plans/2026-08-02-stryker-js-mutation-testing.md`.
+
+---
+
 ## [4.7.2] — 2026-07-29
 
 ### Added

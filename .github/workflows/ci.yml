@@ -107,6 +107,25 @@ jobs:
           curl -sf http://localhost:5500/ > /dev/null || exit 1
       - run: pytest tests/a11y -v
 
+  mutation-testing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+      - run: npm run test:mutation
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/mutation.html
+
   docker-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
