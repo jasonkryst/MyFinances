@@ -257,3 +257,168 @@ def test_edit_bonus_negative_amount_rejected(app_page):
         f"A negative edited bonus amount should be rejected, leaving the prior value "
         f"intact, not silently saved as $0.01 (got {stored_amount!r})"
     )
+
+
+# ---------------------------------------------------------------------------
+# Bonus Advisor (issue #64)
+# ---------------------------------------------------------------------------
+
+def _create_debt_for_advisor(page):
+    """Minimal interest-bearing debt so the Cash Flow advice branch has something to compute against."""
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Advisor Debt Account')
+    page.select_option('#accountType', label='Credit Card')
+    page.fill('#accountStartingBalance', '0')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.wait_for_timeout(300)
+    page.click('#debtFormToggle')
+    page.wait_for_timeout(200)
+    page.fill('#debtName', 'Advisor Test Debt')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '2000')
+    page.fill('#interestRate', '20')
+    page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=Advisor Test Debt', timeout=10000)
+
+
+def _open_bonus_form(page):
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.click('#bonusFormToggle')
+    page.wait_for_timeout(200)
+
+
+@pytest.mark.feature
+def test_bonus_purpose_cash_flow_persists_and_shows_badge(app_page):
+    """Selecting Cash Flow purpose on a bonus persists it and shows a badge in the list."""
+    page = app_page
+    _open_bonus_form(page)
+
+    page.fill('#bonusName', 'Cash Flow Bonus')
+    page.fill('#bonusAmount', '1000')
+    page.fill('#bonusDate', '2026-05-01')
+    page.select_option('#bonusCategory', label='Bonus')
+    page.select_option('#bonusPurpose', 'cashFlow')
+    page.click('#bonusForm button[type="submit"]')
+    page.wait_for_selector('text=Cash Flow Bonus', timeout=10000)
+
+    purpose = page.evaluate(
+        "() => window.app.bonuses.find(b => b.name === 'Cash Flow Bonus')?.purpose"
+    )
+    assert purpose == 'cashFlow', f"Expected purpose 'cashFlow' to persist, got {purpose}"
+    assert page.query_selector('.bonus-purpose--cashflow') is not None, \
+        "Cash Flow badge should be shown in the bonus list"
+
+
+@pytest.mark.feature
+def test_bonus_purpose_savings_persists_and_shows_badge(app_page):
+    """Selecting Savings purpose on a bonus persists it and shows a badge in the list."""
+    page = app_page
+    _open_bonus_form(page)
+
+    page.fill('#bonusName', 'Savings Bonus')
+    page.fill('#bonusAmount', '750')
+    page.fill('#bonusDate', '2026-05-02')
+    page.select_option('#bonusCategory', label='Bonus')
+    page.select_option('#bonusPurpose', 'savings')
+    page.click('#bonusForm button[type="submit"]')
+    page.wait_for_selector('text=Savings Bonus', timeout=10000)
+
+    purpose = page.evaluate(
+        "() => window.app.bonuses.find(b => b.name === 'Savings Bonus')?.purpose"
+    )
+    assert purpose == 'savings', f"Expected purpose 'savings' to persist, got {purpose}"
+    assert page.query_selector('.bonus-purpose--savings') is not None, \
+        "Savings badge should be shown in the bonus list"
+
+
+@pytest.mark.feature
+def test_bonus_advice_shows_cash_flow_and_savings_numbers(app_page):
+    """With a debt and an interest-bearing account, the advice panel shows non-zero numbers for both options."""
+    page = app_page
+    _create_debt_for_advisor(page)
+
+    # Give the linked account a non-zero APY so the Savings branch has a rate to use.
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.click('[data-account-action="edit"]')
+    page.fill('[id^="ac-rate-"]', '5')
+    page.click('[data-account-action="save"]')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="strategy"]')
+    page.wait_for_timeout(300)
+    page.fill('#monthlyPayment', '200')
+    page.select_option('#paymentStrategy', 'avalanche')
+
+    _open_bonus_form(page)
+    page.fill('#bonusName', 'Advice Test Bonus')
+    page.fill('#bonusAmount', '1000')
+    page.fill('#bonusDate', '2026-05-01')
+    page.select_option('#bonusAccount', index=1)
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'interest saved' in panel_text, f"Expected a computed interest-saved figure, got: {panel_text}"
+    assert 'in 1 year' in panel_text, f"Expected a computed 1-year savings figure, got: {panel_text}"
+
+
+@pytest.mark.feature
+def test_bonus_advice_no_debts_shows_not_applicable(app_page):
+    """With no debts at all, the Cash Flow side must show a graceful N/A, not crash or throw."""
+    page = app_page
+    _open_bonus_form(page)
+
+    page.fill('#bonusName', 'No Debt Bonus')
+    page.fill('#bonusAmount', '500')
+    page.fill('#bonusDate', '2026-05-01')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'N/A' in panel_text and 'debt' in panel_text.lower(), \
+        f"Expected a 'no debts' N/A message, got: {panel_text}"
+    assert len(page.console_errors) == 0, f"Console errors: {page.console_errors}"
+
+
+@pytest.mark.feature
+def test_bonus_advice_no_account_rate_shows_not_applicable(app_page):
+    """No account linked (or no account has a rate) -> Savings side shows a clear message, not a bare $0.00."""
+    page = app_page
+    _open_bonus_form(page)
+
+    page.fill('#bonusName', 'No Rate Bonus')
+    page.fill('#bonusAmount', '400')
+    page.fill('#bonusDate', '2026-05-01')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'No interest-bearing account linked' in panel_text, \
+        f"Expected the no-rate message, got: {panel_text}"
+
+
+@pytest.mark.feature
+def test_bonus_advice_invalid_amount_shows_validation_alert(app_page):
+    """Clicking the advice button with no amount entered shows a validation alert, not a crash."""
+    page = app_page
+    _open_bonus_form(page)
+
+    dialog_messages = []
+    page.on("dialog", lambda d: (dialog_messages.append(d.message), d.accept()))
+
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    assert len(dialog_messages) == 1, "Expected exactly one validation alert"
+    assert 'valid amount' in dialog_messages[0].lower()
+    assert page.query_selector('#bonusAdviceResult').inner_text() == '', \
+        "No advice panel content should render when validation fails"
