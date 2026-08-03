@@ -109,6 +109,11 @@ export function initializeEventListeners(app) {
         categoryFilter.addEventListener('change', () => app.renderDebtsList());
     }
 
+    const debtInterestFilter = document.getElementById('debtInterestFilter');
+    if (debtInterestFilter) {
+        debtInterestFilter.addEventListener('change', () => app.renderDebtsList());
+    }
+
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => app.cancelEdit());
@@ -196,6 +201,13 @@ export function initializeEventListeners(app) {
         bonusForm.addEventListener('submit', e => {
             e.preventDefault();
             app.addBonus();
+        });
+    }
+
+    const bonusAdviceBtn = document.getElementById('bonusAdviceBtn');
+    if (bonusAdviceBtn) {
+        bonusAdviceBtn.addEventListener('click', () => {
+            app.showBonusAdvice();
         });
     }
 

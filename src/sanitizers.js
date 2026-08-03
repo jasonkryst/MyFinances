@@ -60,7 +60,8 @@ export function sanitizeBonus(record, idFallback) {
         amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
         date: sanitizeDateISO(record?.date),
         category: normalizeText(record?.category, 40) || 'Other',
-        accountId: sanitizeInteger(record?.accountId, null)
+        accountId: sanitizeInteger(record?.accountId, null),
+        purpose: (record?.purpose === 'cashFlow' || record?.purpose === 'savings') ? record.purpose : null
     };
 }
 

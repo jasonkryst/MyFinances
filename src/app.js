@@ -49,6 +49,7 @@ import {
     saveEditBonus,
     renderBonusList
 } from './income.js';
+import { showBonusAdvice } from './bonusAdvisor.js';
 import {
     calculatePaymentPlanFromInputs as calculatePaymentPlanFromInputsFeature,
     calculateRequiredPayment as calculateRequiredPaymentFeature
@@ -425,6 +426,14 @@ export class DebtTrackerApp {
      */
     renderBonusList() {
         return renderBonusList(this);
+    }
+
+    /**
+     * Compute and render the Bonus Advisor comparison (cash flow vs savings)
+     * for the amount currently entered in the bonus form.
+     */
+    showBonusAdvice() {
+        return showBonusAdvice(this);
     }
 
     /**

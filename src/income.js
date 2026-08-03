@@ -238,16 +238,20 @@ export function addBonus(app) {
     const date      = sanitizeDateISO(document.getElementById('bonusDate').value);
     const category  = normalizeText(document.getElementById('bonusCategory').value, 40);
     const accountId = parseInt(document.getElementById('bonusAccount')?.value) || null;
+    const rawPurpose = document.getElementById('bonusPurpose')?.value;
+    const purpose   = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
 
     if (!name)                        { alert('Please enter a label for this one-time entry.'); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
     if (!date)                        { alert('Please enter the date received.'); return; }
 
-    app.bonuses.push({ id: Date.now(), name, amount, date, category, accountId });
+    app.bonuses.push({ id: Date.now(), name, amount, date, category, accountId, purpose });
     app.saveToStorage();
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
     document.getElementById('bonusForm').reset();
+    const adviceEl = document.getElementById('bonusAdviceResult');
+    if (adviceEl) adviceEl.innerHTML = '';
 }
 
 export function deleteBonus(app, bonusId) {
@@ -277,6 +281,7 @@ export function saveEditBonus(app, bonusId) {
     const dateEl      = document.getElementById(`be-date-${bonusId}`);
     const catEl       = document.getElementById(`be-category-${bonusId}`);
     const accountEl   = document.getElementById(`be-account-${bonusId}`);
+    const purposeEl   = document.getElementById(`be-purpose-${bonusId}`);
     if (!nameEl || !amtEl || !dateEl || !catEl) return;
 
     const name = normalizeText(nameEl.value, 80);
@@ -285,6 +290,8 @@ export function saveEditBonus(app, bonusId) {
     const date = sanitizeDateISO(dateEl.value);
     const category = normalizeText(catEl.value, 40);
     const accountId = accountEl && accountEl.value ? parseInt(accountEl.value) : null;
+    const rawPurpose = purposeEl?.value;
+    const purpose = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
 
     if (!name) { alert('Please enter a name for this one-time entry.'); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
@@ -292,7 +299,7 @@ export function saveEditBonus(app, bonusId) {
 
     const idx = app.bonuses.findIndex(b => b.id === bonusId);
     if (idx === -1) return;
-    app.bonuses[idx] = { ...app.bonuses[idx], name, amount, date, category, accountId };
+    app.bonuses[idx] = { ...app.bonuses[idx], name, amount, date, category, accountId, purpose };
     app.editingBonusId = null;
     app.saveToStorage();
     app.renderBonusList();
@@ -316,6 +323,10 @@ export function renderBonusList(app) {
         'Cash Deposit': 'bonus-cat--bonus',
         'Check Deposit': 'bonus-cat--tax',
         Other: 'bonus-cat--other'
+    };
+    const purposeBadgeMeta = {
+        cashFlow: { cls: 'bonus-purpose--cashflow', label: '💳 Cash Flow' },
+        savings:  { cls: 'bonus-purpose--savings',  label: '🏦 Savings' }
     };
 
     container.innerHTML = `
@@ -359,6 +370,14 @@ export function renderBonusList(app) {
                                     ${buildAccountOptionsHtml(app.accounts, b.accountId, { emptyLabel: '— No account —' })}
                                 </select>
                             </div>
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Purpose</label>
+                                <select id="be-purpose-${b.id}" class="form-full-width">
+                                    <option value=""        ${!b.purpose             ?'selected':''}>— Not decided —</option>
+                                    <option value="cashFlow" ${b.purpose==='cashFlow' ?'selected':''}>💳 Cash Flow</option>
+                                    <option value="savings"  ${b.purpose==='savings'  ?'selected':''}>🏦 Savings</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="income-edit-actions margin-top-auto">
                             <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}">Save</button>
@@ -367,12 +386,17 @@ export function renderBonusList(app) {
                     </div>`;
                 }
 
+                const purposeMeta = purposeBadgeMeta[b.purpose];
+                const purposeBadge = purposeMeta
+                    ? `<span class="bonus-purpose-badge ${purposeMeta.cls}">${escapeHtml(purposeMeta.label)}</span>`
+                    : '';
+
                 return `
                 <div class="bonus-card${isThisMonth ? ' bonus-card--current' : ''}">
                     <div class="bonus-card-info">
                         <span class="bonus-card-name">${escapeHtml(b.name)}</span>
                         <span class="bonus-card-amount">${formatCurrency(b.amount)}</span>
-                        <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(b.category)}</span></span>
+                        <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(b.category)}</span>${purposeBadge ? ' ' + purposeBadge : ''}</span>
                         ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
                     </div>
                     <div class="debt-actions">

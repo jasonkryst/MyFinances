@@ -302,6 +302,12 @@
                                             <select id="categoryFilter" class="category-filter">
                                                 <option value="">All categories</option>
                                             </select>
+                                            <label for="debtInterestFilter" class="category-filter-label">Interest:</label>
+                                            <select id="debtInterestFilter" class="category-filter">
+                                                <option value="">Any</option>
+                                                <option value="interestBearing">Interest Bearing Only</option>
+                                                <option value="noInterest">No Interest Only</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div id="debtsList" class="debts-list"></div>
@@ -467,7 +473,25 @@
                                         <option value="">— No account —</option>
                                     </select>
                                 </div>
+                                <div class="form-group no-margin">
+                                    <label for="bonusPurpose">Purpose</label>
+                                    <select id="bonusPurpose">
+                                        <option value="">— Not decided —</option>
+                                        <option value="cashFlow">💳 Cash Flow (pay down debt)</option>
+                                        <option value="savings">🏦 Long-term Savings</option>
+                                    </select>
+                                </div>
                             </div>
+                            <div class="bonus-advice-trigger">
+                                <button type="button" id="bonusAdviceBtn" class="btn btn-secondary btn-small">💡 What should I do with this?</button>
+                                <label for="bonusAdviceInterestFilter" class="bonus-advice-filter-label">Pay Off Debts Now uses:</label>
+                                <select id="bonusAdviceInterestFilter" class="bonus-advice-filter">
+                                    <option value="">Any debt</option>
+                                    <option value="interestBearing">Interest Bearing Only</option>
+                                    <option value="noInterest">No Interest Only</option>
+                                </select>
+                            </div>
+                            <div id="bonusAdviceResult"></div>
                             <button type="submit" class="btn btn-success submit-button-margin">Add One-time Entry</button>
                         </form>
                     </div>
