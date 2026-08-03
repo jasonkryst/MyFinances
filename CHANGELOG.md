@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.8.0] — 2026-08-02
+
+### Added
+- **Bonus Advisor (#64)** — one-time bonuses can now be tagged with a Purpose (Cash Flow or Long-term Savings), shown as a badge in the bonus list. A new "What should I do with this?" button computes real numbers for each option: interest saved and months-sooner debt payoff (via the existing `DebtCalculator` stimulus mechanism) vs. projected 1-year/5-year growth (via the existing account-interest helper) if left in a linked interest-bearing account. The Cash Flow card also includes a "Pay Off Debts Now" plan — which debts the bonus can eliminate outright (smallest balance first) plus any remainder applied to the highest-rate debt remaining — showing how much monthly cash flow frees up immediately, as a deliberately non-interest-optimal alternative to the avalanche/snowball result above it. New `src/bonusAdvisor.js` module; `purpose` added to the bonus record and sanitized in `src/sanitizers.js`. See `docs/superpowers/specs/2026-08-02-bonus-advisor-design.md`.
+
+---
+
 ## [4.7.3] — 2026-08-02
 
 ### Added
