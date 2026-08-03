@@ -3369,6 +3369,19 @@ body.dark-mode .bonus-purpose--savings  { background: #1e1b4b; color: #a5b4fc; }
     font-style: italic;
 }
 
+.bonus-advice-subsection {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.bonus-advice-subtitle {
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--text-secondary);
+}
+
 /* Strategy bonus chip */
 .strategy-bonus-chip {
     display: inline-block;

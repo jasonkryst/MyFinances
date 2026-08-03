@@ -422,3 +422,114 @@ def test_bonus_advice_invalid_amount_shows_validation_alert(app_page):
     assert 'valid amount' in dialog_messages[0].lower()
     assert page.query_selector('#bonusAdviceResult').inner_text() == '', \
         "No advice panel content should render when validation fails"
+
+
+# ---------------------------------------------------------------------------
+# Bonus Advisor: "Pay Off Debts Now" elimination plan (issue #64 follow-up)
+# ---------------------------------------------------------------------------
+
+def _create_three_debts_for_elimination(page):
+    """Three debts with distinct balance/rate ordering, so the elimination-pass
+    (smallest balance first) and the remainder-target (highest rate among what's
+    left) can be tested independently:
+      - Debt A: balance 500,  min payment 25,  rate 10%  (smallest balance)
+      - Debt B: balance 800,  min payment 40,  rate 25%  (highest rate)
+      - Debt C: balance 5000, min payment 150, rate 15%  (largest balance)
+    """
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Elimination Account')
+    page.select_option('#accountType', label='Credit Card')
+    page.fill('#accountStartingBalance', '0')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.wait_for_timeout(300)
+
+    debts = [
+        ('Debt A', '500', '10', '25'),
+        ('Debt B', '800', '25', '40'),
+        ('Debt C', '5000', '15', '150'),
+    ]
+    for name, balance, rate, min_pmt in debts:
+        page.click('#debtFormToggle')
+        page.wait_for_timeout(200)
+        page.fill('#debtName', name)
+        page.select_option('#debtType', 'creditCard')
+        page.fill('#accountBalance', balance)
+        page.fill('#interestRate', rate)
+        page.fill('#minimumPayment', min_pmt)
+        page.fill('#dueDate', '15')
+        page.click('#debtFormSubmit')
+        page.wait_for_timeout(300)
+
+
+@pytest.mark.feature
+def test_bonus_advice_elimination_plan_eliminates_smallest_and_targets_highest_rate_remainder(app_page):
+    """A $700 bonus eliminates Debt A (500, smallest balance) and applies the
+    $200 remainder to Debt B (25% rate) — the highest-rate debt remaining —
+    not Debt C, even though Debt C's balance is smaller than the difference
+    would suggest picking by balance alone.
+    """
+    page = app_page
+    _create_three_debts_for_elimination(page)
+
+    _open_bonus_form(page)
+    page.fill('#bonusName', 'Elimination Test Bonus')
+    page.fill('#bonusAmount', '700')
+    page.fill('#bonusDate', '2026-05-01')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'Debt A' in panel_text, f"Expected Debt A to be listed as eliminated, got: {panel_text}"
+    assert 'Debt B' in panel_text, f"Expected Debt B to be listed as the remainder target (highest rate), got: {panel_text}"
+    assert 'Debt C' not in panel_text, f"Debt C should not appear — it wasn't eliminated or targeted, got: {panel_text}"
+    assert '$29.17' in panel_text or '29.17' in panel_text, \
+        f"Expected ~$29.17/mo freed ($25 min payment + ~$4.17 interest reduction on the $200 remainder at 25%), got: {panel_text}"
+
+
+@pytest.mark.feature
+def test_bonus_advice_elimination_plan_remainder_only_when_bonus_too_small(app_page):
+    """A $100 bonus can't eliminate even the smallest debt (500) — no debts
+    listed as eliminated, but the full $100 still gets applied to the
+    highest-rate debt (Debt B, 25%) as extra principal, per the chosen
+    'still show the remainder-only result' behavior.
+    """
+    page = app_page
+    _create_three_debts_for_elimination(page)
+
+    _open_bonus_form(page)
+    page.fill('#bonusName', 'Too Small To Eliminate')
+    page.fill('#bonusAmount', '100')
+    page.fill('#bonusDate', '2026-05-01')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'Debt A' not in panel_text, f"No debt should be listed as eliminated, got: {panel_text}"
+    assert 'Debt B' in panel_text, f"Expected Debt B (highest rate) as the remainder target, got: {panel_text}"
+    assert len(page.console_errors) == 0, f"Console errors: {page.console_errors}"
+
+
+@pytest.mark.feature
+def test_bonus_advice_elimination_plan_pays_off_all_debts(app_page):
+    """A bonus large enough to cover every debt's balance (6500 > 500+800+5000)
+    eliminates all three, leaving no remainder target and no crash.
+    """
+    page = app_page
+    _create_three_debts_for_elimination(page)
+
+    _open_bonus_form(page)
+    page.fill('#bonusName', 'Pays Off Everything')
+    page.fill('#bonusAmount', '6500')
+    page.fill('#bonusDate', '2026-05-01')
+    page.click('#bonusAdviceBtn')
+    page.wait_for_timeout(300)
+
+    panel_text = page.inner_text('#bonusAdviceResult')
+    assert 'Debt A' in panel_text and 'Debt B' in panel_text and 'Debt C' in panel_text, \
+        f"Expected all three debts listed as eliminated, got: {panel_text}"
+    assert len(page.console_errors) == 0, f"Console errors: {page.console_errors}"
