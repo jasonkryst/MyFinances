@@ -117,3 +117,47 @@ def test_untranslated_page_stays_readable_in_english_when_locale_is_spanish(app_
 
     heading = page.inner_text('#accountsSection h2')
     assert heading.strip() != ''
+
+
+@pytest.mark.feature
+def test_switching_to_spanish_translates_health_page_live(app_page):
+    """Switching locale while Health is the active page re-renders it in
+    the new language immediately, with no reload."""
+    page = app_page
+
+    page.evaluate("() => window.app.setLocale('es')")
+    page.wait_for_timeout(200)
+
+    title = page.inner_text('.health-metric-card .health-card-title')
+    assert title.strip() == 'Relación Deuda-Ingreso'
+
+    subtitle = page.inner_text('.health-subtitle')
+    assert subtitle.startswith('Una evaluación de un vistazo')
+
+
+@pytest.mark.feature
+def test_switching_to_polish_translates_health_page_live(app_page):
+    """Same as the Spanish case, for Polish."""
+    page = app_page
+
+    page.evaluate("() => window.app.setLocale('pl')")
+    page.wait_for_timeout(200)
+
+    title = page.inner_text('.health-metric-card .health-card-title')
+    assert title.strip() == 'Wskaźnik Zadłużenia do Dochodu'
+
+
+@pytest.mark.feature
+def test_health_page_debt_free_state_translates(app_page):
+    """The zero-debt empty state ('Debt Free!') translates too, not just
+    the populated-data path."""
+    page = app_page
+
+    page.evaluate("""() => {
+        window.app.debts = [];
+        window.app.setLocale('es');
+    }""")
+    page.wait_for_timeout(200)
+
+    value = page.inner_text('.health-empty-value.health-empty--green')
+    assert value.strip() == '¡Libre de Deudas!'
