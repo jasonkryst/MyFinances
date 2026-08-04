@@ -101,19 +101,19 @@ export function renderReportsSummary(app) {
     ].map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td class="text-right">${formatCurrency(value)}</td></tr>`).join('');
 
     const accountRows = metrics.accounts.length === 0
-        ? '<tr><td colspan="3" class="text-center text-muted-secondary">No accounts yet.</td></tr>'
+        ? '<tr><td colspan="4" class="text-center text-muted-secondary">No accounts yet.</td></tr>'
         : metrics.accounts.map(a => `
             <tr>
                 <td>${escapeHtml(a.name)}</td>
-                <td class="text-right">${formatCurrency(a.startBalance)}</td>
-                <td class="text-right">${formatCurrency(a.endBalance)}</td>
-                <td class="text-right ${a.change >= 0 ? 'rpt-net--pos' : 'rpt-net--neg'}">${a.change >= 0 ? '+' : ''}${formatCurrency(a.change)}</td>
+                <td class="text-right" data-label="Start">${formatCurrency(a.startBalance)}</td>
+                <td class="text-right" data-label="End">${formatCurrency(a.endBalance)}</td>
+                <td class="text-right ${a.change >= 0 ? 'rpt-net--pos' : 'rpt-net--neg'}" data-label="Change">${a.change >= 0 ? '+' : ''}${formatCurrency(a.change)}</td>
             </tr>`).join('');
 
     const netWorthSection = metrics.netWorth ? `
         <h4 class="rpt-section-title">Net Worth</h4>
         <div class="nw-history-table-wrap">
-        <table class="nw-history-table">
+        <table class="nw-history-table nw-history-table--compact">
             <caption class="sr-only">Net worth details for ${escapeHtml(metrics.periodLabel)}</caption>
             <tbody>
                 <tr><td>Net Worth</td><td class="text-right">${formatCurrency(metrics.netWorth.netWorth)}</td></tr>
@@ -135,7 +135,7 @@ export function renderReportsSummary(app) {
         </div>
         <h4 class="rpt-section-title">Cash Flow</h4>
         <div class="nw-history-table-wrap">
-        <table class="nw-history-table">
+        <table class="nw-history-table nw-history-table--compact">
             <caption class="sr-only">Cash flow summary for ${escapeHtml(metrics.periodLabel)}</caption>
             <tbody>
                 ${cashFlowRows}
@@ -145,7 +145,7 @@ export function renderReportsSummary(app) {
         </div>
         <h4 class="rpt-section-title">Account Balances</h4>
         <div class="nw-history-table-wrap">
-        <table class="nw-history-table">
+        <table class="nw-history-table nw-history-table--compact">
             <caption class="sr-only">Account balances for ${escapeHtml(metrics.periodLabel)}</caption>
             <thead><tr><th>Account</th><th>Start</th><th>End</th><th>Change</th></tr></thead>
             <tbody>${accountRows}</tbody>

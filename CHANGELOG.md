@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.8.1] — 2026-08-03
+
+### Fixed
+- **Summary Report mobile table scroll (#31)** — the Reports → Summary tab's Cash Flow, Account Balances, and Net Worth tables shared the `.nw-history-table` class (and its 680px `min-width`) with genuinely wide tables like Net Worth History and Cash Flow Forecast, forcing an unnecessary horizontal scrollbar on mobile even though they only have 2–4 narrow columns. They now opt out via a new `.nw-history-table--compact` modifier and restack into label/value cards below 640px width, while the wider report tables keep their original scroll-in-wrapper behavior.
+
+---
+
 ## [4.8.0] — 2026-08-02
 
 ### Added
