@@ -27,7 +27,7 @@ they'll follow.
 | Static markup translation | `data-i18n="key"` attributes on elements in `index.html`, applied via `textContent` (never `innerHTML`) — no CSP/escaping concerns since dictionaries are static bundled JS, not user input. |
 | Dynamic content translation | Pilot page (`renderHealthDashboard`) calls `t()` directly when building its template literal, same as it already calls `formatCurrency`/`escapeHtml`. |
 | Missing-translation fallback | `t()` falls back to the English string, and if even English is missing, falls back to the raw key — a typo or partial translation never crashes the UI or shows `undefined`. |
-| Pluralization | Simple two-form (`key` / `key_plural`, chosen by `count !== 1`) — sufficient for the pilot's English/Spanish content. Polish has 3+ plural forms grammatically; the two-form approximation is a known, documented limitation rather than solved here. |
+| Pluralization | Not implemented. Reviewing the actual pilot strings, none need a number to change which word form is used (e.g. "months remaining" always uses the same word regardless of count) — `t()` supports `{var}` interpolation so a number can be placed correctly per language word order, but each string is a single fixed form. Polish grammatically needs 3+ plural forms for count-sensitive nouns; using one fixed form is a known, documented limitation rather than solved here. |
 | Number/date formatting | `formatCurrency`/`formatShortDate`/`formatMonthYear` in `utils.js` swap their hardcoded `'en-US'` `Intl` locale argument for `getCurrentLocale()`. No call-site changes anywhere in the app — this makes digit grouping/decimal separators/date order locale-correct app-wide immediately, beyond just the translated pilot pages. Currency stays USD (no multi-currency support); only formatting conventions change. |
 
 ## Architecture
@@ -66,7 +66,7 @@ export function getLocalePreference() { /* reads localStorage directly, validate
 export function setLocalePreference(code) { /* writes localStorage directly */ }
 export function getCurrentLocale() { /* cached current code, initialized from getLocalePreference() */ }
 
-export function t(key, vars) { /* look up key in current dict -> en dict -> key itself; supports {var} interpolation and _plural via vars.count */ }
+export function t(key, vars) { /* look up key in current dict -> en dict -> key itself; supports {var} interpolation */ }
 
 export function applyStaticTranslations(root = document) { /* walks [data-i18n] under root, sets textContent = t(key) */ }
 
@@ -149,8 +149,8 @@ dependency — `i18n.js` itself imports nothing from `utils.js`).
   Recurring, Savings, Plan, Reports, Ledger, Reconcile stay English pilot
   strings — tracked as follow-up issues).
 - Browser-language auto-detection on first run.
-- Full Polish grammatical pluralization (3+ forms) — two-form approximation
-  only.
+- Grammatical pluralization (Polish needs 3+ number-agreement forms for some
+  nouns) — every translated string uses one fixed form regardless of count.
 - Multi-currency support — only formatting conventions (grouping/decimal
   separator/symbol placement) change per locale; the currency itself stays
   USD.
