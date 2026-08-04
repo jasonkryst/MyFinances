@@ -133,18 +133,31 @@ def test_clicking_overlay_backdrop_closes_palette(app_page):
 
 
 @pytest.mark.ui
-def test_toggle_theme_action_runs_and_closes_palette(app_page):
-    """The 'Toggle dark / light mode' action executes and closes the palette."""
+def test_cycle_theme_action_runs_and_closes_palette(app_page):
+    """The 'Cycle theme' action steps the 3-way Light/Dark/High Contrast
+    selector (GitHub issue #33) forward by one and closes the palette."""
     page = app_page
-    was_dark = page.evaluate("() => document.body.classList.contains('dark-mode')")
+    initial = page.evaluate("() => document.getElementById('themeSwitcher').value")
+    assert initial == 'light', "Theme should start at the default 'light'"
 
     page.keyboard.press('Control+k')
     page.wait_for_timeout(200)
-    page.fill('#commandPaletteInput', 'Toggle dark')
+    page.fill('#commandPaletteInput', 'Cycle theme')
     page.wait_for_timeout(150)
     page.keyboard.press('Enter')
     page.wait_for_timeout(200)
 
-    is_dark = page.evaluate("() => document.body.classList.contains('dark-mode')")
-    assert is_dark != was_dark, "Theme should have toggled"
+    after_one = page.evaluate("() => document.getElementById('themeSwitcher').value")
+    assert after_one == 'dark', "First cycle should move Light -> Dark"
     assert not page.is_visible('#commandPaletteOverlay')
+
+    page.keyboard.press('Control+k')
+    page.wait_for_timeout(200)
+    page.fill('#commandPaletteInput', 'Cycle theme')
+    page.wait_for_timeout(150)
+    page.keyboard.press('Enter')
+    page.wait_for_timeout(200)
+
+    after_two = page.evaluate("() => document.getElementById('themeSwitcher').value")
+    assert after_two == 'high-contrast', "Second cycle should move Dark -> High Contrast"
+    assert page.evaluate("() => document.body.classList.contains('high-contrast-mode')")

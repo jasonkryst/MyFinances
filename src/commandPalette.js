@@ -34,10 +34,17 @@ function buildCommands(app) {
             run: () => document.getElementById('importJsonBtn')?.click()
         },
         {
-            label: 'Toggle dark / light mode',
+            label: 'Cycle theme (Light / Dark / High Contrast)',
             hint: 'Action',
-            icon: '🌙',
-            run: () => document.getElementById('themeSwitcher')?.click()
+            icon: '🌓',
+            run: () => {
+                const select = document.getElementById('themeSwitcher');
+                if (!select) return;
+                const order = ['light', 'dark', 'high-contrast'];
+                const currentIndex = order.indexOf(select.value);
+                select.value = order[(currentIndex + 1) % order.length];
+                select.dispatchEvent(new Event('change'));
+            }
         },
         {
             label: 'Calculate payment plan',

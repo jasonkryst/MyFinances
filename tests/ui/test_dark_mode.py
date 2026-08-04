@@ -110,12 +110,13 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
         "Corrupted theme value must continue to fall back safely after reload"
     )
 
-    # Theme switcher should still function normally afterward.
+    # Theme switcher (a 3-option Light/Dark/High Contrast <select>, GitHub
+    # issue #33) should still function normally afterward.
     theme_switcher = page.query_selector('#themeSwitcher')
     if theme_switcher:
-        theme_switcher.click()
+        page.select_option('#themeSwitcher', 'dark')
         page.wait_for_timeout(200)
         new_value = page.evaluate("() => localStorage.getItem('debtTrackerTheme')")
-        assert new_value in ('dark', 'light'), (
-            "Toggling the theme after a corrupted value should write a valid value"
+        assert new_value in ('light', 'dark', 'high-contrast'), (
+            "Selecting a theme after a corrupted value should write a valid value"
         )
