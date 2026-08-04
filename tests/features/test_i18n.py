@@ -161,3 +161,40 @@ def test_health_page_debt_free_state_translates(app_page):
 
     value = page.inner_text('.health-empty-value.health-empty--green')
     assert value.strip() == '¡Libre de Deudas!'
+
+
+@pytest.mark.feature
+def test_format_currency_is_locale_aware(app_page):
+    """formatCurrency's digit grouping/decimal separator follow the active
+    locale — Polish uses a comma decimal separator where en-US uses a
+    period, without formatCurrency's call sites changing at all."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/utils.js');
+        const before = mod.formatCurrency(1234.5);
+        window.app.setLocale('pl');
+        const after = mod.formatCurrency(1234.5);
+        return { before, after };
+    }""")
+
+    assert result['before'] == '$1,234.50'
+    assert result['before'] != result['after']
+    assert ',' in result['after']
+
+
+@pytest.mark.feature
+def test_format_short_date_is_locale_aware(app_page):
+    """formatShortDate's month name/ordering follow the active locale."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/utils.js');
+        const before = mod.formatShortDate('2026-08-02');
+        window.app.setLocale('es');
+        const after = mod.formatShortDate('2026-08-02');
+        return { before, after };
+    }""")
+
+    assert result['before'] == 'Aug 2, 2026'
+    assert result['before'] != result['after']

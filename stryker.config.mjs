@@ -13,8 +13,8 @@ export default {
         'src/debtCalculator.js:41-276', // calculatePaymentPlan
         'src/debtCalculator.js:431-433', // formatDate
         'src/debtCalculator.js:442-454', // calculateMonthsBetweenDates
-        'src/utils.js:7-78', // formatCurrency..dateToISO (contiguous, all tested)
-        'src/utils.js:241-244', // dailyCompoundInterest
+        'src/utils.js:10-81', // formatCurrency..dateToISO (contiguous, all tested)
+        'src/utils.js:244-247', // dailyCompoundInterest
         'src/sanitizers.js:5-54', // sanitizeAccount, sanitizeDebt, sanitizeIncome
         'src/sanitizers.js:67-88', // sanitizeBill, sanitizeExpense
         'src/sanitizers.js:109-130', // sanitizeRecurringTemplate

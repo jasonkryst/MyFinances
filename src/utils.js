@@ -1,11 +1,14 @@
 // Formatting, date helpers, shared utilities
+import { getIntlLocale } from './i18n.js';
 
-export const APP_VERSION = '4.9.0';
+export const APP_VERSION = '4.10.0';
 
 
-// Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50")
+// Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50" in
+// the default en-US locale; digit grouping/decimal separator/symbol
+// placement follow the active UI locale via getIntlLocale()).
 export function formatCurrency(value) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(getIntlLocale(), {
         style: 'currency',
         currency: 'USD',
         minimumFractionDigits: 2,
@@ -41,7 +44,7 @@ export function parseFiniteOrNull(value) {
 export function formatShortDate(value) {
     const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
     const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(getIntlLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 // Formats a bare "YYYY-MM-DD" string, an ISO datetime string, or a Date object as "Mon YYYY".
@@ -50,7 +53,7 @@ export function formatShortDate(value) {
 export function formatMonthYear(value) {
     const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
     const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return date.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
 }
 
 export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {
