@@ -7,6 +7,19 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.9.0] — 2026-08-03
+
+### Added
+- **High Contrast theme (#33)** — the header's Light/Dark toggle is now a labeled 3-way selector (Light / Dark / High Contrast). High Contrast is built as Dark Mode plus extra overrides (`body.dark-mode.high-contrast-mode` in `styles.css`), so it inherits dark mode's existing surface colors and chart/gauge color logic, then swaps the ~20 shared CSS custom properties and a handful of known hardcoded-color spots (buttons, calendar pills, header/nav/inputs/tables, focus ring) to a pure black/white/bright-accent palette clearing WCAG AA (and mostly AAA) contrast. `guide.html`/`guide.css` pick up the same theme. The command palette's theme action now cycles Light → Dark → High Contrast.
+
+### Fixed
+- **`.nav-group-label` contrast (#33)** — the "Overview"/"Manage"/"Analyze" nav pills used translucent-white-on-translucent-white styling whose real contrast depended on the header gradient behind them; measured at ~2.9:1 in light mode against WCAG 1.4.3's 4.5:1 minimum (and intermittently flagged `pytest tests/a11y/` at other ratios due to a CSS-transition-timing artifact in the audit script). Redesigned as a solid dark badge with near-opaque text, which composites to ~6.8:1 (light) / ~12.7:1 (dark) regardless of theme.
+
+### Known limitations
+- High Contrast reuses dark mode's several hundred other component-specific hardcoded-color overrides as-is rather than giving each a bespoke high-contrast pass — see the scope note in `styles.css` above the `body.dark-mode.high-contrast-mode` block.
+
+---
+
 ## [4.8.1] — 2026-08-03
 
 ### Fixed

@@ -963,6 +963,159 @@ body.dark-mode .cal-page-label {
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   HIGH CONTRAST THEME (GitHub issue #33)
+   Applied together with .dark-mode (both classes on <body>, set by
+   applyTheme() in src/ui.js) so it inherits dark-mode's surface colors and
+   the JS chart/gauge color logic that already branches on `dark-mode`, then
+   overrides the shared CSS custom properties plus the specific hardcoded-
+   color spots already known to be low-contrast (WCAG AA 4.5:1 minimum;
+   values below are chosen to also clear AAA's 7:1 against pure black/white)
+   for a pure black/white/bright-accent look with no gradients or shadows.
+   Selectors use the compound `body.dark-mode.high-contrast-mode` class pair
+   so specificity always wins over the single-class `body.dark-mode` rules
+   regardless of source order in this file.
+
+   Scope note: this overrides the ~20 shared CSS custom properties and the
+   handful of known trouble spots below, so anything already using var() is
+   covered automatically. The few hundred other `body.dark-mode .foo {}`
+   rules elsewhere in this file that hardcode dark-mode's own palette
+   directly (not through variables) are NOT individually re-themed here -
+   those inherit dark mode's existing (generally reasonable) contrast rather
+   than getting a bespoke high-contrast pass. ═══════════════════════════════════════════════════════════════════════════ */
+
+body.dark-mode.high-contrast-mode {
+    background: #000000;
+    color: #ffffff;
+
+    --primary-color: #66b3ff;
+    --primary-hsl: 210 100% 70%;
+    --primary-hover: #99ccff;
+    --success-color: #22ff88;
+    --success-hover: #66ffaa;
+    --success-active: #66ffaa;
+    --danger-color: #ff6b6b;
+    --danger-hover: #ff9999;
+    --secondary-color: #d4d4d4;
+    --secondary-hover: #ffffff;
+    --light-bg: #000000;
+    --border-color: #ffffff;
+    --text-primary: #ffffff;
+    --text-secondary: #ffffff;
+    --text-muted: #d4d4d4;
+    --card-bg: #000000;
+    --text-color: #ffffff;
+    --bg-color: #000000;
+    --table-header-bg: #000000;
+    --shadow: none;
+    --shadow-lg: none;
+}
+
+/* Every focusable element gets one bold, consistent focus ring instead of
+   relying on each component's own (often subtle) focus styling. */
+body.dark-mode.high-contrast-mode *:focus-visible {
+    outline: 3px solid #ffd60a;
+    outline-offset: 2px;
+}
+
+body.dark-mode.high-contrast-mode .container {
+    background: #000000;
+    border: 2px solid #ffffff;
+}
+
+body.dark-mode.high-contrast-mode header {
+    background: #000000;
+    border-bottom: 2px solid #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .top-nav {
+    background: #000000;
+    border-top: 2px solid #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .header-icon-btn {
+    color: #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .header-icon-btn:hover {
+    background: rgba(255,255,255,0.25);
+    color: #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .page-button {
+    color: #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .page-button.active {
+    color: #ffffff;
+    border-bottom-color: #ffd60a;
+    border-bottom-width: 3px;
+}
+
+body.dark-mode.high-contrast-mode input,
+body.dark-mode.high-contrast-mode select,
+body.dark-mode.high-contrast-mode textarea {
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+}
+
+body.dark-mode.high-contrast-mode table {
+    background: #000000;
+    color: #ffffff;
+}
+
+body.dark-mode.high-contrast-mode td,
+body.dark-mode.high-contrast-mode th {
+    border-bottom-color: #ffffff;
+    color: #ffffff;
+}
+
+/* Outline-style buttons: a shared black background + colored border/text
+   per variant, rather than trying to find a text color that stays readable
+   on every bright fill color a .btn-* class might use as its background. */
+body.dark-mode.high-contrast-mode .btn,
+body.dark-mode.high-contrast-mode .btn-primary,
+body.dark-mode.high-contrast-mode .btn-success,
+body.dark-mode.high-contrast-mode .btn-danger,
+body.dark-mode.high-contrast-mode .btn-secondary {
+    background: #000000;
+    border: 2px solid currentColor;
+}
+
+body.dark-mode.high-contrast-mode .btn-primary { color: #66b3ff; }
+body.dark-mode.high-contrast-mode .btn-success { color: #22ff88; }
+body.dark-mode.high-contrast-mode .btn-danger { color: #ff6b6b; }
+body.dark-mode.high-contrast-mode .btn-secondary,
+body.dark-mode.high-contrast-mode .btn { color: #ffffff; }
+
+body.dark-mode.high-contrast-mode .btn:hover,
+body.dark-mode.high-contrast-mode .btn-primary:hover,
+body.dark-mode.high-contrast-mode .btn-success:hover,
+body.dark-mode.high-contrast-mode .btn-danger:hover,
+body.dark-mode.high-contrast-mode .btn-secondary:hover {
+    background: #1a1a1a;
+}
+
+/* Calendar event/payday pills: per-debt colors (--event-bg) come from a
+   fixed palette (src/strategy.js) that isn't guaranteed to pass 4.5:1 with
+   white text (WCAG 1.4.3; see docs/audit/a11y/A11Y_AUDIT_REPORT.md S3). In
+   high contrast mode the color-coding moves to the left border accent and
+   the fill goes to solid black with solid white text, so legibility never
+   depends on which palette color a given debt was assigned. */
+body.dark-mode.high-contrast-mode .cal-event,
+body.dark-mode.high-contrast-mode .cal-income-event {
+    background: #000000;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+    border-left: 3px solid var(--event-bg, #ffffff);
+}
+
+body.dark-mode.high-contrast-mode .app-footer {
+    color: #ffffff;
+    border-top-color: #ffffff;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1049,6 +1202,33 @@ body.dark-mode .header-icon-btn:hover {
 /* Keep old class names harmless if referenced elsewhere */
 .header-toolbar-btn { display: none; }
 
+/* Theme selector (Light / Dark / High Contrast) - a real <select> rather
+   than a cycling icon button so all three options have a discoverable,
+   individually-labeled affordance. Background is solid/light regardless of
+   theme since the dropdown popup itself is rendered by the OS/browser and
+   isn't stylable through our CSS - the closed control needs to stay legible
+   on its own. */
+.header-theme-select {
+    height: 32px;
+    padding: 0 6px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.90);
+    color: #1e293b;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.header-theme-select:hover {
+    background: #fff;
+}
+
+.header-theme-select:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
 body.dark-mode .top-nav {
     background: rgba(0,0,0,0.30);
     border-top-color: rgba(255,255,255,0.08);
@@ -1128,8 +1308,13 @@ header p {
     text-transform: uppercase;
     padding: 2px 8px;
     border-radius: 999px;
-    background: rgba(255,255,255,0.18);
-    color: rgba(255,255,255,0.60);
+    /* A dark badge with near-opaque text (rather than translucent-white-on-
+       translucent-white) so contrast doesn't depend on the unpredictable
+       header gradient behind it - composited against both the light and
+       dark header gradients this measures ~6.8:1 / ~12.7:1 (was ~2.9:1 in
+       light mode; WCAG 1.4.3 needs 4.5:1). See GitHub issue #33. */
+    background: rgba(0,0,0,0.25);
+    color: rgba(255,255,255,0.82);
     transition: background 0.15s, color 0.15s;
     white-space: nowrap;
 }

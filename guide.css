@@ -315,6 +315,47 @@ body.dark-mode .back-to-app:hover {
     background: #2563eb;
 }
 
+/* High Contrast theme (GitHub issue #33) - see the matching, more fully
+   commented section in styles.css. guide.html links both stylesheets, so
+   most shared elements already pick up styles.css's swapped CSS custom
+   properties; these are guide.html's own hardcoded-color spots. */
+body.dark-mode.high-contrast-mode .guide-container,
+body.dark-mode.high-contrast-mode .guide-section,
+body.dark-mode.high-contrast-mode .toc,
+body.dark-mode.high-contrast-mode .guide-note {
+    background: #000000;
+    border-color: #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .guide-header {
+    background: #000000;
+    border-bottom: 2px solid #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .guide-table th,
+body.dark-mode.high-contrast-mode .guide-table td {
+    border-color: #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .guide-table thead th {
+    background: #000000;
+    color: #ffffff;
+    border-bottom: 2px solid #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .guide-warning {
+    background: #000000;
+    color: #ff9999;
+    border: 2px solid #ff6b6b;
+}
+
+body.dark-mode.high-contrast-mode .back-to-app,
+body.dark-mode.high-contrast-mode .back-to-top {
+    background: #000000;
+    color: #66b3ff;
+    border: 2px solid #66b3ff;
+}
+
 @media (max-width: 768px) {
     body {
         padding: 12px;

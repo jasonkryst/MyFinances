@@ -72,13 +72,13 @@ MyFinances prioritizes your financial data security:
 ### Navigation & Accessibility
 - **Grouped main navigation** — Three labeled groups: **Overview** (Health, Accounts, Income), **Manage** (Liabilities, Recurring, Savings, Plan), **Analyze** (Reports, Ledger, Reconcile); active-group highlighting, `aria-current`, hamburger menu on ≤768px
 - **Command palette** — Ctrl/Cmd+K or the 🔍 toolbar button opens a fuzzy-search jump list across all 10 pages and common actions; Arrow-key navigation, Enter to activate, Escape restores focus; full `role="dialog"` / `role="listbox"` ARIA semantics
-- **Dark mode** — toggle in the header toolbar; preference persisted to localStorage
+- **Theme selector (Light / Dark / High Contrast)** — 3-way selector in the header toolbar; preference persisted to localStorage. High Contrast targets WCAG AA/AAA with pure black surfaces, bright accent colors, and a bold focus outline on every interactive element; command palette includes a "Cycle theme" action
 - **Print / Save as PDF** — 🖨️ Print button on every page; `@media print` hides forms/controls so only read-only data content prints; browser print-to-PDF doubles as a PDF export
 - **Keyboard navigation** — all interactive elements reachable by keyboard; modals trap focus and Escape-to-close; calendar day-cells keyboard-activatable
 - **Reduced motion** — `prefers-reduced-motion: reduce` collapses all CSS transitions/animations; `Chart.defaults.animation` disabled app-wide when the OS preference is set
 - **Screen-reader chart tables** — every Chart.js canvas has a paired visually-hidden `.sr-only` `<table>` with the same data, rebuilt on every chart re-render via `renderChartDataTable()` in `utils.js`
 - **localStorage quota monitoring** — soft-warning banner when usage crosses ~80% of the estimated 5 MB limit; hard-failure banner if `setItem` actually throws
-- **In-app guide** — the ❓ Help button opens `guide.html` in a new tab; theme and dark mode follow the main app preference
+- **In-app guide** — the ❓ Help button opens `guide.html` in a new tab; theme (including High Contrast) follows the main app preference
 
 ---
 
@@ -331,23 +331,23 @@ src/
   ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   └─ utils.js              — Formatting, date utilities, sanitization, chart tables
-tests/ (497 tests across 54 files)
+tests/ (553 tests across 57 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/ (56 tests)     — XSS, CSP, input validation, static scan
   │   ├─ test_xss.py, test_csp.py
   │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (247 tests)    — Per-feature CRUD, calculations, business logic
+  ├─ features/ (286 tests)    — Per-feature CRUD, calculations, business logic
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
   │   ├─ test_health.py, test_forecast.py, test_reconciliation.py
   │   ├─ test_spending_analysis.py, test_storage_import.py, test_storage_quota.py
   │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
-  │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py
+  │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py, test_versioning.py
   │   └─ test_break_even.py, test_interest_income.py
-  ├─ ui/ (170 tests)          — UI/UX, responsiveness, accessibility
-  │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py
+  ├─ ui/ (187 tests)          — UI/UX, responsiveness, accessibility
+  │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py, test_high_contrast_theme.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
   │   ├─ test_charts.py, test_chart_accessibility.py, test_guide_theme.py
   │   ├─ test_guide_nav.py, test_reduced_motion.py, test_command_palette.py
@@ -441,11 +441,11 @@ form-action 'self'
 
 ---
 
-## 🧪 Testing Suite (Updated July 14, 2026)
+## 🧪 Testing Suite (Updated August 3, 2026)
 
 ### Test Statistics
-- **Total Tests**: 497 comprehensive tests, all passing
-- **Test Files**: 54 organized across 5 categories
+- **Total Tests**: 553 comprehensive tests, all passing
+- **Test Files**: 57 organized across 5 categories
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
@@ -457,7 +457,7 @@ form-action 'self'
 - **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
 - **Static Analysis** — Code patterns, hardcoded secrets, dependencies
 
-#### 🎯 Feature Tests (247 tests)
+#### 🎯 Feature Tests (286 tests)
 - **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion; interest-rate (% APY) badge display — threshold/formatting boundaries, multi-account scoping, edit-to-clear, reload persistence, import clamping
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
 - **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
@@ -481,10 +481,11 @@ form-action 'self'
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 - **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
 
-#### 🎨 UI/UX Tests (170 tests)
+#### 🎨 UI/UX Tests (187 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
 - **Modals** — Visibility toggling, close buttons, amortization, calendar day-detail, ledger export
 - **Dark Mode** — Theme switching, contrast, persistence, corrupted-localStorage fallback
+- **High Contrast Theme** — 3-way selector wiring, `dark-mode`+`high-contrast-mode` class pairing, persistence, corrupted-value fallback, focus-ring, `.nav-group-label` contrast regression guard
 - **CSS Loading** — External stylesheet, utility classes, responsive breakpoints
 - **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML, Results tab-bar semantics
 - **Guide Theme** — `guide.html` dark/light mode sync, nav back-link
@@ -512,7 +513,7 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 497 tests
+pytest tests/ -v                  # All 553 tests
 pytest tests/security/ -v         # 56 security tests
 pytest tests/features/ -v         # 247 feature tests
 pytest tests/ui/ -v               # 170 UI/UX tests

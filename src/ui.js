@@ -4,28 +4,37 @@ import { refreshAccountSelectors } from './accounts.js';
 import { escapeHtml } from './utils.js';
 import { initCommandPalette } from './commandPalette.js';
 
+// Order matters for cycleTheme() (commandPalette.js), which steps through
+// this list by index.
+export const THEMES = ['light', 'dark', 'high-contrast'];
+
+// High Contrast is built on top of Dark Mode (both classes applied together)
+// so it inherits dark-mode's existing surface colors and the JS chart/gauge
+// color logic that already branches on `dark-mode` (forecast.js, health.js,
+// reportsCashFlow.js, reportsNetWorth.js), then layers stronger overrides
+// via `body.dark-mode.high-contrast-mode` in styles.css.
+export function applyTheme(theme) {
+    const t = THEMES.includes(theme) ? theme : 'light';
+    document.body.classList.toggle('dark-mode', t === 'dark' || t === 'high-contrast');
+    document.body.classList.toggle('high-contrast-mode', t === 'high-contrast');
+    const themeSwitcher = document.getElementById('themeSwitcher');
+    if (themeSwitcher) themeSwitcher.value = t;
+    return t;
+}
+
 export function initializeEventListeners(app) {
     initCommandPalette(app);
     const themeSwitcher = document.getElementById('themeSwitcher');
-    const applyTheme = (theme) => {
-        const isDark = theme === 'dark';
-        document.body.classList.toggle('dark-mode', isDark);
-        if (themeSwitcher) {
-            themeSwitcher.textContent = isDark ? '☀️' : '🌙';
-            themeSwitcher.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Toggle dark mode');
-        }
-    };
 
     const savedTheme = localStorage.getItem('debtTrackerTheme');
-    if (savedTheme === 'dark' || savedTheme === 'light') {
+    if (THEMES.includes(savedTheme)) {
         applyTheme(savedTheme);
     }
 
     if (themeSwitcher) {
-        themeSwitcher.addEventListener('click', () => {
-            const nextTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
-            applyTheme(nextTheme);
-            localStorage.setItem('debtTrackerTheme', nextTheme);
+        themeSwitcher.addEventListener('change', () => {
+            const applied = applyTheme(themeSwitcher.value);
+            localStorage.setItem('debtTrackerTheme', applied);
         });
     }
 

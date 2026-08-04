@@ -30,7 +30,12 @@
                     </button>
                     <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
-                    <button id="themeSwitcher" class="header-icon-btn" aria-label="Toggle dark mode">🌙</button>
+                    <label for="themeSwitcher" class="sr-only">Theme</label>
+                    <select id="themeSwitcher" class="header-theme-select" aria-label="Theme">
+                        <option value="light">☀️ Light</option>
+                        <option value="dark">🌙 Dark</option>
+                        <option value="high-contrast">◐ High Contrast</option>
+                    </select>
                     <div class="header-toolbar-divider"></div>
                     <button id="settingsBtn" class="header-icon-btn" title="Settings" aria-label="Open settings">⚙️</button>
                     <a id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>

@@ -5,7 +5,7 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 497 Tests Passing across 5 categories (security, features, ui, a11y, integration)
+- ✅ 553 Tests Passing across 5 categories (security, features, ui, a11y, integration)
 - ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, and Settings
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
@@ -80,7 +80,7 @@ tests/
 │   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
 │   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
 │   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
-├── features/                   # Feature-specific tests (247 tests)
+├── features/                   # Feature-specific tests (286 tests)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning, interest-rate badge display)
 │   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
@@ -105,10 +105,11 @@ tests/
 │   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
 │   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   └── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
-├── ui/                         # UI/UX and responsive tests (170 tests)
+├── ui/                         # UI/UX and responsive tests (187 tests)
 │   ├── test_mobile.py          # Mobile responsiveness, hamburger menu, touch sizing
 │   ├── test_modals.py          # Modal visibility, close buttons, calendar day-detail
-│   ├── test_dark_mode.py       # Dark mode toggle, persistence, corrupted-localStorage fallback
+│   ├── test_dark_mode.py       # Dark/light theme selection, persistence, corrupted-localStorage fallback
+│   ├── test_high_contrast_theme.py # 3-way theme selector, dark-mode+high-contrast-mode pairing, persistence, focus ring
 │   ├── test_css_load.py        # External stylesheet, utility classes, responsive breakpoints
 │   ├── test_accessibility.py   # Keyboard nav, ARIA labels, semantic HTML, Results tab-bar
 │   ├── test_charts.py          # Chart.js destroy-before-recreate on repeated re-render

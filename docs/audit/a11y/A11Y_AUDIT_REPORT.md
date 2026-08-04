@@ -229,3 +229,13 @@ Across all 10 pages, both themes, mobile, and `guide.html`:
 ## Suggested next step
 
 This report doesn't prescribe an order — happy to tackle whichever of these you'd like, in any combination (e.g., "just the Serious items," "start with S1 and S4," "fix the shared gray token used in S2/M3 first since it's one change with wide impact," etc.). Let me know how you'd like to proceed.
+
+---
+
+## Addendum — 2026-08-03 (GitHub issue #33)
+
+Since this report was written (v3.3.0), several items have already been resolved independently: **M1** (skip link — now present, `tests/ui/test_accessibility.py::test_skip_link`), and **S4** (`.btn-success` now uses `--success-hover`, which passes 4.5:1). This pass (v4.9.0) additionally:
+
+- **Fixed a new contrast bug found while investigating this issue**: `.nav-group-label` (the "Overview"/"Manage"/"Analyze" nav pills) used translucent-white-on-translucent-white styling whose real contrast depends on the header gradient behind it. The naive automated audit script's `getComputedStyle`-based contrast check doesn't composite alpha, and its per-page-load sampling occasionally caught the element mid-CSS-transition, producing intermittent readings between ~1.2:1 and ~1.5:1 (`pytest tests/a11y/test_a11y_audit.py::test_site_wide_color_contrast`). Manually compositing the actual declared layers found the real steady-state ratio is ~2.9:1 in light mode — a genuine WCAG 1.4.3 failure, not just a tooling artifact. Redesigned as a solid dark badge with near-opaque text (~6.8:1 light / ~12.7:1 dark); see the CSS comment above `.nav-group-label` in `styles.css`.
+- **Added a High Contrast theme** (third option alongside Light/Dark) targeting WCAG AA/AAA: pure black surfaces, white text, bright accent colors (~7–17:1 against black for the specific colors chosen), a single bold `outline: 3px solid` focus ring on every focusable element, and outline-style buttons/badges for the previously-flagged trouble spots (**S3** calendar pills, **S2**-adjacent footer). Implemented as `body.dark-mode.high-contrast-mode` in `styles.css`, built on top of dark mode's existing color logic rather than as an independent third stylesheet — see the scope note in that CSS block for what is and isn't covered.
+- **Not addressed in this pass**: **S5**'s broader claim that plain dark mode reuses light-mode's `--primary-color`/`--success-color` verbatim in scattered spots, and the ~200 other hardcoded (non-variable) `body.dark-mode .foo {}` component rules throughout `styles.css` — these are unchanged from dark mode's existing (generally reasonable, per the compositing math above) contrast and were out of scope for a CSS-variable-driven High Contrast pass. Still open for a future, more exhaustive pass if wanted.
