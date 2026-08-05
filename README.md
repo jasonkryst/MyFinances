@@ -260,7 +260,7 @@ Navigate to **Income**. Add one row per income source. Use the one-time entry se
 Navigate to **Liabilities** (Budget sub-tab). Add bills (fixed monthly costs) and expense budgets (variable spending targets with category and date). The Cash Flow Summary panel shows net remaining after all outflows.
 
 ### 6 — Export / Import
-The **⬇ Export** and **⬆ Import** buttons are in the top-right toolbar on every page.
+The **Backup & Restore** button (⇅ icon) is in the top-right toolbar on every page, opening a two-tab modal.
 
 - **Export (JSON)** — complete backup of all data as a single `.json` file
 - **Import (JSON)** — choose Replace (full restore) or Merge (append debts)
@@ -571,7 +571,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for Nginx, Apache, and Docker configurations 
 ## 🐛 Troubleshooting
 
 **My data disappeared.**
-> Browser storage may have been cleared. Use **⬇ Export** regularly as a portable JSON backup you can re-import any time.
+> Browser storage may have been cleared. Use **Backup & Restore → Export** regularly as a portable JSON backup you can re-import any time.
 
 **Import says "duplicate skipped" but I wanted to update.**
 > Delete or rename the existing item first, then re-import. Or use inline editing to update manually.
