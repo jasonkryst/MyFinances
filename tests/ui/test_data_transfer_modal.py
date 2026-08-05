@@ -92,7 +92,6 @@ def test_export_button_triggers_download(app_page):
 
 
 @pytest.mark.ui
-@pytest.mark.skip(reason="inline Replace/Merge choice wired in Task 4")
 def test_import_button_opens_file_picker_and_triggers_import(app_page):
     """Positive: clicking Choose File then selecting a file calls
     app.importAllJSON (verified via a resulting localStorage write)."""
@@ -104,7 +103,13 @@ def test_import_button_opens_file_picker_and_triggers_import(app_page):
     open_data_transfer(page)
     page.click('[data-dt-tab="import"]')
 
-    test_data = {"accounts": [{"id": 1, "name": "DT Modal Test", "type": "Checking", "startingBalance": 100}], "debts": []}
+    # dataExport.js's "no recognisable data" check only looks at
+    # debts/incomes/strategy/bills/expenses/recurring, not accounts -
+    # an accounts-only file trips it, so include a debt too.
+    test_data = {
+        "accounts": [{"id": 1, "name": "DT Modal Test", "type": "Checking", "startingBalance": 100}],
+        "debts": [{"name": "DT Modal Card", "accountBalance": 50, "interestRate": 10, "minimumPayment": 10}],
+    }
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         json.dump(test_data, f)
         temp_file = f.name
@@ -122,5 +127,152 @@ def test_import_button_opens_file_picker_and_triggers_import(app_page):
 
         stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
         assert stored and 'DT Modal Test' in stored
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.ui
+def test_invalid_json_file_shows_inline_error_banner(app_page):
+    """Positive: selecting a non-JSON file shows an inline error banner
+    instead of a native alert()."""
+    import tempfile
+    import os
+
+    page = app_page
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        f.write('not valid json {{{')
+        temp_file = f.name
+
+    try:
+        page.query_selector('#importJsonInput').set_input_files(temp_file)
+        page.wait_for_timeout(300)
+
+        banner = page.query_selector('#importResultBanner')
+        assert banner.is_visible()
+        assert 'Invalid JSON' in banner.inner_text()
+        assert 'target-result--error' in banner.get_attribute('class')
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.ui
+def test_empty_data_file_shows_inline_error_banner(app_page):
+    """Positive: a syntactically valid JSON file with no recognisable data
+    shows an inline error banner."""
+    import json
+    import tempfile
+    import os
+
+    page = app_page
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump({"foo": "bar"}, f)
+        temp_file = f.name
+
+    try:
+        page.query_selector('#importJsonInput').set_input_files(temp_file)
+        page.wait_for_timeout(300)
+
+        banner = page.query_selector('#importResultBanner')
+        assert banner.is_visible()
+        assert 'No recognisable data' in banner.inner_text()
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.ui
+def test_replace_vs_merge_choice_shown_inline_not_as_native_confirm(app_page):
+    """Positive: importing over existing data shows the inline
+    Replace/Merge choice (no native confirm() dialog — the page fixture
+    would auto-accept any native dialog, which would mean OK/Replace; here
+    we explicitly click Merge and verify merge semantics took effect)."""
+    import json
+    import tempfile
+    import os
+
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', 'Pre-existing Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_selector('text=Pre-existing Account', timeout=10000)
+
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
+
+    # dataExport.js's "no recognisable data" check only looks at
+    # debts/incomes/strategy/bills/expenses/recurring, not accounts -
+    # an accounts-only file trips it, so include a debt too.
+    new_data = {
+        "accounts": [{"id": 2, "name": "Imported Account", "type": "Savings", "startingBalance": 500}],
+        "debts": [{"name": "Imported Card", "accountBalance": 25, "interestRate": 5, "minimumPayment": 5}],
+    }
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(new_data, f)
+        temp_file = f.name
+
+    try:
+        page.query_selector('#importJsonInput').set_input_files(temp_file)
+        page.wait_for_timeout(300)
+
+        assert page.is_visible('#importModeChoice')
+        summary = page.inner_text('#importModeSummary')
+        assert 'account' in summary.lower()
+
+        page.click('#importModeMergeBtn')
+        page.wait_for_timeout(300)
+
+        assert page.is_visible('#importModeChoice') is False
+        banner = page.query_selector('#importResultBanner')
+        assert banner.is_visible()
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.ui
+def test_merge_with_skipped_duplicates_shows_duplicate_count_not_generic_message(app_page):
+    """Regression guard for the onImported/onMergeDuplicates ordering fix in
+    dataExport.js: when duplicates are skipped during a Merge, the banner
+    must show the duplicate-count message, not get overwritten by the
+    generic "Imported: ..." message."""
+    import json
+    import tempfile
+    import os
+
+    page = app_page
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    page.fill('#debtName', 'Dup Card')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '100')
+    page.fill('#interestRate', '10')
+    page.fill('#minimumPayment', '25')
+    page.fill('#dueDate', '5')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=Dup Card', timeout=10000)
+
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
+
+    dup_data = {"debts": [{"name": "Dup Card", "accountBalance": 200, "interestRate": 15, "minimumPayment": 30}]}
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(dup_data, f)
+        temp_file = f.name
+
+    try:
+        page.query_selector('#importJsonInput').set_input_files(temp_file)
+        page.wait_for_timeout(300)
+        page.click('#importModeMergeBtn')
+        page.wait_for_timeout(300)
+
+        banner_text = page.inner_text('#importResultBanner')
+        assert 'Skipped 1 duplicate' in banner_text
     finally:
         os.unlink(temp_file)

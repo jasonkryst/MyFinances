@@ -16,6 +16,10 @@ export function initDataTransferModal(app) {
         modal.classList.add('hidden');
         modal.classList.remove('flex-visible');
         modal.onkeydown = null;
+        const banner = document.getElementById('importResultBanner');
+        if (banner) { banner.textContent = ''; banner.className = 'target-result hidden'; }
+        const choice = document.getElementById('importModeChoice');
+        if (choice) choice.classList.add('hidden');
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
@@ -73,4 +77,35 @@ export function initDataTransferModal(app) {
             importInput.value = '';
         });
     }
+}
+
+export function showImportResult(kind, message) {
+    const banner = document.getElementById('importResultBanner');
+    if (!banner) return;
+    banner.textContent = message;
+    const modifier = kind === 'success' ? '' : ` target-result--${kind}`;
+    banner.className = `target-result${modifier}`;
+}
+
+export function requestImportModeChoice(parts) {
+    return new Promise((resolve) => {
+        const choice = document.getElementById('importModeChoice');
+        const summary = document.getElementById('importModeSummary');
+        const replaceBtn = document.getElementById('importModeReplaceBtn');
+        const mergeBtn = document.getElementById('importModeMergeBtn');
+        if (!choice || !summary || !replaceBtn || !mergeBtn) {
+            resolve(true);
+            return;
+        }
+        summary.textContent = `Found: ${parts.join(', ')}. Replace your current data entirely, or merge debts only (income & strategy will still be restored; duplicate debt names are skipped)?`;
+        choice.classList.remove('hidden');
+
+        const cleanup = () => {
+            choice.classList.add('hidden');
+            replaceBtn.onclick = null;
+            mergeBtn.onclick = null;
+        };
+        replaceBtn.onclick = () => { cleanup(); resolve(true); };
+        mergeBtn.onclick = () => { cleanup(); resolve(false); };
+    });
 }
