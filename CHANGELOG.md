@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.11.0] — 2026-08-04
+
+### Changed
+- **Theme selector moved into Settings (#71)** — the Light/Dark/High Contrast `<select>` no longer lives in the always-visible header toolbar; it's now the first control inside the Settings modal (⚙️ gear icon), grouped with Data Storage and Language. Its `id` (`themeSwitcher`), change-applies-immediately behavior, localStorage persistence, and the command palette's "Cycle theme" action are all unchanged — only its location moved. Translated strings moved from `toolbar.theme*` to `settings.theme*` in `src/locales/{en,es,pl}.js`.
+
+---
+
 ## [4.10.0] — 2026-08-04
 
 ### Added

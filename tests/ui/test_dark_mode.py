@@ -81,7 +81,7 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
     'dark' or 'light'. If localStorage holds a garbage value (e.g. from a
     corrupted/old write), the app must not crash and must not apply
     dark-mode styling based on that garbage value."""
-    from tests.conftest import BASE_URL, assert_no_errors
+    from tests.conftest import BASE_URL, assert_no_errors, open_settings
 
     # Seed the garbage value before the app's init script runs.
     page.add_init_script(
@@ -114,6 +114,7 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
     # issue #33) should still function normally afterward.
     theme_switcher = page.query_selector('#themeSwitcher')
     if theme_switcher:
+        open_settings(page)
         page.select_option('#themeSwitcher', 'dark')
         page.wait_for_timeout(200)
         new_value = page.evaluate("() => localStorage.getItem('debtTrackerTheme')")

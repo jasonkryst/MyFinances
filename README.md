@@ -72,7 +72,7 @@ MyFinances prioritizes your financial data security:
 ### Navigation & Accessibility
 - **Grouped main navigation** — Three labeled groups: **Overview** (Health, Accounts, Income), **Manage** (Liabilities, Recurring, Savings, Plan), **Analyze** (Reports, Ledger, Reconcile); active-group highlighting, `aria-current`, hamburger menu on ≤768px
 - **Command palette** — Ctrl/Cmd+K or the 🔍 toolbar button opens a fuzzy-search jump list across all 10 pages and common actions; Arrow-key navigation, Enter to activate, Escape restores focus; full `role="dialog"` / `role="listbox"` ARIA semantics
-- **Theme selector (Light / Dark / High Contrast)** — 3-way selector in the header toolbar; preference persisted to localStorage. High Contrast targets WCAG AA/AAA with pure black surfaces, bright accent colors, and a bold focus outline on every interactive element; command palette includes a "Cycle theme" action
+- **Theme selector (Light / Dark / High Contrast)** — 3-way selector in the Settings modal (gear icon); preference persisted to localStorage. High Contrast targets WCAG AA/AAA with pure black surfaces, bright accent colors, and a bold focus outline on every interactive element; command palette includes a "Cycle theme" action
 - **Print / Save as PDF** — 🖨️ Print button on every page; `@media print` hides forms/controls so only read-only data content prints; browser print-to-PDF doubles as a PDF export
 - **Keyboard navigation** — all interactive elements reachable by keyboard; modals trap focus and Escape-to-close; calendar day-cells keyboard-activatable
 - **Reduced motion** — `prefers-reduced-motion: reduce` collapses all CSS transitions/animations; `Chart.defaults.animation` disabled app-wide when the OS preference is set

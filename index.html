@@ -30,13 +30,6 @@
                     </button>
                     <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
-                    <label for="themeSwitcher" class="sr-only" data-i18n="toolbar.theme">Theme</label>
-                    <select id="themeSwitcher" class="header-theme-select" data-i18n-attr="aria-label:toolbar.theme" aria-label="Theme">
-                        <option value="light" data-i18n="toolbar.themeLight">☀️ Light</option>
-                        <option value="dark" data-i18n="toolbar.themeDark">🌙 Dark</option>
-                        <option value="high-contrast" data-i18n="toolbar.themeHighContrast">◐ High Contrast</option>
-                    </select>
-                    <div class="header-toolbar-divider"></div>
                     <button id="settingsBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.settingsTitle,aria-label:toolbar.settingsAriaLabel" title="Settings" aria-label="Open settings">⚙️</button>
                     <a id="helpBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.helpTitle,aria-label:toolbar.helpAriaLabel" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>
                 </div>
@@ -1027,6 +1020,15 @@
         <div class="modal-content">
             <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="settingsModalTitle" data-i18n="settings.title">Settings</h3>
+            <div class="form-group modal-form-group">
+                <label for="themeSwitcher" data-i18n="settings.themeLabel">Theme</label>
+                <select id="themeSwitcher">
+                    <option value="light" data-i18n="settings.themeLight">☀️ Light</option>
+                    <option value="dark" data-i18n="settings.themeDark">🌙 Dark</option>
+                    <option value="high-contrast" data-i18n="settings.themeHighContrast">◐ High Contrast</option>
+                </select>
+                <p class="modal-helper-text" data-i18n="settings.themeHelp">High Contrast layers extra overrides on top of Dark for stronger contrast.</p>
+            </div>
             <div class="form-group modal-form-group">
                 <label class="settings-toggle-row" for="settingReconciliationAdjusts">
                     <input type="checkbox" id="settingReconciliationAdjusts">

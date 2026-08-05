@@ -321,14 +321,25 @@ def collect_audit_findings(headless=True):
         # #themeSwitcher is a 3-option <select> (Light/Dark/High Contrast,
         # GitHub issue #33), not a toggle button - use select_option rather
         # than click (which doesn't reliably change a native select's value).
+        # It now lives inside the Settings modal (#71), so it must be opened
+        # before the select is interactable, and closed again afterward so
+        # it doesn't sit open over the rest of the audit.
+        page.click("#settingsBtn")
+        page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
         page.select_option("#themeSwitcher", "dark")
         page.wait_for_timeout(150)
+        page.click("#settingsModalDoneBtn")
+        page.wait_for_selector("#settingsModal", state="hidden", timeout=5000)
         for name in PAGES:
             page.evaluate("(p) => window.app.switchPage(p)", name)
             page.wait_for_timeout(150)
             results["dark_mode_contrast"][name] = page.evaluate(JS_CONTRAST)
+        page.click("#settingsBtn")
+        page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
         page.select_option("#themeSwitcher", "light")  # back to light
         page.wait_for_timeout(150)
+        page.click("#settingsModalDoneBtn")
+        page.wait_for_selector("#settingsModal", state="hidden", timeout=5000)
 
         # ── Modal checks ────────────────────────────────────────────────
         # Update Balance modal (Liabilities > Debts)

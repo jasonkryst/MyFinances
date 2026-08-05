@@ -13,7 +13,7 @@ layers a pure black/white/bright-accent palette on top.
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, open_settings
 
 
 @pytest.mark.ui
@@ -34,6 +34,7 @@ def test_selecting_high_contrast_applies_both_body_classes(app_page):
     """Selecting High Contrast adds dark-mode AND high-contrast-mode (it's
     built as an extension of dark mode, not a standalone third palette)."""
     page = app_page
+    open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
     page.wait_for_timeout(200)
 
@@ -48,6 +49,7 @@ def test_selecting_plain_dark_does_not_add_high_contrast_class(app_page):
     """Negative case: plain Dark must not accidentally also apply the
     stronger high-contrast-mode overrides."""
     page = app_page
+    open_settings(page)
     page.select_option('#themeSwitcher', 'dark')
     page.wait_for_timeout(200)
 
@@ -61,6 +63,7 @@ def test_switching_high_contrast_to_light_removes_both_classes(app_page):
     """Negative/regression case: no stale dark-mode or high-contrast-mode
     class should survive a switch back to Light."""
     page = app_page
+    open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
     page.wait_for_timeout(150)
     page.select_option('#themeSwitcher', 'light')
@@ -76,6 +79,7 @@ def test_high_contrast_persists_across_reload(app_page):
     """The choice is saved to localStorage and re-applied (both classes,
     correct <select> value) after a full page reload."""
     page = app_page
+    open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
     page.wait_for_timeout(150)
 
@@ -119,6 +123,7 @@ def test_high_contrast_uses_pure_black_surfaces(app_page):
     surface colors are actually applied (not just the body classes), so a
     future CSS refactor that silently drops the override is caught."""
     page = app_page
+    open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
     page.wait_for_timeout(200)
 
@@ -138,6 +143,7 @@ def test_light_and_dark_container_background_unaffected_by_high_contrast_css(app
     must not change what plain Light or Dark look like (the new rules are
     scoped to the compound .dark-mode.high-contrast-mode selector)."""
     page = app_page
+    open_settings(page)
 
     page.select_option('#themeSwitcher', 'light')
     page.wait_for_timeout(150)
@@ -177,8 +183,15 @@ def test_high_contrast_focus_visible_outline_is_bold(app_page):
     """Positive case: focusable elements get the shared bold HC focus ring
     (WCAG 2.4.7) rather than each component's own (often subtle) outline."""
     page = app_page
+    open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
     page.wait_for_timeout(150)
+    # Close via Escape (keyboard) rather than clicking Done: a mouse click
+    # here would flip the browser's input-modality heuristic to "mouse",
+    # which suppresses :focus-visible on the *next* focus() call below even
+    # though that call targets an unrelated element.
+    page.keyboard.press('Escape')
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     page.focus('#exportJsonBtn')
     outline = page.evaluate("""
