@@ -1202,33 +1202,6 @@ body.dark-mode .header-icon-btn:hover {
 /* Keep old class names harmless if referenced elsewhere */
 .header-toolbar-btn { display: none; }
 
-/* Theme selector (Light / Dark / High Contrast) - a real <select> rather
-   than a cycling icon button so all three options have a discoverable,
-   individually-labeled affordance. Background is solid/light regardless of
-   theme since the dropdown popup itself is rendered by the OS/browser and
-   isn't stylable through our CSS - the closed control needs to stay legible
-   on its own. */
-.header-theme-select {
-    height: 32px;
-    padding: 0 6px;
-    border: none;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.90);
-    color: #1e293b;
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.header-theme-select:hover {
-    background: #fff;
-}
-
-.header-theme-select:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
-}
-
 body.dark-mode .top-nav {
     background: rgba(0,0,0,0.30);
     border-top-color: rgba(255,255,255,0.08);
