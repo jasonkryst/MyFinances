@@ -226,6 +226,7 @@ export function importAllJSON(app, file, options = {}) {
         onNoData,
         requestImportMode,
         onMergeDuplicates,
+        onImported,
         onReadError,
         onTooLarge
     } = options;
@@ -238,7 +239,7 @@ export function importAllJSON(app, file, options = {}) {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         let parsed;
         try {
             parsed = JSON.parse(e.target.result);
@@ -270,6 +271,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingForecastSettings = clean.forecastSettings;
 
         const validDebts = incomingDebts.filter(d => d && d.name);
+        let mergeDuplicatesReported = false;
 
         if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy
             && incomingBills.length === 0 && incomingExpenses.length === 0
@@ -290,7 +292,7 @@ export function importAllJSON(app, file, options = {}) {
         if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
         const shouldReplace = typeof requestImportMode === 'function'
-            ? requestImportMode(parts)
+            ? await requestImportMode(parts)
             : true;
 
         if (shouldReplace) {
@@ -337,6 +339,7 @@ export function importAllJSON(app, file, options = {}) {
             app.debts = [...app.debts, ...toAdd];
             if (skipped > 0 && typeof onMergeDuplicates === 'function') {
                 onMergeDuplicates(toAdd.length, skipped);
+                mergeDuplicatesReported = true;
             }
             app.accounts = incomingAccounts;
             app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
@@ -375,6 +378,9 @@ export function importAllJSON(app, file, options = {}) {
 
         app.saveToStorage();
         app.updateUI();
+        if (!mergeDuplicatesReported && typeof onImported === 'function') {
+            onImported(parts);
+        }
     };
 
     reader.onerror = () => {
