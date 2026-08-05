@@ -113,6 +113,7 @@ import {
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
+import { applyStaticTranslations, setLocale as setLocaleFeature } from './i18n.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -165,6 +166,8 @@ export class DebtTrackerApp {
             Chart.defaults.animation = false;
             Chart.defaults.transitions.active.animation.duration = 0;
         }
+
+        applyStaticTranslations();
 
         const isFirstRun = this.storageAdapter.get(this.storageKey) === null;
 
@@ -537,6 +540,14 @@ export class DebtTrackerApp {
      */
     switchStorageBackend(kind) {
         return switchStorageBackendFeature(this, kind);
+    }
+
+    /**
+     * Switch the active UI language ('en' | 'es' | 'pl'), persisting the
+     * preference and re-rendering translated content.
+     */
+    setLocale(code) {
+        return setLocaleFeature(this, code);
     }
 
     /**

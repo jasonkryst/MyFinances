@@ -1,34 +1,35 @@
 import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
+import { t, getIntlLocale } from './i18n.js';
 
 function dtiStatus(ratio) {
-    if (ratio < 0.28) return { cls: 'health-status--green', label: 'Healthy' };
-    if (ratio < 0.40) return { cls: 'health-status--yellow', label: 'Moderate' };
-    return { cls: 'health-status--red', label: 'High Risk' };
+    if (ratio < 0.28) return { cls: 'health-status--green', label: t('health.status.healthy') };
+    if (ratio < 0.40) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
+    return { cls: 'health-status--red', label: t('health.status.highRisk') };
 }
 
 function savingsStatus(ratio) {
-    if (ratio >= 0.20) return { cls: 'health-status--green', label: 'Strong' };
-    if (ratio >= 0.10) return { cls: 'health-status--yellow', label: 'Moderate' };
-    return { cls: 'health-status--red', label: 'Low' };
+    if (ratio >= 0.20) return { cls: 'health-status--green', label: t('health.status.strong') };
+    if (ratio >= 0.10) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
+    return { cls: 'health-status--red', label: t('health.status.low') };
 }
 
 function emergencyStatus(months) {
-    if (months >= 6) return { cls: 'health-status--green', label: '6+ months — Excellent' };
-    if (months >= 3) return { cls: 'health-status--green', label: '3–6 months — Good' };
-    if (months >= 1) return { cls: 'health-status--yellow', label: '1–3 months — Building' };
-    return { cls: 'health-status--red', label: 'Under 1 month — Critical' };
+    if (months >= 6) return { cls: 'health-status--green', label: t('health.status.efExcellent') };
+    if (months >= 3) return { cls: 'health-status--green', label: t('health.status.efGood') };
+    if (months >= 1) return { cls: 'health-status--yellow', label: t('health.status.efBuilding') };
+    return { cls: 'health-status--red', label: t('health.status.efCritical') };
 }
 
 function timelineStatus(months) {
-    if (months <= 24) return { cls: 'health-status--green', label: 'On Track' };
-    if (months <= 60) return { cls: 'health-status--yellow', label: 'Long Journey' };
-    return { cls: 'health-status--red', label: 'Extended' };
+    if (months <= 24) return { cls: 'health-status--green', label: t('health.status.onTrack') };
+    if (months <= 60) return { cls: 'health-status--yellow', label: t('health.status.longJourney') };
+    return { cls: 'health-status--red', label: t('health.status.extended') };
 }
 
 function cashFlowStatus(net) {
-    if (net > 0) return { cls: 'health-status--green', label: 'Surplus' };
-    if (net === 0) return { cls: 'health-status--yellow', label: 'Break Even' };
-    return { cls: 'health-status--red', label: 'Deficit' };
+    if (net > 0) return { cls: 'health-status--green', label: t('health.status.surplus') };
+    if (net === 0) return { cls: 'health-status--yellow', label: t('health.status.breakEven') };
+    return { cls: 'health-status--red', label: t('health.status.deficit') };
 }
 
 function budgetCategoryStatusCls(pct, category) {
@@ -121,14 +122,15 @@ export function renderHealthDashboard(app) {
     const cashFlowSt = cashFlowStatus(net);
 
     // ── Budget Allocation ──────────────────────────────────────────────────────
+    const otherLabel = t('health.otherCategory');
     const billCatMap = {};
     for (const b of (app.bills || [])) {
-        const cat = b.category || 'Other';
+        const cat = b.category || otherLabel;
         billCatMap[cat] = (billCatMap[cat] || 0) + (b.amount || 0);
     }
     const expCatMap = {};
     for (const e of (app.expenses || [])) {
-        const cat = e.category || 'Other';
+        const cat = e.category || otherLabel;
         expCatMap[cat] = (expCatMap[cat] || 0) + (e.budgetAmount || 0);
     }
     const allCats = new Set([...Object.keys(billCatMap), ...Object.keys(expCatMap)]);
@@ -141,7 +143,7 @@ export function renderHealthDashboard(app) {
     budgetCategories.sort((a, b) => b.total - a.total);
     if (totalDebtMin > 0) {
         budgetCategories.unshift({
-            cat: 'Debt Payments', total: totalDebtMin,
+            cat: t('health.debtPaymentsCategory'), total: totalDebtMin,
             pct: monthlyIncome > 0 ? totalDebtMin / monthlyIncome : 0,
             isDebt: true
         });
@@ -149,81 +151,83 @@ export function renderHealthDashboard(app) {
 
     const gaugeGray = document.body.classList.contains('dark-mode') ? '#334155' : '#e2e8f0';
 
+    const monthYearLong = now.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
+
     // ── HTML ───────────────────────────────────────────────────────────────────
     section.innerHTML = `
         <div class="health-header">
             <div class="page-header-row">
-                <h2>Financial Health</h2>
-                <button type="button" class="page-print-btn" id="healthPrintBtn" title="Print this page" aria-label="Print the Health page">🖨️ Print</button>
+                <h2>${t('health.title')}</h2>
+                <button type="button" class="page-print-btn" id="healthPrintBtn" title="${t('health.printTitle')}" aria-label="${t('health.printAriaLabel')}">🖨️ ${t('health.print')}</button>
             </div>
-            <p class="health-subtitle">A one-glance assessment of your financial well-being for ${now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.</p>
+            <p class="health-subtitle">${t('health.subtitle', { month: monthYearLong })}</p>
         </div>
         <div class="health-metrics-grid">
 
             <!-- Debt-to-Income Ratio -->
             <div class="health-metric-card">
                 <div class="health-card-header">
-                    <span class="health-card-title">Debt-to-Income Ratio</span>
+                    <span class="health-card-title">${t('health.dtiTitle')}</span>
                     <span class="health-badge ${dtiSt.cls}">${dtiSt.label}</span>
                 </div>
-                <p class="health-card-desc">Monthly debt payments as a % of income. Under 28% is ideal; above 40% is a warning sign.</p>
+                <p class="health-card-desc">${t('health.dtiDesc')}</p>
                 <div class="health-gauge-wrap">
                     <canvas id="healthDtiGauge" class="health-gauge-canvas"></canvas>
                     <div class="health-gauge-center">
                         <span class="health-gauge-value">${dtiPct.toFixed(1)}%</span>
-                        <span class="health-gauge-label">DTI</span>
+                        <span class="health-gauge-label">${t('health.dtiGaugeLabel')}</span>
                     </div>
                 </div>
                 <div class="health-metric-detail">
-                    <span>${formatCurrency(totalDebtMin)}/mo debt</span>
-                    <span>${formatCurrency(monthlyIncome)}/mo income</span>
+                    <span>${t('health.perMonthDebt', { amount: formatCurrency(totalDebtMin) })}</span>
+                    <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
                 </div>
-                <a class="health-link" data-health-nav="liabilities">Manage debts &rarr;</a>
+                <a class="health-link" data-health-nav="liabilities">${t('health.manageDebts')} &rarr;</a>
             </div>
 
             <!-- Savings Rate -->
             <div class="health-metric-card">
                 <div class="health-card-header">
-                    <span class="health-card-title">Savings Rate</span>
+                    <span class="health-card-title">${t('health.savingsTitle')}</span>
                     <span class="health-badge ${savingsSt.cls}">${savingsSt.label}</span>
                 </div>
-                <p class="health-card-desc">Emergency + sinking fund contributions as a % of income. 20%+ is excellent.</p>
+                <p class="health-card-desc">${t('health.savingsDesc')}</p>
                 <div class="health-gauge-wrap">
                     <canvas id="healthSavingsGauge" class="health-gauge-canvas"></canvas>
                     <div class="health-gauge-center">
                         <span class="health-gauge-value">${savingsPct.toFixed(1)}%</span>
-                        <span class="health-gauge-label">Saved</span>
+                        <span class="health-gauge-label">${t('health.savingsGaugeLabel')}</span>
                     </div>
                 </div>
                 <div class="health-metric-detail">
-                    <span>${formatCurrency(totalSavingsContrib)}/mo saved</span>
-                    <span>${formatCurrency(monthlyIncome)}/mo income</span>
+                    <span>${t('health.perMonthSaved', { amount: formatCurrency(totalSavingsContrib) })}</span>
+                    <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
                 </div>
-                <a class="health-link" data-health-nav="savings">Manage savings &rarr;</a>
+                <a class="health-link" data-health-nav="savings">${t('health.manageSavings')} &rarr;</a>
             </div>
 
             <!-- Emergency Fund Coverage -->
             <div class="health-metric-card">
                 <div class="health-card-header">
-                    <span class="health-card-title">Emergency Fund Coverage</span>
+                    <span class="health-card-title">${t('health.efTitle')}</span>
                 </div>
-                <p class="health-card-desc">Months of expenses covered per emergency fund. 3–6 months is recommended.</p>
+                <p class="health-card-desc">${t('health.efDesc')}</p>
                 ${emergencyFunds.length === 0 ? `
                     <div class="health-empty-state">
-                        <span class="health-empty-value">0 months</span>
-                        <span class="health-empty-sub">No emergency funds set up yet</span>
+                        <span class="health-empty-value">${t('health.efEmptyMonths')}</span>
+                        <span class="health-empty-sub">${t('health.efEmptySub')}</span>
                     </div>
-                    <a class="health-link" data-health-nav="savings">Set up emergency fund &rarr;</a>
+                    <a class="health-link" data-health-nav="savings">${t('health.efSetUp')} &rarr;</a>
                 ` : emergencyFunds.map(fund => {
                     const coverageMonths = totalOutflow > 0 ? fund.currentAmount / totalOutflow : 0;
                     const coveragePct    = Math.min((coverageMonths / 6) * 100, 100);
                     const st             = emergencyStatus(coverageMonths);
-                    const acctName       = (app.accounts || []).find(a => a.id === fund.accountId)?.name || 'Unknown';
+                    const acctName       = (app.accounts || []).find(a => a.id === fund.accountId)?.name || t('health.unknownAccount');
                     return `
                         <div class="health-ef-row">
                             <div class="health-ef-header">
                                 <span class="health-ef-name">${escapeHtml(acctName)}</span>
-                                <span class="health-badge ${st.cls}">${coverageMonths.toFixed(1)} mo</span>
+                                <span class="health-badge ${st.cls}">${coverageMonths.toFixed(1)} ${t('health.monthsUnit')}</span>
                             </div>
                             <div class="progress-bar health-compact-bar">
                                 <div class="progress-fill ${statusFillCls(st.cls)}" data-progress-width="${Math.round(coveragePct)}"></div>
@@ -231,89 +235,89 @@ export function renderHealthDashboard(app) {
                             <div class="health-ef-detail">${escapeHtml(st.label)}</div>
                         </div>`;
                 }).join('')}
-                ${emergencyFunds.length > 0 ? `<a class="health-link" data-health-nav="savings">Manage emergency funds &rarr;</a>` : ''}
+                ${emergencyFunds.length > 0 ? `<a class="health-link" data-health-nav="savings">${t('health.efManage')} &rarr;</a>` : ''}
             </div>
 
             <!-- Debt Payoff Timeline -->
             <div class="health-metric-card">
                 <div class="health-card-header">
-                    <span class="health-card-title">Debt Payoff Timeline</span>
+                    <span class="health-card-title">${t('health.timelineTitle')}</span>
                     ${hasDebts && debtTimeline ? `<span class="health-badge ${timelineSt.cls}">${timelineSt.label}</span>` : ''}
                 </div>
-                <p class="health-card-desc">Estimated years until debt-free at current minimum payments (avalanche strategy).</p>
+                <p class="health-card-desc">${t('health.timelineDesc')}</p>
                 ${!hasDebts ? `
                     <div class="health-empty-state">
-                        <span class="health-empty-value health-empty--green">Debt Free!</span>
+                        <span class="health-empty-value health-empty--green">${t('health.debtFree')}</span>
                     </div>
                 ` : debtTimeline ? `
                     <div class="health-timeline-hero">
                         <span class="health-timeline-value">${timelineYears}</span>
-                        <span class="health-timeline-unit">years</span>
+                        <span class="health-timeline-unit">${t('health.years')}</span>
                     </div>
-                    ${payoffDate ? `<div class="health-timeline-date">Estimated payoff: ${escapeHtml(payoffDate)}</div>` : ''}
+                    ${payoffDate ? `<div class="health-timeline-date">${t('health.estimatedPayoff')}: ${escapeHtml(payoffDate)}</div>` : ''}
                     <div class="health-progress-label">
-                        <span>Original debt paid off</span>
+                        <span>${t('health.originalDebtPaidOff')}</span>
                         <span>${debtProgress}%</span>
                     </div>
                     <div class="progress-bar health-compact-bar">
                         <div class="progress-fill ${statusFillCls(timelineSt.cls)}" data-progress-width="${debtProgress}"></div>
                     </div>
                     <div class="health-metric-detail">
-                        <span>Balance: ${formatCurrency(totalDebtBalance)}</span>
-                        <span>${timelineMonths} months remaining</span>
+                        <span>${t('health.balance')}: ${formatCurrency(totalDebtBalance)}</span>
+                        <span>${timelineMonths} ${t('health.monthsRemaining')}</span>
                     </div>
                 ` : `
                     <div class="health-empty-state">
-                        <span class="health-empty-sub">Unable to calculate — check debt data</span>
+                        <span class="health-empty-sub">${t('health.unableToCalculate')}</span>
                     </div>
                 `}
-                <a class="health-link" data-health-nav="strategy">Go to Plan &rarr;</a>
+                <a class="health-link" data-health-nav="strategy">${t('health.goToPlan')} &rarr;</a>
             </div>
 
             <!-- Monthly Cash Flow -->
             <div class="health-metric-card">
                 <div class="health-card-header">
-                    <span class="health-card-title">Monthly Cash Flow</span>
+                    <span class="health-card-title">${t('health.cashFlowTitle')}</span>
                     <span class="health-badge ${cashFlowSt.cls}">${cashFlowSt.label}</span>
                 </div>
-                <p class="health-card-desc">Income versus all monthly outflows. Positive means money available after all obligations.</p>
+                <p class="health-card-desc">${t('health.cashFlowDesc')}</p>
                 <div class="health-cashflow-hero ${net >= 0 ? 'health-cashflow-hero--positive' : 'health-cashflow-hero--negative'}">
                     ${net >= 0 ? '+' : ''}${formatCurrency(net)}
                 </div>
                 <div class="health-cashflow-rows">
                     <div class="health-cashflow-row">
-                        <span>Income</span>
+                        <span>${t('health.income')}</span>
                         <span class="health-cf-income">${formatCurrency(monthlyIncome)}</span>
                     </div>
                     ${totalDebtMin > 0 ? `<div class="health-cashflow-row">
-                        <span>Debt payments</span>
+                        <span>${t('health.debtPayments')}</span>
                         <span class="health-cf-out">&minus;${formatCurrency(totalDebtMin)}</span>
                     </div>` : ''}
                     ${totalBills > 0 ? `<div class="health-cashflow-row">
-                        <span>Bills</span>
+                        <span>${t('health.bills')}</span>
                         <span class="health-cf-out">&minus;${formatCurrency(totalBills)}</span>
                     </div>` : ''}
                     ${totalExpenses > 0 ? `<div class="health-cashflow-row">
-                        <span>Expenses</span>
+                        <span>${t('health.expenses')}</span>
                         <span class="health-cf-out">&minus;${formatCurrency(totalExpenses)}</span>
                     </div>` : ''}
                     <div class="health-cashflow-row health-cashflow-row--total">
-                        <span>Net remaining</span>
+                        <span>${t('health.netRemaining')}</span>
                         <span class="${net >= 0 ? 'health-cf-income' : 'health-cf-deficit'}">${formatCurrency(net)}</span>
                     </div>
                 </div>
-                <a class="health-link" data-health-nav="liabilities">View budget &rarr;</a>
+                <a class="health-link" data-health-nav="liabilities">${t('health.viewBudget')} &rarr;</a>
             </div>
 
             <!-- Budget Allocation -->
             <div class="health-metric-card">
                 <div class="health-card-header">
-                    <span class="health-card-title">Budget Allocation</span>
+                    <span class="health-card-title">${t('health.budgetTitle')}</span>
                 </div>
-                <p class="health-card-desc">Monthly spending by category as a % of income. Housing should stay under 28–36%.</p>
+                <p class="health-card-desc">${t('health.budgetDesc')}</p>
                 ${monthlyIncome === 0 || budgetCategories.length === 0 ? `
                     <div class="health-empty-state">
-                        <span class="health-empty-sub">Add income and expenses to see allocation</span>
+                        <span class="health-empty-sub">${t('health.budgetEmptySub')}</span>
                     </div>
                 ` : budgetCategories.map(({ cat, total, pct, isDebt }) => {
                     const barPct   = Math.min(pct * 100, 100);
@@ -329,10 +333,10 @@ export function renderHealthDashboard(app) {
                             <div class="progress-bar health-compact-bar">
                                 <div class="progress-fill ${statusFillCls(stCls)}" data-progress-width="${Math.round(barPct)}"></div>
                             </div>
-                            <div class="health-budget-cat-amt">${formatCurrency(total)}/mo</div>
+                            <div class="health-budget-cat-amt">${formatCurrency(total)}${t('health.perMonthSuffix')}</div>
                         </div>`;
                 }).join('')}
-                ${budgetCategories.length > 0 ? `<a class="health-link" data-health-nav="liabilities">Edit budget &rarr;</a>` : ''}
+                ${budgetCategories.length > 0 ? `<a class="health-link" data-health-nav="liabilities">${t('health.editBudget')} &rarr;</a>` : ''}
             </div>
 
         </div>

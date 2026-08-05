@@ -7,6 +7,18 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.10.0] — 2026-08-04
+
+### Added
+- **i18n infrastructure + Spanish/Polish pilot (#35)** — new `src/i18n.js` module (`t()` lookup with English fallback, `applyStaticTranslations()` for static markup, locale persisted under `debtTrackerLocale`) and `src/locales/{en,es,pl}.js` dictionaries. Navigation, the toolbar, the Settings modal, and the Health dashboard are translated into Spanish and Polish, selectable from a new Language control in Settings. `formatCurrency`/`formatShortDate`/`formatMonthYear` now format numbers/dates per the active locale everywhere in the app, not just the translated pages.
+
+### Known limitations
+- Only nav/toolbar/Settings/Health are translated — Accounts, Income, Liabilities, Recurring, Savings, Plan, Reports, Ledger, and Reconcile remain English pending follow-up issues.
+- No grammatical pluralization — every translated string uses one fixed form regardless of count (e.g. Polish would grammatically need a different word form for 1 vs. 2-4 vs. 5+ months).
+- No browser-language auto-detection on first run; the locale defaults to English until a user explicitly picks one in Settings.
+
+---
+
 ## [4.9.0] — 2026-08-03
 
 ### Added

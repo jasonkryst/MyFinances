@@ -12,33 +12,33 @@
     <link rel="stylesheet" href="styles-csp-classes.css">
  </head>
 <body>
-    <a href="#main" class="skip-link">Skip to main content</a>
+    <a href="#main" class="skip-link" data-i18n="app.skipLink">Skip to main content</a>
     <div id="confetti-container"></div>
     <div class="container">
         <header>
             <div class="header-top">
                 <div class="header-toolbar">
-                    <button id="commandPaletteBtn" class="header-icon-btn" title="Quick jump (Ctrl+K)" aria-label="Open quick jump command palette">
+                    <button id="commandPaletteBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.commandPaletteTitle,aria-label:toolbar.commandPaletteAriaLabel" title="Quick jump (Ctrl+K)" aria-label="Open quick jump command palette">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </button>
                     <div class="header-toolbar-divider"></div>
-                    <button id="exportJsonBtn" class="header-icon-btn" title="Export backup (debts, income, strategy) as JSON" aria-label="Export JSON">
+                    <button id="exportJsonBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.exportTitle,aria-label:toolbar.exportAriaLabel" title="Export backup (debts, income, strategy) as JSON" aria-label="Export JSON">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </button>
-                    <button id="importJsonBtn" class="header-icon-btn" title="Import from a previously exported JSON backup" aria-label="Import JSON">
+                    <button id="importJsonBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.importTitle,aria-label:toolbar.importAriaLabel" title="Import from a previously exported JSON backup" aria-label="Import JSON">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </button>
                     <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
-                    <label for="themeSwitcher" class="sr-only">Theme</label>
-                    <select id="themeSwitcher" class="header-theme-select" aria-label="Theme">
-                        <option value="light">☀️ Light</option>
-                        <option value="dark">🌙 Dark</option>
-                        <option value="high-contrast">◐ High Contrast</option>
+                    <label for="themeSwitcher" class="sr-only" data-i18n="toolbar.theme">Theme</label>
+                    <select id="themeSwitcher" class="header-theme-select" data-i18n-attr="aria-label:toolbar.theme" aria-label="Theme">
+                        <option value="light" data-i18n="toolbar.themeLight">☀️ Light</option>
+                        <option value="dark" data-i18n="toolbar.themeDark">🌙 Dark</option>
+                        <option value="high-contrast" data-i18n="toolbar.themeHighContrast">◐ High Contrast</option>
                     </select>
                     <div class="header-toolbar-divider"></div>
-                    <button id="settingsBtn" class="header-icon-btn" title="Settings" aria-label="Open settings">⚙️</button>
-                    <a id="helpBtn" class="header-icon-btn" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>
+                    <button id="settingsBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.settingsTitle,aria-label:toolbar.settingsAriaLabel" title="Settings" aria-label="Open settings">⚙️</button>
+                    <a id="helpBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.helpTitle,aria-label:toolbar.helpAriaLabel" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>
                 </div>
             </div>
             <div class="header-hero">
@@ -65,30 +65,30 @@
                 </button>
                 <div class="nav-menu" id="navMenu">
                     <div class="nav-group">
-                        <span class="nav-group-label">Overview</span>
+                        <span class="nav-group-label" data-i18n="nav.overview">Overview</span>
                         <div class="nav-group-btns">
-                            <button class="page-button" data-page="health" aria-current="page">Health</button>
-                            <button class="page-button" data-page="accounts">Accounts</button>
-                            <button class="page-button" data-page="income">Income</button>
+                            <button class="page-button" data-page="health" data-i18n="nav.health" aria-current="page">Health</button>
+                            <button class="page-button" data-page="accounts" data-i18n="nav.accounts">Accounts</button>
+                            <button class="page-button" data-page="income" data-i18n="nav.income">Income</button>
                         </div>
                     </div>
                     <div class="nav-group-sep" aria-hidden="true"></div>
                     <div class="nav-group">
-                        <span class="nav-group-label">Manage</span>
+                        <span class="nav-group-label" data-i18n="nav.manage">Manage</span>
                         <div class="nav-group-btns">
-                            <button class="page-button" data-page="liabilities">Liabilities</button>
-                            <button class="page-button" data-page="recurring">Recurring</button>
-                            <button class="page-button" data-page="savings">Savings</button>
-                            <button class="page-button" data-page="strategy">Plan</button>
+                            <button class="page-button" data-page="liabilities" data-i18n="nav.liabilities">Liabilities</button>
+                            <button class="page-button" data-page="recurring" data-i18n="nav.recurring">Recurring</button>
+                            <button class="page-button" data-page="savings" data-i18n="nav.savings">Savings</button>
+                            <button class="page-button" data-page="strategy" data-i18n="nav.strategy">Plan</button>
                         </div>
                     </div>
                     <div class="nav-group-sep" aria-hidden="true"></div>
                     <div class="nav-group">
-                        <span class="nav-group-label">Analyze</span>
+                        <span class="nav-group-label" data-i18n="nav.analyze">Analyze</span>
                         <div class="nav-group-btns">
-                            <button class="page-button" data-page="reports">Reports</button>
-                            <button class="page-button" data-page="ledger">Ledger</button>
-                            <button class="page-button" data-page="reconcile">Reconcile</button>
+                            <button class="page-button" data-page="reports" data-i18n="nav.reports">Reports</button>
+                            <button class="page-button" data-page="ledger" data-i18n="nav.ledger">Ledger</button>
+                            <button class="page-button" data-page="reconcile" data-i18n="nav.reconcile">Reconcile</button>
                         </div>
                     </div>
                 </div>
@@ -1025,25 +1025,34 @@
     <!-- Settings -->
     <div id="settingsModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="settingsModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="settingsModalTitle">Settings</h3>
+            <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="settingsModalTitle" data-i18n="settings.title">Settings</h3>
             <div class="form-group modal-form-group">
                 <label class="settings-toggle-row" for="settingReconciliationAdjusts">
                     <input type="checkbox" id="settingReconciliationAdjusts">
-                    <span>Reconciliations adjust the tracked balance</span>
+                    <span data-i18n="settings.reconciliationLabel">Reconciliations adjust the tracked balance</span>
                 </label>
-                <p class="modal-helper-text">When on, reconciling an account replaces its tracked balance with the statement balance you enter. When off, reconciliations are recorded and shown on the Ledger for transparency, but the tracked balance keeps being computed from your transactions.</p>
+                <p class="modal-helper-text" data-i18n="settings.reconciliationHelp">When on, reconciling an account replaces its tracked balance with the statement balance you enter. When off, reconciliations are recorded and shown on the Ledger for transparency, but the tracked balance keeps being computed from your transactions.</p>
             </div>
             <div class="form-group modal-form-group">
-                <label for="settingStorageBackend">Data Storage</label>
+                <label for="settingStorageBackend" data-i18n="settings.dataStorageLabel">Data Storage</label>
                 <select id="settingStorageBackend">
-                    <option value="local">Local Storage (persists across visits)</option>
-                    <option value="session">Session Storage (cleared when this tab closes)</option>
+                    <option value="local" data-i18n="settings.storageLocal">Local Storage (persists across visits)</option>
+                    <option value="session" data-i18n="settings.storageSession">Session Storage (cleared when this tab closes)</option>
                 </select>
-                <p class="modal-helper-text">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
+                <p class="modal-helper-text" data-i18n="settings.dataStorageHelp">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="settingLocale" data-i18n="settings.language">Language</label>
+                <select id="settingLocale">
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="pl">Polski</option>
+                </select>
+                <p class="modal-helper-text" data-i18n="settings.languageHelp">Translation is still expanding — some pages may remain in English.</p>
             </div>
             <div class="modal-actions">
-                <button id="settingsModalDoneBtn" class="btn btn-success">Done</button>
+                <button id="settingsModalDoneBtn" class="btn btn-success" data-i18n="settings.done">Done</button>
             </div>
         </div>
     </div>

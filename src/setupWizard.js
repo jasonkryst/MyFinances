@@ -3,6 +3,7 @@
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getStorageBackendPreference } from './storageAdapters.js';
+import { getCurrentLocale } from './i18n.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -32,7 +33,8 @@ export function initSettingsModal(app) {
     const doneBtn = document.getElementById('settingsModalDoneBtn');
     const adjustsCheckbox = document.getElementById('settingReconciliationAdjusts');
     const storageSelect = document.getElementById('settingStorageBackend');
-    if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect) return;
+    const localeSelect = document.getElementById('settingLocale');
+    if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect) return;
 
     let lastFocused = null;
 
@@ -47,6 +49,7 @@ export function initSettingsModal(app) {
         lastFocused = document.activeElement;
         adjustsCheckbox.checked = Boolean(getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false));
         storageSelect.value = getStorageBackendPreference();
+        localeSelect.value = getCurrentLocale();
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
         modal.onkeydown = (event) => {
@@ -61,6 +64,7 @@ export function initSettingsModal(app) {
     const save = () => {
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
         app.switchStorageBackend(storageSelect.value);
+        app.setLocale(localeSelect.value);
         close();
     };
 
