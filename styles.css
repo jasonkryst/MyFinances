@@ -1802,6 +1802,16 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+/* #themeSwitcher's own background/text colors change *because of* the
+   selection the user just made (Light/Dark/High Contrast). The generic
+   `transition: all 0.3s ease` above would fade those colors through a
+   low-contrast mid-blend for ~300ms right as the user looks at it to
+   confirm the pick took -- skip the transition here so it snaps straight
+   to the new theme's colors instead. */
+#themeSwitcher {
+    transition: none;
+}
+
 /* Buttons */
 .btn {
     padding: 12px 24px;

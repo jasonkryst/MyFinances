@@ -117,3 +117,38 @@ def test_settings_modal_theme_select_has_three_options(app_page):
         '#themeSwitcher option', 'opts => opts.map(o => o.value)'
     )
     assert values == ['light', 'dark', 'high-contrast']
+
+
+@pytest.mark.ui
+def test_theme_select_colors_snap_immediately_without_a_low_contrast_blend(app_page):
+    """Regression guard: unlike the old toolbar chip (which had a fixed
+    light appearance regardless of theme), the relocated select's own
+    background/text colors now change *because of* the pick the user just
+    made. The generic `transition: all 0.3s ease` shared by inputs/selects
+    would fade those colors through a muddy, low-contrast mid-blend for
+    ~300ms right as the user looks at it to confirm the pick worked
+    (reported: "the text doesn't show ... on click it changes but there
+    is no clarity"). #themeSwitcher must opt out of that transition so its
+    colors snap straight to the new theme's values."""
+    page = app_page
+    open_settings(page)
+
+    transition = page.evaluate(
+        "() => getComputedStyle(document.getElementById('themeSwitcher')).transitionDuration"
+    )
+    assert transition in ('0s', ''), (
+        f"themeSwitcher should have no color/background transition, got {transition!r}"
+    )
+
+    page.select_option('#themeSwitcher', 'dark')
+    # Sample well inside the old 300ms transition window - with the
+    # transition disabled this is already the settled, high-contrast state.
+    page.wait_for_timeout(100)
+    colors = page.evaluate("""
+        () => {
+            const s = getComputedStyle(document.getElementById('themeSwitcher'));
+            return { color: s.color, background: s.backgroundColor };
+        }
+    """)
+    assert colors['color'] == 'rgb(241, 245, 249)'
+    assert colors['background'] == 'rgb(30, 41, 59)'

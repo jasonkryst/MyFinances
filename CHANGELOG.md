@@ -12,6 +12,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Changed
 - **Theme selector moved into Settings (#71)** — the Light/Dark/High Contrast `<select>` no longer lives in the always-visible header toolbar; it's now the first control inside the Settings modal (⚙️ gear icon), grouped with Data Storage and Language. Its `id` (`themeSwitcher`), change-applies-immediately behavior, localStorage persistence, and the command palette's "Cycle theme" action are all unchanged — only its location moved. Translated strings moved from `toolbar.theme*` to `settings.theme*` in `src/locales/{en,es,pl}.js`.
 
+### Fixed
+- **Theme selector text unreadable right after picking a theme (#71)** — the old toolbar chip had a fixed light appearance regardless of theme, so it never itself changed color. Now that the select lives in Settings and takes on the picked theme's own colors, the shared `transition: all 0.3s ease` on inputs/selects faded its background/text through a low-contrast gray-on-gray blend for ~300ms right as the user looked at it to confirm the pick worked. `#themeSwitcher` now opts out of that transition so its colors snap straight to the new theme's values.
+
 ---
 
 ## [4.10.0] — 2026-08-04
