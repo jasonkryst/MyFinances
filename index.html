@@ -22,13 +22,12 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </button>
                     <div class="header-toolbar-divider"></div>
-                    <button id="exportJsonBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.exportTitle,aria-label:toolbar.exportAriaLabel" title="Export backup (debts, income, strategy) as JSON" aria-label="Export JSON">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <button id="dataTransferBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.dataTransferTitle,aria-label:toolbar.dataTransferAriaLabel" title="Backup &amp; Restore" aria-label="Backup and restore data">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="17 11 21 7 17 3"/><line x1="21" y1="7" x2="9" y2="7"/>
+                            <polyline points="7 21 3 17 7 13"/><line x1="3" y1="17" x2="15" y2="17"/>
+                        </svg>
                     </button>
-                    <button id="importJsonBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.importTitle,aria-label:toolbar.importAriaLabel" title="Import from a previously exported JSON backup" aria-label="Import JSON">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    </button>
-                    <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
                     <div class="header-toolbar-divider"></div>
                     <button id="settingsBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.settingsTitle,aria-label:toolbar.settingsAriaLabel" title="Settings" aria-label="Open settings">⚙️</button>
                     <a id="helpBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.helpTitle,aria-label:toolbar.helpAriaLabel" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>
@@ -1055,6 +1054,32 @@
             </div>
             <div class="modal-actions">
                 <button id="settingsModalDoneBtn" class="btn btn-success" data-i18n="settings.done">Done</button>
+            </div>
+        </div>
+    </div>
+    <!-- Data Transfer (Export/Import) -->
+    <div id="dataTransferModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dataTransferModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="dataTransferModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="dataTransferModalTitle" data-i18n="dataTransfer.title">Backup &amp; Restore</h3>
+            <div class="dt-tabs" role="tablist">
+                <button type="button" class="dt-tab-btn dt-tab-btn--active" data-dt-tab="export" role="tab" aria-selected="true" aria-controls="dataTransferPanel-export" data-i18n="dataTransfer.tabExport">Export</button>
+                <button type="button" class="dt-tab-btn" data-dt-tab="import" role="tab" aria-selected="false" aria-controls="dataTransferPanel-import" data-i18n="dataTransfer.tabImport">Import</button>
+            </div>
+            <div id="dataTransferPanel-export" class="dt-tab-panel dt-tab-panel--active" role="tabpanel">
+                <p class="modal-description" data-i18n="dataTransfer.exportDescription">Download a full backup (accounts, debts, income, bills, plan, and settings) as a JSON file.</p>
+                <button id="exportJsonBtn" class="btn btn-primary" data-i18n="dataTransfer.exportButton">Export Backup</button>
+            </div>
+            <div id="dataTransferPanel-import" class="dt-tab-panel" role="tabpanel">
+                <p class="modal-description" data-i18n="dataTransfer.importDescription">Restore from a previously exported JSON backup.</p>
+                <button id="importJsonBtn" class="btn" data-i18n="dataTransfer.importButton">Choose File…</button>
+                <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
+                <div id="importResultBanner" class="target-result hidden" role="status"></div>
+                <div id="importModeChoice" class="dt-import-choice hidden">
+                    <p id="importModeSummary"></p>
+                    <button id="importModeReplaceBtn" class="btn btn-primary" data-i18n="dataTransfer.replaceButton">Replace</button>
+                    <button id="importModeMergeBtn" class="btn" data-i18n="dataTransfer.mergeButton">Merge</button>
+                </div>
             </div>
         </div>
     </div>

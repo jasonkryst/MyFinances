@@ -218,6 +218,20 @@ def close_settings(page):
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
 
+def open_data_transfer(page):
+    """Open the Backup & Restore modal (#exportJsonBtn/#importJsonBtn live
+    here now) and wait for it to be visible before interacting with any
+    control inside it."""
+    page.click('#dataTransferBtn')
+    page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
+
+
+def close_data_transfer(page):
+    """Close the Backup & Restore modal via its × close button."""
+    page.click('#dataTransferModalCloseBtn')
+    page.wait_for_selector('#dataTransferModal', state='hidden', timeout=5000)
+
+
 def assert_no_errors(page):
     """Assert that page has no console or page errors."""
     assert len(page.console_errors) == 0, f"Console errors: {page.console_errors}"

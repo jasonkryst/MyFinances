@@ -113,6 +113,7 @@ import {
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
+import { initDataTransferModal } from './dataTransferModal.js';
 import { applyStaticTranslations, setLocale as setLocaleFeature } from './i18n.js';
 
 /**
@@ -177,6 +178,7 @@ export class DebtTrackerApp {
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
     this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
     initSettingsModalFeature(this);
+    initDataTransferModal(this);
     maybeShowSetupWizardFeature(this, isFirstRun);
     backfillIncomeAccountIds(this);
 
