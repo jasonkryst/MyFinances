@@ -130,15 +130,21 @@ async def test_malicious_json_import(async_app_page):
         temp_file = f.name
     
     try:
-        # Upload file
+        # Open the Backup & Restore modal, switch to Import, upload file
+        await page.click('#dataTransferBtn')
+        await page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
+        await page.click('[data-dt-tab="import"]')
         await page.click('#importJsonBtn')
         await page.wait_for_timeout(300)
-        
+
         file_input = await page.query_selector('#importJsonInput')
         if file_input:
             await file_input.set_input_files(temp_file)
-            await page.wait_for_timeout(1000)
-            
+            await page.wait_for_timeout(500)
+            if await page.is_visible('#importModeChoice'):
+                await page.click('#importModeReplaceBtn')
+            await page.wait_for_timeout(500)
+
             # Verify data was imported but rendered safely
             debts_count = await page.evaluate('() => document.querySelectorAll(".debt-card").length')
             assert debts_count > 0, "Debt was not imported"
