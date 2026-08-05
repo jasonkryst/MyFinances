@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.12.0] — 2026-08-05
+
+### Changed
+- **Consolidated Export/Import into a Backup & Restore modal** — the toolbar's separate ⬇️ Export / ⬆️ Import icon buttons are now one `#dataTransferBtn` button that opens a two-tab modal (Export / Import). `#exportJsonBtn`/`#importJsonBtn`/`#importJsonInput` kept their ids and behavior, just relocated. Import's feedback (invalid file, no recognisable data, file too large, read error, and the Replace-vs-Merge choice) moved from native `alert()`/`confirm()` popups into inline modal UI, styled with the existing `.target-result` success/warning/error banner pattern. See `docs/superpowers/specs/2026-08-05-data-transfer-modal-design.md`.
+
+---
+
 ## [4.11.0] — 2026-08-04
 
 ### Changed

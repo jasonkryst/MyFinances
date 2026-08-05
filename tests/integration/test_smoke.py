@@ -167,13 +167,17 @@ def test_smoke_export_import(app_page):
     page.click('#accountFormSubmit')
     page.wait_for_timeout(500)
     
-    # Look for export button
+    from tests.conftest import open_data_transfer
+    open_data_transfer(page)
+
+    # Look for export button (Export tab is the default active tab)
     export_btn = page.query_selector('#exportJsonBtn')
     if export_btn:
         # Export functionality exists
         assert export_btn.evaluate('(el) => el.offsetHeight > 0'), "Export button should be visible"
-    
-    # Look for import button
+
+    # Look for import button (switch to the Import tab first)
+    page.click('[data-dt-tab="import"]')
     import_btn = page.query_selector('#importJsonBtn')
     if import_btn:
         assert import_btn.evaluate('(el) => el.offsetHeight > 0'), "Import button should be visible"

@@ -193,10 +193,10 @@ def test_high_contrast_focus_visible_outline_is_bold(app_page):
     page.keyboard.press('Escape')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
-    page.focus('#exportJsonBtn')
+    page.focus('#dataTransferBtn')
     outline = page.evaluate("""
         () => {
-            const s = getComputedStyle(document.getElementById('exportJsonBtn'));
+            const s = getComputedStyle(document.getElementById('dataTransferBtn'));
             return { style: s.outlineStyle, width: s.outlineWidth };
         }
     """)

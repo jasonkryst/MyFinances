@@ -31,7 +31,10 @@ function buildCommands(app) {
             label: 'Import backup from JSON',
             hint: 'Action',
             icon: '⬆️',
-            run: () => document.getElementById('importJsonBtn')?.click()
+            run: () => {
+                document.getElementById('dataTransferBtn')?.click();
+                document.querySelector('[data-dt-tab="import"]')?.click();
+            }
         },
         {
             label: 'Cycle theme (Light / Dark / High Contrast)',

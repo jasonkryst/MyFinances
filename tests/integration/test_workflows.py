@@ -20,7 +20,10 @@ ALL_NAV_PAGES = [
 def test_export_data_format(app_page):
     """Test that exported data is in valid JSON format."""
     page = app_page
-    
+
+    from tests.conftest import open_data_transfer
+    open_data_transfer(page)
+
     # Look for export button
     export_btn = page.query_selector('#exportJsonBtn')
     
@@ -128,9 +131,12 @@ def test_export_csv_escapes_comma_in_debt_name(app_page):
 def test_import_json_file(app_page):
     """Test importing JSON file."""
     page = app_page
-    
+
+    from tests.conftest import open_data_transfer
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
     import_btn = page.query_selector('#importJsonBtn')
-    
+
     if import_btn:
         # Create test data
         test_data = {
@@ -158,13 +164,16 @@ def test_import_json_file(app_page):
             # Click import
             page.click('#importJsonBtn')
             page.wait_for_timeout(300)
-            
+
             # Upload file
             file_input = page.query_selector('#importJsonInput')
             if file_input:
                 file_input.set_input_files(temp_file)
-                page.wait_for_timeout(1000)
-                
+                page.wait_for_timeout(500)
+                if page.is_visible('#importModeChoice'):
+                    page.click('#importModeReplaceBtn')
+                page.wait_for_timeout(500)
+
                 # Verify data was imported
                 stored_data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
                 assert stored_data, "Data should be imported"
@@ -187,6 +196,9 @@ def test_import_replaces_data(app_page):
     page.wait_for_timeout(500)
     
     # Import new data
+    from tests.conftest import open_data_transfer
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
     import_btn = page.query_selector('#importJsonBtn')
     if import_btn:
         new_data = {
@@ -212,12 +224,15 @@ def test_import_replaces_data(app_page):
         try:
             page.click('#importJsonBtn')
             page.wait_for_timeout(300)
-            
+
             file_input = page.query_selector('#importJsonInput')
             if file_input:
                 file_input.set_input_files(temp_file)
-                page.wait_for_timeout(1000)
-                
+                page.wait_for_timeout(500)
+                if page.is_visible('#importModeChoice'):
+                    page.click('#importModeReplaceBtn')
+                page.wait_for_timeout(500)
+
                 # Data should be replaced
                 stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
                 assert stored, "Import should update data"
@@ -244,9 +259,11 @@ def test_roundtrip_export_import(app_page):
     
     if original_data:
         # Export and re-import
+        from tests.conftest import open_data_transfer
+        open_data_transfer(page)
         export_btn = page.query_selector('#exportJsonBtn')
         import_btn = page.query_selector('#importJsonBtn')
-        
+
         if export_btn and import_btn:
             # Simulate export by getting data
             export_data = original_data
@@ -259,13 +276,17 @@ def test_roundtrip_export_import(app_page):
                 temp_file = f.name
             
             try:
+                page.click('[data-dt-tab="import"]')
                 page.click('#importJsonBtn')
                 page.wait_for_timeout(300)
 
                 file_input = page.query_selector('#importJsonInput')
                 if file_input:
                     file_input.set_input_files(temp_file)
-                    page.wait_for_timeout(1000)
+                    page.wait_for_timeout(500)
+                    if page.is_visible('#importModeChoice'):
+                        page.click('#importModeReplaceBtn')
+                    page.wait_for_timeout(500)
 
                     # Data should match
                     reimported = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
@@ -320,6 +341,8 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     page.wait_for_selector('text=Clear Test Salary', timeout=10000)
 
     # --- Export the seeded data ---
+    from tests.conftest import open_data_transfer, close_data_transfer
+    open_data_transfer(page)
     export_btn = page.query_selector('#exportJsonBtn')
     assert export_btn, "Export button (#exportJsonBtn) should exist"
     with page.expect_download() as download_info:
@@ -332,6 +355,7 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     assert exported_payload.get('accounts'), "Export should include the seeded account"
     assert exported_payload.get('debts'), "Export should include the seeded debt"
     assert exported_payload.get('incomes'), "Export should include the seeded income"
+    close_data_transfer(page)
 
     # --- Clear all data via the real UI control (lives on the Strategy/Plan page) ---
     page.click('button[data-page="strategy"]')
@@ -352,12 +376,17 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
         temp_file = f.name
 
     try:
+        open_data_transfer(page)
+        page.click('[data-dt-tab="import"]')
         page.click('#importJsonBtn')
         page.wait_for_timeout(300)
         file_input = page.query_selector('#importJsonInput')
         assert file_input, "Expected the import file input (#importJsonInput) to exist"
         file_input.set_input_files(temp_file)
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(500)
+        if page.is_visible('#importModeChoice'):
+            page.click('#importModeReplaceBtn')
+        page.wait_for_timeout(500)
 
         reimported = page.evaluate(
             '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
@@ -367,6 +396,7 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
         assert reimported_parsed.get('accounts'), "Re-imported data should include the account"
         assert reimported_parsed.get('debts'), "Re-imported data should include the debt"
         assert reimported_parsed.get('incomes'), "Re-imported data should include the income"
+        close_data_transfer(page)
 
         # --- Visit every top-level nav page and verify clean rendering ---
         for page_name in ALL_NAV_PAGES:

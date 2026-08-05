@@ -161,3 +161,22 @@ def test_cycle_theme_action_runs_and_closes_palette(app_page):
     after_two = page.evaluate("() => document.getElementById('themeSwitcher').value")
     assert after_two == 'high-contrast', "Second cycle should move Dark -> High Contrast"
     assert page.evaluate("() => document.body.classList.contains('high-contrast-mode')")
+
+
+@pytest.mark.ui
+def test_import_command_opens_data_transfer_modal_on_import_tab(app_page):
+    """The 'Import backup from JSON' palette action opens the consolidated
+    modal directly on the Import tab, not the old standalone toolbar
+    button (which no longer exists)."""
+    page = app_page
+    page.keyboard.press('Control+k')
+    page.wait_for_timeout(200)
+    page.fill('#commandPaletteInput', 'Import backup')
+    page.wait_for_timeout(150)
+    page.keyboard.press('Enter')
+    page.wait_for_timeout(200)
+
+    assert page.is_visible('#dataTransferModal')
+    assert page.is_visible('#importJsonBtn')
+    import_selected = page.get_attribute('[data-dt-tab="import"]', 'aria-selected')
+    assert import_selected == 'true'

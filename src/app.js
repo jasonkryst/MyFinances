@@ -113,6 +113,7 @@ import {
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
+import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { applyStaticTranslations, setLocale as setLocaleFeature } from './i18n.js';
 
 /**
@@ -177,6 +178,7 @@ export class DebtTrackerApp {
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
     this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
     initSettingsModalFeature(this);
+    initDataTransferModal(this);
     maybeShowSetupWizardFeature(this, isFirstRun);
     backfillIncomeAccountIds(this);
 
@@ -472,20 +474,17 @@ export class DebtTrackerApp {
      */
     importAllJSON(file) {
         return importAllJSONFeature(this, file, {
-            onInvalidJSON: () => alert('Invalid JSON file. Please select a valid backup file.'),
-            onNoData: () => alert('No recognisable data found in the selected file.'),
-            requestImportMode: (parts) => confirm(
-                `Found: ${parts.join(', ')}.\n\n` +
-                `• OK     — Replace your current data entirely\n` +
-                `• Cancel — Merge debts only (income & strategy will still be restored; duplicate debt names are skipped)\n`
-            ),
+            onInvalidJSON: () => showImportResult('error', 'Invalid JSON file. Please select a valid backup file.'),
+            onNoData: () => showImportResult('error', 'No recognisable data found in the selected file.'),
+            requestImportMode: (parts) => requestImportModeChoice(parts),
+            onImported: (parts) => showImportResult('success', `Imported: ${parts.join(', ')}.`),
             onMergeDuplicates: (addedCount, skippedCount) => {
-                alert(`Merged ${addedCount} debt(s). Skipped ${skippedCount} duplicate name(s).`);
+                showImportResult('success', `Merged ${addedCount} debt(s). Skipped ${skippedCount} duplicate name(s).`);
             },
             onTooLarge: (maxBytes) => {
-                alert(`Import file is too large. Maximum supported size is ${Math.round(maxBytes / 1024)} KB.`);
+                showImportResult('error', `Import file is too large. Maximum supported size is ${Math.round(maxBytes / 1024)} KB.`);
             },
-            onReadError: () => alert('Could not read the file. Please try again.')
+            onReadError: () => showImportResult('error', 'Could not read the file. Please try again.')
         });
     }
 

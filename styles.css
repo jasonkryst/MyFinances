@@ -4289,6 +4289,56 @@ body.dark-mode .rpt-tab-btn:hover {
 .rpt-tab-panel { display: none; padding: 24px 0 0; }
 .rpt-tab-panel--active { display: block; }
 
+/* ── Data Transfer modal tabs — same pill pattern as .rpt-tab-btn ───────── */
+.dt-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+.dt-tab-btn {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.dt-tab-btn:hover {
+    background: var(--light-bg);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+.dt-tab-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+.dt-tab-btn--active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+body.dark-mode .dt-tab-btn--active {
+    background: #60a5fa;
+    border-color: #60a5fa;
+    color: #0f172a;
+}
+body.dark-mode .dt-tab-btn:hover {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+.dt-tab-panel { display: none; }
+.dt-tab-panel--active { display: block; }
+.dt-import-choice {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+.dt-import-choice .btn {
+    margin-right: 8px;
+}
+
 /* ── Stats strip ───────────────────────────────────────────────────────── */
 .rpt-stats-strip {
     display: flex;
