@@ -89,11 +89,18 @@ export function showImportResult(kind, message) {
 
 export function requestImportModeChoice(parts) {
     return new Promise((resolve) => {
+        const modal = document.getElementById('dataTransferModal');
         const choice = document.getElementById('importModeChoice');
         const summary = document.getElementById('importModeSummary');
         const replaceBtn = document.getElementById('importModeReplaceBtn');
         const mergeBtn = document.getElementById('importModeMergeBtn');
-        if (!choice || !summary || !replaceBtn || !mergeBtn) {
+        // If the modal isn't actually open (e.g. importAllJSON was invoked
+        // programmatically, not via the modal's own file input), there's no
+        // UI for the user to respond to - waiting for a click here would
+        // hang forever. Fall back to the same default as the "controls
+        // don't exist" case below: Replace.
+        const modalOpen = modal && modal.classList.contains('flex-visible');
+        if (!modalOpen || !choice || !summary || !replaceBtn || !mergeBtn) {
             resolve(true);
             return;
         }

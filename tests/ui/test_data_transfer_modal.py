@@ -276,3 +276,29 @@ def test_merge_with_skipped_duplicates_shows_duplicate_count_not_generic_message
         assert 'Skipped 1 duplicate' in banner_text
     finally:
         os.unlink(temp_file)
+
+
+@pytest.mark.ui
+def test_programmatic_import_without_opening_modal_does_not_hang(app_page):
+    """Regression guard: app.importAllJSON() can be invoked directly
+    (bypassing the modal's own file input entirely, as some tests and any
+    future non-UI call site would) without the modal ever being opened.
+    requestImportModeChoice must not wait forever for a click that has no
+    UI to arrive from - it should fall back to Replace, same as when the
+    choice controls don't exist at all."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const payload = {
+            accounts: [{ id: 1, name: 'Programmatic Import', type: 'Checking', startingBalance: 1 }],
+            debts: [{ name: 'Programmatic Card', accountBalance: 10, interestRate: 1, minimumPayment: 1 }],
+        };
+        const file = new File([JSON.stringify(payload)], 'backup.json', { type: 'application/json' });
+        return new Promise(resolve => {
+            app.importAllJSON(file);
+            setTimeout(() => resolve(app.accounts.map(a => a.name)), 500);
+        });
+    }""")
+
+    assert result == ['Programmatic Import']
