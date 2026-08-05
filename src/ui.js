@@ -142,27 +142,6 @@ export function initializeEventListeners(app) {
         });
     }
 
-    const exportJsonBtn = document.getElementById('exportJsonBtn');
-    if (exportJsonBtn) {
-        exportJsonBtn.addEventListener('click', () => app.exportAllJSON());
-    }
-
-    const importJsonBtn = document.getElementById('importJsonBtn');
-    const importJsonInput = document.getElementById('importJsonInput');
-    if (importJsonBtn && importJsonInput) {
-        importJsonBtn.addEventListener('click', () => {
-            importJsonInput.click();
-        });
-
-        importJsonInput.addEventListener('change', () => {
-            const [file] = importJsonInput.files || [];
-            if (file) {
-                app.importAllJSON(file);
-            }
-            importJsonInput.value = '';
-        });
-    }
-
     const clearDataBtn = document.getElementById('clearDataBtn');
     if (clearDataBtn) {
         clearDataBtn.addEventListener('click', () => {

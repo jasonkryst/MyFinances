@@ -52,4 +52,25 @@ export function initDataTransferModal(app) {
             });
         });
     });
+
+    const exportBtn = document.getElementById('exportJsonBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => app.exportAllJSON());
+    }
+
+    const importBtn = document.getElementById('importJsonBtn');
+    const importInput = document.getElementById('importJsonInput');
+    if (importBtn && importInput) {
+        importBtn.addEventListener('click', () => {
+            importInput.click();
+        });
+
+        importInput.addEventListener('change', () => {
+            const [file] = importInput.files || [];
+            if (file) {
+                app.importAllJSON(file);
+            }
+            importInput.value = '';
+        });
+    }
 }

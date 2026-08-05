@@ -76,3 +76,51 @@ def test_close_button_hides_modal(app_page):
     close_data_transfer(page)
 
     assert page.is_visible('#dataTransferModal') is False
+
+
+@pytest.mark.ui
+def test_export_button_triggers_download(app_page):
+    """Positive: clicking Export Backup in the modal downloads a JSON file
+    (same underlying app.exportAllJSON(), just relocated)."""
+    page = app_page
+    open_data_transfer(page)
+
+    with page.expect_download() as download_info:
+        page.click('#exportJsonBtn')
+    download = download_info.value
+    assert download.suggested_filename.startswith('debt-tracker-backup-')
+
+
+@pytest.mark.ui
+@pytest.mark.skip(reason="inline Replace/Merge choice wired in Task 4")
+def test_import_button_opens_file_picker_and_triggers_import(app_page):
+    """Positive: clicking Choose File then selecting a file calls
+    app.importAllJSON (verified via a resulting localStorage write)."""
+    import json
+    import tempfile
+    import os
+
+    page = app_page
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
+
+    test_data = {"accounts": [{"id": 1, "name": "DT Modal Test", "type": "Checking", "startingBalance": 100}], "debts": []}
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(test_data, f)
+        temp_file = f.name
+
+    try:
+        file_input = page.query_selector('#importJsonInput')
+        assert file_input, "Expected #importJsonInput inside the Import panel"
+        file_input.set_input_files(temp_file)
+        page.wait_for_timeout(500)
+        # A valid, unambiguous single-account file still triggers the
+        # Replace/Merge choice (app.js always supplies requestImportMode) -
+        # picking either completes the import; Replace is simplest to assert.
+        page.click('#importModeReplaceBtn')
+        page.wait_for_timeout(300)
+
+        stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
+        assert stored and 'DT Modal Test' in stored
+    finally:
+        os.unlink(temp_file)
