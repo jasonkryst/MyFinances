@@ -76,3 +76,58 @@ def test_required_field_check_catches_incomplete_manifest():
     }
     missing = [f for f in REQUIRED_MANIFEST_FIELDS if f not in broken_manifest]
     assert missing == ['icons']
+
+
+# --- sw.js precache list + versioning ---
+
+@pytest.fixture
+def sw_js_content():
+    path = os.path.join(PROJECT_ROOT, 'sw.js')
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+@pytest.fixture
+def app_version():
+    utils_path = os.path.join(PROJECT_ROOT, 'src', 'utils.js')
+    with open(utils_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    match = re.search(r"""export const APP_VERSION = ['"](\d+\.\d+\.\d+)['"]""", content)
+    return match.group(1) if match else None
+
+
+def _list_src_js_files():
+    src_dir = os.path.join(PROJECT_ROOT, 'src')
+    files = []
+    for root, _dirs, filenames in os.walk(src_dir):
+        for name in filenames:
+            if name.endswith('.js'):
+                rel = os.path.relpath(os.path.join(root, name), PROJECT_ROOT).replace(os.sep, '/')
+                files.append('/' + rel)
+    return sorted(files)
+
+
+@pytest.mark.feature
+def test_sw_precache_list_includes_every_src_js_file(sw_js_content):
+    """Every real src/*.js file (including src/locales/*.js) must be in sw.js's PRECACHE_URLS, or that
+    module 404s when the app is loaded fully offline after a first visit."""
+    missing = [f for f in _list_src_js_files() if f not in sw_js_content]
+    assert missing == [], f"sw.js PRECACHE_URLS is missing: {missing}"
+
+
+@pytest.mark.feature
+def test_sw_cache_name_matches_app_version(sw_js_content, app_version):
+    assert app_version is not None, "Could not read APP_VERSION from src/utils.js"
+    assert f"myfinances-v{app_version}" in sw_js_content, (
+        f"sw.js's CACHE_NAME does not contain the current APP_VERSION ('{app_version}'). "
+        f"Bump CACHE_NAME in sw.js alongside every APP_VERSION change, or stale assets will never be evicted."
+    )
+
+
+@pytest.mark.feature
+def test_precache_completeness_check_catches_missing_file():
+    """The same completeness check must flag a real-looking gap, not just pass anything."""
+    fake_sw_content = "const PRECACHE_URLS = ['/index.html', '/src/app.js'];"
+    real_files = ['/src/app.js', '/src/utils.js']
+    missing = [f for f in real_files if f not in fake_sw_content]
+    assert missing == ['/src/utils.js']
