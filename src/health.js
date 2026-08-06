@@ -182,7 +182,7 @@ export function renderHealthDashboard(app) {
                     <span>${t('health.perMonthDebt', { amount: formatCurrency(totalDebtMin) })}</span>
                     <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
                 </div>
-                <a class="health-link" data-health-nav="liabilities">${t('health.manageDebts')} &rarr;</a>
+                <a href="#" class="health-link" data-health-nav="liabilities">${t('health.manageDebts')} &rarr;</a>
             </div>
 
             <!-- Savings Rate -->
@@ -203,7 +203,7 @@ export function renderHealthDashboard(app) {
                     <span>${t('health.perMonthSaved', { amount: formatCurrency(totalSavingsContrib) })}</span>
                     <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
                 </div>
-                <a class="health-link" data-health-nav="savings">${t('health.manageSavings')} &rarr;</a>
+                <a href="#" class="health-link" data-health-nav="savings">${t('health.manageSavings')} &rarr;</a>
             </div>
 
             <!-- Emergency Fund Coverage -->
@@ -217,7 +217,7 @@ export function renderHealthDashboard(app) {
                         <span class="health-empty-value">${t('health.efEmptyMonths')}</span>
                         <span class="health-empty-sub">${t('health.efEmptySub')}</span>
                     </div>
-                    <a class="health-link" data-health-nav="savings">${t('health.efSetUp')} &rarr;</a>
+                    <a href="#" class="health-link" data-health-nav="savings">${t('health.efSetUp')} &rarr;</a>
                 ` : emergencyFunds.map(fund => {
                     const coverageMonths = totalOutflow > 0 ? fund.currentAmount / totalOutflow : 0;
                     const coveragePct    = Math.min((coverageMonths / 6) * 100, 100);
@@ -235,7 +235,7 @@ export function renderHealthDashboard(app) {
                             <div class="health-ef-detail">${escapeHtml(st.label)}</div>
                         </div>`;
                 }).join('')}
-                ${emergencyFunds.length > 0 ? `<a class="health-link" data-health-nav="savings">${t('health.efManage')} &rarr;</a>` : ''}
+                ${emergencyFunds.length > 0 ? `<a href="#" class="health-link" data-health-nav="savings">${t('health.efManage')} &rarr;</a>` : ''}
             </div>
 
             <!-- Debt Payoff Timeline -->
@@ -271,7 +271,7 @@ export function renderHealthDashboard(app) {
                         <span class="health-empty-sub">${t('health.unableToCalculate')}</span>
                     </div>
                 `}
-                <a class="health-link" data-health-nav="strategy">${t('health.goToPlan')} &rarr;</a>
+                <a href="#" class="health-link" data-health-nav="strategy">${t('health.goToPlan')} &rarr;</a>
             </div>
 
             <!-- Monthly Cash Flow -->
@@ -306,7 +306,7 @@ export function renderHealthDashboard(app) {
                         <span class="${net >= 0 ? 'health-cf-income' : 'health-cf-deficit'}">${formatCurrency(net)}</span>
                     </div>
                 </div>
-                <a class="health-link" data-health-nav="liabilities">${t('health.viewBudget')} &rarr;</a>
+                <a href="#" class="health-link" data-health-nav="liabilities">${t('health.viewBudget')} &rarr;</a>
             </div>
 
             <!-- Budget Allocation -->
@@ -336,7 +336,7 @@ export function renderHealthDashboard(app) {
                             <div class="health-budget-cat-amt">${formatCurrency(total)}${t('health.perMonthSuffix')}</div>
                         </div>`;
                 }).join('')}
-                ${budgetCategories.length > 0 ? `<a class="health-link" data-health-nav="liabilities">${t('health.editBudget')} &rarr;</a>` : ''}
+                ${budgetCategories.length > 0 ? `<a href="#" class="health-link" data-health-nav="liabilities">${t('health.editBudget')} &rarr;</a>` : ''}
             </div>
 
         </div>

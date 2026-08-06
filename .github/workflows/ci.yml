@@ -173,7 +173,18 @@ jobs:
         uses: browser-actions/setup-chrome@v2
         with:
           chrome-version: stable
+      - name: Start app container
+        run: |
+          docker compose up -d --build
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
       - name: Run Lighthouse CI
         run: npx --yes @lhci/cli@0.15.1 autorun
         env:
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+      - name: Stop app container
+        if: always()
+        run: docker compose down

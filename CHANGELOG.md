@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.12.1] — 2026-08-05
+
+### Fixed
+- **CI pipeline failures on Trivy, Lighthouse, and accessibility checks** — the same 3 failures existed on `main` (not caused by prior PRs) and were fixed independently: `Dockerfile` now runs `apk update && apk upgrade` to pick up patched Alpine packages, clearing 11 fixable HIGH Trivy CVEs; `nginx.conf` gzips CSS/JS/JSON/SVG and the Lighthouse CI job now runs against the real `docker compose` nginx container instead of `python -m http.server`, bringing the performance score above the 0.8 minimum; `index.html`/`guide.html` gained `<meta name="description">` tags and the Health page's `data-health-nav` links gained `href="#"` (matching the existing pattern in `forecast.js`), fixing the SEO score that had been masked by the performance failure; a scoped color override for `.rpt-cal-today .rpt-cal-count` fixed a calendar contrast regression.
+
+---
+
 ## [4.12.0] — 2026-08-05
 
 ### Changed
