@@ -78,3 +78,86 @@ def test_cash_flow_trend_series_respects_report_month_offset_year_boundary(app_p
     # series[1] is the month before it: December of the prior year.
     assert series[1]['month'] == 11
     assert series[1]['year'] == series[2]['year'] - 1
+
+
+@pytest.mark.feature
+def test_cash_flow_trend_empty_state(app_page):
+    """With no income/expense/bill/debt/recurring data at all, the trend
+    section should show its empty-state message and render no canvas."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = []; app.debts = []; app.bills = []; app.expenses = [];
+        app.incomes = []; app.recurringTemplates = []; app.emergencyFunds = [];
+        app.sinkingFunds = []; app.monthlySnapshots = [];
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+    }""")
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(300)
+
+    trend_text = page.query_selector('#reportsCashFlowTrend').text_content()
+    assert 'Add income, bills, debts' in trend_text, \
+        f"Expected empty cash flow trend state, got: {trend_text}"
+
+    assert page.query_selector('#rptCashFlowTrendChart') is None
+    assert page.console_errors == []
+
+
+@pytest.mark.feature
+def test_cash_flow_trend_range_switch(app_page):
+    """Clicking the 3M/6M/12M range buttons updates
+    app._cashFlowTrendRangeMonths, moves the 'active' class, and the
+    resulting series length matches the selected range."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 1, name: 'Salary', amount: 3000, accountId: 1, frequency: 'monthly', firstPayDate: `${y}-${m}-01` }];
+        app.debts = []; app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.monthlySnapshots = [];
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+    }""")
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(300)
+
+    assert page.evaluate("() => window.app._cashFlowTrendRangeMonths") == 6
+
+    page.click('[data-cashflow-range="12"]')
+    page.wait_for_timeout(300)
+
+    assert page.evaluate("() => window.app._cashFlowTrendRangeMonths") == 12
+    active_btn = page.query_selector('[data-cashflow-range="12"]')
+    assert 'active' in active_btn.get_attribute('class')
+
+    series = page.evaluate("() => window.app.getCashFlowTrendSeries(window.app._cashFlowTrendRangeMonths)")
+    assert len(series) == 12
+
+
+@pytest.mark.feature
+def test_cash_flow_trend_far_future_month_renders_empty_state(app_page):
+    """Navigating the report month offset far into the future (no
+    underlying data) should render the trend section's empty state
+    instead of crashing or showing stale numbers."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = []; app.debts = []; app.bills = []; app.expenses = [];
+        app.incomes = []; app.recurringTemplates = []; app.emergencyFunds = [];
+        app.sinkingFunds = []; app.monthlySnapshots = [];
+        app._reportMonthOffset = 24;
+        app.switchPage('reports');
+    }""")
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(300)
+
+    trend_text = page.query_selector('#reportsCashFlowTrend').text_content()
+    assert 'Add income, bills, debts' in trend_text
+    assert page.console_errors == []
