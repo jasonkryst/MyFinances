@@ -3,10 +3,74 @@
 import {
     formatCurrency,
     escapeHtml,
-    getReportDate
+    getReportDate,
+    renderChartDataTable
 } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
+
+export function computeMonthCashFlowTotals(app, year, month) {
+    const monthTxs = getLedgerTransactionsForMonth(app, year, month);
+
+    let income = 0;
+    let bills = 0;
+    let expenses = 0;
+    let recurring = 0;
+    let debtMin = 0;
+    let savings = 0;
+
+    for (const tx of monthTxs) {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
+            income += tx.amount;
+            continue;
+        }
+        if (tx.type === 'bill') {
+            bills += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'expense') {
+            expenses += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'recurring') {
+            if (tx.amount >= 0) {
+                income += tx.amount;
+            } else {
+                recurring += Math.abs(tx.amount);
+            }
+            continue;
+        }
+        if (tx.type === 'debt') {
+            debtMin += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'savings') {
+            savings += Math.abs(tx.amount || 0);
+        }
+    }
+
+    const outflow = bills + expenses + recurring + debtMin + savings;
+    const net = income - outflow;
+
+    return { income, bills, expenses, recurring, debtMin, savings, outflow, net };
+}
+
+export function getCashFlowTrendSeries(app, months) {
+    const anchor = getReportDate(app);
+    const anchorYear = anchor.getFullYear();
+    const anchorMonth = anchor.getMonth();
+
+    const series = [];
+    for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(anchorYear, anchorMonth - i, 1);
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const totals = computeMonthCashFlowTotals(app, year, month);
+        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        series.push({ year, month, label, income: totals.income, outflow: totals.outflow, net: totals.net });
+    }
+    return series;
+}
 
 export function renderReportsIncomeExp(app) {
     const container = document.getElementById('reportsIncomeExp');
@@ -17,46 +81,15 @@ export function renderReportsIncomeExp(app) {
     const rptMonth = rptDate.getMonth();
 
     const monthTxs = getLedgerTransactionsForMonth(app, rptYear, rptMonth);
-
-    let totalIncome = 0;
-    let totalBills = 0;
-    let totalExpenses = 0;
-    let totalRecurring = 0;
-    let totalDebtMin = 0;
-    let totalSavings = 0;
-
-    for (const tx of monthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
-            totalIncome += tx.amount;
-            continue;
-        }
-        if (tx.type === 'bill') {
-            totalBills += Math.abs(tx.amount || 0);
-            continue;
-        }
-        if (tx.type === 'expense') {
-            totalExpenses += Math.abs(tx.amount || 0);
-            continue;
-        }
-        if (tx.type === 'recurring') {
-            if (tx.amount >= 0) {
-                totalIncome += tx.amount;
-            } else {
-                totalRecurring += Math.abs(tx.amount);
-            }
-            continue;
-        }
-        if (tx.type === 'debt') {
-            totalDebtMin += Math.abs(tx.amount || 0);
-            continue;
-        }
-        if (tx.type === 'savings') {
-            totalSavings += Math.abs(tx.amount || 0);
-        }
-    }
-
-    const totalOutflow = totalBills + totalExpenses + totalRecurring + totalDebtMin + totalSavings;
-    const net = totalIncome - totalOutflow;
+    const totals = computeMonthCashFlowTotals(app, rptYear, rptMonth);
+    const totalIncome = totals.income;
+    const totalBills = totals.bills;
+    const totalExpenses = totals.expenses;
+    const totalRecurring = totals.recurring;
+    const totalDebtMin = totals.debtMin;
+    const totalSavings = totals.savings;
+    const totalOutflow = totals.outflow;
+    const net = totals.net;
     const netCls = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
     const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -348,5 +381,95 @@ export function renderReportsMoneyFlow(app) {
                 ctx.restore();
             }
         }]
+    });
+}
+
+export function renderReportsCashFlowTrend(app) {
+    const container = document.getElementById('reportsCashFlowTrend');
+    if (!container) return;
+
+    const horizon = [3, 6, 12].includes(app._cashFlowTrendRangeMonths) ? app._cashFlowTrendRangeMonths : 6;
+    app._cashFlowTrendRangeMonths = horizon;
+
+    const series = getCashFlowTrendSeries(app, horizon);
+    const hasData = series.some(m => m.income !== 0 || m.outflow !== 0);
+
+    const rangeButtonsHTML = `
+        <div class="nw-range-buttons" role="group" aria-label="Cash flow trend range">
+            <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-cashflow-range="3" type="button">3M</button>
+            <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-cashflow-range="6" type="button">6M</button>
+            <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-cashflow-range="12" type="button">12M</button>
+        </div>`;
+
+    if (!hasData) {
+        container.innerHTML = `
+            <div class="nw-report-header">
+                <h3>📈 Cash Flow Trend</h3>
+                ${rangeButtonsHTML}
+            </div>
+            <p class="rpt-empty-msg">Add income, bills, debts, bonuses, expenses, or recurring items to see the cash flow trend.</p>`;
+        return;
+    }
+
+    const avgIncome = series.reduce((sum, m) => sum + m.income, 0) / series.length;
+    const avgOutflow = series.reduce((sum, m) => sum + m.outflow, 0) / series.length;
+    const avgNet = series.reduce((sum, m) => sum + m.net, 0) / series.length;
+    const avgNetCls = avgNet >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
+
+    container.innerHTML = `
+        <div class="nw-report-header">
+            <h3>📈 Cash Flow Trend</h3>
+            ${rangeButtonsHTML}
+        </div>
+        <p class="rpt-chart-sub">Income vs. outflow per month over the last ${horizon} months, with net balance overlaid.</p>
+        <div class="rpt-stats-strip">
+            <div class="rpt-stat rpt-stat--income"><span class="rpt-stat-label">Avg Monthly Income</span><span class="rpt-stat-value">${formatCurrency(avgIncome)}</span></div>
+            <div class="rpt-stat rpt-stat--debt"><span class="rpt-stat-label">Avg Monthly Outflow</span><span class="rpt-stat-value">${formatCurrency(avgOutflow)}</span></div>
+            <div class="rpt-stat ${avgNetCls}"><span class="rpt-stat-label">Avg Monthly Net</span><span class="rpt-stat-value">${formatCurrency(avgNet)}</span></div>
+        </div>
+        <div class="rpt-chart-canvas-wrap"><canvas id="rptCashFlowTrendChart"></canvas></div>`;
+
+    const cvs = document.getElementById('rptCashFlowTrendChart');
+    if (!cvs) return;
+    if (app._rptCashFlowTrendChart) {
+        app._rptCashFlowTrendChart.destroy();
+        app._rptCashFlowTrendChart = null;
+    }
+
+    const fmt = v => formatCurrency(v);
+    const isDark = document.body.classList.contains('dark-mode');
+    const gridColor = isDark ? '#374151' : '#e5e7eb';
+    const labelColor = isDark ? '#d1d5db' : '#374151';
+    const labels = series.map(m => m.label);
+
+    app._rptCashFlowTrendChart = new Chart(cvs, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { type: 'bar', label: 'Income', data: series.map(m => m.income), backgroundColor: '#10b981', borderRadius: 4, order: 2 },
+                { type: 'bar', label: 'Outflow', data: series.map(m => m.outflow), backgroundColor: '#ef4444', borderRadius: 4, order: 2 },
+                { type: 'line', label: 'Net', data: series.map(m => m.net), borderColor: '#2563eb', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 2.5, order: 1 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top', labels: { color: labelColor, usePointStyle: true, padding: 14, font: { size: 12 } } },
+                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
+            },
+            scales: {
+                x: { ticks: { color: labelColor }, grid: { display: false } },
+                y: { ticks: { color: labelColor, callback: v => fmt(v) }, grid: { color: gridColor } }
+            }
+        }
+    });
+
+    renderChartDataTable('rptCashFlowTrendChart', {
+        caption: `Cash flow trend — income, outflow, and net per month over the last ${horizon} months`,
+        columns: ['Month', 'Income', 'Outflow', 'Net'],
+        rows: series.map(m => [m.label, fmt(m.income), fmt(m.outflow), fmt(m.net)])
     });
 }

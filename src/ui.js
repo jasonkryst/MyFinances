@@ -355,6 +355,16 @@ export function initializeEventListeners(app) {
             return;
         }
 
+        const cashFlowRangeBtn = event.target.closest('[data-cashflow-range]');
+        if (cashFlowRangeBtn) {
+            const nextRange = parseInt(cashFlowRangeBtn.getAttribute('data-cashflow-range'), 10);
+            if ([3, 6, 12].includes(nextRange)) {
+                app._cashFlowTrendRangeMonths = nextRange;
+                app.renderReportsPage();
+            }
+            return;
+        }
+
         const forecastRangeBtn = event.target.closest('[data-forecast-range]');
         if (forecastRangeBtn) {
             const nextRange = parseInt(forecastRangeBtn.getAttribute('data-forecast-range'), 10);

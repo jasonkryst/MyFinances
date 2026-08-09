@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.14.0] — 2026-08-09
+
+### Added
+- **Cash Flow Trend chart** — new multi-month (3M/6M/12M) view on the Reports → Money Flow tab, showing Income vs. Outflow per month as bars with a Net balance line overlaid, alongside the existing single-month Money Flow chart. Reuses the ledger-derived per-month totals that already power the Income vs Expenses report, so the two stay consistent. (#76)
+
+---
+
 ## [4.13.0] — 2026-08-06
 
 ### Added

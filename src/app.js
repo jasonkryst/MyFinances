@@ -82,6 +82,9 @@ import {
 import {
     computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
 } from './reportsSummary.js';
+import {
+    getCashFlowTrendSeries as getCashFlowTrendSeriesFeature
+} from './reportsCashFlow.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION } from './utils.js';
@@ -156,6 +159,7 @@ export class DebtTrackerApp {
         this._storageBackendKind = getStorageBackendPreference();
         this.storageAdapter = createStorageAdapter(this._storageBackendKind);
     this._netWorthRangeMonths = 6;
+    this._cashFlowTrendRangeMonths = 6;
     this._forecastRangeMonths = 1;
     this._forecastAccountId = 'total';
     this._forecastNotableThresholdPct = 130;
@@ -816,6 +820,10 @@ export class DebtTrackerApp {
 
     computeReportsSummaryMetrics(rangeType, baseDate) {
         return computeReportsSummaryMetricsFeature(this, rangeType, baseDate);
+    }
+
+    getCashFlowTrendSeries(months) {
+        return getCashFlowTrendSeriesFeature(this, months);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
