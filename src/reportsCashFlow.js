@@ -3,10 +3,74 @@
 import {
     formatCurrency,
     escapeHtml,
-    getReportDate
+    getReportDate,
+    renderChartDataTable
 } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
+
+export function computeMonthCashFlowTotals(app, year, month) {
+    const monthTxs = getLedgerTransactionsForMonth(app, year, month);
+
+    let income = 0;
+    let bills = 0;
+    let expenses = 0;
+    let recurring = 0;
+    let debtMin = 0;
+    let savings = 0;
+
+    for (const tx of monthTxs) {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
+            income += tx.amount;
+            continue;
+        }
+        if (tx.type === 'bill') {
+            bills += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'expense') {
+            expenses += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'recurring') {
+            if (tx.amount >= 0) {
+                income += tx.amount;
+            } else {
+                recurring += Math.abs(tx.amount);
+            }
+            continue;
+        }
+        if (tx.type === 'debt') {
+            debtMin += Math.abs(tx.amount || 0);
+            continue;
+        }
+        if (tx.type === 'savings') {
+            savings += Math.abs(tx.amount || 0);
+        }
+    }
+
+    const outflow = bills + expenses + recurring + debtMin + savings;
+    const net = income - outflow;
+
+    return { income, bills, expenses, recurring, debtMin, savings, outflow, net };
+}
+
+export function getCashFlowTrendSeries(app, months) {
+    const anchor = getReportDate(app);
+    const anchorYear = anchor.getFullYear();
+    const anchorMonth = anchor.getMonth();
+
+    const series = [];
+    for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(anchorYear, anchorMonth - i, 1);
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const totals = computeMonthCashFlowTotals(app, year, month);
+        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        series.push({ year, month, label, income: totals.income, outflow: totals.outflow, net: totals.net });
+    }
+    return series;
+}
 
 export function renderReportsIncomeExp(app) {
     const container = document.getElementById('reportsIncomeExp');
@@ -17,46 +81,15 @@ export function renderReportsIncomeExp(app) {
     const rptMonth = rptDate.getMonth();
 
     const monthTxs = getLedgerTransactionsForMonth(app, rptYear, rptMonth);
-
-    let totalIncome = 0;
-    let totalBills = 0;
-    let totalExpenses = 0;
-    let totalRecurring = 0;
-    let totalDebtMin = 0;
-    let totalSavings = 0;
-
-    for (const tx of monthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
-            totalIncome += tx.amount;
-            continue;
-        }
-        if (tx.type === 'bill') {
-            totalBills += Math.abs(tx.amount || 0);
-            continue;
-        }
-        if (tx.type === 'expense') {
-            totalExpenses += Math.abs(tx.amount || 0);
-            continue;
-        }
-        if (tx.type === 'recurring') {
-            if (tx.amount >= 0) {
-                totalIncome += tx.amount;
-            } else {
-                totalRecurring += Math.abs(tx.amount);
-            }
-            continue;
-        }
-        if (tx.type === 'debt') {
-            totalDebtMin += Math.abs(tx.amount || 0);
-            continue;
-        }
-        if (tx.type === 'savings') {
-            totalSavings += Math.abs(tx.amount || 0);
-        }
-    }
-
-    const totalOutflow = totalBills + totalExpenses + totalRecurring + totalDebtMin + totalSavings;
-    const net = totalIncome - totalOutflow;
+    const totals = computeMonthCashFlowTotals(app, rptYear, rptMonth);
+    const totalIncome = totals.income;
+    const totalBills = totals.bills;
+    const totalExpenses = totals.expenses;
+    const totalRecurring = totals.recurring;
+    const totalDebtMin = totals.debtMin;
+    const totalSavings = totals.savings;
+    const totalOutflow = totals.outflow;
+    const net = totals.net;
     const netCls = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
     const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
