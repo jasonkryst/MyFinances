@@ -4411,8 +4411,8 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 /* ── Money Flow ─────────────────────────────────────────────────────────── */
 .rpt-section-title { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
 .rpt-moneyflow-wrap { position: relative; height: 360px; }
-.mf-sankey-wrap { position: relative; width: 100%; overflow-x: auto; margin-bottom: 16px; }
-.mf-sankey-wrap svg { width: 100%; height: auto; min-width: 480px; }
+.mf-sankey-wrap { position: relative; width: 100%; overflow-x: auto; overflow-y: hidden; margin-bottom: 16px; }
+.mf-sankey-wrap svg { display: block; width: 100%; height: auto; min-width: 480px; }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .rpt-empty-msg {

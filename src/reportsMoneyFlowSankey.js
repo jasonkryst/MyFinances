@@ -82,9 +82,10 @@ export function computeMoneyFlowSankeyData(app, year, month) {
 }
 
 const WIDTH = 900;
-const HEIGHT = 420;
+const HEIGHT = 440;
 const TOP_PADDING = 24;
-const NODE_WIDTH = 14;
+const NODE_WIDTH = 16;
+const NODE_GAP = 8;
 // Reserve real horizontal space for the end/start-anchored side labels
 // (e.g. "🧾 Housing") so they render inside the viewBox instead of being
 // clipped at its edges.
@@ -92,26 +93,40 @@ const LEFT_LABEL_SPACE = 110;
 const RIGHT_LABEL_SPACE = 150;
 const COLUMN_X = [LEFT_LABEL_SPACE, (WIDTH - NODE_WIDTH) / 2, WIDTH - RIGHT_LABEL_SPACE - NODE_WIDTH];
 
-function layoutColumn(nodes, x, scale) {
+// Stacks nodes top-to-bottom with a real gap between them, sized to a scale
+// that leaves room for that gap budget. Returns the vertical offset of each
+// link (keyed by node id) as if the SAME nodes were packed with NO gap at
+// all — this is what the single-rect Account node's edge needs, so a link's
+// y-range differs slightly between its leaf end (gapped) and its Account
+// end (packed), producing a genuine curved ribbon instead of a flat band.
+function layoutColumn(nodes, x, availableHeight, balancedTotal) {
+    const gapBudget = (nodes.length - 1) * NODE_GAP;
+    const scale = balancedTotal > 0 ? (availableHeight - gapBudget) / balancedTotal : 0;
+    const packedScale = balancedTotal > 0 ? availableHeight / balancedTotal : 0;
+
+    const packedOffsets = {};
     let cursor = TOP_PADDING;
+    let packedCursor = TOP_PADDING;
     for (const node of nodes) {
         node.x = x;
         node.y = cursor;
         node.height = node.amount * scale;
-        cursor += node.height;
+        cursor += node.height + NODE_GAP;
+
+        const packedHeight = node.amount * packedScale;
+        packedOffsets[node.id] = { top: packedCursor, bottom: packedCursor + packedHeight };
+        packedCursor += packedHeight;
     }
+    return packedOffsets;
 }
 
-// Ribbon: horizontal band from (x0, yTop..yBottom) to (x1, yTop..yBottom),
-// with a soft bezier transition at the column boundary. Every link in this
-// diagram touches the single Account node on one end, and the Account's
-// per-link vertical offset is defined (via layoutColumn, same order/scale)
-// to exactly match the leaf node's own y/height — so yTop/yBottom are the
-// same at both ends and no vertical taper is needed.
-function ribbonPath(x0, yTop, yBottom, x1) {
+// Ribbon connecting (x0, yTop0..yBottom0) to (x1, yTop1..yBottom1) with a
+// smooth S-curve when the two ends don't line up vertically (the normal
+// case here, since leaf nodes are gapped but the Account's edge is packed).
+function ribbonPath(x0, yTop0, yBottom0, x1, yTop1, yBottom1) {
     const midX = (x0 + x1) / 2;
-    return `M ${x0} ${yTop} C ${midX} ${yTop} ${midX} ${yTop} ${x1} ${yTop} ` +
-        `L ${x1} ${yBottom} C ${midX} ${yBottom} ${midX} ${yBottom} ${x0} ${yBottom} Z`;
+    return `M ${x0} ${yTop0} C ${midX} ${yTop0} ${midX} ${yTop1} ${x1} ${yTop1} ` +
+        `L ${x1} ${yBottom1} C ${midX} ${yBottom1} ${midX} ${yBottom0} ${x0} ${yBottom0} Z`;
 }
 
 export function renderMoneyFlowSankey(app) {
@@ -137,10 +152,9 @@ export function renderMoneyFlowSankey(app) {
     const outflowNodes = nodes.filter(n => n.column === 2);
     const balancedTotal = accountNode.amount;
     const availableHeight = HEIGHT - TOP_PADDING * 2;
-    const scale = balancedTotal > 0 ? availableHeight / balancedTotal : 0;
 
-    layoutColumn(incomeNodes, COLUMN_X[0], scale);
-    layoutColumn(outflowNodes, COLUMN_X[2], scale);
+    const incomingAccountOffsets = layoutColumn(incomeNodes, COLUMN_X[0], availableHeight, balancedTotal);
+    const outgoingAccountOffsets = layoutColumn(outflowNodes, COLUMN_X[2], availableHeight, balancedTotal);
     accountNode.x = COLUMN_X[1];
     accountNode.y = TOP_PADDING;
     accountNode.height = availableHeight;
@@ -156,29 +170,34 @@ export function renderMoneyFlowSankey(app) {
         const source = nodesById[link.sourceId];
         const target = nodesById[link.targetId];
         const leaf = source.column === 1 ? target : source;
+        const accountOffset = source.column === 1 ? outgoingAccountOffsets[leaf.id] : incomingAccountOffsets[leaf.id];
         const x0 = source.x + NODE_WIDTH;
         const x1 = target.x;
-        const yTop = leaf.y;
-        const yBottom = leaf.y + leaf.height;
-        const d = ribbonPath(x0, yTop, yBottom, x1);
+        const leafTop = leaf.y;
+        const leafBottom = leaf.y + leaf.height;
+        const yTop0 = source.column === 1 ? accountOffset.top : leafTop;
+        const yBottom0 = source.column === 1 ? accountOffset.bottom : leafBottom;
+        const yTop1 = target.column === 1 ? accountOffset.top : leafTop;
+        const yBottom1 = target.column === 1 ? accountOffset.bottom : leafBottom;
+        const d = ribbonPath(x0, yTop0, yBottom0, x1, yTop1, yBottom1);
         const title = `${escapeHtml(source.label)} → ${escapeHtml(target.label)}: ${escapeHtml(formatCurrency(link.amount))}`;
-        return `<path d="${d}" fill="${link.color}" fill-opacity="0.35" stroke="none"><title>${title}</title></path>`;
+        return `<path d="${d}" fill="${link.color}" fill-opacity="0.45" stroke="none"><title>${title}</title></path>`;
     }).join('');
 
     const nodeMarkup = nodes.map(node => {
-        let labelX, labelY, anchor, dominantBaseline;
+        let labelX, labelY, anchor, dominantBaseline, fontWeight;
         if (node.column === 0) {
-            labelX = node.x - 6; labelY = node.y + node.height / 2; anchor = 'end'; dominantBaseline = 'middle';
+            labelX = node.x - 8; labelY = node.y + node.height / 2; anchor = 'end'; dominantBaseline = 'middle'; fontWeight = 'normal';
         } else if (node.column === 2) {
-            labelX = node.x + NODE_WIDTH + 6; labelY = node.y + node.height / 2; anchor = 'start'; dominantBaseline = 'middle';
+            labelX = node.x + NODE_WIDTH + 8; labelY = node.y + node.height / 2; anchor = 'start'; dominantBaseline = 'middle'; fontWeight = 'normal';
         } else {
-            labelX = node.x + NODE_WIDTH / 2; labelY = node.y - 8; anchor = 'middle'; dominantBaseline = 'auto';
+            labelX = node.x + NODE_WIDTH / 2; labelY = node.y - 10; anchor = 'middle'; dominantBaseline = 'auto'; fontWeight = 'bold';
         }
         const title = `${escapeHtml(node.label)}: ${escapeHtml(formatCurrency(node.amount))}`;
         return `
             <g>
-                <rect x="${node.x}" y="${node.y}" width="${NODE_WIDTH}" height="${Math.max(node.height, 0.5)}" fill="${node.color}" stroke="${strokeColor}" stroke-width="1"><title>${title}</title></rect>
-                <text x="${labelX}" y="${labelY}" text-anchor="${anchor}" dominant-baseline="${dominantBaseline}" fill="${labelColor}" font-size="11">${escapeHtml(node.label)}</text>
+                <rect x="${node.x}" y="${node.y}" width="${NODE_WIDTH}" height="${Math.max(node.height, 1)}" rx="2" fill="${node.color}" stroke="${strokeColor}" stroke-width="1.5"><title>${title}</title></rect>
+                <text x="${labelX}" y="${labelY}" text-anchor="${anchor}" dominant-baseline="${dominantBaseline}" fill="${labelColor}" font-size="12.5" font-weight="${fontWeight}">${escapeHtml(node.label)}</text>
             </g>`;
     }).join('');
 
