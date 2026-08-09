@@ -388,7 +388,7 @@ export function renderReportsCashFlowTrend(app) {
     const container = document.getElementById('reportsCashFlowTrend');
     if (!container) return;
 
-    const horizon = [3, 6, 12].includes(app._cashFlowTrendRangeMonths) ? app._cashFlowTrendRangeMonths : 6;
+    const horizon = [1, 3, 6, 12].includes(app._cashFlowTrendRangeMonths) ? app._cashFlowTrendRangeMonths : 6;
     app._cashFlowTrendRangeMonths = horizon;
 
     const series = getCashFlowTrendSeries(app, horizon);
@@ -396,6 +396,7 @@ export function renderReportsCashFlowTrend(app) {
 
     const rangeButtonsHTML = `
         <div class="nw-range-buttons" role="group" aria-label="Cash flow trend range">
+            <button class="nw-range-btn ${horizon === 1 ? 'active' : ''}" data-cashflow-range="1" type="button">1M</button>
             <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-cashflow-range="3" type="button">3M</button>
             <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-cashflow-range="6" type="button">6M</button>
             <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-cashflow-range="12" type="button">12M</button>
@@ -415,13 +416,14 @@ export function renderReportsCashFlowTrend(app) {
     const avgOutflow = series.reduce((sum, m) => sum + m.outflow, 0) / series.length;
     const avgNet = series.reduce((sum, m) => sum + m.net, 0) / series.length;
     const avgNetCls = avgNet >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
+    const horizonLabel = horizon === 1 ? '1 month' : `${horizon} months`;
 
     container.innerHTML = `
         <div class="nw-report-header">
             <h3>📈 Cash Flow Trend</h3>
             ${rangeButtonsHTML}
         </div>
-        <p class="rpt-chart-sub">Income vs. outflow per month over the last ${horizon} months, with net balance overlaid.</p>
+        <p class="rpt-chart-sub">Income vs. outflow per month over the last ${horizonLabel}, with net balance overlaid.</p>
         <div class="rpt-stats-strip">
             <div class="rpt-stat rpt-stat--income"><span class="rpt-stat-label">Avg Monthly Income</span><span class="rpt-stat-value">${formatCurrency(avgIncome)}</span></div>
             <div class="rpt-stat rpt-stat--debt"><span class="rpt-stat-label">Avg Monthly Outflow</span><span class="rpt-stat-value">${formatCurrency(avgOutflow)}</span></div>
@@ -468,7 +470,7 @@ export function renderReportsCashFlowTrend(app) {
     });
 
     renderChartDataTable('rptCashFlowTrendChart', {
-        caption: `Cash flow trend — income, outflow, and net per month over the last ${horizon} months`,
+        caption: `Cash flow trend — income, outflow, and net per month over the last ${horizonLabel}`,
         columns: ['Month', 'Income', 'Outflow', 'Net'],
         rows: series.map(m => [m.label, fmt(m.income), fmt(m.outflow), fmt(m.net)])
     });
