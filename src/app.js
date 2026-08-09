@@ -85,6 +85,9 @@ import {
 import {
     getCashFlowTrendSeries as getCashFlowTrendSeriesFeature
 } from './reportsCashFlow.js';
+import {
+    computeMoneyFlowSankeyData as computeMoneyFlowSankeyDataFeature
+} from './reportsMoneyFlowSankey.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION } from './utils.js';
@@ -824,6 +827,10 @@ export class DebtTrackerApp {
 
     getCashFlowTrendSeries(months) {
         return getCashFlowTrendSeriesFeature(this, months);
+    }
+
+    computeMoneyFlowSankeyData(year, month) {
+        return computeMoneyFlowSankeyDataFeature(this, year, month);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
