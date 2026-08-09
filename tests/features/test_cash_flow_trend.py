@@ -107,7 +107,7 @@ def test_cash_flow_trend_empty_state(app_page):
 
 @pytest.mark.feature
 def test_cash_flow_trend_range_switch(app_page):
-    """Clicking the 3M/6M/12M range buttons updates
+    """Clicking the 1M/3M/6M/12M range buttons updates
     app._cashFlowTrendRangeMonths, moves the 'active' class, and the
     resulting series length matches the selected range."""
     page = app_page
@@ -138,6 +138,20 @@ def test_cash_flow_trend_range_switch(app_page):
 
     series = page.evaluate("() => window.app.getCashFlowTrendSeries(window.app._cashFlowTrendRangeMonths)")
     assert len(series) == 12
+
+    page.click('[data-cashflow-range="1"]')
+    page.wait_for_timeout(300)
+
+    assert page.evaluate("() => window.app._cashFlowTrendRangeMonths") == 1
+    active_1m_btn = page.query_selector('[data-cashflow-range="1"]')
+    assert 'active' in active_1m_btn.get_attribute('class')
+
+    series = page.evaluate("() => window.app.getCashFlowTrendSeries(window.app._cashFlowTrendRangeMonths)")
+    assert len(series) == 1
+
+    trend_sub_text = page.query_selector('#reportsCashFlowTrend .rpt-chart-sub').text_content()
+    assert 'last 1 month,' in trend_sub_text, \
+        f"Expected singular 'month' phrasing for a 1-month range, got: {trend_sub_text}"
 
 
 @pytest.mark.feature

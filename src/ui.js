@@ -358,7 +358,7 @@ export function initializeEventListeners(app) {
         const cashFlowRangeBtn = event.target.closest('[data-cashflow-range]');
         if (cashFlowRangeBtn) {
             const nextRange = parseInt(cashFlowRangeBtn.getAttribute('data-cashflow-range'), 10);
-            if ([3, 6, 12].includes(nextRange)) {
+            if ([1, 3, 6, 12].includes(nextRange)) {
                 app._cashFlowTrendRangeMonths = nextRange;
                 app.renderReportsPage();
             }
