@@ -693,6 +693,34 @@ export function showStorageQuotaWarning(usage) {
     document.body.appendChild(banner);
 }
 
+export function showUpdateAvailableBanner(waitingWorker) {
+    if (document.getElementById('swUpdateBanner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'swUpdateBanner';
+    banner.className = 'sw-update-banner';
+    banner.setAttribute('role', 'alert');
+
+    const text = document.createElement('span');
+    text.textContent = 'A new version of MyFinances is available.';
+
+    const reloadBtn = document.createElement('button');
+    reloadBtn.className = 'sw-update-banner-reload';
+    reloadBtn.textContent = 'Reload';
+    reloadBtn.addEventListener('click', () => waitingWorker.postMessage({ type: 'SKIP_WAITING' }));
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'sw-update-banner-close';
+    closeBtn.setAttribute('aria-label', 'Dismiss update notice');
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => banner.remove());
+
+    banner.appendChild(text);
+    banner.appendChild(reloadBtn);
+    banner.appendChild(closeBtn);
+    document.body.appendChild(banner);
+}
+
 export function showNetWorthMilestone(message) {
     const host = document.createElement('div');
     host.className = 'networth-milestone-host';

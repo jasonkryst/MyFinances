@@ -15,6 +15,7 @@ tests/ui/test_pwa_update_banner.py.
 import json
 import os
 import re
+import time
 
 import pytest
 
@@ -131,3 +132,53 @@ def test_precache_completeness_check_catches_missing_file():
     real_files = ['/src/app.js', '/src/utils.js']
     missing = [f for f in real_files if f not in fake_sw_content]
     assert missing == ['/src/utils.js']
+
+
+# --- service worker registration ---
+
+def _wait_for_service_worker_registration(page, timeout_ms=10000):
+    """Polls via page.evaluate (which correctly awaits async functions) rather than
+    page.wait_for_function -- in this Playwright version, wait_for_function resolves as soon as
+    a predicate returns a (truthy) Promise object, without awaiting what it resolves to, which
+    would make a registration check here a false-positive that passes even with no registration
+    at all."""
+    deadline = time.monotonic() + timeout_ms / 1000
+    while time.monotonic() < deadline:
+        registered = page.evaluate("""
+            async () => {
+                const reg = await navigator.serviceWorker.getRegistration();
+                return !!reg;
+            }
+        """)
+        if registered:
+            return True
+        page.wait_for_timeout(100)
+    return False
+
+
+@pytest.mark.feature
+def test_service_worker_registers_successfully(app_page):
+    page = app_page
+    assert _wait_for_service_worker_registration(page), (
+        "Expected navigator.serviceWorker to have a registration for this origin"
+    )
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_app_loads_without_error_when_service_worker_unsupported(page):
+    """Simulates an old/unsupported browser (no navigator.serviceWorker at all) and confirms the
+    app still loads and functions -- PWA support must be a progressive enhancement, not a hard
+    dependency."""
+    from tests.conftest import BASE_URL
+    page.add_init_script("""
+        Object.defineProperty(window.navigator, 'serviceWorker', { value: undefined, configurable: true });
+        try {
+            if (!localStorage.getItem('debtTrackerData')) {
+                localStorage.setItem('debtTrackerData', JSON.stringify({ accounts: [], debts: [], settings: [] }));
+            }
+        } catch (e) {}
+    """)
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    assert page.is_visible('h1')
+    assert_no_errors(page)
