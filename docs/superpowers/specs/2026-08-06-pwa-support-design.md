@@ -17,10 +17,11 @@ with zero network connectivity after a first visit, on top of the
 | Question | Decision |
 |---|---|
 | Icon source | Generate PNGs from the existing header goal-logo via a zero-dependency Node script (`tools/generate-icons.js`, `zlib` only). Committed output, not run in CI. |
-| Offline scope | Full app-shell precaching (cache-first) + stale-while-revalidate runtime cache for the Chart.js CDN script — not manifest-only. |
+| Offline scope | Full app-shell precaching (network-first with offline fallback) + stale-while-revalidate runtime cache for the Chart.js CDN script — not manifest-only. |
 | Update UX | New service worker installs and waits; a dismissible banner prompts "Reload" rather than silently taking over (`skipWaiting`/`clients.claim` deferred until the user opts in). |
 | Cache versioning | Cache name is `myfinances-v${APP_VERSION}` — every version bump automatically invalidates old caches on next visit. |
 | Scope of `sw.js` | Lives at repo root (not `src/`) so its default scope covers `/`, including `guide.html`. |
+| Online app-shell strategy | Network-first with cached offline fallback. The app uses stable, unhashed URLs, so online requests must revalidate rather than cache-first indefinitely. |
 
 ## New files
 
@@ -94,13 +95,14 @@ self.addEventListener('fetch', (event) => {
   if (request.url.startsWith(CDN_URL)) {
     event.respondWith(staleWhileRevalidate(request));
   } else if (request.method === 'GET' && new URL(request.url).origin === self.location.origin) {
-    event.respondWith(cacheFirst(request));
+    event.respondWith(networkFirst(request));
   }
 });
 ```
 
-`cacheFirst`/`staleWhileRevalidate` are small local helpers; both fall back
-to `fetch()` and silently skip caching the response if `caches.open`/`put`
+`networkFirst`/`staleWhileRevalidate` are small local helpers. The app-shell
+strategy uses its cache only when the network is unavailable, and both
+strategies keep a successful network response usable if `caches.open`/`put`
 throws (e.g. private-browsing storage restrictions) — the app never depends
 on the cache being writable.
 
@@ -189,11 +191,10 @@ inventing new banner styling.
 
 - `Dockerfile`: `COPY` line gains `manifest.json sw.js`; new
   `COPY icons/ /usr/share/nginx/html/icons/`.
-- `nginx.conf`: icons matched by the existing
-  `\.(css|js|svg|png|ico|woff2?)$` 1-year-immutable rule (already covers
-  `.png`). Add a dedicated `location = /sw.js { add_header Cache-Control "no-cache"; }`
-  so browsers always revalidate the service worker script itself (required
-  for the update-prompt flow to ever fire).
+- `nginx.conf`: serve `index.html`, `manifest.json`, `sw.js`, CSS, and
+  JavaScript with `Cache-Control: no-cache, must-revalidate`. These are
+  stable URLs, so a one-year immutable browser cache would otherwise retain
+  old releases. Images and fonts may retain the one-year immutable policy.
 - No CSP changes — `sw.js` is same-origin (`script-src 'self'`), its CDN
   fetch is already covered by `connect-src https://cdn.jsdelivr.net`.
 
@@ -248,3 +249,12 @@ touch `sw.js` fails CI instead of silently serving stale assets forever.
   (`toolbar.*`/`dataTransfer.*` are the only namespaces covered so far).
 - `guide.html` is precached (it's linked from the toolbar and covered by
   `sw.js`'s root scope) but not otherwise changed.
+
+## Issue #83 update
+
+Chrome can retain a response marked `immutable` even after a new service
+worker cache name is deployed. The original cache-first app-shell strategy
+could also continue serving an active worker's old cache while online.
+The implementation therefore uses network-first handling for same-origin
+app-shell requests, with the precache as an offline fallback, and requires
+browser revalidation for every stable app-shell URL.

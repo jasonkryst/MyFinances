@@ -219,6 +219,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ### Installable & Offline (PWA)
 - **Add to Home Screen / Install** — `manifest.json` plus a generated icon set (`icons/`) make the app installable as a standalone app on desktop and mobile
 - **Offline app shell** — a service worker (`sw.js`) precaches the app shell on first visit, so the app loads with zero network connectivity afterward (your saved data already lives in `localStorage`, so nothing about it depends on the network either way)
+- **Current releases** — while online, stable app-shell URLs revalidate before use so Chrome receives newly deployed HTML, JavaScript, and styles instead of retaining an older cached release
 - **Update prompt** — when a new version is deployed, a dismissible banner offers to reload rather than silently swapping assets mid-session
 
 ---
