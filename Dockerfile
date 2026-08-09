@@ -18,8 +18,9 @@ RUN rm /etc/nginx/conf.d/default.conf && \
 COPY nginx.conf /etc/nginx/conf.d/myfinances.conf
 
 # Copy application files
-COPY index.html styles.css styles-csp-classes.css guide.html guide.css /usr/share/nginx/html/
+COPY index.html styles.css styles-csp-classes.css guide.html guide.css manifest.json sw.js /usr/share/nginx/html/
 COPY src/ /usr/share/nginx/html/src/
+COPY icons/ /usr/share/nginx/html/icons/
 
 # Set correct ownership and permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \

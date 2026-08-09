@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.13.0] — 2026-08-06
+
+### Added
+- **PWA support (installable + offline)** — added `manifest.json`, a root-scoped `sw.js` service worker (app-shell precaching + stale-while-revalidate runtime cache for the Chart.js CDN script), and a generated icon set (`icons/`, via `tools/generate-icons.js`), so the app can be installed to a home screen/desktop and loads with no network connectivity after a first visit. New service worker versions install and wait rather than silently taking over — a dismissible "Reload" banner prompts the user instead. See `docs/superpowers/specs/2026-08-06-pwa-support-design.md` (#75).
+
+---
+
 ## [4.12.1] — 2026-08-05
 
 ### Fixed

@@ -82,7 +82,8 @@ import {
 import {
     computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
 } from './reportsSummary.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature } from './ui.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature } from './ui.js';
+import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION } from './utils.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
@@ -516,6 +517,10 @@ export class DebtTrackerApp {
         return showStorageQuotaWarningFeature(usage);
     }
 
+    showUpdateAvailableBanner(waitingWorker) {
+        return showUpdateAvailableBannerFeature(waitingWorker);
+    }
+
     /**
      * Persist current state to localStorage under `this.storageKey`.
      * Saved keys: `debts`, `perMonthStimulus`, `monthlyPayment`, `strategy`, `timestamp`.
@@ -856,4 +861,5 @@ export class DebtTrackerApp {
 // Initialize the app when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new DebtTrackerApp();
+    registerServiceWorker(window.app);
 });

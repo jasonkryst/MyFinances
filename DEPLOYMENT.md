@@ -139,6 +139,8 @@ server {
 }
 ```
 
+> **Service worker caching:** `sw.js` gets a dedicated `location = /sw.js` block with `Cache-Control: no-cache` — unlike other static assets, the service worker script itself must never be long-cached, or browsers won't discover new app versions and the in-app update-reload prompt never fires. See the checked-in `nginx.conf` for the exact block.
+
 ### Apache Configuration
 
 **File: `.htaccess`**
@@ -198,8 +200,8 @@ server {
 The repository ships with production-ready Docker files. The image is built on `nginx:1.27-alpine` and runs as the non-root `nginx` user.
 
 **Files provided:**
-- `Dockerfile` — multi-stage-ready build; copies `index.html`, `styles.css`, `styles-csp-classes.css`, `guide.html`, and `src/`
-- `nginx.conf` — custom nginx config with all security headers and 1-year asset caching
+- `Dockerfile` — multi-stage-ready build; copies `index.html`, `styles.css`, `styles-csp-classes.css`, `guide.html`, `guide.css`, `manifest.json`, `sw.js`, `src/`, and `icons/` (PWA support, #75)
+- `nginx.conf` — custom nginx config with all security headers, 1-year asset caching, and a dedicated no-cache rule for `sw.js`
 - `docker-compose.yml` — hardened Compose config (read-only filesystem, dropped capabilities)
 - `.dockerignore` — excludes tests, docs, Python cache, and editor files from the build context
 
@@ -214,6 +216,8 @@ docker run -d -p 5500:80 --name myfinances myfinances
 ```
 
 Access at: `http://localhost:5500`
+
+> The image ships `manifest.json`, `sw.js`, and `icons/` (PWA support, #75) alongside the existing static files.
 
 **Build and run with Docker Compose (recommended):**
 

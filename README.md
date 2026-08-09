@@ -216,6 +216,13 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 
 ---
 
+### Installable & Offline (PWA)
+- **Add to Home Screen / Install** — `manifest.json` plus a generated icon set (`icons/`) make the app installable as a standalone app on desktop and mobile
+- **Offline app shell** — a service worker (`sw.js`) precaches the app shell on first visit, so the app loads with zero network connectivity afterward (your saved data already lives in `localStorage`, so nothing about it depends on the network either way)
+- **Update prompt** — when a new version is deployed, a dismissible banner offers to reload rather than silently swapping assets mid-session
+
+---
+
 ## How to Use
 
 Click **❓ Help** in the toolbar to open the full usage guide (`guide.html`) in a new tab.
@@ -292,6 +299,8 @@ guide.html                  — In-app usage guide (opened by Help button)
 guide.css                   — Styles for guide.html (externalized for CSP compliance)
 styles.css                  — Responsive styles + dark mode + utilities + print stylesheet
 styles-csp-classes.css      — CSP-compliant utility classes + dynamic CSS variable rules
+manifest.json                — Web app manifest (installability metadata + icon references)
+sw.js                         — Service worker: app-shell precache + Chart.js CDN runtime cache
 src/
   ├─ app.js                — Main app controller & state (DebtTrackerApp)
   ├─ ui.js                 — Event listeners, page navigation, mobile menu
@@ -361,7 +370,9 @@ tests/ (553 tests across 57 files)
   └─ integration/ (14 tests)  — End-to-end workflows, import/export, data persistence
       ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
 tools/
-  └─ debug/                   — Ad-hoc manual debugging scripts (not part of pytest suite)
+  ├─ debug/                   — Ad-hoc manual debugging scripts (not part of pytest suite)
+  └─ generate-icons.js        — One-time PWA icon generator (Node zlib only, not run in CI)
+icons/                        — Generated PWA icon set (tools/generate-icons.js output)
 ```
 
 > **Known gap:** The standalone Bills UI (`#billForm`/`#billList`) was removed in favor of Recurring Templates, but `bills.js` still defines the full bills data model and calculation logic — `app.bills` is read by `accounts.js`, `health.js`, `ledger.js`, and `strategy.js`, and round-trips through import/export. There is currently no reachable UI to add or edit a bill.

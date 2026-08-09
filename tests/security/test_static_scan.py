@@ -356,6 +356,58 @@ def test_no_new_external_origins_introduced():
         assert host not in csp.lower(), f"Unexpected new external dependency origin in CSP: {host}"
 
 
+@pytest.mark.security
+def test_dockerfile_copies_pwa_assets():
+    """The production Docker image must ship manifest.json, sw.js, and icons/ or the deployed app
+    404s on them (nginx's 'root' serves exactly what's COPYed into the image)."""
+    dockerfile_path = os.path.join(PROJECT_ROOT, 'Dockerfile')
+    with open(dockerfile_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    copy_lines = [line for line in content.splitlines() if line.strip().startswith('COPY')]
+    assert any('manifest.json' in line and 'sw.js' in line for line in copy_lines), (
+        "Dockerfile must COPY manifest.json and sw.js into the image"
+    )
+    assert any('icons/' in line for line in copy_lines), (
+        "Dockerfile must COPY the icons/ directory into the image"
+    )
+
+
+@pytest.mark.security
+def test_copy_line_detection_catches_missing_pwa_assets():
+    """The same COPY-line check must correctly flag a Dockerfile that forgot the PWA assets, not
+    just pass everything it's handed."""
+    fake_dockerfile = (
+        "FROM nginx:1.29-alpine\n"
+        "COPY index.html styles.css /usr/share/nginx/html/\n"
+        "COPY src/ /usr/share/nginx/html/src/\n"
+    )
+    copy_lines = [line for line in fake_dockerfile.splitlines() if line.strip().startswith('COPY')]
+    assert not any('manifest.json' in line and 'sw.js' in line for line in copy_lines)
+    assert not any('icons/' in line for line in copy_lines)
+
+
+@pytest.mark.security
+def test_nginx_serves_service_worker_with_no_cache():
+    """sw.js must not be served with the same 1-year-immutable rule as other static assets, or
+    browsers won't pick up new app versions and the update-prompt flow can never fire."""
+    nginx_path = os.path.join(PROJECT_ROOT, 'nginx.conf')
+    with open(nginx_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    sw_block_match = re.search(r'location\s*=\s*/sw\.js\s*\{([^}]*)\}', content)
+    assert sw_block_match, "nginx.conf must define a dedicated 'location = /sw.js' block"
+    assert 'no-cache' in sw_block_match.group(1), "sw.js location block must set Cache-Control: no-cache"
+
+
+@pytest.mark.security
+def test_sw_no_cache_detection_catches_missing_block():
+    """The same no-cache detection must correctly flag an nginx.conf with no dedicated sw.js block."""
+    fake_nginx = "server {\n    location ~* \\.(css|js)$ {\n        expires 1y;\n    }\n}\n"
+    match = re.search(r'location\s*=\s*/sw\.js\s*\{([^}]*)\}', fake_nginx)
+    assert match is None
+
+
 def main():
     """Run all static security checks."""
     print("\n" + "="*60)
