@@ -81,11 +81,16 @@ export function computeMoneyFlowSankeyData(app, year, month) {
     return { nodes, links, hasData };
 }
 
-const WIDTH = 760;
+const WIDTH = 900;
 const HEIGHT = 420;
 const TOP_PADDING = 24;
 const NODE_WIDTH = 14;
-const COLUMN_X = [16, (WIDTH - NODE_WIDTH) / 2, WIDTH - NODE_WIDTH - 16];
+// Reserve real horizontal space for the end/start-anchored side labels
+// (e.g. "🧾 Housing") so they render inside the viewBox instead of being
+// clipped at its edges.
+const LEFT_LABEL_SPACE = 110;
+const RIGHT_LABEL_SPACE = 150;
+const COLUMN_X = [LEFT_LABEL_SPACE, (WIDTH - NODE_WIDTH) / 2, WIDTH - RIGHT_LABEL_SPACE - NODE_WIDTH];
 
 function layoutColumn(nodes, x, scale) {
     let cursor = TOP_PADDING;
