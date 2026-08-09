@@ -8,6 +8,7 @@ import { renderReportsSpending } from './spending.js';
 import { renderReportsNetWorth } from './reportsNetWorth.js';
 import { renderReportsCalendar } from './reportsCalendar.js';
 import { renderReportsIncomeExp, renderReportsMoneyFlow, renderReportsCashFlowTrend } from './reportsCashFlow.js';
+import { renderMoneyFlowSankey } from './reportsMoneyFlowSankey.js';
 import { renderReportsVariance } from './reportsVariance.js';
 import { renderReportsSummary } from './reportsSummary.js';
 
@@ -45,6 +46,7 @@ export function renderReportsPage(app) {
         });
 
     renderReportsCalendar(app);
+    renderMoneyFlowSankey(app);
     renderReportsIncomeExp(app);
     renderReportsMoneyFlow(app);
     renderReportsCashFlowTrend(app);

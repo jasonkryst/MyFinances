@@ -163,3 +163,143 @@ def test_money_flow_sankey_data_empty_state(app_page):
 
     data = page.evaluate("() => window.app.computeMoneyFlowSankeyData(window.__y, window.__m)")
     assert data['hasData'] is False
+
+
+@pytest.mark.feature
+def test_money_flow_sankey_empty_state_renders_no_svg(app_page):
+    """With no data at all, the Sankey section shows its empty-state
+    message and creates no <svg>."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = []; app.debts = []; app.bills = []; app.expenses = [];
+        app.incomes = []; app.recurringTemplates = []; app.emergencyFunds = [];
+        app.sinkingFunds = []; app.monthlySnapshots = [];
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+    }""")
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(300)
+
+    section_text = page.query_selector('#reportsMoneyFlowSankey').text_content()
+    assert 'Add income, bills, debts' in section_text, \
+        f"Expected empty Sankey state, got: {section_text}"
+    assert page.query_selector('#reportsMoneyFlowSankeyDiagram') is None
+    assert page.console_errors == []
+
+
+@pytest.mark.feature
+def test_money_flow_sankey_renders_nodes_links_and_sr_table(app_page):
+    """With income/outflow data, the diagram renders one <rect> per node,
+    one <path> per link, and a matching accessible data table."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 1, name: 'Salary', amount: 3000, accountId: 1, frequency: 'monthly', firstPayDate: `${y}-${m}-01` }];
+        app.bills = [{ id: 1, name: 'Rent', amount: 1200, dueDay: 1, accountId: 1, category: 'Housing' }];
+        app.expenses = []; app.debts = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.monthlySnapshots = [];
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+    }""")
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(300)
+
+    svg = page.query_selector('#reportsMoneyFlowSankeyDiagram')
+    assert svg is not None
+
+    node_count = page.evaluate("() => document.querySelectorAll('#reportsMoneyFlowSankeyDiagram rect').length")
+    link_count = page.evaluate("() => document.querySelectorAll('#reportsMoneyFlowSankeyDiagram path').length")
+    # Account + Salary + Housing + Surplus (income 3000 > outflow 1200)
+    assert node_count == 4
+    assert link_count == 3
+
+    table_rows = page.evaluate("""() => {
+        const table = document.querySelector('#reportsMoneyFlowSankeyDiagram-sr-table');
+        return table ? table.querySelectorAll('tbody tr').length : -1;
+    }""")
+    assert table_rows == link_count
+
+    assert page.console_errors == []
+
+
+@pytest.mark.feature
+def test_money_flow_sankey_no_inline_styles(app_page):
+    """Generated markup for the diagram never contains a style= attribute
+    (CSP requirement — see test_no_unsafe_inline_in_html for the static
+    index.html check this extends to dynamically-generated SVG)."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 1, name: 'Salary', amount: 3000, accountId: 1, frequency: 'monthly', firstPayDate: `${y}-${m}-01` }];
+        app.bills = [{ id: 1, name: 'Rent', amount: 1200, dueDay: 1, accountId: 1, category: 'Housing' }];
+        app.expenses = []; app.debts = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.monthlySnapshots = [];
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+    }""")
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(300)
+
+    html = page.eval_on_selector('#reportsMoneyFlowSankey', 'el => el.innerHTML')
+    assert 'style="' not in html
+
+
+@pytest.mark.feature
+def test_money_flow_sankey_respects_report_month_offset_year_boundary(app_page):
+    """Navigating the report month across a Dec->Jan boundary shifts which
+    month's transactions feed the diagram, mirroring the existing Cash
+    Flow Trend month-offset test."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.debts = []; app.bills = []; app.recurringTemplates = [];
+        app.incomes = []; app.emergencyFunds = []; app.sinkingFunds = []; app.monthlySnapshots = [];
+        app._reportMonthOffset = 0;
+        app.switchPage('reports');
+
+        const now = new Date();
+        const stepsToJan = ((12 - now.getMonth()) % 12) || 12;
+        window.__stepsToJan = stepsToJan;
+
+        // Mirror getReportDate(app)'s own arithmetic exactly: new Date(y, m + offset, 1).
+        const decDate = new Date(now.getFullYear(), now.getMonth() + stepsToJan - 1, 5);
+        const janDate = new Date(now.getFullYear(), now.getMonth() + stepsToJan, 5);
+        const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        app.expenses = [
+            { id: 1, name: 'Dec Only', budgetAmount: 80, date: fmt(decDate), accountId: 1, category: 'DecCat' },
+            { id: 2, name: 'Jan Only', budgetAmount: 120, date: fmt(janDate), accountId: 1, category: 'JanCat' }
+        ];
+    }""")
+
+    steps = page.evaluate('() => window.__stepsToJan')
+    for _ in range(steps - 1):
+        page.click('#rptNextMonth')
+        page.wait_for_timeout(150)
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(300)
+
+    dec_text = page.query_selector('#reportsMoneyFlowSankey').text_content()
+    assert 'DecCat' in dec_text
+    assert 'JanCat' not in dec_text
+
+    page.click('#rptNextMonth')
+    page.wait_for_timeout(300)
+
+    jan_text = page.query_selector('#reportsMoneyFlowSankey').text_content()
+    assert 'JanCat' in jan_text
+    assert 'DecCat' not in jan_text
