@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.15.0] — 2026-08-09
+
+### Added
+- **Money Flow Sankey diagram** — new single-month flow visualization on the Reports → Money Flow tab, showing money moving from income sources through the account to bills, expenses, recurring costs, debt minimums, and savings, as hand-drawn inline SVG (no new external dependency — Chart.js remains the app's only one). A Surplus/Shortfall node balances the diagram when income and outflow for the month don't match. (#79)
+
+---
+
 ## [4.14.0] — 2026-08-09
 
 ### Added
