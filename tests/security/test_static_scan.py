@@ -401,6 +401,39 @@ def test_nginx_serves_service_worker_with_no_cache():
 
 
 @pytest.mark.security
+def test_nginx_revalidates_stable_app_shell_assets():
+    """Unhashed HTML, CSS, JS, and manifest URLs must not be cached immutable for a year."""
+    nginx_path = os.path.join(PROJECT_ROOT, 'nginx.conf')
+    with open(nginx_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    for path in ('/index.html', '/manifest.json', '/sw.js'):
+        block_match = re.search(rf'location\s*=\s*{re.escape(path)}\s*\{{([^}}]*)\}}', content)
+        assert block_match, f"nginx.conf must define a dedicated '{path}' block"
+        assert 'no-cache' in block_match.group(1), f"{path} must revalidate before use"
+
+    app_assets_match = re.search(r'location\s+~\*\s+\\\.\(css\|js\)\$\s*\{([^}]*)\}', content)
+    assert app_assets_match, "nginx.conf must define a CSS/JS cache policy"
+    assert 'no-cache' in app_assets_match.group(1), "CSS and JS must revalidate before use"
+    assert 'immutable' not in app_assets_match.group(1), "CSS and JS with stable URLs cannot be immutable"
+
+
+@pytest.mark.security
+def test_stable_app_shell_cache_check_rejects_immutable_javascript():
+    """The policy check must reject the former year-long immutable JavaScript rule."""
+    stale_nginx = (
+        'location ~* \\.(css|js)$ {\n'
+        '    expires 1y;\n'
+        '    add_header Cache-Control "public, immutable";\n'
+        '}\n'
+    )
+    app_assets_match = re.search(r'location\s+~\*\s+\\\.\(css\|js\)\$\s*\{([^}]*)\}', stale_nginx)
+    assert app_assets_match
+    assert 'no-cache' not in app_assets_match.group(1)
+    assert 'immutable' in app_assets_match.group(1)
+
+
+@pytest.mark.security
 def test_sw_no_cache_detection_catches_missing_block():
     """The same no-cache detection must correctly flag an nginx.conf with no dedicated sw.js block."""
     fake_nginx = "server {\n    location ~* \\.(css|js)$ {\n        expires 1y;\n    }\n}\n"

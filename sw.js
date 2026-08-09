@@ -3,7 +3,7 @@
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v4.15.0';
+const CACHE_NAME = 'myfinances-v4.16.0';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 
@@ -58,16 +58,27 @@ self.addEventListener('message', (event) => {
     }
 });
 
-async function cacheFirst(request) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    const response = await fetch(request);
+async function networkFirst(request) {
+    let response;
+    try {
+        response = await fetch(request);
+    } catch (err) {
+        try {
+            const cache = await caches.open(CACHE_NAME);
+            const cached = await cache.match(request);
+            if (cached) return cached;
+        } catch (cacheErr) {
+            // Storage can be unavailable in private browsing; preserve the
+            // original network error rather than making cache access required.
+        }
+        throw err;
+    }
+
     try {
         const cache = await caches.open(CACHE_NAME);
-        cache.put(request, response.clone());
+        await cache.put(request, response.clone());
     } catch (err) {
-        // Cache write can fail (e.g. private browsing storage restrictions);
-        // the app never depends on the cache being writable.
+        // A failed cache write must not prevent an online response from loading.
     }
     return response;
 }
@@ -89,6 +100,9 @@ self.addEventListener('fetch', (event) => {
     if (request.url.startsWith(CDN_URL)) {
         event.respondWith(staleWhileRevalidate(request));
     } else if (new URL(request.url).origin === self.location.origin) {
-        event.respondWith(cacheFirst(request));
+        // App-shell filenames are stable between releases. Prefer the network
+        // while online so an active older worker cannot keep serving a stale
+        // release; fall back to the precache only when offline.
+        event.respondWith(networkFirst(request));
     }
 });

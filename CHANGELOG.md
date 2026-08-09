@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.16.0] — 2026-08-09
+
+### Fixed
+- **Stale Chrome releases** — unhashed app-shell files now revalidate online instead of being marked immutable for a year, and the service worker now prefers fresh same-origin responses with offline cache fallback. This prevents older HTML, JavaScript, CSS, manifests, or service workers from keeping visitors on a prior release while preserving offline support. (#83)
+
+---
+
 ## [4.15.0] — 2026-08-09
 
 ### Added

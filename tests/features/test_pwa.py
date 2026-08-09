@@ -134,6 +134,31 @@ def test_precache_completeness_check_catches_missing_file():
     assert missing == ['/src/utils.js']
 
 
+def _uses_network_first_for_same_origin_app_shell(sw_content):
+    """Return whether same-origin app-shell requests use network-first handling."""
+    return (
+        'async function networkFirst(request)' in sw_content
+        and 'event.respondWith(networkFirst(request));' in sw_content
+    )
+
+
+@pytest.mark.feature
+def test_service_worker_revalidates_same_origin_app_shell_online(sw_js_content):
+    """Stable app-shell filenames must prefer the network, with cache fallback only offline."""
+    assert _uses_network_first_for_same_origin_app_shell(sw_js_content)
+    assert 'const cached = await cache.match(request);' in sw_js_content
+
+
+@pytest.mark.feature
+def test_network_first_check_rejects_cache_first_only_worker():
+    """A cache-first-only worker must not pass the stale-release prevention check."""
+    stale_worker = (
+        'async function cacheFirst(request) { return caches.match(request); }\n'
+        'event.respondWith(cacheFirst(request));\n'
+    )
+    assert not _uses_network_first_for_same_origin_app_shell(stale_worker)
+
+
 # --- service worker registration ---
 
 def _wait_for_service_worker_registration(page, timeout_ms=10000):
