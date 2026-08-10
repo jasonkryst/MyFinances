@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.17.0] — 2026-08-09
+
+### Fixed
+- **Version Update** — Updates version.
+
+---
+
 ## [4.16.0] — 2026-08-09
 
 ### Fixed
