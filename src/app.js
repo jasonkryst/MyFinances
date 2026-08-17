@@ -88,7 +88,7 @@ import {
 import {
     computeMoneyFlowSankeyData as computeMoneyFlowSankeyDataFeature
 } from './reportsMoneyFlowSankey.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature } from './ui.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION } from './utils.js';
 import {
@@ -317,6 +317,16 @@ export class DebtTrackerApp {
     }
 
     /**
+     * Re-render whichever page is currently visible (`this._currentPage`) in
+     * place, without resetting its view state (Liabilities subtab, Reports
+     * month offset, etc.). Used to reflect data changes that happen while
+     * the user is looking at a page — e.g. a successful JSON import.
+     */
+    refreshCurrentPageData() {
+        return renderPageDataFeature(this, this._currentPage, { resetToDefaults: false });
+    }
+
+    /**
      * Render the Debts page list.
      * Each debt is shown as a card with:
      *   - Name, balance, APR, minimum payment, due date, category
@@ -324,6 +334,7 @@ export class DebtTrackerApp {
      *   - A paydown progress bar (requires `originalBalance`)
      *   - Monthly interest cost estimate
      *   - Interest Paid to Date stat (credit-card debts with `debtStartDate` only)
+     *   - Last updated date (day the debt was created or last edited)
      *   - Edit / Delete / Update Balance action buttons
      *
      * If `this.editingDebtId` is set the matching card is replaced with an
@@ -478,6 +489,9 @@ export class DebtTrackerApp {
      * Also accepts legacy v1.0 files (debts only).
      * Prompts the user to choose Replace or Merge for debts; income and
      * strategy are always restored from the file when present.
+     * On success, refreshes both the Debts list (`updateUI()`) and whichever
+     * page the user currently has open (`refreshCurrentPageData()`), so
+     * imported data shows up immediately without navigating away and back.
      * @param {File} file
      */
     importAllJSON(file) {

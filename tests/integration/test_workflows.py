@@ -181,7 +181,76 @@ def test_import_json_file(app_page):
             os.unlink(temp_file)
 
 
-@pytest.mark.integration  
+@pytest.mark.integration
+def test_import_refreshes_currently_active_page(app_page):
+    """Importing while viewing a non-Debts page refreshes that page in place (#87).
+
+    Before the fix, importAllJSON() only ever re-rendered the Debts list
+    (updateUI()), so a user sitting on the Accounts page during an import
+    would keep seeing stale data until manually navigating away and back.
+    """
+    page = app_page
+
+    # Stay on the Accounts page (not Liabilities/Debts) while importing.
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+
+    from tests.conftest import open_data_transfer
+
+    test_data = {
+        "accounts": [{
+            "id": 1,
+            "name": "Refreshed Via Import Account",
+            "type": "Checking",
+            "startingBalance": 1234
+        }],
+        "debts": [{
+            "id": 2,
+            "name": "Refresh Test Debt",
+            "debtType": "creditCard",
+            "accountBalance": 500,
+            "interestRate": 10,
+            "minimumPayment": 25,
+            "dueDate": 10
+        }],
+        "incomes": [],
+        "bills": [],
+        "recurringTemplates": [],
+        "monthlySnapshots": [],
+        "netWorthMilestonesAwarded": []
+    }
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(test_data, f)
+        temp_file = f.name
+
+    try:
+        open_data_transfer(page)
+        page.click('[data-dt-tab="import"]')
+        page.click('#importJsonBtn')
+        page.wait_for_timeout(300)
+
+        file_input = page.query_selector('#importJsonInput')
+        assert file_input, "Expected the import file input (#importJsonInput) to exist"
+        file_input.set_input_files(temp_file)
+        page.wait_for_timeout(500)
+        if page.is_visible('#importModeChoice'):
+            page.click('#importModeReplaceBtn')
+        page.wait_for_timeout(500)
+
+        # Still on the Accounts page the whole time -- no manual re-navigation.
+        account_list_text = page.evaluate("""() => {
+            const el = document.getElementById('accountList');
+            return el ? el.textContent : '';
+        }""")
+        assert 'Refreshed Via Import Account' in account_list_text, (
+            "Importing while on the Accounts page should refresh the account list in place"
+        )
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.integration
 def test_import_replaces_data(app_page):
     """Test that importing replaces existing data."""
     page = app_page

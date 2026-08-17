@@ -7,6 +7,16 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.18.0] — 2026-08-17
+
+### Added
+- **Last updated date on debt cards** — every debt card now shows the date it was created or last edited (balance/minimum-payment updates via "Update Balance", and inline edits, both refresh the date). Preserved through export/import like any other debt field. (#88)
+
+### Fixed
+- **Stale data after import** — importing a backup now immediately refreshes whichever page you're currently viewing (Accounts, Reports, Ledger, etc.), not just the Debts list, so newly imported data shows up without navigating away and back. (#87)
+
+---
+
 ## [4.17.0] — 2026-08-09
 
 ### Fixed

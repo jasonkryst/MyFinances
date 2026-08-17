@@ -584,6 +584,22 @@ export function switchPage(app, pageName) {
         if (el) el.classList.add('active');
     }
 
+    app._currentPage = pageName;
+    renderPageData(app, pageName);
+}
+
+/**
+ * Render whichever data a page needs, without touching nav/section visibility.
+ * Called by `switchPage()` when navigating into a page, and by
+ * `refreshCurrentPageData()` (see app.js) to re-render the currently visible
+ * page in place after data changes underneath it (e.g. a JSON import).
+ *
+ * `resetToDefaults` controls view-state resets that only make sense when
+ * actually navigating into the page (Liabilities defaulting to its Debts
+ * subtab, Reports resetting its month offset) — an in-place refresh leaves
+ * those alone so the user's current view isn't yanked out from under them.
+ */
+export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     if (pageName === 'health') app.renderHealthDashboard();
     if (pageName === 'accounts') {
         app.renderAccountsList();
@@ -597,7 +613,7 @@ export function switchPage(app, pageName) {
         // Attach liabilities subtab listeners
         attachLiabilitiesEventListeners(app);
         // Default to debts subtab
-        app.switchLiabilitiesSubTab('debts');
+        if (resetToDefaults) app.switchLiabilitiesSubTab('debts');
     }
     if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); }
     if (pageName === 'savings') {
@@ -606,7 +622,7 @@ export function switchPage(app, pageName) {
     }
     if (pageName === 'strategy') app.renderStrategyIncomeWidget();
     if (pageName === 'reports') {
-        app._reportMonthOffset = 0;
+        if (resetToDefaults) app._reportMonthOffset = 0;
         app.renderReportsPage();
     }
     if (pageName === 'ledger') {

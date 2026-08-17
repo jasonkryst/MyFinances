@@ -266,6 +266,55 @@ def test_debt_card_shows_payoff_date_after_plan_calculation(app_page, debt_data)
 
 
 @pytest.mark.feature
+def test_debt_card_shows_last_updated_date(app_page, debt_data):
+    """Debt cards show a 'Last updated' date, stamped on create and refreshed on edit (#88)."""
+    import datetime
+
+    page = app_page
+    create_debt(page, debt_data)
+    page.wait_for_timeout(300)
+
+    today_iso = datetime.date.today().isoformat()
+    stored_updated_at = page.evaluate(
+        """(name) => {
+            const debt = window.app.debts.find(d => d.name === name);
+            return debt ? debt.updatedAt : null;
+        }""",
+        debt_data["name"]
+    )
+    assert stored_updated_at == today_iso, "New debt should be stamped with today's date"
+
+    card_text = page.evaluate("""() => {
+        const card = document.querySelector('#debtsList .debt-card');
+        return card ? card.textContent : '';
+    }""")
+    assert 'Last updated' in card_text, "Expected a 'Last updated' label on the debt card"
+
+    # Updating the balance re-stamps updatedAt (value stays the same day-granularity,
+    # but this exercises the write path that must not clear/skip the field).
+    page.click('[data-debt-action="update-balance"]')
+    page.wait_for_timeout(200)
+    page.fill('#updateBalanceInput', '999')
+    page.click('#confirmUpdateBalance')
+    page.wait_for_timeout(300)
+
+    updated_after_balance_change = page.evaluate(
+        """(name) => {
+            const debt = window.app.debts.find(d => d.name === name);
+            return debt ? debt.updatedAt : null;
+        }""",
+        debt_data["name"]
+    )
+    assert updated_after_balance_change == today_iso, "Balance update should keep updatedAt stamped with today's date"
+
+    card_text_after_update = page.evaluate("""() => {
+        const card = document.querySelector('#debtsList .debt-card');
+        return card ? card.textContent : '';
+    }""")
+    assert 'Last updated' in card_text_after_update, "'Last updated' label should still be shown after a balance update"
+
+
+@pytest.mark.feature
 def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
     """Negative fixed-amount debt payments are rejected, not silently clamped to $0.01.
 
