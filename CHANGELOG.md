@@ -7,6 +7,16 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.19.0] — 2026-08-17
+
+### Fixed
+- **Clipped tables on narrow/PWA viewports** — the Debt Overview card's category grid and the Reports "Account Balances" (Money Flow) grid used fixed-pixel columns inside an `overflow: hidden` container, so on narrow phone-width viewports the Balance/Projected columns were silently clipped instead of wrapping or scrolling. Both now restack into labelled cards below their breakpoint, matching the pattern already used by `.nw-history-table--compact` and `.var-row`.
+
+### Changed
+- **CI now required to merge to `main`** — branch protection requires all 9 CI jobs (tests, security, a11y, mutation testing, Docker build, Trivy, Lighthouse) to pass and the branch to be up to date before a PR can merge.
+
+---
+
 ## [4.18.0] — 2026-08-17
 
 ### Added

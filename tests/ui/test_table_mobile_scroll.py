@@ -278,3 +278,136 @@ def test_reconcile_expected_table_scrolls_within_wrapper_on_mobile(app_page, acc
         )
         assert wrapped, "Expected .recon-expected-table to be inside a .recon-table-wrap"
     _no_page_overflow(page)
+
+
+@pytest.mark.ui
+def test_debt_overview_categories_stack_into_labelled_cards_on_mobile(app_page, debt_data):
+    """Regression test for the PWA clipping bug: the Debt Overview card's
+    category grid (Category/Debts/Min-mo/Balance) used fixed-px columns
+    inside an overflow:hidden card, so the Balance column silently clipped
+    on narrow viewports instead of scrolling or restacking. It should now
+    restack into labelled cards on mobile, like .var-row and
+    .nw-history-table--compact already do elsewhere in this app."""
+    page = app_page
+    create_debt(page, debt_data)
+
+    page.set_viewport_size(MOBILE_VIEWPORT)
+    page.wait_for_timeout(200)
+
+    info = page.evaluate("""
+        () => {
+            const header = document.querySelector('.debt-overview-cats-header');
+            const row = document.querySelector('.debt-overview-cat-row');
+            const totalCell = row.querySelector('.debt-overview-cat-total');
+            return {
+                headerDisplay: getComputedStyle(header).display,
+                rowDisplay: getComputedStyle(row).display,
+                totalCellDisplay: getComputedStyle(totalCell).display,
+                labels: Array.from(row.children).map(c => c.getAttribute('data-label')),
+                beforeContent: getComputedStyle(totalCell, '::before').content,
+            };
+        }
+    """)
+    assert info['headerDisplay'] == 'none', "Column header row should be hidden once cards restack on mobile"
+    assert info['totalCellDisplay'] == 'flex', "Value cells should lay out label/value with flex on mobile"
+    assert info['labels'] == [None, 'Debts', 'Min/mo', 'Balance']
+    assert 'Balance' in info['beforeContent'], (
+        f"Expected the Balance cell's ::before content to render its data-label, got {info['beforeContent']}"
+    )
+    _no_page_overflow(page)
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_debt_overview_categories_keep_grid_layout_on_desktop(app_page, debt_data):
+    """Negative case: the mobile card stacking must not leak into desktop --
+    above the breakpoint the category grid should keep its normal grid
+    columns, not flex cards."""
+    page = app_page
+    create_debt(page, debt_data)
+
+    page.set_viewport_size({"width": 1280, "height": 800})
+    page.wait_for_timeout(200)
+
+    info = page.evaluate("""
+        () => {
+            const header = document.querySelector('.debt-overview-cats-header');
+            const totalCell = document.querySelector('.debt-overview-cat-total');
+            return {
+                headerDisplay: getComputedStyle(header).display,
+                totalCellDisplay: getComputedStyle(totalCell).display,
+                beforeContent: getComputedStyle(totalCell, '::before').content,
+            };
+        }
+    """)
+    assert info['headerDisplay'] != 'none', "Column header row should stay visible on desktop"
+    assert info['totalCellDisplay'] != 'flex', "Desktop cells should not switch to the mobile flex card layout"
+    assert info['beforeContent'] in ('none', 'normal', ''), (
+        f"Desktop cells should not render a data-label prefix, got {info['beforeContent']}"
+    )
+
+
+@pytest.mark.ui
+def test_account_money_flow_table_stacks_into_labelled_cards_on_mobile(app_page, account_data):
+    """Regression test for the same clipping bug in the Reports > Account
+    Balances (Money Flow) grid: it should restack into labelled cards on
+    mobile instead of relying on fixed-px columns inside an overflow:hidden
+    section."""
+    page = app_page
+    create_account(page, account_data)
+
+    page.set_viewport_size(MOBILE_VIEWPORT)
+    page.evaluate("() => window.app.switchPage('reports')")
+    page.wait_for_timeout(400)
+
+    info = page.evaluate("""
+        () => {
+            const header = document.querySelector('.acct-mf-header');
+            const row = document.querySelector('.acct-mf-row');
+            const projCell = row.querySelector('.acct-mf-proj');
+            return {
+                headerDisplay: getComputedStyle(header).display,
+                projCellDisplay: getComputedStyle(projCell).display,
+                label: projCell.getAttribute('data-label'),
+                beforeContent: getComputedStyle(projCell, '::before').content,
+            };
+        }
+    """)
+    assert info['headerDisplay'] == 'none', "Column header row should be hidden once cards restack on mobile"
+    assert info['projCellDisplay'] == 'flex', "Value cells should lay out label/value with flex on mobile"
+    assert info['label'] == 'Projected'
+    assert 'Projected' in info['beforeContent'], (
+        f"Expected the Projected cell's ::before content to render its data-label, got {info['beforeContent']}"
+    )
+    _no_page_overflow(page)
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_account_money_flow_table_keeps_grid_layout_on_desktop(app_page, account_data):
+    """Negative case: the mobile card stacking must not leak into desktop --
+    above the breakpoint the account money-flow grid should keep its normal
+    grid columns, not flex cards."""
+    page = app_page
+    create_account(page, account_data)
+
+    page.set_viewport_size({"width": 1280, "height": 800})
+    page.evaluate("() => window.app.switchPage('reports')")
+    page.wait_for_timeout(400)
+
+    info = page.evaluate("""
+        () => {
+            const header = document.querySelector('.acct-mf-header');
+            const projCell = document.querySelector('.acct-mf-proj');
+            return {
+                headerDisplay: getComputedStyle(header).display,
+                projCellDisplay: getComputedStyle(projCell).display,
+                beforeContent: getComputedStyle(projCell, '::before').content,
+            };
+        }
+    """)
+    assert info['headerDisplay'] != 'none', "Column header row should stay visible on desktop"
+    assert info['projCellDisplay'] != 'flex', "Desktop cells should not switch to the mobile flex card layout"
+    assert info['beforeContent'] in ('none', 'normal', ''), (
+        f"Desktop cells should not render a data-label prefix, got {info['beforeContent']}"
+    )
