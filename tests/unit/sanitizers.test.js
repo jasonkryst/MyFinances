@@ -50,6 +50,15 @@ describe('sanitizeDebt', () => {
     test('returns null debtStartDate for a malformed date', () => {
         expect(sanitizeDebt({ debtStartDate: 'garbage' }, 1).debtStartDate).toBeNull();
     });
+
+    test('passes through a valid updatedAt date unchanged', () => {
+        expect(sanitizeDebt({ updatedAt: '2026-08-01' }, 1).updatedAt).toBe('2026-08-01');
+    });
+
+    test('returns null updatedAt when missing or malformed', () => {
+        expect(sanitizeDebt({}, 1).updatedAt).toBeNull();
+        expect(sanitizeDebt({ updatedAt: 'not-a-date' }, 1).updatedAt).toBeNull();
+    });
 });
 
 describe('sanitizeIncome', () => {

@@ -378,6 +378,7 @@ export function importAllJSON(app, file, options = {}) {
 
         app.saveToStorage();
         app.updateUI();
+        app.refreshCurrentPageData();
         if (!mergeDuplicatesReported && typeof onImported === 'function') {
             onImported(parts);
         }

@@ -1,5 +1,5 @@
 // Debt management and calculations
-import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, todayISO } from './utils.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
 
@@ -34,7 +34,8 @@ export function addDebt(app) {
         category,
         priority,
         debtType,
-        accountId
+        accountId,
+        updatedAt: todayISO()
     };
 
     if (debtType === 'fixedAmount') {
@@ -166,6 +167,7 @@ export function updateDebtBalance(app, debtId, newBalance, newMinPayment) {
         }
         app.debts[idx].minimumPayment = newMinPayment;
     }
+    app.debts[idx].updatedAt = todayISO();
     app.saveToStorage();
     recalculateIfConfigured(app);
     app.renderDebtsList();
@@ -464,6 +466,11 @@ export function renderDebtsList(app) {
                                 <strong>Category:</strong> ${escapeHtml(debt.category)}
                             </div>
                         ` : ''}
+                        ${debt.updatedAt ? `
+                            <div class="debt-detail">
+                                <strong>Last updated:</strong> <span class="text-muted">${formatShortDate(debt.updatedAt)}</span>
+                            </div>
+                        ` : ''}
                 </div>
                 <div class="debt-actions">
                     <button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}">Edit</button>
@@ -594,6 +601,7 @@ export function saveInlineEdit(app, debtId) {
             return;
         }
 
+        debt.updatedAt = todayISO();
         app.saveToStorage();
         app.editingDebtId = null;
         app.renderDebtsList();

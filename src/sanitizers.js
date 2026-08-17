@@ -37,7 +37,8 @@ export function sanitizeDebt(record, idFallback) {
         debtStartDate: sanitizeDateISO(record?.debtStartDate),
         fixedAmount: sanitizeFiniteNumber(record?.fixedAmount, minimumPayment, { min: 0 }),
         fixedStartDate: sanitizeDateISO(record?.fixedStartDate),
-        fixedEndDate: sanitizeDateISO(record?.fixedEndDate)
+        fixedEndDate: sanitizeDateISO(record?.fixedEndDate),
+        updatedAt: sanitizeDateISO(record?.updatedAt)
     };
 }
 
