@@ -306,7 +306,7 @@ export function renderReportsMoneyFlow(app) {
             const diff = proj - a.startingBalance;
             const diffClass = diff >= 0 ? 'acct-mf-diff--pos' : 'acct-mf-diff--neg';
             const diffSign = diff >= 0 ? '+' : '';
-            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${escapeHtml(a.name)}</span><span class="acct-mf-type">${escapeHtml(a.type)}</span><span class="acct-mf-start">${formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj">${formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}">${diffSign}${formatCurrency(diff)}</span></div>`;
+            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${escapeHtml(a.name)}</span><span class="acct-mf-type" data-label="Type">${escapeHtml(a.type)}</span><span class="acct-mf-start" data-label="Starting">${formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj" data-label="Projected">${formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}" data-label="Change">${diffSign}${formatCurrency(diff)}</span></div>`;
         }).join('');
 
         acctSectionHTML = `

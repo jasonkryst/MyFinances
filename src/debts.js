@@ -255,9 +255,9 @@ export function renderDebtsList(app) {
                 .map(([cat, v]) => `
                     <div class="debt-overview-cat-row">
                         <span class="debt-overview-cat-name">${escapeHtml(cat)}</span>
-                        <span class="debt-overview-cat-count">${v.count} debt${v.count !== 1 ? 's' : ''}</span>
-                        <span class="debt-overview-cat-min">${formatCurrency(v.minTotal)}/mo</span>
-                        <span class="debt-overview-cat-total">${formatCurrency(v.total)}</span>
+                        <span class="debt-overview-cat-count" data-label="Debts">${v.count} debt${v.count !== 1 ? 's' : ''}</span>
+                        <span class="debt-overview-cat-min" data-label="Min/mo">${formatCurrency(v.minTotal)}/mo</span>
+                        <span class="debt-overview-cat-total" data-label="Balance">${formatCurrency(v.total)}</span>
                     </div>`).join('');
 
             const interestHTML = totalInterest !== null

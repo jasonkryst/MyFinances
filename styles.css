@@ -2064,13 +2064,32 @@ body.dark-mode .debt-overview-cat-row:hover {
         border-right: none;
         border-top: 1px solid var(--border-color);
     }
-    .debt-overview-cats-header,
-    .debt-overview-cat-row {
-        grid-template-columns: 1fr 70px 100px;
-    }
-    .debt-overview-cats-header span:nth-child(2),
-    .debt-overview-cat-count {
+    .debt-overview-cats-header {
         display: none;
+    }
+    .debt-overview-cat-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 10px 20px;
+    }
+    .debt-overview-cat-name {
+        font-weight: 700;
+    }
+    .debt-overview-cat-count,
+    .debt-overview-cat-min,
+    .debt-overview-cat-total {
+        display: flex;
+        justify-content: space-between;
+    }
+    .debt-overview-cat-count::before,
+    .debt-overview-cat-min::before,
+    .debt-overview-cat-total::before {
+        content: attr(data-label);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted, #9ca3af);
     }
 }
 
@@ -5256,9 +5275,39 @@ body.dark-mode .acct-mf-diff--pos { color: #34d399; }
 body.dark-mode .acct-mf-diff--neg { color: #f87171; }
 
 @media (max-width: 700px) {
-    .acct-mf-header,
-    .acct-mf-row { grid-template-columns: 28px 1fr 80px 80px; }
-    .acct-mf-type, .acct-mf-start { display: none; }
+    .acct-mf-header {
+        display: none;
+    }
+    .acct-mf-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 10px 18px;
+    }
+    .acct-mf-icon {
+        display: none;
+    }
+    .acct-mf-name {
+        font-weight: 700;
+    }
+    .acct-mf-type,
+    .acct-mf-start,
+    .acct-mf-proj,
+    .acct-mf-diff {
+        display: flex;
+        justify-content: space-between;
+        text-align: left;
+    }
+    .acct-mf-type::before,
+    .acct-mf-start::before,
+    .acct-mf-proj::before,
+    .acct-mf-diff::before {
+        content: attr(data-label);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+    }
     .acct-edit-grid { grid-template-columns: 1fr 1fr; }
     .acct-card-header { gap: 10px; }
 }
