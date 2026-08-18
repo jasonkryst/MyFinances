@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.20.0] — 2026-08-18
+
+### Changed
+- **Installed PWA now fills the window edge-to-edge** — the standalone app window previously rendered the same centered `.container` card (capped at 1200px, gradient backdrop visible as side gutters) used in a browser tab, which read as "a website" rather than "an app." A new `@media (display-mode: standalone)` rule drops the card's max-width, rounding, shadow, and body padding so content fills the installed window at any size; browser-tab rendering is unchanged.
+
+---
+
 ## [4.19.0] — 2026-08-17
 
 ### Fixed

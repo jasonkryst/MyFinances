@@ -1133,6 +1133,29 @@ body {
     overflow: hidden;
 }
 
+/* ── Installed PWA: fill the window edge-to-edge instead of floating a
+   centered card on the gradient backdrop, which reads as a website, not
+   an app, in a standalone window ─────────────────────────────────────── */
+@media (display-mode: standalone) {
+    body {
+        background: white;
+        padding: 0;
+    }
+
+    body.dark-mode {
+        background: #23272f;
+    }
+
+    .container {
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+    }
+}
+
 header {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
