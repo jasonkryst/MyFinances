@@ -2,7 +2,9 @@ import { pool } from '../../src/db.js';
 import argon2 from 'argon2';
 
 export async function resetDb() {
-    await pool.query('TRUNCATE sessions, users RESTART IDENTITY CASCADE');
+    await pool.query(
+        'TRUNCATE sessions, bonuses, incomes, expenses, bills, accounts, users RESTART IDENTITY CASCADE'
+    );
 }
 
 export async function createTestUser(email = 'test@example.com', password = 'correct horse battery staple') {

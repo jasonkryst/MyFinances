@@ -22,6 +22,10 @@ export function createAuthRouter() {
         max: 5,
         standardHeaders: true,
         legacyHeaders: false,
+        // Brute-force protection should count failed attempts, not
+        // legitimate logins -- a real user logging in repeatedly (multiple
+        // devices/tabs) shouldn't get locked out.
+        skipSuccessfulRequests: true,
         message: { error: { code: 'RATE_LIMITED', message: 'Too many login attempts, try again later' } }
     });
 

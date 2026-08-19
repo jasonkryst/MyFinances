@@ -2,6 +2,11 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import { requireSession, requireCsrf } from './auth/middleware.js';
 import { createAuthRouter } from './routes/auth.js';
+import accountsRouter from './routes/accounts.js';
+import billsRouter from './routes/bills.js';
+import expensesRouter from './routes/expenses.js';
+import incomesRouter from './routes/incomes.js';
+import bonusesRouter from './routes/bonuses.js';
 
 export function createApp() {
     const app = express();
@@ -14,6 +19,15 @@ export function createApp() {
 
     app.get('/health/session-check', requireSession, (req, res) => res.json({ userId: req.userId }));
     app.post('/health/session-check', requireSession, requireCsrf, (req, res) => res.json({ ok: true }));
+
+    const api = express.Router();
+    api.use(requireSession, requireCsrf);
+    api.use('/accounts', accountsRouter);
+    api.use('/bills', billsRouter);
+    api.use('/expenses', expensesRouter);
+    api.use('/incomes', incomesRouter);
+    api.use('/bonuses', bonusesRouter);
+    app.use('/api', api);
 
     app.use((req, res) => {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
