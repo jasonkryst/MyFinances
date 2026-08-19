@@ -1,7 +1,7 @@
 import express from 'express';
 import { query } from './db.js';
 
-export function createCrudResource({ table, columns, sanitize, requiredFields = [] }) {
+export function createCrudResource({ table, columns, sanitize, requiredFields = [], foreignKeys = {} }) {
     const router = express.Router();
     const jsFields = Object.keys(columns);
     const dbColumns = Object.values(columns);
@@ -14,6 +14,20 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
 
     function isMissing(value) {
         return value === null || value === undefined || value === '';
+    }
+
+    // Rejects a payload that references another user's row via a foreign
+    // key (e.g. accountId) -- ids are sequential bigserials, so without
+    // this check any authenticated user could attach their own records to
+    // another tenant's account just by guessing/incrementing an id.
+    async function findUnownedForeignKey(userId, clean) {
+        for (const [field, refTable] of Object.entries(foreignKeys)) {
+            const value = clean[field];
+            if (value === null || value === undefined) continue;
+            const { rows } = await query(`SELECT 1 FROM ${refTable} WHERE id = $1 AND user_id = $2`, [value, userId]);
+            if (rows.length === 0) return field;
+        }
+        return null;
     }
 
     router.get('/', async (req, res, next) => {
@@ -33,6 +47,10 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             const clean = sanitize(req.body, Date.now());
             if (requiredFields.some(f => isMissing(clean[f]))) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${requiredFields[0]} is required` } });
+            }
+            const unownedField = await findUnownedForeignKey(req.userId, clean);
+            if (unownedField) {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${unownedField} does not reference a resource you own` } });
             }
             const insertFields = jsFields.filter(f => f !== 'id');
             const insertCols = insertFields.map(f => columns[f]);
@@ -64,6 +82,10 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             const clean = sanitize(merged, existing.rows[0].id);
             if (requiredFields.some(f => isMissing(clean[f]))) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${requiredFields[0]} is required` } });
+            }
+            const unownedField = await findUnownedForeignKey(req.userId, clean);
+            if (unownedField) {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${unownedField} does not reference a resource you own` } });
             }
             const updateFields = jsFields.filter(f => f !== 'id');
             const setClauses = updateFields.map((f, i) => `${columns[f]} = $${i + 3}`);

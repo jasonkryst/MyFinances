@@ -123,4 +123,26 @@ for (const c of cases) {
         });
         assert.equal(deleteRes.status, 404);
     });
+
+    test(`${c.path}: rejects an accountId belonging to another user (IDOR)`, async () => {
+        const otherUser = await createTestUser('idor-owner@example.com', 'another correct horse battery');
+        const otherLoginRes = await loginTestUser(baseUrl, otherUser.email, otherUser.password);
+        const otherCookies = otherLoginRes.headers.getSetCookie().map(x => x.split(';')[0]).join('; ');
+        const otherCsrf = otherCookies.match(/csrf=([^;]+)/)[1];
+        const otherAccountRes = await fetch(`${baseUrl}/api/accounts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Cookie: otherCookies, 'X-CSRF-Token': otherCsrf },
+            body: JSON.stringify({ name: 'Their Account', type: 'checking', startingBalance: 0, interestRate: 0 })
+        });
+        const otherAccountId = (await otherAccountRes.json()).id;
+
+        const payload = { ...c.validPayload(), accountId: otherAccountId };
+        const res = await fetch(`${baseUrl}${c.path}`, {
+            method: 'POST', headers: csrfHeaders(), body: JSON.stringify(payload)
+        });
+        assert.equal(res.status, 400);
+
+        const list = await (await fetch(`${baseUrl}${c.path}`, { headers: { Cookie: cookies } })).json();
+        assert.equal(list.length, 0);
+    });
 }

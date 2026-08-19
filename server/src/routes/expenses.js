@@ -5,6 +5,7 @@ export default createCrudResource({
     table: 'expenses',
     sanitize: sanitizeExpense,
     requiredFields: ['name', 'date'],
+    foreignKeys: { accountId: 'accounts' },
     columns: {
         id: 'id',
         name: 'name',
