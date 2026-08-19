@@ -1,0 +1,21 @@
+{
+  "name": "myfinances-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "migrate": "node-pg-migrate",
+    "create-user": "node scripts/create-user.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "node-pg-migrate": "^7.6.1",
+    "pg": "^8.13.1"
+  }
+}
