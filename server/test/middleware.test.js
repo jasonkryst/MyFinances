@@ -4,7 +4,7 @@ import { createApp } from '../src/app.js';
 import { pool } from '../src/db.js';
 import { resetDb, createTestUser } from './helpers/testDb.js';
 import { createSession } from '../src/auth/sessions.js';
-import { generateToken } from '../src/auth/middleware.js';
+import { generateToken, hashToken } from '../src/auth/middleware.js';
 
 let server, baseUrl;
 
@@ -38,13 +38,13 @@ test('accepts a valid session cookie and attaches userId', async () => {
 
 test('rejects an expired session', async () => {
     const user = await createTestUser();
-    const expiredId = generateToken();
+    const expiredToken = generateToken();
     await pool.query(
         "INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, now() - interval '1 minute')",
-        [expiredId, user.id]
+        [hashToken(expiredToken), user.id]
     );
     const res = await fetch(`${baseUrl}/health/session-check`, {
-        headers: { Cookie: `session=${expiredId}` }
+        headers: { Cookie: `session=${expiredToken}` }
     });
     assert.equal(res.status, 401);
 });
