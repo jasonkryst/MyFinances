@@ -51,7 +51,7 @@
     "start": "node src/index.js",
     "migrate": "node-pg-migrate",
     "create-user": "node scripts/create-user.js",
-    "test": "node --test test/"
+    "test": "node --test"
   },
   "dependencies": {
     "argon2": "^0.41.1",
@@ -385,10 +385,23 @@ Expected: PASS
 - [ ] **Step 5: Create the bootstrap script — `server/scripts/create-user.js`**
 
 ```js
-import readline from 'node:readline/promises';
+import readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import { pool } from '../src/db.js';
 import { hashPassword } from '../src/auth/argon2.js';
+
+async function promptTwoLines(emailPrompt, passwordPrompt) {
+    stdout.write(emailPrompt);
+    const rl = readline.createInterface({ input: stdin });
+    const lines = [];
+    for await (const line of rl) {
+        lines.push(line);
+        if (lines.length === 1) stdout.write(passwordPrompt);
+        if (lines.length === 2) break;
+    }
+    rl.close();
+    return lines;
+}
 
 async function main() {
     const { rows } = await pool.query('SELECT count(*)::int AS count FROM users');
@@ -398,10 +411,7 @@ async function main() {
         return;
     }
 
-    const rl = readline.createInterface({ input: stdin, output: stdout });
-    const email = await rl.question('Email: ');
-    const password = await rl.question('Password (min 12 chars): ');
-    rl.close();
+    const [email, password] = await promptTwoLines('Email: ', 'Password (min 12 chars): ');
 
     if (!email.includes('@')) {
         console.error('Invalid email.');
@@ -419,8 +429,19 @@ async function main() {
     console.log(`User ${email} created.`);
 }
 
-main().finally(() => pool.end());
+main()
+    .catch(err => {
+        console.error(err);
+        process.exitCode = 1;
+    })
+    .finally(() => pool.end());
 ```
+
+Note: `readline/promises`' sequential `rl.question()` calls hang on piped
+(non-TTY) stdin — a real Node.js quirk, not a hypothetical — and piped
+stdin is exactly how this script runs in production
+(`docker compose exec ... <<< input`). The async-iterator pattern above
+reads both lines reliably instead.
 
 - [ ] **Step 6: Manually verify the script against the test database**
 
