@@ -1,5 +1,6 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import { requireSession, requireCsrf } from './auth/middleware.js';
 
 export function createApp() {
     const app = express();
@@ -7,6 +8,9 @@ export function createApp() {
     app.use(cookieParser());
 
     app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+    app.get('/health/session-check', requireSession, (req, res) => res.json({ userId: req.userId }));
+    app.post('/health/session-check', requireSession, requireCsrf, (req, res) => res.json({ ok: true }));
 
     app.use((req, res) => {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
