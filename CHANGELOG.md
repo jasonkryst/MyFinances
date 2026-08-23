@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.21.0] — 2026-08-23
+
+### Added
+- **Self-hosted PostgreSQL storage backend (Phase 1, issue #53)** — a standalone Node.js API (`server/`) with relational tables and granular REST endpoints for every record type, secured by argon2id password hashing and server-side sessions. Opt-in — the browser app's local-only, zero-setup mode is unchanged. Frontend integration (an async storage adapter, login UI, Settings backend picker) is a separate, upcoming Phase 2.
+
+---
+
 ## [4.20.0] — 2026-08-18
 
 ### Changed
