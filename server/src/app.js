@@ -12,6 +12,9 @@ import recurringTemplatesRouter from './routes/recurringTemplates.js';
 import emergencyFundsRouter from './routes/emergencyFunds.js';
 import sinkingFundsRouter from './routes/sinkingFunds.js';
 import reconciliationsRouter from './routes/reconciliations.js';
+import netWorthSnapshotsRouter from './routes/netWorthSnapshots.js';
+import settingsRouter from './routes/settings.js';
+import ledgerOverridesRouter from './routes/ledgerOverrides.js';
 
 export function createApp() {
     const app = express();
@@ -37,6 +40,9 @@ export function createApp() {
     api.use('/emergency-funds', emergencyFundsRouter);
     api.use('/sinking-funds', sinkingFundsRouter);
     api.use('/reconciliations', reconciliationsRouter);
+    api.use('/net-worth-snapshots', netWorthSnapshotsRouter);
+    api.use('/settings', settingsRouter);
+    api.use('/ledger-overrides', ledgerOverridesRouter);
     app.use('/api', api);
 
     app.use((req, res) => {
