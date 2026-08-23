@@ -175,7 +175,7 @@ jobs:
           chrome-version: stable
       - name: Start app container
         run: |
-          docker compose up -d --build
+          docker compose up -d --build myfinances
           for i in $(seq 1 30); do
             curl -sf http://localhost:5500/ > /dev/null && break
             sleep 1
