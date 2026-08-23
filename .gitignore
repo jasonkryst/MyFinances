@@ -32,6 +32,8 @@ reports/
 .env
 .env.*
 !.env.example
+secrets/*.txt
+!secrets/*.txt.example
 
 # ── Logs ───────────────────────────────────────────────────────────────────────
 *.log
