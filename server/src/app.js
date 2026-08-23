@@ -7,6 +7,11 @@ import billsRouter from './routes/bills.js';
 import expensesRouter from './routes/expenses.js';
 import incomesRouter from './routes/incomes.js';
 import bonusesRouter from './routes/bonuses.js';
+import debtsRouter from './routes/debts.js';
+import recurringTemplatesRouter from './routes/recurringTemplates.js';
+import emergencyFundsRouter from './routes/emergencyFunds.js';
+import sinkingFundsRouter from './routes/sinkingFunds.js';
+import reconciliationsRouter from './routes/reconciliations.js';
 
 export function createApp() {
     const app = express();
@@ -27,6 +32,11 @@ export function createApp() {
     api.use('/expenses', expensesRouter);
     api.use('/incomes', incomesRouter);
     api.use('/bonuses', bonusesRouter);
+    api.use('/debts', debtsRouter);
+    api.use('/recurring-templates', recurringTemplatesRouter);
+    api.use('/emergency-funds', emergencyFundsRouter);
+    api.use('/sinking-funds', sinkingFundsRouter);
+    api.use('/reconciliations', reconciliationsRouter);
     app.use('/api', api);
 
     app.use((req, res) => {

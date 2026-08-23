@@ -69,6 +69,46 @@ export const cases = [
         updatedField: 'amount',
         updatedValue: 600,
         invalidPayload: () => ({ amount: 500 })
+    },
+    {
+        path: '/api/debts',
+        validPayload: () => ({ name: 'Visa', category: 'Credit Card', debtType: 'creditCard', accountBalance: 3000, minimumPayment: 75, interestRate: 19.99, accountId }),
+        updatePayload: { accountBalance: 2800 },
+        updatedField: 'accountBalance',
+        updatedValue: 2800,
+        invalidPayload: () => ({ accountBalance: 3000 })
+    },
+    {
+        path: '/api/recurring-templates',
+        validPayload: () => ({ name: 'Netflix', type: 'subscription', amount: 15.99, frequency: 'monthly', dayOfMonth: 5, category: 'Entertainment', accountId }),
+        updatePayload: { amount: 17.99 },
+        updatedField: 'amount',
+        updatedValue: 17.99,
+        invalidPayload: () => ({ amount: 15.99 })
+    },
+    {
+        path: '/api/emergency-funds',
+        validPayload: () => ({ accountId, targetAmount: 10000, currentAmount: 2000, monthlyContribution: 200, autoContribute: true }),
+        updatePayload: { currentAmount: 2200 },
+        updatedField: 'currentAmount',
+        updatedValue: 2200,
+        invalidPayload: () => ({ targetAmount: 10000 })
+    },
+    {
+        path: '/api/sinking-funds',
+        validPayload: () => ({ name: 'Car Repair', allocationMethod: 'fixed', monthlyAllocation: 100, targetAmount: 1200, currentAmount: 0, accountId }),
+        updatePayload: { currentAmount: 100 },
+        updatedField: 'currentAmount',
+        updatedValue: 100,
+        invalidPayload: () => ({ monthlyAllocation: 100 })
+    },
+    {
+        path: '/api/reconciliations',
+        validPayload: () => ({ accountId, date: '2026-08-01', previousBalance: 100, statementBalance: 95, difference: -5, note: 'ATM fee' }),
+        updatePayload: { note: 'ATM fee corrected' },
+        updatedField: 'note',
+        updatedValue: 'ATM fee corrected',
+        invalidPayload: () => ({ date: '2026-08-01' })
     }
 ];
 
