@@ -15,6 +15,7 @@ import reconciliationsRouter from './routes/reconciliations.js';
 import netWorthSnapshotsRouter from './routes/netWorthSnapshots.js';
 import settingsRouter from './routes/settings.js';
 import ledgerOverridesRouter from './routes/ledgerOverrides.js';
+import planSettingsRouter from './routes/planSettings.js';
 
 export function createApp() {
     const app = express();
@@ -43,6 +44,7 @@ export function createApp() {
     api.use('/net-worth-snapshots', netWorthSnapshotsRouter);
     api.use('/settings', settingsRouter);
     api.use('/ledger-overrides', ledgerOverridesRouter);
+    api.use('/plan-settings', planSettingsRouter);
     app.use('/api', api);
 
     app.use((req, res) => {
