@@ -87,6 +87,44 @@ jobs:
           curl -sf http://localhost:5500/ > /dev/null || exit 1
       - run: pytest tests/security -v
 
+  test-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install playwright pytest pytest-asyncio
+      - run: playwright install --with-deps chromium
+      - name: Create postgres secret
+        run: |
+          mkdir -p secrets
+          echo "ci-test-password" > secrets/postgres_password.txt
+      - name: Start full stack
+        run: |
+          docker compose up -d --build
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 2
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - name: Seed test user
+        run: |
+          docker compose exec -T server node scripts/create-user.js <<'EOF'
+          testuser@example.com
+          ci-test-password
+          EOF
+      - name: Run Postgres bootstrap tests
+        env:
+          POSTGRES_TEST_BASE_URL: http://localhost:5500
+          POSTGRES_TEST_EMAIL: testuser@example.com
+          POSTGRES_TEST_PASSWORD: ci-test-password
+        run: pytest tests/postgres -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
+
   test-a11y:
     runs-on: ubuntu-latest
     timeout-minutes: 20
