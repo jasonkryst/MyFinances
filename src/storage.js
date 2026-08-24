@@ -3,6 +3,62 @@
 import { createStorageAdapter, setStorageBackendPreference } from './storageAdapters.js';
 import { sanitizeParsedState } from './sanitizers.js';
 
+export function getCsrfCookie() {
+    const match = document.cookie.split('; ').find(row => row.startsWith('csrf='));
+    return match ? match.split('=')[1] : '';
+}
+
+export async function checkPostgresSession() {
+    try {
+        const res = await fetch('/api/plan-settings');
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
+const POSTGRES_RESOURCE_ENDPOINTS = {
+    debts: '/api/debts',
+    accounts: '/api/accounts',
+    incomes: '/api/incomes',
+    bonuses: '/api/bonuses',
+    bills: '/api/bills',
+    expenses: '/api/expenses',
+    recurringTemplates: '/api/recurring-templates',
+    emergencyFunds: '/api/emergency-funds',
+    sinkingFunds: '/api/sinking-funds',
+    reconciliations: '/api/reconciliations'
+};
+
+export async function loadFromPostgres(app) {
+    const entries = Object.entries(POSTGRES_RESOURCE_ENDPOINTS);
+    const [lists, snapshots, settingsRows, overrides, planSettings] = await Promise.all([
+        Promise.all(entries.map(([, path]) => fetch(path).then(r => r.json()))),
+        fetch('/api/net-worth-snapshots').then(r => r.json()),
+        fetch('/api/settings').then(r => r.json()),
+        fetch('/api/ledger-overrides').then(r => r.json()),
+        fetch('/api/plan-settings').then(r => r.json())
+    ]);
+
+    entries.forEach(([field], i) => { app[field] = lists[i]; });
+    app.monthlySnapshots = snapshots;
+    app.settings = settingsRows;
+    app.ledgerAmountOverrides = Object.fromEntries(
+        overrides.map(o => [o.overrideKey, o])
+    );
+    app._savedMonthlyPayment = planSettings.monthlyPayment;
+    app._savedStrategy = planSettings.strategy;
+    app.perMonthStimulus = planSettings.perMonthStimulus;
+    app.netWorthMilestonesAwarded = planSettings.netWorthMilestonesAwarded;
+    app._ledgerAccountFilter = planSettings.ledgerSettings?.accountFilter ?? 'all';
+    app._ledgerDateRange = planSettings.ledgerSettings?.dateRange ?? 'all';
+    app._ledgerSortKey = planSettings.ledgerSettings?.sortKey ?? 'date';
+    app._ledgerSortDir = planSettings.ledgerSettings?.sortDir ?? 'desc';
+    app._forecastRangeMonths = planSettings.forecastSettings?.rangeMonths ?? 1;
+    app._forecastAccountId = planSettings.forecastSettings?.accountId ?? 'total';
+    app._forecastNotableThresholdPct = planSettings.forecastSettings?.notableThresholdPct ?? 130;
+}
+
 // Browsers commonly cap localStorage somewhere in the 5-10MB range. We can't
 // query the real per-browser limit, so we warn against a conservative 5MB
 // estimate rather than risk silent write failures once a user is near
@@ -22,7 +78,37 @@ export function getStorageUsageInfo(serializedJson) {
 }
 
 // Persist current state to localStorage under app.storageKey
-export function saveToStorage(app) {
+export async function saveToStorage(app) {
+    if (app._storageBackendKind === 'postgres') {
+        try {
+            await fetch('/api/plan-settings', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfCookie()
+                },
+                body: JSON.stringify({
+                    monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
+                    strategy: document.getElementById('paymentStrategy')?.value || null,
+                    ledgerSettings: {
+                        accountFilter: app._ledgerAccountFilter || 'all',
+                        dateRange: app._ledgerDateRange || 'all',
+                        sortKey: app._ledgerSortKey || 'date',
+                        sortDir: app._ledgerSortDir || 'desc'
+                    },
+                    forecastSettings: {
+                        rangeMonths: app._forecastRangeMonths || 1,
+                        accountId: app._forecastAccountId || 'total',
+                        notableThresholdPct: app._forecastNotableThresholdPct || 130
+                    }
+                })
+            });
+            return true;
+        } catch (error) {
+            console.error('Error saving plan settings to Postgres:', error);
+            return false;
+        }
+    }
     try {
         const data = {
             debts: app.debts,
