@@ -23,10 +23,12 @@ export function showLoginGate(app) {
                         password: passwordInput.value
                     })
                 });
-            } catch {
+            } catch (err) {
+                console.error('[loginGate] fetch error:', err);
                 errorEl.textContent = 'Could not reach the server. Check your connection.';
                 return;
             }
+            console.log('[loginGate] /auth/login status:', res.status);
             if (!res.ok) {
                 errorEl.textContent = res.status === 429
                     ? 'Too many attempts. Try again later.'
