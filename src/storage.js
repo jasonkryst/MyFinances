@@ -77,37 +77,37 @@ export function getStorageUsageInfo(serializedJson) {
     };
 }
 
-// Persist current state to localStorage under app.storageKey
-export async function saveToStorage(app) {
+// Persist current state. For local/session backends this is synchronous and
+// returns true/false directly (switchStorageBackend relies on this). For
+// the postgres backend it returns a Promise — callers that don't await it
+// get a truthy Promise, which is fine since Postgres has no rollback path.
+export function saveToStorage(app) {
     if (app._storageBackendKind === 'postgres') {
-        try {
-            await fetch('/api/plan-settings', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': getCsrfCookie()
+        return fetch('/api/plan-settings', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfCookie()
+            },
+            body: JSON.stringify({
+                monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
+                strategy: document.getElementById('paymentStrategy')?.value || null,
+                ledgerSettings: {
+                    accountFilter: app._ledgerAccountFilter || 'all',
+                    dateRange: app._ledgerDateRange || 'all',
+                    sortKey: app._ledgerSortKey || 'date',
+                    sortDir: app._ledgerSortDir || 'desc'
                 },
-                body: JSON.stringify({
-                    monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
-                    strategy: document.getElementById('paymentStrategy')?.value || null,
-                    ledgerSettings: {
-                        accountFilter: app._ledgerAccountFilter || 'all',
-                        dateRange: app._ledgerDateRange || 'all',
-                        sortKey: app._ledgerSortKey || 'date',
-                        sortDir: app._ledgerSortDir || 'desc'
-                    },
-                    forecastSettings: {
-                        rangeMonths: app._forecastRangeMonths || 1,
-                        accountId: app._forecastAccountId || 'total',
-                        notableThresholdPct: app._forecastNotableThresholdPct || 130
-                    }
-                })
-            });
-            return true;
-        } catch (error) {
-            console.error('Error saving plan settings to Postgres:', error);
+                forecastSettings: {
+                    rangeMonths: app._forecastRangeMonths || 1,
+                    accountId: app._forecastAccountId || 'total',
+                    notableThresholdPct: app._forecastNotableThresholdPct || 130
+                }
+            })
+        }).then(() => true).catch(err => {
+            console.error('Error saving plan settings to Postgres:', err);
             return false;
-        }
+        });
     }
     try {
         const data = {

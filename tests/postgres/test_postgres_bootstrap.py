@@ -10,7 +10,7 @@ async def test_login_gate_shown_when_no_session(pg_page, base_url):
     gate = pg_page.locator('#loginGate')
     await gate.wait_for(state='visible', timeout=8000)
     assert await gate.is_visible()
-    nav = pg_page.locator('.tab-bar')
+    nav = pg_page.locator('#topNav')
     assert not await nav.is_visible()
 
 
@@ -42,7 +42,7 @@ async def test_successful_login_hides_gate_and_boots_app(pg_page, base_url, cred
 
     await gate.wait_for(state='hidden', timeout=8000)
     assert not await gate.is_visible()
-    await pg_page.wait_for_selector('.tab-bar', state='visible', timeout=8000)
+    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
 
 
 async def test_valid_session_skips_gate(pg_page, base_url, credentials):
@@ -56,7 +56,7 @@ async def test_valid_session_skips_gate(pg_page, base_url, credentials):
     await gate.wait_for(state='hidden', timeout=8000)
 
     await pg_page.reload()
-    await pg_page.wait_for_selector('.tab-bar', state='visible', timeout=8000)
+    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
     assert not await gate.is_visible()
 
 
@@ -67,7 +67,7 @@ async def test_settings_postgres_option_reloads_to_gate(base_url):
         ctx = await browser.new_context()
         page = await ctx.new_page()
         await page.goto(base_url)
-        await page.wait_for_selector('.tab-bar', state='visible', timeout=8000)
+        await page.wait_for_selector('#topNav', state='visible', timeout=8000)
 
         await page.click('#settingsBtn')
         await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
