@@ -102,6 +102,8 @@ jobs:
           mkdir -p secrets
           echo "ci-test-password" > secrets/postgres_password.txt
       - name: Start full stack
+        env:
+          POSTGRES_PASSWORD: ci-test-password
         run: |
           docker compose up -d --build
           for i in $(seq 1 60); do
@@ -109,12 +111,14 @@ jobs:
             sleep 2
           done
           curl -sf http://localhost:5500/ > /dev/null || exit 1
+          for i in $(seq 1 30); do
+            docker inspect --format='{{.State.Health.Status}}' myfinances-server 2>/dev/null | grep -q "^healthy$" && break
+            sleep 2
+          done
+      - name: Run migrations
+        run: docker compose exec -T server npm run migrate up
       - name: Seed test user
-        run: |
-          docker compose exec -T server node scripts/create-user.js <<'EOF'
-          testuser@example.com
-          ci-test-password
-          EOF
+        run: printf "testuser@example.com\nci-test-password\n" | docker compose exec -T server node scripts/create-user.js
       - name: Run Postgres bootstrap tests
         env:
           POSTGRES_TEST_BASE_URL: http://localhost:5500
