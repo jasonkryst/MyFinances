@@ -2,7 +2,7 @@
 // choice later. Both are plain static modals following the same
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
-import { getStorageBackendPreference } from './storageAdapters.js';
+import { getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import { getCurrentLocale } from './i18n.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
@@ -63,6 +63,11 @@ export function initSettingsModal(app) {
 
     const save = () => {
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
+        if (storageSelect.value === 'postgres') {
+            setStorageBackendPreference('postgres');
+            location.reload();
+            return;
+        }
         app.switchStorageBackend(storageSelect.value);
         app.setLocale(localeSelect.value);
         close();
