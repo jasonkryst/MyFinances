@@ -1021,6 +1021,25 @@
             </div>
         </div>
     </div>
+    <!-- Login Gate — full-page overlay for Postgres backend -->
+    <div id="loginGate" class="login-gate hidden" role="dialog" aria-modal="true" aria-labelledby="loginGateTitle">
+        <div class="login-gate-card">
+            <h1 id="loginGateTitle" class="login-gate-title">MyFinances</h1>
+            <p class="login-gate-subtitle">Sign in to your account</p>
+            <form id="loginGateForm" class="login-gate-form" novalidate>
+                <div class="form-group">
+                    <label for="loginGateEmail">Email</label>
+                    <input type="email" id="loginGateEmail" class="form-control" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginGatePassword">Password</label>
+                    <input type="password" id="loginGatePassword" class="form-control" autocomplete="current-password" required>
+                </div>
+                <p id="loginGateError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                <button type="submit" class="btn btn-primary login-gate-submit">Sign In</button>
+            </form>
+        </div>
+    </div>
     <!-- Settings -->
     <div id="settingsModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
         <div class="modal-content">
@@ -1047,6 +1066,7 @@
                 <select id="settingStorageBackend">
                     <option value="local" data-i18n="settings.storageLocal">Local Storage (persists across visits)</option>
                     <option value="session" data-i18n="settings.storageSession">Session Storage (cleared when this tab closes)</option>
+                    <option value="postgres">PostgreSQL (self-hosted server)</option>
                 </select>
                 <p class="modal-helper-text" data-i18n="settings.dataStorageHelp">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
             </div>
