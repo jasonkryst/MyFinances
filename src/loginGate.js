@@ -28,7 +28,7 @@ export function showLoginGate(app) {
                 errorEl.textContent = 'Could not reach the server. Check your connection.';
                 return;
             }
-            console.log('[loginGate] /auth/login status:', res.status);
+            console.warn('[loginGate] /auth/login status:', res.status);
             if (!res.ok) {
                 errorEl.textContent = res.status === 429
                     ? 'Too many attempts. Try again later.'

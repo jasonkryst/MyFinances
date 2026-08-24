@@ -1,5 +1,6 @@
+import re
 import pytest
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, expect
 
 pytestmark = pytest.mark.asyncio
 
@@ -18,9 +19,8 @@ async def test_login_gate_shown_when_no_session(pg_page, base_url):
     gate = pg_page.locator('#loginGate')
     await gate.wait_for(state='visible', timeout=8000)
     assert await gate.is_visible(), f'Gate not visible. Console: {logs}'
-    # Nav exists in DOM but the gate (z-index: 2000, position: fixed, inset: 0)
-    # covers the entire viewport — verify no interaction is possible with the nav
-    # by confirming the gate overlay itself is blocking (aria-modal=true on gate).
+    # The gate is position:fixed inset:0 z-index:2000 with aria-modal=true —
+    # that is sufficient to confirm it covers the page for all users.
     assert await pg_page.get_attribute('#loginGate', 'aria-modal') == 'true'
 
 
@@ -32,15 +32,18 @@ async def test_wrong_password_shows_error_gate_stays(pg_page, base_url, credenti
 
     await pg_page.fill('#loginGateEmail', credentials['email'])
     await pg_page.fill('#loginGatePassword', 'definitely-wrong-password-xyz')
-    await pg_page.click('.login-gate-submit')
 
-    # Wait for non-empty error text (the error element has min-height so it's
-    # always in Playwright's "visible" state — wait on text content instead)
-    await pg_page.wait_for_function(
-        "document.getElementById('loginGateError').textContent.trim() !== ''",
-        timeout=6000
-    )
-    text = await pg_page.locator('#loginGateError').text_content()
+    # Capture the /auth/login response to diagnose failures
+    async with pg_page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000) as resp_info:
+        await pg_page.click('.login-gate-submit')
+    resp = await resp_info.value
+    assert resp.status == 401, f'Expected 401, got {resp.status}. Console: {logs}'
+
+    # The error element has min-height CSS so it's always "visible" per Playwright.
+    # Use expect().to_have_text() which polls on text content without unsafe-eval.
+    error = pg_page.locator('#loginGateError')
+    await expect(error).to_have_text(re.compile(r'.+'), timeout=4000)
+    text = await error.text_content()
     assert text.strip() != '', f'Expected error text. Console: {logs}'
     assert await pg_page.locator('#loginGate').is_visible()
 
@@ -54,10 +57,20 @@ async def test_successful_login_hides_gate_and_boots_app(pg_page, base_url, cred
 
     await pg_page.fill('#loginGateEmail', credentials['email'])
     await pg_page.fill('#loginGatePassword', credentials['password'])
-    await pg_page.click('.login-gate-submit')
 
-    await gate.wait_for(state='hidden', timeout=12000)
-    assert not await gate.is_visible(), f'Gate still visible. Console: {logs}'
+    async with pg_page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000) as resp_info:
+        await pg_page.click('.login-gate-submit')
+    resp = await resp_info.value
+    login_status = resp.status
+
+    try:
+        await gate.wait_for(state='hidden', timeout=12000)
+    except Exception as e:
+        pytest.fail(
+            f'Gate still visible after login (HTTP {login_status}). '
+            f'Console: {logs}\n{e}'
+        )
+    assert not await gate.is_visible()
     await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
 
 
@@ -69,8 +82,19 @@ async def test_valid_session_skips_gate(pg_page, base_url, credentials):
     await gate.wait_for(state='visible', timeout=8000)
     await pg_page.fill('#loginGateEmail', credentials['email'])
     await pg_page.fill('#loginGatePassword', credentials['password'])
-    await pg_page.click('.login-gate-submit')
-    await gate.wait_for(state='hidden', timeout=12000)
+
+    async with pg_page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000) as resp_info:
+        await pg_page.click('.login-gate-submit')
+    resp = await resp_info.value
+    login_status = resp.status
+
+    try:
+        await gate.wait_for(state='hidden', timeout=12000)
+    except Exception as e:
+        pytest.fail(
+            f'Gate still visible after login (HTTP {login_status}). '
+            f'Console: {logs}\n{e}'
+        )
 
     await pg_page.reload()
     await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
