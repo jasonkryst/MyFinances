@@ -73,7 +73,7 @@ async def test_settings_postgres_option_reloads_to_gate(base_url):
         await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
 
         await page.select_option('#settingStorageBackend', 'postgres')
-        await page.click('#settingsDoneBtn')
+        await page.click('#settingsModalDoneBtn')
 
         gate = page.locator('#loginGate')
         await gate.wait_for(state='visible', timeout=10000)
