@@ -2,6 +2,7 @@
 
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -156,7 +157,7 @@ export function renderAccountsList(app) {
     };
 }
 
-export function addAccount(app) {
+export async function addAccount(app) {
     const name = normalizeText(document.getElementById('accountName').value, 80);
     const type = normalizeText(document.getElementById('accountType').value, 30);
     const startingBalance = sanitizeFiniteNumber(document.getElementById('accountStartingBalance').value, NaN);
@@ -165,8 +166,13 @@ export function addAccount(app) {
     if (!name) { alert('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { alert('Please enter a starting balance (use 0 if unknown).'); return; }
 
-    app.accounts.push({ id: Date.now(), name, type, startingBalance, interestRate });
+    const account = { id: Date.now(), name, type, startingBalance, interestRate };
+    app.accounts.push(account);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+        const saved = await pgPost(app, '/api/accounts', account);
+        if (saved?.id) account.id = saved.id;
+    }
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
@@ -176,6 +182,7 @@ export function addAccount(app) {
 export function deleteAccount(app, id) {
     app.accounts = app.accounts.filter(a => a.id !== id);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/accounts/${id}`);
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
@@ -204,6 +211,7 @@ export function saveEditAccount(app, id) {
     app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate };
     app.editingAccountId = null;
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
