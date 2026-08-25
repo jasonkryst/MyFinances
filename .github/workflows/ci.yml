@@ -125,6 +125,9 @@ jobs:
           POSTGRES_TEST_EMAIL: testuser@example.com
           POSTGRES_TEST_PASSWORD: ci-test-password
         run: pytest tests/postgres -v
+      - name: Dump server logs
+        if: always()
+        run: docker compose logs server
       - name: Stop stack
         if: always()
         run: docker compose down -v
