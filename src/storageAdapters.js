@@ -31,9 +31,12 @@ export const STORAGE_BACKEND_PREF_KEY = 'debtTrackerStorageBackend';
 
 export function getStorageBackendPreference() {
     const raw = window.localStorage.getItem(STORAGE_BACKEND_PREF_KEY);
-    return raw === 'session' ? 'session' : 'local';
+    if (raw === 'session') return 'session';
+    if (raw === 'postgres') return 'postgres';
+    return 'local';
 }
 
 export function setStorageBackendPreference(kind) {
-    window.localStorage.setItem(STORAGE_BACKEND_PREF_KEY, kind === 'session' ? 'session' : 'local');
+    const normalized = kind === 'session' ? 'session' : kind === 'postgres' ? 'postgres' : 'local';
+    window.localStorage.setItem(STORAGE_BACKEND_PREF_KEY, normalized);
 }

@@ -7,6 +7,16 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.22.0] — 2026-08-23
+
+### Added
+- PostgreSQL backend option in Settings modal: selecting "PostgreSQL (self-hosted server)" saves the preference and reloads the page
+- Full-page `#loginGate` overlay shown before the app shell when Postgres is selected and no valid session exists
+- Async app bootstrap: `DebtTrackerApp.init()` (called from an async `DOMContentLoaded` handler) handles session check, login gate, and parallel load from 14 REST endpoints via `Promise.all`
+- `getCsrfCookie()` helper in `storage.js` for all authenticated Postgres mutation calls (Phase 2b will use this at every mutation site)
+
+---
+
 ## [4.21.0] — 2026-08-23
 
 ### Added

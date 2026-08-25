@@ -6386,3 +6386,49 @@ body.dark-mode .accelerate-preview {
     margin-top: 0.5rem;
     font-style: italic;
 }
+
+/* Login Gate — full-viewport overlay for Postgres backend */
+.login-gate {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-primary);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.login-gate.flex-visible {
+    display: flex;
+}
+.login-gate-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.login-gate-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+    color: var(--text-primary);
+}
+.login-gate-subtitle {
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem;
+    font-size: 0.95rem;
+}
+.login-gate-form .form-group {
+    margin-bottom: 1rem;
+}
+.login-gate-error {
+    color: var(--danger-color, #dc3545);
+    font-size: 0.875rem;
+    min-height: 1.25rem;
+    margin: 0.25rem 0 0.75rem;
+}
+.login-gate-submit {
+    width: 100%;
+}

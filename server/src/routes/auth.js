@@ -5,8 +5,9 @@ import { verifyPassword } from '../auth/argon2.js';
 import { createSession, destroySession } from '../auth/sessions.js';
 import { generateToken, requireCsrf } from '../auth/middleware.js';
 
-const SESSION_COOKIE_OPTS = { httpOnly: true, secure: true, sameSite: 'strict', path: '/' };
-const CSRF_COOKIE_OPTS = { httpOnly: false, secure: true, sameSite: 'strict', path: '/' };
+const SECURE = process.env.NODE_ENV === 'production';
+const SESSION_COOKIE_OPTS = { httpOnly: true, secure: SECURE, sameSite: 'strict', path: '/' };
+const CSRF_COOKIE_OPTS = { httpOnly: false, secure: SECURE, sameSite: 'strict', path: '/' };
 
 // A factory, not a module-level singleton -- express-rate-limit's default
 // MemoryStore is created fresh per call, so each createApp() instance gets

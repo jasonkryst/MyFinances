@@ -32,7 +32,8 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature } from './storage.js';
+import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, loadFromPostgres } from './storage.js';
+import { showLoginGate } from './loginGate.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import { createStorageAdapter, getStorageBackendPreference } from './storageAdapters.js';
 import {
@@ -178,18 +179,29 @@ export class DebtTrackerApp {
 
         applyStaticTranslations();
 
-        const isFirstRun = this.storageAdapter.get(this.storageKey) === null;
+        this._isFirstRun = this.storageAdapter.get(this.storageKey) === null;
 
         this.initializeEventListeners();
-        this.loadFromStorage();
+    }
+
+    async init() {
+        if (this._storageBackendKind === 'postgres') {
+            const hasSession = await checkPostgresSession();
+            if (!hasSession) {
+                await showLoginGate(this);
+            }
+            await loadFromPostgres(this);
+        } else {
+            this.loadFromStorage();
+            maybeShowSetupWizardFeature(this, this._isFirstRun);
+        }
+
         const versionEl = document.getElementById('appVersion');
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
-    this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
-    initSettingsModalFeature(this);
-    initDataTransferModal(this);
-    maybeShowSetupWizardFeature(this, isFirstRun);
-    backfillIncomeAccountIds(this);
-
+        this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
+        backfillIncomeAccountIds(this);
+        initSettingsModalFeature(this);
+        initDataTransferModal(this);
         this.updateUI();
         this.updateFormVisibility();
         this.switchPage('health');
@@ -888,7 +900,8 @@ export class DebtTrackerApp {
 }
 
 // Initialize the app when the DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     window.app = new DebtTrackerApp();
+    await window.app.init();
     registerServiceWorker(window.app);
 });
