@@ -2,6 +2,7 @@
 
 import { createStorageAdapter, setStorageBackendPreference } from './storageAdapters.js';
 import { sanitizeParsedState } from './sanitizers.js';
+import { pgDeleteAll } from './postgresSync.js';
 
 export function getCsrfCookie() {
     const match = document.cookie.split('; ').find(row => row.startsWith('csrf='));
@@ -263,6 +264,7 @@ export function switchStorageBackend(app, kind) {
 
 // Wipe all user data and reset the visible UI state.
 export function clearAllData(app, options = {}) {
+    const wasPostgres = app._storageBackendKind === 'postgres';
     const { onCleared } = options;
 
     app.debts = [];
@@ -302,6 +304,8 @@ export function clearAllData(app, options = {}) {
     app._storageBackendKind = 'local';
     setStorageBackendPreference('local');
     localStorage.removeItem('debtTrackerTheme');
+
+    if (wasPostgres) pgDeleteAll(app); // fire-and-forget; backend kind is already 'local'
 
     app.updateUI();
 
