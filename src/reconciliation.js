@@ -6,6 +6,7 @@ import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
+import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -44,7 +45,7 @@ export function getExpectedTransactionsInRange(app, accountId, startDate, endDat
     return results;
 }
 
-export function applyReconciliation(app, accountId, statementBalance, note, date) {
+export async function applyReconciliation(app, accountId, statementBalance, note, date) {
     const balance = sanitizeFiniteNumber(statementBalance, NaN);
     if (!Number.isFinite(balance)) {
         alert('Please enter a valid statement balance.');
@@ -73,6 +74,11 @@ export function applyReconciliation(app, accountId, statementBalance, note, date
     app.reconciliations.push(entry);
 
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+        const saved = await pgPost(app, '/api/reconciliations', entry);
+        if (saved?.id) entry.id = saved.id;
+        if (adjustsBalance) pgPatch(app, `/api/accounts/${accountId}`, account);
+    }
     if (typeof app.renderReconciliationPage === 'function') app.renderReconciliationPage();
     if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
     if (typeof app.renderNetWorthWidget === 'function') app.renderNetWorthWidget();
@@ -102,6 +108,7 @@ export function reconcileAccount(app, accountId) {
 export function deleteReconciliationEntry(app, id) {
     app.reconciliations = (app.reconciliations || []).filter(r => r.id !== id);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/reconciliations/${id}`);
     if (typeof app.renderReconciliationPage === 'function') app.renderReconciliationPage();
 }
 
