@@ -104,3 +104,16 @@ test('ledger-overrides: rejects an accountId belonging to another user (IDOR)', 
     });
     assert.equal(res.status, 400);
 });
+
+test('net-worth-snapshots: delete all removes all user rows and returns 204', async () => {
+    await fetch(`${baseUrl}/api/net-worth-snapshots/2026-01-01`, {
+        method: 'PUT', headers: csrfHeaders(),
+        body: JSON.stringify({ totalAssets: 1000, totalLiabilities: 500, netWorth: 500, source: 'auto' })
+    });
+
+    const res = await fetch(`${baseUrl}/api/net-worth-snapshots`, { method: 'DELETE', headers: csrfHeaders() });
+    assert.equal(res.status, 204);
+
+    const list = await (await fetch(`${baseUrl}/api/net-worth-snapshots`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.length, 0);
+});
