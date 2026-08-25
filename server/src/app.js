@@ -22,9 +22,6 @@ export function createApp() {
     app.use(express.json({ limit: '1mb' }));
     app.use(cookieParser());
 
-    // Temporary request logging to diagnose CI routing issues
-    app.use((req, _res, next) => { console.log(`[req] ${req.method} ${req.path}`); next(); });
-
     app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
     app.use('/auth', createAuthRouter());
