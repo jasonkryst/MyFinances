@@ -117,3 +117,8 @@ test('net-worth-snapshots: delete all removes all user rows and returns 204', as
     const list = await (await fetch(`${baseUrl}/api/net-worth-snapshots`, { headers: { Cookie: cookies } })).json();
     assert.equal(list.length, 0);
 });
+
+test('net-worth-snapshots: delete all returns 401 without auth', async () => {
+    const res = await fetch(`${baseUrl}/api/net-worth-snapshots`, { method: 'DELETE' });
+    assert.equal(res.status, 401);
+});
