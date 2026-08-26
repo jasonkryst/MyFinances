@@ -42,13 +42,13 @@ fi
 # ── 3. Run migrations ─────────────────────────────────────────────────────────
 echo ""
 echo "Running database migrations..."
-docker compose exec server npm run migrate up
+docker compose run --rm server npm run migrate up
 
 # ── 4. Create first user ──────────────────────────────────────────────────────
 echo ""
 echo "Create your login account"
 echo "-------------------------"
-docker compose exec -it server node scripts/create-user.js
+docker compose run --rm server node scripts/create-user.js
 
 echo ""
 echo "=============================="

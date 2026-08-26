@@ -46,13 +46,13 @@ if (-not $healthy) {
 # -- 3. Run migrations ---------------------------------------------------------
 Write-Host ""
 Write-Host "Running database migrations..."
-docker compose exec server npm run migrate up
+docker compose run --rm server npm run migrate up
 
 # -- 4. Create first user ------------------------------------------------------
 Write-Host ""
 Write-Host "Create your login account"
 Write-Host "-------------------------"
-docker compose exec -it server node scripts/create-user.js
+docker compose run --rm server node scripts/create-user.js
 
 Write-Host ""
 Write-Host "=============================="
