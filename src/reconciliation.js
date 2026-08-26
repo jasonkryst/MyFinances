@@ -306,8 +306,8 @@ export function openReconcileModal(app, accountId) {
         modal.onkeydown = null;
     };
 
-    confirmBtn.onclick = () => {
-        const result = applyReconciliation(app, accountId, balanceInput.value, noteInput.value, dateInput.value);
+    confirmBtn.onclick = async () => {
+        const result = await applyReconciliation(app, accountId, balanceInput.value, noteInput.value, dateInput.value);
         if (result.success) close();
     };
 
