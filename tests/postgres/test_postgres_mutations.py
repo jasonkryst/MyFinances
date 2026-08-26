@@ -155,7 +155,13 @@ async def test_income_add_persists(pg_page, base_url, credentials):
     await pg_page.select_option('#incomeFrequency', 'monthly')
     # addIncome requires a linked account or it alerts and bails
     await pg_page.select_option('#incomeAccount', str(account['id']))
-    await pg_page.click('#incomeFormSubmit')
+    # Gate on the server POST completing before we reload, to avoid the race
+    # where fire-and-forget pgPost hasn't written to DB before loadFromPostgres
+    async with pg_page.expect_response(
+        lambda r: '/api/incomes' in r.url and r.request.method == 'POST',
+        timeout=8000
+    ):
+        await pg_page.click('#incomeFormSubmit')
     await pg_page.wait_for_selector('text=Smoke Salary', timeout=5000)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
@@ -253,8 +259,13 @@ async def test_net_worth_snapshot_persists(pg_page, base_url, credentials):
     # captureSnapshotBtn lives inside the Net Worth tab -- click the tab first
     await pg_page.click('[data-rptab="networth"]')
     await pg_page.wait_for_selector('#captureSnapshotBtn', state='visible', timeout=5000)
-    await pg_page.click('#captureSnapshotBtn')
-    await pg_page.wait_for_timeout(800)
+    # Gate on the server POST completing before reload to avoid the race where
+    # fire-and-forget pgPost hasn't written to DB before loadFromPostgres runs
+    async with pg_page.expect_response(
+        lambda r: '/api/net-worth-snapshots' in r.url and r.request.method == 'POST',
+        timeout=8000
+    ):
+        await pg_page.click('#captureSnapshotBtn')
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     snapshots = await (await _api_get(pg_page, base_url, '/api/net-worth-snapshots')).json()
@@ -281,18 +292,11 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     await pg_page.wait_for_selector('#clearDataBtn', state='visible', timeout=5000)
     pg_page.once('dialog', lambda d: d.accept())
     await pg_page.click('#clearDataBtn')
-    await pg_page.wait_for_timeout(1500)
-
-    # Re-enter postgres mode and log back in to verify server state is empty
-    await pg_page.evaluate("localStorage.setItem('debtTrackerStorageBackend', 'postgres')")
-    await pg_page.reload()
-    await pg_page.locator('#loginGate').wait_for(state='visible', timeout=8000)
-    await pg_page.fill('#loginGateEmail', credentials['email'])
-    await pg_page.fill('#loginGatePassword', credentials['password'])
-    async with pg_page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
-        await pg_page.click('.login-gate-submit')
-    await pg_page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
-    await _wait_for_app_ready(pg_page)
+    # Wait for pgDeleteAll (fire-and-forget parallel DELETEs) to finish.
+    # Session cookie is still valid after clearAllData -- the server data is
+    # gone but the authenticated session persists, so we can verify via API
+    # directly without re-logging in.
+    await pg_page.wait_for_timeout(2000)
 
     debts = await (await _api_get(pg_page, base_url, '/api/debts')).json()
     assert len(debts) == 0, f'Debts still present after clearAllData. Console: {logs}'
