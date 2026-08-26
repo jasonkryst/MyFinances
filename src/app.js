@@ -403,7 +403,7 @@ export class DebtTrackerApp {
      *   { id, name, amount, firstPayDate, frequency }
      *   frequency: 'biweekly' | 'monthly'
      */
-    addIncome() {
+    async addIncome() {
         return addIncome(this);
     }
 

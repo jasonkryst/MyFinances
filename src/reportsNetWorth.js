@@ -2,6 +2,7 @@
 
 import { formatCurrency, renderChartDataTable } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+import { pgPost } from './postgresSync.js';
 
 function toMonthKey(value) {
     return String(value || '').slice(0, 7);
@@ -80,6 +81,7 @@ export function captureNetWorthSnapshot(app, options = {}) {
     }
     app.monthlySnapshots.sort((a, b) => a.date.localeCompare(b.date));
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPost(app, '/api/net-worth-snapshots', snapshot);
 
     if (!options.skipMilestone && baseline !== null) {
         const gainNow = snapshot.netWorth - baseline;

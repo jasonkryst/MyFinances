@@ -12,6 +12,7 @@ import {
     formatShortDate
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
+import { pgPost } from './postgresSync.js';
 
 
 // Render the income list and summary panel inside the Income page.
@@ -156,7 +157,7 @@ export function renderIncomeList(app) {
 }
 
 // Add a new income source
-export function addIncome(app) {
+export async function addIncome(app) {
     const name = normalizeText(document.getElementById('incomeName').value, 80);
     const rawAmount = document.getElementById('incomeAmount').value;
     const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
@@ -169,8 +170,13 @@ export function addIncome(app) {
     if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
     if (!accountId || isNaN(accountId)) { alert('Please select an account for this income source.'); return; }
 
-    app.incomes.push({ id: Date.now(), name, amount, firstPayDate, frequency, accountId });
+    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId };
+    app.incomes.push(income);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+        const saved = await pgPost(app, '/api/incomes', income);
+        if (saved?.id) income.id = saved.id;
+    }
     app.renderIncomeList();
     document.getElementById('incomeForm').reset();
 }
