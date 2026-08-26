@@ -9,7 +9,7 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ## [4.23.0] — 2026-08-25
 
-PostgreSQL Phase 2b — per-resource mutation wiring. Every add/edit/delete operation in the frontend now persists directly to the Postgres REST API when the Postgres backend is selected. New `src/postgresSync.js` module provides `pgPost`/`pgPatch`/`pgDelete`/`pgPut`/`pgDeleteAll` helpers shared by all 11 feature modules. `addEmergencyFund` handles both create and update paths. `clearAllData` fans out delete-all requests to all 13 resource endpoints. Server adds `DELETE /` to both `crudRouter.js` and `keyedRouter.js` for bulk deletion. See `docs/superpowers/specs/2026-08-24-postgresql-storage-phase2b-design.md`.
+PostgreSQL Phase 2b — per-resource mutation wiring. Every add/edit/delete operation in the frontend now persists directly to the Postgres REST API when the Postgres backend is selected. New `src/postgresSync.js` module provides `pgPost`/`pgPatch`/`pgDelete`/`pgPut`/`pgDeleteAll` helpers shared by all 11 feature modules. `addEmergencyFund` handles both create and update paths. `clearAllData` fans out delete-all requests to all 13 resource endpoints. Server adds `DELETE /` to both `crudRouter.js` and `keyedRouter.js` for bulk deletion. See `docs/superpowers/specs/2026-08-24-postgresql-storage-phase2b-design.md`..
 
 ---
 
