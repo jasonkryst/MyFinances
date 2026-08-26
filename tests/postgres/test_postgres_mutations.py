@@ -259,10 +259,10 @@ async def test_net_worth_snapshot_persists(pg_page, base_url, credentials):
     # captureSnapshotBtn lives inside the Net Worth tab -- click the tab first
     await pg_page.click('[data-rptab="networth"]')
     await pg_page.wait_for_selector('#captureSnapshotBtn', state='visible', timeout=5000)
-    # Gate on the server POST completing before reload to avoid the race where
-    # fire-and-forget pgPost hasn't written to DB before loadFromPostgres runs
+    # Gate on the server PUT completing before reload to avoid the race where
+    # fire-and-forget pgPut hasn't written to DB before loadFromPostgres runs
     async with pg_page.expect_response(
-        lambda r: '/api/net-worth-snapshots' in r.url and r.request.method == 'POST',
+        lambda r: '/api/net-worth-snapshots' in r.url and r.request.method == 'PUT',
         timeout=8000
     ):
         await pg_page.click('#captureSnapshotBtn')
