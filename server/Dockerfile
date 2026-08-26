@@ -9,5 +9,8 @@ COPY server/. .
 # this directory is available to copy -- it must land at /src to match
 # that relative path from /app/src/sanitizers/index.js.
 COPY src /src
+COPY server/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 EXPOSE 4000
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "src/index.js"]

@@ -102,8 +102,6 @@ jobs:
           mkdir -p secrets
           echo "ci-test-password" > secrets/postgres_password.txt
       - name: Start full stack
-        env:
-          POSTGRES_PASSWORD: ci-test-password
         run: |
           docker compose up -d --build
           for i in $(seq 1 60); do
