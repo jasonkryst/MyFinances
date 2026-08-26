@@ -2,6 +2,7 @@
 import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, todayISO } from './utils.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
+import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 
 function recalculateIfConfigured(app) {
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
@@ -15,7 +16,7 @@ function recalculateIfConfigured(app) {
     }
 }
 
-export function addDebt(app) {
+export async function addDebt(app) {
     const debtType = document.getElementById('debtType').value;
     const name = normalizeText(document.getElementById('debtName').value, 80);
     const category = normalizeText(document.getElementById('debtCategory').value, 40);
@@ -76,6 +77,10 @@ export function addDebt(app) {
 
     app.debts.push(debt);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+        const saved = await pgPost(app, '/api/debts', debt);
+        if (saved?.id) debt.id = saved.id;
+    }
     recalculateIfConfigured(app);
     app.updateUI();
     app.cancelEdit();
@@ -89,6 +94,7 @@ export function deleteDebt(app, debtId) {
     if (app.editingDebtId === debtId) app.editingDebtId = null;
 
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/debts/${debtId}`);
     recalculateIfConfigured(app);
     app.updateUI();
 }
@@ -169,6 +175,7 @@ export function updateDebtBalance(app, debtId, newBalance, newMinPayment) {
     }
     app.debts[idx].updatedAt = todayISO();
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${app.debts[idx].id}`, app.debts[idx]);
     recalculateIfConfigured(app);
     app.renderDebtsList();
 }
@@ -202,6 +209,7 @@ export function saveEdit(app) {
     };
 
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${app.debts[idx].id}`, app.debts[idx]);
     app.updateUI();
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
     const strategy = document.getElementById('paymentStrategy').value;
@@ -603,6 +611,7 @@ export function saveInlineEdit(app, debtId) {
 
         debt.updatedAt = todayISO();
         app.saveToStorage();
+        if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${debt.id}`, debt);
         app.editingDebtId = null;
         app.renderDebtsList();
         app.updateUI();

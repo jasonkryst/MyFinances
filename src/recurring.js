@@ -9,6 +9,7 @@ import {
     escapeHtml
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
+import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -311,7 +312,7 @@ function _buildEditCard(app, t) {
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
-export function addRecurringTemplate(app) {
+export async function addRecurringTemplate(app) {
     const name = normalizeText(document.getElementById('recurringName')?.value, 80);
     const type = document.getElementById('recurringType')?.value || 'subscription';
     const rawAmount = document.getElementById('recurringAmount')?.value;
@@ -329,7 +330,7 @@ export function addRecurringTemplate(app) {
     if (!accountId) { alert('Please select an account.'); return; }
 
     if (!app.recurringTemplates) app.recurringTemplates = [];
-    app.recurringTemplates.push({
+    const tmpl = {
         id: Date.now(),
         name,
         type,
@@ -344,9 +345,14 @@ export function addRecurringTemplate(app) {
         paused: false,
         skippedMonths: [],
         paidMonths: []
-    });
+    };
+    app.recurringTemplates.push(tmpl);
 
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+        const saved = await pgPost(app, '/api/recurring-templates', tmpl);
+        if (saved?.id) tmpl.id = saved.id;
+    }
     app.renderRecurringPage();
     document.getElementById('recurringForm')?.reset();
 }
@@ -355,6 +361,7 @@ export function deleteRecurringTemplate(app, id) {
     if (!app.recurringTemplates) return;
     app.recurringTemplates = app.recurringTemplates.filter(t => t.id !== id);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/recurring-templates/${id}`);
     app.renderRecurringPage();
 }
 
@@ -363,6 +370,7 @@ export function pauseRecurringTemplate(app, id, paused) {
     if (!t) return;
     t.paused = paused;
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, t);
     app.renderRecurringPage();
 }
 
@@ -376,6 +384,7 @@ export function skipRecurringOccurrence(app, id, monthKey, unskip = false) {
         t.skippedMonths.push(monthKey);
     }
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, t);
     app.renderRecurringPage();
 }
 
@@ -389,6 +398,7 @@ export function markRecurringPaid(app, id, monthKey, unmark = false) {
         t.paidMonths.push(monthKey);
     }
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, t);
     app.renderRecurringPage();
 }
 
@@ -434,6 +444,7 @@ export function saveEditRecurring(app, id) {
 
     app.editingRecurringId = null;
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, app.recurringTemplates[idx]);
     app.renderRecurringPage();
 }
 

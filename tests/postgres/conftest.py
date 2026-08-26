@@ -19,13 +19,16 @@ def credentials():
 
 @pytest.fixture
 async def pg_page(base_url):
-    """Browser page with postgres backend preference pre-set."""
+    """Browser page with postgres backend preference pre-set in localStorage."""
     from playwright.async_api import async_playwright
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         ctx = await browser.new_context()
+        # Runs before the app's JS on every navigation (including reloads),
+        # ensuring the backend preference survives clearAllData wiping localStorage.
+        await ctx.add_init_script(
+            "window.localStorage.setItem('debtTrackerStorageBackend', 'postgres');"
+        )
         page = await ctx.new_page()
-        await page.goto(base_url)
-        await page.evaluate("localStorage.setItem('debtTrackerStorageBackend', 'postgres')")
         yield page
         await browser.close()

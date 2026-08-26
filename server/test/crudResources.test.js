@@ -186,3 +186,25 @@ for (const c of cases) {
         assert.equal(list.length, 0);
     });
 }
+
+test('/api/debts: delete all removes all user rows and returns 204', async () => {
+    await fetch(`${baseUrl}/api/debts`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'A', category: 'Credit Card', debtType: 'creditCard', accountBalance: 100, minimumPayment: 10, interestRate: 5, accountId })
+    });
+    await fetch(`${baseUrl}/api/debts`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'B', category: 'Credit Card', debtType: 'creditCard', accountBalance: 200, minimumPayment: 10, interestRate: 5, accountId })
+    });
+
+    const res = await fetch(`${baseUrl}/api/debts`, { method: 'DELETE', headers: csrfHeaders() });
+    assert.equal(res.status, 204);
+
+    const list = await (await fetch(`${baseUrl}/api/debts`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.length, 0);
+});
+
+test('/api/debts: delete all returns 401 without auth', async () => {
+    const res = await fetch(`${baseUrl}/api/debts`, { method: 'DELETE' });
+    assert.equal(res.status, 401);
+});

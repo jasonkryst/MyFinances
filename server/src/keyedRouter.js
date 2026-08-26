@@ -77,5 +77,14 @@ export function createKeyedResource({ table, keyColumn, keyField, columns, sanit
         }
     });
 
+    router.delete('/', async (req, res, next) => {
+        try {
+            await query(`DELETE FROM ${table} WHERE user_id = $1`, [req.userId]);
+            res.status(204).end();
+        } catch (err) {
+            next(err);
+        }
+    });
+
     return router;
 }

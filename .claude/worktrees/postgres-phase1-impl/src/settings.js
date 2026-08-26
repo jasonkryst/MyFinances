@@ -19,7 +19,5 @@ export function setSetting(app, key, value) {
         app.settings.push({ key, value });
     }
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        pgPut(app, `/api/settings/${key}`, { value });
-    }
+    if (app._storageBackendKind === 'postgres') pgPut(app, `/api/settings/${key}`, { value });
 }

@@ -1,5 +1,6 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
+import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 
 /**
  * Render the Savings page with toggleable Emergency Fund and Sinking Funds sections
@@ -405,7 +406,7 @@ export function attachSavingsEventListeners(app) {
 /**
  * Add Emergency Fund
  */
-function addEmergencyFund(app) {
+async function addEmergencyFund(app) {
   const accountId = document.getElementById('emergencyAccount').value;
   const targetAmount = sanitizeFiniteNumber(document.getElementById('emergencyTarget').value);
   const currentAmount = sanitizeFiniteNumber(document.getElementById('emergencyCurrent').value);
@@ -421,19 +422,18 @@ function addEmergencyFund(app) {
   const existingFund = app.emergencyFunds.find(f => f.accountId === accountId);
   if (existingFund) {
     Object.assign(existingFund, { targetAmount, currentAmount, monthlyContribution, autoContribute, notes });
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/emergency-funds/${existingFund.id}`, existingFund);
   } else {
-    app.emergencyFunds.push({
-      id: `ef-${Date.now()}`,
-      accountId,
-      targetAmount,
-      currentAmount,
-      monthlyContribution,
-      autoContribute,
-      notes
-    });
+    const fund = { id: `ef-${Date.now()}`, accountId, targetAmount, currentAmount, monthlyContribution, autoContribute, notes };
+    app.emergencyFunds.push(fund);
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+      const saved = await pgPost(app, '/api/emergency-funds', fund);
+      if (saved?.id) fund.id = saved.id;
+    }
   }
 
-  app.saveToStorage();
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
 }
@@ -445,6 +445,7 @@ function deleteEmergencyFund(app, fundId) {
   if (!confirm('Delete this emergency fund?')) return;
   app.emergencyFunds = app.emergencyFunds.filter(f => f.id !== fundId);
   app.saveToStorage();
+  if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/emergency-funds/${fundId}`);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
 }
@@ -465,6 +466,7 @@ function openContributeEmergency(app, fundId) {
   if (fund) {
     fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/emergency-funds/${fundId}`, fund);
     renderSavingsPage(app);
     attachSavingsEventListeners(app);
   }
@@ -490,7 +492,7 @@ function startEditEmergencyFund(app, fundId) {
 /**
  * Add Sinking Fund
  */
-function addSinkingFund(app) {
+async function addSinkingFund(app) {
   const name = normalizeText(document.getElementById('sinkingName').value);
   const allocationMethod = document.getElementById('sinkingAllocationMethod').value;
   const currentAmount = sanitizeFiniteNumber(document.getElementById('sinkingCurrentAmount').value);
@@ -549,6 +551,10 @@ function addSinkingFund(app) {
 
   app.sinkingFunds.push(fund);
   app.saveToStorage();
+  if (app._storageBackendKind === 'postgres') {
+    const saved = await pgPost(app, '/api/sinking-funds', fund);
+    if (saved?.id) fund.id = saved.id;
+  }
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
 }
@@ -560,6 +566,7 @@ function deleteSinkingFund(app, fundId) {
   if (!confirm('Delete this sinking fund?')) return;
   app.sinkingFunds = app.sinkingFunds.filter(f => f.id !== fundId);
   app.saveToStorage();
+  if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/sinking-funds/${fundId}`);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
 }
@@ -580,6 +587,7 @@ function openContributeSinking(app, fundId) {
   if (fund) {
     fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
     renderSavingsPage(app);
     attachSavingsEventListeners(app);
   }
