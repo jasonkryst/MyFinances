@@ -55,8 +55,9 @@ services:
     container_name: myfinances-server
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://myfinances:${POSTGRES_PASSWORD}@postgres:5432/myfinances
       SESSION_TTL_DAYS: "7"
+    secrets:
+      - postgres_password
     depends_on:
       postgres:
         condition: service_healthy

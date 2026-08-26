@@ -759,3 +759,22 @@ export function showNetWorthMilestone(message) {
     document.body.appendChild(host);
     window.setTimeout(() => host.remove(), 2600);
 }
+
+let _pgErrorToastTimer = null;
+
+export function showPgErrorToast() {
+    if (_pgErrorToastTimer !== null) {
+        clearTimeout(_pgErrorToastTimer);
+    } else {
+        const el = document.createElement('div');
+        el.id = 'pgErrorToast';
+        el.className = 'pg-error-toast';
+        el.setAttribute('role', 'alert');
+        el.textContent = 'Sync error — your change may not have been saved to the server.';
+        document.body.appendChild(el);
+    }
+    _pgErrorToastTimer = setTimeout(() => {
+        document.getElementById('pgErrorToast')?.remove();
+        _pgErrorToastTimer = null;
+    }, 5000);
+}
