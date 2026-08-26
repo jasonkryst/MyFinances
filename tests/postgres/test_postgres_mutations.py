@@ -64,13 +64,15 @@ async def _ensure_account(page, base_url):
 
 
 # ---------------------------------------------------------------------------
-# Debt CRUD — full three-step (validates POST+id-swap, PATCH, DELETE)
+# Debt CRUD -- full three-step (validates POST+id-swap, PATCH, DELETE)
 # ---------------------------------------------------------------------------
 
 async def test_debt_add_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await pg_page.click('[data-page="liabilities"]')
+    # Debt form is collapsed by default -- click the toggle to expand it
+    await pg_page.click('#debtFormToggle')
     await pg_page.wait_for_selector('#debtName', state='visible', timeout=5000)
 
     await pg_page.fill('#debtName', 'Test Visa')
@@ -79,7 +81,7 @@ async def test_debt_add_persists(pg_page, base_url, credentials):
     await pg_page.fill('#interestRate', '19.99')
     await pg_page.fill('#minimumPayment', '100')
     await pg_page.fill('#dueDate', '15')
-    await pg_page.click('#addDebtBtn')
+    await pg_page.click('#debtFormSubmit')
     await pg_page.wait_for_selector('text=Test Visa', timeout=5000)
 
     await pg_page.reload()
@@ -112,7 +114,7 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     await pg_page.wait_for_selector('text=Delete Me', timeout=5000)
 
     pg_page.once('dialog', lambda d: d.accept())
-    await pg_page.click(f'[data-delete-debt="{debt_id}"]')
+    await pg_page.click(f'[data-debt-action="delete"][data-debt-id="{debt_id}"]')
     await pg_page.wait_for_timeout(500)
 
     await pg_page.reload()
@@ -122,7 +124,7 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
 
 
 # ---------------------------------------------------------------------------
-# Smoke: add → reload → persists (one per remaining resource)
+# Smoke: add -> reload -> persists (one per remaining resource)
 # ---------------------------------------------------------------------------
 
 async def test_account_add_persists(pg_page, base_url, credentials):
@@ -132,8 +134,8 @@ async def test_account_add_persists(pg_page, base_url, credentials):
     await pg_page.wait_for_selector('#accountName', state='visible', timeout=5000)
     await pg_page.fill('#accountName', 'Smoke Checking')
     await pg_page.select_option('#accountType', 'Checking')
-    await pg_page.fill('#startingBalance', '1000')
-    await pg_page.click('#addAccountBtn')
+    await pg_page.fill('#accountStartingBalance', '1000')
+    await pg_page.click('#accountFormSubmit')
     await pg_page.wait_for_selector('text=Smoke Checking', timeout=5000)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
@@ -151,7 +153,7 @@ async def test_income_add_persists(pg_page, base_url, credentials):
     await pg_page.fill('#incomeAmount', '5000')
     await pg_page.fill('#incomeFirstDate', '2026-01-01')
     await pg_page.select_option('#incomeFrequency', 'monthly')
-    await pg_page.click('#addIncomeBtn')
+    await pg_page.click('#incomeFormSubmit')
     await pg_page.wait_for_selector('text=Smoke Salary', timeout=5000)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
@@ -160,22 +162,23 @@ async def test_income_add_persists(pg_page, base_url, credentials):
 
 
 async def test_bill_add_persists(pg_page, base_url, credentials):
+    # Bills have no dedicated add-form in the current UI -- test via API POST
+    # to verify the server endpoint persists and the data survives a reload.
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
-    await pg_page.click('[data-page="liabilities"]')
-    await pg_page.wait_for_selector('[data-liab-tab="budget"]', state='visible', timeout=5000)
-    await pg_page.click('[data-liab-tab="budget"]')
-    await pg_page.click('#billFormToggle')
-    await pg_page.fill('#billName', 'Smoke Electric')
-    await pg_page.fill('#billAmount', '120')
-    await pg_page.fill('#billDueDay', '10')
-    await pg_page.click('#addBillBtn')
-    await pg_page.wait_for_selector('text=Smoke Electric', timeout=5000)
+    r = await _api_post(pg_page, base_url, '/api/bills', {
+        'name': 'Smoke Electric', 'amount': 120, 'dueDay': 10, 'category': 'Utilities'
+    })
+    assert r.status == 201, f'Bill POST failed: {await r.text()}. Console: {logs}'
+    bill_id = (await r.json())['id']
+
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
-    await pg_page.click('[data-page="liabilities"]')
-    await pg_page.click('[data-liab-tab="budget"]')
-    assert await pg_page.locator('text=Smoke Electric').count() > 0, f'Bill not persisted. Console: {logs}'
+    bills = await (await _api_get(pg_page, base_url, '/api/bills')).json()
+    assert any(b['name'] == 'Smoke Electric' for b in bills), f'Bill not persisted. Console: {logs}'
+
+    # Cleanup
+    await _api_delete(pg_page, base_url, f'/api/bills/{bill_id}')
 
 
 async def test_recurring_add_persists(pg_page, base_url, credentials):
@@ -183,11 +186,13 @@ async def test_recurring_add_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     account = await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="recurring"]')
+    # Recurring form is collapsed by default -- click the toggle to expand it
+    await pg_page.click('#recurringFormToggle')
     await pg_page.wait_for_selector('#recurringName', state='visible', timeout=5000)
     await pg_page.fill('#recurringName', 'Smoke Netflix')
     await pg_page.fill('#recurringAmount', '15.99')
     await pg_page.select_option('#recurringAccount', str(account['id']))
-    await pg_page.click('#addRecurringBtn')
+    await pg_page.click('#recurringFormSubmit')
     await pg_page.wait_for_selector('text=Smoke Netflix', timeout=5000)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
@@ -220,7 +225,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     await pg_page.click('#settingsBtn')
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
-    checkbox = pg_page.locator('#settingReconciliationAdjustsBalance')
+    checkbox = pg_page.locator('#settingReconciliationAdjusts')
     initial_state = await checkbox.is_checked()
     await checkbox.click()
     await pg_page.click('#settingsModalDoneBtn')
@@ -228,7 +233,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await _wait_for_app_ready(pg_page)
     await pg_page.click('#settingsBtn')
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
-    new_state = await pg_page.locator('#settingReconciliationAdjustsBalance').is_checked()
+    new_state = await pg_page.locator('#settingReconciliationAdjusts').is_checked()
     assert new_state != initial_state, f'Setting not persisted after reload. Console: {logs}'
 
 
@@ -263,7 +268,7 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     await pg_page.click('#settingsBtn')
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
     pg_page.once('dialog', lambda d: d.accept())
-    await pg_page.click('#clearAllDataBtn')
+    await pg_page.click('#clearDataBtn')
     await pg_page.wait_for_timeout(1500)
 
     # Re-enter postgres mode and log back in to verify server state is empty
@@ -289,7 +294,9 @@ async def test_401_shows_login_gate(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await pg_page.click('[data-page="liabilities"]')
-    await pg_page.wait_for_selector('#addDebtBtn', state='visible', timeout=5000)
+    # Debt form is collapsed by default -- expand it so fields are interactable
+    await pg_page.click('#debtFormToggle')
+    await pg_page.wait_for_selector('#debtName', state='visible', timeout=5000)
 
     # Clear cookies to simulate session expiry
     await pg_page.context.clear_cookies()
@@ -300,7 +307,7 @@ async def test_401_shows_login_gate(pg_page, base_url, credentials):
     await pg_page.fill('#interestRate', '5')
     await pg_page.fill('#minimumPayment', '10')
     await pg_page.fill('#dueDate', '1')
-    await pg_page.click('#addDebtBtn')
+    await pg_page.click('#debtFormSubmit')
 
     await pg_page.locator('#loginGate').wait_for(state='visible', timeout=8000)
     assert await pg_page.locator('#loginGate').is_visible(), f'Login gate not shown on 401. Console: {logs}'
