@@ -30,28 +30,28 @@ async def _csrf(page):
     )
 
 
-async def _api_post(page, path, body):
+async def _api_post(page, base_url, path, body):
     csrf = await _csrf(page)
-    return await page.request.post(path, data=body, headers={'X-CSRF-Token': csrf})
+    return await page.request.post(f"{base_url}{path}", data=body, headers={'X-CSRF-Token': csrf})
 
 
-async def _api_delete(page, path):
+async def _api_delete(page, base_url, path):
     csrf = await _csrf(page)
-    return await page.request.delete(path, headers={'X-CSRF-Token': csrf})
+    return await page.request.delete(f"{base_url}{path}", headers={'X-CSRF-Token': csrf})
 
 
-async def _api_get(page, path):
-    return await page.request.get(path)
+async def _api_get(page, base_url, path):
+    return await page.request.get(f"{base_url}{path}")
 
 
-async def _ensure_account(page):
-    accounts = await (await _api_get(page, '/api/accounts')).json()
+async def _ensure_account(page, base_url):
+    accounts = await (await _api_get(page, base_url, '/api/accounts')).json()
     if not accounts:
-        r = await _api_post(page, '/api/accounts', {'name': 'Checking', 'type': 'Checking', 'startingBalance': 0})
+        r = await _api_post(page, base_url, '/api/accounts', {'name': 'Checking', 'type': 'Checking', 'startingBalance': 0})
         assert r.status == 201
         await page.reload()
         await page.wait_for_selector('#topNav', state='visible', timeout=8000)
-    return (await (await _api_get(page, '/api/accounts')).json())[0]
+    return (await (await _api_get(page, base_url, '/api/accounts')).json())[0]
 
 
 # ---------------------------------------------------------------------------
@@ -79,17 +79,17 @@ async def test_debt_add_persists(pg_page, base_url, credentials):
     assert await pg_page.locator('text=Test Visa').count() > 0, f'Debt not found after reload. Console: {logs}'
 
     # Cleanup
-    debts = await (await _api_get(pg_page, '/api/debts')).json()
+    debts = await (await _api_get(pg_page, base_url, '/api/debts')).json()
     for d in debts:
         if d.get('name') == 'Test Visa':
-            await _api_delete(pg_page, f'/api/debts/{d["id"]}')
+            await _api_delete(pg_page, base_url, f'/api/debts/{d["id"]}')
 
 
 async def test_debt_delete_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
 
-    seed = await _api_post(pg_page, '/api/debts', {
+    seed = await _api_post(pg_page, base_url, '/api/debts', {
         'name': 'Delete Me', 'debtType': 'creditCard',
         'accountBalance': 500, 'interestRate': 15,
         'minimumPayment': 20, 'dueDate': 1
@@ -134,7 +134,7 @@ async def test_account_add_persists(pg_page, base_url, credentials):
 async def test_income_add_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
-    await _ensure_account(pg_page)
+    await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="income"]')
     await pg_page.fill('#incomeName', 'Smoke Salary')
     await pg_page.fill('#incomeAmount', '5000')
@@ -169,7 +169,7 @@ async def test_bill_add_persists(pg_page, base_url, credentials):
 async def test_recurring_add_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
-    account = await _ensure_account(pg_page)
+    account = await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="recurring"]')
     await pg_page.fill('#recurringName', 'Smoke Netflix')
     await pg_page.fill('#recurringAmount', '15.99')
@@ -185,7 +185,7 @@ async def test_recurring_add_persists(pg_page, base_url, credentials):
 async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
-    account = await _ensure_account(pg_page)
+    account = await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="reconcile"]')
     await pg_page.fill(f'#recon-balance-{account["id"]}', '1050')
     await pg_page.fill(f'#recon-date-{account["id"]}', '2026-01-31')
@@ -193,7 +193,7 @@ async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     await pg_page.wait_for_timeout(800)
     await pg_page.reload()
     await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
-    recons = await (await _api_get(pg_page, '/api/reconciliations')).json()
+    recons = await (await _api_get(pg_page, base_url, '/api/reconciliations')).json()
     assert len(recons) > 0, f'Reconciliation not persisted. Console: {logs}'
 
 
@@ -227,7 +227,7 @@ async def test_net_worth_snapshot_persists(pg_page, base_url, credentials):
     await pg_page.wait_for_timeout(800)
     await pg_page.reload()
     await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
-    snapshots = await (await _api_get(pg_page, '/api/net-worth-snapshots')).json()
+    snapshots = await (await _api_get(pg_page, base_url, '/api/net-worth-snapshots')).json()
     assert len(snapshots) > 0, f'Snapshot not persisted. Console: {logs}'
 
 
@@ -239,7 +239,7 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
 
-    seed = await _api_post(pg_page, '/api/debts', {
+    seed = await _api_post(pg_page, base_url, '/api/debts', {
         'name': 'To Clear', 'debtType': 'creditCard',
         'accountBalance': 100, 'interestRate': 5,
         'minimumPayment': 10, 'dueDate': 1
@@ -262,7 +262,7 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
         await pg_page.click('.login-gate-submit')
     await pg_page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
 
-    debts = await (await _api_get(pg_page, '/api/debts')).json()
+    debts = await (await _api_get(pg_page, base_url, '/api/debts')).json()
     assert len(debts) == 0, f'Debts still present after clearAllData. Console: {logs}'
 
 

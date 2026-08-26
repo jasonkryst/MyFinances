@@ -347,13 +347,13 @@ async def test_reconciliation_rejects_non_numeric_balance(async_app_page):
     """applyReconciliation rejects a non-numeric statement balance, leaving balance and history unchanged."""
     page = async_app_page
 
-    result = await page.evaluate("""() => {
+    result = await page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 7501, name: 'Recon Validate', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
-        const res = app.applyReconciliation(7501, 'not-a-number', '', '2026-06-10');
+        const res = await app.applyReconciliation(7501, 'not-a-number', '', '2026-06-10');
         return {
             success: res.success,
             balance: app.accounts[0].startingBalance,
@@ -371,14 +371,14 @@ async def test_reconciliation_accepts_negative_balance(async_app_page):
     """applyReconciliation accepts a negative statement balance for liability-style accounts."""
     page = async_app_page
 
-    result = await page.evaluate("""() => {
+    result = await page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 7502, name: 'Recon Credit Card', type: 'Credit Card', startingBalance: -500 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
-        const res = app.applyReconciliation(7502, -650.25, '', '2026-06-10');
+        const res = await app.applyReconciliation(7502, -650.25, '', '2026-06-10');
         return {
             success: res.success,
             balance: app.accounts[0].startingBalance,
