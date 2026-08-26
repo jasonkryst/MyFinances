@@ -14,9 +14,12 @@ def _capture_console(page):
 
 
 async def _wait_for_app_ready(page):
-    """Wait for topNav visible AND network idle — confirms loadFromPostgres finished."""
-    await page.wait_for_selector('#topNav', state='visible', timeout=8000)
-    await page.wait_for_load_state('networkidle', timeout=15000)
+    """Wait until app.init() completes — _currentPage is set by switchPage('health'),
+    the last synchronous step of init(), after all loadFromPostgres GETs resolve."""
+    await page.wait_for_function(
+        "() => window.app && window.app._currentPage === 'health'",
+        timeout=15000
+    )
 
 
 async def _login(page, base_url, credentials):
