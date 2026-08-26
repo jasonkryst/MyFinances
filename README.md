@@ -1,4 +1,4 @@
-# MyFinances
+﻿# MyFinances
 
 [![CI](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml)
 [![Copilot](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer)
@@ -634,4 +634,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.3.2 — Updated July 3, 2026*
+*MyFinances v4.24.0 — Updated August 26, 2026*
