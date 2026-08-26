@@ -7,6 +7,22 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.24.0] — 2026-08-26
+
+### Added
+- Deployment secrets automation: `setup.sh` (Linux/Mac) and `setup.ps1` (Windows) generate a cryptographically random Postgres password, write `secrets/postgres_password.txt`, start the Docker stack, run migrations, and prompt to create the first user — all in one command.
+- `server/docker-entrypoint.sh`: server container now reads `/run/secrets/postgres_password` at startup and constructs `DATABASE_URL` internally so the database password is never exposed as an environment variable (invisible to `docker inspect`). Falls back to `DATABASE_URL` env var for local dev/test.
+- `.env.example` documenting available environment variables for manual/Portainer deployments.
+- Error toast (`showPgErrorToast`) surfaced in `src/ui.js` for failed Postgres sync operations, with `.pg-error-toast` styles in `styles-csp-classes.css`.
+
+### Fixed
+- Income mutations (`addIncome`) now call `pgPost /api/incomes` and swap the DB-assigned id — income entries were not persisting to Postgres.
+- Net-worth snapshot captures now call `pgPut /api/net-worth-snapshots/:date` — snapshots were not persisting to Postgres.
+- `docker-compose.yml`: server service mounts the `postgres_password` Docker secret; `DATABASE_URL`/`POSTGRES_PASSWORD` env var removed.
+- CI `test-postgres` job uses `docker compose run --rm` for migrations and user creation so they go through the container entrypoint and inherit `DATABASE_URL`.
+
+---
+
 ## [4.23.0] — 2026-08-25
 
 PostgreSQL Phase 2b — per-resource mutation wiring. Every add/edit/delete operation in the frontend now persists directly to the Postgres REST API when the Postgres backend is selected. New `src/postgresSync.js` module provides `pgPost`/`pgPatch`/`pgDelete`/`pgPut`/`pgDeleteAll` helpers shared by all 11 feature modules. `addEmergencyFund` handles both create and update paths. `clearAllData` fans out delete-all requests to all 13 resource endpoints. Server adds `DELETE /` to both `crudRouter.js` and `keyedRouter.js` for bulk deletion. See `docs/superpowers/specs/2026-08-24-postgresql-storage-phase2b-design.md`.
