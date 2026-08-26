@@ -1,5 +1,5 @@
 """
-Postgres mutation integration tests — require docker-compose stack to be running.
+Postgres mutation integration tests -- require docker-compose stack to be running.
 Run: pytest tests/postgres/test_postgres_mutations.py -v
 """
 import pytest
@@ -14,7 +14,7 @@ def _capture_console(page):
 
 
 async def _wait_for_app_ready(page):
-    """Wait until app.init() completes — _currentPage is set by switchPage('health'),
+    """Wait until app.init() completes -- _currentPage is set by switchPage('health'),
     the last synchronous step of init(), after all loadFromPostgres GETs resolve."""
     await page.wait_for_function(
         "() => window.app && window.app._currentPage === 'health'",
@@ -146,13 +146,15 @@ async def test_account_add_persists(pg_page, base_url, credentials):
 async def test_income_add_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
-    await _ensure_account(pg_page, base_url)
+    account = await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="income"]')
     await pg_page.wait_for_selector('#incomeName', state='visible', timeout=5000)
     await pg_page.fill('#incomeName', 'Smoke Salary')
     await pg_page.fill('#incomeAmount', '5000')
     await pg_page.fill('#incomeFirstDate', '2026-01-01')
     await pg_page.select_option('#incomeFrequency', 'monthly')
+    # addIncome requires a linked account or it alerts and bails
+    await pg_page.select_option('#incomeAccount', str(account['id']))
     await pg_page.click('#incomeFormSubmit')
     await pg_page.wait_for_selector('text=Smoke Salary', timeout=5000)
     await pg_page.reload()
@@ -208,7 +210,8 @@ async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     await pg_page.wait_for_selector(f'#recon-balance-{account["id"]}', state='visible', timeout=5000)
     await pg_page.fill(f'#recon-balance-{account["id"]}', '1050')
     await pg_page.fill(f'#recon-date-{account["id"]}', '2026-01-31')
-    await pg_page.click(f'#recon-submit-{account["id"]}')
+    # Reconcile button uses data attributes, not a simple id
+    await pg_page.click(f'[data-recon-action="reconcile"][data-recon-id="{account["id"]}"]')
     await pg_page.wait_for_timeout(800)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
@@ -228,7 +231,13 @@ async def test_setting_persists(pg_page, base_url, credentials):
     checkbox = pg_page.locator('#settingReconciliationAdjusts')
     initial_state = await checkbox.is_checked()
     await checkbox.click()
-    await pg_page.click('#settingsModalDoneBtn')
+    # Wait for the PUT /api/settings/:key response before reloading so the
+    # setting is committed to the DB before the page re-reads it.
+    async with pg_page.expect_response(
+        lambda r: '/api/settings/' in r.url and r.request.method == 'PUT',
+        timeout=5000
+    ):
+        await pg_page.click('#settingsModalDoneBtn')
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('#settingsBtn')
@@ -241,6 +250,8 @@ async def test_net_worth_snapshot_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await pg_page.click('[data-page="reports"]')
+    # captureSnapshotBtn lives inside the Net Worth tab -- click the tab first
+    await pg_page.click('[data-rptab="networth"]')
     await pg_page.wait_for_selector('#captureSnapshotBtn', state='visible', timeout=5000)
     await pg_page.click('#captureSnapshotBtn')
     await pg_page.wait_for_timeout(800)
@@ -265,8 +276,9 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     })
     assert seed.status == 201
 
-    await pg_page.click('#settingsBtn')
-    await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+    # clearDataBtn is in the strategy (Plan) page section, not in a modal
+    await pg_page.click('[data-page="strategy"]')
+    await pg_page.wait_for_selector('#clearDataBtn', state='visible', timeout=5000)
     pg_page.once('dialog', lambda d: d.accept())
     await pg_page.click('#clearDataBtn')
     await pg_page.wait_for_timeout(1500)

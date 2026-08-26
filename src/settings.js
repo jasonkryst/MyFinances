@@ -1,6 +1,8 @@
 // Generic app-wide configuration options, stored as a flat array of
 // { key, value } entries so new options can be added without a schema change.
 
+import { pgPut } from './postgresSync.js';
+
 export const RECONCILIATION_ADJUSTS_BALANCE = 'reconciliationAdjustsBalance';
 
 export function getSetting(app, key, defaultValue) {
@@ -17,4 +19,7 @@ export function setSetting(app, key, value) {
         app.settings.push({ key, value });
     }
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+        pgPut(app, `/api/settings/${key}`, { value });
+    }
 }

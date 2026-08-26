@@ -64,8 +64,13 @@ export function initSettingsModal(app) {
     const save = () => {
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
         if (storageSelect.value === 'postgres') {
-            setStorageBackendPreference('postgres');
-            location.reload();
+            if (getStorageBackendPreference() !== 'postgres') {
+                setStorageBackendPreference('postgres');
+                location.reload();
+            } else {
+                app.setLocale(localeSelect.value);
+                close();
+            }
             return;
         }
         app.switchStorageBackend(storageSelect.value);
