@@ -24,24 +24,11 @@ async def pg_page(base_url):
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         ctx = await browser.new_context()
-        # Runs before the app's JS on every navigation.
-        # Sets the backend preference and seeds a minimal debtTrackerData stub so
-        # the first-run setup wizard doesn't appear when the postgres DB is empty.
-        await ctx.add_init_script("""
-            window.localStorage.setItem('debtTrackerStorageBackend', 'postgres');
-            if (!window.localStorage.getItem('debtTrackerData')) {
-                window.localStorage.setItem('debtTrackerData', JSON.stringify({
-                    debts:[],accounts:[],incomes:[],bills:[],expenses:[],
-                    ledgerAmountOverrides:{},recurringTemplates:[],emergencyFunds:[],
-                    sinkingFunds:[],reconciliations:[],settings:[],monthlySnapshots:[],
-                    netWorthMilestonesAwarded:[],perMonthStimulus:[],
-                    monthlyPayment:null,strategy:null,
-                    ledgerSettings:{accountFilter:'all',dateRange:'all',sortKey:'date',sortDir:'desc'},
-                    forecastSettings:{rangeMonths:1,accountId:'total',notableThresholdPct:130},
-                    timestamp:'2026-01-01T00:00:00.000Z'
-                }));
-            }
-        """)
+        # Runs before the app's JS on every navigation (including reloads),
+        # ensuring the backend preference survives clearAllData wiping localStorage.
+        await ctx.add_init_script(
+            "window.localStorage.setItem('debtTrackerStorageBackend', 'postgres');"
+        )
         page = await ctx.new_page()
         yield page
         await browser.close()

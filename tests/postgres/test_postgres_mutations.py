@@ -13,6 +13,12 @@ def _capture_console(page):
     return messages
 
 
+async def _wait_for_app_ready(page):
+    """Wait for topNav visible AND network idle — confirms loadFromPostgres finished."""
+    await page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await page.wait_for_load_state('networkidle', timeout=15000)
+
+
 async def _login(page, base_url, credentials):
     await page.goto(base_url)
     await page.locator('#loginGate').wait_for(state='visible', timeout=8000)
@@ -21,7 +27,7 @@ async def _login(page, base_url, credentials):
     async with page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
         await page.click('.login-gate-submit')
     await page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
-    await page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(page)
 
 
 async def _csrf(page):
@@ -50,7 +56,7 @@ async def _ensure_account(page, base_url):
         r = await _api_post(page, base_url, '/api/accounts', {'name': 'Checking', 'type': 'Checking', 'startingBalance': 0})
         assert r.status == 201
         await page.reload()
-        await page.wait_for_selector('#topNav', state='visible', timeout=8000)
+        await _wait_for_app_ready(page)
     return (await (await _api_get(page, base_url, '/api/accounts')).json())[0]
 
 
@@ -74,7 +80,7 @@ async def test_debt_add_persists(pg_page, base_url, credentials):
     await pg_page.wait_for_selector('text=Test Visa', timeout=5000)
 
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
     assert await pg_page.locator('text=Test Visa').count() > 0, f'Debt not found after reload. Console: {logs}'
 
@@ -98,7 +104,7 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     debt_id = (await seed.json())['id']
 
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
     await pg_page.wait_for_selector('text=Delete Me', timeout=5000)
 
@@ -107,7 +113,7 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     await pg_page.wait_for_timeout(500)
 
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
     assert await pg_page.locator('text=Delete Me').count() == 0, f'Deleted debt still present. Console: {logs}'
 
@@ -120,13 +126,14 @@ async def test_account_add_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await pg_page.click('[data-page="accounts"]')
+    await pg_page.wait_for_selector('#accountName', state='visible', timeout=5000)
     await pg_page.fill('#accountName', 'Smoke Checking')
     await pg_page.select_option('#accountType', 'Checking')
     await pg_page.fill('#startingBalance', '1000')
     await pg_page.click('#addAccountBtn')
     await pg_page.wait_for_selector('text=Smoke Checking', timeout=5000)
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="accounts"]')
     assert await pg_page.locator('text=Smoke Checking').count() > 0, f'Account not persisted. Console: {logs}'
 
@@ -136,6 +143,7 @@ async def test_income_add_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="income"]')
+    await pg_page.wait_for_selector('#incomeName', state='visible', timeout=5000)
     await pg_page.fill('#incomeName', 'Smoke Salary')
     await pg_page.fill('#incomeAmount', '5000')
     await pg_page.fill('#incomeFirstDate', '2026-01-01')
@@ -143,7 +151,7 @@ async def test_income_add_persists(pg_page, base_url, credentials):
     await pg_page.click('#addIncomeBtn')
     await pg_page.wait_for_selector('text=Smoke Salary', timeout=5000)
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="income"]')
     assert await pg_page.locator('text=Smoke Salary').count() > 0, f'Income not persisted. Console: {logs}'
 
@@ -152,6 +160,7 @@ async def test_bill_add_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await pg_page.click('[data-page="liabilities"]')
+    await pg_page.wait_for_selector('[data-liab-tab="budget"]', state='visible', timeout=5000)
     await pg_page.click('[data-liab-tab="budget"]')
     await pg_page.click('#billFormToggle')
     await pg_page.fill('#billName', 'Smoke Electric')
@@ -160,7 +169,7 @@ async def test_bill_add_persists(pg_page, base_url, credentials):
     await pg_page.click('#addBillBtn')
     await pg_page.wait_for_selector('text=Smoke Electric', timeout=5000)
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
     await pg_page.click('[data-liab-tab="budget"]')
     assert await pg_page.locator('text=Smoke Electric').count() > 0, f'Bill not persisted. Console: {logs}'
@@ -171,13 +180,14 @@ async def test_recurring_add_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     account = await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="recurring"]')
+    await pg_page.wait_for_selector('#recurringName', state='visible', timeout=5000)
     await pg_page.fill('#recurringName', 'Smoke Netflix')
     await pg_page.fill('#recurringAmount', '15.99')
     await pg_page.select_option('#recurringAccount', str(account['id']))
     await pg_page.click('#addRecurringBtn')
     await pg_page.wait_for_selector('text=Smoke Netflix', timeout=5000)
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="recurring"]')
     assert await pg_page.locator('text=Smoke Netflix').count() > 0, f'Recurring not persisted. Console: {logs}'
 
@@ -187,12 +197,13 @@ async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     account = await _ensure_account(pg_page, base_url)
     await pg_page.click('[data-page="reconcile"]')
+    await pg_page.wait_for_selector(f'#recon-balance-{account["id"]}', state='visible', timeout=5000)
     await pg_page.fill(f'#recon-balance-{account["id"]}', '1050')
     await pg_page.fill(f'#recon-date-{account["id"]}', '2026-01-31')
     await pg_page.click(f'#recon-submit-{account["id"]}')
     await pg_page.wait_for_timeout(800)
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     recons = await (await _api_get(pg_page, base_url, '/api/reconciliations')).json()
     assert len(recons) > 0, f'Reconciliation not persisted. Console: {logs}'
 
@@ -211,7 +222,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await checkbox.click()
     await pg_page.click('#settingsModalDoneBtn')
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     await pg_page.click('#settingsBtn')
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
     new_state = await pg_page.locator('#settingReconciliationAdjustsBalance').is_checked()
@@ -226,7 +237,7 @@ async def test_net_worth_snapshot_persists(pg_page, base_url, credentials):
     await pg_page.click('#captureSnapshotBtn')
     await pg_page.wait_for_timeout(800)
     await pg_page.reload()
-    await pg_page.wait_for_selector('#topNav', state='visible', timeout=8000)
+    await _wait_for_app_ready(pg_page)
     snapshots = await (await _api_get(pg_page, base_url, '/api/net-worth-snapshots')).json()
     assert len(snapshots) > 0, f'Snapshot not persisted. Console: {logs}'
 
@@ -261,6 +272,7 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     async with pg_page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
         await pg_page.click('.login-gate-submit')
     await pg_page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
+    await _wait_for_app_ready(pg_page)
 
     debts = await (await _api_get(pg_page, base_url, '/api/debts')).json()
     assert len(debts) == 0, f'Debts still present after clearAllData. Console: {logs}'

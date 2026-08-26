@@ -50,9 +50,9 @@ def test_apply_reconciliation_updates_balance_and_history(app_page):
     page = app_page
     _seed_reconciliation_account(page)
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
-        const res = app.applyReconciliation(7001, 1250.50, 'Found extra deposit', '2026-06-10');
+        const res = await app.applyReconciliation(7001, 1250.50, 'Found extra deposit', '2026-06-10');
         return {
             success: res.success,
             balance: app.accounts[0].startingBalance,
@@ -79,9 +79,9 @@ def test_apply_reconciliation_records_zero_difference(app_page):
     page = app_page
     _seed_reconciliation_account(page)
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
-        const res = app.applyReconciliation(7001, 1000, '', '2026-06-10');
+        const res = await app.applyReconciliation(7001, 1000, '', '2026-06-10');
         return {
             success: res.success,
             historyCount: app.reconciliations.length,
@@ -101,9 +101,9 @@ def test_apply_reconciliation_visible_mode_does_not_change_balance(app_page):
     page = app_page
     _seed_reconciliation_account(page, adjusts_balance=False)
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
-        const res = app.applyReconciliation(7001, 1250.50, 'Visible only', '2026-06-10');
+        const res = await app.applyReconciliation(7001, 1250.50, 'Visible only', '2026-06-10');
         return {
             success: res.success,
             balance: app.accounts[0].startingBalance,
@@ -168,9 +168,9 @@ def test_apply_reconciliation_rejects_invalid_balance(app_page):
     page = app_page
     _seed_reconciliation_account(page)
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
-        const res = app.applyReconciliation(7001, 'not-a-number', '', '2026-06-10');
+        const res = await app.applyReconciliation(7001, 'not-a-number', '', '2026-06-10');
         return {
             success: res.success,
             balance: app.accounts[0].startingBalance,
