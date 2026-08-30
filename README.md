@@ -634,4 +634,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.24.0 — Updated August 26, 2026*
+*MyFinances v4.25.0 — Updated August 30, 2026*

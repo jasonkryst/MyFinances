@@ -1,4 +1,4 @@
-
+﻿
 # Changelog
 
 All notable changes to MyFinances are documented here.  
@@ -7,6 +7,16 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.25.0] — 2026-08-30
+
+### Fixed
+- `docker-compose.yml`: Postgres secret file path is now configurable via `POSTGRES_SECRET_FILE` env var (default `./secrets/postgres_password.txt`), fixing Portainer GitOps deployments where the git checkout directory does not contain the gitignored secret file.
+
+### Documentation
+- `DEPLOYMENT.md`: new "PostgreSQL Backend Deployment" section covering prerequisites, `setup.sh`/`setup.ps1` first-time bootstrap, HTTPS requirements, Portainer GitOps wiring (including the `POSTGRES_SECRET_FILE` host-path step), update workflow, and bare-Node manual path.
+- `server/README.md`: replaced outdated `cp .env.example .env` / `DATABASE_URL` instructions with `setup.sh` quick-start and bare-Node local-dev path; noted that Docker secrets replace `.env` for container deployments.
+
+---
 ## [4.24.0] — 2026-08-26
 
 ### Added
