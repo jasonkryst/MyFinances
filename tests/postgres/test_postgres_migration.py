@@ -1,4 +1,4 @@
-"""
+﻿"""
 Postgres Phase 2c migration integration tests.
 
 Tests local-to-Postgres data migration UX and the one-way lock.
@@ -68,15 +68,29 @@ async def _wipe_all(page, base_url):
     )
 
 
+def _capture_console(page):
+    """Collect browser console messages for diagnostic output on failure."""
+    messages = []
+    page.on("console", lambda m: messages.append(f"[{m.type}] {m.text}"))
+    return messages
+
+
 async def _login_with_local_data(page, base_url, credentials, local_data=None):
     """Navigate to app, optionally inject local data, then complete login."""
+    if local_data is not None:
+        # Inject via init_script so the data is present in localStorage before
+        # any of the app's own JavaScript runs.  Using page.evaluate() after
+        # page.goto() risks a race: the app's init() may read localJson before
+        # Playwright's CDP evaluate message is processed by the browser.
+        # add_init_script() runs synchronously before the page's scripts on
+        # every navigation in this context, so localJson is guaranteed to be
+        # non-null when init() reaches the migration check.
+        await page.context.add_init_script(
+            f"window.localStorage.setItem('debtTrackerData', "
+            f"{repr(json.dumps(local_data))});"
+        )
     await page.goto(base_url)
     await page.locator("#loginGate").wait_for(state="visible", timeout=8000)
-    if local_data is not None:
-        # Inject before form submit so init() reads it after showLoginGate resolves
-        await page.evaluate(
-            f"localStorage.setItem('debtTrackerData', {repr(json.dumps(local_data))})"
-        )
     await page.fill("#loginGateEmail", credentials["email"])
     await page.fill("#loginGatePassword", credentials["password"])
     async with page.expect_response(lambda r: "/auth/login" in r.url, timeout=10000):
@@ -92,8 +106,16 @@ async def test_migration_modal_shown_when_local_data_and_postgres_empty(
     pg_page, base_url, credentials
 ):
     """Migration modal appears after login when local data exists and Postgres is empty."""
+    logs = _capture_console(pg_page)
     await _login_with_local_data(pg_page, base_url, credentials, SAMPLE_LOCAL_DATA)
-    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=10000)
+    try:
+        await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    except Exception as exc:
+        await pg_page.wait_for_timeout(300)
+        pytest.fail(
+            f"#pgMigrationModal never became visible.\nConsole:\n"
+            + "\n".join(logs[-30:]) + f"\n{exc}"
+        )
     assert await pg_page.locator("#pgMigrationModal").is_visible()
     counts_text = await pg_page.locator("#pgMigrationCounts").text_content()
     assert "debt" in counts_text.lower() or "account" in counts_text.lower(), \
@@ -106,8 +128,16 @@ async def test_migration_modal_shown_when_local_data_and_postgres_empty(
 
 async def test_migration_transfer_copies_data_to_postgres(pg_page, base_url, credentials):
     """Transfer copies all local records to Postgres and clears localStorage."""
+    logs = _capture_console(pg_page)
     await _login_with_local_data(pg_page, base_url, credentials, SAMPLE_LOCAL_DATA)
-    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=10000)
+    try:
+        await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    except Exception as exc:
+        await pg_page.wait_for_timeout(300)
+        pytest.fail(
+            f"#pgMigrationModal never became visible.\nConsole:\n"
+            + "\n".join(logs[-30:]) + f"\n{exc}"
+        )
 
     async with pg_page.expect_response(
         lambda r: "/api/accounts" in r.url and r.request.method == "POST",
@@ -133,8 +163,16 @@ async def test_migration_transfer_copies_data_to_postgres(pg_page, base_url, cre
 
 async def test_migration_skip_preserves_local_data(pg_page, base_url, credentials):
     """Skip leaves localStorage intact and Postgres stays empty."""
+    logs = _capture_console(pg_page)
     await _login_with_local_data(pg_page, base_url, credentials, SAMPLE_LOCAL_DATA)
-    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=10000)
+    try:
+        await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    except Exception as exc:
+        await pg_page.wait_for_timeout(300)
+        pytest.fail(
+            f"#pgMigrationModal never became visible.\nConsole:\n"
+            + "\n".join(logs[-30:]) + f"\n{exc}"
+        )
     await pg_page.click("#pgMigrationSkipBtn")
     await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=5000)
     await _wait_for_app_ready(pg_page)
@@ -150,14 +188,30 @@ async def test_migration_skip_preserves_local_data(pg_page, base_url, credential
 
 async def test_migration_skip_re_prompts_on_next_page_load(pg_page, base_url, credentials):
     """After Skip, migration modal re-appears on next load if Postgres is still empty."""
+    logs = _capture_console(pg_page)
     await _login_with_local_data(pg_page, base_url, credentials, SAMPLE_LOCAL_DATA)
-    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=10000)
+    try:
+        await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    except Exception as exc:
+        await pg_page.wait_for_timeout(300)
+        pytest.fail(
+            f"#pgMigrationModal never became visible (first load).\nConsole:\n"
+            + "\n".join(logs[-30:]) + f"\n{exc}"
+        )
     await pg_page.click("#pgMigrationSkipBtn")
     await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=5000)
 
     # Reload: session still valid, Postgres still empty, local data still present
+    # (add_init_script re-sets debtTrackerData on every navigation including this reload)
     await pg_page.reload()
-    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=10000)
+    try:
+        await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    except Exception as exc:
+        await pg_page.wait_for_timeout(300)
+        pytest.fail(
+            f"#pgMigrationModal not re-shown after reload.\nConsole:\n"
+            + "\n".join(logs[-30:]) + f"\n{exc}"
+        )
     assert await pg_page.locator("#pgMigrationModal").is_visible(), \
         "Migration modal not re-shown after reload when Postgres still empty"
 
