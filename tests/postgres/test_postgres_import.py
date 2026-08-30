@@ -78,6 +78,7 @@ async def _run_import(page, json_str, replace=True):
                 onNoData:      ()     => resolve({ ok: false, reason: 'no_data' }),
                 onTooLarge:    ()     => resolve({ ok: false, reason: 'too_large' }),
                 onReadError:   ()     => resolve({ ok: false, reason: 'read_error' }),
+                onImportError: ()     => resolve({ ok: false, reason: 'import_error' }),
             });
         });
     }""", [json_str, replace])

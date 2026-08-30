@@ -237,7 +237,8 @@ export function importAllJSON(app, file, options = {}) {
         onMergeDuplicates,
         onImported,
         onReadError,
-        onTooLarge
+        onTooLarge,
+        onImportError
     } = options;
 
     if (file?.size > MAX_IMPORT_BYTES) {
@@ -316,6 +317,7 @@ export function importAllJSON(app, file, options = {}) {
                     await mergeForPostgres(app, clean, incomingStrategy);
                 }
             } catch {
+                if (typeof onImportError === 'function') onImportError();
                 return;
             }
             if (incomingStrategy) {
