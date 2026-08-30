@@ -1,4 +1,4 @@
-﻿
+
 # Changelog
 
 All notable changes to MyFinances are documented here.  
@@ -7,7 +7,19 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
-## [4.26.0] — 2026-08-30
+## [4.27.0] — 2026-08-30
+
+### Fixed
+- **Issue #95**: JSON export/import now works correctly on the PostgreSQL backend.
+  - **Export** was already correct (reads in-memory state populated from the server at boot); no change needed.
+  - **Import replace mode**: previously `saveToStorage` only PATCHed `/api/plan-settings`, leaving all resource arrays (debts, accounts, incomes, etc.) unwritten to the server — on the next page reload, `loadFromPostgres` silently discarded the import. Import now: (1) wipes all server resources via `pgDeleteAll`, (2) POSTs accounts first to receive server-assigned IDs and builds a `localId → serverId` map, (3) remaps `accountId`/`targetAccountId` FK references across all other resources, (4) POSTs all resource arrays in parallel, (5) PUTs keyed resources (ledger overrides, net-worth snapshots, settings), (6) re-creates milestones, and (7) PATCHes plan-settings. On any failure it rolls back: wipes the partial write and re-POSTs the pre-import snapshot.
+  - **Import merge mode**: builds an ID map from existing server accounts (matched by name), POSTs only new (unmatched) records per resource, PUTs keyed resources as upserts, and rolls back only newly created records on failure.
+  - **`clearAllData` (pgDeleteAll)**: now also deletes milestones via `DELETE /api/plan-settings/milestones` and resets strategy/payment/stimulus fields on the plan-settings row, preventing them from surviving a full data clear.
+
+### Added
+- **Server**: `DELETE /api/plan-settings/milestones` endpoint — removes all net-worth milestones for the authenticated user. Used by the replace-mode import to wipe stale milestones before re-importing.
+
+---## [4.26.0] — 2026-08-30
 
 ### Fixed
 - **Issue #93**: Expenses silently disappeared after page reload. `addExpense` and `saveEditExpense` stored `expense.date` as a JavaScript `Date` object; `JSON.stringify` serialised it as a full UTC ISO-8601 timestamp (e.g. "2026-08-30T05:00:00.000Z"), which the `sanitizeDateISO` regex (`^\d{4}-\d{2}-\d{2}`) rejected on reload, causing `sanitizeParsedState` to silently drop every expense. Fixed by storing the date as a bare YYYY-MM-DD string. `sanitizeDateISO` also updated to accept full ISO timestamps, self-healing any records already corrupted in localStorage.

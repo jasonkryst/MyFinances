@@ -1,9 +1,9 @@
-﻿'use strict';
+'use strict';
 
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v4.26.0';
+const CACHE_NAME = 'myfinances-v4.27.0';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 

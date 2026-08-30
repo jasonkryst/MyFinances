@@ -85,6 +85,16 @@ router.patch('/', async (req, res, next) => {
     }
 });
 
+
+router.delete('/milestones', async (req, res, next) => {
+    try {
+        await query('DELETE FROM net_worth_milestones_awarded WHERE user_id = $1', [req.userId]);
+        res.status(204).end();
+    } catch (err) {
+        next(err);
+    }
+});
+
 router.post('/milestones', async (req, res, next) => {
     try {
         // sanitizeInteger()'s {min} clamps rather than rejects (correct for
