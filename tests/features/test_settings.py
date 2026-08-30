@@ -133,7 +133,7 @@ def test_export_json_reports_app_version(app_page):
         }
         const text = await captured.text();
         const payload = JSON.parse(text);
-        return { exportVersion: payload.version, appVersion: utilsMod.APP_VERSION };
+        return { exportVersion: payload.version, appVersion: utilsMod.APP_VERSION, settings: payload.settings };
     }""")
 
     assert result['exportVersion'] == result['appVersion'], (
