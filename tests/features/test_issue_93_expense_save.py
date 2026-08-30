@@ -172,6 +172,8 @@ def test_expense_add_rejected_when_date_empty(app_page):
     page.wait_for_selector('#expenseFormBody:not([hidden])')
     page.fill('#expenseName', 'No Date Expense')
     page.fill('#expenseBudget', '75.00')
+    # Explicitly clear any browser- or app-set default on the date field
+    page.evaluate("() => { document.getElementById('expenseDate').value = ''; }")
 
     initial_count = page.evaluate("() => window.app.expenses.length")
     page.click('#expenseFormSubmit')

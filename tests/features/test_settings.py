@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Settings Model Tests
 Tests the generic app.settings array (src/settings.js): getSetting/setSetting
@@ -112,27 +112,33 @@ def test_sanitize_setting_truncates_oversized_string_value(app_page):
 
 
 @pytest.mark.feature
-def test_export_json_reports_version_4_0_0(app_page):
-    """exportAllJSON's payload reports the bumped data format version."""
+def test_export_json_reports_app_version(app_page):
+    """exportAllJSON's payload version field matches the running APP_VERSION."""
     page = app_page
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const mod = await import('/src/dataExport.js');
+        const [exportMod, utilsMod] = await Promise.all([
+            import('/src/dataExport.js'),
+            import('/src/utils.js')
+        ]);
         let captured = null;
         const originalCreateObjectURL = URL.createObjectURL;
         URL.createObjectURL = (blob) => { captured = blob; return 'blob:mock'; };
         try {
             app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
-            mod.exportAllJSON(app);
+            exportMod.exportAllJSON(app);
         } finally {
             URL.createObjectURL = originalCreateObjectURL;
         }
         const text = await captured.text();
-        return JSON.parse(text);
+        const payload = JSON.parse(text);
+        return { exportVersion: payload.version, appVersion: utilsMod.APP_VERSION };
     }""")
 
-    assert result['version'] == '4.0.0'
+    assert result['exportVersion'] == result['appVersion'], (
+        f"Export version '{result['exportVersion']}' should match APP_VERSION '{result['appVersion']}'"
+    )
     assert result['settings'] == [{'key': 'reconciliationAdjustsBalance', 'value': True}]
 
 
