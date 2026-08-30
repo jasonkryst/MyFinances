@@ -1,4 +1,4 @@
-import { getCsrfCookie } from './storage.js';
+﻿import { getCsrfCookie } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgErrorToast } from './ui.js';
 
@@ -34,12 +34,14 @@ async function pgFetch(app, method, path, body) {
         }
         if (!res.ok) {
             console.error(`[postgresSync] ${method} ${path} failed: ${res.status}`);
+            showPgErrorToast();
             return null;
         }
         if (res.status === 204) return null;
         return await res.json();
     } catch (err) {
         console.error(`[postgresSync] ${method} ${path} error:`, err);
+        showPgErrorToast();
         return null;
     }
 }

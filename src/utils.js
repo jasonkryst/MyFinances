@@ -1,7 +1,7 @@
 ﻿// Formatting, date helpers, shared utilities
 import { getIntlLocale } from './i18n.js';
 
-export const APP_VERSION = '4.25.0';
+export const APP_VERSION = '4.26.0';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50" in
@@ -67,10 +67,13 @@ export function sanitizeInteger(value, fallback = null, { min = null, max = null
 export function sanitizeDateISO(value) {
     if (!value) return null;
     const text = String(value).trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
-    const date = new Date(`${text}T12:00:00`);
+    // Full ISO timestamps (e.g. Date objects serialised via JSON.stringify) are
+    // accepted by extracting just the date portion so existing stored records heal.
+    const datePart = text.length > 10 ? text.slice(0, 10) : text;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
+    const date = new Date(`${datePart}T12:00:00`);
     if (Number.isNaN(date.getTime())) return null;
-    return text;
+    return datePart;
 }
 
 export function dateToISO(date) {

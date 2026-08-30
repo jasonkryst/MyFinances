@@ -1,4 +1,4 @@
-// Bills and expenses
+﻿// Bills and expenses
 import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
@@ -454,8 +454,7 @@ export async function addExpense(app) {
         alert('Please enter a valid expense name, amount, and date.');
         return;
     }
-    const date = new Date(dateStr + 'T00:00:00');
-    const expense = { id: Date.now(), name, budgetAmount, date, category, accountId };
+    const expense = { id: Date.now(), name, budgetAmount, date: dateStr, category, accountId };
     app.expenses.push(expense);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -497,8 +496,7 @@ export function saveEditExpense(app, id) {
     const acctEl       = document.getElementById(`ee-acct-${id}`);
     const accountId    = acctEl?.value ? parseInt(acctEl.value) : null;
     if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) { alert('Invalid expense data.'); return; }
-    const date = new Date(dateStr + 'T00:00:00');
-    app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date, category, accountId };
+    app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date: dateStr, category, accountId };
     app.editingExpenseId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/expenses/${app.expenses[idx].id}`, app.expenses[idx]);
