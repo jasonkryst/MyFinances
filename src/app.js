@@ -199,7 +199,7 @@ export class DebtTrackerApp {
                     this.incomes.length === 0 && this.bills.length === 0 &&
                     this.expenses.length === 0 && this.recurringTemplates.length === 0 &&
                     this.emergencyFunds.length === 0 && this.sinkingFunds.length === 0 &&
-                    this.reconciliations.length === 0 && this.monthlySnapshots.length === 0;
+                    this.reconciliations.length === 0;
                 if (postgresIsEmpty) {
                     await showPgMigrationModal(this, localJson);
                 }

@@ -225,7 +225,21 @@ async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, creden
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         ctx = await browser.new_context()
-        # No postgres backend pre-set — app runs in local storage mode
+        # No postgres backend pre-set — app runs in local storage mode.
+        # Pre-populate debtTrackerData so _isFirstRun is false and the
+        # setup wizard does not intercept clicks on #settingsBtn.
+        await ctx.add_init_script("""
+            window.localStorage.setItem('debtTrackerData', JSON.stringify({
+                debts:[], accounts:[], incomes:[], bills:[], expenses:[],
+                ledgerAmountOverrides:{}, recurringTemplates:[], emergencyFunds:[],
+                sinkingFunds:[], reconciliations:[], settings:[], monthlySnapshots:[],
+                netWorthMilestonesAwarded:[], perMonthStimulus:[],
+                monthlyPayment:null, strategy:null,
+                ledgerSettings:{accountFilter:'all',dateRange:'all',sortKey:'date',sortDir:'desc'},
+                forecastSettings:{rangeMonths:1,accountId:'total',notableThresholdPct:130},
+                timestamp:'2026-01-01T00:00:00.000Z'
+            }));
+        """)
         page = await ctx.new_page()
 
         await page.goto(base_url)
