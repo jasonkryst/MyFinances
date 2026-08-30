@@ -47,7 +47,8 @@ router.patch('/', async (req, res, next) => {
         await getOrCreateRow(req.userId);
         const body = req.body || {};
         const strategy = body.strategy === undefined ? undefined : (normalizeText(body.strategy, 30) || null);
-        const monthlyPayment = body.monthlyPayment === undefined ? undefined : sanitizeFiniteNumber(body.monthlyPayment, null, { min: 0 });
+        const monthlyPayment = body.monthlyPayment === undefined ? undefined :
+            (body.monthlyPayment === null ? null : sanitizeFiniteNumber(body.monthlyPayment, null, { min: 0 }));
         const perMonthStimulus = Array.isArray(body.perMonthStimulus)
             ? body.perMonthStimulus.map(v => sanitizeFiniteNumber(v, 0, { min: 0 }))
             : undefined;

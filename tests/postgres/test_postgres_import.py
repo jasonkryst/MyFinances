@@ -66,7 +66,7 @@ async def _capture_export(page):
 
 async def _run_import(page, json_str, replace=True):
     """Call importAllJSON via page.evaluate; returns {ok, parts} or {ok, reason}."""
-    return await page.evaluate("""async (jsonStr, shouldReplace) => {
+    return await page.evaluate("""async ([jsonStr, shouldReplace]) => {
         const app = window.app;
         const mod = await import('/src/dataExport.js');
         const file = new File([jsonStr], 'backup.json', { type: 'application/json' });
@@ -80,7 +80,7 @@ async def _run_import(page, json_str, replace=True):
                 onReadError:   ()     => resolve({ ok: false, reason: 'read_error' }),
             });
         });
-    }""", json_str, replace)
+    }""", [json_str, replace])
 
 
 async def _wipe_all(page, base_url):

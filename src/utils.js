@@ -67,10 +67,19 @@ export function sanitizeInteger(value, fallback = null, { min = null, max = null
 export function sanitizeDateISO(value) {
     if (!value) return null;
     const text = String(value).trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
-    const date = new Date(`${text}T12:00:00`);
-    if (Number.isNaN(date.getTime())) return null;
-    return text;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        const date = new Date(`${text}T12:00:00`);
+        if (Number.isNaN(date.getTime())) return null;
+        return text;
+    }
+    // Heal legacy full ISO timestamps stored by Date.toISOString() (e.g. '2026-08-30T05:00:00.000Z')
+    const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})T/);
+    if (isoMatch) {
+        const datePart = isoMatch[1];
+        const date = new Date(`${datePart}T12:00:00`);
+        if (!Number.isNaN(date.getTime())) return datePart;
+    }
+    return null;
 }
 
 export function dateToISO(date) {

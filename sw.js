@@ -23,7 +23,7 @@ const PRECACHE_URLS = [
     '/src/reportsCalendar.js', '/src/reportsCashFlow.js', '/src/reportsMoneyFlowSankey.js', '/src/reportsNetWorth.js', '/src/reportsSummary.js',
     '/src/reportsVariance.js', '/src/sanitizers.js', '/src/savings.js', '/src/serviceWorker.js',
     '/src/settings.js', '/src/setupWizard.js', '/src/spending.js', '/src/storage.js',
-    '/src/loginGate.js', '/src/postgresSync.js',
+    '/src/loginGate.js', '/src/postgresSync.js', '/src/postgresImport.js',
     '/src/storageAdapters.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
     '/src/strategyPlanCalculation.js', '/src/strategyScheduleTable.js', '/src/strategySummaryTable.js', '/src/ui.js',
     '/src/utils.js',
