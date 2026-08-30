@@ -1040,7 +1040,23 @@
             </form>
         </div>
     </div>
-    <!-- Settings -->
+    <!-- Postgres Migration Modal - offered once when local data exists and Postgres is empty on first login -->
+    <div id="pgMigrationModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="pgMigrationTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="pgMigrationTitle">Transfer Your Local Data</h3>
+            <p class="modal-description">
+                We found data saved locally in this browser. Transfer it to your PostgreSQL
+                account now so you don't lose your financial history.
+            </p>
+            <p id="pgMigrationCounts" class="modal-helper-text"></p>
+            <p id="pgMigrationError" class="pg-migration-error hidden" role="alert" aria-live="polite"></p>
+            <div class="modal-actions">
+                <button id="pgMigrationTransferBtn" class="btn btn-success">Transfer Data</button>
+                <button id="pgMigrationSkipBtn" class="btn btn-secondary">Skip for Now</button>
+            </div>
+        </div>
+    </div>    <!-- Settings -->
     <div id="settingsModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
         <div class="modal-content">
             <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
@@ -1069,6 +1085,7 @@
                     <option value="postgres">PostgreSQL (self-hosted server)</option>
                 </select>
                 <p class="modal-helper-text" data-i18n="settings.dataStorageHelp">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
+                <p id="settingsStoragePostgresNote" class="modal-helper-text hidden">You are using PostgreSQL. Switching back to local or session storage is not supported.</p>
             </div>
             <div class="form-group modal-form-group">
                 <label for="settingLocale" data-i18n="settings.language">Language</label>
@@ -1155,3 +1172,5 @@
     <script type="module" src="src/app.js"></script>
 </body>
 </html>
+
+

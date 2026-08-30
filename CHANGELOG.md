@@ -1,9 +1,25 @@
-
 # Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
+
+---
+
+## [4.28.0] — 2026-08-30
+
+### Added
+- **Issue #101 — Phase 2c: local->Postgres data migration**: When a user switches to the PostgreSQL backend and logs in for the first time on a fresh server account, the app detects existing localStorage data and presents a one-time migration modal. The modal shows a record summary and offers:
+  - **Transfer**: posts all local records to Postgres via eplaceForPostgres (accounts first for FK remapping, remaining arrays in parallel, keyed resources, milestones, plan-settings). Clears localStorage.debtTrackerData on success; shows an inline error with a **Try Again** button on failure (Postgres is auto-rolled back).
+  - **Skip for Now**: dismisses the modal; local data is preserved and the offer re-appears on the next login as long as Postgres remains empty.
+- **One-way Postgres lock**: selecting PostgreSQL in Settings for the first time shows a window.confirm warning that the switch is permanent. After switching, the storage select in Settings is replaced by a read-only note: *You are using PostgreSQL. Switching back to local or session storage is not supported.*
+
+### Technical
+- New src/pgMigrationModal.js — modal lifecycle, record-count display, loading/error state, and localStorage cleanup.
+- src/app.js init(): after loadFromPostgres, checks localStorage and array emptiness; awaits showPgMigrationModal when migration is needed.
+- src/setupWizard.js initSettingsModal: open() hides the storage select and shows the lock note when already on Postgres; save() shows confirm before the first switch.
+- src/pgMigrationModal.js added to the service worker precache list (sw.js).
+- 8 new integration tests in tests/postgres/test_postgres_migration.py: 4 positive cases (modal shown, transfer, skip, re-prompt) and 4 negative/lock cases (no modal without data, no modal on non-empty Postgres, settings select hidden, confirm dialog shown).
 
 ---
 
@@ -435,4 +451,7 @@ _Note: `4.7.1` was a version-only commit with no accompanying changes and has no
 ## [3.0.0] and earlier
 
 Core feature set: debt management (credit cards + fixed-amount recurring), account management with projected balances, income tracking (bi-weekly + monthly sources, one-time entries), budget tracking (bills + variable expenses), recurring transaction templates (subscriptions, reimbursements, transfers), savings goals (emergency fund + sinking funds with three allocation methods), unified ledger with amount overrides, calendar + reports (income vs. expenses, money flow, variance dashboard, net worth), debt payoff plan calculator with four strategies (Avalanche, Snowball, Priority-Low, Priority-High), what-if slider, target payoff date back-calculator (binary search), interest paid to date estimate, JSON export/import (legacy v1.0 + current v4.0.0 format), CSV schedule export, dark mode, in-app guide (`guide.html`), strict Content Security Policy.
+
+
+
 

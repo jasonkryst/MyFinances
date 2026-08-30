@@ -548,3 +548,10 @@ body.dark-mode .text-income {
     font-size: 0.72rem;
     margin-right: 2px;
 }
+
+/* Migration modal inline error */
+.pg-migration-error {
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-top: 8px;
+}

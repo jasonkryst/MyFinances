@@ -33,6 +33,7 @@ export function initSettingsModal(app) {
     const doneBtn = document.getElementById('settingsModalDoneBtn');
     const adjustsCheckbox = document.getElementById('settingReconciliationAdjusts');
     const storageSelect = document.getElementById('settingStorageBackend');
+    const postgresLockNote = document.getElementById('settingsStoragePostgresNote');
     const localeSelect = document.getElementById('settingLocale');
     if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect) return;
 
@@ -48,7 +49,16 @@ export function initSettingsModal(app) {
     const open = () => {
         lastFocused = document.activeElement;
         adjustsCheckbox.checked = Boolean(getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false));
-        storageSelect.value = getStorageBackendPreference();
+        const isPostgres = getStorageBackendPreference() === 'postgres';
+        if (isPostgres) {
+            storageSelect.value = 'postgres';
+            storageSelect.classList.add('hidden');
+            if (postgresLockNote) postgresLockNote.classList.remove('hidden');
+        } else {
+            storageSelect.value = getStorageBackendPreference();
+            storageSelect.classList.remove('hidden');
+            if (postgresLockNote) postgresLockNote.classList.add('hidden');
+        }
         localeSelect.value = getCurrentLocale();
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
@@ -65,6 +75,13 @@ export function initSettingsModal(app) {
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
         if (storageSelect.value === 'postgres') {
             if (getStorageBackendPreference() !== 'postgres') {
+                const ok = window.confirm(
+                    'Switching to PostgreSQL is permanent.\n\n' +
+                    'Once switched, you will not be able to switch back to local or session storage. ' +
+                    'Any existing local data can be transferred to the server on your next login.\n\n' +
+                    'Continue?'
+                );
+                if (!ok) return;
                 setStorageBackendPreference('postgres');
                 location.reload();
             } else {
@@ -85,3 +102,5 @@ export function initSettingsModal(app) {
         if (event.target === modal) close();
     };
 }
+
+

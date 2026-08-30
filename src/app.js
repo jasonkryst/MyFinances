@@ -34,6 +34,7 @@ import {
 } from './charts.js';
 import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, loadFromPostgres } from './storage.js';
 import { showLoginGate } from './loginGate.js';
+import { showPgMigrationModal } from './pgMigrationModal.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import { createStorageAdapter, getStorageBackendPreference } from './storageAdapters.js';
 import {
@@ -191,6 +192,18 @@ export class DebtTrackerApp {
                 await showLoginGate(this);
             }
             await loadFromPostgres(this);
+            const localJson = window.localStorage.getItem('debtTrackerData');
+            if (localJson) {
+                const postgresIsEmpty =
+                    this.debts.length === 0 && this.accounts.length === 0 &&
+                    this.incomes.length === 0 && this.bills.length === 0 &&
+                    this.expenses.length === 0 && this.recurringTemplates.length === 0 &&
+                    this.emergencyFunds.length === 0 && this.sinkingFunds.length === 0 &&
+                    this.reconciliations.length === 0 && this.monthlySnapshots.length === 0;
+                if (postgresIsEmpty) {
+                    await showPgMigrationModal(this, localJson);
+                }
+            }
         } else {
             this.loadFromStorage();
             maybeShowSetupWizardFeature(this, this._isFirstRun);
@@ -905,3 +918,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await window.app.init();
     registerServiceWorker(window.app);
 });
+
+
+
