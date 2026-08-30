@@ -47,7 +47,8 @@ router.patch('/', async (req, res, next) => {
         await getOrCreateRow(req.userId);
         const body = req.body || {};
         const strategy = body.strategy === undefined ? undefined : (normalizeText(body.strategy, 30) || null);
-        const monthlyPayment = body.monthlyPayment === undefined ? undefined : sanitizeFiniteNumber(body.monthlyPayment, null, { min: 0 });
+        const monthlyPayment = body.monthlyPayment === undefined ? undefined :
+            (body.monthlyPayment === null ? null : sanitizeFiniteNumber(body.monthlyPayment, null, { min: 0 }));
         const perMonthStimulus = Array.isArray(body.perMonthStimulus)
             ? body.perMonthStimulus.map(v => sanitizeFiniteNumber(v, 0, { min: 0 }))
             : undefined;
@@ -80,6 +81,16 @@ router.patch('/', async (req, res, next) => {
             [req.userId]
         );
         res.json(rowToJson(row, milestones.rows.map(r => r.milestone)));
+    } catch (err) {
+        next(err);
+    }
+});
+
+
+router.delete('/milestones', async (req, res, next) => {
+    try {
+        await query('DELETE FROM net_worth_milestones_awarded WHERE user_id = $1', [req.userId]);
+        res.status(204).end();
     } catch (err) {
         next(err);
     }

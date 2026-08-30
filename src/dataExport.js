@@ -1,8 +1,9 @@
-﻿// JSON/CSV export and import.
+// JSON/CSV export and import.
 
 import { APP_VERSION, normalizeText, sanitizeFiniteNumber } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
 import { sanitizeParsedState } from './sanitizers.js';
+import { replaceForPostgres, mergeForPostgres } from './postgresImport.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
@@ -236,7 +237,8 @@ export function importAllJSON(app, file, options = {}) {
         onMergeDuplicates,
         onImported,
         onReadError,
-        onTooLarge
+        onTooLarge,
+        onImportError
     } = options;
 
     if (file?.size > MAX_IMPORT_BYTES) {
@@ -306,6 +308,33 @@ export function importAllJSON(app, file, options = {}) {
         const shouldReplace = typeof requestImportMode === 'function'
             ? await requestImportMode(parts)
             : true;
+
+        if (app._storageBackendKind === 'postgres') {
+            try {
+                if (shouldReplace) {
+                    await replaceForPostgres(app, clean, incomingStrategy);
+                } else {
+                    await mergeForPostgres(app, clean, incomingStrategy);
+                }
+            } catch {
+                if (typeof onImportError === 'function') onImportError();
+                return;
+            }
+            if (incomingStrategy) {
+                const mpEl = document.getElementById('monthlyPayment');
+                const psEl = document.getElementById('paymentStrategy');
+                const payment = sanitizeFiniteNumber(incomingStrategy.monthlyPayment, null, { min: 0 });
+                const strategy = normalizeText(incomingStrategy.paymentStrategy, 30);
+                if (mpEl && payment !== null) mpEl.value = payment;
+                if (psEl && strategy) psEl.value = strategy;
+            }
+            app.updateUI();
+            app.refreshCurrentPageData();
+            if (!mergeDuplicatesReported && typeof onImported === 'function') {
+                onImported(parts);
+            }
+            return;
+        }
 
         if (shouldReplace) {
             app.accounts = incomingAccounts;

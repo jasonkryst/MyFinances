@@ -1,4 +1,4 @@
-﻿import { getCsrfCookie } from './storage.js';
+import { getCsrfCookie } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgErrorToast } from './ui.js';
 
@@ -62,6 +62,22 @@ export function pgPut(app, path, body) {
     pgFetch(app, 'PUT', path, body);
 }
 
+export async function pgDeleteMilestones(app) {
+    await pgFetch(app, 'DELETE', '/api/plan-settings/milestones');
+}
+
+const DEFAULT_PLAN_SETTINGS = {
+    strategy: null,
+    monthlyPayment: null,
+    perMonthStimulus: [],
+    ledgerSettings: { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc' },
+    forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 }
+};
+
 export async function pgDeleteAll(app) {
-    await Promise.all(ALL_RESOURCE_PATHS.map(path => pgFetch(app, 'DELETE', path)));
+    await Promise.all([
+        ...ALL_RESOURCE_PATHS.map(path => pgFetch(app, 'DELETE', path)),
+        pgFetch(app, 'DELETE', '/api/plan-settings/milestones'),
+        pgFetch(app, 'PATCH', '/api/plan-settings', DEFAULT_PLAN_SETTINGS)
+    ]);
 }
