@@ -7,6 +7,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.26.0] — 2026-08-30
+
+### Fixed
+- **Issue #93**: Expenses silently disappeared after page reload. `addExpense` and `saveEditExpense` stored `expense.date` as a JavaScript `Date` object; `JSON.stringify` serialised it as a full UTC ISO-8601 timestamp (e.g. "2026-08-30T05:00:00.000Z"), which the `sanitizeDateISO` regex (`^\d{4}-\d{2}-\d{2}`) rejected on reload, causing `sanitizeParsedState` to silently drop every expense. Fixed by storing the date as a bare YYYY-MM-DD string. `sanitizeDateISO` also updated to accept full ISO timestamps, self-healing any records already corrupted in localStorage.
+- **Issue #92**: `perMonthStimulus` (per-month extra payment schedule in the Strategy tab) was persisted to localStorage but absent from both `exportAllJSON` and `importAllJSON`, silently wiping it on every export/import cycle. Added to the export payload and restored in both import branches. Export `version` field now reads `APP_VERSION` instead of the hardcoded `'4.0.0'`. The "no data" guard in `importAllJSON` widened to accept files with only accounts, savings goals, or reconciliations. Merge mode now deduplicates all name-keyed collections (accounts, incomes, bills, recurring templates, sinking funds) instead of replacing them wholesale.
+
+---
 ## [4.25.0] — 2026-08-30
 
 ### Fixed

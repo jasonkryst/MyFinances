@@ -1,11 +1,18 @@
-// JSON/CSV export and import.
+﻿// JSON/CSV export and import.
 
-import { normalizeText, sanitizeFiniteNumber } from './utils.js';
+import { APP_VERSION, normalizeText, sanitizeFiniteNumber } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
 import { sanitizeParsedState } from './sanitizers.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
+
+// Merge incoming items into existing by name, skipping duplicates.
+function _mergeByName(existing, incoming, idOffset = 0) {
+    const names = new Set(existing.map(x => x.name?.toLowerCase()).filter(Boolean));
+    const toAdd = incoming.filter(x => x.name && !names.has(x.name.toLowerCase()));
+    return [...existing, ...toAdd.map((x, i) => ({ ...x, id: Date.now() + idOffset + i }))];
+}
 // Export a full app backup as JSON.
 export function exportAllJSON(app) {
     const normalisedDebts = app.debts.map(d => ({
@@ -15,7 +22,7 @@ export function exportAllJSON(app) {
     }));
 
     const payload = {
-        version: '4.0.0',
+        version: APP_VERSION,
         exportedAt: new Date().toISOString(),
         accounts: app.accounts || [],
         debts: normalisedDebts,
@@ -31,6 +38,7 @@ export function exportAllJSON(app) {
         settings: app.settings || [],
         monthlySnapshots: app.monthlySnapshots || [],
         netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
+        perMonthStimulus: app.perMonthStimulus || [],
         strategy: {
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             paymentStrategy: document.getElementById('paymentStrategy')?.value || null
@@ -266,6 +274,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingSettings = clean.settings;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
+        const incomingPerMonthStimulus = clean.perMonthStimulus || [];
         const incomingStrategy = payload?.strategy || null;
         const incomingLedgerSettings = clean.ledgerSettings;
         const incomingForecastSettings = clean.forecastSettings;
@@ -273,12 +282,15 @@ export function importAllJSON(app, file, options = {}) {
         const validDebts = incomingDebts.filter(d => d && d.name);
         let mergeDuplicatesReported = false;
 
-        if (validDebts.length === 0 && incomingIncomes.length === 0 && !incomingStrategy
-            && incomingBills.length === 0 && incomingExpenses.length === 0
-            && incomingRecurringTemplates.length === 0) {
-            if (typeof onNoData === 'function') {
-                onNoData();
-            }
+        const hasData = incomingAccounts.length > 0 || validDebts.length > 0
+            || incomingIncomes.length > 0 || incomingBonuses.length > 0
+            || incomingBills.length > 0 || incomingExpenses.length > 0
+            || incomingRecurringTemplates.length > 0 || incomingEmergencyFunds.length > 0
+            || incomingSinkingFunds.length > 0 || incomingReconciliations.length > 0
+            || incomingMonthlySnapshots.length > 0 || incomingNetWorthMilestones.length > 0
+            || !!incomingStrategy?.monthlyPayment || !!incomingStrategy?.paymentStrategy;
+        if (!hasData) {
+            if (typeof onNoData === 'function') onNoData();
             return;
         }
 
@@ -310,6 +322,7 @@ export function importAllJSON(app, file, options = {}) {
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
+            app.perMonthStimulus = incomingPerMonthStimulus;
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
                 app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
@@ -341,19 +354,20 @@ export function importAllJSON(app, file, options = {}) {
                 onMergeDuplicates(toAdd.length, skipped);
                 mergeDuplicatesReported = true;
             }
-            app.accounts = incomingAccounts;
-            app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
-            app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
-            app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
-            app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
-            app.recurringTemplates = incomingRecurringTemplates.map((r, i) => ({ ...r, id: Date.now() + 4000 + i }));
-            app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
-            app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
-            app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
+            app.accounts = _mergeByName(app.accounts, incomingAccounts, 0);
+            app.incomes = _mergeByName(app.incomes, incomingIncomes, 1000);
+            app.bonuses = _mergeByName(app.bonuses, incomingBonuses, 1500);
+            app.bills = _mergeByName(app.bills, incomingBills, 2000);
+            app.expenses = [...app.expenses, ...incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }))];
+            app.recurringTemplates = _mergeByName(app.recurringTemplates, incomingRecurringTemplates, 4000);
+            app.emergencyFunds = [...app.emergencyFunds, ...incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }))];
+            app.sinkingFunds = _mergeByName(app.sinkingFunds, incomingSinkingFunds, 5000);
+            app.reconciliations = [...app.reconciliations, ...incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }))];
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
+            app.perMonthStimulus = incomingPerMonthStimulus;
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
                 app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
