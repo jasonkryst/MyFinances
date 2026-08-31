@@ -1,11 +1,20 @@
-﻿﻿# Changelog
+﻿# Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
----
+## [4.31.0] — 2026-08-31
 
+### Added
+- **GitHub Security Scanning** (issue #113): Comprehensive security scanning pipeline added to CI.
+  - **CodeQL** (`.github/workflows/codeql.yml`): Static analysis of JavaScript/TypeScript source via GitHub's CodeQL engine. Runs on push/PR to `main` and weekly. Results appear in the GitHub Security tab.
+  - **Trivy filesystem scan**: Scans repo source and lockfiles for known-vulnerable packages (CVEs) and secrets. CRITICAL/HIGH fixable findings gate the build. Results uploaded as SARIF to the Security tab under `trivy-fs` category.
+  - **Trivy IaC scan**: Scans `Dockerfile`, `server/Dockerfile`, and `docker-compose.yml` for misconfigurations against CIS benchmarks. Informational only (no build gate). Results uploaded as SARIF under `trivy-iac` category.
+  - **Dependency Review** (`.github/workflows/dependency-review.yml`): Blocks PRs that introduce new dependencies with HIGH or CRITICAL severity CVEs. Posts a summary comment on the PR.
+  - The existing Docker image Trivy scan is unchanged; its SARIF output now uses the `trivy-image` category for clarity in the Security tab.
+
+---
 ## [4.30.0] — 2026-08-31
 
 ### Changed
