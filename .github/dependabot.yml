@@ -1,0 +1,53 @@
+version: 2
+updates:
+  # npm — root dev tooling (Jest, Stryker, Babel)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    groups:
+      dev-tooling:
+        patterns:
+          - "*"
+
+  # npm — Node.js backend server
+  - package-ecosystem: "npm"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    groups:
+      server-deps:
+        patterns:
+          - "*"
+
+  # Docker — frontend nginx image (Dockerfile at repo root)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+  # Docker — backend Node.js image (server/Dockerfile)
+  - package-ecosystem: "docker"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+  # GitHub Actions — all workflows under .github/workflows/
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

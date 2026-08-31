@@ -20,6 +20,19 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.28.1] — 2026-08-30
+
+### Added
+- **Dependabot**: Added .github/dependabot.yml to automate dependency update PRs on a weekly schedule. Covers five ecosystems:
+  - **npm (root)** — dev tooling: Jest, Stryker, Babel (grouped into one PR)
+  - **npm (server/)** — backend: Express, pg, argon2, node-pg-migrate (grouped into one PR)
+  - **docker (root)** — frontend nginx base image
+  - **docker (server/)** — backend Node.js base image
+  - **github-actions** — all workflow action pins (grouped into one PR)
+  - Note: Python pip dependencies (playwright, pytest, pytest-asyncio) are installed inline in CI without a requirements file; a requirements.txt would be needed to enable pip tracking.
+
+---
+
 ## [4.28.0] — 2026-08-30
 
 ### Added
