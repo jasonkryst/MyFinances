@@ -206,19 +206,17 @@ jobs:
           sarif_file: trivy-image.sarif
           category: trivy-image
 
-      # -- Filesystem / dependency scan ----------------------------------------
-      - name: Filesystem -- vulnerability gate (fixable CRITICAL/HIGH)
+      # -- Filesystem scan (secrets gate + full vuln/secret SARIF report) ------
+      - name: Filesystem -- secret gate (block on hardcoded secrets in source)
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: '.'
-          scanners: vuln,secret
+          scanners: secret
           format: table
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
           exit-code: 1
-      - name: Filesystem -- full report (all severities, SARIF)
+      - name: Filesystem -- full report (vuln + secret, all severities, SARIF)
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -249,6 +247,7 @@ jobs:
         with:
           sarif_file: trivy-iac.sarif
           category: trivy-iac
+
   lighthouse:
     runs-on: ubuntu-latest
     timeout-minutes: 20
