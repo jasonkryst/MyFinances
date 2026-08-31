@@ -66,7 +66,7 @@ async def _mock_register_ok(page):
 async def _mock_all_api(page):
     """Intercept all /api/* calls with minimal empty-state responses so
     loadFromPostgres() can complete without a real session cookie."""
-    def _api_handler(route):
+    async def _api_handler(route):
         url = route.request.url
         if 'plan-settings' in url:
             body = json.dumps({
@@ -81,7 +81,7 @@ async def _mock_all_api(page):
             body = json.dumps({})
         else:
             body = json.dumps([])
-        route.fulfill(status=200, content_type='application/json', body=body)
+        await route.fulfill(status=200, content_type='application/json', body=body)
     await page.route('**/api/**', _api_handler)
 
 
