@@ -6,11 +6,25 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.28.1] — 2026-08-30
+
+### Added
+- **Dependabot**: Added .github/dependabot.yml to automate dependency update PRs on a weekly schedule. Covers five ecosystems:
+  - **npm (root)** — dev tooling: Jest, Stryker, Babel (grouped into one PR)
+  - **npm (server/)** — backend: Express, pg, argon2, node-pg-migrate (grouped into one PR)
+  - **docker (root)** — frontend nginx base image
+  - **docker (server/)** — backend Node.js base image
+  - **github-actions** — all workflow action pins (grouped into one PR)
+  - Note: Python pip dependencies (playwright, pytest, pytest-asyncio) are installed inline in CI without a requirements file; a requirements.txt would be needed to enable pip tracking.
+
+---
+
 ## [4.28.0] — 2026-08-30
 
 ### Added
 - **Issue #101 — Phase 2c: local->Postgres data migration**: When a user switches to the PostgreSQL backend and logs in for the first time on a fresh server account, the app detects existing localStorage data and presents a one-time migration modal. The modal shows a record summary and offers:
-  - **Transfer**: posts all local records to Postgres via eplaceForPostgres (accounts first for FK remapping, remaining arrays in parallel, keyed resources, milestones, plan-settings). Clears localStorage.debtTrackerData on success; shows an inline error with a **Try Again** button on failure (Postgres is auto-rolled back).
+  - **Transfer**: posts all local records to Postgres via 
+eplaceForPostgres (accounts first for FK remapping, remaining arrays in parallel, keyed resources, milestones, plan-settings). Clears localStorage.debtTrackerData on success; shows an inline error with a **Try Again** button on failure (Postgres is auto-rolled back).
   - **Skip for Now**: dismisses the modal; local data is preserved and the offer re-appears on the next login as long as Postgres remains empty.
 - **One-way Postgres lock**: selecting PostgreSQL in Settings for the first time shows a window.confirm warning that the switch is permanent. After switching, the storage select in Settings is replaced by a read-only note: *You are using PostgreSQL. Switching back to local or session storage is not supported.*
 
