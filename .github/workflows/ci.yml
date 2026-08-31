@@ -175,14 +175,16 @@ jobs:
 
   trivy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
       security-events: write
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t myfinances:ci .
-      - name: Vulnerability gate (fixable CRITICAL/HIGH findings)
+
+      # -- Docker image scan ---------------------------------------------------
+      - name: Image -- vulnerability gate (fixable CRITICAL/HIGH)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: myfinances:ci
@@ -190,18 +192,61 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: 1
-      - name: Full vulnerability report (all severities, including unfixed)
+      - name: Image -- full report (all severities, SARIF)
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: myfinances:ci
           format: sarif
-          output: trivy-results.sarif
-      - name: Upload scan results to the Security tab
-        if: always() && hashFiles('trivy-results.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+          output: trivy-image.sarif
+      - name: Image -- upload to Security tab
+        if: always() && hashFiles('trivy-image.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: trivy-results.sarif
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+      # -- Filesystem scan (secrets gate + full vuln/secret SARIF report) ------
+      - name: Filesystem -- secret gate (block on hardcoded secrets in source)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: '.'
+          scanners: secret
+          format: table
+          exit-code: 1
+      - name: Filesystem -- full report (vuln + secret, all severities, SARIF)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: '.'
+          scanners: vuln,secret
+          format: sarif
+          output: trivy-fs.sarif
+      - name: Filesystem -- upload to Security tab
+        if: always() && hashFiles('trivy-fs.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      # -- IaC / misconfiguration scan -----------------------------------------
+      - name: IaC -- misconfiguration report (SARIF, informational)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: '.'
+          format: sarif
+          output: trivy-iac.sarif
+      - name: IaC -- upload to Security tab
+        if: always() && hashFiles('trivy-iac.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-iac.sarif
+          category: trivy-iac
 
   lighthouse:
     runs-on: ubuntu-latest

@@ -1,6 +1,7 @@
-﻿# MyFinances
+# MyFinances
 
 [![CI](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jasonkryst/MyFinances/actions/workflows/codeql.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/codeql.yml)
 [![Copilot](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer)
 [![Docker Release](https://github.com/jasonkryst/MyFinances/actions/workflows/docker-image.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/docker-image.yml)
 
@@ -54,6 +55,16 @@ MyFinances prioritizes your financial data security:
 - ✅ **Input Validation** — Numeric bounds, date validation, text sanitization at every entry point
 - ✅ **Client-Side Only (default)** — No server, no authentication surface
 - ✅ **Optional Postgres Backend** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request
+
+### Continuous Security Scanning
+The CI pipeline runs four automated scans on every push and pull request to `main`:
+- **CodeQL** — GitHub SAST engine; detects XSS, injection, and logic bugs in `src/` JavaScript
+- **Trivy — Docker image** — Gates on fixable CRITICAL/HIGH CVEs in the published container image
+- **Trivy — Filesystem** — Scans repo lockfiles and source for known-vulnerable packages and leaked secrets; gates on CRITICAL/HIGH
+- **Trivy — IaC** — Scans `Dockerfile` and `docker-compose.yml` for CIS-benchmark misconfigurations (informational)
+- **Dependency Review** — Blocks PRs that introduce new dependencies with HIGH or CRITICAL severity CVEs
+
+All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/MyFinances/security) as SARIF reports.
 
 ### Privacy Guarantee
 - ✅ All calculations run entirely in your browser
