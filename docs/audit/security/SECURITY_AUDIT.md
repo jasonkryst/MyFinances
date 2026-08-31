@@ -1,6 +1,6 @@
 SECURITY AUDIT REPORT - MyFinances Debt Tracker
 ================================================
-Date: May 31, 2026 (Updated)
+Date: August 31, 2026 (Updated)
 Original Audit Date: May 30, 2026
 Status: LOW RISK ✅ - Production Ready
 Audit Type: Comprehensive Security Assessment with Follow-up Verification
@@ -66,7 +66,7 @@ DETAILED FINDINGS
    style-src 'self'; 
    img-src 'self' data:; 
    font-src 'self'; 
-   connect-src 'self'; 
+   connect-src 'self' https://cdn.jsdelivr.net; 
    object-src 'none'; 
    base-uri 'self'; 
    form-action 'self'; 
@@ -87,8 +87,8 @@ DETAILED FINDINGS
    ===============================
    Status: No external dependencies detected
    
-   ✓ Application uses vanilla JavaScript only
-   ✓ No npm packages or external libraries imported
+   ✓ Frontend uses vanilla JavaScript only — no npm supply-chain risk
+   ✓ Optional Node.js server dependencies (Express, pg, argon2) tracked via npm audit and Dependabot
    ✓ All code is self-contained
    ✓ Chart.js imported via CDN but code validates data before passing
 
@@ -96,8 +96,9 @@ DETAILED FINDINGS
    ===================================
    Status: Client-side only (safe)
    
-   ✓ Uses localStorage only (client-side):
-     - No sensitive data transmitted to servers
+   ✓ Uses localStorage by default (client-side):
+     - No sensitive data transmitted to servers in default mode
+   ✓ Optional PostgreSQL backend: data stored server-side with argon2id-hashed passwords and session tokens
      - localStorage has domain/scheme isolation
      - Data format: JSON with comprehensive sanitization on load
    
@@ -132,7 +133,8 @@ DETAILED FINDINGS
    ====================
    Status: Secure
    
-   ✓ No CSRF tokens needed (client-side only application)
+   ✓ No CSRF tokens needed for localStorage backend (client-side only)
+   ✓ CSRF double-submit tokens required for PostgreSQL backend (httpOnly + header pair)
    ✓ Form inputs use proper type attributes:
      - type="text" for strings
      - type="number" for numbers
@@ -198,6 +200,34 @@ DETAILED FINDINGS
     ✓ Dates validated with strict regex: /^\d{4}-\d{2}-\d{2}$/
     ✓ Date parsing checks for NaN
     ✓ Day bounds validated: min 1, max 31
+
+13. SERVER-SIDE SECURITY (Optional PostgreSQL Backend) ✓ PASS
+    =========================================================
+    Status: Strong server-side security (when backend is used)
+    
+    ✓ Authentication:
+      - argon2id password hashing (industry-standard, tuned cost factors)
+      - Opaque session tokens hashed (SHA-256) before storage — never stored in plain text
+    
+    ✓ Session management:
+      - httpOnly cookies — token unreachable from JavaScript
+      - Secure flag — sent only over HTTPS
+      - SameSite=Strict — CSRF protection at cookie layer
+    
+    ✓ CSRF protection:
+      - Double-submit token pattern: csrf cookie + X-CSRF-Token header on every mutating request
+      - Token mismatch rejected with 403
+    
+    ✓ Rate limiting:
+      - Login endpoint rate-limited against brute force attacks
+    
+    ✓ Input validation:
+      - Server-side re-runs the same sanitize*() functions from src/sanitizers.js
+      - One source of truth for validation (imported by server via relative path)
+    
+    ✓ Secret management:
+      - Postgres password stored as Docker secret (/run/secrets/postgres_password)
+      - Never appears in environment variables, docker inspect, or logs
     ✓ Month calculations use built-in Date methods
 
 RECOMMENDATIONS

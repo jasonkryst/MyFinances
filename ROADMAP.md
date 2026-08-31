@@ -1,8 +1,21 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: July 15, 2026  
-**Current Version**: v4.6.1  
+**Last Updated**: August 31, 2026  
+**Current Version**: v4.29.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
+
+---
+
+## Note on Roadmap Coverage
+
+This ROADMAP captures major feature decisions from early development (v4.0–v4.6). For a complete version-by-version history including all releases from v4.7 through v4.29.0, see [CHANGELOG.md](CHANGELOG.md). Key milestones since this ROADMAP was last updated include:
+
+- **v4.7–v4.14**: PWA (installability + offline), Command Palette, High Contrast theme, i18n (English / Español / Polski), interest income engine, storage abstraction + backend switching, Spending Analysis
+- **v4.15–v4.20**: Lighthouse CI, Mutation testing (Stryker), Cash Flow Trend chart, Money Flow Sankey, Table mobile scroll, PWA update banner, Settings theme location
+- **v4.21–v4.24**: Phase 1 PostgreSQL backend (Node.js + Argon2id + CSRF), Docker secrets, Trivy vulnerability scanning
+- **v4.25–v4.26**: Phase 2a (login gate, loadFromPostgres, Postgres storage option in UI), Phase 2b (per-resource Postgres mutations)
+- **v4.27–v4.28**: Phase 2b fixes, Phase 2c (local→Postgres one-time migration modal + one-way lock)
+- **v4.29.0**: Documentation audit + Dependabot
 
 ---
 

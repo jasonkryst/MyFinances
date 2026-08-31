@@ -6,11 +6,26 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ---
 
+## [4.29.0] — 2026-08-31
+
+### Changed
+- **Documentation audit**: Comprehensive review and update of all project documentation to reflect the current state of the codebase (v4.29.0).
+  - `README.md`: Updated test counts (553 → 675 across 72 files including new Postgres suite), file structure (added `i18n.js`, `loginGate.js`, `storageAdapters.js`, `serviceWorker.js`, `pgMigrationModal.js`, `postgresSync.js`, `postgresImport.js`, `dataTransferModal.js`, `guideNav.js`, `bonusAdvisor.js`, `settings.js`, `locales/`, `server/`), security section (optional Postgres backend with argon2id/CSRF), Quick Start, version footer (was stuck at v4.25.0).
+  - `DEPLOYMENT.md`: Fixed nginx base image version (`nginx:1.27-alpine` → `nginx:1.29-alpine`), updated last-updated date.
+  - `SECURITY.md`: Added Optional PostgreSQL Backend security section (argon2id, httpOnly cookies, CSRF double-submit), fixed broken audit link (`docs/SECURITY_AUDIT.md` → `docs/audit/security/`), updated Future Improvements to reflect shipped PWA.
+  - `ROADMAP.md`: Updated version header (v4.6.1 → v4.29.0) and added gap-note covering all features from v4.7–v4.29.
+  - `docs/audit/security/SECURITY_AUDIT.md`: Added Finding 13 — Server-Side Security for optional PostgreSQL backend; updated CSP connect-src and CSRF sections.
+  - `docs/audit/test/TEST_SUITE_AUDIT_2026-08-31.md`: New comprehensive test audit replacing the stale June 19 document (324 → 675 tests, 41 → 72 files, all categories updated with current counts).
+- **Dependabot** (v4.28.1, same release): `.github/dependabot.yml` added (backported note — actual file landed in v4.28.1 on a parallel branch).
+
+---
+
 ## [4.28.0] — 2026-08-30
 
 ### Added
 - **Issue #101 — Phase 2c: local->Postgres data migration**: When a user switches to the PostgreSQL backend and logs in for the first time on a fresh server account, the app detects existing localStorage data and presents a one-time migration modal. The modal shows a record summary and offers:
-  - **Transfer**: posts all local records to Postgres via eplaceForPostgres (accounts first for FK remapping, remaining arrays in parallel, keyed resources, milestones, plan-settings). Clears localStorage.debtTrackerData on success; shows an inline error with a **Try Again** button on failure (Postgres is auto-rolled back).
+  - **Transfer**: posts all local records to Postgres via 
+eplaceForPostgres (accounts first for FK remapping, remaining arrays in parallel, keyed resources, milestones, plan-settings). Clears localStorage.debtTrackerData on success; shows an inline error with a **Try Again** button on failure (Postgres is auto-rolled back).
   - **Skip for Now**: dismisses the modal; local data is preserved and the offer re-appears on the next login as long as Postgres remains empty.
 - **One-way Postgres lock**: selecting PostgreSQL in Settings for the first time shows a window.confirm warning that the switch is permanent. After switching, the storage select in Settings is replaced by a read-only note: *You are using PostgreSQL. Switching back to local or session storage is not supported.*
 
