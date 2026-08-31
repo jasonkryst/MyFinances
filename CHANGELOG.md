@@ -1,8 +1,29 @@
-# Changelog
+﻿﻿# Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
+
+---
+
+## [4.30.0] — 2026-08-31
+
+### Changed
+- **PostgreSQL backend switch confirmation** (issue #110): The one-time confirmation prompt shown when switching storage to PostgreSQL is now a theme-matching modal (#pgSwitchConfirmModal) instead of a browser confirm() dialog. Cancel and Escape both abort the switch; the Continue button is styled as destructive (`btn-danger`). Default focus is on Cancel to protect against accidental keyboard confirmation.
+
+---
+
+## [4.29.0] — 2026-08-31
+
+### Changed
+- **Documentation audit**: Comprehensive review and update of all project documentation to reflect the current state of the codebase (v4.29.0).
+  - `README.md`: Updated test counts (553 → 675 across 72 files including new Postgres suite), file structure (added `i18n.js`, `loginGate.js`, `storageAdapters.js`, `serviceWorker.js`, `pgMigrationModal.js`, `postgresSync.js`, `postgresImport.js`, `dataTransferModal.js`, `guideNav.js`, `bonusAdvisor.js`, `settings.js`, `locales/`, `server/`), security section (optional Postgres backend with argon2id/CSRF), Quick Start, version footer (was stuck at v4.25.0).
+  - `DEPLOYMENT.md`: Fixed nginx base image version (`nginx:1.27-alpine` → `nginx:1.29-alpine`), updated last-updated date.
+  - `SECURITY.md`: Added Optional PostgreSQL Backend security section (argon2id, httpOnly cookies, CSRF double-submit), fixed broken audit link (`docs/SECURITY_AUDIT.md` → `docs/audit/security/`), updated Future Improvements to reflect shipped PWA.
+  - `ROADMAP.md`: Updated version header (v4.6.1 → v4.29.0) and added gap-note covering all features from v4.7–v4.29.
+  - `docs/audit/security/SECURITY_AUDIT.md`: Added Finding 13 — Server-Side Security for optional PostgreSQL backend; updated CSP connect-src and CSRF sections.
+  - `docs/audit/test/TEST_SUITE_AUDIT_2026-08-31.md`: New comprehensive test audit replacing the stale June 19 document (324 → 675 tests, 41 → 72 files, all categories updated with current counts).
+- **Dependabot** (v4.28.1, same release): `.github/dependabot.yml` added (backported note — actual file landed in v4.28.1 on a parallel branch).
 
 ---
 

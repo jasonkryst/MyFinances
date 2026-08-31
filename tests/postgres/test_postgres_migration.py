@@ -306,7 +306,7 @@ async def test_settings_select_hidden_when_on_postgres(pg_page, base_url, creden
 
 
 async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, credentials):
-    """Confirm dialog appears (and blocks reload) when user first selects Postgres."""
+    """Themed confirm modal appears (instead of browser dialog) when user first selects Postgres."""
     from playwright.async_api import async_playwright
     async with async_playwright() as p:
         browser = await p.chromium.launch()
@@ -337,21 +337,20 @@ async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, creden
         await page.click("#settingsBtn")
         await page.locator("#settingsModal").wait_for(state="visible", timeout=5000)
         await page.select_option("#settingStorageBackend", "postgres")
-
-        dialog_messages = []
-
-        async def handle_dialog(dialog):
-            dialog_messages.append(dialog.message)
-            await dialog.dismiss()  # cancel so we do not actually switch
-
-        page.on("dialog", handle_dialog)
         await page.click("#settingsModalDoneBtn")
-        await page.wait_for_timeout(1000)
 
-        assert dialog_messages, "No confirm dialog shown when switching to Postgres"
-        assert "permanent" in dialog_messages[0].lower(), \
-            f"Dialog missing 'permanent' warning: {dialog_messages[0]}"
-        assert "not be able to switch back" in dialog_messages[0].lower(), \
-            f"Dialog missing switch-back warning: {dialog_messages[0]}"
+        # v4.30.0: replaced window.confirm with a themed modal — verify it appears
+        modal = page.locator("#pgSwitchConfirmModal")
+        await modal.wait_for(state="visible", timeout=5000)
+
+        body_text = (await modal.inner_text()).lower()
+        assert "permanent" in body_text, \
+            f"Confirm modal missing 'permanent' warning: {body_text}"
+        assert "not be able to switch back" in body_text, \
+            f"Confirm modal missing switch-back warning: {body_text}"
+
+        # Cancel so we do not actually switch
+        await page.click("#pgSwitchCancelBtn")
+        await modal.wait_for(state="hidden", timeout=3000)
 
         await browser.close()

@@ -1,4 +1,4 @@
-// First-run setup wizard and the Settings modal that lets users change their
+﻿// First-run setup wizard and the Settings modal that lets users change their
 // choice later. Both are plain static modals following the same
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
@@ -24,6 +24,34 @@ export function maybeShowSetupWizard(app, isFirstRun) {
     modal.classList.add('flex-visible');
     modal.classList.remove('hidden');
     setTimeout(() => adjustBtn.focus(), 30);
+}
+
+function showPgSwitchConfirmModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('pgSwitchConfirmModal');
+        const confirmBtn = document.getElementById('pgSwitchConfirmBtn');
+        const cancelBtn = document.getElementById('pgSwitchCancelBtn');
+        if (!modal) { resolve(false); return; }
+
+        const dismiss = (result) => {
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            resolve(result);
+        };
+
+        confirmBtn.onclick = () => dismiss(true);
+        cancelBtn.onclick = () => dismiss(false);
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        setTimeout(() => cancelBtn.focus(), 30);
+    });
 }
 
 export function initSettingsModal(app) {
@@ -71,16 +99,12 @@ export function initSettingsModal(app) {
         setTimeout(() => adjustsCheckbox.focus(), 30);
     };
 
-    const save = () => {
+    const save = async () => {
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
         if (storageSelect.value === 'postgres') {
             if (getStorageBackendPreference() !== 'postgres') {
-                const ok = window.confirm(
-                    'Switching to PostgreSQL is permanent.\n\n' +
-                    'Once switched, you will not be able to switch back to local or session storage. ' +
-                    'Any existing local data can be transferred to the server on your next login.\n\n' +
-                    'Continue?'
-                );
+                close();
+                const ok = await showPgSwitchConfirmModal();
                 if (!ok) return;
                 setStorageBackendPreference('postgres');
                 location.reload();

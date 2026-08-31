@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 First-Run Setup Wizard and Settings Modal Tests
 The setup wizard (src/setupWizard.js) appears only when localStorage has no
@@ -236,6 +236,78 @@ def test_settings_modal_escape_does_not_switch_backend(app_page):
     page.select_option('#settingStorageBackend', 'session')
     page.keyboard.press('Escape')
     page.wait_for_timeout(200)
+
+    backend = page.evaluate("() => window.app._storageBackendKind")
+    assert backend == 'local'
+
+
+@pytest.mark.ui
+def test_settings_postgres_switch_shows_confirm_modal(app_page):
+    """Selecting PostgreSQL and clicking Done opens the themed confirm modal
+    instead of a browser dialog — the modal must be visible with both buttons."""
+    page = app_page
+
+    page.click('#settingsBtn')
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.select_option('#settingStorageBackend', 'postgres')
+    page.click('#settingsModalDoneBtn')
+
+    page.wait_for_selector('#pgSwitchConfirmModal.flex-visible', timeout=5000)
+
+    confirm_btn = page.query_selector('#pgSwitchConfirmBtn')
+    cancel_btn = page.query_selector('#pgSwitchCancelBtn')
+    assert confirm_btn, "Continue button must exist"
+    assert cancel_btn, "Cancel button must exist"
+    assert confirm_btn.is_visible()
+    assert cancel_btn.is_visible()
+
+
+@pytest.mark.ui
+def test_settings_postgres_switch_cancel_closes_modal_and_keeps_backend(app_page):
+    """Clicking Cancel on the Postgres confirm modal dismisses it and leaves
+    the active backend unchanged."""
+    page = app_page
+
+    page.click('#settingsBtn')
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.select_option('#settingStorageBackend', 'postgres')
+    page.click('#settingsModalDoneBtn')
+
+    page.wait_for_selector('#pgSwitchConfirmModal.flex-visible', timeout=5000)
+    page.click('#pgSwitchCancelBtn')
+    page.wait_for_timeout(200)
+
+    modal = page.query_selector('#pgSwitchConfirmModal')
+    classes = modal.get_attribute('class') or ''
+    assert 'hidden' in classes
+    assert 'flex-visible' not in classes
+
+    backend = page.evaluate("() => window.app._storageBackendKind")
+    assert backend == 'local'
+
+
+@pytest.mark.ui
+def test_settings_postgres_switch_escape_closes_modal_and_keeps_backend(app_page):
+    """Pressing Escape on the Postgres confirm modal dismisses it and leaves
+    the active backend unchanged."""
+    page = app_page
+
+    page.click('#settingsBtn')
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.select_option('#settingStorageBackend', 'postgres')
+    page.click('#settingsModalDoneBtn')
+
+    page.wait_for_selector('#pgSwitchConfirmModal.flex-visible', timeout=5000)
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'pgSwitchCancelBtn'",
+        timeout=2000
+    )
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(200)
+
+    modal = page.query_selector('#pgSwitchConfirmModal')
+    classes = modal.get_attribute('class') or ''
+    assert 'hidden' in classes
 
     backend = page.evaluate("() => window.app._storageBackendKind")
     assert backend == 'local'

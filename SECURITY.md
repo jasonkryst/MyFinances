@@ -6,11 +6,20 @@ MyFinances is a client-side personal finance tracking application with strong se
 
 ## Security Architecture
 
-### Client-Side Only
-- **No Backend Server**: All data is stored locally in the browser's localStorage
+### Client-Side Only (Default)
+- **No Backend Server (default)**: All data is stored locally in the browser's localStorage
 - **No Network Transmission**: Financial data never leaves your machine
 - **No API Calls**: Eliminates server vulnerabilities
 - **Offline Capable**: Works without internet connection
+
+### Optional PostgreSQL Backend
+An opt-in self-hosted Node.js + PostgreSQL backend adds multi-device sync with strong server-side security:
+- **argon2id password hashing** — industry-standard, tuned cost factors
+- **Server-side sessions** — opaque tokens hashed before storage; never stored in plain text
+- **httpOnly / Secure / SameSite=Strict cookies** — session token unreachable from JavaScript
+- **CSRF double-submit tokens** — every mutating request requires a matching `csrf` cookie + header pair
+- **Rate limiting** — login endpoint protected against brute force
+- See [DEPLOYMENT.md](DEPLOYMENT.md) for setup and [server/README.md](server/README.md) for architecture
 
 ## Security Features
 
@@ -267,7 +276,7 @@ If you discover a security vulnerability:
 
 ## Security Audit Results
 
-**Most Recent Audit**: May 29, 2026
+**Most Recent Audit**: August 31, 2026
 
 ### Summary
 - Risk Level: **LOW**
@@ -284,16 +293,17 @@ If you discover a security vulnerability:
 - ✅ No sensitive data exposure
 - ✅ Proper error handling
 
-For full audit report, see: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)
+For full audit reports, see: [docs/audit/security/](docs/audit/security/)
 
-## Future Security Improvements
+## Security Improvements Completed
 
-Planned enhancements:
-- [ ] Implement localStorage encryption (optional)
-- [ ] Add password protection for exports
-- [ ] Consider progressive web app (PWA) with service workers
-- [ ] Add data compression for exports
-- [ ] Implement data integrity checking (checksums)
+The following previously planned enhancements are now shipped:
+- ✅ **Progressive Web App (PWA)** — `sw.js` service worker for offline capability and app-shell caching
+- ✅ **Optional server-side auth** — argon2id + session cookies + CSRF for the Postgres backend
+
+Remaining considerations:
+- [ ] localStorage encryption (browser-side, optional for highly sensitive deployments)
+- [ ] Password protection for JSON exports
 
 ## Compliance
 
@@ -314,6 +324,6 @@ For security-related questions or concerns, please contact the repository mainta
 
 ---
 
-**Last Updated:** May 29, 2026  
-**Version:** 1.0  
+**Last Updated:** August 31, 2026  
+**Version:** 1.1  
 **Status:** Production-Ready
