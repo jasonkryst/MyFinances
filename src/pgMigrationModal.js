@@ -25,6 +25,7 @@ export async function showPgMigrationModal(app, localJson) {
         const transferBtn = document.getElementById('pgMigrationTransferBtn');
         const skipBtn = document.getElementById('pgMigrationSkipBtn');
 
+        console.log('[pgMig:diag] modal element found:', !!modal, '| localJson len:', localJson?.length);
         if (!modal) { resolve(); return; }
 
         let clean;
@@ -81,6 +82,7 @@ export async function showPgMigrationModal(app, localJson) {
         setLoading(false);
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
+        console.log('[pgMig:diag] modal shown, class now:', modal.className);
         setTimeout(() => transferBtn.focus(), 30);
     });
 }
