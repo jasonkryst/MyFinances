@@ -129,6 +129,8 @@ async def test_settings_postgres_option_reloads_to_gate(base_url):
         await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
 
         await page.select_option('#settingStorageBackend', 'postgres')
+        # Accept the one-way lock confirm dialog that fires when switching to Postgres
+        page.on("dialog", lambda d: d.accept())
         await page.click('#settingsModalDoneBtn')
 
         gate = page.locator('#loginGate')
