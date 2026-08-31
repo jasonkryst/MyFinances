@@ -1,4 +1,4 @@
-
+﻿
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1056,7 +1056,26 @@
                 <button id="pgMigrationSkipBtn" class="btn btn-secondary">Skip for Now</button>
             </div>
         </div>
-    </div>    <!-- Settings -->
+    </div>
+    <!-- Postgres Switch Confirm Modal - one-time warning before the permanent switch to Postgres backend -->
+    <div id="pgSwitchConfirmModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="pgSwitchConfirmTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="pgSwitchConfirmTitle">Switch to PostgreSQL?</h3>
+            <p class="modal-description">
+                Switching to PostgreSQL is permanent. Once switched, you will not be able
+                to switch back to local or session storage.
+            </p>
+            <p class="modal-description">
+                Any existing local data can be transferred to the server on your next login.
+            </p>
+            <div class="modal-actions">
+                <button id="pgSwitchConfirmBtn" class="btn btn-danger">Continue</button>
+                <button id="pgSwitchCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Settings -->
     <div id="settingsModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
         <div class="modal-content">
             <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
