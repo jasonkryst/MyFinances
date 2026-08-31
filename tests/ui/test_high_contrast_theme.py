@@ -202,3 +202,65 @@ def test_high_contrast_focus_visible_outline_is_bold(app_page):
     """)
     assert outline['style'] == 'solid'
     assert outline['width'] == '3px'
+
+
+@pytest.mark.ui
+def test_pg_modal_content_uses_dark_surface_in_high_contrast(app_page):
+    """pgMigrationModal and pgSwitchConfirmModal .modal-content must not be
+    white in high-contrast mode — var(--bg-secondary) is #111111 in that
+    tier (issue #120)."""
+    page = app_page
+    open_settings(page)
+    page.select_option('#themeSwitcher', 'high-contrast')
+    page.wait_for_timeout(200)
+
+    for modal_id in ['pgMigrationModal', 'pgSwitchConfirmModal']:
+        bg = page.evaluate(f"""
+            () => getComputedStyle(
+                document.querySelector('#{modal_id} .modal-content')
+            ).backgroundColor
+        """)
+        assert bg != 'rgb(255, 255, 255)', (
+            f"#{modal_id} .modal-content must not be white in high-contrast mode"
+        )
+
+
+@pytest.mark.ui
+def test_login_gate_uses_pure_black_surfaces_in_high_contrast(app_page):
+    """Login gate overlay and card must use the high-contrast palette.
+    --bg-primary is #000000 and --bg-secondary is #111111 in that tier
+    (issue #120)."""
+    page = app_page
+    open_settings(page)
+    page.select_option('#themeSwitcher', 'high-contrast')
+    page.wait_for_timeout(200)
+
+    colors = page.evaluate("""
+        () => ({
+            overlay: getComputedStyle(document.querySelector('.login-gate')).backgroundColor,
+            card:    getComputedStyle(document.querySelector('.login-gate-card')).backgroundColor,
+        })
+    """)
+    assert colors['overlay'] == 'rgb(0, 0, 0)', (
+        ".login-gate overlay must be pure black (#000000) in high-contrast mode"
+    )
+    assert colors['card'] == 'rgb(17, 17, 17)', (
+        ".login-gate-card must use #111111 (--bg-secondary) in high-contrast mode"
+    )
+
+
+@pytest.mark.ui
+def test_modal_close_button_visible_in_high_contrast(app_page):
+    """Modal close (x) button must inherit text-primary (#ffffff) in
+    high-contrast mode so it is visible against the dark card (issue #120)."""
+    page = app_page
+    open_settings(page)
+    page.select_option('#themeSwitcher', 'high-contrast')
+    page.wait_for_timeout(200)
+
+    color = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.modal-close')).color"
+    )
+    assert color == 'rgb(255, 255, 255)', (
+        ".modal-close must be white (#ffffff) in high-contrast mode"
+    )
