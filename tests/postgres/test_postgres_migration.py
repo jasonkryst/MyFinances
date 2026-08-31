@@ -99,6 +99,38 @@ async def _login_with_local_data(page, base_url, credentials, local_data=None):
 
 
 # ---------------------------------------------------------------------------
+# Fixture: clean Postgres state before every migration test
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+async def wipe_postgres_before_each_migration_test(base_url, credentials):
+    """Wipe all Postgres data before each migration test for a guaranteed clean slate.
+
+    Prior test files (e.g. test_postgres_import.py) may leave accounts or other
+    records behind.  If even one record exists, postgresIsEmpty is false and
+    showPgMigrationModal is never called, silently breaking all migration tests.
+    """
+    from playwright.async_api import async_playwright
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        ctx = await browser.new_context()
+        await ctx.add_init_script(
+            "window.localStorage.setItem('debtTrackerStorageBackend', 'postgres');"
+        )
+        page = await ctx.new_page()
+        await page.goto(base_url)
+        await page.locator('#loginGate').wait_for(state='visible', timeout=8000)
+        await page.fill('#loginGateEmail', credentials['email'])
+        await page.fill('#loginGatePassword', credentials['password'])
+        async with page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
+            await page.click('.login-gate-submit')
+        await page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
+        await _wipe_all(page, base_url)
+        await browser.close()
+    yield
+
+
+# ---------------------------------------------------------------------------
 # Positive: migration is offered
 # ---------------------------------------------------------------------------
 

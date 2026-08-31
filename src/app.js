@@ -1,4 +1,4 @@
-import {
+﻿import {
     addDebt as addDebtFeature,
     deleteDebt as deleteDebtFeature,
     showUpdateBalanceModal as showUpdateBalanceModalFeature,
@@ -193,7 +193,6 @@ export class DebtTrackerApp {
             }
             await loadFromPostgres(this);
             const localJson = window.localStorage.getItem('debtTrackerData');
-            console.log('[init:diag] localJson:', localJson ? 'present(len=' + localJson.length + ')' : 'null', '| debts isArray:', Array.isArray(this.debts), 'len:', this.debts?.length, '| accounts isArray:', Array.isArray(this.accounts), 'len:', this.accounts?.length);
             if (localJson) {
                 const postgresIsEmpty =
                     this.debts.length === 0 && this.accounts.length === 0 &&
@@ -201,9 +200,7 @@ export class DebtTrackerApp {
                     this.expenses.length === 0 && this.recurringTemplates.length === 0 &&
                     this.emergencyFunds.length === 0 && this.sinkingFunds.length === 0 &&
                     this.reconciliations.length === 0;
-                console.log('[init:diag] postgresIsEmpty:', postgresIsEmpty, '| debts.len:', this.debts.length, '| accounts.len:', this.accounts.length);
                 if (postgresIsEmpty) {
-                    console.log('[init:diag] calling showPgMigrationModal');
                     await showPgMigrationModal(this, localJson);
                 }
             }
