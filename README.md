@@ -6,9 +6,9 @@
 
 _A modern, privacy-first web app to track accounts, debts, income, and spending, helping you plan and visualize your path to financial freedom._
 
-All calculations happen locally in your browser — no accounts, no servers, no tracking.
+All calculations happen locally in your browser — no accounts required. An optional self-hosted Node.js + PostgreSQL backend is available for multi-device sync (see [DEPLOYMENT.md](DEPLOYMENT.md)).
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: June 19, 2026 | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: August 31, 2026 | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
 
 ---
 
@@ -52,7 +52,8 @@ MyFinances prioritizes your financial data security:
 - ✅ **No External Dependencies** — Vanilla JavaScript (no npm supply-chain risk)
 - ✅ **Secure File Imports** — JSON validation + 2 MB size limit + full re-sanitization on import
 - ✅ **Input Validation** — Numeric bounds, date validation, text sanitization at every entry point
-- ✅ **Client-Side Only** — No server, no authentication surface
+- ✅ **Client-Side Only (default)** — No server, no authentication surface
+- ✅ **Optional Postgres Backend** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request
 
 ### Privacy Guarantee
 - ✅ All calculations run entirely in your browser
@@ -208,7 +209,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ---
 
 ### Data Management
-- **Persistent storage** — all data auto-saved to `localStorage`; key `debtTrackerData`, format `"4.0.0"`
+- **Persistent storage** — all data auto-saved to `localStorage`; key `debtTrackerData`, format `"4.0.0"`. Optional: switch to a self-hosted PostgreSQL backend for multi-device sync
 - **JSON export** — one-click full backup including accounts, debts, income, bills, expenses, recurring templates, snapshots, overrides, reconciliations, and settings
 - **JSON import** — Replace (full restore) or Merge (append debts; restore income, bills, expenses, overrides); legacy v1.0 files accepted; 2 MB max; full re-sanitization after import
 - **CSV export** — debt payment schedule + per-debt summary; Ledger CSV with custom column picker
@@ -300,14 +301,19 @@ guide.html                  — In-app usage guide (opened by Help button)
 guide.css                   — Styles for guide.html (externalized for CSP compliance)
 styles.css                  — Responsive styles + dark mode + utilities + print stylesheet
 styles-csp-classes.css      — CSP-compliant utility classes + dynamic CSS variable rules
-manifest.json                — Web app manifest (installability metadata + icon references)
-sw.js                         — Service worker: app-shell precache + Chart.js CDN runtime cache
+manifest.json               — Web app manifest (installability metadata + icon references)
+sw.js                       — Service worker: app-shell precache + Chart.js CDN runtime cache
 src/
   ├─ app.js                — Main app controller & state (DebtTrackerApp)
   ├─ ui.js                 — Event listeners, page navigation, mobile menu
   ├─ commandPalette.js     — Ctrl+K command palette
-  ├─ settings.js           — App settings (reconciliation mode, etc.)
-  ├─ setupWizard.js        — First-run setup wizard
+  ├─ settings.js           — App settings (reconciliation mode, storage backend, etc.)
+  ├─ setupWizard.js        — First-run setup wizard + storage backend switcher
+  ├─ loginGate.js          — Full-page login gate overlay (PostgreSQL backend only)
+  ├─ storageAdapters.js    — Storage backend adapters (LocalStorage / Session / Postgres)
+  ├─ serviceWorker.js      — Service worker registration
+  ├─ i18n.js               — Internationalization (t(), locale switching, applyStaticTranslations)
+  ├─ locales/              — i18n locale dictionaries (en.js, es.js, pl.js)
   ├─ strategy.js           — Payment-plan orchestrator & income widget
   ├─ strategyPlanCalculation.js — Payment-plan calculation entry points
   ├─ strategyCalendar.js   — Payment calendar view
@@ -317,6 +323,7 @@ src/
   ├─ debts.js              — Debt management (CRUD & inline editing)
   ├─ debtBreakEven.js      — Break-even badge, mini chart & accelerate-debt modal
   ├─ accounts.js           — Account management & balance projections
+  ├─ bonusAdvisor.js       — Bonus/one-time income advisor
   ├─ income.js             — Income sources & one-time entries
   ├─ bills.js              — Bills data model (no standalone add UI — use Recurring)
   ├─ recurring.js          — Recurring transaction templates
@@ -331,6 +338,7 @@ src/
   ├─ reportsNetWorth.js    — Net worth snapshots & widget
   ├─ reportsCalendar.js    — Reports calendar grid & day-detail modal
   ├─ reportsCashFlow.js    — Income/expense & money flow reports
+  ├─ reportsMoneyFlowSankey.js — Money Flow Sankey chart
   ├─ reportsVariance.js    — Budget variance report
   ├─ reportsSummary.js     — Reports summary metrics
   ├─ forecast.js           — Cash Flow Forecast (Reports tab)
@@ -338,17 +346,29 @@ src/
   ├─ storage.js            — Persistence (save/load/quota/backend switching)
   ├─ sanitizers.js         — Sanitizers for persisted/imported record shapes
   ├─ dataExport.js         — JSON/CSV export & import
-  ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only comparison)
+  ├─ dataTransferModal.js  — Postgres-to-local data transfer modal
+  ├─ postgresSync.js       — Per-resource Postgres mutation helpers (pgPost/pgPatch/pgDelete)
+  ├─ postgresImport.js     — loadFromPostgres() fan-out to all 14 resource endpoints
+  ├─ pgMigrationModal.js   — One-time local→Postgres migration modal
+  ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only)
   ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
+  ├─ guideNav.js           — In-app guide navigation helpers
   └─ utils.js              — Formatting, date utilities, sanitization, chart tables
-tests/ (553 tests across 57 files)
+server/                     — Optional self-hosted Node.js + PostgreSQL backend
+  ├─ src/index.js          — Express app (auth, CRUD routes, CSRF, rate-limiting)
+  ├─ migrations/           — node-pg-migrate SQL migration files
+  ├─ scripts/create-user.js — Bootstrap admin user (argon2id hashed)
+  ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
+  ├─ Dockerfile            — node:20-alpine image (build context = repo root for sanitizer reuse)
+  └─ README.md             — Server setup, dev, and deployment guide
+tests/ (675 tests across 72 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
-  ├─ security/ (56 tests)     — XSS, CSP, input validation, static scan
+  ├─ security/ (62 tests)     — XSS, CSP, input validation, static scan
   │   ├─ test_xss.py, test_csp.py
   │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (286 tests)    — Per-feature CRUD, calculations, business logic
+  ├─ features/ (347 tests)    — Per-feature CRUD, calculations, business logic
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
@@ -356,20 +376,30 @@ tests/ (553 tests across 57 files)
   │   ├─ test_spending_analysis.py, test_storage_import.py, test_storage_quota.py
   │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
   │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py, test_versioning.py
-  │   └─ test_break_even.py, test_interest_income.py
-  ├─ ui/ (187 tests)          — UI/UX, responsiveness, accessibility
+  │   ├─ test_break_even.py, test_interest_income.py, test_i18n.py
+  │   ├─ test_storage_backend.py, test_pwa.py, test_pwa_icons.py
+  │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py
+  │   └─ test_issue_92_export.py, test_issue_93_expense_save.py
+  ├─ ui/ (205 tests)          — UI/UX, responsiveness, accessibility
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py, test_high_contrast_theme.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
   │   ├─ test_charts.py, test_chart_accessibility.py, test_guide_theme.py
   │   ├─ test_guide_nav.py, test_reduced_motion.py, test_command_palette.py
   │   ├─ test_setup_wizard.py, test_overview_print.py, test_remaining_pages_print.py
-  │   ├─ test_table_mobile_scroll.py
+  │   ├─ test_table_mobile_scroll.py, test_data_transfer_modal.py
+  │   ├─ test_settings_theme_location.py, test_pwa_update_banner.py
   │   ├─ test_debt_actions.py, test_recurring_actions.py, test_reports_actions.py
   │   └─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py
   ├─ a11y/ (10 tests)         — Site-wide WCAG 2.1 AA accessibility audit
   │   └─ test_a11y_audit.py, run_a11y_audit.py
-  └─ integration/ (14 tests)  — End-to-end workflows, import/export, data persistence
-      ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
+  ├─ integration/ (17 tests)  — End-to-end workflows, import/export, data persistence
+  │   ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
+  │   └─ test_pwa_offline.py
+  └─ postgres/ (34 tests — requires Docker stack)
+      ├─ test_postgres_bootstrap.py   — Auth, login gate, session handling
+      ├─ test_postgres_import.py      — loadFromPostgres fan-out + import round-trip
+      ├─ test_postgres_mutations.py   — Per-resource CRUD via pgPost/pgPatch/pgDelete
+      └─ test_postgres_migration.py   — local→Postgres one-time migration modal flow
 tools/
   ├─ debug/                   — Ad-hoc manual debugging scripts (not part of pytest suite)
   └─ generate-icons.js        — One-time PWA icon generator (Node zlib only, not run in CI)
@@ -394,7 +424,7 @@ icons/                        — Generated PWA icon set (tools/generate-icons.j
 ### Key Technologies
 
 - **Frontend**: Vanilla ES6+ JavaScript — no frameworks, no build step
-- **Storage**: Browser localStorage (same-origin isolated)
+- **Storage**: Browser localStorage (same-origin isolated); optional self-hosted PostgreSQL backend
 - **Charts**: Chart.js 4.4.3 via CDN
 - **Testing**: pytest + Playwright (browser automation)
 
@@ -454,23 +484,23 @@ form-action 'self'
 
 ---
 
-## 🧪 Testing Suite (Updated August 3, 2026)
+## 🧪 Testing Suite (Updated August 31, 2026)
 
 ### Test Statistics
-- **Total Tests**: 553 comprehensive tests, all passing
-- **Test Files**: 57 organized across 5 categories
+- **Total Tests**: 641 comprehensive tests (plus 34 Postgres/CI-only), all passing
+- **Test Files**: 68 organized across 6 categories
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
 ### Test Categories
 
-#### 🔐 Security Tests (56 tests)
+#### 🔐 Security Tests (62 tests)
 - **XSS Prevention** — Input sanitization across accounts, income, debts, recurring, savings, reconciliation, spending, health, ledger
 - **CSP Compliance** — Strict Content Security Policy enforcement; meta tag / nginx header sync check
 - **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
 - **Static Analysis** — Code patterns, hardcoded secrets, dependencies
 
-#### 🎯 Feature Tests (286 tests)
+#### 🎯 Feature Tests (347 tests)
 - **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion; interest-rate (% APY) badge display — threshold/formatting boundaries, multi-account scoping, edit-to-clear, reload persistence, import clamping
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
 - **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
@@ -494,7 +524,7 @@ form-action 'self'
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 - **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
 
-#### 🎨 UI/UX Tests (187 tests)
+#### 🎨 UI/UX Tests (205 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
 - **Modals** — Visibility toggling, close buttons, amortization, calendar day-detail, ledger export
 - **Dark Mode** — Theme switching, contrast, persistence, corrupted-localStorage fallback
@@ -517,7 +547,7 @@ form-action 'self'
 #### ♿ Accessibility Audit (10 tests)
 Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs, duplicate IDs, orphaned form inputs, unnamed interactive elements, missing alt text, computed WCAG 1.4.3 colour contrast, modal Escape-to-close, mobile nav `aria-expanded`.
 
-#### 🔄 Integration Tests (14 tests)
+#### 🔄 Integration Tests (17 tests)
 - **End-to-End Workflows** — Complete user journeys (account → debt → net worth → reconciliation)
 - **Data Persistence** — Cross-navigation data integrity
 - **Import/Export** — JSON roundtrip, CSV schedule export (incl. comma/quote escaping), full clear-all-data → reimport → render-every-page consistency check
@@ -526,12 +556,12 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 553 tests
-pytest tests/security/ -v         # 56 security tests
-pytest tests/features/ -v         # 247 feature tests
-pytest tests/ui/ -v               # 170 UI/UX tests
+pytest tests/ -v                  # All 675 tests (requires Docker for postgres/)
+pytest tests/security/ -v         # 62 security tests
+pytest tests/features/ -v         # 347 feature tests
+pytest tests/ui/ -v               # 205 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
-pytest tests/integration/ -v      # 14 integration tests
+pytest tests/integration/ -v      # 17 integration tests
 pytest -m "security" -v           # All security tests by marker
 pytest -m "not slow" -v           # Skip slow tests
 ```
@@ -634,4 +664,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.25.0 — Updated August 30, 2026*
+*MyFinances v4.29.0 — Updated August 31, 2026*

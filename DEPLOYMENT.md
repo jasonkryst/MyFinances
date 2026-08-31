@@ -2,13 +2,13 @@
 
 This guide covers deployment options and security configurations for MyFinances.
 
-**Last Updated**: June 4, 2026 | **CSP Status**: Enhanced - 'unsafe-inline' removed
+**Last Updated**: August 31, 2026 | **CSP Status**: Enhanced - 'unsafe-inline' removed
 
 ## Quick Start - Local Development
 
 ### Using Python HTTP Server
 ```bash
-cd "path/to/Debt Tracker"
+cd "path/to/MyFinances"
 python -m http.server 5500
 ```
 Access at: `http://localhost:5500`
@@ -210,7 +210,7 @@ server {
 
 ### Docker Deployment
 
-The repository ships with production-ready Docker files. The image is built on `nginx:1.27-alpine` and runs as the non-root `nginx` user.
+The repository ships with production-ready Docker files. The image is built on `nginx:1.29-alpine` and runs as the non-root `nginx` user.
 
 **Files provided:**
 - `Dockerfile` — multi-stage-ready build; copies `index.html`, `styles.css`, `styles-csp-classes.css`, `guide.html`, `guide.css`, `manifest.json`, `sw.js`, `src/`, and `icons/` (PWA support, #75)
@@ -475,5 +475,5 @@ For deployment questions or issues, please refer to:
 
 ---
 
-**Last Updated:** May 29, 2026  
-**Version:** 1.0
+**Last Updated:** August 31, 2026  
+**Version:** 1.1
