@@ -1,8 +1,15 @@
-# Changelog
+﻿﻿# Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
+
+---
+
+## [4.30.0] — 2026-08-31
+
+### Changed
+- **PostgreSQL backend switch confirmation** (issue #110): The one-time confirmation prompt shown when switching storage to PostgreSQL is now a theme-matching modal (#pgSwitchConfirmModal) instead of a browser confirm() dialog. Cancel and Escape both abort the switch; the Continue button is styled as destructive (`btn-danger`). Default focus is on Cancel to protect against accidental keyboard confirmation.
 
 ---
 
