@@ -1,10 +1,21 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
-## [4.31.0] — 2026-08-31
+## [4.32.0] — 2026-08-31
+
+### Fixed
+- **PostgreSQL dialog CSS theming** (issue #120): Login gate (email/password dialog) and Postgres modals now render correctly in light, dark, and high-contrast modes.
+  - Defined --bg-primary (page backdrop) and --bg-secondary (card surface) CSS custom properties across all three theme tiers (:root, ody.dark-mode, ody.dark-mode.high-contrast-mode). The login gate CSS was already referencing these variables but they were never declared, causing transparent/invisible backgrounds in all themes.
+  - Changed .modal-content from ackground: white to ackground: var(--bg-secondary, #ffffff); color: var(--text-primary), fixing all theme-unaware modals (pgMigrationModal, pgSwitchConfirmModal, calendarDayModal, setupWizardModal, dataTransferModal) in one change.
+  - Changed .modal-description and .modal-helper-text to color: var(--text-secondary) instead of hardcoded #6b7280.
+  - Added color: var(--text-primary) to .modal-close so the × button is visible in all themes.
+  - Added missing .pg-migration-error CSS rule (class was referenced in HTML but had no styles).
+  - Added 6 new themed regression tests across 	ests/ui/test_dark_mode.py and 	ests/ui/test_high_contrast_theme.py.
+
+---## [4.31.0] — 2026-08-31
 
 ### Added
 - **GitHub Security Scanning** (issue #113): Comprehensive security scanning pipeline added to CI.
