@@ -1,4 +1,4 @@
-﻿// First-run setup wizard and the Settings modal that lets users change their
+// First-run setup wizard and the Settings modal that lets users change their
 // choice later. Both are plain static modals following the same
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
@@ -12,14 +12,27 @@ export function maybeShowSetupWizard(app, isFirstRun) {
     const visibleBtn = document.getElementById('setupWizardVisibleBtn');
     if (!modal || !adjustBtn || !visibleBtn) return;
 
-    const choose = (adjusts) => {
-        setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjusts);
+    // Persist a default immediately so a page refresh before the user picks an
+    // option doesn't re-show the wizard and block the UI again. The default
+    // matches the "No, keep visible" button (false = don't auto-adjust).
+    setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
+
+    const close = () => {
         modal.classList.add('hidden');
         modal.classList.remove('flex-visible');
+        modal.onkeydown = null;
+        modal.onclick = null;
+    };
+
+    const choose = (adjusts) => {
+        setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjusts);
+        close();
     };
 
     adjustBtn.onclick = () => choose(true);
     visibleBtn.onclick = () => choose(false);
+    modal.onkeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); close(); } };
+    modal.onclick = (event) => { if (event.target === modal) close(); };
 
     modal.classList.add('flex-visible');
     modal.classList.remove('hidden');

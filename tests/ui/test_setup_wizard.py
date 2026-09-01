@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 First-Run Setup Wizard and Settings Modal Tests
 The setup wizard (src/setupWizard.js) appears only when localStorage has no
@@ -81,6 +81,78 @@ def test_choosing_visible_only_persists_setting_and_closes_modal(page):
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
     assert setting is False
 
+
+
+
+@pytest.mark.ui
+def test_wizard_pre_saves_default_before_user_clicks(page):
+    """The wizard must write a default setting to localStorage immediately on
+    show — before the user clicks either button — so a page refresh does not
+    re-display the wizard and block the UI."""
+    from tests.conftest import BASE_URL
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
+
+    # At this point neither wizard button has been clicked. Check that the
+    # storage key and the default setting are already present.
+    stored = page.evaluate("""() => {
+        const raw = localStorage.getItem('debtTrackerData');
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        const entry = (data.settings || []).find(s => s.key === 'reconciliationAdjustsBalance');
+        return entry ? entry.value : undefined;
+    }""")
+    assert stored is False, (
+        "reconciliationAdjustsBalance must be pre-saved as false before the "
+        "user clicks anything, so a reload won't re-show the wizard"
+    )
+
+    # A reload without clicking any button must NOT re-show the wizard.
+    page.reload(wait_until="networkidle")
+    modal = page.query_selector('#setupWizardModal')
+    classes = modal.get_attribute('class') or ''
+    assert 'hidden' in classes, "Wizard must not reappear after a reload when pre-save fired"
+
+
+@pytest.mark.ui
+def test_wizard_escape_closes_modal(page):
+    """Pressing Escape while the setup wizard is open closes it without
+    requiring a button click, using the default (false) that was pre-saved."""
+    from tests.conftest import BASE_URL
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
+    # Wait for focus to land on the Adjust button (setTimeout 30ms in open())
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'setupWizardAdjustBtn'",
+        timeout=2000
+    )
+
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(200)
+
+    modal = page.query_selector('#setupWizardModal')
+    classes = modal.get_attribute('class') or ''
+    assert 'hidden' in classes, "Wizard must close on Escape"
+    assert 'flex-visible' not in classes
+
+
+@pytest.mark.ui
+def test_wizard_backdrop_click_closes_modal(page):
+    """Clicking the modal backdrop (outside the content box) closes the
+    setup wizard using the default (false) that was pre-saved."""
+    from tests.conftest import BASE_URL
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
+
+    # Click the top-left corner of the viewport — inside the overlay element
+    # but outside the centred .modal-content card.
+    page.mouse.click(10, 10)
+    page.wait_for_timeout(200)
+
+    modal = page.query_selector('#setupWizardModal')
+    classes = modal.get_attribute('class') or ''
+    assert 'hidden' in classes, "Wizard must close when backdrop is clicked"
+    assert 'flex-visible' not in classes
 
 @pytest.mark.ui
 def test_wizard_choice_survives_reload(page):

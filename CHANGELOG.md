@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.33.2] — 2026-09-01
+
+### Fixed
+- **Setup wizard blocks all UI interaction** (this PR): The first-run setup wizard modal (`z-index: 10002`) intercepted all pointer events, making every Edit and Delete button in the app appear completely unresponsive until the user happened to click one of the wizard's two specific buttons. Two bugs compounded the problem: (1) the wizard re-appeared on every page refresh until a button was clicked, because no storage key was written until then — leaving `isFirstRun = true` indefinitely; (2) there was no Escape or backdrop-click path out of the wizard. Fix: `maybeShowSetupWizard` now calls `setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false)` immediately before showing the modal, writing `debtTrackerData` to localStorage so subsequent loads treat the session as returning. Escape key and backdrop-click handlers are also wired so users are never stuck. Three new regression tests added to `tests/ui/test_setup_wizard.py`.
+
+---
 ## [4.33.1] — 2026-09-01
 
 ### Fixed
