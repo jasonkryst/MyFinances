@@ -1025,7 +1025,7 @@
     <div id="loginGate" class="login-gate hidden" role="dialog" aria-modal="true" aria-labelledby="loginGateTitle">
         <div class="login-gate-card">
             <h1 id="loginGateTitle" class="login-gate-title">MyFinances</h1>
-            <p class="login-gate-subtitle">Sign in to your account</p>
+            <p id="loginGateSubtitle" class="login-gate-subtitle">Sign in to your account</p>
             <form id="loginGateForm" class="login-gate-form" novalidate>
                 <div class="form-group">
                     <label for="loginGateEmail">Email</label>
@@ -1035,8 +1035,12 @@
                     <label for="loginGatePassword">Password</label>
                     <input type="password" id="loginGatePassword" class="form-control" autocomplete="current-password" required>
                 </div>
+                <div id="loginGateConfirmGroup" class="form-group hidden">
+                    <label for="loginGateConfirm">Confirm Password</label>
+                    <input type="password" id="loginGateConfirm" class="form-control" autocomplete="new-password">
+                </div>
                 <p id="loginGateError" class="login-gate-error" role="alert" aria-live="polite"></p>
-                <button type="submit" class="btn btn-primary login-gate-submit">Sign In</button>
+                <button type="submit" id="loginGateSubmit" class="btn btn-primary login-gate-submit">Sign In</button>
             </form>
         </div>
     </div>

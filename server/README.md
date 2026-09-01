@@ -26,8 +26,10 @@ Set `DATABASE_URL` directly and run the server without the Docker entrypoint:
     export DATABASE_URL="postgres://myfinances:yourpassword@localhost:5432/myfinances"
     npm install
     npm run migrate up
-    node scripts/create-user.js
     npm start
+    # Then open http://localhost:3000 in a browser
+    # The app will show a setup wizard to create the first user.
+    # Alternatively, run:  node scripts/create-user.js  for headless setup.
 
 ## Tests
 

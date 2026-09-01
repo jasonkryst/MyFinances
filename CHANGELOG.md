@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.33.0] — 2026-08-31
+
+### Added
+- **Frontend setup wizard** (issue #121): Fresh PostgreSQL deploys no longer require running `server/scripts/create-user.js` from the command line. On first boot with an empty database, the login gate automatically switches to a "Create your account" form with a confirm-password field. After successful registration the session is created immediately (no separate login step). The CLI script remains available as a fallback for headless/scripted deployments.
+  - `GET /auth/setup-status` — unauthenticated endpoint returning `{ needsSetup: bool }`; rate-limited at 20 requests/15 min.
+  - `POST /auth/register` — one-shot unauthenticated endpoint that validates email + 12-char minimum password, atomically inserts the first user (`INSERT ... WHERE NOT EXISTS`), creates the session, and sets `session`/`csrf` cookies; rate-limited at 5 requests/15 min; returns 409 once a user exists.
+  - `src/loginGate.js` probes `/auth/setup-status` on load and renders either the setup form or the login form accordingly.
+  - New server tests in `server/test/setup.test.js` (positive, negative, boundary, rate-limit, conflict).
+  - New Playwright tests in `tests/postgres/test_postgres_setup_wizard.py` using `page.route()` mocks (form rendering, client-side validation, request shape, gate hide on success).
+
+---
+
 ## [4.32.0] — 2026-08-31
 
 ### Fixed
