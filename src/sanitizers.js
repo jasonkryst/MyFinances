@@ -43,7 +43,10 @@ export function sanitizeDebt(record, idFallback) {
 }
 
 export function sanitizeIncome(record, idFallback) {
-    const frequency = record?.frequency === 'monthly' ? 'monthly' : 'biweekly';
+    const rawFreq = record?.frequency;
+    const frequency = ['weekly', 'biweekly', 'bi-weekly', 'twice_monthly', 'monthly'].includes(rawFreq)
+        ? (rawFreq === 'bi-weekly' ? 'biweekly' : rawFreq)
+        : 'monthly';
     return {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),

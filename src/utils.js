@@ -147,7 +147,7 @@ export function getDayOrdinal(day) {
 // Supports both `firstPayDate` and legacy `firstDate` fields.
 export function getIncomePaydaysInMonth(income, year, month) {
     const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
     const msPerDay = 24 * 60 * 60 * 1000;
     const firstDate = income.firstPayDate || income.firstDate;
     const first = new Date((firstDate || '') + 'T12:00:00');
@@ -174,7 +174,8 @@ export function getIncomePaydaysInMonth(income, year, month) {
         const daysInMonth = monthEnd.getDate();
         const mid = new Date(year, month, 15, 12, 0, 0);
         const last = new Date(year, month, daysInMonth, 12, 0, 0);
-        paydays.push(mid, last);
+        if (mid >= first) paydays.push(mid);
+        if (last >= first) paydays.push(last);
     } else {
         const payDay = first.getDate();
         const daysInMonth = monthEnd.getDate();
@@ -231,8 +232,8 @@ export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
             const daysInMonth = new Date(yr, mo + 1, 0).getDate();
             const mid = new Date(yr, mo, 15, 12, 0, 0);
             const last = new Date(yr, mo, daysInMonth, 12, 0, 0);
-            if (mid >= today && dates.length < n) dates.push(mid);
-            if (last >= today && dates.length < n) dates.push(last);
+            if (mid >= today && mid >= first && dates.length < n) dates.push(mid);
+            if (last >= today && last >= first && dates.length < n) dates.push(last);
             mo++;
             if (mo > 11) { mo = 0; yr++; }
         }

@@ -818,7 +818,9 @@ export function showAlertModal(message, title = 'Notice') {
         const messageEl = document.getElementById('alertModalMessage');
         const titleEl = document.getElementById('alertModalTitle');
         const okBtn = document.getElementById('alertModalOkBtn');
-        if (!modal) { resolve(); return; }
+        if (!modal || !okBtn) { resolve(); return; }
+
+        const lastFocused = document.activeElement;
 
         if (titleEl) titleEl.textContent = title;
         if (messageEl) messageEl.textContent = message;
@@ -828,12 +830,14 @@ export function showAlertModal(message, title = 'Notice') {
             modal.onkeydown = null;
             modal.classList.add('hidden');
             modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
             resolve();
         };
 
         okBtn.onclick = dismiss;
         modal.onkeydown = (event) => {
-            if (event.key === 'Escape' || event.key === 'Enter') { event.preventDefault(); dismiss(); }
+            if (event.key === 'Escape' || event.key === 'Enter') { event.preventDefault(); dismiss(); return; }
+            if (event.key === 'Tab') { event.preventDefault(); okBtn.focus(); }
         };
 
         modal.classList.add('flex-visible');
