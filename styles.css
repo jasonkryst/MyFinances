@@ -4575,6 +4575,9 @@ body.dark-mode .rpt-cal-today { background: #1e3a5f; border-color: #2563eb; }
     color: var(--text-muted);
     margin-top: 1px;
 }
+body.dark-mode .rpt-cal-count {
+    color: #cbd5e1;
+}
 
 .rpt-cal-day-num {
     display: block;
