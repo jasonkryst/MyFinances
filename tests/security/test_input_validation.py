@@ -286,27 +286,30 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     await page.click('#emergencyFormToggle')
     await page.wait_for_timeout(300)
 
-    # Capture alert() calls without relying on native dialog handling
-    await page.evaluate("() => { window.__alerts = []; window.alert = (m) => window.__alerts.push(m); }")
-
     await page.select_option('#emergencyAccount', label='EF Bounds Checking')
 
-    # A zero target amount should be rejected
+    # A zero target amount should be rejected — shows the themed #alertModal
     await page.fill('#emergencyTarget', '0')
     await page.fill('#emergencyCurrent', '100')
     await page.fill('#emergencyContribution', '50')
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_timeout(300)
+    await page.wait_for_timeout(400)
 
-    alerts = await page.evaluate('() => window.__alerts')
-    assert any('valid values' in m.lower() for m in alerts), \
-        "Expected validation alert for zero target amount"
+    modal = await page.query_selector('#alertModal')
+    modal_class = await modal.get_attribute('class') if modal else ''
+    assert 'flex-visible' in (modal_class or ''), \
+        "Expected themed validation modal for zero target amount"
+    modal_msg = await page.text_content('#alertModalMessage') or ''
+    assert 'valid values' in modal_msg.lower(), \
+        f"Expected 'valid values' in modal message, got: {modal_msg!r}"
+    await page.click('#alertModalOkBtn')
+    await page.wait_for_timeout(200)
+
     funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
     assert funds_count == 0, "Fund should not be created with a zero target amount"
 
     # A negative monthly contribution is rejected by the input's min="0"
     # constraint, which blocks the form's submit event entirely.
-    await page.evaluate('() => { window.__alerts = []; }')
     await page.fill('#emergencyTarget', '5000')
     await page.fill('#emergencyContribution', '-50')
 

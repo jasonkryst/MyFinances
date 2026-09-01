@@ -168,10 +168,15 @@ def _seed_accounts(page, accounts):
 
 
 def _badge_text_for_card(page, account_name):
-    """The .acct-rate-badge text (or None) scoped to the card matching account_name."""
+    """The .acct-rate-badge text (or None) scoped to the card matching account_name.
+    Strips the trailing ' (Type)' suffix added to card names so callers can use the
+    bare account name without knowing the account type."""
     return page.evaluate("""(name) => {
         const cards = Array.from(document.querySelectorAll('.acct-card'));
-        const card = cards.find(c => c.querySelector('.acct-card-name')?.textContent === name);
+        const card = cards.find(c => {
+            const raw = c.querySelector('.acct-card-name')?.textContent ?? '';
+            return raw.split(' (')[0] === name;
+        });
         return card?.querySelector('.acct-rate-badge')?.textContent ?? null;
     }""", account_name)
 
