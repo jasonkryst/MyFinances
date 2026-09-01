@@ -1,9 +1,15 @@
-﻿﻿# Changelog
+# Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.33.4] — 2026-09-01
+
+### Fixed
+- **Edit and Delete buttons silently failed on the PostgreSQL backend** (all pages — Debts, Income, Accounts, Savings, Recurring, etc.): The node-postgres (pg) library returns BIGSERIAL/BIGINT column values as JavaScript **strings** by default to preserve 64-bit precision. Every id flowing from the server into pp.debts, pp.accounts, etc. was therefore a string (e.g. "1"), while the data-debt-id attribute HTML integer parsed via parseInt was a number (e.g. 1). The strict === comparison pp.editingDebtId === debt.id (number vs. string) was always false, so the inline edit form was never rendered. The same mismatch caused pp.debts.filter(d => d.id !== debtId) to never filter anything out, leaving deleted items in place. Fix: add a global type parser for pg OID 20 (bigint) in server/src/db.js so all BIGINT/BIGSERIAL columns — primary keys and foreign keys alike — are returned as JavaScript numbers. Pure frontend with no backend API running is unaffected.
+
+---
 ## [4.33.3] — 2026-09-01
 
 ### Fixed
@@ -46,7 +52,8 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - Added missing .pg-migration-error CSS rule (class was referenced in HTML but had no styles).
   - Added 6 new themed regression tests across 	ests/ui/test_dark_mode.py and 	ests/ui/test_high_contrast_theme.py.
 
----## [4.31.0] — 2026-08-31
+---
+## [4.31.0] — 2026-08-31
 
 ### Added
 - **GitHub Security Scanning** (issue #113): Comprehensive security scanning pipeline added to CI.

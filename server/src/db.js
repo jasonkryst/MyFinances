@@ -9,6 +9,7 @@ const { Pool } = pg;
 // here works with plain JSON, so return these as the raw wire text
 // instead -- sanitize() functions already do their own numeric/date
 // coercion on the way in.
+pg.types.setTypeParser(20, val => (val === null ? null : parseInt(val, 10))); // bigint/bigserial
 pg.types.setTypeParser(1700, val => (val === null ? null : parseFloat(val))); // numeric
 pg.types.setTypeParser(1082, val => val); // date
 pg.types.setTypeParser(1184, val => val); // timestamptz

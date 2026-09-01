@@ -122,6 +122,49 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
     assert await pg_page.locator('text=Delete Me').count() == 0, f'Deleted debt still present. Console: {logs}'
+async def test_debt_edit_form_renders(pg_page, base_url, credentials):
+    """Regression: BIGSERIAL ids were returned as strings by node-postgres (OID 20),
+    causing app.editingDebtId (number) === debt.id (string) to always be false and
+    the inline edit form to silently never appear. Fix: pg.types.setTypeParser(20)
+    in server/src/db.js coerces all bigint columns to JS numbers."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+
+    seed = await _api_post(pg_page, base_url, '/api/debts', {
+        'name': 'Edit Me', 'debtType': 'creditCard',
+        'accountBalance': 1000, 'interestRate': 18,
+        'minimumPayment': 25, 'dueDate': 5
+    })
+    assert seed.status == 201
+    debt_id = (await seed.json())['id']
+
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    await pg_page.click('[data-page="liabilities"]')
+    await pg_page.wait_for_selector('text=Edit Me', timeout=5000)
+
+    # Root-cause assertion: id must be a JS number, not a string
+    id_type = await pg_page.evaluate(
+        "(name) => { const d = window.app.debts.find(x => x.name === name); "
+        "return d ? typeof d.id : 'not found'; }",
+        'Edit Me'
+    )
+    assert id_type == 'number', (
+        f'debt.id is {id_type!r} — expected number. '
+        f'BIGSERIAL ids are being returned as strings (node-postgres OID 20 not parsed). '
+        f'Console: {logs}'
+    )
+
+    # Symptom assertion: clicking Edit must render the inline edit form
+    await pg_page.click(f'[data-debt-action="edit"][data-debt-id="{debt_id}"]')
+    await pg_page.wait_for_selector('#debtsList input[value="Edit Me"]', timeout=5000)
+    assert await pg_page.locator('#debtsList input[value="Edit Me"]').count() > 0, (
+        f'Inline edit form did not appear after clicking Edit. Console: {logs}'
+    )
+
+    # Cleanup
+    await _api_delete(pg_page, base_url, f'/api/debts/{debt_id}')
+
 
 
 # ---------------------------------------------------------------------------
