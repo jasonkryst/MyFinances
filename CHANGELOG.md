@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.33.1] — 2026-09-01
+
+### Fixed
+- **Server auto-migration on startup** (PR #123): The PostgreSQL server now runs `node-pg-migrate up` automatically at startup before accepting connections. Previously, migrations only ran via the explicit `npm run migrate` CLI step — if a Portainer deployment reused an existing Postgres volume, Docker skipped the container init scripts and the schema was never applied, causing `relation "users" does not exist` errors on every request. The migration run is idempotent (tracked via the `pgmigrations` table), so redeployments do not re-apply completed migrations. If migration fails, the process exits with code 1 so Docker restarts the container rather than serving against a broken schema.
+
+---
+
 ## [4.33.0] — 2026-08-31
 
 ### Added
