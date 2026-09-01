@@ -1,4 +1,4 @@
-// Recurring Transaction Templates — subscriptions, reimbursements, transfers
+﻿// Recurring Transaction Templates — subscriptions, reimbursements, transfers
 
 import {
     formatCurrency,
@@ -10,6 +10,7 @@ import {
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showDeleteConfirmModal } from './ui.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -134,7 +135,7 @@ export function renderRecurringPage(app) {
 
     container.innerHTML = cards;
 
-    container.onclick = (event) => {
+    container.onclick = async (event) => {
         const actionEl = event.target.closest('[data-recurring-action]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-recurring-action');
@@ -145,7 +146,8 @@ export function renderRecurringPage(app) {
         if (action === 'edit') app.startEditRecurring(id);
         else if (action === 'save') app.saveEditRecurring(id);
         else if (action === 'delete') {
-            if (confirm(`Delete "${app.recurringTemplates?.find(x => x.id === id)?.name || 'template'}"? This cannot be undone.`)) {
+            const name = app.recurringTemplates?.find(x => x.id === id)?.name || 'template';
+            if (await showDeleteConfirmModal(`Delete "${name}"? This cannot be undone.`)) {
                 app.deleteRecurringTemplate(id);
             }
         }

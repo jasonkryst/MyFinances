@@ -1079,6 +1079,18 @@
             </div>
         </div>
     </div>
+    <!-- Delete Confirm Modal - generic themed replacement for browser confirm() dialogs -->
+    <div id="deleteConfirmModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="deleteConfirmTitle">Confirm</h3>
+            <p id="deleteConfirmMessage" class="modal-description"></p>
+            <div class="modal-actions">
+                <button id="deleteConfirmBtn" class="btn btn-danger">Confirm</button>
+                <button id="deleteConfirmCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
     <!-- Settings -->
     <div id="settingsModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
         <div class="modal-content">

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Postgres mutation integration tests -- require docker-compose stack to be running.
 Run: pytest tests/postgres/test_postgres_mutations.py -v
 """
@@ -113,8 +113,9 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     await pg_page.click('[data-page="liabilities"]')
     await pg_page.wait_for_selector('text=Delete Me', timeout=5000)
 
-    pg_page.once('dialog', lambda d: d.accept())
     await pg_page.click(f'[data-debt-action="delete"][data-debt-id="{debt_id}"]')
+    await pg_page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
+    await pg_page.click('#deleteConfirmBtn')
     await pg_page.wait_for_timeout(500)
 
     await pg_page.reload()
@@ -290,8 +291,9 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     # clearDataBtn is in the strategy (Plan) page section, not in a modal
     await pg_page.click('[data-page="strategy"]')
     await pg_page.wait_for_selector('#clearDataBtn', state='visible', timeout=5000)
-    pg_page.once('dialog', lambda d: d.accept())
     await pg_page.click('#clearDataBtn')
+    await pg_page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
+    await pg_page.click('#deleteConfirmBtn')
     # Wait for pgDeleteAll (fire-and-forget parallel DELETEs) to finish.
     # Session cookie is still valid after clearAllData -- the server data is
     # gone but the authenticated session persists, so we can verify via API
