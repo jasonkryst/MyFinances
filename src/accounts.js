@@ -3,6 +3,7 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showAlertModal } from './ui.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -117,8 +118,7 @@ export function renderAccountsList(app) {
             <div class="acct-card-header">
                 <span class="acct-type-icon">${typeIcon[a.type] || '🗂️'}</span>
                 <div class="acct-card-info">
-                    <span class="acct-card-name">${escapeHtml(a.name)}</span>
-                    <span class="acct-type-badge">${escapeHtml(a.type)}</span>
+                    <span class="acct-card-name">${escapeHtml(a.name)} (${escapeHtml(a.type)})</span>
                     ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
                 </div>
                 <div class="acct-balances">
@@ -163,8 +163,8 @@ export async function addAccount(app) {
     const startingBalance = sanitizeFiniteNumber(document.getElementById('accountStartingBalance').value, NaN);
     const interestRate = sanitizeFiniteNumber(document.getElementById('accountInterestRate')?.value, 0, { min: 0, max: 100 });
 
-    if (!name) { alert('Please enter an account name.'); return; }
-    if (isNaN(startingBalance)) { alert('Please enter a starting balance (use 0 if unknown).'); return; }
+    if (!name) { await showAlertModal('Please enter an account name.'); return; }
+    if (isNaN(startingBalance)) { await showAlertModal('Please enter a starting balance (use 0 if unknown).'); return; }
 
     const account = { id: Date.now(), name, type, startingBalance, interestRate };
     app.accounts.push(account);
@@ -199,15 +199,15 @@ export function cancelEditAccount(app) {
     app.renderAccountsList();
 }
 
-export function saveEditAccount(app, id) {
+export async function saveEditAccount(app, id) {
     const idx = app.accounts.findIndex(a => a.id === id);
     if (idx === -1) return;
     const name = normalizeText(document.getElementById(`ac-name-${id}`)?.value, 80);
     const type = normalizeText(document.getElementById(`ac-type-${id}`)?.value, 30);
     const startingBalance = sanitizeFiniteNumber(document.getElementById(`ac-bal-${id}`)?.value, NaN);
     const interestRate = sanitizeFiniteNumber(document.getElementById(`ac-rate-${id}`)?.value, 0, { min: 0, max: 100 });
-    if (!name) { alert('Please enter an account name.'); return; }
-    if (isNaN(startingBalance)) { alert('Please enter a valid starting balance.'); return; }
+    if (!name) { await showAlertModal('Please enter an account name.'); return; }
+    if (isNaN(startingBalance)) { await showAlertModal('Please enter a valid starting balance.'); return; }
     app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate };
     app.editingAccountId = null;
     app.saveToStorage();

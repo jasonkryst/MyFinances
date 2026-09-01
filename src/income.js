@@ -13,6 +13,7 @@ import {
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost } from './postgresSync.js';
+import { showAlertModal } from './ui.js';
 
 
 // Render the income list and summary panel inside the Income page.
@@ -27,7 +28,7 @@ export function renderIncomeList(app) {
         return;
     }
 
-    const freqLabel = { biweekly: 'Every other week', monthly: 'Once per month' };
+    const freqLabel = { weekly: 'Every week', biweekly: 'Every other week', twice_monthly: 'Twice per month', monthly: 'Once per month' };
 
     container.innerHTML = app.incomes.map(inc => {
         if (app.editingIncomeId === inc.id) {
@@ -50,8 +51,10 @@ export function renderIncomeList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">Frequency</label>
                                 <select id="ie-freq-${inc.id}" class="form-control form-full-width">
-                                    <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
-                                    <option value="monthly"  ${inc.frequency === 'monthly' ? 'selected' : ''}>Once per month</option>
+                                    <option value="weekly"        ${inc.frequency === 'weekly' ? 'selected' : ''}>Every week</option>
+                                    <option value="biweekly"      ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
+                                    <option value="twice_monthly" ${inc.frequency === 'twice_monthly' ? 'selected' : ''}>Twice per month (15th &amp; last day)</option>
+                                    <option value="monthly"       ${inc.frequency === 'monthly' ? 'selected' : ''}>Once per month</option>
                                 </select>
                             </div>
                             <div class="form-group form-no-margin">
@@ -121,7 +124,8 @@ export function renderIncomeList(app) {
         const bonusThisMonth = computeMonthlyBonusesForMonth(app.bonuses, year, month);
         const regularThisMonth = monthlyTotal - bonusThisMonth;
         const totalAnnual = app.incomes.reduce((s, i) => {
-            return s + (i.frequency === 'biweekly' ? i.amount * 26 : i.amount * 12);
+            const annualMultiplier = { weekly: 52, biweekly: 26, twice_monthly: 24, monthly: 12 }[i.frequency] ?? 12;
+            return s + i.amount * annualMultiplier;
         }, 0);
 
         const bonusRow = bonusThisMonth > 0
@@ -165,10 +169,10 @@ export async function addIncome(app) {
     const frequency = document.getElementById('incomeFrequency').value;
     const accountId = parseInt(document.getElementById('incomeAccount')?.value);
 
-    if (!name) { alert('Please enter a name for this income source.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
-    if (!firstPayDate) { alert('Please enter the first pay date.'); return; }
-    if (!accountId || isNaN(accountId)) { alert('Please select an account for this income source.'); return; }
+    if (!name) { await showAlertModal('Please enter a name for this income source.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
+    if (!firstPayDate) { await showAlertModal('Please enter the first pay date.'); return; }
+    if (!accountId || isNaN(accountId)) { await showAlertModal('Please select an account for this income source.'); return; }
 
     const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId };
     app.incomes.push(income);
@@ -206,7 +210,7 @@ export function cancelEditIncome(app) {
 }
 
 // Validate and save the inline-edit form for an income card
-export function saveEditIncome(app, incomeId) {
+export async function saveEditIncome(app, incomeId) {
     const nameEl      = document.getElementById(`ie-name-${incomeId}`);
     const amountEl    = document.getElementById(`ie-amount-${incomeId}`);
     const dateEl      = document.getElementById(`ie-date-${incomeId}`);
@@ -222,9 +226,9 @@ export function saveEditIncome(app, incomeId) {
     const frequency   = freqEl.value;
     const accountId   = accountEl?.value ? parseInt(accountEl.value) : null;
 
-    if (!name)                        { alert('Please enter a name.');            return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount.');     return; }
-    if (!firstPayDate)                { alert('Please select a first pay date.');  return; }
+    if (!name)                        { await showAlertModal('Please enter a name.');            return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount.');     return; }
+    if (!firstPayDate)                { await showAlertModal('Please select a first pay date.');  return; }
 
     const idx = app.incomes.findIndex(i => i.id === incomeId);
     if (idx === -1) return;
@@ -237,7 +241,7 @@ export function saveEditIncome(app, incomeId) {
 }
 
 // Bonus CRUD
-export function addBonus(app) {
+export async function addBonus(app) {
     const name      = normalizeText(document.getElementById('bonusName').value, 80);
     const rawAmount = document.getElementById('bonusAmount').value;
     const amount    = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
@@ -247,9 +251,9 @@ export function addBonus(app) {
     const rawPurpose = document.getElementById('bonusPurpose')?.value;
     const purpose   = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
 
-    if (!name)                        { alert('Please enter a label for this one-time entry.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
-    if (!date)                        { alert('Please enter the date received.'); return; }
+    if (!name)                        { await showAlertModal('Please enter a label for this one-time entry.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
+    if (!date)                        { await showAlertModal('Please enter the date received.'); return; }
 
     app.bonuses.push({ id: Date.now(), name, amount, date, category, accountId, purpose });
     app.saveToStorage();
@@ -281,7 +285,7 @@ export function cancelEditBonus(app) {
     app.renderBonusList();
 }
 
-export function saveEditBonus(app, bonusId) {
+export async function saveEditBonus(app, bonusId) {
     const nameEl      = document.getElementById(`be-name-${bonusId}`);
     const amtEl       = document.getElementById(`be-amount-${bonusId}`);
     const dateEl      = document.getElementById(`be-date-${bonusId}`);
@@ -299,9 +303,9 @@ export function saveEditBonus(app, bonusId) {
     const rawPurpose = purposeEl?.value;
     const purpose = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
 
-    if (!name) { alert('Please enter a name for this one-time entry.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid amount greater than 0.'); return; }
-    if (!date) { alert('Please enter the date received.'); return; }
+    if (!name) { await showAlertModal('Please enter a name for this one-time entry.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
+    if (!date) { await showAlertModal('Please enter the date received.'); return; }
 
     const idx = app.bonuses.findIndex(b => b.id === bonusId);
     if (idx === -1) return;

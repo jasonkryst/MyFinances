@@ -1,6 +1,7 @@
 // Ledger amount-override subsystem: per-transaction manual amount overrides.
 
 import { formatCurrency, parseFiniteOrNull, formatShortDate } from './utils.js';
+import { showAlertModal } from './ui.js';
 
 export function getOverrideAmount(app, txId) {
     if (!txId) return null;
@@ -64,10 +65,10 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
         modal.onkeydown = null;
     };
 
-    confirmBtn.onclick = () => {
+    confirmBtn.onclick = async () => {
         const parsed = parseFiniteOrNull(input.value);
         if (parsed === null) {
-            alert('Please enter a valid number.');
+            await showAlertModal('Please enter a valid number.');
             return;
         }
         setLedgerAmountOverride(app, tx.transactionId, parsed, {

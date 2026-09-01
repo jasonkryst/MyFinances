@@ -2,6 +2,7 @@
 import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showAlertModal } from './ui.js';
 
 
 // Render the full Budget page: bill cards, expense cards, cashflow summary.
@@ -106,7 +107,7 @@ export function renderBillList(app) {
 export function renderExpenseList(app) {
     const container = document.getElementById('expenseList');
     if (!container) return;
-    const EXP_CATS = ['Food & Groceries','Dining Out','Health & Fitness','Entertainment','Clothing','Personal Care','Education','Childcare','Other'];
+    const EXP_CATS = ['Subscription','Insurance','Rent / Mortgage','Utilities','Transport','Food','Entertainment','Health','Education','Savings','Transfer','Reimbursement','Other'];
     if (app.expenses.length === 0) {
         container.innerHTML = `<p class="empty-budget-msg">No expense budgets added yet.</p>`;
         return;
@@ -385,7 +386,7 @@ export async function addBill(app) {
     const category = normalizeText(document.getElementById('billCategory').value, 40);
     const accountId = parseInt(document.getElementById('billAccount')?.value) || null;
     if (!name || isNaN(amount) || amount < 0) {
-        alert('Please enter a valid bill name and amount.');
+        await showAlertModal('Please enter a valid bill name and amount.');
         return;
     }
     const bill = { id: Date.now(), name, amount, dueDay, category, accountId };
@@ -419,7 +420,7 @@ export function startEditBill(app, id) {
 }
 
 // Save inline bill edits.
-export function saveEditBill(app, id) {
+export async function saveEditBill(app, id) {
     const idx = app.bills.findIndex(b => b.id === id);
     if (idx === -1) return;
     const name      = normalizeText(document.getElementById(`be-name-${id}`).value, 80);
@@ -428,7 +429,7 @@ export function saveEditBill(app, id) {
     const category  = normalizeText(document.getElementById(`be-cat-${id}`).value, 40);
     const acctEl    = document.getElementById(`be-acct-${id}`);
     const accountId = acctEl?.value ? parseInt(acctEl.value) : null;
-    if (!name || isNaN(amount) || amount < 0) { alert('Invalid bill data.'); return; }
+    if (!name || isNaN(amount) || amount < 0) { await showAlertModal('Invalid bill data.'); return; }
     app.bills[idx] = { ...app.bills[idx], name, amount, dueDay, category, accountId };
     app.editingBillId = null;
     app.saveToStorage();
@@ -451,7 +452,7 @@ export async function addExpense(app) {
     const category = normalizeText(document.getElementById('expenseCategory').value, 40);
     const accountId = parseInt(document.getElementById('expenseAccount')?.value) || null;
     if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) {
-        alert('Please enter a valid expense name, amount, and date.');
+        await showAlertModal('Please enter a valid expense name, amount, and date.');
         return;
     }
     const expense = { id: Date.now(), name, budgetAmount, date: dateStr, category, accountId };
@@ -485,7 +486,7 @@ export function startEditExpense(app, id) {
 }
 
 // Save inline expense edits.
-export function saveEditExpense(app, id) {
+export async function saveEditExpense(app, id) {
     const idx = app.expenses.findIndex(e => e.id === id);
     if (idx === -1) return;
     const name         = normalizeText(document.getElementById(`ee-name-${id}`).value, 80);
@@ -495,7 +496,7 @@ export function saveEditExpense(app, id) {
     const category     = normalizeText(document.getElementById(`ee-cat-${id}`).value, 40);
     const acctEl       = document.getElementById(`ee-acct-${id}`);
     const accountId    = acctEl?.value ? parseInt(acctEl.value) : null;
-    if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) { alert('Invalid expense data.'); return; }
+    if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) { await showAlertModal('Invalid expense data.'); return; }
     app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date: dateStr, category, accountId };
     app.editingExpenseId = null;
     app.saveToStorage();

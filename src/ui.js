@@ -811,3 +811,34 @@ export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
         setTimeout(() => cancelBtn.focus(), 30);
     });
 }
+
+export function showAlertModal(message, title = 'Notice') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('alertModal');
+        const messageEl = document.getElementById('alertModalMessage');
+        const titleEl = document.getElementById('alertModalTitle');
+        const okBtn = document.getElementById('alertModalOkBtn');
+        if (!modal) { resolve(); return; }
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+
+        const dismiss = () => {
+            okBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            resolve();
+        };
+
+        okBtn.onclick = dismiss;
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape' || event.key === 'Enter') { event.preventDefault(); dismiss(); }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => okBtn.focus(), 30);
+    });
+}
