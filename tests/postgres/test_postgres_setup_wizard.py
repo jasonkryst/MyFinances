@@ -185,8 +185,10 @@ async def test_setup_submit_calls_register_not_login(base_url):
     async with async_playwright() as p:
         async with _make_pg_context(p) as page:
             await _mock_setup_needed(page)
-            await _mock_register_ok(page)
-            await _mock_all_api(page)
+            # _mock_all_api omitted: it would make checkPostgresSession return
+            # true (200 from /api/plan-settings mock), skipping showLoginGate.
+            # The real server returns 401 for all /api calls (no session cookie
+            # in the fresh context), so the gate correctly appears.
 
             register_called = []
             login_called = []
@@ -228,7 +230,9 @@ async def test_successful_register_hides_gate(base_url):
             logs = _capture_console(page)
             await _mock_setup_needed(page)
             await _mock_register_ok(page)
-            await _mock_all_api(page)
+            # _mock_all_api omitted: see note in test_setup_submit_calls_register_not_login.
+            # The gate hides before loadFromPostgres runs, so the 401 responses
+            # the real server returns for API calls do not affect this assertion.
 
             await page.goto(base_url)
             gate = page.locator('#loginGate')
