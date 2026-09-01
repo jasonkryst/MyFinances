@@ -1,4 +1,4 @@
-﻿﻿#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Import/Export Workflow Tests
 Tests data import/export functionality and file handling.

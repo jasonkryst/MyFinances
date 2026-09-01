@@ -1,4 +1,4 @@
-﻿// Recurring Transaction Templates — subscriptions, reimbursements, transfers
+// Recurring Transaction Templates — subscriptions, reimbursements, transfers
 
 import {
     formatCurrency,

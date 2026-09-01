@@ -1,4 +1,4 @@
-﻿"""
+"""
 Postgres mutation integration tests -- require docker-compose stack to be running.
 Run: pytest tests/postgres/test_postgres_mutations.py -v
 """

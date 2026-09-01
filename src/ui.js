@@ -1,4 +1,4 @@
-﻿﻿﻿﻿// UI helpers, event listeners, theming
+﻿﻿﻿// UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors } from './accounts.js';
 import { escapeHtml } from './utils.js';
