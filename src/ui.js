@@ -1,4 +1,4 @@
-﻿﻿﻿// UI helpers, event listeners, theming
+﻿﻿﻿﻿// UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors } from './accounts.js';
 import { escapeHtml } from './utils.js';
@@ -807,6 +807,7 @@ export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
 
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
+        modal.focus();  // immediate focus ensures onkeydown fires for Escape
         setTimeout(() => cancelBtn.focus(), 30);
     });
 }

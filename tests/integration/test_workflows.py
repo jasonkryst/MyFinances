@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+﻿﻿#!/usr/bin/env python3
 """
 Import/Export Workflow Tests
 Tests data import/export functionality and file handling.
@@ -500,6 +500,8 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     page.click('button[data-page="strategy"]')
     page.wait_for_selector('#clearDataBtn', timeout=10000)
     page.click('#clearDataBtn')
+    page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
+    page.click('#deleteConfirmBtn')
     page.wait_for_timeout(500)
 
     cleared_data = page.evaluate(
