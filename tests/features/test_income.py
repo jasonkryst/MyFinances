@@ -412,14 +412,19 @@ def test_bonus_advice_invalid_amount_shows_validation_alert(app_page):
     page = app_page
     _open_bonus_form(page)
 
-    dialog_messages = []
-    page.on("dialog", lambda d: (dialog_messages.append(d.message), d.accept()))
-
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_timeout(400)
 
-    assert len(dialog_messages) == 1, "Expected exactly one validation alert"
-    assert 'valid amount' in dialog_messages[0].lower()
+    modal = page.query_selector('#alertModal')
+    assert modal is not None, "#alertModal not found"
+    assert 'flex-visible' in (modal.get_attribute('class') or ''), \
+        "Themed alert modal should appear when bonus amount is invalid"
+    msg = page.text_content('#alertModalMessage') or ''
+    assert 'valid amount' in msg.lower(), \
+        f"Modal message should mention 'valid amount', got: {msg!r}"
+    page.click('#alertModalOkBtn')
+    page.wait_for_timeout(200)
+
     assert page.query_selector('#bonusAdviceResult').inner_text() == '', \
         "No advice panel content should render when validation fails"
 
