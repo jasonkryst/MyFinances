@@ -1,6 +1,7 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showDeleteConfirmModal } from './ui.js';
 
 /**
  * Render the Savings page with toggleable Emergency Fund and Sinking Funds sections
@@ -441,8 +442,8 @@ async function addEmergencyFund(app) {
 /**
  * Delete Emergency Fund
  */
-function deleteEmergencyFund(app, fundId) {
-  if (!confirm('Delete this emergency fund?')) return;
+async function deleteEmergencyFund(app, fundId) {
+  if (!await showDeleteConfirmModal('Delete this emergency fund?')) return;
   app.emergencyFunds = app.emergencyFunds.filter(f => f.id !== fundId);
   app.saveToStorage();
   if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/emergency-funds/${fundId}`);
@@ -562,8 +563,8 @@ async function addSinkingFund(app) {
 /**
  * Delete Sinking Fund
  */
-function deleteSinkingFund(app, fundId) {
-  if (!confirm('Delete this sinking fund?')) return;
+async function deleteSinkingFund(app, fundId) {
+  if (!await showDeleteConfirmModal('Delete this sinking fund?')) return;
   app.sinkingFunds = app.sinkingFunds.filter(f => f.id !== fundId);
   app.saveToStorage();
   if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/sinking-funds/${fundId}`);

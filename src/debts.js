@@ -3,6 +3,7 @@ import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompound
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showDeleteConfirmModal } from './ui.js';
 
 function recalculateIfConfigured(app) {
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
@@ -86,8 +87,8 @@ export async function addDebt(app) {
     app.cancelEdit();
 }
 
-export function deleteDebt(app, debtId) {
-    const confirmed = confirm('Delete this debt?');
+export async function deleteDebt(app, debtId) {
+    const confirmed = await showDeleteConfirmModal('Delete this debt?');
     if (!confirmed) return;
 
     app.debts = app.debts.filter(d => d.id !== debtId);

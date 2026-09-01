@@ -1,9 +1,15 @@
-# Changelog
+﻿﻿# Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.33.3] — 2026-09-01
+
+### Fixed
+- **Delete and Clear All Data dialogs replaced with themed modals**: All five native confirm() browser dialogs (Delete Debt, Delete Emergency Fund, Delete Sinking Fund, Delete Recurring Template, Clear All Data) have been replaced with a Promise-based themed modal (#deleteConfirmModal). Chrome can suppress native confirm() dialogs if the user previously checked "Prevent this page from creating additional dialogs", causing all delete operations to silently fail with no feedback. The new modal is keyboard-navigable (Escape cancels), theme-aware, and consistent with the app's existing modal patterns. The deleteDebt, deleteEmergencyFund, deleteSinkingFund functions are now sync; the recurring-template list's event handler and the Settings "Clear All Data" handler are also async.
+
+---
 ## [4.33.2] — 2026-09-01
 
 ### Fixed
