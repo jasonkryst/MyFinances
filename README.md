@@ -17,14 +17,14 @@ All calculations happen locally in your browser — no accounts required. An opt
 
 ```bash
 # Development (Python)
-python -m http.server 5500
+python -m http.server 32900
 
 # Docker (recommended for consistent environments)
-docker compose up -d        # Build and run at http://localhost:5500
+docker compose up -d        # Build and run at http://localhost:32900
 docker compose down         # Stop
 
 # Open browser
-http://localhost:5500
+http://localhost:32900
 
 # Run tests
 pytest tests/ -v                  # Run all tests
@@ -614,7 +614,7 @@ npm run test:mutation     # Stryker mutation run (HTML report at reports/mutatio
 
 ```bash
 # Development
-python -m http.server 5500
+python -m http.server 32900
 ```
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for Nginx, Apache, and Docker configurations including security headers, HTTPS, and caching.

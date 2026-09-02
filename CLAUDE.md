@@ -10,11 +10,11 @@ MyFinances is a privacy-first, client-side-only personal finance tracker (debt p
 
 ### Run the app locally
 ```bash
-python -m http.server 5500
+python -m http.server 32900
 # or
-docker compose up -d   # http://localhost:5500
+docker compose up -d   # http://localhost:32900
 ```
-Tests assume the app is being served at `http://localhost:5500/` (see `tests/conftest.py` `BASE_URL`) — start the server before running Playwright-based tests.
+Tests assume the app is being served at `http://localhost:32900/` (see `tests/conftest.py` `BASE_URL`) — start the server before running Playwright-based tests.
 
 ### Tests
 ```bash

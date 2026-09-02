@@ -1,4 +1,4 @@
-﻿# Deployment Guide - MyFinances
+# Deployment Guide - MyFinances
 
 This guide covers deployment options and security configurations for MyFinances.
 
@@ -9,16 +9,16 @@ This guide covers deployment options and security configurations for MyFinances.
 ### Using Python HTTP Server
 ```bash
 cd "path/to/MyFinances"
-python -m http.server 5500
+python -m http.server 32900
 ```
-Access at: `http://localhost:5500`
+Access at: `http://localhost:32900`
 
 ### Using PowerShell HTTP Listener
 ```powershell
 $listener = [System.Net.HttpListener]::new()
-$listener.Prefixes.Add('http://localhost:5500/')
+$listener.Prefixes.Add('http://localhost:32900/')
 $listener.Start()
-Write-Output 'Serving http://localhost:5500/'
+Write-Output 'Serving http://localhost:32900/'
 
 while ($listener.IsListening) {
     $context = $listener.GetContext()
@@ -224,11 +224,11 @@ The repository ships with production-ready Docker files. The image is built on `
 # Build the image
 docker build -t myfinances .
 
-# Run on port 5500
-docker run -d -p 5500:80 --name myfinances myfinances
+# Run on port 32900
+docker run -d -p 32900:80 --name myfinances myfinances
 ```
 
-Access at: `http://localhost:5500`
+Access at: `http://localhost:32900`
 
 > The image ships `manifest.json`, `sw.js`, and `icons/` (PWA support, #75) alongside the existing static files.
 
@@ -245,7 +245,7 @@ docker compose logs -f
 docker compose down
 ```
 
-Access at: `http://localhost:5500`
+Access at: `http://localhost:32900`
 
 **Security hardening applied in `docker-compose.yml`:**
 - `read_only: true` — container filesystem is read-only

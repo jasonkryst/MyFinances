@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.38.0] — 2026-09-01
+
+### Changed
+- **Exposed port changed from 5500 to 32900**: `docker-compose.yml` host-side port binding updated
+  from `5500:80` to `32900:80`. All test `BASE_URL` constants, CI workflow server startup commands,
+  `lighthouserc.json` target URLs, documentation (`README.md`, `DEPLOYMENT.md`, `CLAUDE.md`,
+  `tests/README.md`, `.github/copilot-instructions.md`), `setup.sh`, and debug tooling updated
+  to match. Closes #127.
+
 ## [4.37.0] — 2026-09-01
 
 ### Changed

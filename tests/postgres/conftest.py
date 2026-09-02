@@ -2,7 +2,7 @@ import os
 import pytest
 
 
-BASE_URL = os.environ.get('POSTGRES_TEST_BASE_URL', 'http://localhost:5500')
+BASE_URL = os.environ.get('POSTGRES_TEST_BASE_URL', 'http://localhost:32900')
 TEST_EMAIL = os.environ.get('POSTGRES_TEST_EMAIL', 'testuser@example.com')
 TEST_PASSWORD = os.environ.get('POSTGRES_TEST_PASSWORD', '')
 

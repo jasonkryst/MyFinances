@@ -6,7 +6,7 @@ Tests income source creation and calculations.
 
 import pytest
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 
 def _create_income_account(page, name="Income Validation Account"):
