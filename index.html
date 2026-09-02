@@ -1093,6 +1093,25 @@
             </div>
         </div>
     </div>
+    <!-- Account Replacement Modal — shown when deleting an account that has linked items -->
+    <div id="accountReplacementModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="accountReplacementTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="accountReplacementTitle">Delete Account</h3>
+            <p id="accountReplacementInfo" class="modal-description"></p>
+            <div id="accountReplacementLinks" class="account-replacement-links"></div>
+            <div class="form-group modal-form-group">
+                <label for="accountReplacementSelect">Replacement account</label>
+                <select id="accountReplacementSelect">
+                    <option value="">— Select a replacement account —</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="accountReplacementConfirmBtn" class="btn btn-danger" disabled>Delete and Reassign</button>
+                <button id="accountReplacementCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
     <!-- Delete Confirm Modal - generic themed replacement for browser confirm() dialogs -->
     <div id="deleteConfirmModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle" tabindex="-1">

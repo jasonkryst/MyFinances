@@ -812,6 +812,72 @@ export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
     });
 }
 
+export function showAccountReplacementModal(app, id) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('accountReplacementModal');
+        const titleEl = document.getElementById('accountReplacementTitle');
+        const infoEl = document.getElementById('accountReplacementInfo');
+        const linksEl = document.getElementById('accountReplacementLinks');
+        const select = document.getElementById('accountReplacementSelect');
+        const confirmBtn = document.getElementById('accountReplacementConfirmBtn');
+        const cancelBtn = document.getElementById('accountReplacementCancelBtn');
+        if (!modal) { resolve(null); return; }
+
+        const account = app.accounts.find(a => a.id === id);
+        const otherAccounts = app.accounts.filter(a => a.id !== id);
+
+        const linked = {
+            'Income': app.incomes.filter(i => i.accountId === id),
+            'Bonuses': (app.bonuses || []).filter(b => b.accountId === id),
+            'Debts': app.debts.filter(d => d.accountId === id),
+            'Bills': app.bills.filter(b => b.accountId === id),
+            'Expenses': app.expenses.filter(e => e.accountId === id),
+            'Recurring Transfers': (app.recurringTemplates || []).filter(r => r.accountId === id || r.targetAccountId === id),
+        };
+
+        if (titleEl) titleEl.textContent = `Delete Account: ${account?.name ?? ''}`;
+        if (infoEl) infoEl.textContent = 'This account has linked items. Select a replacement account before deleting.';
+
+        if (linksEl) {
+            linksEl.innerHTML = Object.entries(linked)
+                .filter(([, items]) => items.length > 0)
+                .map(([label, items]) =>
+                    `<div class="acct-replacement-group"><strong>${escapeHtml(label)}:</strong> ${items.map(i => escapeHtml(i.name)).join(', ')}</div>`)
+                .join('');
+        }
+
+        if (select) {
+            select.innerHTML = [
+                `<option value="">— Select a replacement account —</option>`,
+                ...otherAccounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`),
+            ].join('');
+        }
+        if (confirmBtn) confirmBtn.disabled = true;
+
+        const onSelectChange = () => { if (confirmBtn) confirmBtn.disabled = !select?.value; };
+        if (select) select.onchange = onSelectChange;
+
+        const dismiss = (result) => {
+            if (confirmBtn) confirmBtn.onclick = null;
+            if (cancelBtn) cancelBtn.onclick = null;
+            if (select) select.onchange = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            resolve(result);
+        };
+
+        if (confirmBtn) confirmBtn.onclick = () => dismiss(parseInt(select.value, 10));
+        if (cancelBtn) cancelBtn.onclick = () => dismiss(null);
+        modal.onkeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); dismiss(null); } };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => { if (cancelBtn) cancelBtn.focus(); }, 30);
+    });
+}
+
 export function showAlertModal(message, title = 'Notice') {
     return new Promise((resolve) => {
         const modal = document.getElementById('alertModal');

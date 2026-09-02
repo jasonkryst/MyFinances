@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.35.0] — 2026-09-01
+
+### Changed
+- **Account deletion now requires a replacement when linked items exist** — clicking Delete on an account that has income, bonuses, debts, bills, expenses, or recurring transfers linked to it opens a new `#accountReplacementModal`. The modal lists every linked item by category and presents a replacement-account dropdown with no pre-selection. The "Delete and Reassign" button stays disabled until a replacement is explicitly chosen. A second confirmation names the target account before committing. Cancelling either modal leaves the account and all linked items untouched. Accounts with no linked items follow the existing single-confirm flow. All linked `accountId` (and `targetAccountId` for recurring transfers) fields are updated in memory before the account is removed and storage is saved.
+
+### Added
+- **Comprehensive account-deletion tests** — `tests/features/test_accounts.py` covers both the no-links and has-links deletion paths: confirm modal appears for unlinked accounts; replacement modal appears for linked accounts; confirm button is disabled without a selection; cancelling either modal preserves all data; the second confirmation names the replacement; delete-and-reassign correctly moves income, debts, bills, expenses, and recurring transfers to the replacement account; and post-deletion navigation through health/reports/ledger produces no errors.
+
 ## [4.34.0] — 2026-09-01
 
 ### Added
