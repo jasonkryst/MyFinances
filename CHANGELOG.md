@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.39.2] — 2026-09-02
+
+### Fixed
+- **loginGate focus race in CI** — `emailInput.focus()` delay reduced from 30 ms to 0 ms. The 30 ms `setTimeout` was racing with Playwright's CDP fill commands in CI: after `#loginGate` became visible Playwright immediately called `fill('#loginGatePassword')`, but the 30 ms timer fired mid-fill and stole focus back to the email input, leaving the password field empty. A 0 ms timeout fires on the next event-loop tick before any CDP round-trips, so focus is settled before the test fills the field.
+
+---
 ## [4.39.1] — 2026-09-02
 
 ### Changed
