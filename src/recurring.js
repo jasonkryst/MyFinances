@@ -493,7 +493,7 @@ export function refreshRecurringAccountSelectors(app) {
         for (const acct of app.accounts || []) {
             const opt = document.createElement('option');
             opt.value = acct.id;
-            opt.textContent = normalizeText(acct.name, 80);
+            opt.textContent = `${normalizeText(acct.name, 80)} (${acct.type})`;
             if (String(acct.id) === String(current)) opt.selected = true;
             sel.appendChild(opt);
         }

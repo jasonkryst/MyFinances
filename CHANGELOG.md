@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.39.0] — 2026-09-02
+
+### Changed
+- **Account selectors now show "Name (Type)" in all dropdowns** — every account selector across the app (income add/edit, debt inline-edit, bill/expense add/edit, recurring add/edit, savings, ledger account filter, and reconciliation history filter) now displays account options as "Jay BCU (Checking)" instead of just "Jay BCU". This makes it unambiguous which account is which when names are similar or when multiple accounts of the same type exist. Affected helpers: `buildAccountOptionsHtml` in `src/accounts.js`, `refreshRecurringAccountSelectors` in `src/recurring.js`, the debt inline-edit account map in `src/debts.js`, the reconciliation history filter in `src/reconciliation.js`, and the ledger account filter in `src/ledger.js`.
+
+### Added
+- **Test coverage** — `test_account_type_shown_in_selectors` in `tests/features/test_accounts.py` verifies that the income, debt, and ledger account selectors all render options in "Name (Type)" format after an account is created.
+
+---
 ## [4.38.0] — 2026-09-01
 
 ### Changed

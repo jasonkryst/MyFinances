@@ -27,7 +27,7 @@ export function refreshAccountSelectors(app) {
 export function buildAccountOptionsHtml(accounts, selectedId, { emptyLabel } = {}) {
     const empty = emptyLabel ? `<option value="">${emptyLabel}</option>` : '';
     const options = (accounts || []).map(a =>
-        `<option value="${a.id}"${selectedId === a.id ? ' selected' : ''}>${escapeHtml(a.name)}</option>`
+        `<option value="${a.id}"${selectedId === a.id ? ' selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`
     ).join('');
     return empty + options;
 }

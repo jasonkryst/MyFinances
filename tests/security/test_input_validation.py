@@ -252,7 +252,7 @@ async def test_recurring_day_of_month_bounds(async_app_page):
     await page.fill('#recurringName', 'Bounds Test Sub')
     await page.fill('#recurringAmount', '20')
     await page.fill('#recurringDayOfMonth', '99')
-    await page.select_option('#recurringAccount', label='Recurring Bounds Test')
+    await page.select_option('#recurringAccount', label='Recurring Bounds Test (Checking)')
     await page.fill('#recurringStartDate', '2026-01-01')
     await page.click('#recurringFormSubmit')
     await page.wait_for_timeout(500)
@@ -286,7 +286,7 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     await page.click('#emergencyFormToggle')
     await page.wait_for_timeout(300)
 
-    await page.select_option('#emergencyAccount', label='EF Bounds Checking')
+    await page.select_option('#emergencyAccount', label='EF Bounds Checking (Checking)')
 
     # A zero target amount should be rejected — shows the themed #alertModal
     await page.fill('#emergencyTarget', '0')

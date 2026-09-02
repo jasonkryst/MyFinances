@@ -373,7 +373,7 @@ export function renderDebtsList(app) {
                         <div class="debt-detail"><strong>Account:</strong>
                             <select id="inline-account-${debt.id}">
                                 <option value="">— No account —</option>
-                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`).join('')}
                             </select>
                         </div>
                     </div>
