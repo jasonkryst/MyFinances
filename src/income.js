@@ -12,7 +12,7 @@ import {
     formatShortDate
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
-import { pgPost } from './postgresSync.js';
+import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
 
 
@@ -28,7 +28,7 @@ export function renderIncomeList(app) {
         return;
     }
 
-    const freqLabel = { weekly: 'Every week', biweekly: 'Every other week', twice_monthly: 'Twice per month', monthly: 'Once per month' };
+    const freqLabel = { biweekly: 'Every other week', monthly: 'Once per month' };
 
     container.innerHTML = app.incomes.map(inc => {
         if (app.editingIncomeId === inc.id) {
@@ -51,10 +51,8 @@ export function renderIncomeList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">Frequency</label>
                                 <select id="ie-freq-${inc.id}" class="form-control form-full-width">
-                                    <option value="weekly"        ${inc.frequency === 'weekly' ? 'selected' : ''}>Every week</option>
-                                    <option value="biweekly"      ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
-                                    <option value="twice_monthly" ${inc.frequency === 'twice_monthly' ? 'selected' : ''}>Twice per month (15th &amp; last day)</option>
-                                    <option value="monthly"       ${inc.frequency === 'monthly' ? 'selected' : ''}>Once per month</option>
+                                    <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
+                                    <option value="monthly"  ${inc.frequency === 'monthly' ? 'selected' : ''}>Once per month</option>
                                 </select>
                             </div>
                             <div class="form-group form-no-margin">
@@ -124,8 +122,7 @@ export function renderIncomeList(app) {
         const bonusThisMonth = computeMonthlyBonusesForMonth(app.bonuses, year, month);
         const regularThisMonth = monthlyTotal - bonusThisMonth;
         const totalAnnual = app.incomes.reduce((s, i) => {
-            const annualMultiplier = { weekly: 52, biweekly: 26, twice_monthly: 24, monthly: 12 }[i.frequency] ?? 12;
-            return s + i.amount * annualMultiplier;
+            return s + (i.frequency === 'biweekly' ? i.amount * 26 : i.amount * 12);
         }, 0);
 
         const bonusRow = bonusThisMonth > 0
@@ -189,6 +186,7 @@ export async function addIncome(app) {
 export function deleteIncome(app, incomeId) {
     app.incomes = app.incomes.filter(i => i.id !== incomeId);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/incomes/${incomeId}`);
     app.renderIncomeList();
     app.renderStrategyIncomeWidget();
 }
@@ -236,6 +234,7 @@ export async function saveEditIncome(app, incomeId) {
     app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId };
     app.editingIncomeId = null;
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
     app.renderIncomeList();
     app.renderStrategyIncomeWidget();
 }
@@ -255,8 +254,13 @@ export async function addBonus(app) {
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
     if (!date)                        { await showAlertModal('Please enter the date received.'); return; }
 
-    app.bonuses.push({ id: Date.now(), name, amount, date, category, accountId, purpose });
+    const bonus = { id: Date.now(), name, amount, date, category, accountId, purpose };
+    app.bonuses.push(bonus);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') {
+        const saved = await pgPost(app, '/api/bonuses', bonus);
+        if (saved?.id) bonus.id = saved.id;
+    }
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
     document.getElementById('bonusForm').reset();
@@ -267,6 +271,7 @@ export async function addBonus(app) {
 export function deleteBonus(app, bonusId) {
     app.bonuses = app.bonuses.filter(b => b.id !== bonusId);
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/bonuses/${bonusId}`);
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
 }
@@ -312,6 +317,7 @@ export async function saveEditBonus(app, bonusId) {
     app.bonuses[idx] = { ...app.bonuses[idx], name, amount, date, category, accountId, purpose };
     app.editingBonusId = null;
     app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/bonuses/${app.bonuses[idx].id}`, app.bonuses[idx]);
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
 }

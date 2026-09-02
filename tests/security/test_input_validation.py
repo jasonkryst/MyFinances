@@ -350,19 +350,30 @@ async def test_reconciliation_rejects_non_numeric_balance(async_app_page):
     """applyReconciliation rejects a non-numeric statement balance, leaving balance and history unchanged."""
     page = async_app_page
 
-    result = await page.evaluate("""async () => {
+    # applyReconciliation shows a themed modal for invalid input and awaits its
+    # dismissal — we must not await it inside page.evaluate (deadlock). Instead,
+    # fire-and-forget with .then() to capture the result in window._reconResult,
+    # then dismiss the modal from Python before reading the result.
+    await page.evaluate("""() => {
         const app = window.app;
         app.accounts = [{ id: 7501, name: 'Recon Validate', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
-        const res = await app.applyReconciliation(7501, 'not-a-number', '', '2026-06-10');
-        return {
-            success: res.success,
-            balance: app.accounts[0].startingBalance,
-            historyCount: app.reconciliations.length
-        };
+        window._reconResult = null;
+        app.applyReconciliation(7501, 'not-a-number', '', '2026-06-10')
+            .then(r => { window._reconResult = r; });
     }""")
+
+    await page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    await page.click('#alertModalOkBtn')
+    await page.wait_for_timeout(200)
+
+    result = await page.evaluate("""() => ({
+        success: window._reconResult?.success,
+        balance: window.app.accounts[0].startingBalance,
+        historyCount: window.app.reconciliations.length
+    })""")
 
     assert result['success'] is False
     assert result['balance'] == 1000
