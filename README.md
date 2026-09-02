@@ -371,7 +371,7 @@ server/                     — Optional self-hosted Node.js + PostgreSQL backen
   ├─ migrations/           — node-pg-migrate SQL migration files
   ├─ scripts/create-user.js — Bootstrap admin user (argon2id hashed)
   ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
-  ├─ Dockerfile            — node:20-alpine image (build context = repo root for sanitizer reuse)
+  ├─ Dockerfile            — node:24-alpine image (build context = repo root for sanitizer reuse)
   └─ README.md             — Server setup, dev, and deployment guide
 tests/ (675 tests across 72 files)
   ├─ conftest.py              — Shared fixtures & utilities
