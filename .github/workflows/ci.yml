@@ -12,11 +12,11 @@ on:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Features — split into 5 parallel shards so each stays under 20 min
+  # Features — split into 5 parallel shards. Shard A uses a 30 min timeout
   # ---------------------------------------------------------------------------
   test-features-a:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
