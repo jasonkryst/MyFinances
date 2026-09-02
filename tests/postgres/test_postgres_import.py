@@ -91,7 +91,7 @@ async def _wipe_all(page, base_url):
         '/api/debts', '/api/accounts', '/api/incomes', '/api/bonuses',
         '/api/bills', '/api/expenses', '/api/recurring-templates',
         '/api/emergency-funds', '/api/sinking-funds', '/api/reconciliations',
-        '/api/ledger-overrides', '/api/net-worth-snapshots', '/api/settings',
+        '/api/ledger-overrides', '/api/ledger-cleared', '/api/net-worth-snapshots', '/api/settings',
         '/api/plan-settings/milestones',
     ]
     import asyncio
@@ -227,7 +227,7 @@ async def test_postgres_merge_import_adds_without_clobbering(pg_page, base_url, 
              'accountBalance': 500, 'interestRate': 18, 'minimumPayment': 20, 'dueDate': 15},
         ],
         'incomes': [], 'bonuses': [], 'bills': [], 'expenses': [],
-        'ledgerAmountOverrides': {}, 'recurringTemplates': [],
+        'ledgerAmountOverrides': {}, 'ledgerClearedTransactions': {}, 'recurringTemplates': [],
         'emergencyFunds': [], 'sinkingFunds': [], 'reconciliations': [],
         'settings': [], 'monthlySnapshots': [], 'netWorthMilestonesAwarded': [],
         'perMonthStimulus': [],

@@ -111,6 +111,18 @@ export function sanitizeLedgerOverrides(overrides) {
     return out;
 }
 
+export function sanitizeLedgerClearedTransactions(entries) {
+    const out = {};
+    if (!entries || typeof entries !== 'object') return out;
+    for (const [key, value] of Object.entries(entries)) {
+        if (!key || typeof key !== 'string') continue;
+        const clearedAt = sanitizeDateISO(value?.clearedAt);
+        if (!clearedAt) continue;
+        out[key] = { clearedAt };
+    }
+    return out;
+}
+
 export function sanitizeRecurringTemplate(record, idFallback) {
     const skippedMonths = Array.isArray(record?.skippedMonths) ? record.skippedMonths.filter(m => /^\d{4}-\d{2}$/.test(m)) : [];
     const paidMonths = Array.isArray(record?.paidMonths) ? record.paidMonths.filter(m => /^\d{4}-\d{2}$/.test(m)) : [];
@@ -228,6 +240,7 @@ export function sanitizeParsedState(parsed = {}) {
         bills: (Array.isArray(parsed.bills) ? parsed.bills : []).map((b, i) => sanitizeBill(b, now + 2000 + i)).filter(b => !!b.name),
         expenses: (Array.isArray(parsed.expenses) ? parsed.expenses : []).map((e, i) => sanitizeExpense(e, now + 3000 + i)).filter(e => !!e.name && !!e.date),
         ledgerAmountOverrides: sanitizeLedgerOverrides(parsed.ledgerAmountOverrides || {}),
+        ledgerClearedTransactions: sanitizeLedgerClearedTransactions(parsed.ledgerClearedTransactions || {}),
         recurringTemplates: (Array.isArray(parsed.recurringTemplates) ? parsed.recurringTemplates : []).map((r, i) => sanitizeRecurringTemplate(r, now + 4000 + i)).filter(r => !!r.name),
         emergencyFunds: (Array.isArray(parsed.emergencyFunds) ? parsed.emergencyFunds : []).map((e, i) => sanitizeEmergencyFund(e, now + 4500 + i)).filter(e => !!e.accountId),
         sinkingFunds: (Array.isArray(parsed.sinkingFunds) ? parsed.sinkingFunds : []).map((s, i) => sanitizeSinkingFund(s, now + 5000 + i)).filter(s => !!s.name && !!s.accountId),

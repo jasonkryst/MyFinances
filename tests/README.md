@@ -92,7 +92,7 @@ tests/
 │   ├── test_bills.py           # Bill data model, sanitization, calculation integration
 │   ├── test_recurring.py       # Recurring transactions (CRUD, mark-as-paid, validation)
 │   ├── test_recurring_occurrences.py # Frequency-edge-case occurrence generation
-│   ├── test_ledger.py          # Ledger filters, amount-override modal, CSV export column picker
+│   ├── test_ledger.py          # Ledger filters, amount-override modal, cleared-checkbox tracking, CSV export column picker
 │   ├── test_reports.py         # Reports functionality, tab grouping, date-boundary handling
 │   ├── test_reports_nav_groups.py # Reports tab grouping structure
 │   ├── test_main_nav_groups.py # Main nav grouping structure (Overview/Manage/Analyze)

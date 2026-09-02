@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.40.0] — 2026-09-02
+
+### Added
+- **Ledger cleared-transaction tracking** — a "Cleared" checkbox on each Ledger transaction row records whether it has actually posted to the account, and stamps a `clearedAt` timestamp when checked (shown as the checkbox's tooltip). Purely informational — it doesn't affect running balances — intended to surface scheduled transactions (bills, recurring items) that haven't posted on their expected day. Keyed the same way as amount overrides (`type|id|accountId|date`) via new module `src/ledgerCleared.js` / `app.ledgerClearedTransactions`, so state survives ledger re-sorts and regeneration. Round-trips through localStorage/sessionStorage, full JSON export/import, and the Ledger CSV export's column picker (new "Cleared"/"Cleared At" columns). Full parity with the optional self-hosted Postgres backend: new `ledger_cleared_transactions` table/migration, `/api/ledger-cleared` keyed-resource route, and wiring through `loadFromPostgres`, `postgresSync.js`, and `postgresImport.js`'s replace/merge/rollback paths.
+
+---
 ## [4.39.2] — 2026-09-02
 
 ### Fixed

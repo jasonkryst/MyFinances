@@ -59,6 +59,7 @@ function snapshotAppState(app) {
         sinkingFunds:          app.sinkingFunds.map(r => ({ ...r })),
         reconciliations:       app.reconciliations.map(r => ({ ...r })),
         ledgerAmountOverrides: { ...app.ledgerAmountOverrides },
+        ledgerClearedTransactions: { ...app.ledgerClearedTransactions },
         monthlySnapshots:      app.monthlySnapshots.map(r => ({ ...r })),
         settings:              (app.settings || []).map(r => ({ ...r })),
         netWorthMilestonesAwarded: [...(app.netWorthMilestonesAwarded || [])],
@@ -104,9 +105,13 @@ async function postAllResources(data) {
 
     // Keyed resources -- PUT is always upsert, safe in both replace and merge
     const overrideEntries = Object.entries(data.ledgerAmountOverrides || {});
+    const clearedEntries = Object.entries(data.ledgerClearedTransactions || {});
     await Promise.all([
         ...overrideEntries.map(([key, val]) =>
             apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap))
+        ),
+        ...clearedEntries.map(([key, val]) =>
+            apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)
         ),
         ...(data.monthlySnapshots || []).map(s =>
             apiFetch('PUT', `/api/net-worth-snapshots/${encodeURIComponent(s.date)}`, s)
@@ -132,11 +137,11 @@ async function postAllResources(data) {
         forecastSettings: data.forecastSettings
     });
 
-    return { accountResults, resourceResults, idMap, overrideEntries };
+    return { accountResults, resourceResults, idMap, overrideEntries, clearedEntries };
 }
 
 // Sync app.* with the server-returned records after a successful postAllResources.
-function applyResultsToApp(app, data, { accountResults, resourceResults, idMap, overrideEntries }) {
+function applyResultsToApp(app, data, { accountResults, resourceResults, idMap, overrideEntries, clearedEntries }) {
     app.accounts = accountResults.filter(Boolean);
 
     CRUD_RESOURCES.forEach(({ field }, i) => {
@@ -145,6 +150,9 @@ function applyResultsToApp(app, data, { accountResults, resourceResults, idMap, 
 
     app.ledgerAmountOverrides = Object.fromEntries(
         overrideEntries.map(([key, val]) => [key, { overrideKey: key, ...remapFk(val, idMap) }])
+    );
+    app.ledgerClearedTransactions = Object.fromEntries(
+        clearedEntries.map(([key, val]) => [key, { clearedKey: key, ...val }])
     );
     app.monthlySnapshots           = data.monthlySnapshots || [];
     app.settings                   = data.settings || [];
@@ -182,6 +190,7 @@ function snapshotToPostData(snapshot) {
         sinkingFunds:          snapshot.sinkingFunds,
         reconciliations:       snapshot.reconciliations,
         ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
+        ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
         monthlySnapshots:      snapshot.monthlySnapshots,
         settings:              snapshot.settings,
         netWorthMilestonesAwarded: snapshot.netWorthMilestonesAwarded,
@@ -285,9 +294,13 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
 
         // Keyed resources -- always upsert (safe merge semantics)
         const overrideEntries = Object.entries(clean.ledgerAmountOverrides || {});
+        const clearedEntries = Object.entries(clean.ledgerClearedTransactions || {});
         await Promise.all([
             ...overrideEntries.map(([key, val]) =>
                 apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap))
+            ),
+            ...clearedEntries.map(([key, val]) =>
+                apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)
             ),
             ...(clean.monthlySnapshots || []).map(s =>
                 apiFetch('PUT', `/api/net-worth-snapshots/${encodeURIComponent(s.date)}`, s)
@@ -300,6 +313,9 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
         // Merge keyed resources into app state
         for (const [key, val] of overrideEntries) {
             app.ledgerAmountOverrides[key] = { overrideKey: key, ...remapFk(val, idMap) };
+        }
+        for (const [key, val] of clearedEntries) {
+            app.ledgerClearedTransactions[key] = { clearedKey: key, ...val };
         }
         const existingSnapshotDates = new Set((app.monthlySnapshots || []).map(s => s.date));
         for (const s of (clean.monthlySnapshots || [])) {
@@ -362,6 +378,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             sinkingFunds:         snapshot.sinkingFunds,
             reconciliations:      snapshot.reconciliations,
             ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
+            ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
             monthlySnapshots:     snapshot.monthlySnapshots,
             settings:             snapshot.settings,
             netWorthMilestonesAwarded: snapshot.netWorthMilestonesAwarded,

@@ -15,6 +15,7 @@ import reconciliationsRouter from './routes/reconciliations.js';
 import netWorthSnapshotsRouter from './routes/netWorthSnapshots.js';
 import settingsRouter from './routes/settings.js';
 import ledgerOverridesRouter from './routes/ledgerOverrides.js';
+import ledgerClearedRouter from './routes/ledgerCleared.js';
 import planSettingsRouter from './routes/planSettings.js';
 
 export function createApp() {
@@ -44,6 +45,7 @@ export function createApp() {
     api.use('/net-worth-snapshots', netWorthSnapshotsRouter);
     api.use('/settings', settingsRouter);
     api.use('/ledger-overrides', ledgerOverridesRouter);
+    api.use('/ledger-cleared', ledgerClearedRouter);
     api.use('/plan-settings', planSettingsRouter);
     app.use('/api', api);
 

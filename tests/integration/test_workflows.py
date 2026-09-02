@@ -558,3 +558,46 @@ def test_ledger_export_csv_with_column_picker(app_page):
         header = f.readline()
     assert 'Category' not in header
     assert 'Transaction' in header
+
+
+@pytest.mark.integration
+def test_ledger_export_csv_includes_cleared_columns(app_page):
+    """The Cleared/Cleared At columns are selectable in the export
+    column-picker and, once a transaction is cleared, its exported row
+    reflects the cleared state."""
+    page = app_page
+    tx_id = page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 2, name: 'Paycheck', amount: 2000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app.switchPage('ledger');
+        const tx = app.getFilteredSortedLedgerTransactions().find(t => t.transactionId);
+        return tx ? tx.transactionId : null;
+    }""")
+    assert tx_id, "Expected at least one clearable ledger row"
+
+    page.wait_for_timeout(300)
+    page.click(f'[data-ledger-cleared="{tx_id}"]')
+    page.wait_for_timeout(300)
+
+    page.click('#ledgerExportCsvBtn')
+    page.wait_for_timeout(200)
+    modal = page.query_selector('#ledgerExportModal')
+    assert modal and 'flex-visible' in (modal.get_attribute('class') or '')
+
+    cleared_checkbox = page.query_selector('#ledgerExportCol-cleared')
+    cleared_at_checkbox = page.query_selector('#ledgerExportCol-clearedAt')
+    assert cleared_checkbox and cleared_checkbox.is_checked()
+    assert cleared_at_checkbox and cleared_at_checkbox.is_checked()
+
+    with page.expect_download() as download_info:
+        page.click('#ledgerExportConfirmBtn')
+    download = download_info.value
+
+    path = download.path()
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    assert 'Cleared' in content
+    assert 'Cleared At' in content
+    assert 'Yes' in content, "The cleared row should export Cleared=Yes"

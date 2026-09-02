@@ -32,6 +32,7 @@ export function exportAllJSON(app) {
         bills: app.bills || [],
         expenses: app.expenses || [],
         ledgerAmountOverrides: app.ledgerAmountOverrides || {},
+        ledgerClearedTransactions: app.ledgerClearedTransactions || {},
         recurringTemplates: app.recurringTemplates || [],
         emergencyFunds: app.emergencyFunds || [],
         sinkingFunds: app.sinkingFunds || [],
@@ -188,7 +189,9 @@ const LEDGER_EXPORT_COLUMN_LABELS = {
     amount: 'Amount',
     category: 'Category',
     balance: 'Running Balance',
-    type: 'Type'
+    type: 'Type',
+    cleared: 'Cleared',
+    clearedAt: 'Cleared At'
 };
 export const LEDGER_EXPORT_COLUMN_KEYS = Object.keys(LEDGER_EXPORT_COLUMN_LABELS);
 
@@ -201,6 +204,8 @@ function ledgerExportCellValue(tx, key) {
         case 'category': return tx.category || '';
         case 'balance': return Number(tx.balance || 0).toFixed(2);
         case 'type': return tx.type || '';
+        case 'cleared': return tx.cleared ? 'Yes' : 'No';
+        case 'clearedAt': return tx.clearedAt || '';
         default: return '';
     }
 }
@@ -269,6 +274,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingBills = clean.bills;
         const incomingExpenses = clean.expenses;
         const incomingLedgerAmountOverrides = clean.ledgerAmountOverrides;
+        const incomingLedgerClearedTransactions = clean.ledgerClearedTransactions;
         const incomingRecurringTemplates = clean.recurringTemplates;
         const incomingEmergencyFunds = clean.emergencyFunds;
         const incomingSinkingFunds = clean.sinkingFunds;
@@ -349,6 +355,7 @@ export function importAllJSON(app, file, options = {}) {
             app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
+            app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
             app.perMonthStimulus = incomingPerMonthStimulus;
@@ -394,6 +401,7 @@ export function importAllJSON(app, file, options = {}) {
             app.reconciliations = [...app.reconciliations, ...incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }))];
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
+            app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
             app.monthlySnapshots = incomingMonthlySnapshots || [];
             app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
             app.perMonthStimulus = incomingPerMonthStimulus;

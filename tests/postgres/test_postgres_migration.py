@@ -17,6 +17,7 @@ SAMPLE_LOCAL_DATA = {
     "incomes": [], "bills": [], "expenses": [], "recurringTemplates": [],
     "emergencyFunds": [], "sinkingFunds": [], "reconciliations": [],
     "settings": [], "monthlySnapshots": [], "ledgerAmountOverrides": {},
+    "ledgerClearedTransactions": {},
     "netWorthMilestonesAwarded": [], "perMonthStimulus": [],
     "monthlyPayment": None, "strategy": None,
 }
@@ -56,7 +57,7 @@ async def _wipe_all(page, base_url):
         "/api/debts", "/api/accounts", "/api/incomes", "/api/bonuses",
         "/api/bills", "/api/expenses", "/api/recurring-templates",
         "/api/emergency-funds", "/api/sinking-funds", "/api/reconciliations",
-        "/api/ledger-overrides", "/api/net-worth-snapshots", "/api/settings",
+        "/api/ledger-overrides", "/api/ledger-cleared", "/api/net-worth-snapshots", "/api/settings",
     ]:
         await page.request.delete(f"{base_url}{path}", headers={"X-CSRF-Token": csrf})
     await page.request.delete(f"{base_url}/api/plan-settings/milestones",
@@ -317,7 +318,7 @@ async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, creden
         await ctx.add_init_script("""
             window.localStorage.setItem('debtTrackerData', JSON.stringify({
                 debts:[], accounts:[], incomes:[], bills:[], expenses:[],
-                ledgerAmountOverrides:{}, recurringTemplates:[], emergencyFunds:[],
+                ledgerAmountOverrides:{}, ledgerClearedTransactions:{}, recurringTemplates:[], emergencyFunds:[],
                 sinkingFunds:[], reconciliations:[], settings:[], monthlySnapshots:[],
                 netWorthMilestonesAwarded:[], perMonthStimulus:[],
                 monthlyPayment:null, strategy:null,

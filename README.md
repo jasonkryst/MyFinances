@@ -183,8 +183,9 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Unified transaction list** — income, one-time entries, debts, bills, expenses, recurring templates, savings contributions, and reconciliation markers in one scrollable view
 - **Account + date range filters** — filter by account and by range (All, Past & Today, Next 30/60/90 Days, Through Next Month)
 - **Amount overrides** — modal-based Override / Edit override / Reset per transaction; overrides are keyed by type+id+account+date so they survive ledger re-sorts; changing an override immediately recalculates running balances, Reports, and account projections
+- **Cleared tracking** — a Cleared checkbox per transaction records whether it has actually posted to the account, plus the timestamp it was marked cleared (shown as the checkbox's tooltip); keyed the same way as amount overrides, so it's independent of ledger re-sorts. Purely informational — it does not affect running balances — useful for spotting scheduled transactions (bills, recurring items) that haven't posted on the day they were expected to
 - **Running balance** — continuous balance column; snaps to the statement balance at each reconciliation marker when "Adjust Balance" mode is active
-- **CSV export** — column-picker modal (date, account, name, amount, category, running balance, type); exports respect the current filter and sort; selected columns persist between sessions
+- **CSV export** — column-picker modal (date, account, name, amount, category, running balance, type, cleared, cleared at); exports respect the current filter and sort; selected columns persist between sessions
 
 ---
 
@@ -342,6 +343,7 @@ src/
   ├─ ledger.js             — Transaction ledger page rendering & CSV export
   ├─ ledgerTransactions.js — Ledger transaction aggregation (pure computation)
   ├─ ledgerOverrides.js    — Per-transaction manual amount overrides
+  ├─ ledgerCleared.js      — Per-transaction cleared/posted tracking with timestamp
   ├─ reconciliation.js     — Account statement reconciliation
   ├─ health.js             — Financial health dashboard (DTI, savings rate, runway)
   ├─ spending.js           — Spending analysis (category breakdowns, trends)
@@ -521,7 +523,7 @@ form-action 'self'
 - **Expenses** — Add/edit/delete, amount/date validation
 - **Bills** — Data model, sanitization, calculation integration
 - **Recurring** — All frequencies, pause/resume, skip-month, mark-as-paid, account linkage, validation
-- **Ledger** — Filtering, amount-override modal, key collision checks, CSV export column picker
+- **Ledger** — Filtering, amount-override modal, cleared-checkbox tracking, key collision checks, CSV export column picker
 - **Reports** — Income vs expenses, money flow, net worth analytics, tab grouping, date-boundary handling
 - **Savings** — Emergency funds, sinking funds, persistence
 - **Net Worth** — Snapshots, milestones, historical calculations
@@ -562,7 +564,7 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 - **End-to-End Workflows** — Complete user journeys (account → debt → net worth → reconciliation)
 - **Data Persistence** — Cross-navigation data integrity
 - **Import/Export** — JSON roundtrip, CSV schedule export (incl. comma/quote escaping), full clear-all-data → reimport → render-every-page consistency check
-- **Ledger CSV Export** — Column-picker modal, filtered export, column persistence
+- **Ledger CSV Export** — Column-picker modal (incl. cleared/cleared-at columns), filtered export, column persistence
 
 ### Quick Test Commands
 

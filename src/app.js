@@ -148,6 +148,7 @@ export class DebtTrackerApp {
         this.reconciliations = [];
         this.settings = [];
         this.ledgerAmountOverrides = {};
+        this.ledgerClearedTransactions = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
         this.perMonthStimulus = [];
