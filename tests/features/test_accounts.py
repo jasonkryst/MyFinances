@@ -717,3 +717,48 @@ def test_delete_account_with_linked_items_replacement_pages_navigate_cleanly(app
         page.click(f'button[data-page="{nav_page}"]')
         page.wait_for_timeout(300)
     assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_account_type_shown_in_selectors(app_page):
+    """Account selectors across the app show 'Name (Type)' format."""
+    page = app_page
+
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'My BCU')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '500')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    expected_label = 'My BCU (Checking)'
+
+    # Income page — Deposit to Account add-form selector
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    income_opts = page.evaluate(
+        "() => Array.from(document.getElementById('incomeAccount')?.options ?? []).map(o => o.text)"
+    )
+    assert expected_label in income_opts, \
+        f"incomeAccount should show '{expected_label}', got: {income_opts}"
+
+    # Liabilities page — debt Pay from Account selector
+    page.click('button[data-page="liabilities"]')
+    page.wait_for_timeout(300)
+    debt_opts = page.evaluate(
+        "() => Array.from(document.getElementById('debtAccount')?.options ?? []).map(o => o.text)"
+    )
+    assert expected_label in debt_opts, \
+        f"debtAccount should show '{expected_label}', got: {debt_opts}"
+
+    # Ledger page — account filter selector
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+    ledger_opts = page.evaluate(
+        "() => Array.from(document.getElementById('ledgerAccountFilter')?.options ?? []).map(o => o.text)"
+    )
+    assert expected_label in ledger_opts, \
+        f"ledgerAccountFilter should show '{expected_label}', got: {ledger_opts}"
+
+    assert_no_errors(page)

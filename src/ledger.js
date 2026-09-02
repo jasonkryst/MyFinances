@@ -78,7 +78,7 @@ export function renderLedgerPage(app) {
             <select id="ledgerAccountFilter" class="select-styled">
                 <option value="all">All Accounts</option>`;
         for (const acct of accounts) {
-            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)}</option>`;
+            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)} (${escapeHtml(acct.type)})</option>`;
         }
         filterHtml += `</select>`;
     }

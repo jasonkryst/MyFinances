@@ -199,7 +199,7 @@ function renderReconciliationHistory(app) {
         <label for="reconHistoryAccountFilter" class="filter-label">Account:</label>
         <select id="reconHistoryAccountFilter" class="select-styled">
             <option value="all"${filter === 'all' ? ' selected' : ''}>All Accounts</option>
-            ${(app.accounts || []).map(a => `<option value="${a.id}"${String(filter) === String(a.id) ? ' selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+            ${(app.accounts || []).map(a => `<option value="${a.id}"${String(filter) === String(a.id) ? ' selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`).join('')}
         </select>
     </div>`;
 
