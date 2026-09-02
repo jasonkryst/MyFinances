@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.39.1] — 2026-09-02
+
+### Changed
+- **CI: split test-features-a into two shards** — `test_accounts.py` (27 tests, multi-modal deletion flows) and `test_forecast.py` (16 tests, multi-month projection rendering) moved to a new parallel `test-features-d` shard after the deletion-with-replacement feature (#135) added 11 complex modal-interaction tests and pushed shard A past the 20-minute timeout. Shard A shrinks from 129 → 86 tests; B and C are unchanged.
+
+---
 ## [4.39.0] — 2026-09-02
 
 ### Changed
