@@ -15,5 +15,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
 # Docker compose file: secrets default to 0444 so the node user can read /run/secrets/*
 USER node
 EXPOSE 4000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "src/index.js"]
