@@ -12,7 +12,8 @@ COPY src /src
 COPY server/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
     chown -R node:node /app /src
-# Docker compose file: secrets default to 0444 so the node user can read /run/secrets/*
+# Secret file on the host must be chmod 644 so this user can read it.
+# See DEPLOYMENT.md for the required setup command.
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

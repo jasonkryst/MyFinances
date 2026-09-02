@@ -15,8 +15,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   GitHub deprecation warning for the `node20` runner runtime.
 - **Security — non-root Docker user**: `server/Dockerfile` now runs as the built-in `node`
   user (uid 1000) instead of root. All file ownership is set via `chown -R node:node /app /src`
-  before the `USER node` directive; Docker Compose `file:` secrets default to `0444` so the
-  entrypoint script can still read `/run/secrets/postgres_password` without root.
+  before the `USER node` directive. The Docker secret file on the host must be `chmod 644`
+  (world-readable) so the non-root container user can read it — `DEPLOYMENT.md` updated
+  accordingly (`chmod 700` on the secrets directory; `chmod 644` on the file).
 
 ## [4.36.0] — 2026-09-01
 

@@ -1,4 +1,4 @@
-﻿# Deployment Guide - MyFinances
+# Deployment Guide - MyFinances
 
 This guide covers deployment options and security configurations for MyFinances.
 
@@ -324,8 +324,9 @@ Portainer can watch your GitHub repository and redeploy automatically on every p
 7. Before clicking **Deploy**, SSH into your server and create the secret file once:
    ```sh
    mkdir -p /opt/myfinances/secrets
+   chmod 700 /opt/myfinances/secrets
    openssl rand -hex 32 > /opt/myfinances/secrets/postgres_password.txt
-   chmod 600 /opt/myfinances/secrets/postgres_password.txt
+   chmod 644 /opt/myfinances/secrets/postgres_password.txt
    ```
    This path must match the `POSTGRES_SECRET_FILE` value you set in step 6.
 
