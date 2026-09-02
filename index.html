@@ -185,7 +185,7 @@
                                             <svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                                         </button>
                                         <div class="debt-form-body" id="debtFormBody" hidden>
-                                        <form id="debtForm">
+                                        <form id="debtForm" novalidate>
                                 <div class="form-group">
                                     <label for="debtName">Debt Name *
                                         <span class="help-icon" tabindex="0" aria-label="Enter a descriptive name for this debt, e.g., 'Credit Card' or 'Student Loan'.">?</span>
@@ -345,17 +345,18 @@
                                             <div class="form-group">
                                                 <label for="expenseCategory">Category</label>
                                                 <select id="expenseCategory">
-                                                    <option value="Food & Groceries">Food &amp; Groceries</option>
-                                                    <option value="Dining Out">Dining Out</option>
-                                                    <option value="Health & Fitness">Health &amp; Fitness</option>
+                                                    <option value="Subscription">Subscription</option>
+                                                    <option value="Insurance">Insurance</option>
+                                                    <option value="Rent / Mortgage">Rent / Mortgage</option>
+                                                    <option value="Utilities">Utilities</option>
+                                                    <option value="Transport">Transport</option>
+                                                    <option value="Food">Food</option>
                                                     <option value="Entertainment">Entertainment</option>
-                                                    <option value="Clothing">Clothing</option>
-                                                    <option value="Personal Care">Personal Care</option>
+                                                    <option value="Health">Health</option>
                                                     <option value="Education">Education</option>
-                                                    <option value="Childcare">Childcare</option>
-                                                    <option value="Costco">Costco</option>
-                                                    <option value="Target">Target</option>
-                                                    <option value="Reconciliation">Reconciliation</option>
+                                                    <option value="Savings">Savings</option>
+                                                    <option value="Transfer">Transfer</option>
+                                                    <option value="Reimbursement">Reimbursement</option>
                                                     <option value="Other">Other</option>
                                                 </select>
                                             </div>
@@ -418,7 +419,9 @@
                                     <span class="help-icon" tabindex="0" aria-label="How often you receive this payment.">?</span>
                                 </label>
                                 <select id="incomeFrequency" required>
+                                    <option value="weekly">Every week</option>
                                     <option value="biweekly">Every other week (bi-weekly)</option>
+                                    <option value="twice_monthly">Twice per month (15th &amp; last day)</option>
                                     <option value="monthly">Once per month</option>
                                 </select>
                             </div>
@@ -1076,6 +1079,17 @@
             <div class="modal-actions">
                 <button id="pgSwitchConfirmBtn" class="btn btn-danger">Continue</button>
                 <button id="pgSwitchCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Alert Modal - themed replacement for browser alert() dialogs -->
+    <div id="alertModal" class="modal modal-overlay hidden"
+         role="alertdialog" aria-modal="true" aria-labelledby="alertModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="alertModalTitle">Notice</h3>
+            <p id="alertModalMessage" class="modal-description"></p>
+            <div class="modal-actions">
+                <button id="alertModalOkBtn" class="btn btn-primary">OK</button>
             </div>
         </div>
     </div>

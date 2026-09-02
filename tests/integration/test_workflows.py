@@ -434,7 +434,10 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     clear_btn.click()  # opens themed #deleteConfirmModal
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_timeout(500)
+    # dismiss the #alertModal confirmation that appears after clearing
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    page.click('#alertModalOkBtn')
+    page.wait_for_timeout(300)
 
     cleared_data = page.evaluate(
         '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
@@ -502,7 +505,10 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     page.click('#clearDataBtn')
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_timeout(500)
+    # dismiss the #alertModal confirmation that appears after clearing
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    page.click('#alertModalOkBtn')
+    page.wait_for_timeout(300)
 
     cleared_data = page.evaluate(
         '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'

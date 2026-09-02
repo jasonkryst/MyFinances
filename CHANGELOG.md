@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.34.0] — 2026-09-01
+
+### Added
+- **Themed validation-error modal** — all browser `alert()` popups triggered when a form submission is invalid (or when an action cannot proceed due to missing/invalid data) are now replaced by a themed `#alertModal` dialog that respects dark mode and the app's design system. The new `showAlertModal(message, title?)` function in `src/ui.js` follows the same Promise-based pattern as `showDeleteConfirmModal`, resolves on OK-click or Escape/Enter key. Affected modules: `accounts`, `bills`, `bonusAdvisor`, `debts`, `income`, `ledgerOverrides`, `reconciliation`, `recurring`, `savings`, `strategyPlanCalculation`, and the `app.js` callbacks. Sync functions that previously called `alert()` are promoted to `async` where needed (`saveEditAccount`, `saveEditBill`, `saveEditExpense`, `saveEditIncome`, `addBonus`, `saveEditBonus`, `saveEditRecurring`, `saveEdit` in debts, `saveInlineEdit` in debts, `showBonusAdvice`, `calculatePaymentPlanFromInputs`).
+- **Weekly and Twice-per-month income frequencies** — the Income page now supports two new payment schedules in addition to bi-weekly and monthly. `weekly` generates a payday every 7 days anchored to the first-pay-date. `twice_monthly` generates paydays on the 15th and the last day of every month, independent of the first-pay-date anchor. Annual income estimates use 52× (weekly) and 24× (twice-monthly) multipliers. Both frequencies are available in the Add and Edit income forms.
+- **Account type shown in account list card names** — account cards now display the type in parentheses inline with the name (e.g. "Jay - BCU (Checking)"), making account type scannable without hovering over the badge.
+- **Expense categories aligned with Recurring Templates** — the Expense budget category list (add form, inline-edit dropdown) now matches the Recurring Templates categories: Subscription, Insurance, Rent / Mortgage, Utilities, Transport, Food, Entertainment, Health, Education, Savings, Transfer, Reimbursement, Other.
+
 ## [4.33.4] — 2026-09-01
 
 ### Fixed

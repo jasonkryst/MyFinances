@@ -90,7 +90,7 @@ import {
 import {
     computeMoneyFlowSankeyData as computeMoneyFlowSankeyDataFeature
 } from './reportsMoneyFlowSankey.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature } from './ui.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, showAlertModal } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION } from './utils.js';
 import {
@@ -313,7 +313,7 @@ export class DebtTrackerApp {
      */
     exportToCSV() {
         return exportToCSVFeature(this, {
-            onMissingPlan: () => alert('Please calculate a payment plan first')
+            onMissingPlan: () => showAlertModal('Please calculate a payment plan first')
         });
     }
 
@@ -543,7 +543,7 @@ export class DebtTrackerApp {
      */
     clearAllData() {
         return clearAllDataFeature(this, {
-            onCleared: () => alert('All app data and saved preferences have been cleared.')
+            onCleared: () => showAlertModal('All app data and saved preferences have been cleared.')
         });
     }
 

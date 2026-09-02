@@ -169,7 +169,7 @@ def expense_data():
         "name": "Groceries",
         "amount": "300",
         "date": "2026-05-15",
-        "category": "Food & Groceries"
+        "category": "Food"
     }
 
 

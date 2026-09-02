@@ -10,7 +10,7 @@ import {
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
-import { showDeleteConfirmModal } from './ui.js';
+import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -327,9 +327,9 @@ export async function addRecurringTemplate(app) {
     const startDate = sanitizeDateISO(document.getElementById('recurringStartDate')?.value) || new Date().toISOString().split('T')[0];
     const endDate = sanitizeDateISO(document.getElementById('recurringEndDate')?.value) || null;
 
-    if (!name) { alert('Please enter a name.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid positive amount.'); return; }
-    if (!accountId) { alert('Please select an account.'); return; }
+    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid positive amount.'); return; }
+    if (!accountId) { await showAlertModal('Please select an account.'); return; }
 
     if (!app.recurringTemplates) app.recurringTemplates = [];
     const tmpl = {
@@ -418,7 +418,7 @@ export function cancelEditRecurring(app) {
     app.renderRecurringPage();
 }
 
-export function saveEditRecurring(app, id) {
+export async function saveEditRecurring(app, id) {
     if (!app.recurringTemplates) return;
     const idx = app.recurringTemplates.findIndex(t => t.id === id);
     if (idx === -1) return;
@@ -435,8 +435,8 @@ export function saveEditRecurring(app, id) {
     const startDate = sanitizeDateISO(document.getElementById(`re-start-${id}`)?.value);
     const endDate = sanitizeDateISO(document.getElementById(`re-end-${id}`)?.value) || null;
 
-    if (!name) { alert('Please enter a name.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid positive amount.'); return; }
+    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid positive amount.'); return; }
 
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],

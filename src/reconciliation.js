@@ -7,6 +7,7 @@ import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showAlertModal } from './ui.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -48,7 +49,7 @@ export function getExpectedTransactionsInRange(app, accountId, startDate, endDat
 export async function applyReconciliation(app, accountId, statementBalance, note, date) {
     const balance = sanitizeFiniteNumber(statementBalance, NaN);
     if (!Number.isFinite(balance)) {
-        alert('Please enter a valid statement balance.');
+        await showAlertModal('Please enter a valid statement balance.');
         return { success: false };
     }
 
