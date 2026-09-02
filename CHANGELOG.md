@@ -4,6 +4,34 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.36.0] — 2026-09-01
+
+### Changed
+- **CI — test job splitting** (PR #130): `test-features` (34 test files) split into three
+  parallel shards (`test-features-a/b/c`, ~11 files each) and `test-ui` (27 files) split
+  into two shards (`test-ui-a/b`, ~13 files each). Each shard runs comfortably under the
+  20-minute timeout that previously caused the monolithic jobs to time out.
+- **CI — Playwright browser caching**: `~/.cache/ms-playwright` is now cached per job using
+  `actions/cache@v4` keyed on `tests/requirements.txt` hash. Avoids re-downloading the 130 MB
+  Chromium binary on every runner; with 8+ browser-test jobs the saving is ~4-8 min of
+  total runner time per CI run.
+- **CI — pip caching**: new `tests/requirements.txt` pins `playwright`, `pytest`, and
+  `pytest-asyncio`. All jobs now use `actions/setup-python cache: pip` with
+  `cache-dependency-path: tests/requirements.txt` so pip packages are restored from cache.
+- **CI — mutation testing split**: `mutation-testing` job separated into `test-unit` (fast
+  Jest run, executes on every PR for immediate feedback) and `mutation-testing` (slow Stryker
+  run, executes on push to `main` only, timeout raised to 45 min).
+- **CI — Trivy code-scanning fix**: Added `trivy.yaml` at repo root (required by
+  `trivy-action` v0.36.0+; absence caused "configuration not found" and GitHub Code
+  Scanning showing as "not configured"). All `trivy-action` steps now reference `trivy.yaml`
+  via `trivy-config`. Removed `hashFiles()` guards from SARIF upload steps (they were
+  silently skipping uploads when scans produced no findings, preventing Code Scanning
+  initialization). SARIF uploads now have `continue-on-error: true` so a transient upload
+  failure does not fail the security gate.
+- **CI — Lighthouse timeout**: raised from 20 to 30 minutes to accommodate Docker Compose
+  build time on cold runners.
+
+---
 ## [4.35.0] — 2026-09-01
 
 ### Changed
@@ -560,7 +588,6 @@ _Note: `4.7.1` was a version-only commit with no accompanying changes and has no
 ## [3.0.0] and earlier
 
 Core feature set: debt management (credit cards + fixed-amount recurring), account management with projected balances, income tracking (bi-weekly + monthly sources, one-time entries), budget tracking (bills + variable expenses), recurring transaction templates (subscriptions, reimbursements, transfers), savings goals (emergency fund + sinking funds with three allocation methods), unified ledger with amount overrides, calendar + reports (income vs. expenses, money flow, variance dashboard, net worth), debt payoff plan calculator with four strategies (Avalanche, Snowball, Priority-Low, Priority-High), what-if slider, target payoff date back-calculator (binary search), interest paid to date estimate, JSON export/import (legacy v1.0 + current v4.0.0 format), CSV schedule export, dark mode, in-app guide (`guide.html`), strict Content Security Policy.
-
 
 
 
