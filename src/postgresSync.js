@@ -14,6 +14,7 @@ const ALL_RESOURCE_PATHS = [
     '/api/sinking-funds',
     '/api/reconciliations',
     '/api/ledger-overrides',
+    '/api/ledger-cleared',
     '/api/net-worth-snapshots',
     '/api/settings',
 ];

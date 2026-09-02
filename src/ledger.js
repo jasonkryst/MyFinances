@@ -4,8 +4,8 @@ import { formatCurrency, escapeHtml, formatShortDate } from './utils.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
 import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
-
-const LEDGER_EXPORT_COLUMN_KEYS = ['date', 'account', 'name', 'amount', 'category', 'balance', 'type'];
+import { setLedgerCleared } from './ledgerCleared.js';
+import { LEDGER_EXPORT_COLUMN_KEYS } from './dataExport.js';
 
 function openLedgerExportModal(app) {
     const modal = document.getElementById('ledgerExportModal');
@@ -132,10 +132,11 @@ export function renderLedgerPage(app) {
             <th data-key="name">Transaction ${sortIcon('name')}</th>
             <th data-key="amount">Amount ${sortIcon('amount')}</th>
             <th data-key="balance">Running Balance ${sortIcon('balance')}</th>
+            <th>Cleared</th>
         </tr></thead>
         <tbody>`;
     if (pagedTransactions.length === 0) {
-        html += `<tr><td colspan="5" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
+        html += `<tr><td colspan="6" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
     } else {
         for (const tx of pagedTransactions) {
             const isReconciliation = tx.type === 'reconciliation';
@@ -164,12 +165,16 @@ export function renderLedgerPage(app) {
             const overrideActions = canOverride
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit override' : 'Override'}</button>${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
                 : '';
+            const clearedCell = canOverride
+                ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark cleared">`
+                : '';
             html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
                 <td>${tx.date ? formatShortDate(tx.date) : ''}</td>
                 <td>${escapeHtml(tx.account || '')}</td>
                 <td>${nameCell}</td>
                 <td class="text-right ${amountColorClass}">${amountCell}${overrideActions}</td>
                 <td class="text-right">${formatCurrency(tx.balance)}</td>
+                <td class="text-center">${clearedCell}</td>
             </tr>`;
         }
     }
@@ -262,6 +267,15 @@ export function renderLedgerPage(app) {
             renderLedgerPage(app);
             if (typeof app.renderReportsPage === 'function') app.renderReportsPage();
             if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
+        };
+    });
+
+    container.querySelectorAll('[data-ledger-cleared]').forEach(checkbox => {
+        checkbox.onchange = () => {
+            const txId = checkbox.getAttribute('data-ledger-cleared');
+            setLedgerCleared(app, txId, checkbox.checked);
+            app.saveToStorage();
+            renderLedgerPage(app);
         };
     });
 

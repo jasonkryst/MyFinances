@@ -77,7 +77,7 @@ async def _mock_all_api(page):
             })
         elif 'settings' in url and 'plan' not in url:
             body = json.dumps([])
-        elif 'ledger-overrides' in url:
+        elif 'ledger-overrides' in url or 'ledger-cleared' in url:
             body = json.dumps({})
         else:
             body = json.dumps([])

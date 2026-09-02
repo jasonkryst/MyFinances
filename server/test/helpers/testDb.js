@@ -4,7 +4,7 @@ import argon2 from 'argon2';
 export async function resetDb() {
     await pool.query(
         `TRUNCATE sessions, net_worth_milestones_awarded, plan_settings,
-                  ledger_amount_overrides, settings, net_worth_snapshots,
+                  ledger_amount_overrides, ledger_cleared_transactions, settings, net_worth_snapshots,
                   reconciliations, sinking_funds, emergency_funds, recurring_templates, debts,
                   bonuses, incomes, expenses, bills, accounts, users RESTART IDENTITY CASCADE`
     );
