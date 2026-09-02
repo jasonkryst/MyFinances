@@ -9,7 +9,7 @@ import json
 import tempfile
 import os
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 
 @pytest.mark.security

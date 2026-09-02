@@ -61,8 +61,8 @@ pytest --cov=. --cov-report=html
 ### Prerequisites for Test Execution
 
 **Local Server Must Be Running:**
-- Default URL: `http://localhost:5500/`
-- Can start a simple Python server: `python -m http.server 5500`
+- Default URL: `http://localhost:32900/`
+- Can start a simple Python server: `python -m http.server 32900`
 - Or use VS Code Live Server extension
 
 ---
@@ -346,7 +346,7 @@ create_income(page, income_data)
 ## Configuration
 
 ### Base URL
-- **Default:** `http://localhost:5500/`
+- **Default:** `http://localhost:32900/`
 - **Set in:** `conftest.py` → `BASE_URL`
 - **Used by:** All `app_page` and `async_app_page` fixtures
 
@@ -493,7 +493,7 @@ async def test_full_workflow(async_app_page):
 
 ### Test Fails with "Connection Refused"
 - **Issue:** Server not running
-- **Solution:** Start local server: `python -m http.server 5500`
+- **Solution:** Start local server: `python -m http.server 32900`
 - **Check:** Verify BASE_URL in conftest.py matches server port
 
 ### Test Times Out Waiting for Element
@@ -542,7 +542,7 @@ To run tests in CI pipeline:
   run: |
     pip install -r requirements.txt
     playwright install chromium
-    python -m http.server 5500 &
+    python -m http.server 32900 &
     sleep 2
     pytest tests/ -v --tb=short
 ```

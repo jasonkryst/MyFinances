@@ -8,7 +8,7 @@ async def test_menu_narrow():
         page = await browser.new_page(viewport={"width": 500, "height": 800})
         
         try:
-            await page.goto('http://localhost:5500', timeout=10000)
+            await page.goto('http://localhost:32900', timeout=10000)
             await page.wait_for_load_state('networkidle', timeout=5000)
             
             # Get the nav elements

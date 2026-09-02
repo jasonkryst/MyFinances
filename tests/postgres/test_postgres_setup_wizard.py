@@ -14,7 +14,7 @@ from playwright.async_api import async_playwright, expect
 
 pytestmark = pytest.mark.asyncio
 
-BASE_URL_DEFAULT = "http://localhost:5500"
+BASE_URL_DEFAULT = "http://localhost:32900"
 
 
 def _make_pg_context(playwright):

@@ -1,4 +1,4 @@
-﻿services:
+services:
   myfinances:
     build:
       context: .
@@ -6,7 +6,7 @@
     image: myfinances:latest
     container_name: myfinances
     ports:
-      - "5500:80"
+      - "32900:80"
     restart: unless-stopped
     read_only: true
     tmpfs:
