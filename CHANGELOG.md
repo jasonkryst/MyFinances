@@ -4,6 +4,20 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.37.0] — 2026-09-01
+
+### Changed
+- **Node.js upgrade to 24 LTS**: `server/Dockerfile` base image updated from `node:20-alpine`
+  (EOL April 2026) to `node:24-alpine` (Active LTS). `server/package.json` `engines` field
+  updated to `>=24`.
+- **CI — `actions/setup-node` v4 → v5**: both the `test-unit` and `mutation-testing` jobs now
+  use `actions/setup-node@v5`, which runs on the Node.js 22 action runner and resolves the
+  GitHub deprecation warning for the `node20` runner runtime.
+- **Security — non-root Docker user**: `server/Dockerfile` now runs as the built-in `node`
+  user (uid 1000) instead of root. All file ownership is set via `chown -R node:node /app /src`
+  before the `USER node` directive; Docker Compose `file:` secrets default to `0444` so the
+  entrypoint script can still read `/run/secrets/postgres_password` without root.
+
 ## [4.36.0] — 2026-09-01
 
 ### Changed
