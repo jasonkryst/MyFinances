@@ -428,7 +428,8 @@ def test_delete_account_no_links_confirm_removes_account(app_page):
     page.click('#deleteConfirmBtn')
     page.wait_for_timeout(300)
 
-    assert page.query_selector('text=Delete Me Account') is None, "Account should be removed after confirmation"
+    names = page.evaluate("() => window.app.accounts.map(a => a.name)")
+    assert 'Delete Me Account' not in names, "Account should be removed after confirmation"
     assert_no_errors(page)
 
 
@@ -620,7 +621,8 @@ def test_delete_account_reassigns_linked_income_to_replacement(app_page):
     page.wait_for_timeout(300)
 
     # Primary account should be gone
-    assert page.query_selector('text=Primary Account') is None, "Deleted account should be removed"
+    acc_names = page.evaluate("() => window.app.accounts.map(a => a.name)")
+    assert 'Primary Account' not in acc_names, "Deleted account should be removed"
 
     # Income should still exist and its accountId should now point to the replacement
     income_account_id = page.evaluate("""() => {

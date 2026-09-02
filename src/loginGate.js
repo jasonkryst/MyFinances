@@ -30,7 +30,7 @@ export async function showLoginGate(app) {
 
     gate.classList.add('flex-visible');
     gate.classList.remove('hidden');
-    setTimeout(() => emailInput.focus(), 30);
+    setTimeout(() => emailInput.focus(), 0);
 
     await new Promise((resolve) => {
         form.onsubmit = async (event) => {
