@@ -3,7 +3,7 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
-import { showAlertModal } from './ui.js';
+import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -179,13 +179,56 @@ export async function addAccount(app) {
     document.getElementById('accountForm').reset();
 }
 
-export function deleteAccount(app, id) {
+export async function deleteAccount(app, id) {
+    const account = app.accounts.find(a => a.id === id);
+    if (!account) return;
+
+    const linkedIncome    = app.incomes.filter(i => i.accountId === id);
+    const linkedBonuses   = (app.bonuses || []).filter(b => b.accountId === id);
+    const linkedDebts     = app.debts.filter(d => d.accountId === id);
+    const linkedBills     = app.bills.filter(b => b.accountId === id);
+    const linkedExp       = app.expenses.filter(e => e.accountId === id);
+    const linkedRecurring = (app.recurringTemplates || []).filter(r => r.accountId === id || r.targetAccountId === id);
+    const hasLinks = linkedIncome.length || linkedBonuses.length || linkedDebts.length ||
+                     linkedBills.length || linkedExp.length || linkedRecurring.length;
+
+    if (hasLinks) {
+        const replacementId = await showAccountReplacementModal(app, id);
+        if (replacementId === null) return;
+
+        const replacement = app.accounts.find(a => a.id === replacementId);
+        const totalLinked = linkedIncome.length + linkedBonuses.length + linkedDebts.length +
+                            linkedBills.length + linkedExp.length + linkedRecurring.length;
+        const confirmed = await showDeleteConfirmModal(
+            `Delete "${account.name}" and reassign ${totalLinked} linked item(s) to "${replacement?.name ?? ''}"?`,
+            'Delete and Reassign'
+        );
+        if (!confirmed) return;
+
+        _reassignLinkedItems(app, id, replacementId);
+    } else {
+        const confirmed = await showDeleteConfirmModal(`Delete account "${account.name}"? This cannot be undone.`);
+        if (!confirmed) return;
+    }
+
     app.accounts = app.accounts.filter(a => a.id !== id);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/accounts/${id}`);
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
+}
+
+function _reassignLinkedItems(app, fromId, toId) {
+    for (const item of app.incomes)   { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of (app.bonuses || [])) { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of app.debts)     { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of app.bills)     { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of app.expenses)  { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of (app.recurringTemplates || [])) {
+        if (item.accountId === fromId) item.accountId = toId;
+        if (item.targetAccountId === fromId) item.targetAccountId = toId;
+    }
 }
 
 export function startEditAccount(app, id) {

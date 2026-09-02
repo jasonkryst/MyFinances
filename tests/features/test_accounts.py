@@ -345,24 +345,101 @@ def test_imported_account_with_invalid_rate_shows_no_badge(app_page):
         "A non-numeric imported rate should sanitize to 0 and show no badge"
 
 
-@pytest.mark.feature
-def test_delete_account_with_linked_items_orphans_gracefully(app_page):
-    """Deleting an account that has linked income/bills/debts doesn't crash;
-    the linked items survive with a now-dangling accountId, and computeAccountBalance
-    (and every render that depends on it) tolerates the missing account.
-    """
-    page = app_page
-
-    # Create the account that will be deleted.
+def _seed_two_accounts(page):
+    """Seed two accounts and return their names. Used by deletion tests."""
     page.click('button[data-page="accounts"]')
     page.wait_for_timeout(300)
-    page.fill('#accountName', 'Orphan Source Account')
+    for name, balance in [('Primary Account', '1000'), ('Replacement Account', '2000')]:
+        page.fill('#accountName', name)
+        page.select_option('#accountType', label='Checking')
+        page.fill('#accountStartingBalance', balance)
+        page.click('#accountFormSubmit')
+        page.wait_for_timeout(300)
+    return 'Primary Account', 'Replacement Account'
+
+
+def _is_replacement_modal_open(page):
+    return page.evaluate(
+        "() => !document.getElementById('accountReplacementModal')?.classList.contains('hidden')"
+    )
+
+
+def _is_confirm_modal_open(page):
+    return page.evaluate(
+        "() => !document.getElementById('deleteConfirmModal')?.classList.contains('hidden')"
+    )
+
+
+# ── Delete: no linked items ────────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_delete_account_no_links_shows_confirm_modal(app_page):
+    """Deleting an account with no linked items shows the generic confirm modal."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Solo Account')
     page.select_option('#accountType', label='Checking')
-    page.fill('#accountStartingBalance', '1000')
+    page.fill('#accountStartingBalance', '500')
     page.click('#accountFormSubmit')
     page.wait_for_timeout(300)
 
-    # Link an income source to it.
+    page.click('[data-account-action="delete"]')
+    page.wait_for_timeout(300)
+
+    assert _is_confirm_modal_open(page), "Generic confirm modal should open for an unlinked account"
+    assert not _is_replacement_modal_open(page), "Replacement modal should NOT open for an unlinked account"
+
+
+@pytest.mark.feature
+def test_delete_account_no_links_cancel_keeps_account(app_page):
+    """Cancelling the confirm modal leaves the account untouched."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Keep Me Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '500')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('[data-account-action="delete"]')
+    page.wait_for_timeout(300)
+    page.click('#deleteConfirmCancelBtn')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Keep Me Account'), "Account should still exist after cancelling delete"
+
+
+@pytest.mark.feature
+def test_delete_account_no_links_confirm_removes_account(app_page):
+    """Confirming on the generic modal actually removes the account."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Delete Me Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '500')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('[data-account-action="delete"]')
+    page.wait_for_timeout(300)
+    page.click('#deleteConfirmBtn')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Delete Me Account') is None, "Account should be removed after confirmation"
+    assert_no_errors(page)
+
+
+# ── Delete: linked items ───────────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_delete_account_with_linked_items_shows_replacement_modal(app_page):
+    """Deleting an account that has linked items shows the replacement modal, not the generic confirm."""
+    page = app_page
+    primary, replacement = _seed_two_accounts(page)
+
     page.click('button[data-page="income"]')
     page.wait_for_timeout(300)
     page.fill('#incomeName', 'Linked Salary')
@@ -373,28 +450,270 @@ def test_delete_account_with_linked_items_orphans_gracefully(app_page):
     page.click('#incomeFormSubmit')
     page.wait_for_timeout(300)
 
-    # Delete the account it's linked to.
     page.click('button[data-page="accounts"]')
     page.wait_for_timeout(300)
-    page.click('[data-account-action="delete"]')
+    # Click Delete on the first (Primary) account card
+    page.locator('[data-account-action="delete"]').first.click()
     page.wait_for_timeout(300)
 
-    assert_no_errors(page)
+    assert _is_replacement_modal_open(page), "Replacement modal should open when linked items exist"
+    assert not _is_confirm_modal_open(page), "Generic confirm modal should NOT open when linked items exist"
+    # Title must name the account being deleted
+    title_text = page.text_content('#accountReplacementTitle')
+    assert primary in title_text, f"Modal title should name the account being deleted, got: {title_text}"
+    # Linked income name should be listed
+    modal_text = page.text_content('#accountReplacementLinks')
+    assert 'Linked Salary' in modal_text, "Modal should list the linked income item"
 
-    # The account is gone...
-    assert page.query_selector('text=Orphan Source Account') is None, \
-        "Deleted account should no longer appear in the accounts list"
 
-    # ...but the linked income record survives with its dangling accountId.
+@pytest.mark.feature
+def test_delete_account_replacement_modal_confirm_disabled_without_selection(app_page):
+    """The 'Delete and Reassign' button is disabled until a replacement is selected."""
+    page = app_page
+    _seed_two_accounts(page)
+
     page.click('button[data-page="income"]')
     page.wait_for_timeout(300)
-    assert page.query_selector('text=Linked Salary'), \
-        "Income linked to a deleted account should survive, not be deleted along with it"
+    page.fill('#incomeName', 'Salary For Guard Test')
+    page.fill('#incomeAmount', '3000')
+    page.fill('#incomeFirstDate', '2026-06-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
 
-    # Navigating through pages that read computeAccountBalance for every income/account
-    # must not throw even though the income's accountId no longer resolves.
-    page.click('button[data-page="health"]')
+    page.click('button[data-page="accounts"]')
     page.wait_for_timeout(300)
-    page.click('button[data-page="reports"]')
+    page.locator('[data-account-action="delete"]').first.click()
     page.wait_for_timeout(300)
+
+    assert _is_replacement_modal_open(page), "Replacement modal should be open"
+    is_disabled = page.evaluate("() => document.getElementById('accountReplacementConfirmBtn').disabled")
+    assert is_disabled, "'Delete and Reassign' button must be disabled until a replacement is chosen"
+
+
+@pytest.mark.feature
+def test_delete_account_replacement_modal_cancel_keeps_account(app_page):
+    """Cancelling the replacement modal leaves both the account and linked items untouched."""
+    page = app_page
+    _seed_two_accounts(page)
+
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.fill('#incomeName', 'Salary To Survive')
+    page.fill('#incomeAmount', '3500')
+    page.fill('#incomeFirstDate', '2026-06-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.locator('[data-account-action="delete"]').first.click()
+    page.wait_for_timeout(300)
+
+    assert _is_replacement_modal_open(page)
+    page.click('#accountReplacementCancelBtn')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Primary Account'), "Primary account should still exist after cancel"
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    assert page.query_selector('text=Salary To Survive'), "Linked income should survive after cancel"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_delete_account_replacement_modal_second_confirm_names_target(app_page):
+    """After selecting a replacement, a second confirm modal describes the reassignment."""
+    page = app_page
+    _seed_two_accounts(page)
+
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.fill('#incomeName', 'Salary For Confirm Test')
+    page.fill('#incomeAmount', '5000')
+    page.fill('#incomeFirstDate', '2026-06-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.locator('[data-account-action="delete"]').first.click()
+    page.wait_for_timeout(300)
+
+    # Select the replacement account
+    page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
+    page.wait_for_timeout(100)
+    page.click('#accountReplacementConfirmBtn')
+    page.wait_for_timeout(300)
+
+    # Second confirm modal should be visible and mention the target account name
+    assert _is_confirm_modal_open(page), "Second confirm modal should appear after selecting replacement"
+    msg_text = page.text_content('#deleteConfirmMessage')
+    assert 'Replacement Account' in msg_text, \
+        f"Second confirm message should name the replacement account, got: {msg_text}"
+
+
+@pytest.mark.feature
+def test_delete_account_with_linked_items_second_confirm_cancel_keeps_account(app_page):
+    """Cancelling the second confirm modal (after selecting a replacement) aborts the deletion."""
+    page = app_page
+    _seed_two_accounts(page)
+
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.fill('#incomeName', 'Salary Cancel Step2')
+    page.fill('#incomeAmount', '2500')
+    page.fill('#incomeFirstDate', '2026-06-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.locator('[data-account-action="delete"]').first.click()
+    page.wait_for_timeout(300)
+
+    page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
+    page.wait_for_timeout(100)
+    page.click('#accountReplacementConfirmBtn')
+    page.wait_for_timeout(300)
+
+    page.click('#deleteConfirmCancelBtn')
+    page.wait_for_timeout(300)
+
+    assert page.query_selector('text=Primary Account'), "Account should still exist after second confirm cancel"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_delete_account_reassigns_linked_income_to_replacement(app_page):
+    """Completing delete-and-reassign moves linked income to the replacement account."""
+    page = app_page
+    primary, replacement = _seed_two_accounts(page)
+
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.fill('#incomeName', 'Reassigned Salary')
+    page.fill('#incomeAmount', '4500')
+    page.fill('#incomeFirstDate', '2026-06-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.locator('[data-account-action="delete"]').first.click()
+    page.wait_for_timeout(300)
+
+    page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
+    page.wait_for_timeout(100)
+    page.click('#accountReplacementConfirmBtn')
+    page.wait_for_timeout(300)
+    page.click('#deleteConfirmBtn')
+    page.wait_for_timeout(300)
+
+    # Primary account should be gone
+    assert page.query_selector('text=Primary Account') is None, "Deleted account should be removed"
+
+    # Income should still exist and its accountId should now point to the replacement
+    income_account_id = page.evaluate("""() => {
+        const income = window.app.incomes.find(i => i.name === 'Reassigned Salary');
+        return income ? income.accountId : null;
+    }""")
+    replacement_id = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Replacement Account')?.id"
+    )
+    assert income_account_id == replacement_id, \
+        f"Income accountId ({income_account_id}) should be reassigned to replacement ({replacement_id})"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_delete_account_with_linked_items_reassigns_all_types(app_page):
+    """Delete-and-reassign moves income, debts, bills, and expenses to the replacement account."""
+    page = app_page
+    _seed_two_accounts(page)
+
+    primary_id = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Primary Account')?.id"
+    )
+    replacement_id = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Replacement Account')?.id"
+    )
+
+    # Seed items across multiple types via JS to avoid UI friction
+    page.evaluate("""([pid]) => {
+        const app = window.app;
+        app.incomes.push({ id: 2001, name: 'Multi Income', amount: 1000, accountId: pid, frequency: 'monthly', firstDate: '2026-06-01' });
+        app.debts.push({ id: 2002, name: 'Multi Debt', accountId: pid, debtType: 'creditCard', accountBalance: 500, interestRate: 15, minimumPayment: 25, dueDate: 1 });
+        app.bills.push({ id: 2003, name: 'Multi Bill', accountId: pid, amount: 100, dueDate: 1, frequency: 'monthly', firstDate: '2026-06-01' });
+        app.expenses.push({ id: 2004, name: 'Multi Expense', accountId: pid, amount: 50, category: 'Food', frequency: 'monthly', firstDate: '2026-06-01' });
+        app.saveToStorage();
+        app.switchPage('accounts');
+    }""", [primary_id])
+    page.wait_for_timeout(300)
+
+    page.locator('[data-account-action="delete"]').first.click()
+    page.wait_for_timeout(300)
+
+    page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
+    page.wait_for_timeout(100)
+    page.click('#accountReplacementConfirmBtn')
+    page.wait_for_timeout(300)
+    page.click('#deleteConfirmBtn')
+    page.wait_for_timeout(300)
+
+    result = page.evaluate("""([rid]) => {
+        const app = window.app;
+        return {
+            income:  app.incomes.find(i => i.name === 'Multi Income')?.accountId,
+            debt:    app.debts.find(d => d.name === 'Multi Debt')?.accountId,
+            bill:    app.bills.find(b => b.name === 'Multi Bill')?.accountId,
+            expense: app.expenses.find(e => e.name === 'Multi Expense')?.accountId,
+        };
+    }""", [replacement_id])
+
+    for item_type, actual_id in result.items():
+        assert actual_id == replacement_id, \
+            f"{item_type} accountId ({actual_id}) should be reassigned to {replacement_id}"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_delete_account_with_linked_items_replacement_pages_navigate_cleanly(app_page):
+    """After delete-and-reassign, navigating through data-heavy pages produces no errors."""
+    page = app_page
+    _seed_two_accounts(page)
+
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.fill('#incomeName', 'Navigation Test Salary')
+    page.fill('#incomeAmount', '3000')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="accounts"]')
+    page.wait_for_timeout(300)
+    page.locator('[data-account-action="delete"]').first.click()
+    page.wait_for_timeout(300)
+    page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
+    page.wait_for_timeout(100)
+    page.click('#accountReplacementConfirmBtn')
+    page.wait_for_timeout(300)
+    page.click('#deleteConfirmBtn')
+    page.wait_for_timeout(300)
+
+    for nav_page in ['health', 'reports', 'income', 'ledger']:
+        page.click(f'button[data-page="{nav_page}"]')
+        page.wait_for_timeout(300)
     assert_no_errors(page)

@@ -5243,6 +5243,23 @@ body.dark-mode .acct-link--bonus   { background: #451a03; color: #fcd34d; }
 body.dark-mode .acct-link--debt    { background: #450a0a; color: #fca5a5; }
 body.dark-mode .acct-link--bill    { background: #1c1400; color: #fcd34d; }
 body.dark-mode .acct-link--exp     { background: #1e1b4b; color: #c4b5fd; }
+/* ── Account replacement modal ─────────────────────────────────────────── */
+.account-replacement-links {
+    margin: 0.5rem 0 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.acct-replacement-group {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6b7280);
+    padding: 0.25rem 0.5rem;
+    background: var(--surface-secondary, #f9fafb);
+    border-radius: 4px;
+}
+body.dark-mode .acct-replacement-group {
+    background: var(--surface-secondary, #1f2937);
+}
 
 /* ── Inline edit grid ──────────────────────────────────────────────────── */
 .acct-edit-grid {
