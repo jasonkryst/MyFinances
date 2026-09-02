@@ -13,6 +13,10 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **CI — `actions/setup-node` v4 → v5**: both the `test-unit` and `mutation-testing` jobs now
   use `actions/setup-node@v5`, which runs on the Node.js 22 action runner and resolves the
   GitHub deprecation warning for the `node20` runner runtime.
+- **Security — non-root Docker user**: `server/Dockerfile` now runs as the built-in `node`
+  user (uid 1000) instead of root. All file ownership is set via `chown -R node:node /app /src`
+  before the `USER node` directive; Docker Compose `file:` secrets default to `0444` so the
+  entrypoint script can still read `/run/secrets/postgres_password` without root.
 
 ## [4.36.0] — 2026-09-01
 

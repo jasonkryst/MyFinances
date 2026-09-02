@@ -10,7 +10,10 @@ COPY server/. .
 # that relative path from /app/src/sanitizers/index.js.
 COPY src /src
 COPY server/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
+    chown -R node:node /app /src
+# Docker compose file: secrets default to 0444 so the node user can read /run/secrets/*
+USER node
 EXPOSE 4000
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "src/index.js"]
