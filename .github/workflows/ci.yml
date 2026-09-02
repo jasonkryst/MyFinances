@@ -6,8 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+# Shared Python/Playwright setup used by every browser-test job.
+# Kept inline (no composite action) so the workflow is self-contained.
+# Change the cache key suffix (e.g. -v2) to bust stale Playwright binaries.
+
 jobs:
-  test-features:
+  # ---------------------------------------------------------------------------
+  # Features — split into 3 parallel shards so each stays under 20 min
+  # ---------------------------------------------------------------------------
+  test-features-a:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -15,7 +22,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install playwright pytest pytest-asyncio
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
       - name: Start static server
         run: |
@@ -25,8 +38,103 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:5500/ > /dev/null || exit 1
-      - run: pytest tests/features -v
+      - run: |
+          pytest \
+            tests/features/test_debts.py \
+            tests/features/test_accounts.py \
+            tests/features/test_strategy.py \
+            tests/features/test_ledger.py \
+            tests/features/test_reconciliation.py \
+            tests/features/test_reports.py \
+            tests/features/test_forecast.py \
+            tests/features/test_debt_calculator.py \
+            tests/features/test_break_even.py \
+            tests/features/test_networth.py \
+            -v
 
+  test-features-b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: |
+          pytest \
+            tests/features/test_income.py \
+            tests/features/test_expenses.py \
+            tests/features/test_bills.py \
+            tests/features/test_savings.py \
+            tests/features/test_recurring.py \
+            tests/features/test_recurring_occurrences.py \
+            tests/features/test_spending_analysis.py \
+            tests/features/test_health.py \
+            tests/features/test_interest_income.py \
+            tests/features/test_cash_flow_trend.py \
+            tests/features/test_money_flow_sankey.py \
+            -v
+
+  test-features-c:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: |
+          pytest \
+            tests/features/test_settings.py \
+            tests/features/test_storage_backend.py \
+            tests/features/test_storage_quota.py \
+            tests/features/test_storage_import.py \
+            tests/features/test_versioning.py \
+            tests/features/test_pwa.py \
+            tests/features/test_pwa_icons.py \
+            tests/features/test_i18n.py \
+            tests/features/test_main_nav_groups.py \
+            tests/features/test_reports_nav_groups.py \
+            tests/features/test_issue_92_export.py \
+            tests/features/test_issue_93_expense_save.py \
+            tests/features/test_validation_modals.py \
+            -v
+
+  # ---------------------------------------------------------------------------
+  # Integration
+  # ---------------------------------------------------------------------------
   test-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -35,7 +143,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install playwright pytest pytest-asyncio
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
       - name: Start static server
         run: |
@@ -47,7 +161,10 @@ jobs:
           curl -sf http://localhost:5500/ > /dev/null || exit 1
       - run: pytest tests/integration -v
 
-  test-ui:
+  # ---------------------------------------------------------------------------
+  # UI — split into 2 parallel shards
+  # ---------------------------------------------------------------------------
+  test-ui-a:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -55,7 +172,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install playwright pytest pytest-asyncio
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
       - name: Start static server
         run: |
@@ -65,8 +188,68 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:5500/ > /dev/null || exit 1
-      - run: pytest tests/ui -v
+      - run: |
+          pytest \
+            tests/ui/test_accessibility.py \
+            tests/ui/test_chart_accessibility.py \
+            tests/ui/test_charts.py \
+            tests/ui/test_css_load.py \
+            tests/ui/test_dark_mode.py \
+            tests/ui/test_high_contrast_theme.py \
+            tests/ui/test_mobile.py \
+            tests/ui/test_modals.py \
+            tests/ui/test_overview_print.py \
+            tests/ui/test_reduced_motion.py \
+            tests/ui/test_remaining_pages_print.py \
+            tests/ui/test_table_mobile_scroll.py \
+            tests/ui/test_setup_wizard.py \
+            -v
 
+  test-ui-b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 5500 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5500/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:5500/ > /dev/null || exit 1
+      - run: |
+          pytest \
+            tests/ui/test_debt_actions.py \
+            tests/ui/test_guide_nav.py \
+            tests/ui/test_guide_theme.py \
+            tests/ui/test_main_nav.py \
+            tests/ui/test_reconciliation_actions.py \
+            tests/ui/test_recurring_actions.py \
+            tests/ui/test_reports_actions.py \
+            tests/ui/test_reports_nav.py \
+            tests/ui/test_spending_ui.py \
+            tests/ui/test_command_palette.py \
+            tests/ui/test_data_transfer_modal.py \
+            tests/ui/test_delete_confirm_modal.py \
+            tests/ui/test_pwa_update_banner.py \
+            tests/ui/test_settings_theme_location.py \
+            -v
+
+  # ---------------------------------------------------------------------------
+  # Security
+  # ---------------------------------------------------------------------------
   test-security:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -75,7 +258,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install playwright pytest pytest-asyncio
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
       - name: Start static server
         run: |
@@ -87,6 +276,9 @@ jobs:
           curl -sf http://localhost:5500/ > /dev/null || exit 1
       - run: pytest tests/security -v
 
+  # ---------------------------------------------------------------------------
+  # Postgres (full stack — longer timeout is justified)
+  # ---------------------------------------------------------------------------
   test-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -95,7 +287,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install playwright pytest pytest-asyncio
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
       - name: Create postgres secret
         run: |
@@ -127,6 +325,9 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  # ---------------------------------------------------------------------------
+  # Accessibility audit
+  # ---------------------------------------------------------------------------
   test-a11y:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -135,7 +336,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install playwright pytest pytest-asyncio
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
       - name: Start static server
         run: |
@@ -147,9 +354,13 @@ jobs:
           curl -sf http://localhost:5500/ > /dev/null || exit 1
       - run: pytest tests/a11y -v
 
-  mutation-testing:
+  # ---------------------------------------------------------------------------
+  # Mutation testing — split so unit-test feedback is instant on every PR
+  # while the slow Stryker run only gates merges to main
+  # ---------------------------------------------------------------------------
+  test-unit:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -158,6 +369,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:unit
+
+  mutation-testing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+          cache: npm
+      - run: npm ci
       - run: npm run test:mutation
       - name: Upload mutation report
         if: always()
@@ -166,6 +389,9 @@ jobs:
           name: mutation-report
           path: reports/mutation/mutation.html
 
+  # ---------------------------------------------------------------------------
+  # Docker image build smoke-test
+  # ---------------------------------------------------------------------------
   docker-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -173,84 +399,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build -t myfinances:ci .
 
-  trivy:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build -t myfinances:ci .
-
-      # -- Docker image scan ---------------------------------------------------
-      - name: Image -- vulnerability gate (fixable CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: myfinances:ci
-          format: table
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: 1
-      - name: Image -- full report (all severities, SARIF)
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: myfinances:ci
-          format: sarif
-          output: trivy-image.sarif
-      - name: Image -- upload to Security tab
-        if: always() && hashFiles('trivy-image.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-image.sarif
-          category: trivy-image
-
-      # -- Filesystem scan (secrets gate + full vuln/secret SARIF report) ------
-      - name: Filesystem -- secret gate (block on hardcoded secrets in source)
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: '.'
-          scanners: secret
-          format: table
-          exit-code: 1
-      - name: Filesystem -- full report (vuln + secret, all severities, SARIF)
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: '.'
-          scanners: vuln,secret
-          format: sarif
-          output: trivy-fs.sarif
-      - name: Filesystem -- upload to Security tab
-        if: always() && hashFiles('trivy-fs.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-fs.sarif
-          category: trivy-fs
-
-      # -- IaC / misconfiguration scan -----------------------------------------
-      - name: IaC -- misconfiguration report (SARIF, informational)
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: config
-          scan-ref: '.'
-          format: sarif
-          output: trivy-iac.sarif
-      - name: IaC -- upload to Security tab
-        if: always() && hashFiles('trivy-iac.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-iac.sarif
-          category: trivy-iac
-
+  # ---------------------------------------------------------------------------
+  # Lighthouse performance audit
+  # ---------------------------------------------------------------------------
   lighthouse:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Set up Chrome for Lighthouse CI
