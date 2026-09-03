@@ -8,7 +8,7 @@ export default function alertEmail({ heading, body, ctaLabel, ctaUrl } = {}) {
         ? `<p><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:10px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">${escapeHtml(ctaLabel)}</a></p>`
         : '';
     return {
-        subject: safeHeading,
+        subject: heading || 'MyFinances Alert',
         html: `<h2>${safeHeading}</h2><p>${safeBody}</p>${ctaHtml}`,
         text: `${heading || 'MyFinances Alert'}\n\n${body || ''}${hasCta ? `\n\n${ctaLabel}: ${ctaUrl}` : ''}`
     };

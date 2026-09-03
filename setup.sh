@@ -32,18 +32,27 @@ else
         read -rp "  SMTP host: " smtp_host
         read -rp "  SMTP port [587]: " smtp_port
         smtp_port=${smtp_port:-587}
+        if [ "$smtp_port" = "465" ]; then
+            smtp_secure=true
+        else
+            smtp_secure=false
+        fi
         read -rp "  SMTP username (blank if none): " smtp_user
         read -rp "  From address: " smtp_from
         read -rsp "  SMTP password: " smtp_password
         echo ""
         printf '%s' "$smtp_password" > secrets/smtp_password.txt
+        if [ -f .env ]; then
+            grep -v '^SMTP_' .env > .env.tmp || true
+            mv .env.tmp .env
+        fi
         {
             echo "SMTP_HOST=$smtp_host"
             echo "SMTP_PORT=$smtp_port"
             echo "SMTP_USER=$smtp_user"
             echo "SMTP_FROM=$smtp_from"
-            echo "SMTP_SECURE=false"
-        } > .env
+            echo "SMTP_SECURE=$smtp_secure"
+        } >> .env
         echo "→ Generated secrets/smtp_password.txt and .env"
     else
         touch secrets/smtp_password.txt

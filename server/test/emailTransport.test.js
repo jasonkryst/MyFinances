@@ -43,3 +43,11 @@ test('getTransport returns the override once one is set, and stops once cleared'
     _clearTransportOverride();
     assert.notEqual(getTransport(), fake);
 });
+
+test('getTransport builds a transporter with short connection/greeting/socket timeouts', () => {
+    process.env.SMTP_HOST = 'smtp.example.com';
+    const transport = getTransport();
+    assert.equal(transport.options.connectionTimeout, 10000);
+    assert.equal(transport.options.greetingTimeout, 10000);
+    assert.equal(transport.options.socketTimeout, 20000);
+});

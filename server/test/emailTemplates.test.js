@@ -55,3 +55,8 @@ test('alertEmail omits the CTA when ctaUrl is not an http(s) URL', () => {
     assert.equal(html.includes('<a '), false);
     assert.ok(!text.includes('javascript:alert(1)'));
 });
+
+test('alertEmail subject is not HTML-escaped', () => {
+    const { subject } = alertEmail({ heading: 'Balance < $50', body: 'test' });
+    assert.equal(subject, 'Balance < $50');
+});

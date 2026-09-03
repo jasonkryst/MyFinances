@@ -9,6 +9,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Added
 - **SMTP email infrastructure + template system** (`docs/superpowers/specs/2026-09-03-smtp-email-notifications-design.md`): a server-only foundation for future notifications. `server/src/email/` provides a `nodemailer`-based transport (configured via `SMTP_HOST`/`PORT`/`USER`/`FROM`/`SECURE` env vars plus a `secrets/smtp_password.txt` Docker secret, mirroring the existing Postgres-password pattern — entirely optional, silently disabled when unconfigured) and a plain-JS template system (`testEmail`, `welcomeEmail`, `alertEmail`). A new authenticated `POST /api/notifications/test-email` endpoint (Settings modal's new "Send test email" button, visible only on the PostgreSQL backend) sends a verification email to the logged-in user's own address — never a client-supplied one, avoiding an open-relay vector. `server/scripts/create-user.js` and `POST /auth/register` now send a best-effort welcome email on account creation. `setup.sh`/`setup.ps1` gained an optional interactive SMTP configuration step.
 
+### Upgrading from < 4.42.0
+- `docker-compose.yml`'s `server` service now requires `secrets/smtp_password.txt` to exist (it can be empty — an empty file means SMTP stays disabled, same as leaving `SMTP_HOST` unset). Deployments that ran `setup.sh`/`setup.ps1` already have this file. Manual/Portainer deployments must create it once: `touch secrets/smtp_password.txt` (or copy `secrets/smtp_password.txt.example`) before the next `docker compose up -d`.
+
 ---
 ## [4.41.0] — 2026-09-02
 

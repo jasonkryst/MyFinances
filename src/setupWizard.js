@@ -158,6 +158,8 @@ export function initSettingsModal(app) {
                     showEmailTestToast('success', 'Test email sent — check your inbox.');
                 } else if (res.status === 503) {
                     showEmailTestToast('info', "SMTP isn't configured on this server.");
+                } else if (res.status === 429) {
+                    showEmailTestToast('info', 'Too many requests — try again in a few minutes.');
                 } else {
                     showEmailTestToast('error', 'Failed to send test email.');
                 }

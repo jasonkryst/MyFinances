@@ -34,6 +34,7 @@ if (Test-Path "secrets\smtp_password.txt") {
         $smtpHost = Read-Host "  SMTP host"
         $smtpPortInput = Read-Host "  SMTP port [587]"
         $smtpPort = if ($smtpPortInput) { $smtpPortInput } else { "587" }
+        $smtpSecure = if ($smtpPort -eq "465") { "true" } else { "false" }
         $smtpUser = Read-Host "  SMTP username (blank if none)"
         $smtpFrom = Read-Host "  From address"
         $smtpPasswordSecure = Read-Host "  SMTP password" -AsSecureString
@@ -41,12 +42,16 @@ if (Test-Path "secrets\smtp_password.txt") {
             [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($smtpPasswordSecure)
         )
         [System.IO.File]::WriteAllText((Resolve-Path "secrets").Path + "\smtp_password.txt", $smtpPassword)
-        @(
+        $existingEnv = @()
+        if (Test-Path ".env") {
+            $existingEnv = Get-Content ".env" | Where-Object { $_ -notmatch '^SMTP_' }
+        }
+        $existingEnv + @(
             "SMTP_HOST=$smtpHost"
             "SMTP_PORT=$smtpPort"
             "SMTP_USER=$smtpUser"
             "SMTP_FROM=$smtpFrom"
-            "SMTP_SECURE=false"
+            "SMTP_SECURE=$smtpSecure"
         ) | Set-Content -Path ".env"
         Write-Host "-> Generated secrets\smtp_password.txt and .env"
     } else {

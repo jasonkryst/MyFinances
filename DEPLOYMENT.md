@@ -333,6 +333,9 @@ Portainer can watch your GitHub repository and redeploy automatically on every p
    ```
    This path must match the `POSTGRES_SECRET_FILE` value you set in step 6.
 
+   Also ensure `secrets/smtp_password.txt` exists on the host (empty is fine) — see
+   "Upgrading an existing deployment" under Email Notifications below.
+
 > **One-time vs. ongoing:** `setup.sh` only needs to run once to generate the secret and
 > create the admin user. After that, Portainer handles all future deploys automatically —
 > push to `main`, and the stack redeploys within minutes.
@@ -398,10 +401,15 @@ email" action in Settings plus an automatic welcome email on account
 creation; see `server/README.md`'s "Email notifications" section for
 full configuration steps. `setup.sh`/`setup.ps1` prompt for it during
 first-time setup; declining leaves it disabled with no further action
-needed. To configure it later, delete `secrets/smtp_password.txt` and
-re-run `setup.sh`/`setup.ps1` so the prompt reappears, or hand-edit
-`.env` and `secrets/smtp_password.txt` directly and run
-`docker compose up -d` again to pick up the change.
+needed.
+
+**Upgrading an existing deployment:** `docker-compose.yml` requires `secrets/smtp_password.txt` to exist (empty is fine) even if you never plan to use email. If you deployed before this feature existed and don't use `setup.sh`/`setup.ps1` for updates (e.g. Portainer GitOps), create it once: `touch secrets/smtp_password.txt` on the host, in the same directory as `secrets/postgres_password.txt`.
+
+To configure it later, delete `secrets/smtp_password.txt` and write a new password
+into it, edit `.env` with your SMTP settings, then run `docker compose up -d` again
+to pick up the change. (Don't re-run `setup.sh`/`setup.ps1` on an existing
+deployment — its later steps assume no user account exists yet and will fail on
+one that already does.)
 
 ### Manual / Custom Deployment
 
