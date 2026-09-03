@@ -40,9 +40,9 @@ test('alertEmail includes a CTA link when both ctaLabel and ctaUrl are given', (
         ctaLabel: 'View account',
         ctaUrl: 'https://example.com/accounts/1'
     });
-    assert.ok(html.includes('https://example.com/accounts/1'));
+    assert.match(html, /href="https:\/\/example\.com\/accounts\/1"/);
     assert.ok(html.includes('View account'));
-    assert.ok(text.includes('https://example.com/accounts/1'));
+    assert.match(text, /: https:\/\/example\.com\/accounts\/1$/);
 });
 
 test('alertEmail omits the CTA when ctaUrl is not an http(s) URL', () => {
