@@ -1,0 +1,11 @@
+# Example crontab entry for scheduling MyFinances Postgres backups.
+#
+# Install with:
+#   crontab -e
+# then paste a line like the one below (edit the path to match your checkout).
+#
+# Runs backup.sh daily at 03:15 server time; BACKUP_DIR points the dump
+# somewhere durable (a mounted network share, a second disk, etc.) rather
+# than the same host the postgres-data volume lives on.
+
+15 3 * * * cd /opt/myfinances && BACKUP_DIR=/mnt/backups/myfinances ./backup.sh >> /var/log/myfinances-backup.log 2>&1
