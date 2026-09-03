@@ -391,6 +391,18 @@ you opt into the Postgres backend — losing it loses everything. Root-level scr
   encrypted) — store them with the same care as the database itself, and off the host machine
   if the backup is meant to survive host loss.
 
+### Email Notifications (Optional)
+
+The self-hosted server can send SMTP email — currently a "send test
+email" action in Settings plus an automatic welcome email on account
+creation; see `server/README.md`'s "Email notifications" section for
+full configuration steps. `setup.sh`/`setup.ps1` prompt for it during
+first-time setup; declining leaves it disabled with no further action
+needed. To configure it later, delete `secrets/smtp_password.txt` and
+re-run `setup.sh`/`setup.ps1` so the prompt reappears, or hand-edit
+`.env` and `secrets/smtp_password.txt` directly and run
+`docker compose up -d` again to pick up the change.
+
 ### Manual / Custom Deployment
 
 If you prefer to manage secrets yourself, see `.env.example` for the environment variables
