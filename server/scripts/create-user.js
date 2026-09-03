@@ -2,6 +2,7 @@ import readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import { pool } from '../src/db.js';
 import { hashPassword } from '../src/auth/argon2.js';
+import { sendTemplatedEmail } from '../src/email/send.js';
 
 async function promptTwoLines(emailPrompt, passwordPrompt) {
     stdout.write(emailPrompt);
@@ -39,6 +40,13 @@ async function main() {
 
     const hash = await hashPassword(password);
     await pool.query('INSERT INTO users (email, password_hash) VALUES ($1, $2)', [email, hash]);
+
+    try {
+        await sendTemplatedEmail(email, 'welcomeEmail', { email });
+    } catch (err) {
+        console.error('Welcome email failed (account was still created):', err.message);
+    }
+
     console.log(`User ${email} created.`);
 }
 
