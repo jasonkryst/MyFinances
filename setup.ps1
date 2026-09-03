@@ -57,7 +57,7 @@ docker compose run --rm server node scripts/create-user.js
 Write-Host ""
 Write-Host "=============================="
 Write-Host "Setup complete!"
-Write-Host "Open http://localhost:5500 to access MyFinances."
+Write-Host "Open http://localhost:32900 to access MyFinances."
 Write-Host ""
 Write-Host "In the Settings modal, choose 'PostgreSQL' as your storage backend"
 Write-Host "and log in with the credentials you just created."
