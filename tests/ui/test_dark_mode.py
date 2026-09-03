@@ -121,3 +121,72 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
         assert new_value in ('light', 'dark', 'high-contrast'), (
             "Selecting a theme after a corrupted value should write a valid value"
         )
+
+@pytest.mark.ui
+def test_pg_modal_content_not_white_in_dark_mode(app_page):
+    """pgMigrationModal and pgSwitchConfirmModal .modal-content must not be
+    white in dark mode — they use the base .modal-content rule which now
+    reads var(--bg-secondary) rather than hardcoded white (issue #120)."""
+    from tests.conftest import open_settings
+
+    page = app_page
+    open_settings(page)
+    page.select_option('#themeSwitcher', 'dark')
+    page.wait_for_timeout(200)
+
+    for modal_id in ['pgMigrationModal', 'pgSwitchConfirmModal']:
+        bg = page.evaluate(f"""
+            () => getComputedStyle(
+                document.querySelector('#{modal_id} .modal-content')
+            ).backgroundColor
+        """)
+        assert bg != 'rgb(255, 255, 255)', (
+            f"#{modal_id} .modal-content must not be white in dark mode"
+        )
+
+
+@pytest.mark.ui
+def test_login_gate_card_not_white_in_dark_mode(app_page):
+    """Login gate card (.login-gate-card) must not be white in dark mode.
+    The CSS uses var(--bg-secondary) which is now defined as #1e293b for
+    dark mode (issue #120)."""
+    from tests.conftest import open_settings
+
+    page = app_page
+    open_settings(page)
+    page.select_option('#themeSwitcher', 'dark')
+    page.wait_for_timeout(200)
+
+    card_bg = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.login-gate-card')).backgroundColor"
+    )
+    assert card_bg != 'rgb(255, 255, 255)', (
+        ".login-gate-card must not be white in dark mode"
+    )
+    # Should be the dark surface color defined as --bg-secondary in body.dark-mode
+    assert card_bg == 'rgb(30, 41, 59)', (
+        ".login-gate-card background should be the dark --bg-secondary (#1e293b)"
+    )
+
+
+@pytest.mark.ui
+def test_login_gate_overlay_not_white_in_dark_mode(app_page):
+    """Login gate overlay (.login-gate) must not be white/transparent in
+    dark mode. var(--bg-primary) is now defined as #0f172a (issue #120)."""
+    from tests.conftest import open_settings
+
+    page = app_page
+    open_settings(page)
+    page.select_option('#themeSwitcher', 'dark')
+    page.wait_for_timeout(200)
+
+    overlay_bg = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.login-gate')).backgroundColor"
+    )
+    # Must not be transparent (rgba(0,0,0,0)) or white (rgb(255,255,255))
+    assert overlay_bg not in ('rgba(0, 0, 0, 0)', 'rgb(255, 255, 255)'), (
+        ".login-gate overlay must have a defined background in dark mode"
+    )
+    assert overlay_bg == 'rgb(15, 23, 42)', (
+        ".login-gate overlay background should be the dark --bg-primary (#0f172a)"
+    )

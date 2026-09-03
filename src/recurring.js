@@ -10,6 +10,7 @@ import {
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -134,7 +135,7 @@ export function renderRecurringPage(app) {
 
     container.innerHTML = cards;
 
-    container.onclick = (event) => {
+    container.onclick = async (event) => {
         const actionEl = event.target.closest('[data-recurring-action]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-recurring-action');
@@ -145,7 +146,8 @@ export function renderRecurringPage(app) {
         if (action === 'edit') app.startEditRecurring(id);
         else if (action === 'save') app.saveEditRecurring(id);
         else if (action === 'delete') {
-            if (confirm(`Delete "${app.recurringTemplates?.find(x => x.id === id)?.name || 'template'}"? This cannot be undone.`)) {
+            const name = app.recurringTemplates?.find(x => x.id === id)?.name || 'template';
+            if (await showDeleteConfirmModal(`Delete "${name}"? This cannot be undone.`)) {
                 app.deleteRecurringTemplate(id);
             }
         }
@@ -325,9 +327,9 @@ export async function addRecurringTemplate(app) {
     const startDate = sanitizeDateISO(document.getElementById('recurringStartDate')?.value) || new Date().toISOString().split('T')[0];
     const endDate = sanitizeDateISO(document.getElementById('recurringEndDate')?.value) || null;
 
-    if (!name) { alert('Please enter a name.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid positive amount.'); return; }
-    if (!accountId) { alert('Please select an account.'); return; }
+    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid positive amount.'); return; }
+    if (!accountId) { await showAlertModal('Please select an account.'); return; }
 
     if (!app.recurringTemplates) app.recurringTemplates = [];
     const tmpl = {
@@ -416,7 +418,7 @@ export function cancelEditRecurring(app) {
     app.renderRecurringPage();
 }
 
-export function saveEditRecurring(app, id) {
+export async function saveEditRecurring(app, id) {
     if (!app.recurringTemplates) return;
     const idx = app.recurringTemplates.findIndex(t => t.id === id);
     if (idx === -1) return;
@@ -433,8 +435,8 @@ export function saveEditRecurring(app, id) {
     const startDate = sanitizeDateISO(document.getElementById(`re-start-${id}`)?.value);
     const endDate = sanitizeDateISO(document.getElementById(`re-end-${id}`)?.value) || null;
 
-    if (!name) { alert('Please enter a name.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { alert('Please enter a valid positive amount.'); return; }
+    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid positive amount.'); return; }
 
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],
@@ -491,7 +493,7 @@ export function refreshRecurringAccountSelectors(app) {
         for (const acct of app.accounts || []) {
             const opt = document.createElement('option');
             opt.value = acct.id;
-            opt.textContent = normalizeText(acct.name, 80);
+            opt.textContent = `${normalizeText(acct.name, 80)} (${acct.type})`;
             if (String(acct.id) === String(current)) opt.selected = true;
             sel.appendChild(opt);
         }

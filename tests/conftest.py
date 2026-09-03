@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright, Browser, Page
 from playwright.async_api import async_playwright
 
 # Configuration
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 HEADLESS = True
 
 
@@ -169,7 +169,7 @@ def expense_data():
         "name": "Groceries",
         "amount": "300",
         "date": "2026-05-15",
-        "category": "Food & Groceries"
+        "category": "Food"
     }
 
 

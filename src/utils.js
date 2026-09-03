@@ -1,7 +1,7 @@
-﻿// Formatting, date helpers, shared utilities
+// Formatting, date helpers, shared utilities
 import { getIntlLocale } from './i18n.js';
 
-export const APP_VERSION = '4.30.0';
+export const APP_VERSION = '4.41.0';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50" in
@@ -82,6 +82,13 @@ export function sanitizeDateISO(value) {
     return null;
 }
 
+export function sanitizeTimestampISO(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString();
+}
+
 export function dateToISO(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -147,24 +154,35 @@ export function getDayOrdinal(day) {
 // Supports both `firstPayDate` and legacy `firstDate` fields.
 export function getIncomePaydaysInMonth(income, year, month) {
     const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
     const msPerDay = 24 * 60 * 60 * 1000;
     const firstDate = income.firstPayDate || income.firstDate;
     const first = new Date((firstDate || '') + 'T12:00:00');
     if (isNaN(first.getTime())) return [];
 
     const paydays = [];
-    const isBiweekly = income.frequency === 'biweekly' || income.frequency === 'bi-weekly';
-    if (isBiweekly) {
+    const freq = income.frequency;
+    const isBiweekly = freq === 'biweekly' || freq === 'bi-weekly';
+    const isWeekly = freq === 'weekly';
+    const isTwiceMonthly = freq === 'twice_monthly';
+
+    if (isWeekly || isBiweekly) {
+        const interval = isWeekly ? 7 : 14;
         let pay = new Date(first);
         const diffDays = Math.floor((monthStart - pay) / msPerDay);
-        const periods = Math.floor(diffDays / 14);
-        pay = new Date(pay.getTime() + Math.max(0, periods) * 14 * msPerDay);
-        while (pay < monthStart) pay = new Date(pay.getTime() + 14 * msPerDay);
+        const periods = Math.floor(diffDays / interval);
+        pay = new Date(pay.getTime() + Math.max(0, periods) * interval * msPerDay);
+        while (pay < monthStart) pay = new Date(pay.getTime() + interval * msPerDay);
         while (pay <= monthEnd) {
             paydays.push(new Date(pay));
-            pay = new Date(pay.getTime() + 14 * msPerDay);
+            pay = new Date(pay.getTime() + interval * msPerDay);
         }
+    } else if (isTwiceMonthly) {
+        const daysInMonth = monthEnd.getDate();
+        const mid = new Date(year, month, 15, 12, 0, 0);
+        const last = new Date(year, month, daysInMonth, 12, 0, 0);
+        if (mid >= first) paydays.push(mid);
+        if (last >= first) paydays.push(last);
     } else {
         const payDay = first.getDate();
         const daysInMonth = monthEnd.getDate();
@@ -196,18 +214,35 @@ export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
     today.setHours(0, 0, 0, 0);
     const dates = [];
 
-    const isBiweekly = income.frequency === 'biweekly' || income.frequency === 'bi-weekly';
-    if (isBiweekly) {
+    const freq2 = income.frequency;
+    const isBiweekly = freq2 === 'biweekly' || freq2 === 'bi-weekly';
+    const isWeekly2 = freq2 === 'weekly';
+    const isTwiceMonthly2 = freq2 === 'twice_monthly';
+
+    if (isWeekly2 || isBiweekly) {
+        const interval = isWeekly2 ? 7 : 14;
         let pay = new Date(first);
         const diffDays = Math.floor((today - pay) / msPerDay);
         if (diffDays > 0) {
-            const periods = Math.floor(diffDays / 14);
-            pay = new Date(pay.getTime() + periods * 14 * msPerDay);
+            const periods = Math.floor(diffDays / interval);
+            pay = new Date(pay.getTime() + periods * interval * msPerDay);
         }
-        while (pay < today) pay = new Date(pay.getTime() + 14 * msPerDay);
+        while (pay < today) pay = new Date(pay.getTime() + interval * msPerDay);
         while (dates.length < n) {
             dates.push(new Date(pay));
-            pay = new Date(pay.getTime() + 14 * msPerDay);
+            pay = new Date(pay.getTime() + interval * msPerDay);
+        }
+    } else if (isTwiceMonthly2) {
+        let yr = today.getFullYear();
+        let mo = today.getMonth();
+        while (dates.length < n) {
+            const daysInMonth = new Date(yr, mo + 1, 0).getDate();
+            const mid = new Date(yr, mo, 15, 12, 0, 0);
+            const last = new Date(yr, mo, daysInMonth, 12, 0, 0);
+            if (mid >= today && mid >= first && dates.length < n) dates.push(mid);
+            if (last >= today && last >= first && dates.length < n) dates.push(last);
+            mo++;
+            if (mo > 11) { mo = 0; yr++; }
         }
     } else {
         const payDay = first.getDate();

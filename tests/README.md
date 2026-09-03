@@ -5,8 +5,8 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 553 Tests Passing across 5 categories (security, features, ui, a11y, integration)
-- ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, and Settings
+- ✅ 743 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
+- ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, Settings, PWA, i18n, and the optional PostgreSQL backend
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
 - ✅ 100% CSP Compliance Verified
@@ -36,6 +36,7 @@ pytest tests/features/ -v          # Feature tests only
 pytest tests/ui/ -v                # UI tests only
 pytest tests/a11y/ -v               # Accessibility audit tests only
 pytest tests/integration/ -v       # End-to-end tests only
+pytest tests/postgres/ -v          # Postgres backend tests only (requires Docker stack)
 ```
 
 Run specific test file:
@@ -61,8 +62,8 @@ pytest --cov=. --cov-report=html
 ### Prerequisites for Test Execution
 
 **Local Server Must Be Running:**
-- Default URL: `http://localhost:5500/`
-- Can start a simple Python server: `python -m http.server 5500`
+- Default URL: `http://localhost:32900/`
+- Can start a simple Python server: `python -m http.server 32900`
 - Or use VS Code Live Server extension
 
 ---
@@ -75,12 +76,12 @@ pytest --cov=. --cov-report=html
 tests/
 ├── conftest.py                 # Shared fixtures and utilities
 ├── README.md                   # This file
-├── security/                   # Security and compliance tests (56 tests)
+├── security/                   # Security and compliance tests (62 tests)
 │   ├── test_xss.py            # XSS prevention tests across all input surfaces
 │   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
 │   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
 │   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
-├── features/                   # Feature-specific tests (286 tests)
+├── features/                   # Feature-specific tests (379 tests, 34 files)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning, interest-rate badge display)
 │   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
@@ -92,7 +93,7 @@ tests/
 │   ├── test_bills.py           # Bill data model, sanitization, calculation integration
 │   ├── test_recurring.py       # Recurring transactions (CRUD, mark-as-paid, validation)
 │   ├── test_recurring_occurrences.py # Frequency-edge-case occurrence generation
-│   ├── test_ledger.py          # Ledger filters, amount-override modal, CSV export column picker
+│   ├── test_ledger.py          # Ledger filters, amount-override modal, cleared-checkbox tracking, CSV export column picker
 │   ├── test_reports.py         # Reports functionality, tab grouping, date-boundary handling
 │   ├── test_reports_nav_groups.py # Reports tab grouping structure
 │   ├── test_main_nav_groups.py # Main nav grouping structure (Overview/Manage/Analyze)
@@ -105,7 +106,7 @@ tests/
 │   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
 │   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   └── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
-├── ui/                         # UI/UX and responsive tests (187 tests)
+├── ui/                         # UI/UX and responsive tests (233 tests, 27 files)
 │   ├── test_mobile.py          # Mobile responsiveness, hamburger menu, touch sizing
 │   ├── test_modals.py          # Modal visibility, close buttons, calendar day-detail
 │   ├── test_dark_mode.py       # Dark/light theme selection, persistence, corrupted-localStorage fallback
@@ -132,11 +133,20 @@ tests/
 ├── a11y/                        # Site-wide accessibility audit (10 tests)
 │   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable directly)
 │   └── test_a11y_audit.py      # Pytest wiring: asserts zero Serious findings from the audit
-└── integration/                 # End-to-end workflow tests (14 tests)
-    ├── test_smoke.py            # Full application smoke test (account → debt → net worth)
-    ├── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
-    └── test_interest_income_workflow.py # End-to-end interest income workflow
+├── integration/                 # End-to-end workflow tests (18 tests)
+│   ├── test_smoke.py            # Full application smoke test (account → debt → net worth)
+│   ├── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
+│   ├── test_interest_income_workflow.py # End-to-end interest income workflow
+│   └── test_pwa_offline.py      # Offline app-shell behavior via the service worker
+└── postgres/                     # Optional PostgreSQL backend tests (41 tests — requires Docker stack)
+    ├── test_postgres_bootstrap.py     # Auth, login gate, session handling
+    ├── test_postgres_import.py        # loadFromPostgres fan-out + import round-trip
+    ├── test_postgres_mutations.py     # Per-resource CRUD via pgPost/pgPatch/pgDelete
+    ├── test_postgres_migration.py     # local→Postgres one-time migration modal flow
+    └── test_postgres_setup_wizard.py  # First-run setup wizard against the Postgres backend
 ```
+
+> Several test files added since this document was last fully revised (e.g. `test_validation_modals.py`, `test_delete_confirm_modal.py`, `test_storage_backend.py`, `test_break_even.py`, `test_interest_income.py`, `test_i18n.py`, `test_pwa.py`, `test_pwa_icons.py`, `test_cash_flow_trend.py`, `test_money_flow_sankey.py`, `test_high_contrast_theme.py`, `test_settings_theme_location.py`, `test_pwa_update_banner.py`, `test_data_transfer_modal.py`) are collected and run by `pytest tests/ -v` but do not yet have a dedicated per-file write-up in the "Test Categories" section below.
 
 > Ad-hoc manual debugging scripts (no `test_*` functions) live in `tools/debug/`, outside the `tests/` tree, so `tests/` only contains real pytest-collected tests.
 
@@ -346,7 +356,7 @@ create_income(page, income_data)
 ## Configuration
 
 ### Base URL
-- **Default:** `http://localhost:5500/`
+- **Default:** `http://localhost:32900/`
 - **Set in:** `conftest.py` → `BASE_URL`
 - **Used by:** All `app_page` and `async_app_page` fixtures
 
@@ -424,8 +434,13 @@ def test_full_workflow():
 | CSP | N/A | ✅ | ✅ | ✅ | ✅ |
 | XSS | N/A | ✅ | ✅ | ✅ | ✅ |
 | Accessibility | N/A | N/A | ✅ | ✅ | N/A |
+| PWA (installability + offline) | N/A | ✅ | ✅ | ✅ | N/A |
+| i18n (locale switching) | N/A | ✅ | N/A | N/A | N/A |
+| PostgreSQL Backend (optional) | N/A | N/A | ✅ | N/A | N/A |
 
 **Legend:** ✅ Complete | ⚠️ Partial | N/A Not Applicable
+
+Postgres-backend-specific coverage (bootstrap/login, per-resource mutation, import fan-out, migration modal, setup wizard) lives in `tests/postgres/` and is not broken out by feature in the table above — see the directory structure earlier in this document.
 
 ---
 
@@ -493,7 +508,7 @@ async def test_full_workflow(async_app_page):
 
 ### Test Fails with "Connection Refused"
 - **Issue:** Server not running
-- **Solution:** Start local server: `python -m http.server 5500`
+- **Solution:** Start local server: `python -m http.server 32900`
 - **Check:** Verify BASE_URL in conftest.py matches server port
 
 ### Test Times Out Waiting for Element
@@ -542,7 +557,7 @@ To run tests in CI pipeline:
   run: |
     pip install -r requirements.txt
     playwright install chromium
-    python -m http.server 5500 &
+    python -m http.server 32900 &
     sleep 2
     pytest tests/ -v --tb=short
 ```
@@ -570,5 +585,5 @@ Refer to:
 
 ---
 
-**Last Updated:** June 28, 2026  
-**Test Suite Status:** ✅ Fully Passing (452 tests / 51 files)
+**Last Updated:** September 2, 2026  
+**Test Suite Status:** ✅ Fully Passing (743 tests / 75 files, incl. 41 Postgres/CI-only tests across 5 files)

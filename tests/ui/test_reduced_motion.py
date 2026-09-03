@@ -33,7 +33,7 @@ def _assert_no_errors(page):
 def test_css_transition_duration_collapses_under_reduced_motion(browser):
     """A reduced-motion context shrinks transition-duration on an animated element."""
     ctx, page = _make_tracked_page(browser, reduced_motion='reduce')
-    page.goto('http://localhost:5500/', wait_until='networkidle', timeout=60000)
+    page.goto('http://localhost:32900/', wait_until='networkidle', timeout=60000)
 
     duration = page.evaluate("""
         () => {
@@ -54,7 +54,7 @@ def test_css_transition_duration_collapses_under_reduced_motion(browser):
 def test_chart_animation_disabled_under_reduced_motion(browser, debt_data):
     """Chart.defaults.animation is false when the OS prefers reduced motion."""
     ctx, page = _make_tracked_page(browser, reduced_motion='reduce')
-    page.goto('http://localhost:5500/', wait_until='networkidle', timeout=60000)
+    page.goto('http://localhost:32900/', wait_until='networkidle', timeout=60000)
 
     create_debt(page, debt_data)
     page.click('button[data-page="strategy"]')

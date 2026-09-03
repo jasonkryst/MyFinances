@@ -624,6 +624,15 @@
                 </ol>
 
                 <div class="guide-note">When an override is saved, the ledger keeps the original amount for history, recalculates running balance, and updates Reports totals/charts and account projections.</div>
+
+                <h3>Marking Transactions Cleared</h3>
+                <p>For non-rollover entries, the Cleared column has a checkbox to record whether the transaction has actually posted to the account.</p>
+                <ol>
+                    <li>Check the box once you see the transaction post in your bank or card account</li>
+                    <li>The checkbox remembers when you checked it — hover over it to see the cleared timestamp</li>
+                    <li>Uncheck it to remove the cleared state and timestamp</li>
+                </ol>
+                <div class="guide-note">Cleared status is informational only — it doesn't change running balances or projections. It's most useful for spotting scheduled transactions (bills, recurring items) that haven't posted on the day they were expected to.</div>
             </section>
 
             <section class="guide-section" id="account-reconciliation">
@@ -658,14 +667,14 @@
                 <ol>
                     <li>Open the Backup &amp; Restore button in the top-right toolbar (Export is the default tab)</li>
                     <li>Click Export Backup</li>
-                    <li>Backup includes accounts, debts, income, expenses, recurring templates, strategy settings, net worth snapshots, net worth milestone state, and ledger amount overrides</li>
+                    <li>Backup includes accounts, debts, income, expenses, recurring templates, strategy settings, net worth snapshots, net worth milestone state, ledger amount overrides, and ledger cleared status</li>
                     <li>Store the downloaded backup file safely</li>
                 </ol>
 
                 <h3>Exporting the Ledger to CSV</h3>
                 <ul>
                     <li>From the Ledger page, click <strong>Export CSV</strong></li>
-                    <li>Choose which columns to include (date, account, transaction, amount, category, running balance, type)</li>
+                    <li>Choose which columns to include (date, account, transaction, amount, category, running balance, type, cleared, cleared at)</li>
                     <li>Export uses your current account/date-range filters and sort order</li>
                 </ul>
                 <h3>Printing or Saving Pages as PDF</h3>

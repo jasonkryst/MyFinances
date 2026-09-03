@@ -6,7 +6,7 @@ End-to-end test of major features in sequence.
 
 import pytest
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 
 @pytest.mark.integration

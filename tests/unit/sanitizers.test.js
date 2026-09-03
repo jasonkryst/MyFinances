@@ -68,8 +68,20 @@ describe('sanitizeIncome', () => {
         expect(result.amount).toBe(2000);
     });
 
-    test('falls back to biweekly for an unrecognized frequency', () => {
-        expect(sanitizeIncome({ frequency: 'weekly' }, 1).frequency).toBe('biweekly');
+    test('falls back to monthly for an unrecognized frequency', () => {
+        expect(sanitizeIncome({ frequency: 'bogus' }, 1).frequency).toBe('monthly');
+    });
+
+    test('passes through weekly frequency', () => {
+        expect(sanitizeIncome({ frequency: 'weekly' }, 1).frequency).toBe('weekly');
+    });
+
+    test('passes through twice_monthly frequency', () => {
+        expect(sanitizeIncome({ frequency: 'twice_monthly' }, 1).frequency).toBe('twice_monthly');
+    });
+
+    test('normalises bi-weekly to biweekly', () => {
+        expect(sanitizeIncome({ frequency: 'bi-weekly' }, 1).frequency).toBe('biweekly');
     });
 
     test('clamps a negative amount to 0', () => {

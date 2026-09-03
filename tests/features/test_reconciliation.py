@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Account Reconciliation Tests
 Tests applyReconciliation, reconciliation history entries, the
@@ -168,9 +168,15 @@ def test_apply_reconciliation_rejects_invalid_balance(app_page):
     page = app_page
     _seed_reconciliation_account(page)
 
+    # applyReconciliation calls showAlertModal (HTML modal) for invalid balance,
+    # so we must not await it inside evaluate -- store the Promise, dismiss the
+    # modal via Playwright, then collect the result.
+    page.evaluate("""() => {
+        window._reconTestPromise = app.applyReconciliation(7001, 'not-a-number', '', '2026-06-10');
+    }""")
+    page.locator('#alertModalOkBtn').click()
     result = page.evaluate("""async () => {
-        const app = window.app;
-        const res = await app.applyReconciliation(7001, 'not-a-number', '', '2026-06-10');
+        const res = await window._reconTestPromise;
         return {
             success: res.success,
             balance: app.accounts[0].startingBalance,

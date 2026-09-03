@@ -4,6 +4,7 @@ import { getIncomePaydaysInMonth, dateToISO } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getOverrideAmount, getEffectiveAmount } from './ledgerOverrides.js';
+import { isCleared, getClearedAt } from './ledgerCleared.js';
 
 export function toLedgerTxOutput(app, tx) {
     const overrideAmount = getOverrideAmount(app, tx.transactionId);
@@ -23,6 +24,8 @@ export function toLedgerTxOutput(app, tx) {
         sourceId: tx.sourceId,
         transactionId: tx.transactionId,
         isRollover: tx.type === 'rollover',
+        cleared: isCleared(app, tx.transactionId),
+        clearedAt: getClearedAt(app, tx.transactionId),
         meta: tx.meta || null,
         _seq: tx._seq
     };
@@ -337,7 +340,9 @@ export function getLedgerTransactionsForMonth(app, year, month, accountId = null
                 type: tx.type,
                 category: tx.category,
                 sourceId: tx.sourceId,
-                transactionId: tx.transactionId
+                transactionId: tx.transactionId,
+                cleared: isCleared(app, tx.transactionId),
+                clearedAt: getClearedAt(app, tx.transactionId)
             });
         }
     }

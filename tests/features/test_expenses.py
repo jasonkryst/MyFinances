@@ -272,13 +272,13 @@ def test_monthly_category_total_calculation(app_page, expense_data):
     """Two expenses in the same category sum correctly in the category summary total."""
     page = app_page
 
-    _add_expense(page, expense_data)  # Food & Groceries, 300
+    _add_expense(page, expense_data)  # Food, 300
 
     second = {**expense_data, "name": "More Groceries", "amount": "150"}
     _add_expense(page, second)
 
     summary_text = page.text_content('.budget-cat-summary--expense')
-    assert "Food & Groceries" in summary_text
+    assert expense_data["category"] in summary_text
     assert "2 items" in summary_text
     assert "450.00" in summary_text, "Category total should be the sum of both expenses (300 + 150)"
 

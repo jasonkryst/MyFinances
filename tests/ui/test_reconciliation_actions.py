@@ -141,7 +141,7 @@ def test_history_filter_and_delete(app_page):
     rows = page.query_selector_all('.recon-history-table tbody tr')
     assert len(rows) == 2
 
-    page.select_option('#reconHistoryAccountFilter', label='Recon Checking')
+    page.select_option('#reconHistoryAccountFilter', label='Recon Checking (Checking)')
     page.wait_for_timeout(300)
 
     rows = page.query_selector_all('.recon-history-table tbody tr')
@@ -194,7 +194,7 @@ def test_ledger_reconcile_button_and_modal(app_page):
     # No reconcile button while "All Accounts" is selected
     assert page.query_selector('#reconcileFromLedgerBtn') is None
 
-    page.select_option('#ledgerAccountFilter', label='Recon Ledger')
+    page.select_option('#ledgerAccountFilter', label='Recon Ledger (Checking)')
     page.wait_for_timeout(300)
 
     reconcile_btn = page.query_selector('#reconcileFromLedgerBtn')

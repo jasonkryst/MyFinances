@@ -3,6 +3,7 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -26,7 +27,7 @@ export function refreshAccountSelectors(app) {
 export function buildAccountOptionsHtml(accounts, selectedId, { emptyLabel } = {}) {
     const empty = emptyLabel ? `<option value="">${emptyLabel}</option>` : '';
     const options = (accounts || []).map(a =>
-        `<option value="${a.id}"${selectedId === a.id ? ' selected' : ''}>${escapeHtml(a.name)}</option>`
+        `<option value="${a.id}"${selectedId === a.id ? ' selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`
     ).join('');
     return empty + options;
 }
@@ -117,8 +118,7 @@ export function renderAccountsList(app) {
             <div class="acct-card-header">
                 <span class="acct-type-icon">${typeIcon[a.type] || '🗂️'}</span>
                 <div class="acct-card-info">
-                    <span class="acct-card-name">${escapeHtml(a.name)}</span>
-                    <span class="acct-type-badge">${escapeHtml(a.type)}</span>
+                    <span class="acct-card-name">${escapeHtml(a.name)} (${escapeHtml(a.type)})</span>
                     ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
                 </div>
                 <div class="acct-balances">
@@ -163,8 +163,8 @@ export async function addAccount(app) {
     const startingBalance = sanitizeFiniteNumber(document.getElementById('accountStartingBalance').value, NaN);
     const interestRate = sanitizeFiniteNumber(document.getElementById('accountInterestRate')?.value, 0, { min: 0, max: 100 });
 
-    if (!name) { alert('Please enter an account name.'); return; }
-    if (isNaN(startingBalance)) { alert('Please enter a starting balance (use 0 if unknown).'); return; }
+    if (!name) { await showAlertModal('Please enter an account name.'); return; }
+    if (isNaN(startingBalance)) { await showAlertModal('Please enter a starting balance (use 0 if unknown).'); return; }
 
     const account = { id: Date.now(), name, type, startingBalance, interestRate };
     app.accounts.push(account);
@@ -179,13 +179,56 @@ export async function addAccount(app) {
     document.getElementById('accountForm').reset();
 }
 
-export function deleteAccount(app, id) {
+export async function deleteAccount(app, id) {
+    const account = app.accounts.find(a => a.id === id);
+    if (!account) return;
+
+    const linkedIncome    = app.incomes.filter(i => i.accountId === id);
+    const linkedBonuses   = (app.bonuses || []).filter(b => b.accountId === id);
+    const linkedDebts     = app.debts.filter(d => d.accountId === id);
+    const linkedBills     = app.bills.filter(b => b.accountId === id);
+    const linkedExp       = app.expenses.filter(e => e.accountId === id);
+    const linkedRecurring = (app.recurringTemplates || []).filter(r => r.accountId === id || r.targetAccountId === id);
+    const hasLinks = linkedIncome.length || linkedBonuses.length || linkedDebts.length ||
+                     linkedBills.length || linkedExp.length || linkedRecurring.length;
+
+    if (hasLinks) {
+        const replacementId = await showAccountReplacementModal(app, id);
+        if (replacementId === null) return;
+
+        const replacement = app.accounts.find(a => a.id === replacementId);
+        const totalLinked = linkedIncome.length + linkedBonuses.length + linkedDebts.length +
+                            linkedBills.length + linkedExp.length + linkedRecurring.length;
+        const confirmed = await showDeleteConfirmModal(
+            `Delete "${account.name}" and reassign ${totalLinked} linked item(s) to "${replacement?.name ?? ''}"?`,
+            'Delete and Reassign'
+        );
+        if (!confirmed) return;
+
+        _reassignLinkedItems(app, id, replacementId);
+    } else {
+        const confirmed = await showDeleteConfirmModal(`Delete account "${account.name}"? This cannot be undone.`);
+        if (!confirmed) return;
+    }
+
     app.accounts = app.accounts.filter(a => a.id !== id);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/accounts/${id}`);
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
+}
+
+function _reassignLinkedItems(app, fromId, toId) {
+    for (const item of app.incomes)   { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of (app.bonuses || [])) { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of app.debts)     { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of app.bills)     { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of app.expenses)  { if (item.accountId === fromId) item.accountId = toId; }
+    for (const item of (app.recurringTemplates || [])) {
+        if (item.accountId === fromId) item.accountId = toId;
+        if (item.targetAccountId === fromId) item.targetAccountId = toId;
+    }
 }
 
 export function startEditAccount(app, id) {
@@ -199,15 +242,15 @@ export function cancelEditAccount(app) {
     app.renderAccountsList();
 }
 
-export function saveEditAccount(app, id) {
+export async function saveEditAccount(app, id) {
     const idx = app.accounts.findIndex(a => a.id === id);
     if (idx === -1) return;
     const name = normalizeText(document.getElementById(`ac-name-${id}`)?.value, 80);
     const type = normalizeText(document.getElementById(`ac-type-${id}`)?.value, 30);
     const startingBalance = sanitizeFiniteNumber(document.getElementById(`ac-bal-${id}`)?.value, NaN);
     const interestRate = sanitizeFiniteNumber(document.getElementById(`ac-rate-${id}`)?.value, 0, { min: 0, max: 100 });
-    if (!name) { alert('Please enter an account name.'); return; }
-    if (isNaN(startingBalance)) { alert('Please enter a valid starting balance.'); return; }
+    if (!name) { await showAlertModal('Please enter an account name.'); return; }
+    if (isNaN(startingBalance)) { await showAlertModal('Please enter a valid starting balance.'); return; }
     app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate };
     app.editingAccountId = null;
     app.saveToStorage();

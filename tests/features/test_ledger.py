@@ -253,6 +253,172 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     )
 
 
+@pytest.mark.feature
+def test_ledger_cleared_checkbox_marks_row_and_records_timestamp(app_page):
+    """Checking the Cleared checkbox for a ledger row should mark it cleared
+    and record a clearedAt timestamp, shown as the checkbox's tooltip."""
+    page = app_page
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
+
+    checkbox = page.query_selector('[data-ledger-cleared]')
+    assert checkbox, "Expected at least one clearable ledger row"
+    assert not checkbox.is_checked(), "Row should start uncleared"
+
+    checkbox.click()
+    page.wait_for_timeout(300)
+
+    tx_id = checkbox.get_attribute('data-ledger-cleared')
+    state = page.evaluate(
+        """(txId) => {
+            const cb = document.querySelector(`[data-ledger-cleared="${txId}"]`);
+            return { checked: cb.checked, title: cb.getAttribute('title') };
+        }""",
+        tx_id
+    )
+    assert state['checked'] is True
+    assert state['title'] and 'Cleared' in state['title'], (
+        f"Expected a Cleared-at tooltip on the checkbox, got: {state['title']!r}"
+    )
+
+
+@pytest.mark.feature
+def test_ledger_cleared_persists_after_reload(app_page):
+    """A cleared transaction must be written to localStorage (via
+    sanitizeLedgerClearedTransactions round-trip) and still be checked after
+    reloading the page."""
+    page = app_page
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
+
+    checkbox = page.query_selector('[data-ledger-cleared]')
+    tx_id = checkbox.get_attribute('data-ledger-cleared')
+    checkbox.click()
+    page.wait_for_timeout(300)
+
+    stored = page.evaluate(
+        """() => {
+            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
+            const parsed = JSON.parse(raw);
+            return parsed.ledgerClearedTransactions || null;
+        }"""
+    )
+    assert stored, "ledgerClearedTransactions should be persisted to localStorage"
+    assert tx_id in stored, "the specific transactionId key should be present in storage"
+    assert stored[tx_id].get('clearedAt'), "a clearedAt timestamp should be stored"
+
+    page.reload()
+    page.wait_for_selector('#app, body', timeout=10000)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector(f'[data-ledger-cleared="{tx_id}"]', timeout=10000)
+
+    is_checked = page.evaluate(
+        """(txId) => document.querySelector(`[data-ledger-cleared="${txId}"]`)?.checked || false""",
+        tx_id
+    )
+    assert is_checked, "Cleared state should survive reload"
+
+
+@pytest.mark.feature
+def test_ledger_cleared_unchecking_clears_state_and_timestamp(app_page):
+    """Unchecking a previously cleared row must remove it from
+    ledgerClearedTransactions entirely (not just flip a boolean), mirroring
+    how overrides are Reset."""
+    page = app_page
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
+
+    checkbox = page.query_selector('[data-ledger-cleared]')
+    tx_id = checkbox.get_attribute('data-ledger-cleared')
+    checkbox.click()
+    page.wait_for_timeout(300)
+
+    checkbox_again = page.query_selector(f'[data-ledger-cleared="{tx_id}"]')
+    checkbox_again.click()
+    page.wait_for_timeout(300)
+
+    stored = page.evaluate(
+        """() => {
+            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
+            const parsed = JSON.parse(raw);
+            return parsed.ledgerClearedTransactions || {};
+        }"""
+    )
+    assert tx_id not in stored, "Unchecking should remove the entry, not just flip a flag"
+
+    is_checked = page.evaluate(
+        """(txId) => document.querySelector(`[data-ledger-cleared="${txId}"]`)?.checked || false""",
+        tx_id
+    )
+    assert not is_checked
+
+
+@pytest.mark.feature
+def test_ledger_cleared_for_different_keys_do_not_collide(app_page):
+    """Clearing one ledger row must not affect another row's cleared state."""
+    page = app_page
+    _seed_income_for_ledger(page, name="Cleared Salary A", amount=3000)
+    _seed_income_for_ledger(page, name="Cleared Salary B", amount=3500)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
+
+    checkboxes = page.query_selector_all('[data-ledger-cleared]')
+    assert len(checkboxes) >= 2, "Need at least two distinct clearable ledger rows"
+
+    tx_id_1 = checkboxes[0].get_attribute('data-ledger-cleared')
+    tx_id_2 = checkboxes[1].get_attribute('data-ledger-cleared')
+    assert tx_id_1 != tx_id_2
+
+    checkboxes[0].click()
+    page.wait_for_timeout(300)
+
+    state = page.evaluate(
+        """([txId1, txId2]) => ({
+            first: document.querySelector(`[data-ledger-cleared="${txId1}"]`)?.checked,
+            second: document.querySelector(`[data-ledger-cleared="${txId2}"]`)?.checked
+        })""",
+        [tx_id_1, tx_id_2]
+    )
+    assert state['first'] is True
+    assert state['second'] is False, "Clearing one row must not clear an unrelated row"
+
+
+@pytest.mark.feature
+def test_reconciliation_and_rollover_rows_have_no_cleared_checkbox(app_page):
+    """Synthetic rows (reconciliation markers, balance rollovers) have
+    transactionId: null and represent no single posted transaction, so they
+    must not expose a Cleared checkbox."""
+    page = app_page
+    _seed_account_for_recon_ledger(page)
+
+    page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/utils.js');
+        app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
+        app.applyReconciliation(8001, 1200, '', mod.todayISO());
+    }""")
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+
+    cleared_present = page.evaluate("""() => {
+        const rows = Array.from(document.querySelectorAll('.ledger-row--reconciliation'));
+        return rows.some(row => row.querySelector('[data-ledger-cleared]'));
+    }""")
+    assert cleared_present is False
+
+
 def _seed_account_for_recon_ledger(page):
     page.evaluate("""() => {
         const app = window.app;

@@ -6,7 +6,7 @@ Tests per-debt payoff comparison badge, accelerate modal, and plan table columns
 import pytest
 from tests.conftest import create_debt
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 
 def _nav_debts(page):

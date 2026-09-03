@@ -1,4 +1,4 @@
-﻿# Deployment Guide - MyFinances
+# Deployment Guide - MyFinances
 
 This guide covers deployment options and security configurations for MyFinances.
 
@@ -9,16 +9,16 @@ This guide covers deployment options and security configurations for MyFinances.
 ### Using Python HTTP Server
 ```bash
 cd "path/to/MyFinances"
-python -m http.server 5500
+python -m http.server 32900
 ```
-Access at: `http://localhost:5500`
+Access at: `http://localhost:32900`
 
 ### Using PowerShell HTTP Listener
 ```powershell
 $listener = [System.Net.HttpListener]::new()
-$listener.Prefixes.Add('http://localhost:5500/')
+$listener.Prefixes.Add('http://localhost:32900/')
 $listener.Start()
-Write-Output 'Serving http://localhost:5500/'
+Write-Output 'Serving http://localhost:32900/'
 
 while ($listener.IsListening) {
     $context = $listener.GetContext()
@@ -224,11 +224,11 @@ The repository ships with production-ready Docker files. The image is built on `
 # Build the image
 docker build -t myfinances .
 
-# Run on port 5500
-docker run -d -p 5500:80 --name myfinances myfinances
+# Run on port 32900
+docker run -d -p 32900:80 --name myfinances myfinances
 ```
 
-Access at: `http://localhost:5500`
+Access at: `http://localhost:32900`
 
 > The image ships `manifest.json`, `sw.js`, and `icons/` (PWA support, #75) alongside the existing static files.
 
@@ -245,7 +245,7 @@ docker compose logs -f
 docker compose down
 ```
 
-Access at: `http://localhost:5500`
+Access at: `http://localhost:32900`
 
 **Security hardening applied in `docker-compose.yml`:**
 - `read_only: true` — container filesystem is read-only
@@ -306,8 +306,12 @@ for the browser to send them. For production:
 
 - Add Nginx in front of the stack (see the Nginx section above) with a valid TLS cert
 - Or use Cloudflare Tunnel / Traefik for automatic TLS with zero config
-- Local testing only: temporarily set `COOKIE_SECURE=false` in the `server` service
-  environment to allow plain HTTP — never do this in production
+- The session/CSRF cookies' `Secure` flag is gated on `NODE_ENV === 'production'`
+  (`server/src/routes/auth.js`), not a dedicated env var — the shipped
+  `docker-compose.yml` does not set `NODE_ENV`, so cookies are **not** marked `Secure`
+  by default (fine for local HTTP testing). Set `NODE_ENV=production` in the `server`
+  service environment only once the stack is served over HTTPS — setting it earlier
+  will cause the browser to silently drop the session/csrf cookies over plain HTTP
 
 ### Portainer GitOps (Automated Deploys on Push)
 
@@ -347,6 +351,46 @@ docker compose run --rm server npm run migrate up      # apply any new migration
 Portainer auto-update handles steps 2–3 automatically; you only need to run migrations manually
 if a release adds new database tables (check the `CHANGELOG.md` entry for "migration").
 
+### Backup and Restore
+
+The `postgres-data` named volume (`docker-compose.yml`) is the only durability layer once
+you opt into the Postgres backend — losing it loses everything. Root-level scripts wrap
+`pg_dump`/`pg_restore` so backups don't require remembering `docker exec` invocations:
+
+```sh
+# Linux / macOS
+./backup.sh                              # writes ./backups/myfinances-<timestamp>.dump
+./restore.sh backups/myfinances-<timestamp>.dump
+
+# Windows
+.\backup.ps1                             # writes .\backups\myfinances-<timestamp>.dump
+.\restore.ps1 -Path backups\myfinances-<timestamp>.dump
+```
+
+- `backup.sh`/`backup.ps1` take a consistent snapshot via `pg_dump -Fc` (Postgres's compressed
+  custom format) without blocking normal reads/writes, and are safe to run against a live stack.
+  Override the output directory with `BACKUP_DIR` (bash) or `-BackupDir` (PowerShell).
+- `restore.sh`/`restore.ps1` are **destructive** — they drop and recreate every object in the
+  target database (`pg_restore --clean --if-exists`) before loading the dump, and prompt for
+  confirmation before doing so. Restart the `server` container afterward
+  (`docker compose restart server`) so its connection pool picks up a clean session.
+- **Schedule regular backups** — nothing in this repo runs backups automatically by default;
+  wire up one of the examples below (or your own), pointing `BACKUP_DIR` at storage that
+  survives losing the host the `postgres-data` volume lives on:
+  - **cron** (Linux/macOS) — `docs/examples/myfinances-backup.cron`, a one-line crontab entry.
+  - **systemd timer** (Linux) — `docs/examples/myfinances-backup.service` +
+    `myfinances-backup.timer`; preferred over cron on systemd hosts since it retries a run the
+    host was offline for (`Persistent=true`) instead of silently skipping it.
+  - **Windows Task Scheduler** — create a daily trigger running `powershell.exe` with
+    `-File backup.ps1` from the repo root, e.g.:
+    ```powershell
+    schtasks /Create /SC DAILY /ST 03:15 /TN "MyFinances Backup" ^
+        /TR "powershell.exe -NoProfile -File C:\path\to\MyFinances\backup.ps1"
+    ```
+- Dumps contain full account/debt/income data in plaintext (Postgres's custom format is not
+  encrypted) — store them with the same care as the database itself, and off the host machine
+  if the backup is meant to survive host loss.
+
 ### Manual / Custom Deployment
 
 If you prefer to manage secrets yourself, see `.env.example` for the environment variables
@@ -380,7 +424,7 @@ node src/index.js
 - [ ] `.env` files excluded from deployment
 - [ ] Cache headers configured appropriately
 - [ ] GZIP compression enabled
-- [ ] Regular backups implemented
+- [ ] Regular backups scheduled (Postgres backend only — see "Backup and Restore" above for `backup.sh`/`backup.ps1`)
 
 ## Testing Deployment
 
