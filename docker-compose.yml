@@ -56,8 +56,14 @@ services:
     restart: unless-stopped
     environment:
       SESSION_TTL_DAYS: "7"
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
     secrets:
       - postgres_password
+      - smtp_password
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,3 +80,5 @@ volumes:
 secrets:
   postgres_password:
     file: ${POSTGRES_SECRET_FILE:-./secrets/postgres_password.txt}
+  smtp_password:
+    file: ${SMTP_SECRET_FILE:-./secrets/smtp_password.txt}

@@ -4,6 +4,9 @@
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import { getCurrentLocale } from './i18n.js';
+import { getCsrfCookie } from './storage.js';
+import { showLoginGate } from './loginGate.js';
+import { showEmailTestToast } from './ui.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -75,6 +78,8 @@ export function initSettingsModal(app) {
     const adjustsCheckbox = document.getElementById('settingReconciliationAdjusts');
     const storageSelect = document.getElementById('settingStorageBackend');
     const postgresLockNote = document.getElementById('settingsStoragePostgresNote');
+    const emailTestGroup = document.getElementById('settingsEmailTestGroup');
+    const sendTestEmailBtn = document.getElementById('settingsSendTestEmailBtn');
     const localeSelect = document.getElementById('settingLocale');
     if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect) return;
 
@@ -95,10 +100,12 @@ export function initSettingsModal(app) {
             storageSelect.value = 'postgres';
             storageSelect.classList.add('hidden');
             if (postgresLockNote) postgresLockNote.classList.remove('hidden');
+            if (emailTestGroup) emailTestGroup.classList.remove('hidden');
         } else {
             storageSelect.value = getStorageBackendPreference();
             storageSelect.classList.remove('hidden');
             if (postgresLockNote) postgresLockNote.classList.add('hidden');
+            if (emailTestGroup) emailTestGroup.classList.add('hidden');
         }
         localeSelect.value = getCurrentLocale();
         modal.classList.add('flex-visible');
@@ -135,6 +142,34 @@ export function initSettingsModal(app) {
     settingsBtn.onclick = open;
     closeBtn.onclick = close;
     doneBtn.onclick = save;
+    if (sendTestEmailBtn) {
+        sendTestEmailBtn.onclick = async () => {
+            sendTestEmailBtn.disabled = true;
+            try {
+                const res = await fetch('/api/notifications/test-email', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': getCsrfCookie() }
+                });
+                if (res.status === 401) {
+                    await showLoginGate(app);
+                    return;
+                }
+                if (res.status === 200) {
+                    showEmailTestToast('success', 'Test email sent — check your inbox.');
+                } else if (res.status === 503) {
+                    showEmailTestToast('info', "SMTP isn't configured on this server.");
+                } else if (res.status === 429) {
+                    showEmailTestToast('info', 'Too many requests — try again in a few minutes.');
+                } else {
+                    showEmailTestToast('error', 'Failed to send test email.');
+                }
+            } catch {
+                showEmailTestToast('error', 'Failed to send test email.');
+            } finally {
+                sendTestEmailBtn.disabled = false;
+            }
+        };
+    }
     modal.onclick = (event) => {
         if (event.target === modal) close();
     };

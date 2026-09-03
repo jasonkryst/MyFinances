@@ -539,6 +539,33 @@ body.dark-mode .text-income {
     animation: toast-slide-in 0.25s ease forwards;
 }
 
+.email-test-toast {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 9998;
+    max-width: min(400px, 90vw);
+    padding: 11px 16px;
+    border-radius: 10px;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+    font-size: 0.87rem;
+    line-height: 1.4;
+    animation: toast-slide-in 0.25s ease forwards;
+}
+
+.email-test-toast--success {
+    background: #16a34a;
+}
+
+.email-test-toast--error {
+    background: #dc2626;
+}
+
+.email-test-toast--info {
+    background: #64748b;
+}
+
 .cmdpal-footer kbd {
     display: inline-block;
     padding: 1px 5px;

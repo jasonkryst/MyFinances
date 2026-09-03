@@ -23,7 +23,46 @@ if (Test-Path "secrets\postgres_password.txt") {
 
 Write-Host ""
 
-# -- 2. Start the stack --------------------------------------------------------
+# -- 2. Configure SMTP (optional) -----------------------------------------------
+if (Test-Path "secrets\smtp_password.txt") {
+    Write-Host "-> secrets\smtp_password.txt already exists -- skipping SMTP setup"
+} else {
+    Write-Host ""
+    $configureSmtp = Read-Host "Configure SMTP for email notifications? [y/N]"
+    New-Item -ItemType Directory -Force "secrets" | Out-Null
+    if ($configureSmtp -match '^[Yy]$') {
+        $smtpHost = Read-Host "  SMTP host"
+        $smtpPortInput = Read-Host "  SMTP port [587]"
+        $smtpPort = if ($smtpPortInput) { $smtpPortInput } else { "587" }
+        $smtpSecure = if ($smtpPort -eq "465") { "true" } else { "false" }
+        $smtpUser = Read-Host "  SMTP username (blank if none)"
+        $smtpFrom = Read-Host "  From address"
+        $smtpPasswordSecure = Read-Host "  SMTP password" -AsSecureString
+        $smtpPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($smtpPasswordSecure)
+        )
+        [System.IO.File]::WriteAllText((Resolve-Path "secrets").Path + "\smtp_password.txt", $smtpPassword)
+        $existingEnv = @()
+        if (Test-Path ".env") {
+            $existingEnv = Get-Content ".env" | Where-Object { $_ -notmatch '^SMTP_' }
+        }
+        $existingEnv + @(
+            "SMTP_HOST=$smtpHost"
+            "SMTP_PORT=$smtpPort"
+            "SMTP_USER=$smtpUser"
+            "SMTP_FROM=$smtpFrom"
+            "SMTP_SECURE=$smtpSecure"
+        ) | Set-Content -Path ".env"
+        Write-Host "-> Generated secrets\smtp_password.txt and .env"
+    } else {
+        New-Item -ItemType File "secrets\smtp_password.txt" | Out-Null
+        Write-Host "-> Skipping SMTP setup -- email notifications will stay disabled"
+    }
+}
+
+Write-Host ""
+
+# -- 3. Start the stack --------------------------------------------------------
 Write-Host "Starting containers (this may take a moment on first run)..."
 docker compose up -d --build
 
@@ -43,12 +82,12 @@ if (-not $healthy) {
     exit 1
 }
 
-# -- 3. Run migrations ---------------------------------------------------------
+# -- 4. Run migrations ---------------------------------------------------------
 Write-Host ""
 Write-Host "Running database migrations..."
 docker compose run --rm server npm run migrate up
 
-# -- 4. Create first user ------------------------------------------------------
+# -- 5. Create first user ------------------------------------------------------
 Write-Host ""
 Write-Host "Create your login account"
 Write-Host "-------------------------"

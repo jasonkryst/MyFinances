@@ -1,0 +1,18 @@
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: myfinances-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+
+  server:
+    environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_USER: ""
+      SMTP_FROM: "noreply@myfinances.test"
+      SMTP_SECURE: "false"
+    depends_on:
+      mailpit:
+        condition: service_started

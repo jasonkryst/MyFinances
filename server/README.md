@@ -57,3 +57,39 @@ appears in `docker inspect` output or shell history.
 The `postgres-data` volume is the only durability layer for this backend —
 use the root-level `backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`
 scripts to back it up; see "Backup and Restore" in the root `DEPLOYMENT.md`.
+
+## Email notifications (optional)
+
+The server can send email over SMTP — currently just a "send test email"
+action from the app's Settings modal, plus an automatic welcome email when
+an account is created. It's off by default; automated bill/balance
+notifications are a future feature built on top of this foundation. See
+`docs/superpowers/specs/2026-09-03-smtp-email-notifications-design.md`
+for the full design.
+
+### Configuring SMTP
+
+Run `setup.sh`/`setup.ps1` and answer "y" when asked to configure SMTP, or
+configure manually:
+
+- Set `SMTP_HOST`, `SMTP_PORT` (default `587`), `SMTP_USER`, `SMTP_FROM`,
+  and `SMTP_SECURE` (`true`/`false`) as environment variables on the
+  `server` service — a root `.env` file works with the provided
+  `docker-compose.yml`.
+- Place the SMTP account's password in `secrets/smtp_password.txt`, a
+  Docker secret using the same pattern as
+  `secrets/postgres_password.txt` — `docker-entrypoint.sh` reads it into
+  `SMTP_PASSWORD` at container startup.
+
+Leaving `SMTP_HOST` unset disables the feature entirely — nothing fails
+to start, and the test-email endpoint just returns
+`503 EMAIL_NOT_CONFIGURED`. `secrets/smtp_password.txt` must still exist
+(even empty) because Docker Compose requires every file a service's
+`secrets:` list references to be present — `setup.sh`/`setup.ps1` create
+it either way.
+
+### Verifying it works
+
+Log in, open Settings, and click "Send test email" — it emails the
+logged-in account's own address (never an arbitrary address the client
+supplies, so the endpoint can't be used as an open relay).

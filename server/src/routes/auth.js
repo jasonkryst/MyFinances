@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { hashPassword, verifyPassword } from '../auth/argon2.js';
 import { createSession, destroySession } from '../auth/sessions.js';
 import { generateToken, requireCsrf } from '../auth/middleware.js';
+import { sendTemplatedEmail } from '../email/send.js';
 
 const SECURE = process.env.NODE_ENV === 'production';
 const SESSION_COOKIE_OPTS = { httpOnly: true, secure: SECURE, sameSite: 'strict', path: '/' };
@@ -86,6 +87,13 @@ export function createAuthRouter() {
             const csrfToken = generateToken();
             res.cookie('session', session.id, { ...SESSION_COOKIE_OPTS, expires: session.expiresAt });
             res.cookie('csrf', csrfToken, { ...CSRF_COOKIE_OPTS, expires: session.expiresAt });
+
+            try {
+                await sendTemplatedEmail(email, 'welcomeEmail', { email });
+            } catch (err) {
+                console.error('[auth] welcome email failed:', err);
+            }
+
             res.json({ ok: true });
         } catch (err) {
             next(err);

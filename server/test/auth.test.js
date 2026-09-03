@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
 import { pool } from '../src/db.js';
 import { resetDb, createTestUser, loginTestUser } from './helpers/testDb.js';
+import { _setTransportOverride, _clearTransportOverride } from '../src/email/transport.js';
 
 let server, baseUrl;
 
@@ -86,4 +87,40 @@ test('logout without a matching CSRF header is rejected', async () => {
 
     const probeRes = await fetch(`${baseUrl}/health/session-check`, { headers: { Cookie: cookies } });
     assert.equal(probeRes.status, 200);
+});
+
+test('register sends a welcome email when SMTP is configured', async () => {
+    const originalHost = process.env.SMTP_HOST;
+    const originalFrom = process.env.SMTP_FROM;
+    process.env.SMTP_HOST = 'smtp.example.com';
+    process.env.SMTP_FROM = 'noreply@myfinances.test';
+    const sent = [];
+    _setTransportOverride({ sendMail: async (mail) => { sent.push(mail); return { messageId: 'test' }; } });
+
+    const res = await fetch(`${baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'newuser@example.com', password: 'correct horse battery staple' })
+    });
+    assert.equal(res.status, 200);
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].to, 'newuser@example.com');
+    assert.equal(sent[0].subject, 'Welcome to MyFinances');
+
+    if (originalHost === undefined) delete process.env.SMTP_HOST; else process.env.SMTP_HOST = originalHost;
+    if (originalFrom === undefined) delete process.env.SMTP_FROM; else process.env.SMTP_FROM = originalFrom;
+    _clearTransportOverride();
+});
+
+test('register still succeeds when SMTP is not configured', async () => {
+    delete process.env.SMTP_HOST;
+    _clearTransportOverride();
+    const res = await fetch(`${baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'anotheruser@example.com', password: 'correct horse battery staple' })
+    });
+    assert.equal(res.status, 200);
+    const cookies = res.headers.getSetCookie();
+    assert.ok(cookies.some(c => c.startsWith('session=')));
 });

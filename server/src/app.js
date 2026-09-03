@@ -17,6 +17,7 @@ import settingsRouter from './routes/settings.js';
 import ledgerOverridesRouter from './routes/ledgerOverrides.js';
 import ledgerClearedRouter from './routes/ledgerCleared.js';
 import planSettingsRouter from './routes/planSettings.js';
+import createNotificationsRouter from './routes/notifications.js';
 
 export function createApp() {
     const app = express();
@@ -47,6 +48,7 @@ export function createApp() {
     api.use('/ledger-overrides', ledgerOverridesRouter);
     api.use('/ledger-cleared', ledgerClearedRouter);
     api.use('/plan-settings', planSettingsRouter);
+    api.use('/notifications', createNotificationsRouter());
     app.use('/api', api);
 
     app.use((req, res) => {

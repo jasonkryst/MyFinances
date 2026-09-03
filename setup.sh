@@ -21,7 +21,48 @@ fi
 
 echo ""
 
-# ── 2. Start the stack ────────────────────────────────────────────────────────
+# ── 2. Configure SMTP (optional) ────────────────────────────────────────────
+if [ -f secrets/smtp_password.txt ]; then
+    echo "→ secrets/smtp_password.txt already exists — skipping SMTP setup"
+else
+    echo ""
+    read -rp "Configure SMTP for email notifications? [y/N] " configure_smtp
+    mkdir -p secrets
+    if [[ "$configure_smtp" =~ ^[Yy]$ ]]; then
+        read -rp "  SMTP host: " smtp_host
+        read -rp "  SMTP port [587]: " smtp_port
+        smtp_port=${smtp_port:-587}
+        if [ "$smtp_port" = "465" ]; then
+            smtp_secure=true
+        else
+            smtp_secure=false
+        fi
+        read -rp "  SMTP username (blank if none): " smtp_user
+        read -rp "  From address: " smtp_from
+        read -rsp "  SMTP password: " smtp_password
+        echo ""
+        printf '%s' "$smtp_password" > secrets/smtp_password.txt
+        if [ -f .env ]; then
+            grep -v '^SMTP_' .env > .env.tmp || true
+            mv .env.tmp .env
+        fi
+        {
+            echo "SMTP_HOST=$smtp_host"
+            echo "SMTP_PORT=$smtp_port"
+            echo "SMTP_USER=$smtp_user"
+            echo "SMTP_FROM=$smtp_from"
+            echo "SMTP_SECURE=$smtp_secure"
+        } >> .env
+        echo "→ Generated secrets/smtp_password.txt and .env"
+    else
+        touch secrets/smtp_password.txt
+        echo "→ Skipping SMTP setup — email notifications will stay disabled"
+    fi
+fi
+
+echo ""
+
+# ── 3. Start the stack ────────────────────────────────────────────────────────
 echo "Starting containers (this may take a moment on first run)..."
 docker compose up -d --build
 
@@ -39,12 +80,12 @@ if [ "$STATUS" != "healthy" ]; then
     exit 1
 fi
 
-# ── 3. Run migrations ─────────────────────────────────────────────────────────
+# ── 4. Run migrations ─────────────────────────────────────────────────────────
 echo ""
 echo "Running database migrations..."
 docker compose run --rm server npm run migrate up
 
-# ── 4. Create first user ──────────────────────────────────────────────────────
+# ── 5. Create first user ──────────────────────────────────────────────────────
 echo ""
 echo "Create your login account"
 echo "-------------------------"
