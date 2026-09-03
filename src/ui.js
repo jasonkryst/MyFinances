@@ -779,6 +779,25 @@ export function showPgErrorToast() {
     }, 5000);
 }
 
+let _emailTestToastTimer = null;
+
+export function showEmailTestToast(status, message) {
+    if (_emailTestToastTimer !== null) {
+        clearTimeout(_emailTestToastTimer);
+        document.getElementById('emailTestToast')?.remove();
+    }
+    const el = document.createElement('div');
+    el.id = 'emailTestToast';
+    el.className = `email-test-toast email-test-toast--${status}`;
+    el.setAttribute('role', 'status');
+    el.textContent = message;
+    document.body.appendChild(el);
+    _emailTestToastTimer = setTimeout(() => {
+        document.getElementById('emailTestToast')?.remove();
+        _emailTestToastTimer = null;
+    }, 5000);
+}
+
 export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
     return new Promise((resolve) => {
         const modal = document.getElementById('deleteConfirmModal');
