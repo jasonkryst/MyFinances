@@ -1,0 +1,95 @@
+# MyFinances Performance Audit — 2026-09-02
+
+Scope: static analysis of the no-build-step, vanilla-ES6 client app (`index.html` → `src/app.js` → ~53 ES module imports, plus classic-script `src/debtCalculator.js` and Chart.js via CDN), plus one live Lighthouse run against `http://localhost:32900/` (served by `python -m http.server`, the documented local-dev command — **not** the production nginx container). No source was modified.
+
+---
+
+## Executive Summary
+
+| Lighthouse category | Score | Gate (`lighthouserc.json`) |
+|---|---|---|
+| Performance | **0.60** | ≥0.80 — **FAILS** |
+| Accessibility | 1.00 | ≥0.80 — passes |
+| Best Practices | 1.00 | ≥0.80 — passes |
+| SEO | 1.00 | ≥0.80 — passes |
+
+| Core Web Vital | Value | Note |
+|---|---|---|
+| Largest Contentful Paint | **8.6 s** | scores 0.01/1.0 — the dominant failure |
+| Time to Interactive | 8.6 s | |
+| Total Blocking Time | 370 ms | |
+| Speed Index | 4.5 s | |
+| First Contentful Paint | 2.6 s | |
+| Cumulative Layout Shift | 0 | clean |
+
+**Caveats on this data, read before acting on exact numbers:**
+1. `npx @lhci/cli autorun` (the intended 3-run × 2-URL matrix from `lighthouserc.json`) crashed on a Windows-specific `chrome-launcher` temp-directory cleanup bug (`EPERM` on `rmSync`) immediately after Run #1 gathered its trace — no `.lighthouseci/` report was ever written by that invocation. A single-URL, single-run retry against `http://localhost:32900/` (not `guide.html`) succeeded and produced the numbers above; that run also hit the same cleanup crash, but only *after* its JSON report had already been flushed to disk, so the report itself is intact. Treat the scores as directionally correct but **not** the full averaged 3-run/2-page picture the CI gate expects.
+2. The target was the **`python -m http.server` dev server**, which sends no `Content-Encoding` and no cache headers at all. Production (`nginx.conf`) has `gzip on` (level 6, covers `text/css`/`application/javascript`) and explicit `Cache-Control` policy per file type. The `document-latency-insight` ("No compression applied", 59 KiB) and `cache-insight` (833 KiB "wasted", 0 ms TTL) findings below are therefore **overstated relative to production** — re-run against the Docker/nginx build for real numbers. That said, nginx's own policy is `Cache-Control: no-cache, must-revalidate` for `*.js`/`*.css` (deliberately, since filenames aren't content-hashed — see `nginx.conf:83-88`), so a cache-lifetime-based Lighthouse audit will likely still flag this in production too; the practical cost there is a conditional-GET/304 round trip per file, not a full re-download, assuming nginx's default `Last-Modified`/`ETag` handling is intact.
+3. Total-byte-weight (993 KiB transferred) and "unused JS/CSS" estimates are all measured **uncompressed** for the same reason.
+
+Despite those caveats, the shape of the problem is unambiguous and cross-confirmed by both the live trace and static analysis: **this is an unbundled-JS-waterfall + monolithic-CSS problem, not a heavy-computation problem.** `mainthread-work-breakdown` shows only 550 ms of actual script evaluation out of 3.1 s of main-thread work; the rest is style/layout (1.36 s) and other browser bookkeeping (1.0 s) — consistent with parsing/applying a single 170 KB CSS file against a DOM that already contains every page section, mostly hidden.
+
+## Top findings
+
+1. **LCP (8.6s) is gated on the entire 54-file JS module graph loading before anything paints.** The measured LCP element is `body > div#setupWizardModal > div.modal-content > p.modal-description` — the first-run Setup Wizard's intro text. Nothing meaningful can paint until `src/setupWizard.js` (a leaf import, several levels deep) has been fetched and executed, because `index.html`'s page `<section>`s are empty shells populated by JS after `DOMContentLoaded`. `network-dependency-tree-insight` shows a real 3-level-deep fetch waterfall (e.g. `index.html` → `src/i18n.js` → `src/locales/{en,es,pl}.js`, and `index.html` → `src/ledgerTransactions.js` → `src/ledgerOverrides.js`/`ledgerCleared.js`), each level adding measured latency, because the browser can't discover a nested `import` until the parent module has been fetched and parsed. `diagnostics` counts 60 requests / 53 scripts for a single page load.
+2. **Zero code-splitting: every feature module loads on every page, always.** `grep -rn "import(" src/` found **0** dynamic imports anywhere in the codebase — every one of the ~53 imports in `src/app.js` (and their sub-imports) is a static top-level `import`, so visiting the app loads all of Reports, Reconciliation, Savings, Postgres sync/import, the guide theming code, etc. regardless of which page the user lands on. This directly produces the `unused-javascript` finding (163 KiB estimated savings) and is the root cause of #1.
+3. **`styles.css` (170 KB, unminified, one file) is both render-blocking and ~93% unused on first paint.** `unused-css-rules` reports 157,366 of 169,928 bytes (92.6%) unused for `styles.css` and 12,616 of 12,713 bytes (99.2%) for `styles-csp-classes.css` at first render — expected, since one stylesheet covers every page/component but only the Setup Wizard/empty-state view is visible initially. `render-blocking-insight` separately confirms both CSS files sit in the critical path (≈490 ms + 1,390 ms of the 840 ms total estimated savings — Lighthouse dedupes overlap in that total).
+4. **`src/debtCalculator.js` is a classic, synchronous, render-blocking `<script>`.** `index.html:903` loads it with no `defer`/`async`, and `render-blocking-insight` flags it directly (21.8 KB, ~640 ms estimated savings). It only needs to be ready before `src/app.js` (a `type="module"` script, which is deferred by default) runs — nothing in `index.html` reads `DebtCalculator` before then — so this is very likely safe to mark `defer`.
+5. **Reports page fully re-renders on every tab click, not just the active tab.** `src/reports.js:37-58`'s `renderReportsPage(app)` unconditionally calls all 8 sub-page renderers (Calendar, Sankey, Income/Expenses, Money Flow trend, Variance, Net Worth ×2 charts, Forecast, Spending ×2 charts, Summary) and pre-destroys/rebuilds all 11 tracked Chart.js instances (lines 40-46) on *every* invocation — and `src/ui.js:306` calls it from the `.rpt-tab-btn` click handler, i.e. switching from the Calendar tab to the Spending tab still tears down and rebuilds the invisible Net Worth/Forecast/Money-Flow/Variance/Summary charts too. Same function also runs on every month-nav click (`reports.js:18,24`). With realistic data (many months of `monthlySnapshots`, dozens of accounts/debts) this is measurable, avoidable main-thread work on an action (tab switch) that only needs to touch one panel.
+6. **What-If payoff slider recomputes the full payoff simulation on every raw `input` event, no debounce.** `src/strategyComparison.js:93-101` calls `DebtCalculator.calculatePaymentPlan(...)` synchronously inside a bare `slider.addEventListener('input', ...)` with no debounce/throttle/`requestAnimationFrame` batching — dragging the range slider fires this many times per second on the main thread. Fine for a handful of debts/months; will visibly stutter the slider with a large debt list or a payoff horizon approaching the 600-month cap (`src/debtCalculator.js:74`).
+
+## Findings by severity
+
+### High
+
+- **[Confirmed by Lighthouse] Unbundled module graph blocks LCP/TTI.** See #1/#2 above. `src/app.js:1-126`'s import block, and the transitive imports inside `reports.js` (9), `reconciliation.js` (7), `ledger.js`/`ledgerTransactions.js` (5-6 each) — no dynamic `import()` anywhere.
+- **[Confirmed by Lighthouse] Monolithic, unminified `styles.css` (169,928 bytes) + `styles-csp-classes.css` (12,713 bytes), both render-blocking, both >90% unused on first paint.** No CSS is scoped or deferred per page.
+- **`index.html:903` — `<script src="src/debtCalculator.js">` has no `defer`.** Confirmed render-blocking by Lighthouse (~640 ms).
+
+### Medium
+
+- **`src/reports.js:37-58` `renderReportsPage()` — full-page-worth of work on every tab click / month-nav click, not scoped to the active tab.** Called from `src/ui.js:306` (tab click), `src/ui.js:353/363/374/382/391/626` (various triggers), and `src/reports.js:18,24` (prev/next month). All 11 Chart.js instances tracked at `reports.js:40` are destroyed+recreated even when their panel is `display:none`.
+- **`src/strategyComparison.js:93-101` — undebounced `input` handler re-runs `DebtCalculator.calculatePaymentPlan` synchronously per slider tick.** No debounce/rAF batching; runs on the main thread (no Worker offload anywhere in the codebase).
+- **`debtCalculator.js:320-361` `getPaymentOrder()` re-sorts the full active-debt list from scratch every month of every plan calculation** (`calculatePaymentPlan` calls it once per iteration of the up-to-600-month loop, `debtCalculator.js:89`), and the per-debt payment-matching lookups at `debtCalculator.js:190,243` are `Array.prototype.findIndex` calls inside an already-O(debts) loop — effectively O(months × debts²) in the worst case. Not a real bottleneck at realistic debt counts (dozens), but worth knowing if a future "compare all 4 strategies across many debts" feature calls this in a tight loop (already true today — `strategyComparison.js`'s what-if slider calls it per input event; see Medium finding above).
+
+### Low / informational
+
+- **`src/storage.js:89-170` `saveToStorage()` re-serializes and quota-checks the *entire* app state (`JSON.stringify`) on every call.** 53 call sites across 18 modules (`grep -rn "saveToStorage("`). Spot-checked the two raw `input`-event listeners in the codebase (`strategyComparison.js:93`, `commandPalette.js:123`) — neither calls `saveToStorage`, so this is not currently fired per-keystroke; it fires once per discrete add/edit/delete action, which is the right granularity. The cost scales with total persisted-state size (all debts/accounts/incomes/bills/expenses/ledger overrides/cleared flags/recurring templates/snapshots/reconciliations), so it's worth re-checking as `monthlySnapshots`/`reconciliations` accumulate over years of use — today, well within the 5 MB quota budget the function itself enforces.
+- **No `.js`/`.css` minification anywhere in the toolchain** (confirmed: no `package.json` build script beyond Jest/Stryker per `CLAUDE.md`). `unminified-javascript` (Lighthouse: ~151 KiB estimated savings) and `unminified-css` (~47 KiB) are both consequences of the deliberate no-build-step architecture, not bugs — flagging for awareness, not as something to "fix" without revisiting that architectural decision.
+
+### Good / no issue found
+
+- **Chart.js instance lifecycle is correctly managed everywhere.** Checked all 20 `new Chart(` call sites across 8 files (`charts.js`, `reportsNetWorth.js`, `reportsCashFlow.js`, `health.js`, `spending.js`, `forecast.js`, `debtBreakEven.js`, `bills.js`). Every site destroys any prior instance before creating a new one — either locally (e.g. `charts.js:49`, `health.js:63-64`) or centrally via `reports.js:40-46`'s pre-render teardown loop, which covers `reportsNetWorth.js`'s two chart instances (`_rptNetWorthTrendChart`, `_rptNetWorthCompositionChart`, `reportsNetWorth.js:245,295`) even though that file has no local `.destroy()` call of its own — it correctly relies on the caller. No leaks found.
+- **Service worker precache list is complete and in sync.** Diffed `sw.js`'s `PRECACHE_URLS` (`sw.js:13-32`) against every file in `src/` + `src/locales/`: 54/54 match exactly, nothing missing, nothing stale. `CACHE_NAME` (`sw.js:6`, `'myfinances-v4.40.0'`) matches `APP_VERSION` (`src/utils.js:4`, `'4.40.0'`) — verified current, matching `CLAUDE.md`'s description of this being enforced by `tests/features/test_pwa.py`.
+- **Ledger table is already paginated.** `src/ledger.js:58-68` (`renderLedgerPage`) clamps to a `10/25/50/100`-row page size before rendering — no unbounded full-table `innerHTML` replacement, so this scales fine with hundreds of transactions.
+- **`icons/` directory is small and reasonable.** 4 PNGs, 11,843 bytes total (`favicon-32.png` 229 B, `icon-192.png` 1.4 KB, `icon-maskable-512.png` 4.7 KB, `icon-512.png` 5.3 KB). No optimization concerns.
+- **Production nginx config already does the right things that are within its power:** `gzip on` for CSS/JS (`nginx.conf:10-14`), 1-year immutable caching for images (`nginx.conf:92-98`), and deliberate no-cache-must-revalidate on JS/CSS/HTML/manifest/sw.js with a documented reason (stable filenames across releases, no content hashing) — see `nginx.conf:60-88`. `listen 80;` has no `http2` directive, so this is plain HTTP/1.1 (expected for a self-hosted, no-TLS-by-default local app) — see page-weight table below for why that matters given the request count.
+
+## Page-weight breakdown
+
+Static byte counts (uncompressed, on-disk) — no bundler exists to produce a "bundle size," so this is the sum of every individually-requested file:
+
+| Category | Files | Bytes (raw) | Notes |
+|---|---:|---:|---|
+| `src/*.js` (ES modules, incl. `debtCalculator.js`) | 54 | 642,244 (~627 KB) | Every file is a separate HTTP request; 0 code-split, all eager |
+| `styles.css` | 1 | 169,928 (~166 KB) | Single monolithic stylesheet, all pages |
+| `styles-csp-classes.css` | 1 | 12,713 (~12 KB) | CSP-safe class-toggle styles |
+| `index.html` | 1 | 89,562 (~87 KB) | All page `<section>`s present in initial markup |
+| Chart.js (CDN, `@4.4.3` UMD min) | 1 | 71,412 (~70 KB, as transferred) | Third-party, not self-hosted; cached via jsdelivr + SW `stale-while-revalidate` |
+| `icons/*.png` | 4 | 11,843 (~12 KB) | Reasonable |
+| `manifest.json` | 1 | 643 B | |
+| **Lighthouse-observed total transfer (this run)** | **60 requests** | **1,016,732 B (~993 KiB)** | Uncompressed (dev server); 53 scripts + 2 stylesheets + document + CDN, etc. |
+
+Not counted above (out of scope, loaded only when navigated to): `guide.html` (53,879 B) + `guide.css` (8,807 B), a separate entry point audited only by the crashed 3-run matrix, not the successful single-URL retry.
+
+**Why request count matters here:** with no HTTP/2 (`nginx.conf` doesn't set `http2 on`/`listen ... http2`, and the app has no bundled TLS front-end by default) and no bundling, 53 separate script requests plus 2 stylesheets compete for a browser's ~6-connections-per-origin HTTP/1.1 limit, and — as `network-dependency-tree-insight` shows directly — several of those scripts (`i18n.js`, `ledgerTransactions.js`, `ui.js`, etc.) themselves `import` further leaf modules that can't even be requested until the parent has been fetched and parsed. That's a real, measured multi-level waterfall, not a theoretical one.
+
+## Recommendations (prioritized)
+
+1. **Add `defer` to the `debtCalculator.js` `<script>` tag** (`index.html:903`). Confirmed render-blocking by Lighthouse; nothing consumes the global `DebtCalculator` before `app.js` (already deferred as `type="module"`) runs. Cheapest fix in this report, ~640 ms estimated LCP/FCP improvement, zero behavior risk if verified against the test suite.
+2. **Re-run Lighthouse against the actual production artifact (Docker/nginx build), not `python -m http.server`**, before drawing final conclusions about compression/caching. The dev-server numbers in this report (833 KiB "cache waste", "no compression applied") are known to be pessimistic versus what `nginx.conf`'s `gzip on` + cache headers actually deliver.
+3. **Investigate splitting `styles.css` per page/feature, or at minimum auditing/trimming the 92%+ unused-on-first-paint rules**, given the no-build-step constraint rules out standard CSS code-splitting tooling — even a hand-maintained "critical CSS for the empty-state/Setup-Wizard view inlined or loaded first, rest deferred" split would materially help first paint.
+4. **Consider dynamic `import()` for the least-common-path feature modules** (Postgres sync/import, Reconciliation, Savings, guide theming) so a typical session doesn't pay for every feature's JS before first paint — this is the highest-leverage structural change but also the biggest one, and needs to respect the CSP (`script-src 'self'`, already satisfied by same-origin dynamic imports) and the existing SW precache strategy (which should still precache everything for offline use, just not block first paint on it).
+5. **Scope `src/reports.js:37-58`'s `renderReportsPage()` to the active tab** — only call the sub-renderer(s) for the currently-visible `.rpt-tab-panel` on a tab click, reserving the "re-render everything" behavior for month-nav (where every tab's data genuinely changed) or first page-entry. Low risk, contained to one file.
+6. **Debounce `strategyComparison.js:93`'s slider `input` handler** (e.g. ~100-150 ms via `setTimeout`/rAF), matching the pattern already implicitly used elsewhere for expensive recompute-on-interaction.
+7. *(Nice-to-have, not urgent)* If a future minification step is ever added to the toolchain, `styles.css`/`styles-csp-classes.css` and the `src/*.js` files are the direct beneficiaries (~151 KiB JS + ~47 KiB CSS per Lighthouse) — but this conflicts with the project's explicit no-build-step design principle (`CLAUDE.md`), so treat as a discussion topic, not an action item.
