@@ -306,8 +306,12 @@ for the browser to send them. For production:
 
 - Add Nginx in front of the stack (see the Nginx section above) with a valid TLS cert
 - Or use Cloudflare Tunnel / Traefik for automatic TLS with zero config
-- Local testing only: temporarily set `COOKIE_SECURE=false` in the `server` service
-  environment to allow plain HTTP — never do this in production
+- The session/CSRF cookies' `Secure` flag is gated on `NODE_ENV === 'production'`
+  (`server/src/routes/auth.js`), not a dedicated env var — the shipped
+  `docker-compose.yml` does not set `NODE_ENV`, so cookies are **not** marked `Secure`
+  by default (fine for local HTTP testing). Set `NODE_ENV=production` in the `server`
+  service environment only once the stack is served over HTTPS — setting it earlier
+  will cause the browser to silently drop the session/csrf cookies over plain HTTP
 
 ### Portainer GitOps (Automated Deploys on Push)
 

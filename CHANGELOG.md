@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.40.1] — 2026-09-02
+
+### Fixed
+- **Ledger cleared-transaction timestamp no longer truncated to midnight** — `sanitizeLedgerClearedTransactions()` and `sanitizeLedgerOverrides()` (`src/sanitizers.js`) reused `sanitizeDateISO()`, a helper built to reduce any value to a bare `YYYY-MM-DD` date, on the full-precision `clearedAt`/`updatedAt` timestamp fields added in 4.40.0. Every load, JSON import, or Postgres write silently discarded the time-of-day, so the Ledger's "Cleared" checkbox tooltip always showed midnight regardless of when it was actually checked. New `sanitizeTimestampISO()` helper (`src/utils.js`) preserves full precision and is now used in `src/sanitizers.js` and `server/src/routes/ledgerCleared.js`.
+
+### Documentation
+- **Full-repo audit pass** — nine audits (documentation, security, accessibility, i18n, features, performance, database, testing, dependencies/PWA/tech-debt) with live-verified results, consolidated in `docs/audit/AUDIT_SUMMARY_2026-09-02.md`. Fixed stale setup instructions along the way: wrong port in `setup.ps1` and `server/README.md`, a nonexistent `COOKIE_SECURE` env var in `DEPLOYMENT.md` (the code actually checks `NODE_ENV`, now documented in `.env.example`), and badly outdated version/test-count references across `README.md`, `ROADMAP.md`, and `tests/README.md`.
+
+---
 ## [4.40.0] — 2026-09-02
 
 ### Added

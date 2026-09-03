@@ -27,7 +27,7 @@ Set `DATABASE_URL` directly and run the server without the Docker entrypoint:
     npm install
     npm run migrate up
     npm start
-    # Then open http://localhost:3000 in a browser
+    # Then open http://localhost:4000 in a browser (default PORT; override via the PORT env var)
     # The app will show a setup wizard to create the first user.
     # Alternatively, run:  node scripts/create-user.js  for headless setup.
 

@@ -1,14 +1,14 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: August 31, 2026  
-**Current Version**: v4.29.0  
+**Last Updated**: September 2, 2026  
+**Current Version**: v4.40.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
 
 ## Note on Roadmap Coverage
 
-This ROADMAP captures major feature decisions from early development (v4.0–v4.6). For a complete version-by-version history including all releases from v4.7 through v4.29.0, see [CHANGELOG.md](CHANGELOG.md). Key milestones since this ROADMAP was last updated include:
+This ROADMAP captures major feature decisions from early development (v4.0–v4.6). For a complete version-by-version history including all releases from v4.7 onward, see [CHANGELOG.md](CHANGELOG.md). Key milestones since this ROADMAP was last updated include:
 
 - **v4.7–v4.14**: PWA (installability + offline), Command Palette, High Contrast theme, i18n (English / Español / Polski), interest income engine, storage abstraction + backend switching, Spending Analysis
 - **v4.15–v4.20**: Lighthouse CI, Mutation testing (Stryker), Cash Flow Trend chart, Money Flow Sankey, Table mobile scroll, PWA update banner, Settings theme location
@@ -16,6 +16,9 @@ This ROADMAP captures major feature decisions from early development (v4.0–v4.
 - **v4.25–v4.26**: Phase 2a (login gate, loadFromPostgres, Postgres storage option in UI), Phase 2b (per-resource Postgres mutations)
 - **v4.27–v4.28**: Phase 2b fixes, Phase 2c (local→Postgres one-time migration modal + one-way lock)
 - **v4.29.0**: Documentation audit + Dependabot
+- **v4.30–v4.33**: PostgreSQL backend-switch confirmation modal, GitHub security scanning (CodeQL, Trivy, Dependency Review), Postgres dialog theming fixes, frontend setup wizard for fresh Postgres deploys, server auto-migration on startup, themed delete-confirmation modals (replacing native `confirm()`)
+- **v4.34–v4.37**: Themed validation-error modal (replacing `alert()`), Weekly/Twice-monthly income frequencies, account-type-in-name display, Postgres BIGINT id type-coercion fix, account-deletion-with-replacement flow, CI shard splitting + Playwright/pip caching, Node.js 24 LTS upgrade + non-root Docker user
+- **v4.38–v4.40**: Docker host port changed 5500→32900, account selectors show "Name (Type)" everywhere, further CI shard rebalancing, Ledger cleared-transaction tracking (`src/ledgerCleared.js`)
 
 ---
 
@@ -608,7 +611,7 @@ Surfaced during audit cycles and ongoing development — not yet fully prioritiz
 - **Reminders for due bills/recurring items** — browser Notification API (with explicit opt-in) or an in-app "due soon" digest on the Health dashboard, building on `recurringTemplates`' existing occurrence-date math. (Promoted candidate for v4.4)
 - **Scheduled/auto-export reminders** — since there's no cloud backup, periodically nudge users (e.g. "last export was 45 days ago") to export their JSON backup, directly addressing the single-point-of-failure risk of localStorage-only persistence. (Promoted candidate for v4.4)
 - **FIRE / net-worth goal calculator** — extends the existing Net Worth Tracker with a target net-worth + timeline projection, reusing `monthlySnapshots` trend data. (Promoted candidate for v4.4)
-- **Guide page content audit** — `guide.html` was written against the original feature set; many features added since (Health Dashboard, Reconciliation, Command Palette, Forecast, Spending Analysis, Settings) are not fully covered. Low effort, high value for new users.
+- ~~**Guide page content audit**~~ ✅ **Largely addressed** — `guide.html` now has dedicated sections for Health Dashboard, Reconciliation, Command Palette, Forecast, Spending Analysis, and the Settings/reconciliation-mode workflow, including the ledger Cleared-transaction tracking added in v4.40.0. Still-undocumented features: PWA installability/offline behavior, the language switcher (English/Español/Polski), and the optional self-hosted PostgreSQL storage backend (login gate, data-transfer modal, migration flow). Low effort, high value for new users on those backends/PWA specifically.
 - **Savings Goals scope clarification** — the Tier 2 "Savings Goals" entry overlaps significantly with the existing Sinking Funds feature (target amount, deadline, monthly allocation); the remaining gap is cross-fund aggregation and a unified goal-progress view, not a separate data model. Should be scoped accordingly before implementation.
 
 #### 🎨 UI/UX
@@ -833,13 +836,13 @@ this.reconciliationEntries = [];  // Account adjustments
 ## 📞 Feedback & Discussion
 
 **Status**: Open for feedback  
-**Last Review**: June 28, 2026  
-**Next Review**: July 31, 2026
+**Last Review**: September 2, 2026  
+**Next Review**: October 2, 2026
 
-Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECURITY.md#security-issues).
+Have ideas? Found issues? See opportunities? [Open an issue or discussion](SECURITY.md#vulnerability-reporting).
 
 ---
 
 **Version**: 1.3  
 **Status**: Active Roadmap  
-**Last Updated**: June 28, 2026
+**Last Updated**: September 2, 2026
