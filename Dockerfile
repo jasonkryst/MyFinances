@@ -1,5 +1,5 @@
 # Stage 1: Use a minimal build stage (no build tools needed for pure static app)
-FROM nginx:1.29-alpine AS production
+FROM nginx:1.31-alpine AS production
 
 # Pick up patched Alpine packages (CVEs get disclosed against the base image's
 # packages faster than the nginx:1.29-alpine tag gets rebuilt)
