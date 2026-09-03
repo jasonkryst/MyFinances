@@ -1,6 +1,7 @@
 // Payment plan calculation: DOM-input-driven entry points plus a shared recalculate core.
 
 import { formatCurrency, escapeHtml } from './utils.js';
+import { showAlertModal } from './ui.js';
 
 export function recalculatePaymentPlan(app, { monthlyPayment, strategy, stimulus, onSuccess, onError } = {}) {
     try {
@@ -17,17 +18,17 @@ export function recalculatePaymentPlan(app, { monthlyPayment, strategy, stimulus
  * Run the main payment-plan calculation from the Plan section inputs.
  * Stores results and reveals the Results panel when successful.
  */
-export function calculatePaymentPlanFromInputs(app) {
+export async function calculatePaymentPlanFromInputs(app) {
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
     const strategy = document.getElementById('paymentStrategy').value;
 
     if (!monthlyPayment || isNaN(monthlyPayment) || monthlyPayment <= 0) {
-        alert('Please enter a valid monthly payment amount greater than 0.');
+        await showAlertModal('Please enter a valid monthly payment amount greater than 0.');
         return;
     }
 
     if (!app.debts || app.debts.length === 0) {
-        alert('Please add at least one debt before calculating.');
+        await showAlertModal('Please add at least one debt before calculating.');
         return;
     }
 
@@ -45,7 +46,7 @@ export function calculatePaymentPlanFromInputs(app) {
             app.saveToStorage();
         },
         onError: (err) => {
-            alert(err && err.message ? err.message : 'Unable to calculate payment plan.');
+            showAlertModal(err && err.message ? err.message : 'Unable to calculate payment plan.');
         }
     });
 }

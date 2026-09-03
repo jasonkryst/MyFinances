@@ -1,4 +1,4 @@
-// UI helpers, event listeners, theming
+﻿﻿﻿// UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors } from './accounts.js';
 import { escapeHtml } from './utils.js';
@@ -144,10 +144,10 @@ export function initializeEventListeners(app) {
 
     const clearDataBtn = document.getElementById('clearDataBtn');
     if (clearDataBtn) {
-        clearDataBtn.addEventListener('click', () => {
-            const confirmed = confirm(
-                'Clear ALL app data and preferences?\n\n' +
-                'This will permanently remove accounts, debts, income, bonuses, bills, expenses, plans, ledger overrides, saved filters, and theme preference.'
+        clearDataBtn.addEventListener('click', async () => {
+            const confirmed = await showDeleteConfirmModal(
+                'Clear ALL app data? This will permanently remove accounts, debts, income, bonuses, bills, expenses, plans, ledger overrides, and theme preference.',
+                'Clear All Data'
             );
             if (confirmed) {
                 app.clearAllData();
@@ -777,4 +777,138 @@ export function showPgErrorToast() {
         document.getElementById('pgErrorToast')?.remove();
         _pgErrorToastTimer = null;
     }, 5000);
+}
+
+export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('deleteConfirmModal');
+        const messageEl = document.getElementById('deleteConfirmMessage');
+        const confirmBtn = document.getElementById('deleteConfirmBtn');
+        const cancelBtn = document.getElementById('deleteConfirmCancelBtn');
+        if (!modal) { resolve(false); return; }
+        if (confirmBtn) confirmBtn.textContent = confirmLabel;
+
+        if (messageEl) messageEl.textContent = message;
+
+        const dismiss = (result) => {
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            resolve(result);
+        };
+
+        confirmBtn.onclick = () => dismiss(true);
+        cancelBtn.onclick = () => dismiss(false);
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();  // immediate focus ensures onkeydown fires for Escape
+        setTimeout(() => cancelBtn.focus(), 30);
+    });
+}
+
+export function showAccountReplacementModal(app, id) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('accountReplacementModal');
+        const titleEl = document.getElementById('accountReplacementTitle');
+        const infoEl = document.getElementById('accountReplacementInfo');
+        const linksEl = document.getElementById('accountReplacementLinks');
+        const select = document.getElementById('accountReplacementSelect');
+        const confirmBtn = document.getElementById('accountReplacementConfirmBtn');
+        const cancelBtn = document.getElementById('accountReplacementCancelBtn');
+        if (!modal) { resolve(null); return; }
+
+        const account = app.accounts.find(a => a.id === id);
+        const otherAccounts = app.accounts.filter(a => a.id !== id);
+
+        const linked = {
+            'Income': app.incomes.filter(i => i.accountId === id),
+            'Bonuses': (app.bonuses || []).filter(b => b.accountId === id),
+            'Debts': app.debts.filter(d => d.accountId === id),
+            'Bills': app.bills.filter(b => b.accountId === id),
+            'Expenses': app.expenses.filter(e => e.accountId === id),
+            'Recurring Transfers': (app.recurringTemplates || []).filter(r => r.accountId === id || r.targetAccountId === id),
+        };
+
+        if (titleEl) titleEl.textContent = `Delete Account: ${account?.name ?? ''}`;
+        if (infoEl) infoEl.textContent = 'This account has linked items. Select a replacement account before deleting.';
+
+        if (linksEl) {
+            linksEl.innerHTML = Object.entries(linked)
+                .filter(([, items]) => items.length > 0)
+                .map(([label, items]) =>
+                    `<div class="acct-replacement-group"><strong>${escapeHtml(label)}:</strong> ${items.map(i => escapeHtml(i.name)).join(', ')}</div>`)
+                .join('');
+        }
+
+        if (select) {
+            select.innerHTML = [
+                `<option value="">— Select a replacement account —</option>`,
+                ...otherAccounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`),
+            ].join('');
+        }
+        if (confirmBtn) confirmBtn.disabled = true;
+
+        const onSelectChange = () => { if (confirmBtn) confirmBtn.disabled = !select?.value; };
+        if (select) select.onchange = onSelectChange;
+
+        const dismiss = (result) => {
+            if (confirmBtn) confirmBtn.onclick = null;
+            if (cancelBtn) cancelBtn.onclick = null;
+            if (select) select.onchange = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            resolve(result);
+        };
+
+        if (confirmBtn) confirmBtn.onclick = () => dismiss(parseInt(select.value, 10));
+        if (cancelBtn) cancelBtn.onclick = () => dismiss(null);
+        modal.onkeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); dismiss(null); } };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => { if (cancelBtn) cancelBtn.focus(); }, 30);
+    });
+}
+
+export function showAlertModal(message, title = 'Notice') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('alertModal');
+        const messageEl = document.getElementById('alertModalMessage');
+        const titleEl = document.getElementById('alertModalTitle');
+        const okBtn = document.getElementById('alertModalOkBtn');
+        if (!modal || !okBtn) { resolve(); return; }
+
+        const lastFocused = document.activeElement;
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+
+        const dismiss = () => {
+            okBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            resolve();
+        };
+
+        okBtn.onclick = dismiss;
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape' || event.key === 'Enter') { event.preventDefault(); dismiss(); return; }
+            if (event.key === 'Tab') { event.preventDefault(); okBtn.focus(); }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => okBtn.focus(), 30);
+    });
 }

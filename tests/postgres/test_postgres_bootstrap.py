@@ -111,7 +111,7 @@ async def test_settings_postgres_option_reloads_to_gate(base_url):
         await ctx.add_init_script("""
             window.localStorage.setItem('debtTrackerData', JSON.stringify({
                 debts:[], accounts:[], incomes:[], bills:[], expenses:[],
-                ledgerAmountOverrides:{}, recurringTemplates:[], emergencyFunds:[],
+                ledgerAmountOverrides:{}, ledgerClearedTransactions:{}, recurringTemplates:[], emergencyFunds:[],
                 sinkingFunds:[], reconciliations:[], settings:[], monthlySnapshots:[],
                 netWorthMilestonesAwarded:[], perMonthStimulus:[],
                 monthlyPayment:null, strategy:null,

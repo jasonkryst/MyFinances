@@ -33,11 +33,12 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
 
 export async function loadFromPostgres(app) {
     const entries = Object.entries(POSTGRES_RESOURCE_ENDPOINTS);
-    const [lists, snapshots, settingsRows, overrides, planSettings] = await Promise.all([
+    const [lists, snapshots, settingsRows, overrides, clearedTransactions, planSettings] = await Promise.all([
         Promise.all(entries.map(([, path]) => fetch(path).then(r => r.json()))),
         fetch('/api/net-worth-snapshots').then(r => r.json()),
         fetch('/api/settings').then(r => r.json()),
         fetch('/api/ledger-overrides').then(r => r.json()),
+        fetch('/api/ledger-cleared').then(r => r.json()),
         fetch('/api/plan-settings').then(r => r.json())
     ]);
 
@@ -46,6 +47,9 @@ export async function loadFromPostgres(app) {
     app.settings = settingsRows;
     app.ledgerAmountOverrides = Object.fromEntries(
         overrides.map(o => [o.overrideKey, o])
+    );
+    app.ledgerClearedTransactions = Object.fromEntries(
+        clearedTransactions.map(c => [c.clearedKey, c])
     );
     app._savedMonthlyPayment = planSettings.monthlyPayment;
     app._savedStrategy = planSettings.strategy;
@@ -119,6 +123,7 @@ export function saveToStorage(app) {
             bills: app.bills || [],
             expenses: app.expenses || [],
             ledgerAmountOverrides: app.ledgerAmountOverrides || {},
+            ledgerClearedTransactions: app.ledgerClearedTransactions || {},
             recurringTemplates: app.recurringTemplates || [],
             emergencyFunds: app.emergencyFunds || [],
             sinkingFunds: app.sinkingFunds || [],
@@ -178,6 +183,7 @@ export function loadFromStorage(app) {
             app.bills = clean.bills;
             app.expenses = clean.expenses;
             app.ledgerAmountOverrides = clean.ledgerAmountOverrides;
+            app.ledgerClearedTransactions = clean.ledgerClearedTransactions;
             app.recurringTemplates = clean.recurringTemplates;
             app.emergencyFunds = clean.emergencyFunds;
             app.sinkingFunds = clean.sinkingFunds;
@@ -277,6 +283,7 @@ export function clearAllData(app, options = {}) {
     app.perMonthStimulus = [];
     app.bonuses = [];
     app.ledgerAmountOverrides = {};
+    app.ledgerClearedTransactions = {};
     app.reconciliations = [];
     app.settings = [];
 

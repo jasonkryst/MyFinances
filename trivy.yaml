@@ -1,0 +1,25 @@
+# Trivy configuration — consumed by the trivy-action in .github/workflows/ci.yml.
+# Keeping this file in the repo root makes scan settings version-controlled and
+# prevents the "configuration not found" warning in trivy-action v0.36.0+.
+
+severity:
+  - UNKNOWN
+  - LOW
+  - MEDIUM
+  - HIGH
+  - CRITICAL
+
+# Scan options
+scan:
+  # Respect .trivyignore for any deliberate suppressions
+  ignorefile: .trivyignore
+
+# Image scan
+image:
+  # Skip non-executable files to speed up layer scanning
+  skip-files: []
+
+# Vulnerability options
+vulnerability:
+  # Exit code for the severity-gate steps is set per-step in ci.yml (exit-code: 1)
+  ignore-unfixed: true

@@ -1,6 +1,8 @@
 // Ledger amount-override subsystem: per-transaction manual amount overrides.
 
 import { formatCurrency, parseFiniteOrNull, formatShortDate } from './utils.js';
+import { pgPut, pgDelete } from './postgresSync.js';
+import { showAlertModal } from './ui.js';
 
 export function getOverrideAmount(app, txId) {
     if (!txId) return null;
@@ -21,7 +23,7 @@ export function setLedgerAmountOverride(app, transactionId, amount, metadata = {
     if (parsed === null) return;
     if (!app.ledgerAmountOverrides) app.ledgerAmountOverrides = {};
 
-    app.ledgerAmountOverrides[transactionId] = {
+    const entry = {
         amount: parsed,
         originalAmount: parseFiniteOrNull(metadata.originalAmount),
         transactionName: metadata.transactionName || null,
@@ -29,11 +31,16 @@ export function setLedgerAmountOverride(app, transactionId, amount, metadata = {
         date: metadata.date || null,
         updatedAt: new Date().toISOString()
     };
+    app.ledgerAmountOverrides[transactionId] = entry;
+    if (app._storageBackendKind === 'postgres') {
+        pgPut(app, `/api/ledger-overrides/${transactionId}`, { ...entry, overrideKey: transactionId });
+    }
 }
 
 export function clearLedgerAmountOverride(app, transactionId) {
     if (!transactionId || !app.ledgerAmountOverrides) return;
     delete app.ledgerAmountOverrides[transactionId];
+    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/ledger-overrides/${transactionId}`);
 }
 
 export function openLedgerOverrideModal(app, tx, onApplied) {
@@ -64,10 +71,10 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
         modal.onkeydown = null;
     };
 
-    confirmBtn.onclick = () => {
+    confirmBtn.onclick = async () => {
         const parsed = parseFiniteOrNull(input.value);
         if (parsed === null) {
-            alert('Please enter a valid number.');
+            await showAlertModal('Please enter a valid number.');
             return;
         }
         setLedgerAmountOverride(app, tx.transactionId, parsed, {

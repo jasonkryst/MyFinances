@@ -13,15 +13,15 @@ dangling ARIA references, tap-target size, focus management).
 Usage:
     python tests/a11y/run_a11y_audit.py > docs/audit/a11y/raw_findings.json
 
-Requires the app to be served at http://localhost:5500/ (e.g.
-`python -m http.server 5500` from the repo root).
+Requires the app to be served at http://localhost:32900/ (e.g.
+`python -m http.server 32900` from the repo root).
 """
 
 import json
 import sys
 from playwright.sync_api import sync_playwright
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 PAGES = [
     "health", "accounts", "income", "liabilities", "recurring",

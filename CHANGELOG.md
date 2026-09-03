@@ -1,11 +1,182 @@
-﻿﻿# Changelog
+# Changelog
 
 All notable changes to MyFinances are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.41.0] — 2026-09-02
+
+### Added
+- **Postgres backend hardening from the database audit** (`docs/audit/database/DATABASE_AUDIT_2026-09-02.md`, findings H1/H2/M3):
+  - **Indexes on every `user_id`/`account_id` foreign-key column** — new migration `server/migrations/1755600000006_add-user-and-account-indexes.js` adds a `CREATE INDEX` for each FK column across all eleven affected tables (tables whose primary key already leads with `user_id` were skipped, since that already serves single-column lookups). Every `crudRouter.js`/`keyedRouter.js` `WHERE user_id = $1` query and every `ON DELETE SET NULL` account-deletion cascade previously sequential-scanned; both now use an index.
+  - **`CHECK` constraints on enum-shaped columns** — new migration `server/migrations/1755600000007_add-enum-check-constraints.js` adds constraints on `recurring_templates.frequency`/`.type`, `sinking_funds.allocation_method`, and `incomes.frequency`, matching the allow-lists their sanitizers already enforce at the application layer (bringing them in line with `bonuses.purpose`, the one column that already had one). DB-level integrity no longer depends entirely on every write path remembering to sanitize.
+  - **`backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`** — root-level scripts wrapping `pg_dump -Fc`/`pg_restore --clean --if-exists` against the `postgres-data` volume, the only durability layer for the optional self-hosted Postgres backend, which previously had no backup story anywhere in the repo. Documented in `DEPLOYMENT.md`'s new "Backup and Restore" section under "PostgreSQL Backend Deployment", along with `docs/examples/myfinances-backup.{cron,service,timer}` and a Windows Task Scheduler snippet for actually scheduling them (nothing runs backups automatically by default).
+  - New `server/test/migrations.test.js` coverage: every expected FK index exists (`pg_indexes` lookup), and each new `CHECK` constraint actually rejects an out-of-range value — both run against a real Postgres container per this repo's server-test convention.
+
+---
+## [4.40.1] — 2026-09-02
+
+### Fixed
+- **Ledger cleared-transaction timestamp no longer truncated to midnight** — `sanitizeLedgerClearedTransactions()` and `sanitizeLedgerOverrides()` (`src/sanitizers.js`) reused `sanitizeDateISO()`, a helper built to reduce any value to a bare `YYYY-MM-DD` date, on the full-precision `clearedAt`/`updatedAt` timestamp fields added in 4.40.0. Every load, JSON import, or Postgres write silently discarded the time-of-day, so the Ledger's "Cleared" checkbox tooltip always showed midnight regardless of when it was actually checked. New `sanitizeTimestampISO()` helper (`src/utils.js`) preserves full precision and is now used in `src/sanitizers.js` and `server/src/routes/ledgerCleared.js`.
+
+### Documentation
+- **Full-repo audit pass** — nine audits (documentation, security, accessibility, i18n, features, performance, database, testing, dependencies/PWA/tech-debt) with live-verified results, consolidated in `docs/audit/AUDIT_SUMMARY_2026-09-02.md`. Fixed stale setup instructions along the way: wrong port in `setup.ps1` and `server/README.md`, a nonexistent `COOKIE_SECURE` env var in `DEPLOYMENT.md` (the code actually checks `NODE_ENV`, now documented in `.env.example`), and badly outdated version/test-count references across `README.md`, `ROADMAP.md`, and `tests/README.md`.
+
+---
+## [4.40.0] — 2026-09-02
+
+### Added
+- **Ledger cleared-transaction tracking** — a "Cleared" checkbox on each Ledger transaction row records whether it has actually posted to the account, and stamps a `clearedAt` timestamp when checked (shown as the checkbox's tooltip). Purely informational — it doesn't affect running balances — intended to surface scheduled transactions (bills, recurring items) that haven't posted on their expected day. Keyed the same way as amount overrides (`type|id|accountId|date`) via new module `src/ledgerCleared.js` / `app.ledgerClearedTransactions`, so state survives ledger re-sorts and regeneration. Round-trips through localStorage/sessionStorage, full JSON export/import, and the Ledger CSV export's column picker (new "Cleared"/"Cleared At" columns). Full parity with the optional self-hosted Postgres backend: new `ledger_cleared_transactions` table/migration, `/api/ledger-cleared` keyed-resource route, and wiring through `loadFromPostgres`, `postgresSync.js`, and `postgresImport.js`'s replace/merge/rollback paths.
+
+---
+## [4.39.2] — 2026-09-02
+
+### Fixed
+- **loginGate focus race in CI** — `emailInput.focus()` delay reduced from 30 ms to 0 ms. The 30 ms `setTimeout` was racing with Playwright's CDP fill commands in CI: after `#loginGate` became visible Playwright immediately called `fill('#loginGatePassword')`, but the 30 ms timer fired mid-fill and stole focus back to the email input, leaving the password field empty. A 0 ms timeout fires on the next event-loop tick before any CDP round-trips, so focus is settled before the test fills the field.
+
+---
+## [4.39.1] — 2026-09-02
+
+### Changed
+- **CI: split test-features-a into two shards** — `test_accounts.py` (27 tests, multi-modal deletion flows) and `test_forecast.py` (16 tests, multi-month projection rendering) moved to a new parallel `test-features-d` shard after the deletion-with-replacement feature (#135) added 11 complex modal-interaction tests and pushed shard A past the 20-minute timeout. Shard A shrinks from 129 → 86 tests; B and C are unchanged.
+
+---
+## [4.39.0] — 2026-09-02
+
+### Changed
+- **Account selectors now show "Name (Type)" in all dropdowns** — every account selector across the app (income add/edit, debt inline-edit, bill/expense add/edit, recurring add/edit, savings, ledger account filter, and reconciliation history filter) now displays account options as "Jay BCU (Checking)" instead of just "Jay BCU". This makes it unambiguous which account is which when names are similar or when multiple accounts of the same type exist. Affected helpers: `buildAccountOptionsHtml` in `src/accounts.js`, `refreshRecurringAccountSelectors` in `src/recurring.js`, the debt inline-edit account map in `src/debts.js`, the reconciliation history filter in `src/reconciliation.js`, and the ledger account filter in `src/ledger.js`.
+
+### Added
+- **Test coverage** — `test_account_type_shown_in_selectors` in `tests/features/test_accounts.py` verifies that the income, debt, and ledger account selectors all render options in "Name (Type)" format after an account is created.
+
+---
+## [4.38.0] — 2026-09-01
+
+### Changed
+- **Exposed port changed from 5500 to 32900**: `docker-compose.yml` host-side port binding updated
+  from `5500:80` to `32900:80`. All test `BASE_URL` constants, CI workflow server startup commands,
+  `lighthouserc.json` target URLs, documentation (`README.md`, `DEPLOYMENT.md`, `CLAUDE.md`,
+  `tests/README.md`, `.github/copilot-instructions.md`), `setup.sh`, and debug tooling updated
+  to match. Closes #127.
+
+## [4.37.0] — 2026-09-01
+
+### Changed
+- **Node.js upgrade to 24 LTS**: `server/Dockerfile` base image updated from `node:20-alpine`
+  (EOL April 2026) to `node:24-alpine` (Active LTS). `server/package.json` `engines` field
+  updated to `>=24`.
+- **CI — `actions/setup-node` v4 → v5**: both the `test-unit` and `mutation-testing` jobs now
+  use `actions/setup-node@v5`, which runs on the Node.js 22 action runner and resolves the
+  GitHub deprecation warning for the `node20` runner runtime.
+- **Security — non-root Docker user**: `server/Dockerfile` now runs as the built-in `node`
+  user (uid 1000) instead of root. All file ownership is set via `chown -R node:node /app /src`
+  before the `USER node` directive; Docker Compose `file:` secrets default to `0444` so the
+  entrypoint script can still read `/run/secrets/postgres_password` without root.
+
+## [4.36.0] — 2026-09-01
+
+### Changed
+- **CI — test job splitting** (PR #130): `test-features` (34 test files) split into three
+  parallel shards (`test-features-a/b/c`, ~11 files each) and `test-ui` (27 files) split
+  into two shards (`test-ui-a/b`, ~13 files each). Each shard runs comfortably under the
+  20-minute timeout that previously caused the monolithic jobs to time out.
+- **CI — Playwright browser caching**: `~/.cache/ms-playwright` is now cached per job using
+  `actions/cache@v4` keyed on `tests/requirements.txt` hash. Avoids re-downloading the 130 MB
+  Chromium binary on every runner; with 8+ browser-test jobs the saving is ~4-8 min of
+  total runner time per CI run.
+- **CI — pip caching**: new `tests/requirements.txt` pins `playwright`, `pytest`, and
+  `pytest-asyncio`. All jobs now use `actions/setup-python cache: pip` with
+  `cache-dependency-path: tests/requirements.txt` so pip packages are restored from cache.
+- **CI — mutation testing split**: `mutation-testing` job separated into `test-unit` (fast
+  Jest run, executes on every PR for immediate feedback) and `mutation-testing` (slow Stryker
+  run, executes on push to `main` only, timeout raised to 45 min).
+- **CI — Trivy code-scanning fix**: Added `trivy.yaml` at repo root (required by
+  `trivy-action` v0.36.0+; absence caused "configuration not found" and GitHub Code
+  Scanning showing as "not configured"). All `trivy-action` steps now reference `trivy.yaml`
+  via `trivy-config`. Removed `hashFiles()` guards from SARIF upload steps (they were
+  silently skipping uploads when scans produced no findings, preventing Code Scanning
+  initialization). SARIF uploads now have `continue-on-error: true` so a transient upload
+  failure does not fail the security gate.
+- **CI — Lighthouse timeout**: raised from 20 to 30 minutes to accommodate Docker Compose
+  build time on cold runners.
+
+---
+## [4.35.0] — 2026-09-01
+
+### Changed
+- **Account deletion now requires a replacement when linked items exist** — clicking Delete on an account that has income, bonuses, debts, bills, expenses, or recurring transfers linked to it opens a new `#accountReplacementModal`. The modal lists every linked item by category and presents a replacement-account dropdown with no pre-selection. The "Delete and Reassign" button stays disabled until a replacement is explicitly chosen. A second confirmation names the target account before committing. Cancelling either modal leaves the account and all linked items untouched. Accounts with no linked items follow the existing single-confirm flow. All linked `accountId` (and `targetAccountId` for recurring transfers) fields are updated in memory before the account is removed and storage is saved.
+
+### Added
+- **Comprehensive account-deletion tests** — `tests/features/test_accounts.py` covers both the no-links and has-links deletion paths: confirm modal appears for unlinked accounts; replacement modal appears for linked accounts; confirm button is disabled without a selection; cancelling either modal preserves all data; the second confirmation names the replacement; delete-and-reassign correctly moves income, debts, bills, expenses, and recurring transfers to the replacement account; and post-deletion navigation through health/reports/ledger produces no errors.
+
+## [4.34.0] — 2026-09-01
+
+### Added
+- **Themed validation-error modal** — all browser `alert()` popups triggered when a form submission is invalid (or when an action cannot proceed due to missing/invalid data) are now replaced by a themed `#alertModal` dialog that respects dark mode and the app's design system. The new `showAlertModal(message, title?)` function in `src/ui.js` follows the same Promise-based pattern as `showDeleteConfirmModal`, resolves on OK-click or Escape/Enter key. Affected modules: `accounts`, `bills`, `bonusAdvisor`, `debts`, `income`, `ledgerOverrides`, `reconciliation`, `recurring`, `savings`, `strategyPlanCalculation`, and the `app.js` callbacks. Sync functions that previously called `alert()` are promoted to `async` where needed (`saveEditAccount`, `saveEditBill`, `saveEditExpense`, `saveEditIncome`, `addBonus`, `saveEditBonus`, `saveEditRecurring`, `saveEdit` in debts, `saveInlineEdit` in debts, `showBonusAdvice`, `calculatePaymentPlanFromInputs`).
+- **Weekly and Twice-per-month income frequencies** — the Income page now supports two new payment schedules in addition to bi-weekly and monthly. `weekly` generates a payday every 7 days anchored to the first-pay-date. `twice_monthly` generates paydays on the 15th and the last day of every month, independent of the first-pay-date anchor. Annual income estimates use 52× (weekly) and 24× (twice-monthly) multipliers. Both frequencies are available in the Add and Edit income forms.
+- **Account type shown in account list card names** — account cards now display the type in parentheses inline with the name (e.g. "Jay - BCU (Checking)"), making account type scannable without hovering over the badge.
+- **Expense categories aligned with Recurring Templates** — the Expense budget category list (add form, inline-edit dropdown) now matches the Recurring Templates categories: Subscription, Insurance, Rent / Mortgage, Utilities, Transport, Food, Entertainment, Health, Education, Savings, Transfer, Reimbursement, Other.
+
+## [4.33.4] — 2026-09-01
+
+### Fixed
+- **Edit and Delete buttons silently failed on the PostgreSQL backend** (all pages — Debts, Income, Accounts, Savings, Recurring, etc.): The node-postgres (pg) library returns BIGSERIAL/BIGINT column values as JavaScript **strings** by default to preserve 64-bit precision. Every id flowing from the server into pp.debts, pp.accounts, etc. was therefore a string (e.g. "1"), while the data-debt-id attribute HTML integer parsed via parseInt was a number (e.g. 1). The strict === comparison pp.editingDebtId === debt.id (number vs. string) was always false, so the inline edit form was never rendered. The same mismatch caused pp.debts.filter(d => d.id !== debtId) to never filter anything out, leaving deleted items in place. Fix: add a global type parser for pg OID 20 (bigint) in server/src/db.js so all BIGINT/BIGSERIAL columns — primary keys and foreign keys alike — are returned as JavaScript numbers. Pure frontend with no backend API running is unaffected.
+
+---
+## [4.33.3] — 2026-09-01
+
+### Fixed
+- **Delete and Clear All Data dialogs replaced with themed modals**: All five native confirm() browser dialogs (Delete Debt, Delete Emergency Fund, Delete Sinking Fund, Delete Recurring Template, Clear All Data) have been replaced with a Promise-based themed modal (#deleteConfirmModal). Chrome can suppress native confirm() dialogs if the user previously checked "Prevent this page from creating additional dialogs", causing all delete operations to silently fail with no feedback. The new modal is keyboard-navigable (Escape cancels), theme-aware, and consistent with the app's existing modal patterns. The deleteDebt, deleteEmergencyFund, deleteSinkingFund functions are now sync; the recurring-template list's event handler and the Settings "Clear All Data" handler are also async.
+
+---
+## [4.33.2] — 2026-09-01
+
+### Fixed
+- **Setup wizard blocks all UI interaction** (this PR): The first-run setup wizard modal (`z-index: 10002`) intercepted all pointer events, making every Edit and Delete button in the app appear completely unresponsive until the user happened to click one of the wizard's two specific buttons. Two bugs compounded the problem: (1) the wizard re-appeared on every page refresh until a button was clicked, because no storage key was written until then — leaving `isFirstRun = true` indefinitely; (2) there was no Escape or backdrop-click path out of the wizard. Fix: `maybeShowSetupWizard` now calls `setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false)` immediately before showing the modal, writing `debtTrackerData` to localStorage so subsequent loads treat the session as returning. Escape key and backdrop-click handlers are also wired so users are never stuck. Three new regression tests added to `tests/ui/test_setup_wizard.py`.
+
+---
+## [4.33.1] — 2026-09-01
+
+### Fixed
+- **Server auto-migration on startup** (PR #123): The PostgreSQL server now runs `node-pg-migrate up` automatically at startup before accepting connections. Previously, migrations only ran via the explicit `npm run migrate` CLI step — if a Portainer deployment reused an existing Postgres volume, Docker skipped the container init scripts and the schema was never applied, causing `relation "users" does not exist` errors on every request. The migration run is idempotent (tracked via the `pgmigrations` table), so redeployments do not re-apply completed migrations. If migration fails, the process exits with code 1 so Docker restarts the container rather than serving against a broken schema.
+
 ---
 
+## [4.33.0] — 2026-08-31
+
+### Added
+- **Frontend setup wizard** (issue #121): Fresh PostgreSQL deploys no longer require running `server/scripts/create-user.js` from the command line. On first boot with an empty database, the login gate automatically switches to a "Create your account" form with a confirm-password field. After successful registration the session is created immediately (no separate login step). The CLI script remains available as a fallback for headless/scripted deployments.
+  - `GET /auth/setup-status` — unauthenticated endpoint returning `{ needsSetup: bool }`; rate-limited at 20 requests/15 min.
+  - `POST /auth/register` — one-shot unauthenticated endpoint that validates email + 12-char minimum password, atomically inserts the first user (`INSERT ... WHERE NOT EXISTS`), creates the session, and sets `session`/`csrf` cookies; rate-limited at 5 requests/15 min; returns 409 once a user exists.
+  - `src/loginGate.js` probes `/auth/setup-status` on load and renders either the setup form or the login form accordingly.
+  - New server tests in `server/test/setup.test.js` (positive, negative, boundary, rate-limit, conflict).
+  - New Playwright tests in `tests/postgres/test_postgres_setup_wizard.py` using `page.route()` mocks (form rendering, client-side validation, request shape, gate hide on success).
+
+---
+
+## [4.32.0] — 2026-08-31
+
+### Fixed
+- **PostgreSQL dialog CSS theming** (issue #120): Login gate (email/password dialog) and Postgres modals now render correctly in light, dark, and high-contrast modes.
+  - Defined --bg-primary (page backdrop) and --bg-secondary (card surface) CSS custom properties across all three theme tiers (:root, ody.dark-mode, ody.dark-mode.high-contrast-mode). The login gate CSS was already referencing these variables but they were never declared, causing transparent/invisible backgrounds in all themes.
+  - Changed .modal-content from ackground: white to ackground: var(--bg-secondary, #ffffff); color: var(--text-primary), fixing all theme-unaware modals (pgMigrationModal, pgSwitchConfirmModal, calendarDayModal, setupWizardModal, dataTransferModal) in one change.
+  - Changed .modal-description and .modal-helper-text to color: var(--text-secondary) instead of hardcoded #6b7280.
+  - Added color: var(--text-primary) to .modal-close so the × button is visible in all themes.
+  - Added missing .pg-migration-error CSS rule (class was referenced in HTML but had no styles).
+  - Added 6 new themed regression tests across 	ests/ui/test_dark_mode.py and 	ests/ui/test_high_contrast_theme.py.
+
+---
+## [4.31.0] — 2026-08-31
+
+### Added
+- **GitHub Security Scanning** (issue #113): Comprehensive security scanning pipeline added to CI.
+  - **CodeQL** (`.github/workflows/codeql.yml`): Static analysis of JavaScript/TypeScript source via GitHub's CodeQL engine. Runs on push/PR to `main` and weekly. Results appear in the GitHub Security tab.
+  - **Trivy filesystem scan**: Scans repo source and lockfiles for known-vulnerable packages (CVEs) and secrets. CRITICAL/HIGH fixable findings gate the build. Results uploaded as SARIF to the Security tab under `trivy-fs` category.
+  - **Trivy IaC scan**: Scans `Dockerfile`, `server/Dockerfile`, and `docker-compose.yml` for misconfigurations against CIS benchmarks. Informational only (no build gate). Results uploaded as SARIF under `trivy-iac` category.
+  - **Dependency Review** (`.github/workflows/dependency-review.yml`): Blocks PRs that introduce new dependencies with HIGH or CRITICAL severity CVEs. Posts a summary comment on the PR.
+  - The existing Docker image Trivy scan is unchanged; its SARIF output now uses the `trivy-image` category for clarity in the Security tab.
+
+---
 ## [4.30.0] — 2026-08-31
 
 ### Changed
@@ -486,7 +657,6 @@ _Note: `4.7.1` was a version-only commit with no accompanying changes and has no
 ## [3.0.0] and earlier
 
 Core feature set: debt management (credit cards + fixed-amount recurring), account management with projected balances, income tracking (bi-weekly + monthly sources, one-time entries), budget tracking (bills + variable expenses), recurring transaction templates (subscriptions, reimbursements, transfers), savings goals (emergency fund + sinking funds with three allocation methods), unified ledger with amount overrides, calendar + reports (income vs. expenses, money flow, variance dashboard, net worth), debt payoff plan calculator with four strategies (Avalanche, Snowball, Priority-Low, Priority-High), what-if slider, target payoff date back-calculator (binary search), interest paid to date estimate, JSON export/import (legacy v1.0 + current v4.0.0 format), CSV schedule export, dark mode, in-app guide (`guide.html`), strict Content Security Policy.
-
 
 
 

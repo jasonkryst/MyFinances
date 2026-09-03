@@ -87,6 +87,17 @@ balances. Dates that are calendar dates (no time-of-day meaning, e.g. a
 due-date) use `date`; timestamps that recorded "when was this written" use
 `timestamptz`.
 
+**node-postgres type coercion** — `pg` returns `bigint`/`bigserial` columns as
+JavaScript **strings** by default (to preserve 64-bit precision beyond JS's safe
+integer range). All ID columns here are `bigserial`, so without intervention every
+`debt.id`, `account.id`, etc. loaded via `loadFromPostgres` would be a string while
+onclick handlers produce numbers via `parseInt`, causing strict `===` comparisons to
+silently fail — the Edit and Delete UI appears completely unresponsive with no error.
+`server/src/db.js` registers `pg.types.setTypeParser(20, ...)` (OID 20 = bigint) to
+coerce all bigint columns — primary keys and foreign keys alike — to JS numbers on
+read. `numeric` (OID 1700), `date` (1082), and `timestamptz` (1184) are similarly
+registered there so all column-type overrides are in one place.
+
 ```sql
 CREATE TABLE users (
     id bigserial PRIMARY KEY,

@@ -4,6 +4,7 @@
 // helper rather than introducing new calculation logic.
 
 import { dailyCompoundInterest, formatCurrency, escapeHtml, sanitizeFiniteNumber } from './utils.js';
+import { showAlertModal } from './ui.js';
 
 /**
  * Pure calculation — no DOM/app access.
@@ -148,14 +149,14 @@ function calculateSavingsAdvice(bonusAmount, accountRate) {
  * the result panel. DOM-input-driven entry point, called from the "What
  * should I do with this?" button in the bonus form.
  */
-export function showBonusAdvice(app) {
+export async function showBonusAdvice(app) {
     const resultEl = document.getElementById('bonusAdviceResult');
     if (!resultEl) return;
 
     const rawAmount = document.getElementById('bonusAmount')?.value;
     const bonusAmount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
-        alert('Please enter a valid amount before requesting advice.');
+        await showAlertModal('Please enter a valid amount before requesting advice.');
         return;
     }
 
