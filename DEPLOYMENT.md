@@ -351,6 +351,46 @@ docker compose run --rm server npm run migrate up      # apply any new migration
 Portainer auto-update handles steps 2–3 automatically; you only need to run migrations manually
 if a release adds new database tables (check the `CHANGELOG.md` entry for "migration").
 
+### Backup and Restore
+
+The `postgres-data` named volume (`docker-compose.yml`) is the only durability layer once
+you opt into the Postgres backend — losing it loses everything. Root-level scripts wrap
+`pg_dump`/`pg_restore` so backups don't require remembering `docker exec` invocations:
+
+```sh
+# Linux / macOS
+./backup.sh                              # writes ./backups/myfinances-<timestamp>.dump
+./restore.sh backups/myfinances-<timestamp>.dump
+
+# Windows
+.\backup.ps1                             # writes .\backups\myfinances-<timestamp>.dump
+.\restore.ps1 -Path backups\myfinances-<timestamp>.dump
+```
+
+- `backup.sh`/`backup.ps1` take a consistent snapshot via `pg_dump -Fc` (Postgres's compressed
+  custom format) without blocking normal reads/writes, and are safe to run against a live stack.
+  Override the output directory with `BACKUP_DIR` (bash) or `-BackupDir` (PowerShell).
+- `restore.sh`/`restore.ps1` are **destructive** — they drop and recreate every object in the
+  target database (`pg_restore --clean --if-exists`) before loading the dump, and prompt for
+  confirmation before doing so. Restart the `server` container afterward
+  (`docker compose restart server`) so its connection pool picks up a clean session.
+- **Schedule regular backups** — nothing in this repo runs backups automatically by default;
+  wire up one of the examples below (or your own), pointing `BACKUP_DIR` at storage that
+  survives losing the host the `postgres-data` volume lives on:
+  - **cron** (Linux/macOS) — `docs/examples/myfinances-backup.cron`, a one-line crontab entry.
+  - **systemd timer** (Linux) — `docs/examples/myfinances-backup.service` +
+    `myfinances-backup.timer`; preferred over cron on systemd hosts since it retries a run the
+    host was offline for (`Persistent=true`) instead of silently skipping it.
+  - **Windows Task Scheduler** — create a daily trigger running `powershell.exe` with
+    `-File backup.ps1` from the repo root, e.g.:
+    ```powershell
+    schtasks /Create /SC DAILY /ST 03:15 /TN "MyFinances Backup" ^
+        /TR "powershell.exe -NoProfile -File C:\path\to\MyFinances\backup.ps1"
+    ```
+- Dumps contain full account/debt/income data in plaintext (Postgres's custom format is not
+  encrypted) — store them with the same care as the database itself, and off the host machine
+  if the backup is meant to survive host loss.
+
 ### Manual / Custom Deployment
 
 If you prefer to manage secrets yourself, see `.env.example` for the environment variables
@@ -384,7 +424,7 @@ node src/index.js
 - [ ] `.env` files excluded from deployment
 - [ ] Cache headers configured appropriately
 - [ ] GZIP compression enabled
-- [ ] Regular backups implemented
+- [ ] Regular backups scheduled (Postgres backend only — see "Backup and Restore" above for `backup.sh`/`backup.ps1`)
 
 ## Testing Deployment
 

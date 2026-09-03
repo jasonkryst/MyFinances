@@ -53,3 +53,7 @@ Secrets are handled via Docker secrets (`/run/secrets/postgres_password`),
 not environment variables. `server/docker-entrypoint.sh` reads the secret
 at startup and constructs `DATABASE_URL` internally so the password never
 appears in `docker inspect` output or shell history.
+
+The `postgres-data` volume is the only durability layer for this backend —
+use the root-level `backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`
+scripts to back it up; see "Backup and Restore" in the root `DEPLOYMENT.md`.

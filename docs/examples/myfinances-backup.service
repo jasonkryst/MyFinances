@@ -1,0 +1,22 @@
+# Example systemd service for scheduling MyFinances Postgres backups,
+# paired with myfinances-backup.timer. Install both to
+# /etc/systemd/system/, edit WorkingDirectory/Environment to match your
+# checkout, then:
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now myfinances-backup.timer
+#
+# Check status/logs with:
+#   systemctl list-timers myfinances-backup.timer
+#   journalctl -u myfinances-backup.service
+
+[Unit]
+Description=MyFinances Postgres backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/myfinances
+Environment=BACKUP_DIR=/mnt/backups/myfinances
+ExecStart=/opt/myfinances/backup.sh

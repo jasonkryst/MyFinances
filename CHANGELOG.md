@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.41.0] — 2026-09-02
+
+### Added
+- **Postgres backend hardening from the database audit** (`docs/audit/database/DATABASE_AUDIT_2026-09-02.md`, findings H1/H2/M3):
+  - **Indexes on every `user_id`/`account_id` foreign-key column** — new migration `server/migrations/1755600000006_add-user-and-account-indexes.js` adds a `CREATE INDEX` for each FK column across all eleven affected tables (tables whose primary key already leads with `user_id` were skipped, since that already serves single-column lookups). Every `crudRouter.js`/`keyedRouter.js` `WHERE user_id = $1` query and every `ON DELETE SET NULL` account-deletion cascade previously sequential-scanned; both now use an index.
+  - **`CHECK` constraints on enum-shaped columns** — new migration `server/migrations/1755600000007_add-enum-check-constraints.js` adds constraints on `recurring_templates.frequency`/`.type`, `sinking_funds.allocation_method`, and `incomes.frequency`, matching the allow-lists their sanitizers already enforce at the application layer (bringing them in line with `bonuses.purpose`, the one column that already had one). DB-level integrity no longer depends entirely on every write path remembering to sanitize.
+  - **`backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`** — root-level scripts wrapping `pg_dump -Fc`/`pg_restore --clean --if-exists` against the `postgres-data` volume, the only durability layer for the optional self-hosted Postgres backend, which previously had no backup story anywhere in the repo. Documented in `DEPLOYMENT.md`'s new "Backup and Restore" section under "PostgreSQL Backend Deployment", along with `docs/examples/myfinances-backup.{cron,service,timer}` and a Windows Task Scheduler snippet for actually scheduling them (nothing runs backups automatically by default).
+  - New `server/test/migrations.test.js` coverage: every expected FK index exists (`pg_indexes` lookup), and each new `CHECK` constraint actually rejects an out-of-range value — both run against a real Postgres container per this repo's server-test convention.
+
+---
 ## [4.40.1] — 2026-09-02
 
 ### Fixed
