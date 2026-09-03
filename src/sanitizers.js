@@ -1,6 +1,6 @@
 // Sanitizers for persisted/imported record shapes — run on both load and import.
 
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, todayISO } from './utils.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
 
 export function sanitizeAccount(record, idFallback) {
     return {
@@ -105,7 +105,7 @@ export function sanitizeLedgerOverrides(overrides) {
             transactionName: normalizeText(value?.transactionName, 120) || null,
             accountId: sanitizeInteger(value?.accountId, null),
             date: sanitizeDateISO(value?.date),
-            updatedAt: sanitizeDateISO(value?.updatedAt) || new Date().toISOString()
+            updatedAt: sanitizeTimestampISO(value?.updatedAt) || new Date().toISOString()
         };
     }
     return out;
@@ -116,7 +116,7 @@ export function sanitizeLedgerClearedTransactions(entries) {
     if (!entries || typeof entries !== 'object') return out;
     for (const [key, value] of Object.entries(entries)) {
         if (!key || typeof key !== 'string') continue;
-        const clearedAt = sanitizeDateISO(value?.clearedAt);
+        const clearedAt = sanitizeTimestampISO(value?.clearedAt);
         if (!clearedAt) continue;
         out[key] = { clearedAt };
     }

@@ -82,6 +82,13 @@ export function sanitizeDateISO(value) {
     return null;
 }
 
+export function sanitizeTimestampISO(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString();
+}
+
 export function dateToISO(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');

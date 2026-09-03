@@ -1,10 +1,10 @@
 import { createKeyedResource } from '../keyedRouter.js';
-import { sanitizeDateISO } from '../sanitizers/index.js';
+import { sanitizeTimestampISO } from '../sanitizers/index.js';
 
 function sanitizeClearedEntry(body, key) {
     return {
         clearedKey: key,
-        clearedAt: sanitizeDateISO(body?.clearedAt) || new Date().toISOString()
+        clearedAt: sanitizeTimestampISO(body?.clearedAt) || new Date().toISOString()
     };
 }
 
