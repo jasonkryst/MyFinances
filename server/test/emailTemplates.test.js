@@ -44,3 +44,14 @@ test('alertEmail includes a CTA link when both ctaLabel and ctaUrl are given', (
     assert.ok(html.includes('View account'));
     assert.ok(text.includes('https://example.com/accounts/1'));
 });
+
+test('alertEmail omits the CTA when ctaUrl is not an http(s) URL', () => {
+    const { html, text } = alertEmail({
+        heading: 'Low balance',
+        body: 'Checking is under $50.',
+        ctaLabel: 'Click me',
+        ctaUrl: 'javascript:alert(1)'
+    });
+    assert.equal(html.includes('<a '), false);
+    assert.ok(!text.includes('javascript:alert(1)'));
+});
