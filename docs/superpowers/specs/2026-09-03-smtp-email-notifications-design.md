@@ -152,16 +152,24 @@ the file already uses for `SESSION_TTL_DAYS`/`NODE_ENV`.
 
 ### Frontend: one Settings-modal button
 
-`src/settings.js`'s PostgreSQL-backend section gets a "Send test email"
-button, visible only when `app._storageBackendKind === 'postgres'`. Its
-click handler calls the existing `pgPost(app, '/api/notifications/test-email',
-{})` helper from `postgresSync.js` (no new frontend module) and shows a
-toast (`showPgErrorToast`-style, or a success toast on `{ ok: true }`) —
-matching the existing pattern for reporting Postgres call outcomes to the
-user. A `503 EMAIL_NOT_CONFIGURED` response renders a distinct "SMTP isn't
-configured on this server" message rather than a generic failure toast, so
-users aren't confused into thinking something is broken when the operator
-simply never set it up.
+The Settings modal (markup in `index.html`, wired in `src/setupWizard.js`'s
+`initSettingsModal`, *not* `src/settings.js` — that module is the generic
+key/value settings store, unrelated to this UI) gets a "Send test email"
+button next to the existing `#settingsStoragePostgresNote`, shown/hidden
+by the same `isPostgres` check that already toggles that note.
+
+Its click handler does **not** reuse `postgresSync.js`'s `pgPost` — that
+helper's shared `pgFetch` calls `showPgErrorToast()` (a fixed generic
+"Sync error" message) on *any* non-2xx response, including our expected
+`503 EMAIL_NOT_CONFIGURED`, which would both show the wrong message and
+fight with a more specific one. Instead the handler makes its own `fetch`
+(same `X-CSRF-Token`/`credentials` shape as `pgFetch`) and switches on the
+response: `200` → success toast, `503` → "SMTP isn't configured on this
+server" toast (distinct from a generic failure, so users aren't confused
+into thinking something is broken when the operator simply never set it
+up), anything else (`502`, network error) → generic failure toast. A new
+`showEmailTestToast(status, message)` helper lives in `src/ui.js` next to
+`showPgErrorToast`, so all toast/banner functions stay co-located.
 
 ## Testing
 
