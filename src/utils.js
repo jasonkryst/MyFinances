@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale } from './i18n.js';
 
-export const APP_VERSION = '4.40.0';
+export const APP_VERSION = '4.40.1';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50" in
