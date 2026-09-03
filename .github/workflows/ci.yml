@@ -397,6 +397,8 @@ jobs:
   test-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.mailpit.yml
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
