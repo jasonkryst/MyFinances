@@ -6,7 +6,7 @@ Tests income source creation and calculations.
 
 import pytest
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 
 def _create_income_account(page, name="Income Validation Account"):
@@ -65,7 +65,7 @@ def test_income_frequencies(app_page):
     page.click('button[data-page="income"]')
     page.wait_for_timeout(300)
     
-    frequencies = ['biweekly', 'monthly']
+    frequencies = ['weekly', 'biweekly', 'twice_monthly', 'monthly']
     
     for i, freq in enumerate(frequencies):
         page.fill('#incomeName', f'Income {i}')
@@ -412,14 +412,19 @@ def test_bonus_advice_invalid_amount_shows_validation_alert(app_page):
     page = app_page
     _open_bonus_form(page)
 
-    dialog_messages = []
-    page.on("dialog", lambda d: (dialog_messages.append(d.message), d.accept()))
-
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_timeout(400)
 
-    assert len(dialog_messages) == 1, "Expected exactly one validation alert"
-    assert 'valid amount' in dialog_messages[0].lower()
+    modal = page.query_selector('#alertModal')
+    assert modal is not None, "#alertModal not found"
+    assert 'flex-visible' in (modal.get_attribute('class') or ''), \
+        "Themed alert modal should appear when bonus amount is invalid"
+    msg = page.text_content('#alertModalMessage') or ''
+    assert 'valid amount' in msg.lower(), \
+        f"Modal message should mention 'valid amount', got: {msg!r}"
+    page.click('#alertModalOkBtn')
+    page.wait_for_timeout(200)
+
     assert page.query_selector('#bonusAdviceResult').inner_text() == '', \
         "No advice panel content should render when validation fails"
 
@@ -640,3 +645,64 @@ def test_bonus_advice_filter_no_matching_debts_shows_message(app_page):
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'No debts match the selected filter' in panel_text, f"Got: {panel_text}"
     assert len(page.console_errors) == 0, f"Console errors: {page.console_errors}"
+
+
+@pytest.mark.feature
+def test_income_frequency_weekly_selectable(app_page):
+    """The 'weekly' frequency option can be selected and income is saved."""
+    page = app_page
+    _create_income_account(page, "Weekly Freq Account")
+
+    page.fill('#incomeName', 'Weekly Paycheck')
+    page.fill('#incomeAmount', '750')
+    page.fill('#incomeFirstDate', '2026-09-01')
+    page.select_option('#incomeFrequency', 'weekly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(500)
+
+    assert page.query_selector('text=Weekly Paycheck') is not None, \
+        "Weekly income source not saved"
+
+    # Frequency label should reflect weekly
+    card_text = page.inner_text('#incomeList') if page.query_selector('#incomeList') else ''
+    assert 'week' in card_text.lower(), \
+        f"Expected 'week' in income card text, got: {card_text!r}"
+
+
+@pytest.mark.feature
+def test_income_frequency_twice_monthly_selectable(app_page):
+    """The 'twice_monthly' frequency option can be selected and income is saved."""
+    page = app_page
+    _create_income_account(page, "Twice Monthly Account")
+
+    page.fill('#incomeName', 'Semi-Monthly Pay')
+    page.fill('#incomeAmount', '1200')
+    page.fill('#incomeFirstDate', '2026-09-01')
+    page.select_option('#incomeFrequency', 'twice_monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_timeout(500)
+
+    assert page.query_selector('text=Semi-Monthly Pay') is not None, \
+        "Twice-monthly income source not saved"
+
+    card_text = page.inner_text('#incomeList') if page.query_selector('#incomeList') else ''
+    assert 'month' in card_text.lower(), \
+        f"Expected 'month' in income card text, got: {card_text!r}"
+
+
+@pytest.mark.feature
+def test_income_frequency_select_has_all_four_options(app_page):
+    """The income frequency dropdown contains all four options."""
+    page = app_page
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+
+    options = page.query_selector_all('#incomeFrequency option')
+    values = [o.get_attribute('value') for o in options]
+
+    assert 'weekly' in values, "'weekly' option missing from frequency dropdown"
+    assert 'biweekly' in values, "'biweekly' option missing from frequency dropdown"
+    assert 'twice_monthly' in values, "'twice_monthly' option missing from frequency dropdown"
+    assert 'monthly' in values, "'monthly' option missing from frequency dropdown"

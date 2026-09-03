@@ -105,6 +105,50 @@ test('ledger-overrides: rejects an accountId belonging to another user (IDOR)', 
     assert.equal(res.status, 400);
 });
 
+test('ledger-cleared: PUT upserts a compound-key entry and GET lists it', async () => {
+    const key = encodeURIComponent('debt|123|4|2026-08-01');
+    const res = await fetch(`${baseUrl}/api/ledger-cleared/${key}`, {
+        method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({ clearedAt: '2026-08-02T10:00:00.000Z' })
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.clearedKey, 'debt|123|4|2026-08-01');
+    assert.equal(new Date(body.clearedAt).toISOString(), '2026-08-02T10:00:00.000Z');
+
+    const list = await (await fetch(`${baseUrl}/api/ledger-cleared`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.length, 1);
+});
+
+test('ledger-cleared: PUT with no clearedAt defaults to now', async () => {
+    const key = encodeURIComponent('bill|456|4|2026-08-01');
+    const res = await fetch(`${baseUrl}/api/ledger-cleared/${key}`, {
+        method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({})
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.ok(body.clearedAt);
+});
+
+test('ledger-cleared: DELETE removes a cleared entry (uncheck)', async () => {
+    const key = encodeURIComponent('debt|123|4|2026-08-01');
+    await fetch(`${baseUrl}/api/ledger-cleared/${key}`, {
+        method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({ clearedAt: '2026-08-02T10:00:00.000Z' })
+    });
+    const del = await fetch(`${baseUrl}/api/ledger-cleared/${key}`, { method: 'DELETE', headers: csrfHeaders() });
+    assert.equal(del.status, 204);
+
+    const list = await (await fetch(`${baseUrl}/api/ledger-cleared`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.length, 0);
+});
+
+test('ledger-cleared: rejects requests without auth', async () => {
+    const key = encodeURIComponent('debt|123|4|2026-08-01');
+    const res = await fetch(`${baseUrl}/api/ledger-cleared/${key}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
+    });
+    assert.equal(res.status, 401);
+});
+
 test('net-worth-snapshots: delete all removes all user rows and returns 204', async () => {
     await fetch(`${baseUrl}/api/net-worth-snapshots/2026-01-01`, {
         method: 'PUT', headers: csrfHeaders(),

@@ -7,7 +7,7 @@ debt payoff timeline, monthly cash flow, and budget allocation.
 
 import pytest
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 
 # ── Navigation ─────────────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ months, account selection, and horizon switching.
 
 import pytest
 
-BASE_URL = "http://localhost:5500/"
+BASE_URL = "http://localhost:32900/"
 
 
 @pytest.mark.feature

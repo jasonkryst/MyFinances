@@ -39,6 +39,9 @@ secrets/*.txt
 *.log
 logs/
 
+# ── Postgres backups (backup.sh / backup.ps1 default output) ───────────────────
+backups/
+
 # ── OS artifacts ────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

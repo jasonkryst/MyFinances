@@ -1,9 +1,9 @@
-﻿'use strict';
+'use strict';
 
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v4.30.0';
+const CACHE_NAME = 'myfinances-v4.41.0';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 
@@ -19,6 +19,7 @@ const PRECACHE_URLS = [
     '/src/dataTransferModal.js', '/src/debtBreakEven.js', '/src/debtCalculator.js', '/src/debts.js',
     '/src/forecast.js', '/src/guideNav.js', '/src/guideTheme.js', '/src/health.js',
     '/src/i18n.js', '/src/income.js', '/src/ledger.js', '/src/ledgerOverrides.js',
+    '/src/ledgerCleared.js',
     '/src/ledgerTransactions.js', '/src/reconciliation.js', '/src/recurring.js', '/src/reports.js',
     '/src/reportsCalendar.js', '/src/reportsCashFlow.js', '/src/reportsMoneyFlowSankey.js', '/src/reportsNetWorth.js', '/src/reportsSummary.js',
     '/src/reportsVariance.js', '/src/sanitizers.js', '/src/savings.js', '/src/serviceWorker.js',

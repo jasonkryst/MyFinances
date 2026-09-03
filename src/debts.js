@@ -3,6 +3,7 @@ import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompound
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 
 function recalculateIfConfigured(app) {
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
@@ -25,7 +26,7 @@ export async function addDebt(app) {
     const accountId = accountIdValue ? parseInt(accountIdValue) : null;
 
     if (!name) {
-        alert('Please enter a debt name.');
+        await showAlertModal('Please enter a debt name.');
         return;
     }
 
@@ -46,7 +47,7 @@ export async function addDebt(app) {
         const fixedEndDate = sanitizeDateISO(document.getElementById('fixedEndDate').value);
 
         if (!rawFixedAmount || isNaN(Number(rawFixedAmount)) || Number(rawFixedAmount) <= 0 || !fixedStartDate || !fixedEndDate) {
-            alert('Please fill in all required fixed-amount debt fields.');
+            await showAlertModal('Please fill in all required fixed-amount debt fields.');
             return;
         }
 
@@ -62,7 +63,7 @@ export async function addDebt(app) {
         const debtStartDate = sanitizeDateISO(document.getElementById('debtStartDate').value);
 
         if (isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
-            alert('Please fill in all required credit card debt fields.');
+            await showAlertModal('Please fill in all required credit card debt fields.');
             return;
         }
 
@@ -86,8 +87,8 @@ export async function addDebt(app) {
     app.cancelEdit();
 }
 
-export function deleteDebt(app, debtId) {
-    const confirmed = confirm('Delete this debt?');
+export async function deleteDebt(app, debtId) {
+    const confirmed = await showDeleteConfirmModal('Delete this debt?');
     if (!confirmed) return;
 
     app.debts = app.debts.filter(d => d.id !== debtId);
@@ -126,11 +127,11 @@ export function showUpdateBalanceModal(app, debtId) {
         modal.onkeydown = null;
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
-    document.getElementById('confirmUpdateBalance').onclick = () => {
+    document.getElementById('confirmUpdateBalance').onclick = async () => {
         const newBal = parseFloat(balInput.value);
-        if (isNaN(newBal) || newBal < 0) { alert('Please enter a valid balance (0 or more).'); return; }
+        if (isNaN(newBal) || newBal < 0) { await showAlertModal('Please enter a valid balance (0 or more).'); return; }
         const newMin = parseFloat(minInput.value);
-        if (isNaN(newMin) || newMin < 0) { alert('Please enter a valid minimum payment (0 or more).'); return; }
+        if (isNaN(newMin) || newMin < 0) { await showAlertModal('Please enter a valid minimum payment (0 or more).'); return; }
         updateDebtBalance(app, id, newBal, newMin);
         close();
     };
@@ -180,7 +181,7 @@ export function updateDebtBalance(app, debtId, newBalance, newMinPayment) {
     app.renderDebtsList();
 }
 
-export function saveEdit(app) {
+export async function saveEdit(app) {
     if (!app.editingDebtId) return;
 
     const name = normalizeText(document.getElementById('debtName').value, 80);
@@ -191,7 +192,7 @@ export function saveEdit(app) {
     const dueDate = sanitizeInteger(document.getElementById('dueDate').value, NaN, { min: 1, max: 31 });
 
     if (!name || isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
-        alert('Please fill in all required fields');
+        await showAlertModal('Please fill in all required fields');
         return;
     }
 
@@ -372,7 +373,7 @@ export function renderDebtsList(app) {
                         <div class="debt-detail"><strong>Account:</strong>
                             <select id="inline-account-${debt.id}">
                                 <option value="">— No account —</option>
-                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -564,7 +565,7 @@ export function cancelInlineEdit(app) {
     app.updateUI();
 }
 
-export function saveInlineEdit(app, debtId) {
+export async function saveInlineEdit(app, debtId) {
     const debt = app.debts.find(d => d.id === debtId);
     if (!debt) return;
 
@@ -605,7 +606,7 @@ export function saveInlineEdit(app, debtId) {
         }
 
         if (!debt.name) {
-            alert('Please enter a name for the debt.');
+            await showAlertModal('Please enter a name for the debt.');
             return;
         }
 
@@ -617,6 +618,6 @@ export function saveInlineEdit(app, debtId) {
         app.updateUI();
     } catch (err) {
         console.error('saveInlineEdit error', err);
-        alert('Error saving debt: ' + (err && err.message ? err.message : String(err)));
+        showAlertModal('Error saving debt: ' + (err && err.message ? err.message : String(err)));
     }
 }

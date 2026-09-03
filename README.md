@@ -1,6 +1,7 @@
-﻿# MyFinances
+# MyFinances
 
 [![CI](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jasonkryst/MyFinances/actions/workflows/codeql.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/codeql.yml)
 [![Copilot](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/agents/copilot-pull-request-reviewer)
 [![Docker Release](https://github.com/jasonkryst/MyFinances/actions/workflows/docker-image.yml/badge.svg)](https://github.com/jasonkryst/MyFinances/actions/workflows/docker-image.yml)
 
@@ -16,14 +17,14 @@ All calculations happen locally in your browser — no accounts required. An opt
 
 ```bash
 # Development (Python)
-python -m http.server 5500
+python -m http.server 32900
 
 # Docker (recommended for consistent environments)
-docker compose up -d        # Build and run at http://localhost:5500
+docker compose up -d        # Build and run at http://localhost:32900
 docker compose down         # Stop
 
 # Open browser
-http://localhost:5500
+http://localhost:32900
 
 # Run tests
 pytest tests/ -v                  # Run all tests
@@ -54,6 +55,16 @@ MyFinances prioritizes your financial data security:
 - ✅ **Input Validation** — Numeric bounds, date validation, text sanitization at every entry point
 - ✅ **Client-Side Only (default)** — No server, no authentication surface
 - ✅ **Optional Postgres Backend** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request
+
+### Continuous Security Scanning
+The CI pipeline runs five automated scans on every push and pull request to `main`:
+- **CodeQL** — GitHub SAST engine; detects XSS, injection, and logic bugs in `src/` JavaScript
+- **Trivy — Docker image** — Gates on fixable CRITICAL/HIGH CVEs in the published container image
+- **Trivy — Filesystem** — Scans repo lockfiles and source for known-vulnerable packages and leaked secrets; gates on CRITICAL/HIGH
+- **Trivy — IaC** — Scans `Dockerfile` and `docker-compose.yml` for CIS-benchmark misconfigurations (informational)
+- **Dependency Review** — Blocks PRs that introduce new dependencies with HIGH or CRITICAL severity CVEs
+
+All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/MyFinances/security) as SARIF reports.
 
 ### Privacy Guarantee
 - ✅ All calculations run entirely in your browser
@@ -172,8 +183,9 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Unified transaction list** — income, one-time entries, debts, bills, expenses, recurring templates, savings contributions, and reconciliation markers in one scrollable view
 - **Account + date range filters** — filter by account and by range (All, Past & Today, Next 30/60/90 Days, Through Next Month)
 - **Amount overrides** — modal-based Override / Edit override / Reset per transaction; overrides are keyed by type+id+account+date so they survive ledger re-sorts; changing an override immediately recalculates running balances, Reports, and account projections
+- **Cleared tracking** — a Cleared checkbox per transaction records whether it has actually posted to the account, plus the timestamp it was marked cleared (shown as the checkbox's tooltip); keyed the same way as amount overrides, so it's independent of ledger re-sorts. Purely informational — it does not affect running balances — useful for spotting scheduled transactions (bills, recurring items) that haven't posted on the day they were expected to
 - **Running balance** — continuous balance column; snaps to the statement balance at each reconciliation marker when "Adjust Balance" mode is active
-- **CSV export** — column-picker modal (date, account, name, amount, category, running balance, type); exports respect the current filter and sort; selected columns persist between sessions
+- **CSV export** — column-picker modal (date, account, name, amount, category, running balance, type, cleared, cleared at); exports respect the current filter and sort; selected columns persist between sessions
 
 ---
 
@@ -331,6 +343,7 @@ src/
   ├─ ledger.js             — Transaction ledger page rendering & CSV export
   ├─ ledgerTransactions.js — Ledger transaction aggregation (pure computation)
   ├─ ledgerOverrides.js    — Per-transaction manual amount overrides
+  ├─ ledgerCleared.js      — Per-transaction cleared/posted tracking with timestamp
   ├─ reconciliation.js     — Account statement reconciliation
   ├─ health.js             — Financial health dashboard (DTI, savings rate, runway)
   ├─ spending.js           — Spending analysis (category breakdowns, trends)
@@ -348,7 +361,7 @@ src/
   ├─ dataExport.js         — JSON/CSV export & import
   ├─ dataTransferModal.js  — Postgres-to-local data transfer modal
   ├─ postgresSync.js       — Per-resource Postgres mutation helpers (pgPost/pgPatch/pgDelete)
-  ├─ postgresImport.js     — loadFromPostgres() fan-out to all 14 resource endpoints
+  ├─ postgresImport.js     — loadFromPostgres() fan-out to all 15 resource endpoints
   ├─ pgMigrationModal.js   — One-time local→Postgres migration modal
   ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only)
   ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
@@ -360,15 +373,15 @@ server/                     — Optional self-hosted Node.js + PostgreSQL backen
   ├─ migrations/           — node-pg-migrate SQL migration files
   ├─ scripts/create-user.js — Bootstrap admin user (argon2id hashed)
   ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
-  ├─ Dockerfile            — node:20-alpine image (build context = repo root for sanitizer reuse)
+  ├─ Dockerfile            — node:24-alpine image (build context = repo root for sanitizer reuse)
   └─ README.md             — Server setup, dev, and deployment guide
-tests/ (675 tests across 72 files)
+tests/ (743 tests across 75 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/ (62 tests)     — XSS, CSP, input validation, static scan
   │   ├─ test_xss.py, test_csp.py
   │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (347 tests)    — Per-feature CRUD, calculations, business logic
+  ├─ features/ (379 tests)    — Per-feature CRUD, calculations, business logic
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
@@ -378,28 +391,29 @@ tests/ (675 tests across 72 files)
   │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py, test_versioning.py
   │   ├─ test_break_even.py, test_interest_income.py, test_i18n.py
   │   ├─ test_storage_backend.py, test_pwa.py, test_pwa_icons.py
-  │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py
+  │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py, test_validation_modals.py
   │   └─ test_issue_92_export.py, test_issue_93_expense_save.py
-  ├─ ui/ (205 tests)          — UI/UX, responsiveness, accessibility
+  ├─ ui/ (233 tests)          — UI/UX, responsiveness, accessibility
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py, test_high_contrast_theme.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
   │   ├─ test_charts.py, test_chart_accessibility.py, test_guide_theme.py
   │   ├─ test_guide_nav.py, test_reduced_motion.py, test_command_palette.py
   │   ├─ test_setup_wizard.py, test_overview_print.py, test_remaining_pages_print.py
-  │   ├─ test_table_mobile_scroll.py, test_data_transfer_modal.py
+  │   ├─ test_table_mobile_scroll.py, test_data_transfer_modal.py, test_delete_confirm_modal.py
   │   ├─ test_settings_theme_location.py, test_pwa_update_banner.py
   │   ├─ test_debt_actions.py, test_recurring_actions.py, test_reports_actions.py
   │   └─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py
   ├─ a11y/ (10 tests)         — Site-wide WCAG 2.1 AA accessibility audit
   │   └─ test_a11y_audit.py, run_a11y_audit.py
-  ├─ integration/ (17 tests)  — End-to-end workflows, import/export, data persistence
+  ├─ integration/ (18 tests)  — End-to-end workflows, import/export, data persistence
   │   ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
   │   └─ test_pwa_offline.py
-  └─ postgres/ (34 tests — requires Docker stack)
-      ├─ test_postgres_bootstrap.py   — Auth, login gate, session handling
-      ├─ test_postgres_import.py      — loadFromPostgres fan-out + import round-trip
-      ├─ test_postgres_mutations.py   — Per-resource CRUD via pgPost/pgPatch/pgDelete
-      └─ test_postgres_migration.py   — local→Postgres one-time migration modal flow
+  └─ postgres/ (41 tests — requires Docker stack)
+      ├─ test_postgres_bootstrap.py     — Auth, login gate, session handling
+      ├─ test_postgres_import.py        — loadFromPostgres fan-out + import round-trip
+      ├─ test_postgres_mutations.py     — Per-resource CRUD via pgPost/pgPatch/pgDelete
+      ├─ test_postgres_migration.py     — local→Postgres one-time migration modal flow
+      └─ test_postgres_setup_wizard.py  — First-run setup wizard against the Postgres backend
 tools/
   ├─ debug/                   — Ad-hoc manual debugging scripts (not part of pytest suite)
   └─ generate-icons.js        — One-time PWA icon generator (Node zlib only, not run in CI)
@@ -484,11 +498,11 @@ form-action 'self'
 
 ---
 
-## 🧪 Testing Suite (Updated August 31, 2026)
+## 🧪 Testing Suite (Updated September 2, 2026)
 
 ### Test Statistics
-- **Total Tests**: 641 comprehensive tests (plus 34 Postgres/CI-only), all passing
-- **Test Files**: 68 organized across 6 categories
+- **Total Tests**: 702 comprehensive tests (plus 41 Postgres/CI-only), all passing
+- **Test Files**: 70 organized across 6 categories (75 including `postgres/`)
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
@@ -500,7 +514,7 @@ form-action 'self'
 - **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
 - **Static Analysis** — Code patterns, hardcoded secrets, dependencies
 
-#### 🎯 Feature Tests (347 tests)
+#### 🎯 Feature Tests (379 tests)
 - **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion; interest-rate (% APY) badge display — threshold/formatting boundaries, multi-account scoping, edit-to-clear, reload persistence, import clamping
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
 - **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
@@ -510,7 +524,7 @@ form-action 'self'
 - **Expenses** — Add/edit/delete, amount/date validation
 - **Bills** — Data model, sanitization, calculation integration
 - **Recurring** — All frequencies, pause/resume, skip-month, mark-as-paid, account linkage, validation
-- **Ledger** — Filtering, amount-override modal, key collision checks, CSV export column picker
+- **Ledger** — Filtering, amount-override modal, cleared-checkbox tracking, key collision checks, CSV export column picker
 - **Reports** — Income vs expenses, money flow, net worth analytics, tab grouping, date-boundary handling
 - **Savings** — Emergency funds, sinking funds, persistence
 - **Net Worth** — Snapshots, milestones, historical calculations
@@ -524,7 +538,7 @@ form-action 'self'
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 - **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
 
-#### 🎨 UI/UX Tests (205 tests)
+#### 🎨 UI/UX Tests (233 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
 - **Modals** — Visibility toggling, close buttons, amortization, calendar day-detail, ledger export
 - **Dark Mode** — Theme switching, contrast, persistence, corrupted-localStorage fallback
@@ -547,21 +561,21 @@ form-action 'self'
 #### ♿ Accessibility Audit (10 tests)
 Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs, duplicate IDs, orphaned form inputs, unnamed interactive elements, missing alt text, computed WCAG 1.4.3 colour contrast, modal Escape-to-close, mobile nav `aria-expanded`.
 
-#### 🔄 Integration Tests (17 tests)
+#### 🔄 Integration Tests (18 tests)
 - **End-to-End Workflows** — Complete user journeys (account → debt → net worth → reconciliation)
 - **Data Persistence** — Cross-navigation data integrity
 - **Import/Export** — JSON roundtrip, CSV schedule export (incl. comma/quote escaping), full clear-all-data → reimport → render-every-page consistency check
-- **Ledger CSV Export** — Column-picker modal, filtered export, column persistence
+- **Ledger CSV Export** — Column-picker modal (incl. cleared/cleared-at columns), filtered export, column persistence
 
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 675 tests (requires Docker for postgres/)
+pytest tests/ -v                  # All 743 tests (requires Docker for postgres/)
 pytest tests/security/ -v         # 62 security tests
-pytest tests/features/ -v         # 347 feature tests
-pytest tests/ui/ -v               # 205 UI/UX tests
+pytest tests/features/ -v         # 379 feature tests
+pytest tests/ui/ -v               # 233 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
-pytest tests/integration/ -v      # 17 integration tests
+pytest tests/integration/ -v      # 18 integration tests
 pytest -m "security" -v           # All security tests by marker
 pytest -m "not slow" -v           # Skip slow tests
 ```
@@ -603,7 +617,7 @@ npm run test:mutation     # Stryker mutation run (HTML report at reports/mutatio
 
 ```bash
 # Development
-python -m http.server 5500
+python -m http.server 32900
 ```
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for Nginx, Apache, and Docker configurations including security headers, HTTPS, and caching.
@@ -664,4 +678,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.29.0 — Updated August 31, 2026*
+*MyFinances v4.40.0 — Updated September 2, 2026*

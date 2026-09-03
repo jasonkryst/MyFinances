@@ -1,0 +1,14 @@
+# Pairs with myfinances-backup.service -- see that file for install steps.
+# Runs daily; systemd's own randomized delay/persistence handles missed runs
+# (e.g. the host was off at 03:15) better than cron does.
+
+[Unit]
+Description=Run MyFinances Postgres backup daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

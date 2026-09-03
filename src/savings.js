@@ -1,6 +1,7 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 
 /**
  * Render the Savings page with toggleable Emergency Fund and Sinking Funds sections
@@ -415,7 +416,7 @@ async function addEmergencyFund(app) {
   const notes = normalizeText(document.getElementById('emergencyNotes').value);
 
   if (!accountId || targetAmount <= 0 || monthlyContribution < 0) {
-    alert('Please fill all required fields with valid values.');
+    await showAlertModal('Please fill all required fields with valid values.');
     return;
   }
 
@@ -441,8 +442,8 @@ async function addEmergencyFund(app) {
 /**
  * Delete Emergency Fund
  */
-function deleteEmergencyFund(app, fundId) {
-  if (!confirm('Delete this emergency fund?')) return;
+async function deleteEmergencyFund(app, fundId) {
+  if (!await showDeleteConfirmModal('Delete this emergency fund?')) return;
   app.emergencyFunds = app.emergencyFunds.filter(f => f.id !== fundId);
   app.saveToStorage();
   if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/emergency-funds/${fundId}`);
@@ -453,12 +454,12 @@ function deleteEmergencyFund(app, fundId) {
 /**
  * Open contribute dialog for Emergency Fund
  */
-function openContributeEmergency(app, fundId) {
+async function openContributeEmergency(app, fundId) {
   const amount = prompt('Enter contribution amount:');
   if (!amount) return;
   const contrib = sanitizeFiniteNumber(amount);
   if (contrib <= 0) {
-    alert('Please enter a valid amount.');
+    await showAlertModal('Please enter a valid amount.');
     return;
   }
 
@@ -501,7 +502,7 @@ async function addSinkingFund(app) {
   const notes = normalizeText(document.getElementById('sinkingNotes').value);
 
   if (!name || !accountId) {
-    alert('Please fill all required fields.');
+    await showAlertModal('Please fill all required fields.');
     return;
   }
 
@@ -511,14 +512,14 @@ async function addSinkingFund(app) {
   if (allocationMethod === 'fixed') {
     monthlyAllocation = sanitizeFiniteNumber(document.getElementById('sinkingMonthlyAllocation').value);
     if (monthlyAllocation <= 0) {
-      alert('Monthly allocation must be greater than 0.');
+      await showAlertModal('Monthly allocation must be greater than 0.');
       return;
     }
     targetAmount = monthlyAllocation * 12;
   } else if (allocationMethod === 'annual') {
     const annualCost = sanitizeFiniteNumber(document.getElementById('sinkingAnnualCost').value);
     if (annualCost <= 0) {
-      alert('Annual cost must be greater than 0.');
+      await showAlertModal('Annual cost must be greater than 0.');
       return;
     }
     monthlyAllocation = annualCost / 12;
@@ -527,7 +528,7 @@ async function addSinkingFund(app) {
     const targetAmount2 = sanitizeFiniteNumber(document.getElementById('sinkingTargetAmount').value);
     const targetDateStr = document.getElementById('sinkingTargetDate').value;
     if (targetAmount2 <= 0 || !targetDateStr) {
-      alert('Please enter target amount and date.');
+      await showAlertModal('Please enter target amount and date.');
       return;
     }
     targetAmount = targetAmount2;
@@ -562,8 +563,8 @@ async function addSinkingFund(app) {
 /**
  * Delete Sinking Fund
  */
-function deleteSinkingFund(app, fundId) {
-  if (!confirm('Delete this sinking fund?')) return;
+async function deleteSinkingFund(app, fundId) {
+  if (!await showDeleteConfirmModal('Delete this sinking fund?')) return;
   app.sinkingFunds = app.sinkingFunds.filter(f => f.id !== fundId);
   app.saveToStorage();
   if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/sinking-funds/${fundId}`);
@@ -574,12 +575,12 @@ function deleteSinkingFund(app, fundId) {
 /**
  * Open contribute dialog for Sinking Fund
  */
-function openContributeSinking(app, fundId) {
+async function openContributeSinking(app, fundId) {
   const amount = prompt('Enter contribution amount:');
   if (!amount) return;
   const contrib = sanitizeFiniteNumber(amount);
   if (contrib <= 0) {
-    alert('Please enter a valid amount.');
+    await showAlertModal('Please enter a valid amount.');
     return;
   }
 
