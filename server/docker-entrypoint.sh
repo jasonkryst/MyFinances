@@ -12,4 +12,12 @@ elif [ -z "${DATABASE_URL:-}" ]; then
     exit 1
 fi
 
+# SMTP is optional -- an empty or missing secret file just means email
+# notifications stay disabled (server/src/email/transport.js's
+# isEmailConfigured() checks SMTP_HOST, not this password).
+SMTP_SECRET_FILE="/run/secrets/smtp_password"
+if [ -s "$SMTP_SECRET_FILE" ]; then
+    export SMTP_PASSWORD=$(cat "$SMTP_SECRET_FILE")
+fi
+
 exec "$@"

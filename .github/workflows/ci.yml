@@ -410,10 +410,11 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Create postgres secret
+      - name: Create Docker secrets
         run: |
           mkdir -p secrets
           echo "ci-test-password" > secrets/postgres_password.txt
+          touch secrets/smtp_password.txt
       - name: Start full stack
         run: |
           docker compose up -d --build
