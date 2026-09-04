@@ -1,8 +1,18 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale } from './i18n.js';
 
-export const APP_VERSION = '4.44.0';
+export const APP_VERSION = '4.45.0';
 
+// Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
+// elapsed since the last call — for expensive work triggered by
+// high-frequency events (e.g. a range slider's `input` event).
+export function debounce(fn, waitMs) {
+    let timeoutId = null;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), waitMs);
+    };
+}
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50" in
 // the default en-US locale; digit grouping/decimal separator/symbol

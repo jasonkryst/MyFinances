@@ -21,7 +21,6 @@ export function sanitizeDebt(record, idFallback) {
     const originalMinimumPayment = sanitizeFiniteNumber(record?.originalMinimumPayment, minimumPayment, { min: 0 });
 
     return {
-        ...record,
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),
         category: normalizeText(record?.category, 40),

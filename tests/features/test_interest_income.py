@@ -338,6 +338,10 @@ def test_interest_counts_as_income_in_reports(app_page):
     _seed_account(page, rate=12, balance=1000)
     page.evaluate("() => window.app.switchPage('reports')")
     page.wait_for_timeout(300)
+    # renderReportsPage() only renders the active sub-tab (performance fix,
+    # 2026-09-04); Income vs Expenses isn't the default (Calendar is).
+    page.click('[data-rptab="incomeexp"]')
+    page.wait_for_timeout(200)
 
     income_text = _reports_income_stat_text(page)
     assert '10.00' in income_text, \
@@ -351,6 +355,8 @@ def test_interest_absent_from_reports_when_rate_zero(app_page):
     _seed_account(page, rate=0, balance=1000)
     page.evaluate("() => window.app.switchPage('reports')")
     page.wait_for_timeout(300)
+    page.click('[data-rptab="incomeexp"]')
+    page.wait_for_timeout(200)
 
     income_text = _reports_income_stat_text(page)
     assert '$0.00' in income_text, \

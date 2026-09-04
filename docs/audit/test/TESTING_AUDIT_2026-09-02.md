@@ -186,6 +186,8 @@ Per-file test counts (from this run's live log) rolled up by CI shard membership
 
 Given every shard currently reports comfortably under its 20-minute budget in CI (no evidence of an active timeout failure — this is a forward-looking risk, not a current outage), this is a **medium-priority, not urgent**, recommendation: pre-emptively split `test-features-b` (e.g. peel `test_income`+`test_interest_income`+`test_health` — the 3 largest files, 63 tests combined — into a new shard `test-features-h`) and consider a similar peel from `c` before the next feature lands there, rather than waiting for a CI timeout to force it.
 
+**RESOLVED 2026-09-04** — went further than the suggested single peel: bin-packed all 24 files across `b`/`c`/`h` for balance (82/81/83 tests, 8 files each) rather than leaving `c` untouched at ~123 as the literal recommendation would have. `test-ui-a`/`test-ui-b`'s smaller-magnitude version of the same imbalance was **not** addressed this pass — still open.
+
 ### 4.3 `docker-build` and `lighthouse` jobs
 
 Unaffected by anything examined in this audit; not re-verified live (out of scope — this audit is testing-focused per the task).
@@ -216,7 +218,7 @@ Reviewed `tests/features/test_validation_modals.py` (new, 9 tests), `tests/featu
 
 **Medium**
 1. Stryker `mutate` config drift in `sanitizers.js` (§3) — silently dropped mutation coverage on `sanitizeRecurringTemplate`'s tested logic, and two new pure sanitizer functions (`sanitizeLedgerOverrides`, `sanitizeLedgerClearedTransactions`) shipped with zero unit tests and no deliberate mutation coverage.
-2. `test-features-b`/`test-features-c` CI shard imbalance (§4.2) — ~3x heavier than sibling shards, the same growth pattern that forced 3 prior shard splits; not yet timing out but the clear next candidate.
+2. **RESOLVED 2026-09-04** (§4.2). `test-features-b`/`test-features-c` CI shard imbalance (§4.2) — ~3x heavier than sibling shards, the same growth pattern that forced 3 prior shard splits; not yet timing out but the clear next candidate.
 3. Server-side `ledger-cleared` PUT timezone bug (§1.5) — reproducible, non-flaky server test failure (separately being root-caused).
 4. No documented local one-liner to run `tests/postgres/` matching CI's provisioning (§1.4) — makes this suite effectively CI-only for most contributors.
 
@@ -231,7 +233,7 @@ Reviewed `tests/features/test_validation_modals.py` (new, 9 tests), `tests/featu
 ## 7. Recommendations (prioritized)
 
 1. **Fix the Stryker `sanitizers.js` mutate ranges** to `5-93`, `95-124`, `126-147` (or re-derive after adding unit tests for the two new functions), and add `tests/unit/sanitizers.test.js` cases for `sanitizeLedgerOverrides`/`sanitizeLedgerClearedTransactions` covering: non-object input, a non-finite `amount`/missing `clearedAt` (should be dropped), and a well-formed round-trip. Re-run Stryker afterward and recompute `thresholds` per the config's own documented method.
-2. **Pre-emptively split `test-features-b`** — pull `test_income.py` (24), `test_interest_income.py` (20), and `test_health.py` (19) (63 tests combined) into a new `test-features-h` shard, mirroring the existing A→A/F/G precedent, before this shard's growth forces a reactive timeout fix under time pressure. Consider the same for `test-features-c`.
+2. **RESOLVED 2026-09-04** — all 24 files across `b`/`c` bin-packed into 3 shards (`b`/`c`/`h`, ~82 tests each). ~~Pre-emptively split `test-features-b`~~ — pull `test_income.py` (24), `test_interest_income.py` (20), and `test_health.py` (19) (63 tests combined) into a new `test-features-h` shard, mirroring the existing A→A/F/G precedent, before this shard's growth forces a reactive timeout fix under time pressure. Consider the same for `test-features-c`.
 3. **Document (or script) the local Postgres-suite provisioning sequence** so `tests/postgres/` is runnable pre-PR, not just discoverable by reading `ci.yml`.
 4. **Correct the June 28, 2026 audit's flaky-pattern-scan claim** (or note in this file going forward) that `wait_for_timeout()` is in fact widespread (789 occurrences/54 files) — future cleanup passes should prefer `wait_for_selector`/`wait_for_function`, especially in high-traffic files like `test_accounts.py` and `test_validation_modals.py`.
 5. **Do not treat a local `pytest tests/ -n 4` run as a trustworthy pass/fail gate.** The 9 non-Postgres failures in this run were 100% xdist-parallelization artifacts (confirmed by serial re-run). Either drop `-n 4` locally, or always re-run failed node IDs serially before concluding a regression exists.

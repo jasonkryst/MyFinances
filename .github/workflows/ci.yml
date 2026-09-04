@@ -12,7 +12,13 @@ on:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Features — 7 parallel shards. A/F/G split by slow-test file (~25s/test).
+  # Features — 8 parallel shards. A/F/G split by slow-test file (~25s/test).
+  # B/C/H are the "fast" (~3s/test) files, bin-packed to ~81-83 tests each
+  # (docs/audit/test/TESTING_AUDIT_2026-09-02.md: B/C had grown to 123 tests
+  # each -- ~3x every other shard -- by accumulating new feature-test files
+  # without ever being rebalanced against each other). Rebalance the same
+  # way if a shard's count creeps back up: collect per-file counts via
+  # `pytest tests/features/<file>.py --collect-only -q`, then bin-pack.
   # ---------------------------------------------------------------------------
   test-features-a:
     runs-on: ubuntu-latest
@@ -194,16 +200,13 @@ jobs:
       - run: |
           pytest \
             tests/features/test_income.py \
-            tests/features/test_expenses.py \
-            tests/features/test_bills.py \
-            tests/features/test_savings.py \
             tests/features/test_recurring.py \
-            tests/features/test_recurring_occurrences.py \
-            tests/features/test_spending_analysis.py \
-            tests/features/test_health.py \
-            tests/features/test_interest_income.py \
-            tests/features/test_cash_flow_trend.py \
+            tests/features/test_expenses.py \
+            tests/features/test_issue_92_export.py \
             tests/features/test_money_flow_sankey.py \
+            tests/features/test_pwa_icons.py \
+            tests/features/test_cash_flow_trend.py \
+            tests/features/test_main_nav_groups.py \
             -v
 
   test-features-c:
@@ -232,19 +235,50 @@ jobs:
           curl -sf http://localhost:32900/ > /dev/null || exit 1
       - run: |
           pytest \
-            tests/features/test_settings.py \
-            tests/features/test_storage_backend.py \
-            tests/features/test_storage_quota.py \
             tests/features/test_storage_import.py \
-            tests/features/test_versioning.py \
-            tests/features/test_pwa.py \
-            tests/features/test_pwa_icons.py \
             tests/features/test_i18n.py \
-            tests/features/test_main_nav_groups.py \
-            tests/features/test_reports_nav_groups.py \
-            tests/features/test_issue_92_export.py \
+            tests/features/test_pwa.py \
             tests/features/test_issue_93_expense_save.py \
+            tests/features/test_storage_backend.py \
+            tests/features/test_spending_analysis.py \
+            tests/features/test_bills.py \
+            tests/features/test_storage_quota.py \
+            -v
+
+  test-features-h:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
+      - run: playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:32900/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - run: |
+          pytest \
+            tests/features/test_interest_income.py \
+            tests/features/test_health.py \
+            tests/features/test_settings.py \
             tests/features/test_validation_modals.py \
+            tests/features/test_versioning.py \
+            tests/features/test_savings.py \
+            tests/features/test_recurring_occurrences.py \
+            tests/features/test_reports_nav_groups.py \
             -v
 
   # ---------------------------------------------------------------------------

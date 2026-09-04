@@ -62,6 +62,8 @@ The atomic `INSERT ... WHERE NOT EXISTS` prevents a TOCTOU race between two conc
 
 ### L1 (2026-09-02) — `sanitizeDebt()` uses spread-then-override instead of an allowlist, unlike every other sanitizer (Low)
 
+**RESOLVED 2026-09-04.** The `...record` spread was removed; the function already built a complete allowlist of every known field, so this was a pure removal (verified via a new Jest test asserting `Object.keys(result)` is exactly the allowlisted set and that an injected unknown field does not survive).
+
 **Location**: `src/sanitizers.js:15-43`
 
 ```js

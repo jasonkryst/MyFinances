@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.45.0] — 2026-09-04
+
+### Fixed
+- **Third audit follow-up pass, same day** (`docs/audit/AUDIT_SUMMARY_2026-09-02.md`'s "Fixed 2026-09-04 (round 3)"), picking off the last well-scoped remaining findings:
+  - **`sanitizeDebt()` allowlist** — removed the `...record` spread-then-override; the function already built a complete allowlist, so this was a pure removal. New test asserts an injected unknown field (and a `__proto__` pollution attempt) doesn't survive sanitization.
+  - **Reports page only re-renders the active tab** — `renderReportsPage()` (`src/reports.js`) previously rebuilt all 8 sub-panels and 11 Chart.js instances on every tab click, month-nav, or range change. Now scoped to whichever tab is actually visible, for every trigger. Surfaced and fixed: `reportsNetWorth.js`'s two charts had no self-destroy guard (every other chart-owning render function already did); 2 of the 11 tracked chart-instance keys were dead code, never created anywhere; and 6 pre-existing tests across 4 files silently depended on the old "render everything" behavior without ever switching to the tab they were actually checking.
+  - **What-If slider debounced** — the Strategy page's payoff-simulation slider (`strategyComparison.js`) recomputed the full simulation on every raw `input` event; now debounced 150ms via a new `debounce()` utility (`src/utils.js`), with the extra-amount label still updating immediately for responsive feedback. New `tests/ui/test_whatif_simulator.py` (zero prior coverage of this panel).
+  - **CI shard rebalancing** — `test-features-b`/`-c` had grown to ~123 tests each, ~3x every sibling shard. Rebalanced all 24 files across `b`/`c`/new `h` (82/81/83 tests, 8 files each).
+
+---
 ## [4.44.0] — 2026-09-04
 
 ### Added

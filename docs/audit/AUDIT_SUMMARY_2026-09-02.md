@@ -79,7 +79,24 @@ Health page's DTI/Savings gauge screen-reader tables and the Settings modal's Po
 
 **Verification:** 78/78 Jest, 113/113 server (`node:test` against a real Postgres container), and the full relevant pytest slices (accessibility, a11y, i18n, chart-accessibility, strategy-calendar, overview-print) all pass. Full `pytest tests/` was not re-run end-to-end this pass; see individual suite runs above.
 
-Still open, deliberately deferred or out of scope for this pass: Lighthouse code-splitting (High, large effort), the `qs`/`body-parser` Express-major-bump (Misc, needs its own scoped effort), `formatCurrency()` hardcoded USD (i18n, deliberate), `renderReportsPage()` full-rebuild-on-tab-click and the What-If slider debounce (Performance, Medium), PWA offline test coverage and the `ui.js`/`postgresSync.js` circular-import cycle (Misc, Medium/Low), CI shard rebalancing and the 789 `wait_for_timeout()` sweep (Testing, Medium), `sanitizeDebt()`'s allowlist inconsistency (Security, Low), `tests/README.md`'s remaining per-file prose gaps (Documentation, Low), and 1+ major version-behind dev/server dependencies in dev-only chains (Misc, Low).
+Still open after this pass, addressed in a same-day round 3 below: `renderReportsPage()`/What-If debounce (Performance), CI shard rebalancing (Testing), `sanitizeDebt()` allowlist (Security). Still open, deliberately deferred or out of scope: Lighthouse code-splitting (High, large effort), the `qs`/`body-parser` Express-major-bump (Misc, needs its own scoped effort), `formatCurrency()` hardcoded USD (i18n, deliberate), PWA offline test coverage and the `ui.js`/`postgresSync.js` circular-import cycle (Misc, Medium/Low), the 789 `wait_for_timeout()` sweep (Testing, Medium), `tests/README.md`'s remaining per-file prose gaps (Documentation, Low), and 1+ major version-behind dev/server dependencies in dev-only chains (Misc, Low).
+
+---
+
+## Fixed 2026-09-04 (round 3)
+
+A third round the same day, after PR #144 merged, picked off the last well-scoped items:
+
+| Type | Item | Fix |
+|---|---|---|
+| Security | `sanitizeDebt()` used spread-then-override instead of the allowlist pattern every other sanitizer uses | Removed the `...record` spread — the function already built a complete allowlist, so this was a pure removal. New Jest test asserts an injected unknown field (and a `__proto__` pollution attempt) doesn't survive. |
+| Performance | `renderReportsPage()` rebuilt all 8 report sub-panels and 11 Chart.js instances on every tab click, month-nav, or range change | Now looks up the active tab and only renders that tab's panel(s), via a `REPORT_TAB_RENDERERS` lookup — for every trigger, not just tab clicks (more thorough than the audit's own suggestion, since a hidden tab always re-renders fresh the moment it's switched to). Surfaced that `reportsNetWorth.js`'s charts had no self-destroy guard (added) and that 2 of the 11 tracked chart keys were entirely dead code (removed). Fixing this surfaced 6 pre-existing tests across 4 files that assumed the old "render everything" behavior without ever switching to the tab they were checking — all fixed to click into the relevant tab first. |
+| Performance | Strategy page's What-If slider recomputed the full payoff simulation on every raw `input` event | New `debounce()` utility (`src/utils.js`) wraps the simulation at 150ms; the amount label still updates immediately for responsive feedback. 4 new tests in `tests/ui/test_whatif_simulator.py` (zero prior coverage of this panel), including one that explicitly asserts the mid-debounce state. |
+| Testing | CI shards `test-features-b`/`-c` had grown to ~123 tests each — ~3x every sibling shard | Bin-packed all 24 files across `b`/`c`/new `h` for balance (82/81/83 tests, 8 files each) — more thorough than the audit's suggested single peel, which would have left `c` untouched. YAML validated; verified no file dropped or duplicated. |
+
+**Verification:** 719/719 pytest (full suite, not ignoring anything but `tests/postgres/`), 79/79 Jest.
+
+Still open: everything listed above as deferred/out of scope, unchanged.
 
 ---
 
@@ -96,19 +113,15 @@ Still open, deliberately deferred or out of scope for this pass: Lighthouse code
 | Type | Finding | Report |
 |---|---|---|
 | i18n | `formatCurrency()` hardcodes `currency: 'USD'` — a Polish- or other-locale user never sees their own currency, only US-dollar formatting with locale-aware digit grouping. This is a deliberate, tested design decision (`docs/superpowers/specs/2026-08-04-i18n-support-design.md`), but remains the most user-visible i18n gap for a finance app. | `i18n/I18N_AUDIT_2026-09-02.md` |
-| Performance | `renderReportsPage()` (`src/reports.js`) rebuilds all 8 report sub-panels and 11 Chart.js instances on every tab click instead of just the active tab. | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
-| Performance | The Strategy page's What-If slider (`strategyComparison.js`) recomputes the full payoff simulation on every raw `input` event with no debounce. | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
 | Misc | `qs`/`body-parser` under `server/`'s Express dependency chain has live-request-path `npm audit` findings. **Corrected 2026-09-04:** the original "fixable via plain `npm audit fix`, no breaking change" claim was verified wrong — `npm audit fix` (no `--force`) makes zero changes; the only real fix is bumping `express` 4.22.2→5.2.1 (a genuine major/breaking upgrade with real API changes), not a quick fix. Needs its own scoped effort with full server-test-suite verification. | `other/MISC_AUDIT_2026-09-02.md` |
 | Misc | `tests/integration/test_pwa_offline.py` only asserts the app shell survives an offline reload — no test exercises navigation, data entry, or chart rendering while offline, so the PWA's "usable offline" promise is asserted much more weakly than its own module docstring claims. | `other/MISC_AUDIT_2026-09-02.md` |
 | Misc | Real circular ES-module import chains centered on `ui.js` and `postgresSync.js` (e.g. a 4-file cycle `postgresSync.js → ui.js → ledger.js → settings.js → postgresSync.js`). Not currently crashing (cycle-closing exports are hoisted `function` declarations) but a latent TDZ risk if any were refactored to `const`/arrow functions. | `other/MISC_AUDIT_2026-09-02.md` |
-| Testing | CI shards `test-features-b`/`-c` are now growing ~3x heavier than sibling shards — the same growth pattern that forced three prior shard splits (see recent CHANGELOG entries). | `test/TESTING_AUDIT_2026-09-02.md` |
 | Testing | 789 `wait_for_timeout()` calls exist across 54 test files — corrects the June 28 baseline audit's claim that no arbitrary waits were found. | `test/TESTING_AUDIT_2026-09-02.md` |
 
 ### Low
 
 | Type | Finding | Report |
 |---|---|---|
-| Security | `sanitizeDebt()` is the only record sanitizer using spread-then-override instead of the allowlist pattern every other sanitizer uses; not currently exploitable (no renderer iterates arbitrary debt keys) but inconsistent defensive depth. | `security/SECURITY_AUDIT_2026-09-02.md` |
 | Documentation | `tests/README.md`'s per-file prose write-ups are still missing ~14 newer test files (counts/tree/coverage-matrix were fixed this session; the prose rewrite was left as a separate follow-up). | `documentation/DOCUMENTATION_AUDIT_2026-09-02.md` |
 | Misc | Root dev-tooling (Jest/Stryker) and most `server/` dependencies are 1+ major version behind with `npm audit` findings, but almost all sit in dev-only/CLI-only chains (Stryker's bundled Babel/ajv/tmp, `node-pg-migrate`'s `glob`). | `other/MISC_AUDIT_2026-09-02.md` |
 
