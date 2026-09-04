@@ -61,6 +61,16 @@ describe('sanitizeDebt', () => {
         expect(sanitizeDebt({}, 1).updatedAt).toBeNull();
         expect(sanitizeDebt({ updatedAt: 'not-a-date' }, 1).updatedAt).toBeNull();
     });
+
+    test('does not pass through unrecognized fields from the raw input (allowlist, not spread-then-override)', () => {
+        const result = sanitizeDebt({ name: 'Visa', notAField: 'evil', __proto__: { polluted: true } }, 1);
+        expect(result.notAField).toBeUndefined();
+        expect(Object.keys(result).sort()).toEqual([
+            'accountBalance', 'accountId', 'category', 'debtStartDate', 'debtType', 'dueDate',
+            'fixedAmount', 'fixedEndDate', 'fixedStartDate', 'id', 'interestRate', 'minimumPayment',
+            'name', 'originalBalance', 'originalMinimumPayment', 'priority', 'updatedAt',
+        ]);
+    });
 });
 
 describe('sanitizeIncome', () => {

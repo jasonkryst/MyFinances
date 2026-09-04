@@ -39,6 +39,10 @@ def test_interest_income_end_to_end(app_page):
     # 4. Reports page: income stat includes the interest
     page.evaluate("() => window.app.switchPage('reports')")
     page.wait_for_timeout(300)
+    # renderReportsPage() only renders the active sub-tab (performance fix,
+    # 2026-09-04); Income vs Expenses isn't the default (Calendar is).
+    page.click('[data-rptab="incomeexp"]')
+    page.wait_for_timeout(200)
     income_text = page.evaluate("""() => {
         const strip = document.querySelector('#reportsIncomeExp');
         if (!strip) return '';

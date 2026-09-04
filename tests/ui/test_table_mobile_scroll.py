@@ -359,6 +359,10 @@ def test_account_money_flow_table_stacks_into_labelled_cards_on_mobile(app_page,
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('reports')")
     page.wait_for_timeout(400)
+    # renderReportsPage() only renders the active sub-tab (performance fix,
+    # 2026-09-04); Account Balances (Money Flow) isn't the default (Calendar is).
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(200)
 
     info = page.evaluate("""
         () => {
@@ -394,6 +398,8 @@ def test_account_money_flow_table_keeps_grid_layout_on_desktop(app_page, account
     page.set_viewport_size({"width": 1280, "height": 800})
     page.evaluate("() => window.app.switchPage('reports')")
     page.wait_for_timeout(400)
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(200)
 
     info = page.evaluate("""
         () => {

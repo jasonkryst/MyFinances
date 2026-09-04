@@ -86,21 +86,27 @@ def test_report_far_future_month_renders_empty_state(app_page):
     errors = page.evaluate('() => window.__consoleErrors || []')
     assert errors == [] or errors is None or True  # tolerate absence of error capture hook
 
-    # Income vs Expenses should show the empty-state message, not stale totals
-    income_exp_text = page.query_selector('#reportsIncomeExp').text_content()
-    assert 'Add income sources' in income_exp_text or '$0.00' in income_exp_text, \
-        f"Expected empty/zero state for income vs expenses, got: {income_exp_text}"
-
-    # Money flow should show its empty-state message
-    money_flow_text = page.query_selector('#reportsMoneyFlow').text_content()
-    assert 'Add income, bills, debts' in money_flow_text, \
-        f"Expected empty money flow state, got: {money_flow_text}"
-
     # The month label should reflect the offset month, not throw/crash
     month_label = page.query_selector('#rptMonthLabel').text_content()
     assert month_label.strip() != "", "Month label should still render for a far-future month"
 
-    # Variance section should still render successfully (zero deltas) without throwing
+    # renderReportsPage() only renders the active sub-tab (performance fix,
+    # 2026-09-04) -- switch into each tab to exercise its empty-state
+    # rendering, rather than relying on every panel being pre-rendered.
+    page.click('[data-rptab="incomeexp"]')
+    page.wait_for_timeout(200)
+    income_exp_text = page.query_selector('#reportsIncomeExp').text_content()
+    assert 'Add income sources' in income_exp_text or '$0.00' in income_exp_text, \
+        f"Expected empty/zero state for income vs expenses, got: {income_exp_text}"
+
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_timeout(200)
+    money_flow_text = page.query_selector('#reportsMoneyFlow').text_content()
+    assert 'Add income, bills, debts' in money_flow_text, \
+        f"Expected empty money flow state, got: {money_flow_text}"
+
+    page.click('[data-rptab="variance"]')
+    page.wait_for_timeout(200)
     variance_text = page.query_selector('#reportsVariance').text_content()
     assert 'Month-to-Month Comparison' in variance_text
 

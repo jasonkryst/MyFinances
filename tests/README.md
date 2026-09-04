@@ -5,7 +5,7 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 758 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
+- ✅ 762 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
 - ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, Settings, PWA, i18n, and the optional PostgreSQL backend
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
@@ -106,7 +106,7 @@ tests/
 │   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
 │   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   └── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
-├── ui/                         # UI/UX and responsive tests (245 tests, 28 files)
+├── ui/                         # UI/UX and responsive tests (249 tests, 29 files)
 │   ├── test_mobile.py          # Mobile responsiveness, hamburger menu, touch sizing
 │   ├── test_modals.py          # Modal visibility, close buttons, calendar day-detail
 │   ├── test_dark_mode.py       # Dark/light theme selection, persistence, corrupted-localStorage fallback
@@ -130,7 +130,8 @@ tests/
 │   ├── test_reports_actions.py # Reports tab switching, snapshot capture, spending drill-down
 │   ├── test_reconciliation_actions.py # Reconcile-modal flows, history filter/delete
 │   ├── test_spending_ui.py     # Spending charts, ranked list, drill-down modal
-│   └── test_strategy_calendar.py # Strategy mini-calendar: debt/income/bill/expense/bonus day-markers
+│   ├── test_strategy_calendar.py # Strategy mini-calendar: debt/income/bill/expense/bonus day-markers
+│   └── test_whatif_simulator.py # What-If slider: immediate label update, debounced simulation
 ├── a11y/                        # Site-wide accessibility audit (10 tests)
 │   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable directly)
 │   └── test_a11y_audit.py      # Pytest wiring: asserts zero Serious findings from the audit
@@ -587,5 +588,5 @@ Refer to:
 
 ---
 
-**Last Updated:** September 4, 2026  
-**Test Suite Status:** ✅ Fully Passing (758 tests / 77 files, incl. 43 Postgres/CI-only tests across 6 files)
+**Last Updated:** September 4, 2026 (round 3)  
+**Test Suite Status:** ✅ Fully Passing (762 tests / 78 files, incl. 43 Postgres/CI-only tests across 6 files)

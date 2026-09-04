@@ -242,6 +242,7 @@ export function renderReportsNetWorth(app) {
 
     const trendCanvas = document.getElementById('rptNetWorthTrendChart');
     if (trendCanvas) {
+        if (app._rptNetWorthTrendChart) { app._rptNetWorthTrendChart.destroy(); app._rptNetWorthTrendChart = null; }
         app._rptNetWorthTrendChart = new Chart(trendCanvas, {
             type: 'line',
             data: {
@@ -292,6 +293,7 @@ export function renderReportsNetWorth(app) {
 
     const compCanvas = document.getElementById('rptNetWorthCompositionChart');
     if (compCanvas) {
+        if (app._rptNetWorthCompositionChart) { app._rptNetWorthCompositionChart.destroy(); app._rptNetWorthCompositionChart = null; }
         app._rptNetWorthCompositionChart = new Chart(compCanvas, {
             type: 'bar',
             data: {

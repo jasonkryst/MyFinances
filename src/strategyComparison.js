@@ -2,7 +2,8 @@
 
 import {
     formatCurrency,
-    escapeHtml
+    escapeHtml,
+    debounce
 } from './utils.js';
 
 /**
@@ -90,9 +91,12 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
     const extraAmtEl = document.getElementById('whatifExtraAmt');
     const resultDiv = document.getElementById('whatifResult');
 
-    slider.addEventListener('input', () => {
-        const extra = parseInt(slider.value, 10);
-        extraAmtEl.textContent = formatCurrency(extra);
+    // The full payoff simulation (DebtCalculator.calculatePaymentPlan) is
+    // real work -- a bare `input` listener would re-run it many times per
+    // second while dragging. The extra-amount label stays on every event
+    // for responsive visual feedback; only the simulation itself is
+    // debounced (see docs/audit/performance/PERFORMANCE_AUDIT_2026-09-02.md).
+    const runSimulation = debounce((extra) => {
         if (extra === 0) {
             resultDiv.innerHTML = '<p class="whatif-hint">Move the slider to simulate a higher payment.</p>';
             return;
@@ -123,5 +127,11 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
         } catch (e) {
             resultDiv.innerHTML = `<p class="error-message">${escapeHtml(e && e.message ? e.message : String(e))}</p>`;
         }
+    }, 150);
+
+    slider.addEventListener('input', () => {
+        const extra = parseInt(slider.value, 10);
+        extraAmtEl.textContent = formatCurrency(extra);
+        runSimulation(extra);
     });
 }

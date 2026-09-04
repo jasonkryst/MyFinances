@@ -375,7 +375,7 @@ server/                     — Optional self-hosted Node.js + PostgreSQL backen
   ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
   ├─ Dockerfile            — node:24-alpine image (build context = repo root for sanitizer reuse)
   └─ README.md             — Server setup, dev, and deployment guide
-tests/ (758 tests across 77 files)
+tests/ (762 tests across 78 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/ (62 tests)     — XSS, CSP, input validation, static scan
@@ -393,7 +393,7 @@ tests/ (758 tests across 77 files)
   │   ├─ test_storage_backend.py, test_pwa.py, test_pwa_icons.py
   │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py, test_validation_modals.py
   │   └─ test_issue_92_export.py, test_issue_93_expense_save.py
-  ├─ ui/ (245 tests)          — UI/UX, responsiveness, accessibility
+  ├─ ui/ (249 tests)          — UI/UX, responsiveness, accessibility
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py, test_high_contrast_theme.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
   │   ├─ test_charts.py, test_chart_accessibility.py, test_guide_theme.py
@@ -402,7 +402,7 @@ tests/ (758 tests across 77 files)
   │   ├─ test_table_mobile_scroll.py, test_data_transfer_modal.py, test_delete_confirm_modal.py
   │   ├─ test_settings_theme_location.py, test_pwa_update_banner.py
   │   ├─ test_debt_actions.py, test_recurring_actions.py, test_reports_actions.py
-  │   └─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py, test_strategy_calendar.py
+  │   └─ test_reports_nav.py, test_reconciliation_actions.py, test_spending_ui.py, test_strategy_calendar.py, test_whatif_simulator.py
   ├─ a11y/ (10 tests)         — Site-wide WCAG 2.1 AA accessibility audit
   │   └─ test_a11y_audit.py, run_a11y_audit.py
   ├─ integration/ (18 tests)  — End-to-end workflows, import/export, data persistence
@@ -502,8 +502,8 @@ form-action 'self'
 ## 🧪 Testing Suite (Updated September 4, 2026)
 
 ### Test Statistics
-- **Total Tests**: 715 comprehensive tests (plus 43 Postgres/CI-only), all passing
-- **Test Files**: 71 organized across 6 categories (77 including `postgres/`)
+- **Total Tests**: 719 comprehensive tests (plus 43 Postgres/CI-only), all passing
+- **Test Files**: 72 organized across 6 categories (78 including `postgres/`)
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
@@ -539,7 +539,7 @@ form-action 'self'
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 - **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
 
-#### 🎨 UI/UX Tests (245 tests)
+#### 🎨 UI/UX Tests (249 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
 - **Modals** — Visibility toggling, close buttons, amortization, calendar day-detail, ledger export
 - **Dark Mode** — Theme switching, contrast, persistence, corrupted-localStorage fallback
@@ -571,10 +571,10 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 758 tests (requires Docker for postgres/)
+pytest tests/ -v                  # All 762 tests (requires Docker for postgres/)
 pytest tests/security/ -v         # 62 security tests
 pytest tests/features/ -v         # 380 feature tests
-pytest tests/ui/ -v               # 245 UI/UX tests
+pytest tests/ui/ -v               # 249 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
 pytest tests/integration/ -v      # 18 integration tests
 pytest -m "security" -v           # All security tests by marker
@@ -679,4 +679,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.44.0 — Updated September 4, 2026*
+*MyFinances v4.45.0 — Updated September 4, 2026*
