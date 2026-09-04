@@ -13,8 +13,9 @@ export default {
         'src/debtCalculator.js:41-276', // calculatePaymentPlan
         'src/debtCalculator.js:431-433', // formatDate
         'src/debtCalculator.js:442-454', // calculateMonthsBetweenDates
-        'src/utils.js:10-81', // formatCurrency..dateToISO (contiguous, all tested)
-        'src/utils.js:244-247', // dailyCompoundInterest
+        'src/utils.js:10-83', // formatCurrency, normalizeText, sanitizeFiniteNumber, parseFiniteOrNull, formatShortDate, formatMonthYear, sanitizeInteger, sanitizeDateISO
+        'src/utils.js:92-97', // dateToISO
+        'src/utils.js:284-287', // dailyCompoundInterest
         'src/sanitizers.js:5-58', // sanitizeAccount, sanitizeDebt, sanitizeIncome
         'src/sanitizers.js:72-93', // sanitizeBill, sanitizeExpense
         'src/sanitizers.js:95-125', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
@@ -23,8 +24,8 @@ export default {
     jest: {
         configFile: 'jest.config.js',
     },
-    // Derived from the real local mutation run (score 46.93%) with mutate scope
+    // Derived from the real local mutation run (score 48.77%) with mutate scope
     // narrowed to only the tested functions: low = floor(score), break = low-10,
     // high = low+5.
-    thresholds: { high: 51, low: 46, break: 36 },
+    thresholds: { high: 53, low: 48, break: 38 },
 };

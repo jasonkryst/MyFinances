@@ -6,9 +6,19 @@ import { createSession, destroySession } from '../auth/sessions.js';
 import { generateToken, requireCsrf } from '../auth/middleware.js';
 import { sendTemplatedEmail } from '../email/send.js';
 
-const SECURE = process.env.NODE_ENV === 'production';
-const SESSION_COOKIE_OPTS = { httpOnly: true, secure: SECURE, sameSite: 'strict', path: '/' };
-const CSRF_COOKIE_OPTS = { httpOnly: false, secure: SECURE, sameSite: 'strict', path: '/' };
+// `secure` is derived per-request from `req.secure` rather than a static
+// NODE_ENV flag: with `trust proxy` set (server/src/app.js), Express derives
+// req.secure from nginx's X-Forwarded-Proto header, so cookies are Secure
+// exactly when the request actually arrived over HTTPS -- correct for local
+// HTTP testing (no manual flag needed) and correct the moment HTTPS is
+// terminated in front, with no deployment-sequencing gap either way. See
+// docs/audit/security/SECURITY_AUDIT_2026-09-02.md's NODE_ENV addendum.
+function sessionCookieOpts(req) {
+    return { httpOnly: true, secure: req.secure, sameSite: 'strict', path: '/' };
+}
+function csrfCookieOpts(req) {
+    return { httpOnly: false, secure: req.secure, sameSite: 'strict', path: '/' };
+}
 
 // A factory, not a module-level singleton -- express-rate-limit's default
 // MemoryStore is created fresh per call, so each createApp() instance gets
@@ -85,8 +95,8 @@ export function createAuthRouter() {
 
             const session = await createSession(rows[0].id);
             const csrfToken = generateToken();
-            res.cookie('session', session.id, { ...SESSION_COOKIE_OPTS, expires: session.expiresAt });
-            res.cookie('csrf', csrfToken, { ...CSRF_COOKIE_OPTS, expires: session.expiresAt });
+            res.cookie('session', session.id, { ...sessionCookieOpts(req), expires: session.expiresAt });
+            res.cookie('csrf', csrfToken, { ...csrfCookieOpts(req), expires: session.expiresAt });
 
             try {
                 await sendTemplatedEmail(email, 'welcomeEmail', { email });
@@ -114,8 +124,8 @@ export function createAuthRouter() {
 
             const session = await createSession(rows[0].id);
             const csrfToken = generateToken();
-            res.cookie('session', session.id, { ...SESSION_COOKIE_OPTS, expires: session.expiresAt });
-            res.cookie('csrf', csrfToken, { ...CSRF_COOKIE_OPTS, expires: session.expiresAt });
+            res.cookie('session', session.id, { ...sessionCookieOpts(req), expires: session.expiresAt });
+            res.cookie('csrf', csrfToken, { ...csrfCookieOpts(req), expires: session.expiresAt });
             res.json({ ok: true });
         } catch (err) {
             next(err);

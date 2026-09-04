@@ -224,6 +224,174 @@ def test_reconcile_modal_focus_and_keyboard_trap(app_page):
 
 
 @pytest.mark.ui
+def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
+    """Tab from the last focusable element wraps to the first, and vice versa.
+
+    Audit finding a11y F3 (2026-09-02): the Reconcile modal had no Tab
+    handler at all, so keyboard/screen-reader users could Tab straight out
+    into background page controls. Fixed 2026-09-03.
+    """
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    # The reconcile *modal* opens from the Ledger page's per-account filter
+    # (not the Reconcile page's own inline reconcileAccount() form, a
+    # separate code path keyed off the same "reconcile" wording).
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+    page.select_option('#ledgerAccountFilter', index=1)
+    page.wait_for_timeout(200)
+    page.click('#reconcileFromLedgerBtn')
+    page.wait_for_timeout(300)
+
+    # Last focusable -> Tab -> wraps to first (close button)
+    page.evaluate("() => document.getElementById('reconcileModalCancelBtn').focus()")
+    page.keyboard.press('Tab')
+    assert page.evaluate('() => document.activeElement.id') == 'reconcileModalCloseBtn', \
+        "Tab from the last focusable element should wrap to the first"
+
+    # First focusable -> Shift+Tab -> wraps to last (cancel button)
+    page.evaluate("() => document.getElementById('reconcileModalCloseBtn').focus()")
+    page.keyboard.press('Shift+Tab')
+    assert page.evaluate('() => document.activeElement.id') == 'reconcileModalCancelBtn', \
+        "Shift+Tab from the first focusable element should wrap to the last"
+
+
+@pytest.mark.ui
+def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
+    """Closing the Reconcile modal returns focus to the button that opened it."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_timeout(300)
+    page.select_option('#ledgerAccountFilter', index=1)
+    page.wait_for_timeout(200)
+    page.click('#reconcileFromLedgerBtn')
+    page.wait_for_timeout(300)
+
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(300)
+
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'reconcileFromLedgerBtn', "Focus should return to the triggering Reconcile button"
+
+
+@pytest.mark.ui
+def test_delete_confirm_modal_tab_trap_cycles_focus(app_page, debt_data):
+    """Tab from the last focusable element wraps to the first, and vice versa.
+
+    Audit finding a11y F3 (2026-09-02): showDeleteConfirmModal() -- the
+    app-wide generic delete confirmation, reused everywhere -- had no Tab
+    trap and no focus-restore. Fixed 2026-09-03.
+    """
+    page = app_page
+    create_debt(page, debt_data)
+    page.click('[data-debt-action="delete"]')
+    page.wait_for_timeout(300)
+
+    modal_visible = page.evaluate(
+        '() => document.getElementById("deleteConfirmModal")?.classList.contains("flex-visible")'
+    )
+    assert modal_visible, "Expected the delete-confirm modal to be open"
+
+    # Cancel is focused by default (last focusable) -> Tab -> wraps to Confirm (first)
+    assert page.evaluate('() => document.activeElement.id') == 'deleteConfirmCancelBtn'
+    page.keyboard.press('Tab')
+    assert page.evaluate('() => document.activeElement.id') == 'deleteConfirmBtn', \
+        "Tab from the last focusable element should wrap to the first"
+
+    page.keyboard.press('Shift+Tab')
+    assert page.evaluate('() => document.activeElement.id') == 'deleteConfirmCancelBtn', \
+        "Shift+Tab from the first focusable element should wrap to the last"
+
+
+@pytest.mark.ui
+def test_delete_confirm_modal_restores_focus_on_dismiss(app_page, debt_data):
+    """Dismissing the delete-confirm modal returns focus to the button that opened it."""
+    page = app_page
+    create_debt(page, debt_data)
+    page.click('[data-debt-action="delete"]')
+    page.wait_for_timeout(300)
+
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(300)
+
+    focused_action = page.evaluate('() => document.activeElement.getAttribute("data-debt-action")')
+    assert focused_action == 'delete', "Focus should return to the triggering delete button"
+
+
+@pytest.mark.ui
+def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_data):
+    """The account-replacement modal (shown when deleting an account with
+    linked items) traps Tab focus and restores it to the triggering button
+    on dismiss.
+
+    Audit finding a11y F3 (2026-09-02): showAccountReplacementModal() had
+    no Tab trap and no focus-restore. Fixed 2026-09-03.
+    """
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', 'Linked Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+    page.fill('#accountName', 'Spare Account')
+    page.select_option('#accountType', label='Savings')
+    page.fill('#accountStartingBalance', '500')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    # Link a debt to the first account so deleting it triggers the replacement modal.
+    linked_account_id = page.evaluate("""() => {
+        const app = window.app;
+        const acct = app.accounts.find(a => a.name === 'Linked Account');
+        app.debts = [{ id: 9001, name: 'Linked Debt', category: 'Credit Card', debtType: 'creditCard',
+            priority: 1, accountId: acct.id, accountBalance: 500, interestRate: 10, minimumPayment: 25, dueDate: 15 }];
+        app.saveToStorage();
+        app.renderAccountsList();
+        return acct.id;
+    }""")
+    page.wait_for_timeout(200)
+
+    delete_btn = page.query_selector(f'button[data-account-action="delete"][data-account-id="{linked_account_id}"]')
+    delete_btn.click()
+    page.wait_for_timeout(300)
+
+    modal_visible = page.evaluate(
+        '() => document.getElementById("accountReplacementModal")?.classList.contains("flex-visible")'
+    )
+    assert modal_visible, "Expected the account-replacement modal to be open for an account with linked items"
+
+    # Cancel is focused by default (last focusable) -> Tab -> wraps to select (first)
+    assert page.evaluate('() => document.activeElement.id') == 'accountReplacementCancelBtn'
+    page.keyboard.press('Tab')
+    assert page.evaluate('() => document.activeElement.id') == 'accountReplacementSelect', \
+        "Tab from the last focusable element should wrap to the first"
+
+    page.keyboard.press('Shift+Tab')
+    assert page.evaluate('() => document.activeElement.id') == 'accountReplacementCancelBtn', \
+        "Shift+Tab from the first focusable element should wrap to the last"
+
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(300)
+
+    focused_action = page.evaluate('() => document.activeElement.getAttribute("data-account-action")')
+    assert focused_action == 'delete', "Focus should return to the triggering delete button"
+
+
+@pytest.mark.ui
 def test_reports_print_button_has_accessible_label(app_page):
     """#rptPrintBtn must have a non-empty aria-label for screen readers."""
     page = app_page

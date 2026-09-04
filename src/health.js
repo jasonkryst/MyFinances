@@ -349,21 +349,21 @@ export function renderHealthDashboard(app) {
     renderGauge(app, '_healthSavingsChart', 'healthSavingsGauge', savingsPct, savingsSt.cls, gaugeGray);
 
     renderChartDataTable('healthDtiGauge', {
-        caption: 'Debt-to-Income Ratio',
-        columns: ['Metric', 'Value'],
+        caption: t('health.dtiTitle'),
+        columns: [t('health.srTableMetric'), t('health.srTableValue')],
         rows: [
-            ['Debt-to-Income Ratio', `${dtiPct.toFixed(1)}%`],
-            ['Monthly debt payments', formatCurrency(totalDebtMin)],
-            ['Monthly income', formatCurrency(monthlyIncome)]
+            [t('health.dtiTitle'), `${dtiPct.toFixed(1)}%`],
+            [t('health.monthlyDebtPayments'), formatCurrency(totalDebtMin)],
+            [t('health.monthlyIncome'), formatCurrency(monthlyIncome)]
         ]
     });
     renderChartDataTable('healthSavingsGauge', {
-        caption: 'Savings Rate',
-        columns: ['Metric', 'Value'],
+        caption: t('health.savingsTitle'),
+        columns: [t('health.srTableMetric'), t('health.srTableValue')],
         rows: [
-            ['Savings Rate', `${savingsPct.toFixed(1)}%`],
-            ['Monthly amount saved', formatCurrency(totalSavingsContrib)],
-            ['Monthly income', formatCurrency(monthlyIncome)]
+            [t('health.savingsTitle'), `${savingsPct.toFixed(1)}%`],
+            [t('health.monthlyAmountSaved'), formatCurrency(totalSavingsContrib)],
+            [t('health.monthlyIncome'), formatCurrency(monthlyIncome)]
         ]
     });
 

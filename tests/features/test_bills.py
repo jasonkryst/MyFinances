@@ -3,7 +3,7 @@
 Bills Data & Calculation Tests
 
 NOTE on current state: the Bills feature has no reachable add/edit UI.
-`src/bills.js` still defines `addBill`/`renderBillList`/`startEditBill`/etc.
+`src/bills.js` still defines `addBill`/`startEditBill`/etc.
 targeting DOM ids (#billForm, #billName, #billList...) that do not exist
 anywhere in index.html, and the `<section id="budgetSection">` they belong
 to has no nav button pointing to it. `app.bills` is nonetheless still read

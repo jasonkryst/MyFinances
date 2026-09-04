@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale } from './i18n.js';
 
-export const APP_VERSION = '4.43.0';
+export const APP_VERSION = '4.44.0';
 
 
 // Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50" in
@@ -198,10 +198,6 @@ export function getIncomePaydaysInMonth(income, year, month) {
 
 export function countIncomePaydaysInMonth(income, year, month) {
     return getIncomePaydaysInMonth(income, year, month).length;
-}
-
-export function incomeDaysInMonth(inc, year, month) {
-    return getIncomePaydaysInMonth(inc, year, month).map(d => d.getDate());
 }
 
 export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {

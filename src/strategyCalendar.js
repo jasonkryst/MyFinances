@@ -2,6 +2,8 @@
 
 import {
     getBillsByDayForMonth,
+    getExpensesByDayForMonth,
+    getBonusesByDayForMonth,
     getIncomeEventsByMonthForRange,
     formatCurrency,
     escapeHtml
@@ -61,12 +63,16 @@ export function renderCalendarView(app, page = 0) {
 
     const hasIncome = (app.incomes || []).length > 0;
     const hasBills = (app.bills || []).some(b => b.dueDay);
+    const hasExpenses = (app.expenses || []).some(e => e.date);
+    const hasBonuses = (app.bonuses || []).some(b => b.date);
     const legendDiv = document.createElement('div');
     legendDiv.className = 'cal-legend';
     legendDiv.innerHTML = `
         <span class="cal-legend-item"><span class="cal-legend-swatch bg-blue-debt"></span>Debt payment</span>
         ${hasIncome ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--income"></span>Payday</span>` : ''}
         ${hasBills ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bill"></span>Bill due</span>` : ''}
+        ${hasExpenses ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--expense"></span>Expense</span>` : ''}
+        ${hasBonuses ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bonus"></span>Bonus</span>` : ''}
         <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--today"></span>Today</span>
     `;
     container.appendChild(legendDiv);
@@ -106,6 +112,8 @@ export function renderCalendarView(app, page = 0) {
         }
 
         const dayBills = getBillsByDayForMonth(app.bills, year, month);
+        const dayExpenses = getExpensesByDayForMonth(app.expenses, year, month);
+        const dayBonuses = getBonusesByDayForMonth(app.bonuses, year, month);
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -122,7 +130,9 @@ export function renderCalendarView(app, page = 0) {
             const events = dayPayments[day] || [];
             const incomes = dayIncome[day] || [];
             const bills = dayBills[day] || [];
-            const hasEvents = events.length > 0 || incomes.length > 0 || bills.length > 0;
+            const expenses = dayExpenses[day] || [];
+            const bonuses = dayBonuses[day] || [];
+            const hasEvents = events.length > 0 || incomes.length > 0 || bills.length > 0 || expenses.length > 0 || bonuses.length > 0;
             const isToday = (year === todayYear && month === todayMonth && day === todayDay);
 
             gridHTML += `<div class="cal-cell${hasEvents ? ' cal-has-events' : ''}${isToday ? ' cal-today' : ''}">
@@ -146,6 +156,20 @@ export function renderCalendarView(app, page = 0) {
                 gridHTML += `<div class="cal-bill-event" title="🧾 ${escapeHtml(bill.name)}: ${formatCurrency(bill.amount)}">
                     <span class="cal-bill-name">🧾 ${escapeHtml(bill.name)}</span>
                     <span class="cal-bill-amount">${formatCurrency(bill.amount)}</span>
+                </div>`;
+            }
+
+            for (const exp of expenses) {
+                gridHTML += `<div class="cal-expense-event" title="📊 ${escapeHtml(exp.name)}: ${formatCurrency(exp.budgetAmount)}">
+                    <span class="cal-expense-name">📊 ${escapeHtml(exp.name)}</span>
+                    <span class="cal-expense-amount">${formatCurrency(exp.budgetAmount)}</span>
+                </div>`;
+            }
+
+            for (const bonus of bonuses) {
+                gridHTML += `<div class="cal-bonus-event" title="🎁 ${escapeHtml(bonus.name)}: ${formatCurrency(bonus.amount)}">
+                    <span class="cal-bonus-name">🎁 ${escapeHtml(bonus.name)}</span>
+                    <span class="cal-bonus-amount">${formatCurrency(bonus.amount)}</span>
                 </div>`;
             }
 

@@ -332,7 +332,12 @@ def collect_audit_findings(headless=True):
         page.wait_for_selector("#settingsModal", state="hidden", timeout=5000)
         for name in PAGES:
             page.evaluate("(p) => window.app.switchPage(p)", name)
-            page.wait_for_timeout(150)
+            # 350ms, not 150ms: .nav-group-label's `transition: background
+            # 0.15s, color 0.15s` (styles.css) is still resolving at exactly
+            # 150ms, producing borderline mid-transition contrast readings
+            # (confirmed 2026-09-03 — settled readings are 8.72:1-21:1, well
+            # above the 4.5:1 threshold; see a11y audit report Finding F1).
+            page.wait_for_timeout(350)
             results["dark_mode_contrast"][name] = page.evaluate(JS_CONTRAST)
         page.click("#settingsBtn")
         page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)

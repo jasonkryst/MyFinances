@@ -29,6 +29,33 @@ test('login with correct credentials sets session and csrf cookies', async () =>
     assert.ok(cookies.some(c => c.startsWith('csrf=')));
 });
 
+test('login over plain HTTP (no X-Forwarded-Proto) does not mark cookies Secure', async () => {
+    const user = await createTestUser();
+    const res = await loginTestUser(baseUrl, user.email, user.password);
+    const cookies = res.headers.getSetCookie();
+    assert.ok(cookies.length > 0);
+    for (const c of cookies) assert.ok(!/;\s*Secure/i.test(c), `expected no Secure flag on: ${c}`);
+});
+
+test('login behind a proxy that terminated HTTPS (X-Forwarded-Proto: https) marks cookies Secure', async () => {
+    // `trust proxy` (server/src/app.js) is what makes Express honor this
+    // header for req.secure instead of ignoring it -- this is the fix for
+    // docs/audit/security/SECURITY_AUDIT_2026-09-02.md's NODE_ENV addendum:
+    // Secure is now derived per-request, not from a static NODE_ENV flag
+    // that had to be flipped manually and in the right order relative to
+    // when HTTPS actually went live.
+    const user = await createTestUser();
+    const res = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-Proto': 'https' },
+        body: JSON.stringify({ email: user.email, password: user.password })
+    });
+    assert.equal(res.status, 200);
+    const cookies = res.headers.getSetCookie();
+    assert.ok(cookies.some(c => c.startsWith('session=') && /;\s*Secure/i.test(c)));
+    assert.ok(cookies.some(c => c.startsWith('csrf=') && /;\s*Secure/i.test(c)));
+});
+
 test('login with wrong password returns generic 401', async () => {
     const user = await createTestUser();
     const res = await loginTestUser(baseUrl, user.email, 'totally wrong password');

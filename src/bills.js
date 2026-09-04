@@ -1,5 +1,5 @@
 ﻿// Bills and expenses
-import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable } from './utils.js';
+import { formatCurrency, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
@@ -11,97 +11,6 @@ export function renderBudgetPage(app) {
     if (app._cashflowBarChart)   { app._cashflowBarChart.destroy();   app._cashflowBarChart   = null; }
     renderExpenseList(app);
     renderCashFlowSummary(app);
-}
-
-export function renderBillList(app) {
-    const container = document.getElementById('billList');
-    if (!container) return;
-    const BILL_CATS = ['Utilities','Internet / Phone','Insurance','Subscription','Rent / Mortgage','Transport','Other'];
-    if (app.bills.length === 0) {
-        container.innerHTML = `<p class="empty-budget-msg">No bills added yet.</p>`;
-        return;
-    }
-
-    const cards = app.bills.map(bill => {
-        if (app.editingBillId === bill.id) {
-            return `<div class="budget-card budget-card--editing">
-                <div class="budget-edit-grid">
-                    <div class="form-group form-no-margin"><label class="label-compact">Name</label>
-                        <input type="text" id="be-name-${bill.id}" value="${escapeHtml(bill.name)}" class="form-control"></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Amount ($)</label>
-                        <input type="number" id="be-amount-${bill.id}" value="${bill.amount}" step="0.01" min="0" class="form-control"></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Due Day</label>
-                        <input type="number" id="be-dueday-${bill.id}" value="${bill.dueDay || ''}" min="1" max="31" class="form-control" placeholder="—"></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Category</label>
-                        <select id="be-cat-${bill.id}" class="form-control">
-                            ${BILL_CATS.map(c => `<option value="${c}" ${bill.category===c?'selected':''}>${c}</option>`).join('')}
-                        </select></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Account</label>
-                        <select id="be-acct-${bill.id}" class="form-control">
-                            ${buildAccountOptionsHtml(app.accounts, bill.accountId, { emptyLabel: '— No account —' })}
-                        </select></div>
-                </div>
-                <div class="budget-edit-actions">
-                    <button class="btn btn-primary btn-small" data-bill-action="save" data-bill-id="${bill.id}">Save</button>
-                    <button class="btn btn-secondary btn-small" data-bill-action="cancel">Cancel</button>
-                </div>
-            </div>`;
-        }
-        const dueTxt = bill.dueDay ? `Due: ${getDayOrdinal(bill.dueDay)}` : 'No due day set';
-        return `<div class="budget-card">
-            <div class="budget-card-info">
-                <span class="budget-card-name">${escapeHtml(bill.name)}</span>
-                <span class="budget-card-amount">${formatCurrency(bill.amount)}<span class="budget-card-period">/mo</span></span>
-                <span class="budget-card-meta">${escapeHtml(bill.category)} &bull; ${escapeHtml(dueTxt)}</span>
-            </div>
-            <div class="budget-card-actions">
-                <button class="btn-edit" data-bill-action="edit" data-bill-id="${bill.id}">Edit</button>
-                <button class="btn btn-danger btn-small" data-bill-action="delete" data-bill-id="${bill.id}">Delete</button>
-            </div>
-        </div>`;
-    }).join('');
-
-    const catMap = {};
-    for (const bill of app.bills) {
-        const cat = bill.category || 'Other';
-        if (!catMap[cat]) catMap[cat] = { count: 0, total: 0 };
-        catMap[cat].count++;
-        catMap[cat].total += bill.amount;
-    }
-    const totalBills = app.bills.reduce((s, b) => s + b.amount, 0);
-    const catRows = Object.entries(catMap)
-        .sort((a, b) => b[1].total - a[1].total)
-        .map(([cat, v]) => `
-            <div class="budget-cat-row">
-                <span class="budget-cat-name">${escapeHtml(cat)}</span>
-                <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
-                <span class="budget-cat-amount">${formatCurrency(v.total)}/mo</span>
-            </div>`).join('');
-
-    const summaryHTML = `
-        <div class="budget-cat-summary">
-            <div class="budget-cat-summary-header">
-                <span>Bills by Category</span>
-                <span class="budget-cat-summary-total">${formatCurrency(totalBills)}/mo total</span>
-            </div>
-            ${catRows}
-        </div>`;
-
-    container.innerHTML = cards + summaryHTML;
-    container.onclick = (event) => {
-        const actionEl = event.target.closest('[data-bill-action]');
-        if (!actionEl) return;
-        const action = actionEl.getAttribute('data-bill-action');
-        const id = parseInt(actionEl.getAttribute('data-bill-id'), 10);
-        if (action === 'cancel') {
-            app.cancelEditBill();
-            return;
-        }
-        if (Number.isNaN(id)) return;
-        if (action === 'save') app.saveEditBill(id);
-        if (action === 'edit') app.startEditBill(id);
-        if (action === 'delete') app.deleteBill(id);
-    };
 }
 
 export function renderExpenseList(app) {

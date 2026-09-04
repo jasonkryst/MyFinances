@@ -70,6 +70,8 @@ At the 375×667 mobile viewport, `#healthPrintBtn` measures **81×30px** — bel
 
 ## F3 — [Moderate] Three of the app's modal dialogs lack a keyboard focus trap, and two of them never restore focus on dismiss
 
+**RESOLVED 2026-09-04.** All 3 modals (`openReconcileModal()` in `src/reconciliation.js`, `showDeleteConfirmModal()`/`showAccountReplacementModal()` in `src/ui.js`) now implement the same first/last-focusable Tab-cycling pattern already used by the Update Balance/Amortization/Break-even modals, plus focus-restore to the triggering element on dismiss (the two `ui.js` modals previously had neither). 6 new Playwright tests in `tests/ui/test_accessibility.py` cover Tab-wrap in both directions and focus-restore for all 3 modals — genuine Tab-cycling assertions, closing the gap this finding also flagged in the existing (misleadingly-named) `test_reconcile_modal_focus_and_keyboard_trap`/`test_settings_modal_focus_and_keyboard_trap` tests, neither of which actually tested Tab.
+
 **Severity:** Moderate. **WCAG 2.4.3 Focus Order** (and the ARIA Authoring Practices Guide's Dialog (Modal) pattern, which both this app's own conventions and its other modals otherwise follow).
 **Not caught by:** `run_a11y_audit.py`'s live-DOM walk (it only exercises Update Balance, Reconcile-open/Escape, and Amortization — none of which probe Tab cycling — see `tests/a11y/run_a11y_audit.py:344-431`), nor by `tests/ui/test_accessibility.py` (which only checks the Reconcile modal's Escape/focus behavior, not Tab).
 

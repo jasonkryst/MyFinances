@@ -6,7 +6,9 @@
 
 > **Post-audit update:** the `clearedAt` truncation bug documented below (§ Failing test) was fixed the same day, per this report's own recommendation — a new `sanitizeTimestampISO()` helper was added to `src/utils.js` and wired into both `src/sanitizers.js` and `server/src/routes/ledgerCleared.js` in place of the date-only `sanitizeDateISO()`, including the `ledgerAmountOverrides.updatedAt` sibling instance this report also flagged. Re-running `server/test/` against a fresh migrated test container afterward showed **86/86 passing** (previously 85/86). The findings below are left as-written since they're the audit trail that led to the fix.
 >
-> **Second post-audit update (v4.41.0, PR #139):** findings H1 (indexes), H2 (backup/restore), and M3 (enum `CHECK` constraints) are now resolved — see their entries under "Findings by severity" below. M1, M2, and M4 remain open.
+> **Second post-audit update (v4.41.0, PR #139):** findings H1 (indexes), H2 (backup/restore), and M3 (enum `CHECK` constraints) are now resolved — see their entries under "Findings by severity" below.
+>
+> **Third post-audit update (2026-09-04, PR TBD):** M1 (`trust proxy`) and M2 (`statement_timeout`/pool sizing/SSL) are now also resolved — see their entries below. Only M4 (`nginx.conf` proxy timeouts/body-size limit) remains open.
 
 ---
 
@@ -70,10 +72,10 @@ All six migrations (`server/migrations/1755600000000`–`1755600000005`) create 
 
 ### Medium
 
-**M1 — Express `trust proxy` is never set; rate limiters key off nginx's IP, not the real client.**
+**M1 — RESOLVED 2026-09-04.** `app.set('trust proxy', 1)` added to `createApp()` (`server/src/app.js`). This also enabled a proper fix for the Security audit's `NODE_ENV`/Secure-cookie finding — see that report's addendum. Verified via `server/test/app.test.js`'s `trust proxy is set to trust exactly one hop`. **Express `trust proxy` is never set; rate limiters key off nginx's IP, not the real client.**
 `server/src/app.js` never calls `app.set('trust proxy', ...)`. `nginx.conf:43` forwards `X-Forwarded-For: $proxy_add_x_forwarded_for` to `/api/` and `/auth/`, but without `trust proxy` configured, Express's `req.ip` (which `express-rate-limit` keys on by default — see `loginLimiter`/`registerLimiter`/`setupStatusLimiter` in `server/src/routes/auth.js:21-45`) resolves to the immediate socket peer, i.e. the nginx container, identical for every real client. Effect: the 5-attempts/15-min login and register limiters are shared across **all** clients behind the proxy rather than per-client — one failed brute-force burst from any source exhausts the bucket for the legitimate self-hosted user too, and per-IP lockout provides no actual attacker isolation. **Fix:** `app.set('trust proxy', 1)` in `createApp()` (one hop — nginx is the only proxy in front of it) so `req.ip` reflects `X-Forwarded-For`'s real client address.
 
-**M2 — No `statement_timeout`, pool-size, or SSL configuration in `db.js`.**
+**M2 — RESOLVED 2026-09-04.** `server/src/db.js`'s `Pool` now sets `statement_timeout: 30000`, `max: 10`, `idleTimeoutMillis: 30000`, `connectionTimeoutMillis: 10000`, and conditional `ssl` (skipped only for the `postgres`/`localhost`/`127.0.0.1` hosts this app's own deployment paths ever produce; required with full certificate validation — no opt-out — for any other host). **No `statement_timeout`, pool-size, or SSL configuration in `db.js`.**
 `server/src/db.js:21` constructs `new Pool({ connectionString: process.env.DATABASE_URL })` with no `max`, `idleTimeoutMillis`, `connectionTimeoutMillis`, `statement_timeout`, or `ssl` option — all left at `pg` library defaults (`max: 10`, no query timeout at all). A runaway/blocked query can hold a pool connection indefinitely, and there is no enforced encryption in transit between `server` and `postgres` even if a future deployment puts them on separate hosts. Consistent with `server/docker-entrypoint.sh:9`'s constructed URL, which also has no `?sslmode=`. Low urgency while both containers share one Docker bridge network, but worth hardening before any non-local Postgres target is supported. **Fix:** set a conservative `statement_timeout` (e.g. via `SET statement_timeout` per-connection or a `-c statement_timeout=30000` in the connection string), and make `ssl` conditional on the connection host not being the local Docker network.
 
 **M3 — RESOLVED (v4.41.0, PR #139).** `server/migrations/1755600000007_add-enum-check-constraints.js` adds the recommended constraints. **Enum-shaped columns lack `CHECK` constraints that sanitizers imply, inconsistently with the one column that does.**

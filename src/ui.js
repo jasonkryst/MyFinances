@@ -809,19 +809,34 @@ export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
 
         if (messageEl) messageEl.textContent = message;
 
+        const lastFocused = document.activeElement;
         const dismiss = (result) => {
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             modal.onkeydown = null;
             modal.classList.add('hidden');
             modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
             resolve(result);
         };
 
         confirmBtn.onclick = () => dismiss(true);
         cancelBtn.onclick = () => dismiss(false);
         modal.onkeydown = (event) => {
-            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); }
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); return; }
+            if (event.key === 'Tab') {
+                const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
         };
 
         modal.classList.add('flex-visible');
@@ -876,6 +891,7 @@ export function showAccountReplacementModal(app, id) {
         const onSelectChange = () => { if (confirmBtn) confirmBtn.disabled = !select?.value; };
         if (select) select.onchange = onSelectChange;
 
+        const lastFocused = document.activeElement;
         const dismiss = (result) => {
             if (confirmBtn) confirmBtn.onclick = null;
             if (cancelBtn) cancelBtn.onclick = null;
@@ -883,12 +899,28 @@ export function showAccountReplacementModal(app, id) {
             modal.onkeydown = null;
             modal.classList.add('hidden');
             modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
             resolve(result);
         };
 
         if (confirmBtn) confirmBtn.onclick = () => dismiss(parseInt(select.value, 10));
         if (cancelBtn) cancelBtn.onclick = () => dismiss(null);
-        modal.onkeydown = (event) => { if (event.key === 'Escape') { event.preventDefault(); dismiss(null); } };
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(null); return; }
+            if (event.key === 'Tab') {
+                const focusable = modal.querySelectorAll('button, input, select, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
 
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
