@@ -5,6 +5,8 @@
 **Method:** Live test run against a real `postgres:16-alpine` container (`server/docker-compose.test.yml`, port 5433) with migrations applied via `node-pg-migrate`, plus a full static read of every migration, the generic CRUD/keyed-resource routers, connection pooling config, and the production Docker/nginx deployment files.
 
 > **Post-audit update:** the `clearedAt` truncation bug documented below (§ Failing test) was fixed the same day, per this report's own recommendation — a new `sanitizeTimestampISO()` helper was added to `src/utils.js` and wired into both `src/sanitizers.js` and `server/src/routes/ledgerCleared.js` in place of the date-only `sanitizeDateISO()`, including the `ledgerAmountOverrides.updatedAt` sibling instance this report also flagged. Re-running `server/test/` against a fresh migrated test container afterward showed **86/86 passing** (previously 85/86). The findings below are left as-written since they're the audit trail that led to the fix.
+>
+> **Second post-audit update (v4.41.0, PR #139):** findings H1 (indexes), H2 (backup/restore), and M3 (enum `CHECK` constraints) are now resolved — see their entries under "Findings by severity" below. M1, M2, and M4 remain open.
 
 ---
 
@@ -57,13 +59,13 @@ AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
 
 ### High
 
-**H1 — No indexes anywhere except primary keys; FK columns are unindexed.**
+**H1 — RESOLVED (v4.41.0, PR #139).** `server/migrations/1755600000006_add-user-and-account-indexes.js` adds the recommended indexes. **No indexes anywhere except primary keys; FK columns are unindexed.**
 All six migrations (`server/migrations/1755600000000`–`1755600000005`) create tables with `bigserial PRIMARY KEY` / composite `PRIMARY KEY` only — there is not a single `CREATE INDEX` statement in the entire migration history (confirmed via full-text search). Every `account_id` foreign key (`bills.account_id`, `expenses.account_id`, `incomes.account_id`, `bonuses.account_id`, `debts.account_id`, `recurring_templates.account_id`/`target_account_id`, `emergency_funds.account_id`, `sinking_funds.account_id`, `reconciliations.account_id`, `ledger_amount_overrides.account_id`) is unindexed. Two concrete consequences:
 - `ON DELETE SET NULL` on every `account_id` FK (e.g. `server/migrations/1755600000001_create-first-crud-tables.js:17`) means deleting an account triggers a full sequential scan of each referencing table to find rows to null out.
 - `crudRouter.js:36` (`SELECT ... WHERE user_id = $1 ORDER BY id`) and `keyedRouter.js:30` (`SELECT ... WHERE user_id = $1`) run on every `GET /api/<resource>` call and currently sequential-scan their table; harmless today at self-hosted single-user scale, but the design should not rely on staying small — a household with years of ledger/expense history is exactly the growth case this app targets.
 - **Fix:** add `CREATE INDEX ON <table> (user_id)` for every user-scoped table, and `CREATE INDEX ON <table> (account_id)` for every table with an `account_id` FK, in a new migration (never edit an already-applied one).
 
-**H2 — No backup/restore story for the Postgres data volume.**
+**H2 — RESOLVED (v4.41.0, PR #139).** `backup.sh`/`backup.ps1` + `restore.sh`/`restore.ps1` now provide this, documented in `DEPLOYMENT.md`'s "Backup and Restore" section. **No backup/restore story for the Postgres data volume.**
 `DEPLOYMENT.md:383` lists "Regular backups implemented" as an **unchecked** checklist item with no accompanying instructions, script, or cron job anywhere in the repo (`server/scripts/`, `setup.sh`, `setup.ps1`, `docker-compose.yml` all searched — no `pg_dump`/backup reference found). The `postgres-data` named volume (`docker-compose.yml:41,71-72`) is the sole durability layer once a user migrates off `localStorage` to Postgres; there is currently no documented way to recover from volume loss/corruption. **Fix:** document (and ideally script) a `pg_dump`-based backup — e.g. a scheduled `docker compose exec postgres pg_dump ...` writing to a bind-mounted host directory — and a matching restore procedure, then check the DEPLOYMENT.md box for real.
 
 ### Medium
@@ -74,7 +76,7 @@ All six migrations (`server/migrations/1755600000000`–`1755600000005`) create 
 **M2 — No `statement_timeout`, pool-size, or SSL configuration in `db.js`.**
 `server/src/db.js:21` constructs `new Pool({ connectionString: process.env.DATABASE_URL })` with no `max`, `idleTimeoutMillis`, `connectionTimeoutMillis`, `statement_timeout`, or `ssl` option — all left at `pg` library defaults (`max: 10`, no query timeout at all). A runaway/blocked query can hold a pool connection indefinitely, and there is no enforced encryption in transit between `server` and `postgres` even if a future deployment puts them on separate hosts. Consistent with `server/docker-entrypoint.sh:9`'s constructed URL, which also has no `?sslmode=`. Low urgency while both containers share one Docker bridge network, but worth hardening before any non-local Postgres target is supported. **Fix:** set a conservative `statement_timeout` (e.g. via `SET statement_timeout` per-connection or a `-c statement_timeout=30000` in the connection string), and make `ssl` conditional on the connection host not being the local Docker network.
 
-**M3 — Enum-shaped columns lack `CHECK` constraints that sanitizers imply, inconsistently with the one column that does.**
+**M3 — RESOLVED (v4.41.0, PR #139).** `server/migrations/1755600000007_add-enum-check-constraints.js` adds the recommended constraints. **Enum-shaped columns lack `CHECK` constraints that sanitizers imply, inconsistently with the one column that does.**
 `server/migrations/1755600000001_create-first-crud-tables.js:52` gives `bonuses.purpose` a `CHECK (purpose IN ('cashFlow','savings'))` matching its sanitizer's allow-list, but the same pattern is not applied to other enum-like fields whose sanitizers enforce a fixed value set at the application layer only:
 - `recurring_templates.frequency` / `.type` — `src/sanitizers.js:129-130` (`['weekly','biweekly','monthly','quarterly','yearly']`, `['subscription','reimbursement','transfer']`) vs. plain `text NOT NULL DEFAULT` columns (`server/migrations/1755600000002_create-remaining-crud-tables.js:32,34`).
 - `sinking_funds.allocation_method` — `src/sanitizers.js:162` (`['fixed','annual','target_date']`) vs. plain `text` (`server/migrations/1755600000002...:60`).

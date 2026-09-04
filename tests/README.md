@@ -106,7 +106,7 @@ tests/
 │   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
 │   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   └── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
-├── ui/                         # UI/UX and responsive tests (233 tests, 27 files)
+├── ui/                         # UI/UX and responsive tests (235 tests, 27 files)
 │   ├── test_mobile.py          # Mobile responsiveness, hamburger menu, touch sizing
 │   ├── test_modals.py          # Modal visibility, close buttons, calendar day-detail
 │   ├── test_dark_mode.py       # Dark/light theme selection, persistence, corrupted-localStorage fallback
@@ -114,7 +114,7 @@ tests/
 │   ├── test_css_load.py        # External stylesheet, utility classes, responsive breakpoints
 │   ├── test_accessibility.py   # Keyboard nav, ARIA labels, semantic HTML, Results tab-bar
 │   ├── test_charts.py          # Chart.js destroy-before-recreate on repeated re-render
-│   ├── test_chart_accessibility.py # .sr-only data-table fallback for health/spending/forecast/net-worth charts
+│   ├── test_chart_accessibility.py # .sr-only data-table fallback for health/spending/forecast/net-worth/strategy/budget charts
 │   ├── test_guide_theme.py     # guide.html dark-mode sync via guideTheme.js
 │   ├── test_guide_nav.py       # guide.html sticky nav, back-link, mobile behavior
 │   ├── test_reduced_motion.py  # CSS transitions collapse + Chart.defaults.animation disabled
@@ -138,11 +138,12 @@ tests/
 │   ├── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
 │   ├── test_interest_income_workflow.py # End-to-end interest income workflow
 │   └── test_pwa_offline.py      # Offline app-shell behavior via the service worker
-└── postgres/                     # Optional PostgreSQL backend tests (41 tests — requires Docker stack)
+└── postgres/                     # Optional PostgreSQL backend tests (43 tests — requires Docker stack)
     ├── test_postgres_bootstrap.py     # Auth, login gate, session handling
     ├── test_postgres_import.py        # loadFromPostgres fan-out + import round-trip
     ├── test_postgres_mutations.py     # Per-resource CRUD via pgPost/pgPatch/pgDelete
     ├── test_postgres_migration.py     # local→Postgres one-time migration modal flow
+    ├── test_postgres_notifications.py # Mailpit-backed end-to-end coverage for the test-email flow
     └── test_postgres_setup_wizard.py  # First-run setup wizard against the Postgres backend
 ```
 
@@ -585,5 +586,5 @@ Refer to:
 
 ---
 
-**Last Updated:** September 2, 2026  
-**Test Suite Status:** ✅ Fully Passing (743 tests / 75 files, incl. 41 Postgres/CI-only tests across 5 files)
+**Last Updated:** September 3, 2026  
+**Test Suite Status:** ✅ Fully Passing (747 tests / 76 files, incl. 43 Postgres/CI-only tests across 6 files)

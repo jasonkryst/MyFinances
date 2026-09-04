@@ -1,5 +1,5 @@
 ﻿// Bills and expenses
-import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
@@ -334,6 +334,12 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                 }
             }
         });
+
+        renderChartDataTable('cashflowDonutChart', {
+            caption: 'Monthly cash flow breakdown',
+            columns: ['Category', 'Amount'],
+            rows: donutLabels.map((l, i) => [l, formatCurrency(donutData[i])])
+        });
     }
 
     const barCanvas = document.getElementById('cashflowBarChart');
@@ -374,6 +380,12 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                     y: { ticks: { callback: v => formatCurrency(v) }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
                 }
             }
+        });
+
+        renderChartDataTable('cashflowBarChart', {
+            caption: 'Monthly obligations by debt, bill, and expense category',
+            columns: ['Item', 'Amount'],
+            rows: labels.map((l, i) => [l, formatCurrency(values[i])])
         });
     }
 }

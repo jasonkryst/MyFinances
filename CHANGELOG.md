@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.43.0] — 2026-09-03
+
+### Fixed
+- **Follow-up fixes from the 2026-09-02 audit** (`docs/audit/AUDIT_SUMMARY_2026-09-02.md`) — the highest-impact remaining items not already covered by the database-hardening (4.41.0) or ledger-timestamp (4.40.1) fixes:
+  - **Render-blocking `debtCalculator.js`** — added `defer` to its `<script>` tag in `index.html` (Lighthouse-confirmed ~640ms render-blocking); safe since its only consumer, `app.js`, is itself a deferred `type="module"` script.
+  - **7 Chart.js canvases missing screen-reader table fallbacks** — all 5 Strategy/Plan charts (`src/charts.js`: payoff timeline, payment progress, interest-vs-principal, payment distribution, debt-to-income) and both Budget cash-flow charts (`src/bills.js`: cash-flow donut, obligations bar) now call `renderChartDataTable()`, matching the convention already followed everywhere else. New `tests/ui/test_chart_accessibility.py` coverage for both tab groups closes the gap that let this slip past the existing suite (which never visited those tabs).
+  - **Stale Stryker mutation scope** — `stryker.config.mjs`'s `sanitizers.js` line ranges no longer matched current line numbers after the 4.40.0 ledger-cleared feature shifted them; `sanitizeRecurringTemplate` was partially out of scope and `sanitizeLedgerOverrides`/`sanitizeLedgerClearedTransactions` had zero mutation coverage. Ranges corrected, both functions added to scope, and 8 new Jest tests added in `tests/unit/sanitizers.test.js` to actually exercise them. Thresholds re-derived from a real local run (46.93%).
+
+  A fourth finding — `docker-compose.yml` never setting `NODE_ENV=production` — was investigated and its obvious fix (setting it unconditionally) was reverted: `DEPLOYMENT.md`'s "HTTPS Requirement" section already documents, deliberately, that this must be set only *after* HTTPS is terminated in front of the stack, since the session cookie's `Secure` flag has no protocol-detection fallback and would otherwise silently break login over plain HTTP. Remains open pending a real fix.
+
+---
 ## [4.42.0] — 2026-09-03
 
 ### Added

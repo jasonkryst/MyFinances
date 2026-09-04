@@ -375,7 +375,7 @@ server/                     — Optional self-hosted Node.js + PostgreSQL backen
   ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
   ├─ Dockerfile            — node:24-alpine image (build context = repo root for sanitizer reuse)
   └─ README.md             — Server setup, dev, and deployment guide
-tests/ (743 tests across 75 files)
+tests/ (747 tests across 76 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/ (62 tests)     — XSS, CSP, input validation, static scan
@@ -393,7 +393,7 @@ tests/ (743 tests across 75 files)
   │   ├─ test_storage_backend.py, test_pwa.py, test_pwa_icons.py
   │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py, test_validation_modals.py
   │   └─ test_issue_92_export.py, test_issue_93_expense_save.py
-  ├─ ui/ (233 tests)          — UI/UX, responsiveness, accessibility
+  ├─ ui/ (235 tests)          — UI/UX, responsiveness, accessibility
   │   ├─ test_mobile.py, test_modals.py, test_dark_mode.py, test_high_contrast_theme.py
   │   ├─ test_css_load.py, test_accessibility.py, test_main_nav.py
   │   ├─ test_charts.py, test_chart_accessibility.py, test_guide_theme.py
@@ -408,11 +408,12 @@ tests/ (743 tests across 75 files)
   ├─ integration/ (18 tests)  — End-to-end workflows, import/export, data persistence
   │   ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
   │   └─ test_pwa_offline.py
-  └─ postgres/ (41 tests — requires Docker stack)
+  └─ postgres/ (43 tests — requires Docker stack)
       ├─ test_postgres_bootstrap.py     — Auth, login gate, session handling
       ├─ test_postgres_import.py        — loadFromPostgres fan-out + import round-trip
       ├─ test_postgres_mutations.py     — Per-resource CRUD via pgPost/pgPatch/pgDelete
       ├─ test_postgres_migration.py     — local→Postgres one-time migration modal flow
+      ├─ test_postgres_notifications.py — Mailpit-backed end-to-end coverage for the test-email flow
       └─ test_postgres_setup_wizard.py  — First-run setup wizard against the Postgres backend
 tools/
   ├─ debug/                   — Ad-hoc manual debugging scripts (not part of pytest suite)
@@ -498,11 +499,11 @@ form-action 'self'
 
 ---
 
-## 🧪 Testing Suite (Updated September 2, 2026)
+## 🧪 Testing Suite (Updated September 3, 2026)
 
 ### Test Statistics
-- **Total Tests**: 702 comprehensive tests (plus 41 Postgres/CI-only), all passing
-- **Test Files**: 70 organized across 6 categories (75 including `postgres/`)
+- **Total Tests**: 704 comprehensive tests (plus 43 Postgres/CI-only), all passing
+- **Test Files**: 70 organized across 6 categories (76 including `postgres/`)
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
@@ -538,7 +539,7 @@ form-action 'self'
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 - **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
 
-#### 🎨 UI/UX Tests (233 tests)
+#### 🎨 UI/UX Tests (235 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
 - **Modals** — Visibility toggling, close buttons, amortization, calendar day-detail, ledger export
 - **Dark Mode** — Theme switching, contrast, persistence, corrupted-localStorage fallback
@@ -547,7 +548,7 @@ form-action 'self'
 - **Accessibility** — Keyboard navigation, ARIA labels, semantic HTML, Results tab-bar semantics
 - **Guide Theme** — `guide.html` dark/light mode sync, nav back-link
 - **Charts** — Chart.js instance destroy-before-recreate on repeated re-render
-- **Chart Accessibility** — `.sr-only` data-table fallback present for health, spending, forecast, net-worth charts
+- **Chart Accessibility** — `.sr-only` data-table fallback present for health, spending, forecast, net-worth, strategy, and budget cash-flow charts
 - **Reduced Motion** — CSS transition-duration collapse and `Chart.defaults.animation` disabled under `prefers-reduced-motion`
 - **Command Palette** — Ctrl+K / toolbar open, filtering, empty-state, arrow-key navigation, Enter-to-navigate, Escape/backdrop close
 - **Setup Wizard** — First-run modal, setting persistence, skip flow
@@ -570,10 +571,10 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 743 tests (requires Docker for postgres/)
+pytest tests/ -v                  # All 747 tests (requires Docker for postgres/)
 pytest tests/security/ -v         # 62 security tests
 pytest tests/features/ -v         # 379 feature tests
-pytest tests/ui/ -v               # 233 UI/UX tests
+pytest tests/ui/ -v               # 235 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
 pytest tests/integration/ -v      # 18 integration tests
 pytest -m "security" -v           # All security tests by marker
@@ -678,4 +679,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.40.0 — Updated September 2, 2026*
+*MyFinances v4.43.0 — Updated September 3, 2026*

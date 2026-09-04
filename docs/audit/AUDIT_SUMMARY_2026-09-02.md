@@ -18,6 +18,38 @@ This file is the single entry point. Every finding below links back to its full 
 
 ---
 
+## Fixed in v4.41.0 (PR #139, prior to this file's last update)
+
+The three Database findings below were resolved by a follow-up PR and were never reflected back into this summary until now:
+
+| Type | Item | Fix |
+|---|---|---|
+| Database (H1) | Zero indexes beyond primary keys across all 6 migrations — every `user_id`/`account_id` FK column unindexed | New migration `server/migrations/1755600000006_add-user-and-account-indexes.js` adds a `CREATE INDEX` per FK column across all eleven affected tables. |
+| Database (H2) | No backup/restore story for the Postgres data volume anywhere in the repo or docs | New `backup.sh`/`backup.ps1` + `restore.sh`/`restore.ps1` wrapping `pg_dump -Fc`/`pg_restore`, documented in `DEPLOYMENT.md`'s new "Backup and Restore" section. |
+| Database (M3) | Several enum-shaped columns (`recurring_templates.frequency/type`, `sinking_funds.allocation_method`, `incomes.frequency`) lacked `CHECK` constraints | New migration `server/migrations/1755600000007_add-enum-check-constraints.js` adds them, matching sanitizer allow-lists. |
+
+See `database/DATABASE_AUDIT_2026-09-02.md` (H1/H2/M3 marked resolved) and the CHANGELOG's `[4.41.0]` entry.
+
+---
+
+## Fixed 2026-09-03
+
+Three of the highest-impact remaining open findings — not already covered by the database-hardening (4.41.0) or ledger-timestamp (4.40.1) fixes — were resolved in v4.43.0. A fourth (the `NODE_ENV` Security finding) was investigated, its obvious fix implemented, then **reverted** after it turned out to conflict with existing `DEPLOYMENT.md` guidance — see note below the table.
+
+| Type | Item | Fix |
+|---|---|---|
+| Performance | `index.html`'s `<script src="src/debtCalculator.js">` had no `defer`, confirmed render-blocking (~640ms) by Lighthouse | Added `defer`; safe since its only consumer, `app.js`, is itself a deferred `type="module"` script. `performance/PERFORMANCE_AUDIT_2026-09-02.md` updated. |
+| Accessibility | 7 of 16 Chart.js canvases (all 5 in `src/charts.js`'s Strategy/Plan Charts tab, both in `src/bills.js`'s Budget Charts tab) had no screen-reader `<table>` fallback | All 7 now call `renderChartDataTable()`. New `tests/ui/test_chart_accessibility.py` coverage (`test_strategy_schedule_charts_have_sr_tables`, `test_budget_cashflow_charts_have_sr_tables`) closes the gap that let this slip past the existing suite. `a11y/A11Y_AUDIT_REPORT_2026-09-02.md` (+ alias) updated. |
+| Testing | Stryker's `mutate` line-range config in `stryker.config.mjs` was stale, dropping most of `sanitizeRecurringTemplate` from mutation scope while `sanitizeLedgerOverrides`/`sanitizeLedgerClearedTransactions` had zero unit tests and unreliable coverage | Ranges corrected; 8 new Jest tests added for both functions in `tests/unit/sanitizers.test.js`; thresholds re-derived from a fresh run (46.93%). `test/TESTING_AUDIT_2026-09-02.md` updated. |
+
+Verified clean after all three fixes: 78/78 Jest, 62/62 `tests/security/`, 6/6 `tests/ui/test_chart_accessibility.py`, 240/240 full `tests/ui/` + `tests/features/test_bills.py`.
+
+**NODE_ENV finding: investigated, not fixed as a naive default.** `DEPLOYMENT.md`'s "HTTPS Requirement" section already documents (deliberately, from the 2026-09-02 doc-audit fix) that `NODE_ENV=production` must be set only *after* HTTPS is terminated in front of the stack — `auth.js`'s cookie `Secure` flag has no protocol-detection fallback, so setting it while still testing over plain HTTP silently breaks login. Hardcoding it into `docker-compose.yml` would trade that regression for the security hardening; reverted rather than shipped. Remains open, now with an explicit note in `security/SECURITY_AUDIT_2026-09-02.md` (+ alias) explaining why the obvious fix doesn't apply.
+
+Still open, deliberately deferred: `NODE_ENV`/Secure-cookie sequencing (Medium — needs a real design, not a blanket default), Lighthouse code-splitting (High, large effort), 3 of 6 modals missing focus-traps (Medium), i18n gaps (Medium), Postgres pool tuning/`trust proxy` (Medium), and the `qs`/`body-parser` `npm audit fix` (Misc — live dependency chain, no breaking change, still open).
+
+---
+
 ## Open findings by priority
 
 ### High
@@ -25,27 +57,21 @@ This file is the single entry point. Every finding below links back to its full 
 | Type | Finding | Report |
 |---|---|---|
 | Performance | Lighthouse performance score **0.60** (fails the 0.8 CI gate in `lighthouserc.json`); LCP 8.6s / TTI 8.6s. Root cause: 54 `src/*.js` modules load eagerly with zero code-splitting, and the LCP element sits behind the Setup Wizard's import chain. | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
-| Database | Zero indexes beyond primary keys across all 6 migrations — every `user_id`/`account_id` FK column is unindexed. | `database/DATABASE_AUDIT_2026-09-02.md` |
-| Database | No backup/restore story for the Postgres data volume anywhere in the repo or docs. | `database/DATABASE_AUDIT_2026-09-02.md` |
-| Accessibility | 7 of 16 Chart.js canvases (all 5 in `src/charts.js`'s Strategy/Plan Charts tab, both in `src/bills.js`'s Budget Charts tab) have no screen-reader `<table>` fallback, breaking the documented `renderChartDataTable()` convention. Not caught by `test_chart_accessibility.py`, which never visits these tabs. | `a11y/A11Y_AUDIT_REPORT_2026-09-02.md` |
-| Testing | Stryker's `mutate` line-range config in `stryker.config.mjs` is stale — the ledger-cleared feature shifted `sanitizers.js` line numbers, so most of `sanitizeRecurringTemplate` silently dropped out of mutation scope while the two newest functions (`sanitizeLedgerOverrides`, `sanitizeLedgerClearedTransactions` — the ones just patched above) have **zero unit tests** and aren't reliably covered either. | `test/TESTING_AUDIT_2026-09-02.md` |
 
 ### Medium
 
 | Type | Finding | Report |
 |---|---|---|
-| Security | `docker-compose.yml` never sets `NODE_ENV=production` for the `server` service, so the session cookie's `Secure` flag (gated on `NODE_ENV` in `server/src/routes/auth.js`) stays off by default on a deployment that follows the documented `docker compose up -d` path. | `security/SECURITY_AUDIT_2026-09-02.md` (addendum) |
+| Security | `docker-compose.yml` never sets `NODE_ENV=production` for the `server` service, so the session cookie's `Secure` flag (gated on `NODE_ENV` in `server/src/routes/auth.js`) stays off by default on a deployment that follows the documented `docker compose up -d` path. **Investigated 2026-09-03 — not a simple fix:** hardcoding it breaks login over plain HTTP, which `DEPLOYMENT.md` explicitly documents as a supported local-testing state; needs a real design (e.g. a dedicated env var set only once HTTPS is confirmed, or protocol detection via `trust proxy`/`X-Forwarded-Proto`), not a blanket default. | `security/SECURITY_AUDIT_2026-09-02.md` (addendum) |
 | Security | `CLAUDE.md` claims "no open self-registration endpoint" but `POST /auth/register` is a live, undocumented first-user-creation route (safely implemented — atomic insert, rate-limited — but no doc warns operators not to expose the server before completing setup). | `security/SECURITY_AUDIT_2026-09-02.md` |
 | i18n | `formatCurrency()` hardcodes `currency: 'USD'` — a Polish- or other-locale user never sees their own currency, only US-dollar formatting with locale-aware digit grouping. This is a deliberate, tested design decision (`docs/superpowers/specs/2026-08-04-i18n-support-design.md`), but remains the most user-visible i18n gap for a finance app. | `i18n/I18N_AUDIT_2026-09-02.md` |
 | i18n / Accessibility | Health page's `renderChartDataTable()` screen-reader tables (DTI/Savings gauges) are entirely hardcoded English despite the page otherwise being translated — a visible label is localized but its screen-reader equivalent isn't. | `i18n/I18N_AUDIT_2026-09-02.md` |
 | i18n | Settings modal's PostgreSQL storage option and helper text (`index.html` lines 1155, 1158) are hardcoded English inside an otherwise-translated modal. | `i18n/I18N_AUDIT_2026-09-02.md` |
 | Accessibility | 3 of 6 modal dialogs (Reconcile, `showDeleteConfirmModal`, `showAccountReplacementModal`) lack a keyboard Tab focus-trap, and the latter two never restore focus on dismiss — high blast radius since the delete-confirm modal is reused app-wide. | `a11y/A11Y_AUDIT_REPORT_2026-09-02.md` |
-| Performance | `index.html`'s `<script src="src/debtCalculator.js">` has no `defer`, confirmed render-blocking (~640ms) by Lighthouse; likely safe to defer since only the already-deferred `app.js` module consumes it. | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
 | Performance | `renderReportsPage()` (`src/reports.js`) rebuilds all 8 report sub-panels and 11 Chart.js instances on every tab click instead of just the active tab. | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
 | Performance | The Strategy page's What-If slider (`strategyComparison.js`) recomputes the full payoff simulation on every raw `input` event with no debounce. | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
 | Database | `server/src/app.js` never sets `trust proxy`, so `express-rate-limit` keys off nginx's container IP rather than the real client IP despite nginx correctly forwarding `X-Forwarded-For`. | `database/DATABASE_AUDIT_2026-09-02.md` |
 | Database | `server/src/db.js`'s connection pool has no `statement_timeout`, size tuning, or SSL configuration. | `database/DATABASE_AUDIT_2026-09-02.md` |
-| Database | Several enum-shaped columns (`recurring_templates.frequency/type`, `sinking_funds.allocation_method`, `incomes.frequency`) lack `CHECK` constraints, inconsistent with `bonuses.purpose` which has one. | `database/DATABASE_AUDIT_2026-09-02.md` |
 | Misc | `qs`/`body-parser` under `server/`'s Express dependency chain has live-request-path `npm audit` findings, fixable via plain `npm audit fix` with no breaking change (unlike the other dependency findings, which sit in dev-only/CLI-only chains). | `other/MISC_AUDIT_2026-09-02.md` |
 | Misc | `tests/integration/test_pwa_offline.py` only asserts the app shell survives an offline reload — no test exercises navigation, data entry, or chart rendering while offline, so the PWA's "usable offline" promise is asserted much more weakly than its own module docstring claims. | `other/MISC_AUDIT_2026-09-02.md` |
 | Misc | Real circular ES-module import chains centered on `ui.js` and `postgresSync.js` (e.g. a 4-file cycle `postgresSync.js → ui.js → ledger.js → settings.js → postgresSync.js`). Not currently crashing (cycle-closing exports are hoisted `function` declarations) but a latent TDZ risk if any were refactored to `const`/arrow functions. | `other/MISC_AUDIT_2026-09-02.md` |
