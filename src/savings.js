@@ -647,30 +647,3 @@ window.handleAllocationMethodChange = function() {
   }
 };
 
-/**
- * Calculate projected savings for reports
- */
-export function calculateSavingsProjection(app, year, month) {
-  let emergencyContributions = 0;
-  let sinkingContributions = 0;
-
-  // Auto-contribute emergency funds for this month
-  app.emergencyFunds?.forEach(fund => {
-    if (fund.autoContribute && fund.currentAmount < fund.targetAmount) {
-      emergencyContributions += fund.monthlyContribution;
-    }
-  });
-
-  // Auto-contribute sinking funds for this month
-  app.sinkingFunds?.forEach(fund => {
-    if (fund.autoContribute && fund.currentAmount < fund.targetAmount) {
-      sinkingContributions += fund.monthlyAllocation;
-    }
-  });
-
-  return {
-    emergencyContributions,
-    sinkingContributions,
-    total: emergencyContributions + sinkingContributions
-  };
-}

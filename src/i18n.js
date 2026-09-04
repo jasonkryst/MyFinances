@@ -34,10 +34,6 @@ function readStoredLocale() {
 
 let currentLocale = readStoredLocale();
 
-export function getLocalePreference() {
-    return readStoredLocale();
-}
-
 export function setLocalePreference(code) {
     const normalized = LOCALE_CODES.includes(code) ? code : DEFAULT_LOCALE;
     try {

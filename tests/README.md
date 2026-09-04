@@ -5,7 +5,7 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 743 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
+- ✅ 758 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
 - ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, Settings, PWA, i18n, and the optional PostgreSQL backend
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
@@ -81,7 +81,7 @@ tests/
 │   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
 │   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
 │   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
-├── features/                   # Feature-specific tests (379 tests, 34 files)
+├── features/                   # Feature-specific tests (380 tests, 34 files)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning, interest-rate badge display)
 │   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
@@ -106,7 +106,7 @@ tests/
 │   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
 │   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   └── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
-├── ui/                         # UI/UX and responsive tests (235 tests, 27 files)
+├── ui/                         # UI/UX and responsive tests (245 tests, 28 files)
 │   ├── test_mobile.py          # Mobile responsiveness, hamburger menu, touch sizing
 │   ├── test_modals.py          # Modal visibility, close buttons, calendar day-detail
 │   ├── test_dark_mode.py       # Dark/light theme selection, persistence, corrupted-localStorage fallback
@@ -129,7 +129,8 @@ tests/
 │   ├── test_recurring_actions.py # Recurring pause/skip/edit/mark-paid actions
 │   ├── test_reports_actions.py # Reports tab switching, snapshot capture, spending drill-down
 │   ├── test_reconciliation_actions.py # Reconcile-modal flows, history filter/delete
-│   └── test_spending_ui.py     # Spending charts, ranked list, drill-down modal
+│   ├── test_spending_ui.py     # Spending charts, ranked list, drill-down modal
+│   └── test_strategy_calendar.py # Strategy mini-calendar: debt/income/bill/expense/bonus day-markers
 ├── a11y/                        # Site-wide accessibility audit (10 tests)
 │   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable directly)
 │   └── test_a11y_audit.py      # Pytest wiring: asserts zero Serious findings from the audit
@@ -586,5 +587,5 @@ Refer to:
 
 ---
 
-**Last Updated:** September 3, 2026  
-**Test Suite Status:** ✅ Fully Passing (747 tests / 76 files, incl. 43 Postgres/CI-only tests across 6 files)
+**Last Updated:** September 4, 2026  
+**Test Suite Status:** ✅ Fully Passing (758 tests / 77 files, incl. 43 Postgres/CI-only tests across 6 files)

@@ -148,6 +148,57 @@ def test_switching_to_polish_translates_health_page_live(app_page):
 
 
 @pytest.mark.feature
+def test_health_gauge_sr_tables_translate(app_page, account_data, income_data):
+    """The Health page's DTI/Savings gauge screen-reader tables (caption,
+    column headers, row labels) translate too -- previously hardcoded
+    English despite the visible page being translated (i18n audit finding,
+    2026-09-02). Fixed 2026-09-04."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    page.evaluate("() => window.app.setLocale('es')")
+    page.click('button[data-page="health"]')
+    page.wait_for_timeout(300)
+
+    caption = page.inner_text('#healthDtiGauge-sr-table caption')
+    assert caption == 'Relación Deuda-Ingreso'
+
+    first_row_label = page.inner_text('#healthDtiGauge-sr-table tbody tr:first-child td:first-child')
+    assert first_row_label == 'Relación Deuda-Ingreso'
+
+    column_header = page.inner_text('#healthDtiGauge-sr-table thead th:first-child')
+    assert column_header == 'Métrica'
+
+    savings_caption = page.inner_text('#healthSavingsGauge-sr-table caption')
+    assert savings_caption == 'Tasa de Ahorro'
+
+
+@pytest.mark.feature
+def test_settings_modal_postgres_storage_option_translates(app_page):
+    """The Settings modal's PostgreSQL storage option and helper note
+    translate too -- previously hardcoded English inside an otherwise
+    translated modal (i18n audit finding, 2026-09-02). Fixed 2026-09-04."""
+    page = app_page
+
+    page.evaluate("() => window.app.setLocale('es')")
+    page.click('#settingsBtn')
+    page.wait_for_timeout(300)
+
+    option_text = page.inner_text('#settingStorageBackend option[value="postgres"]')
+    assert option_text == 'PostgreSQL (servidor autoalojado)'
+
+    note_text = page.evaluate(
+        "() => document.getElementById('settingsStoragePostgresNote').textContent"
+    )
+    assert note_text == 'Estás usando PostgreSQL. No es posible volver a almacenamiento local o de sesión.'
+
+
+@pytest.mark.feature
 def test_health_page_debt_free_state_translates(app_page):
     """The zero-debt empty state ('Debt Free!') translates too, not just
     the populated-data path."""

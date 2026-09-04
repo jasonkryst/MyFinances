@@ -134,3 +134,24 @@ def test_health_links_hidden_when_printing(app_page):
     page.emulate_media(media="screen")
 
     assert not any_visible, "Expected all .health-link elements to be hidden under @media print"
+
+
+@pytest.mark.ui
+def test_health_print_button_meets_mobile_tap_target_size(app_page):
+    """`.page-print-btn` must be at least 44x44px on mobile viewports (WCAG 2.5.5 AAA target size).
+
+    Audit finding 2026-09-02 (a11y F2): #healthPrintBtn measured 81x30px at
+    375x667 -- fixed via a `.page-print-btn` mobile min-height/min-width rule
+    that benefits every page using this shared class, not just Health.
+    """
+    page = app_page
+    page.click('button[data-page="health"]')
+    page.wait_for_timeout(200)
+    page.set_viewport_size({"width": 375, "height": 667})
+    page.wait_for_timeout(100)
+
+    size = page.eval_on_selector('#healthPrintBtn', '(el) => ({width: el.offsetWidth, height: el.offsetHeight})')
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+    assert size['height'] >= 44, f"Expected #healthPrintBtn height >= 44px on mobile, got {size['height']}"
+    assert size['width'] >= 44, f"Expected #healthPrintBtn width >= 44px on mobile, got {size['width']}"

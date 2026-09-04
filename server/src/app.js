@@ -21,6 +21,13 @@ import createNotificationsRouter from './routes/notifications.js';
 
 export function createApp() {
     const app = express();
+    // Trust exactly one hop (nginx.conf is the only proxy in front of this
+    // service). Without this, express-rate-limit keys off nginx's container
+    // IP for every client (see docs/audit/database/DATABASE_AUDIT_2026-09-02.md
+    // M1), and req.secure/req.protocol ignore the X-Forwarded-Proto header
+    // nginx sets, which auth.js now relies on to set the session cookie's
+    // Secure flag per-request instead of via a static NODE_ENV check.
+    app.set('trust proxy', 1);
     app.use(express.json({ limit: '1mb' }));
     app.use(cookieParser());
 

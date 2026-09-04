@@ -193,40 +193,6 @@ def test_add_account_missing_name_shows_modal(app_page):
 
 
 @pytest.mark.feature
-def test_add_bill_invalid_fields_shows_modal(app_page):
-    """Submitting the Add Bill form with no name shows the alert modal."""
-    page = app_page
-    page.click('button[data-page="liabilities"]')
-    page.wait_for_timeout(300)
-
-    subtab = page.query_selector('[data-liabilities-subtab="budget"]')
-    if subtab:
-        subtab.click()
-        page.wait_for_timeout(300)
-
-    toggle = page.query_selector('#billFormToggle')
-    if toggle:
-        toggle.click()
-        page.wait_for_timeout(300)
-
-    # Leave name empty
-    submit = page.query_selector('[data-bill-action="submit"], #billFormSubmit')
-    if not submit:
-        pytest.skip("Bill form submit button not found")
-
-    submit.click()
-    page.wait_for_timeout(400)
-
-    modal = page.query_selector('#alertModal')
-    classes = modal.get_attribute('class') or '' if modal else ''
-    assert 'flex-visible' in classes, \
-        "Alert modal should appear when bill name is missing"
-
-    page.click('#alertModalOkBtn')
-    page.wait_for_timeout(200)
-
-
-@pytest.mark.feature
 def test_strategy_no_debts_shows_modal(app_page):
     """Calculating a payment plan with no debts shows the alert modal."""
     page = app_page

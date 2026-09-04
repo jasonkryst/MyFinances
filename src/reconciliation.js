@@ -302,9 +302,11 @@ export function openReconcileModal(app, accountId) {
     balanceInput.value = account.startingBalance;
     noteInput.value = '';
 
+    const lastFocused = document.activeElement;
     const close = () => {
         modal.classList.add('hidden'); modal.classList.remove('flex-visible');
         modal.onkeydown = null;
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
     confirmBtn.onclick = async () => {
@@ -326,6 +328,20 @@ export function openReconcileModal(app, accountId) {
         if (event.key === 'Enter') {
             event.preventDefault();
             confirmBtn.click();
+            return;
+        }
+        if (event.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         }
     };
 

@@ -450,28 +450,6 @@ export async function saveEditRecurring(app, id) {
     app.renderRecurringPage();
 }
 
-// ─── Monthly summary helper (used by bills.js cash flow panel) ───────────────
-
-/**
- * Returns { debits, credits } totals from active recurring templates for a month.
- * month is 0-indexed.
- */
-export function getRecurringTotalsForMonth(app, year, month) {
-    let debits = 0;
-    let credits = 0;
-    for (const t of app.recurringTemplates || []) {
-        const occurrences = getRecurringOccurrencesInMonth(t, year, month);
-        if (occurrences.length === 0) continue;
-        const total = occurrences.length * (t.amount || 0);
-        if (t.type === 'reimbursement') {
-            credits += total;
-        } else {
-            debits += total;
-        }
-    }
-    return { debits, credits };
-}
-
 // ─── Storage helpers ─────────────────────────────────────────────────────────
 
 /**

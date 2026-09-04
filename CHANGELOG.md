@@ -4,6 +4,21 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.44.0] — 2026-09-04
+
+### Added
+- **Strategy mini-calendar now shows expense and bonus days**, not just debt payments/paydays/bill due-dates — `src/strategyCalendar.js` gained purple expense (`📊`) and teal bonus (`🎁`) day-markers using the existing `getExpensesByDayForMonth`/`getBonusesByDayForMonth` helpers, which had sat unused since they were originally written alongside `getBillsByDayForMonth`. Matching legend entries and dark-mode/high-contrast styling. Resolves a "some helpers exist but aren't wired in — unclear if intentional" finding from the 2026-09-02 features audit; decided in favor of completing the feature. New `tests/ui/test_strategy_calendar.py` (4 tests — the calendar view had zero prior coverage).
+
+### Fixed
+- **Second follow-up pass on the 2026-09-02 audit** (`docs/audit/AUDIT_SUMMARY_2026-09-02.md`), across four batches — full detail in that file's "Fixed 2026-09-04" section:
+  - **Session cookie `Secure` flag, done properly this time.** The 2026-09-03 attempt (`NODE_ENV: production` in `docker-compose.yml`) was reverted for breaking plain-HTTP login. The real fix: `server/src/app.js` now sets `app.set('trust proxy', 1)`, and `server/src/routes/auth.js` derives the `Secure` flag from per-request `req.secure` (Express reads nginx's `X-Forwarded-Proto` once `trust proxy` is set) instead of a static env-var check — correct automatically in both plain-HTTP local testing and a real HTTPS deployment, no manual step either way. `trust proxy` also fixes `express-rate-limit` keying off nginx's container IP instead of the real client.
+  - **Postgres connection pool hardening** — `server/src/db.js` gained `statement_timeout`, explicit `max`/`idleTimeoutMillis`/`connectionTimeoutMillis`, and conditional `ssl` (required with full certificate validation for any non-local host, no insecure opt-out).
+  - **3 modals gained a real Tab focus-trap and focus-restore** (Reconcile, the app-wide delete-confirm modal, the account-replacement modal) — previously a keyboard/screen-reader user could Tab straight out into background page controls, and dismissing lost focus context entirely for the latter two. 6 new Tab-cycling tests in `tests/ui/test_accessibility.py`.
+  - **i18n gaps closed**: Health page's DTI/Savings gauge screen-reader tables and the Settings modal's PostgreSQL storage option/note now translate (`en`/`es`/`pl`), previously hardcoded English inside otherwise-translated UI.
+  - **5 dead exports removed** (`renderBillList`, `getLocalePreference`, `getRecurringTotalsForMonth`, `calculateSavingsProjection`, `incomeDaysInMonth`); `CLAUDE.md` and `stryker.config.mjs` updated to match.
+  - Plus: mobile Health-page Print button now meets the 44×44 tap-target size (fix applied to the shared `.page-print-btn` class, benefiting every page); a suspected dark-mode contrast false-positive confirmed via direct reproduction as a CSS-transition sampling artifact and the audit script's timing fixed so it doesn't recur; `CLAUDE.md`/`server/README.md` corrected on the `/auth/register` endpoint; stale `.plans/MIGRATION_PLAN.md` deleted; the `qs`/`body-parser` audit finding's "fixable via plain `npm audit fix`" claim corrected (verified false — needs an Express 4→5 major bump instead).
+
+---
 ## [4.43.0] — 2026-09-03
 
 ### Fixed

@@ -674,6 +674,12 @@ body.dark-mode .rpt-month-btn:hover, body.dark-mode .rpt-month-btn:focus {
     color: #fff;
     outline: 2px solid #2563eb;
 }
+@media (max-width: 768px) {
+    .page-print-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
 body.dark-mode .page-print-btn {
     background: #2563eb;
     color: #fff;
@@ -1112,7 +1118,10 @@ body.dark-mode.high-contrast-mode .btn-secondary:hover {
    the fill goes to solid black with solid white text, so legibility never
    depends on which palette color a given debt was assigned. */
 body.dark-mode.high-contrast-mode .cal-event,
-body.dark-mode.high-contrast-mode .cal-income-event {
+body.dark-mode.high-contrast-mode .cal-income-event,
+body.dark-mode.high-contrast-mode .cal-bill-event,
+body.dark-mode.high-contrast-mode .cal-expense-event,
+body.dark-mode.high-contrast-mode .cal-bonus-event {
     background: #000000;
     color: #ffffff;
     border: 1px solid #ffffff;
@@ -1694,6 +1703,70 @@ body.dark-mode .cal-bill-event {
     opacity: 0.9;
 }
 
+/* Expense budget chip on the calendar — purple style */
+.cal-expense-event {
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin-top: 2px;
+    background: #7c3aed;
+    color: #fff;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    overflow: hidden;
+    cursor: default;
+    border-left: 3px solid #6d28d9;
+}
+
+body.dark-mode .cal-expense-event {
+    background: #5b21b6;
+    border-left-color: #7c3aed;
+}
+
+.cal-expense-name {
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-expense-amount {
+    display: block;
+    opacity: 0.9;
+}
+
+/* Bonus chip on the calendar — teal style */
+.cal-bonus-event {
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin-top: 2px;
+    background: #0891b2;
+    color: #fff;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    overflow: hidden;
+    cursor: default;
+    border-left: 3px solid #0e7490;
+}
+
+body.dark-mode .cal-bonus-event {
+    background: #155e75;
+    border-left-color: #0891b2;
+}
+
+.cal-bonus-name {
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-bonus-amount {
+    display: block;
+    opacity: 0.9;
+}
+
 /* Calendar legend */
 .cal-legend {
     display: flex;
@@ -1726,6 +1799,16 @@ body.dark-mode .cal-bill-event {
 .cal-legend-swatch--bill {
     background: #d97706;
     border-left: 3px solid #b45309;
+}
+
+.cal-legend-swatch--expense {
+    background: #7c3aed;
+    border-left: 3px solid #6d28d9;
+}
+
+.cal-legend-swatch--bonus {
+    background: #0891b2;
+    border-left: 3px solid #0e7490;
 }
 
 .cal-legend-swatch--today {
