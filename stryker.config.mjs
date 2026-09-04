@@ -15,15 +15,16 @@ export default {
         'src/debtCalculator.js:442-454', // calculateMonthsBetweenDates
         'src/utils.js:10-81', // formatCurrency..dateToISO (contiguous, all tested)
         'src/utils.js:244-247', // dailyCompoundInterest
-        'src/sanitizers.js:5-54', // sanitizeAccount, sanitizeDebt, sanitizeIncome
-        'src/sanitizers.js:67-88', // sanitizeBill, sanitizeExpense
-        'src/sanitizers.js:109-130', // sanitizeRecurringTemplate
+        'src/sanitizers.js:5-58', // sanitizeAccount, sanitizeDebt, sanitizeIncome
+        'src/sanitizers.js:72-93', // sanitizeBill, sanitizeExpense
+        'src/sanitizers.js:95-125', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
+        'src/sanitizers.js:126-147', // sanitizeRecurringTemplate
     ],
     jest: {
         configFile: 'jest.config.js',
     },
-    // Derived from the real local mutation run (score 47.04%) with mutate scope
+    // Derived from the real local mutation run (score 46.93%) with mutate scope
     // narrowed to only the tested functions: low = floor(score), break = low-10,
     // high = low+5.
-    thresholds: { high: 52, low: 47, break: 37 },
+    thresholds: { high: 51, low: 46, break: 36 },
 };

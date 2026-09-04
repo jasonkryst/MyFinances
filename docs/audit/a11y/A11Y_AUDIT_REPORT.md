@@ -93,6 +93,8 @@ This is inconsistent with the app's own established pattern (3 of 6 modals do it
 
 ## F4 — [Serious] 7 of 16 Chart.js canvases have no screen-reader-accessible data-table equivalent
 
+**RESOLVED 2026-09-03:** All 7 canvases now call `renderChartDataTable()` immediately after construction (`src/charts.js`, `src/bills.js`), following the exact pattern this finding recommended. `tests/ui/test_chart_accessibility.py` gained `test_strategy_schedule_charts_have_sr_tables` (all 5 `charts.js` canvases) and `test_budget_cashflow_charts_have_sr_tables` (both `bills.js` canvases), closing the coverage gap described below.
+
 **Severity:** Serious. **WCAG 1.1.1 Non-text Content** / the project's own documented "Chart accessibility" convention in `CLAUDE.md` ("every Chart.js canvas should have a `renderChartDataTable(...)` call ... immediately after construction").
 **Not caught by:** `tests/ui/test_chart_accessibility.py`, which only asserts sr-tables exist for `healthDtiGauge`, `healthSavingsGauge`, `rptSpendingPieChart`, `rptSpendingBarChart`, `cfForecastChart`, and `rptNetWorthTrendChart` — i.e. exactly the canvases in the 7 modules that *do* call `renderChartDataTable()` (`reportsNetWorth.js`, `reportsCashFlow.js`, `reportsMoneyFlowSankey.js`, `health.js`, `spending.js`, `forecast.js`, `debtBreakEven.js`). Nor by `run_a11y_audit.py`, whose live-DOM walk never triggers a payment-plan calculation + clicks into the Strategy page's "Chart" results tab or the Budget page's cash-flow-charts tab, so these canvases are never actually rendered during the automated pass.
 

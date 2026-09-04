@@ -8,7 +8,7 @@ screen-reader users get the same information sighted users get from the chart.
 
 import pytest
 
-from tests.conftest import assert_no_errors, current_month_iso
+from tests.conftest import assert_no_errors, current_month_iso, create_debt
 
 
 def _assert_sr_table(page, canvas_id, min_rows=1):
@@ -104,4 +104,69 @@ def test_networth_trend_chart_has_sr_table(app_page, account_data):
     page.wait_for_timeout(400)
 
     _assert_sr_table(page, 'rptNetWorthTrendChart')
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_strategy_schedule_charts_have_sr_tables(app_page, debt_data, income_data):
+    """The 5 Strategy > Schedule > Chart View canvases (balance, progress,
+    interest/principal pie, payment distribution, debt-to-income) each need
+    an sr-only data table -- these were missing entirely (audit finding,
+    2026-09-02)."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', 'Chart A11y Checking')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_timeout(300)
+
+    create_debt(page, debt_data)
+
+    page.click('button[data-page="income"]')
+    page.wait_for_timeout(300)
+    page.fill('#incomeName', income_data["name"])
+    page.fill('#incomeAmount', income_data["amount"])
+    page.fill('#incomeFirstDate', income_data["first_date"])
+    page.select_option('#incomeFrequency', income_data["frequency"])
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector(f'text={income_data["name"]}', timeout=10000)
+
+    page.click('button[data-page="strategy"]')
+    page.wait_for_timeout(300)
+    page.fill('#monthlyPayment', '200')
+    page.select_option('#paymentStrategy', 'avalanche')
+    page.click('#calculateBtn')
+    page.wait_for_timeout(500)
+
+    page.click('[data-rtab="schedule"]')
+    page.wait_for_timeout(150)
+    page.click('button[data-tab="chart"]')
+    page.wait_for_timeout(400)
+
+    _assert_sr_table(page, 'balanceChart')
+    _assert_sr_table(page, 'progressChart')
+    _assert_sr_table(page, 'pieChart')
+    _assert_sr_table(page, 'debtDistributionChart')
+    _assert_sr_table(page, 'debtToIncomeChart')
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_budget_cashflow_charts_have_sr_tables(app_page, debt_data):
+    """The 2 Liabilities > Expenses > Charts canvases (cash flow donut and
+    obligations bar) each need an sr-only data table -- these were missing
+    entirely (audit finding, 2026-09-02)."""
+    page = app_page
+    create_debt(page, debt_data)
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="expenses"]')
+    page.wait_for_timeout(200)
+    page.click('.cashflow-tab[data-tab="charts"]')
+    page.wait_for_timeout(400)
+
+    _assert_sr_table(page, 'cashflowDonutChart')
+    _assert_sr_table(page, 'cashflowBarChart')
     assert_no_errors(page)

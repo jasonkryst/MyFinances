@@ -1,5 +1,5 @@
 // Charts and visualizations
-import { computeMonthlyIncomeForMonth, formatCurrency } from './utils.js';
+import { computeMonthlyIncomeForMonth, formatCurrency, renderChartDataTable } from './utils.js';
 
 export function renderBalanceChart(app) {
     if (!app.lastPaymentPlan) return;
@@ -73,6 +73,12 @@ export function renderBalanceChart(app) {
             }
         }
     });
+
+    renderChartDataTable('balanceChart', {
+        caption: 'Payoff timeline — balance per debt',
+        columns: ['Month', ...debtNames],
+        rows: months.map((m, i) => [m, ...debtNames.map(name => formatCurrency(debtBalances[name][i]))])
+    });
 }
 
 export function renderPieChart(app) {
@@ -110,6 +116,15 @@ export function renderPieChart(app) {
                 }
             }
         }
+    });
+
+    renderChartDataTable('pieChart', {
+        caption: 'Total interest vs. principal paid',
+        columns: ['Category', 'Amount'],
+        rows: [
+            ['Principal (Debt)', formatCurrency(principal)],
+            ['Total Interest', formatCurrency(interest)]
+        ]
     });
 }
 
@@ -234,6 +249,12 @@ export function renderProgressChart(app) {
             }
         }
     });
+
+    renderChartDataTable('progressChart', {
+        caption: 'Payment progress — total, principal, and interest paid',
+        columns: ['Month', 'Total Paid', 'Principal Paid', 'Interest Paid'],
+        rows: months.map((m, i) => [m, formatCurrency(totalPaid[i]), formatCurrency(principalPaid[i]), formatCurrency(interestPaid[i])])
+    });
 }
 
 export function renderDebtDistributionChart(app) {
@@ -297,6 +318,12 @@ export function renderDebtDistributionChart(app) {
             }
         }
     });
+
+    renderChartDataTable('debtDistributionChart', {
+        caption: 'Monthly payment distribution',
+        columns: ['Debt', 'Monthly Payment'],
+        rows: labels.map((l, i) => [l, fmt(data[i])])
+    });
 }
 
 export function renderDebtToIncomeChart(app) {
@@ -355,5 +382,14 @@ export function renderDebtToIncomeChart(app) {
                 }
             }
         }
+    });
+
+    renderChartDataTable('debtToIncomeChart', {
+        caption: 'Monthly debt-to-income',
+        columns: ['Category', 'Amount'],
+        rows: [
+            ['Debt Payments', fmt(debtPmt)],
+            ['Remaining Income', fmt(remaining)]
+        ]
     });
 }

@@ -5,6 +5,8 @@ const {
     sanitizeBill,
     sanitizeExpense,
     sanitizeRecurringTemplate,
+    sanitizeLedgerOverrides,
+    sanitizeLedgerClearedTransactions,
 } = require('../../src/sanitizers.js');
 
 describe('sanitizeAccount', () => {
@@ -126,5 +128,60 @@ describe('sanitizeRecurringTemplate', () => {
     test('filters skippedMonths to YYYY-MM-shaped strings only (does not validate calendar range)', () => {
         const result = sanitizeRecurringTemplate({ skippedMonths: ['2026-08', 'bad-format', '2026-13'] }, 1);
         expect(result.skippedMonths).toEqual(['2026-08', '2026-13']);
+    });
+});
+
+describe('sanitizeLedgerOverrides', () => {
+    test('returns an empty object for null, undefined, or non-object input', () => {
+        expect(sanitizeLedgerOverrides(null)).toEqual({});
+        expect(sanitizeLedgerOverrides(undefined)).toEqual({});
+        expect(sanitizeLedgerOverrides('not-an-object')).toEqual({});
+    });
+
+    test('passes through a well-formed entry', () => {
+        const result = sanitizeLedgerOverrides({
+            'bill|1|2|2026-08-01': { amount: 120.5, originalAmount: 100, transactionName: 'Electric', accountId: 2, date: '2026-08-01', updatedAt: '2026-08-01T05:00:00.000Z' },
+        });
+        expect(result['bill|1|2|2026-08-01']).toEqual({
+            amount: 120.5, originalAmount: 100, transactionName: 'Electric', accountId: 2, date: '2026-08-01', updatedAt: '2026-08-01T05:00:00.000Z',
+        });
+    });
+
+    test('drops an entry whose amount is missing or non-finite', () => {
+        const result = sanitizeLedgerOverrides({ a: { amount: 'not-a-number' }, b: {} });
+        expect(result).toEqual({});
+    });
+
+    test('drops an entry keyed by an empty string', () => {
+        const result = sanitizeLedgerOverrides({ '': { amount: 50 } });
+        expect(result).toEqual({});
+    });
+
+    test('defaults updatedAt to the current time when missing or malformed', () => {
+        const result = sanitizeLedgerOverrides({ a: { amount: 50, updatedAt: 'garbage' } });
+        expect(result.a.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    });
+});
+
+describe('sanitizeLedgerClearedTransactions', () => {
+    test('returns an empty object for null, undefined, or non-object input', () => {
+        expect(sanitizeLedgerClearedTransactions(null)).toEqual({});
+        expect(sanitizeLedgerClearedTransactions(undefined)).toEqual({});
+        expect(sanitizeLedgerClearedTransactions('not-an-object')).toEqual({});
+    });
+
+    test('passes through a well-formed entry with a full-precision timestamp', () => {
+        const result = sanitizeLedgerClearedTransactions({ 'bill|1|2|2026-08-01': { clearedAt: '2026-08-30T14:23:05.123Z' } });
+        expect(result['bill|1|2|2026-08-01']).toEqual({ clearedAt: '2026-08-30T14:23:05.123Z' });
+    });
+
+    test('drops an entry whose clearedAt is missing or malformed', () => {
+        const result = sanitizeLedgerClearedTransactions({ a: {}, b: { clearedAt: 'not-a-date' } });
+        expect(result).toEqual({});
+    });
+
+    test('drops an entry keyed by an empty string', () => {
+        const result = sanitizeLedgerClearedTransactions({ '': { clearedAt: '2026-08-30T14:23:05.123Z' } });
+        expect(result).toEqual({});
     });
 });

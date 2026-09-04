@@ -1,7 +1,7 @@
 # MyFinances Product Roadmap
 
-**Last Updated**: September 2, 2026  
-**Current Version**: v4.40.0  
+**Last Updated**: September 3, 2026  
+**Current Version**: v4.43.0  
 **Status**: Production-Ready (Security Audit: LOW Risk)
 
 ---
@@ -622,7 +622,7 @@ Surfaced during audit cycles and ongoing development — not yet fully prioritiz
 
 #### ♿ Accessibility
 - ~~**`prefers-reduced-motion` support**~~ ✅ **Delivered June 20, 2026** — a global CSS media query collapses all transitions/animations to near-instant, and `Chart.defaults.animation` is disabled app-wide when the OS prefers reduced motion.
-- ~~**Screen-reader data-table fallback for charts**~~ ✅ **Delivered June 20, 2026** — a shared `renderChartDataTable()` helper (`src/utils.js`) builds a visually-hidden `.sr-only` `<table>` alongside the Health gauges, Spending pie/bar, Forecast line, and Net Worth trend charts.
+- ~~**Screen-reader data-table fallback for charts**~~ ✅ **Delivered June 20, 2026, extended to all 16 canvases September 3, 2026** — a shared `renderChartDataTable()` helper (`src/utils.js`) builds a visually-hidden `.sr-only` `<table>` alongside every Chart.js canvas. The 7 remaining canvases (all 5 Strategy/Plan charts in `src/charts.js`, both Budget cash-flow charts in `src/bills.js`) were retrofitted per `docs/audit/a11y/A11Y_AUDIT_REPORT_2026-09-02.md` finding F4.
 - **High-contrast theme option** — a third theme beyond light/dark tuned for WCAG AAA contrast, for users who need it beyond the already-passing AA baseline.
 - *(Process item, not a UI feature — tracked in Tier 0 above)* dedicated Strategy results-tab-bar a11y regression tests.
 
