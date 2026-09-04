@@ -394,6 +394,8 @@ jobs:
             tests/ui/test_delete_confirm_modal.py \
             tests/ui/test_pwa_update_banner.py \
             tests/ui/test_settings_theme_location.py \
+            tests/ui/test_strategy_calendar.py \
+            tests/ui/test_whatif_simulator.py \
             -v
 
   # ---------------------------------------------------------------------------
