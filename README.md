@@ -375,13 +375,13 @@ server/                     — Optional self-hosted Node.js + PostgreSQL backen
   ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
   ├─ Dockerfile            — node:24-alpine image (build context = repo root for sanitizer reuse)
   └─ README.md             — Server setup, dev, and deployment guide
-tests/ (759 tests across 77 files)
+tests/ (758 tests across 77 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
   ├─ security/ (62 tests)     — XSS, CSP, input validation, static scan
   │   ├─ test_xss.py, test_csp.py
   │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (381 tests)    — Per-feature CRUD, calculations, business logic
+  ├─ features/ (380 tests)    — Per-feature CRUD, calculations, business logic
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
@@ -502,7 +502,7 @@ form-action 'self'
 ## 🧪 Testing Suite (Updated September 4, 2026)
 
 ### Test Statistics
-- **Total Tests**: 716 comprehensive tests (plus 43 Postgres/CI-only), all passing
+- **Total Tests**: 715 comprehensive tests (plus 43 Postgres/CI-only), all passing
 - **Test Files**: 71 organized across 6 categories (77 including `postgres/`)
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
@@ -515,7 +515,7 @@ form-action 'self'
 - **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
 - **Static Analysis** — Code patterns, hardcoded secrets, dependencies
 
-#### 🎯 Feature Tests (381 tests)
+#### 🎯 Feature Tests (380 tests)
 - **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion; interest-rate (% APY) badge display — threshold/formatting boundaries, multi-account scoping, edit-to-clear, reload persistence, import clamping
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
 - **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
@@ -571,9 +571,9 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 759 tests (requires Docker for postgres/)
+pytest tests/ -v                  # All 758 tests (requires Docker for postgres/)
 pytest tests/security/ -v         # 62 security tests
-pytest tests/features/ -v         # 381 feature tests
+pytest tests/features/ -v         # 380 feature tests
 pytest tests/ui/ -v               # 245 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
 pytest tests/integration/ -v      # 18 integration tests

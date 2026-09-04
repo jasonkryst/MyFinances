@@ -5,7 +5,7 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 743 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
+- ✅ 758 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
 - ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, Settings, PWA, i18n, and the optional PostgreSQL backend
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
@@ -81,7 +81,7 @@ tests/
 │   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
 │   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
 │   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
-├── features/                   # Feature-specific tests (381 tests, 34 files)
+├── features/                   # Feature-specific tests (380 tests, 34 files)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning, interest-rate badge display)
 │   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
@@ -588,4 +588,4 @@ Refer to:
 ---
 
 **Last Updated:** September 4, 2026  
-**Test Suite Status:** ✅ Fully Passing (759 tests / 77 files, incl. 43 Postgres/CI-only tests across 6 files)
+**Test Suite Status:** ✅ Fully Passing (758 tests / 77 files, incl. 43 Postgres/CI-only tests across 6 files)
