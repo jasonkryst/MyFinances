@@ -8,7 +8,9 @@
 >
 > **Second post-audit update (v4.41.0, PR #139):** findings H1 (indexes), H2 (backup/restore), and M3 (enum `CHECK` constraints) are now resolved — see their entries under "Findings by severity" below.
 >
-> **Third post-audit update (2026-09-04, PR TBD):** M1 (`trust proxy`) and M2 (`statement_timeout`/pool sizing/SSL) are now also resolved — see their entries below. Only M4 (`nginx.conf` proxy timeouts/body-size limit) remains open.
+> **Third post-audit update (2026-09-04, PR #144):** M1 (`trust proxy`) and M2 (`statement_timeout`/pool sizing/SSL) are now also resolved — see their entries below.
+>
+> **Fourth post-audit update (2026-09-04):** the remaining open items (M4, L1, L2, L3) now have tracked GitHub issues ([#154](https://github.com/jasonkryst/MyFinances/issues/154) for M4/L1, [#155](https://github.com/jasonkryst/MyFinances/issues/155) for L2/L3) — see their entries below.
 
 ---
 
@@ -85,18 +87,18 @@ All six migrations (`server/migrations/1755600000000`–`1755600000005`) create 
 - `incomes.frequency` — `src/sanitizers.js:47` vs. plain `text` (`server/migrations/1755600000001...:41`).
 This isn't reachable through the API today (every route funnels through `sanitize()` first — see `crudRouter.js:47,82`), but it means DB-level integrity depends entirely on every current and future write path remembering to sanitize; a bypass (admin script, future bulk-import path, migration bug) can silently persist an invalid value that the frontend's own sanitizer would then quietly coerce away on next load, masking corruption rather than surfacing it. **Fix:** add matching `CHECK` constraints for at least these enum columns in a follow-up migration.
 
-**M4 — `nginx.conf`'s `/api/` and `/auth/` blocks have no explicit proxy timeouts or body-size limit.**
+**M4 — Tracked: [#154](https://github.com/jasonkryst/MyFinances/issues/154).** `nginx.conf`'s `/api/` and `/auth/` blocks have no explicit proxy timeouts or body-size limit.
 `nginx.conf:39-53` sets no `proxy_read_timeout`/`proxy_connect_timeout`/`proxy_send_timeout` (defaults to nginx's built-in 60s) and no `client_max_body_size` for these two locations (defaults to nginx's built-in 1m), while `express.json({ limit: '1mb' })` (`server/src/app.js:23`) matches that default coincidentally. If a future bulk-import/export payload (Phase 2c's `replaceForPostgres`/`mergeForPostgres`, per root `CLAUDE.md`) ever needs to POST a larger single JSON body than 1 MB, nginx will reject it with 413 before it reaches Express, and the two limits would need to be raised together. Not a bug today, but the coincidental alignment is fragile and undocumented. **Fix:** set `client_max_body_size` in `nginx.conf` explicitly (even if still `1m`) with a comment cross-referencing `express.json()`'s limit, so the two can't silently drift.
 
 ### Low
 
-**L1 — No resource limits (`cpus`/`memory`) on any `docker-compose.yml` service.**
+**L1 — Tracked: [#154](https://github.com/jasonkryst/MyFinances/issues/154).** No resource limits (`cpus`/`memory`) on any `docker-compose.yml` service.
 `postgres`, `server`, and `myfinances` all lack `deploy.resources.limits`. Low risk for a self-hosted single-user tool, but a runaway query or leak in any one container could still starve the host. Worth a documented recommendation for users deploying alongside other services on the same box.
 
-**L2 — `sessions` has no index on `expires_at`.**
+**L2 — Tracked: [#155](https://github.com/jasonkryst/MyFinances/issues/155).** `sessions` has no index on `expires_at`.
 `server/migrations/1755600000000_create-users-and-sessions.js:12-17` — nothing currently prunes expired sessions (no cron/sweep job found), so the table only grows; when one is added, `expires_at` will need an index to avoid a full scan per sweep. Low priority at single-user scale.
 
-**L3 — Migration `down()` functions are all destructive `DROP TABLE`, with no guard against use on a populated database.**
+**L3 — Tracked: [#155](https://github.com/jasonkryst/MyFinances/issues/155).** Migration `down()` functions are all destructive `DROP TABLE`, with no guard against use on a populated database.
 This is expected/idiomatic for `CREATE TABLE`-only migrations (there is nothing "softer" a down-migration for a brand-new table could do), and no migration in the set performs a risky in-place `ALTER` on a populated table — worth confirming this stays true as future migrations start altering existing tables (e.g. adding a `NOT NULL` column to a populated table) rather than only creating new ones.
 
 ---

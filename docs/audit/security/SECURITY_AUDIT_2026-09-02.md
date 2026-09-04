@@ -38,6 +38,8 @@ All 62 tests in `tests/security/` pass.
 
 ### M1 (2026-09-02) — Unauthenticated first-run `/auth/register` endpoint contradicts documented threat model (Medium)
 
+**Remediation #1 RESOLVED 2026-09-03 (PR #144):** `CLAUDE.md`'s Phase 1 bullet corrected; `server/README.md`'s Production section gained a deployment-timing warning. **Remediation #2 (the optional `ALLOW_SETUP` env-var gate) tracked separately as its own opt-in defense-in-depth item:** [#156](https://github.com/jasonkryst/MyFinances/issues/156).
+
 **Location**: `server/src/routes/auth.js:63-93` (`POST /auth/register`); `CLAUDE.md` line ~88 ("Backend service (optional, Phase 1)" bullet); `server/README.md:31`.
 
 **Issue**: The Phase 1 design (and `CLAUDE.md`) describes the backend as bootstrapped only via the CLI `server/scripts/create-user.js`, with "no open self-registration endpoint." The v4.33.0 frontend setup wizard (commit `e2a...` "feat: frontend setup wizard for first PostgreSQL user") added a genuine HTTP endpoint, `POST /auth/register`, that is reachable by anyone who can send a request to the server — no auth required, by design (it's how the very first user is created without shelling into the container).
@@ -87,6 +89,8 @@ export function sanitizeDebt(record, idFallback) {
 ---
 
 ### L2 (2026-09-02) — Server test regression: `ledger-cleared` PUT truncates `clearedAt` to midnight (Low, functional — not security-relevant)
+
+**RESOLVED same day (2026-09-02, commit `addfe31`).** Same bug as the High finding in `docs/audit/AUDIT_SUMMARY_2026-09-02.md`'s "Already fixed this session" table — `sanitizeTimestampISO()` added to `src/utils.js`, used in `src/sanitizers.js` and `server/src/routes/ledgerCleared.js`. `server/test/` went 85/86 → 86/86.
 
 **Location**: `server/src/routes/ledgerCleared.js:7` (calls `sanitizeDateISO()` on `clearedAt`); `src/utils.js:67-83` (`sanitizeDateISO`, a date-only sanitizer that intentionally strips time-of-day); `server/migrations/1755600000005_create-ledger-cleared-transactions.js:8` (column is `cleared_at timestamptz` — a full timestamp).
 

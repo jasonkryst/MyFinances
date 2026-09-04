@@ -200,7 +200,7 @@ Reviewed `tests/features/test_validation_modals.py` (new, 9 tests), `tests/featu
 
 **Assertion quality — good.** No "no exception thrown" placeholder tests were found in the sample. `test_money_flow_sankey.py` in particular computes exact expected numeric values (e.g. `round(account['amount'], 2) == 3500.0`) rather than loose existence checks, tests both the data layer (`computeMoneyFlowSankeyData`) and DOM rendering layer separately, and includes a CSP-compliance assertion (`'style="' not in html`) and a `page.console_errors == []` check per rendering test — strong practice. `test_validation_modals.py` asserts specific CSS classes (`flex-visible`/`hidden`) and ARIA attributes (`role == 'alertdialog'`, `aria-labelledby`) rather than just "modal exists."
 
-**Wait pattern — a real, previously-missed anti-pattern.** The June 28, 2026 audit's §7 flaky-pattern scan states *"No `time.sleep`/arbitrary waits found. All tests use Playwright's `wait_for_selector`/`wait_for_function`/auto-waiting locators."* That claim is **incomplete**: it appears to have only grepped for Python's `time.sleep`. A grep for Playwright's own fixed-delay API tells a different story:
+**Wait pattern — a real, previously-missed anti-pattern. Tracked: [#150](https://github.com/jasonkryst/MyFinances/issues/150).** The June 28, 2026 audit's §7 flaky-pattern scan states *"No `time.sleep`/arbitrary waits found. All tests use Playwright's `wait_for_selector`/`wait_for_function`/auto-waiting locators."* That claim is **incomplete**: it appears to have only grepped for Python's `time.sleep`. A grep for Playwright's own fixed-delay API tells a different story:
 
 ```
 789 occurrences of `wait_for_timeout(...)` across 54 test files (tests/features/ + tests/ui/ + tests/integration/)
