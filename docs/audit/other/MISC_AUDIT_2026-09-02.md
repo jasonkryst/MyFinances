@@ -46,7 +46,7 @@ Risk is low in practice: this toolchain runs only on developer machines / CI mut
 **[Info] Chart.js CDN pin is done correctly**
 `index.html:904`: `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous">`. Exact version pin (not a range like `@4` or `@latest`) plus Subresource Integrity hash plus `crossorigin="anonymous"` — a jsdelivr-side substitution would fail the SRI check and the script simply wouldn't execute. CSP `script-src` also restricts to `'self' https://cdn.jsdelivr.net` (`index.html:8`). No action needed; this is the correct pattern and a good reference for any future third-party script additions.
 
-**[Low] Minor GitHub Actions version inconsistency between the two security workflows**
+**[Low] Tracked: [#157](https://github.com/jasonkryst/MyFinances/issues/157).** Minor GitHub Actions version inconsistency between the two security workflows
 `.github/workflows/codeql.yml` uses `github/codeql-action/{init,autobuild,analyze}@v3` throughout. `.github/workflows/trivy.yml` uses `github/codeql-action/upload-sarif@v4` (three times, lines 45/74/92) to push Trivy's SARIF output into the same Security tab. Both workflows target the same underlying `codeql-action` but pin different majors for the SARIF-upload step vs. the CodeQL analysis steps. Not a functional bug (both majors are still accepted by GitHub as of this writing), but worth aligning to one major version so a future breaking change to `codeql-action` doesn't surface inconsistently between the two workflows. Both workflows otherwise look sensible: push+PR+weekly-cron triggers, `security-events: write` permission scoped correctly, `continue-on-error: true` guarding the upload step specifically (so a SARIF-upload hiccup doesn't fail the whole job) rather than the scan itself.
 
 ---
@@ -67,14 +67,14 @@ The service worker implementation matches what CLAUDE.md describes: `CACHE_NAME`
 **[Info] Update flow matches CLAUDE.md — new service worker waits, doesn't auto-activate**
 `sw.js:42-55`'s `activate` handler deliberately has no `skipWaiting()`/`clients.claim()` (comment at `sw.js:43-45` states this explicitly), and only responds to an explicit `SKIP_WAITING` postMessage (`sw.js:57-61`). `src/serviceWorker.js:8-16` listens for `updatefound`/`statechange` and calls `app.showUpdateAvailableBanner(...)` only when `installingWorker.state === 'installed' && navigator.serviceWorker.controller` (i.e., there's already an active controller — this is a genuine *update*, not the first-ever install). `src/ui.js:722-747`'s `showUpdateAvailableBanner()` renders a dismissible banner with a "Reload" button that posts `SKIP_WAITING` to the waiting worker; `src/serviceWorker.js:21-26`'s `controllerchange` listener then does the actual `window.location.reload()`, guarded by a `hasReloaded` flag so it can't double-fire. This is a correct, safe implementation of the wait-then-prompt pattern CLAUDE.md documents.
 
-**[Medium] Offline test coverage proves the app shell survives a reload, not that the app is usable offline**
+**[Medium] Tracked: [#148](https://github.com/jasonkryst/MyFinances/issues/148).** Offline test coverage proves the app shell survives a reload, not that the app is usable offline
 `tests/integration/test_pwa_offline.py` has exactly two tests:
 - `test_app_shell_loads_offline_after_first_visit` — loads online once, goes offline, reloads, and asserts only that `h1` is visible and the page title is non-empty.
 - `test_first_ever_visit_offline_does_not_load` — documents the expected limitation that a never-visited context can't load offline at all.
 
 Neither test exercises: navigating between pages while offline (`switchPage`/`renderPageData` dispatch), adding/editing a debt or transaction while offline (localStorage read/write path, which doesn't depend on the network at all but is untested in this offline context), or confirming Chart.js actually renders a chart while offline (the `staleWhileRevalidate` CDN caching path is inferred to work from the code but never asserted against an offline chart render — e.g. the Reports or Strategy pages). Given offline support is explicitly called out as "the core offline promise of a PWA" in this file's own module docstring, a test that only checks for a non-empty `<h1>` after reload is a weak proxy for that promise. Recommend adding at least one offline test that performs a real interaction (e.g., switch to a data page and confirm rendered content, not just shell chrome).
 
-**[Low] `manifest.json` omits a few optional-but-recommended PWA fields**
+**[Low] Tracked: [#158](https://github.com/jasonkryst/MyFinances/issues/158).** `manifest.json` omits a few optional-but-recommended PWA fields
 `manifest.json` has no `id` field (recommended by the current Web App Manifest spec so an app's identity is stable across `start_url`/`scope` changes on reinstall — without it, the browser derives identity from `start_url`, which is fine today but is a latent risk if `start_url` ever changes), and no `categories`/`shortcuts`. Not a functional bug — installability and offline behavior both work without them — just a minor completeness gap relative to current manifest best practice.
 
 ---
@@ -98,7 +98,7 @@ Comparing exported-function counts against how many take `app` as the first argu
 
 No module was found reaching into `window`/`document` global state in a way that bypasses its own module boundary or duplicates logic that belongs elsewhere; DOM access (`document.*`) is heaviest in `ui.js` (120 references) and the feature modules that own significant rendered UI (`debts.js` 57, `savings.js` 52, `bills.js` 31, `income.js` 30), which is expected given those modules own that DOM.
 
-**[Medium] Real circular import chains exist in the ES module graph, centered on `ui.js` and `postgresSync.js`**
+**[Medium] Tracked: [#149](https://github.com/jasonkryst/MyFinances/issues/149).** Real circular import chains exist in the ES module graph, centered on `ui.js` and `postgresSync.js`
 A dependency-graph DFS over every `import ... from './*.js'` statement in `src/` (verified by hand against the actual `import` lines, not just the automated pass) found several genuine cycles:
 
 1. `accounts.js → ledgerTransactions.js → recurring.js → accounts.js`

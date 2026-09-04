@@ -106,24 +106,31 @@ Still open: everything listed above as deferred/out of scope, unchanged.
 
 | Type | Finding | Report |
 |---|---|---|
-| Performance | Lighthouse performance score **0.60** (fails the 0.8 CI gate in `lighthouserc.json`); LCP 8.6s / TTI 8.6s. Root cause: 54 `src/*.js` modules load eagerly with zero code-splitting, and the LCP element sits behind the Setup Wizard's import chain. | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
+| Performance | Lighthouse performance score **0.60** (fails the 0.8 CI gate in `lighthouserc.json`); LCP 8.6s / TTI 8.6s. Root cause: 54 `src/*.js` modules load eagerly with zero code-splitting, and the LCP element sits behind the Setup Wizard's import chain. Tracked: [#146](https://github.com/jasonkryst/MyFinances/issues/146). | `performance/PERFORMANCE_AUDIT_2026-09-02.md` |
 
 ### Medium
 
 | Type | Finding | Report |
 |---|---|---|
-| i18n | `formatCurrency()` hardcodes `currency: 'USD'` — a Polish- or other-locale user never sees their own currency, only US-dollar formatting with locale-aware digit grouping. This is a deliberate, tested design decision (`docs/superpowers/specs/2026-08-04-i18n-support-design.md`), but remains the most user-visible i18n gap for a finance app. | `i18n/I18N_AUDIT_2026-09-02.md` |
-| Misc | `qs`/`body-parser` under `server/`'s Express dependency chain has live-request-path `npm audit` findings. **Corrected 2026-09-04:** the original "fixable via plain `npm audit fix`, no breaking change" claim was verified wrong — `npm audit fix` (no `--force`) makes zero changes; the only real fix is bumping `express` 4.22.2→5.2.1 (a genuine major/breaking upgrade with real API changes), not a quick fix. Needs its own scoped effort with full server-test-suite verification. | `other/MISC_AUDIT_2026-09-02.md` |
-| Misc | `tests/integration/test_pwa_offline.py` only asserts the app shell survives an offline reload — no test exercises navigation, data entry, or chart rendering while offline, so the PWA's "usable offline" promise is asserted much more weakly than its own module docstring claims. | `other/MISC_AUDIT_2026-09-02.md` |
-| Misc | Real circular ES-module import chains centered on `ui.js` and `postgresSync.js` (e.g. a 4-file cycle `postgresSync.js → ui.js → ledger.js → settings.js → postgresSync.js`). Not currently crashing (cycle-closing exports are hoisted `function` declarations) but a latent TDZ risk if any were refactored to `const`/arrow functions. | `other/MISC_AUDIT_2026-09-02.md` |
-| Testing | 789 `wait_for_timeout()` calls exist across 54 test files — corrects the June 28 baseline audit's claim that no arbitrary waits were found. | `test/TESTING_AUDIT_2026-09-02.md` |
+| i18n | `formatCurrency()` hardcodes `currency: 'USD'` — a Polish- or other-locale user never sees their own currency, only US-dollar formatting with locale-aware digit grouping. This is a deliberate, tested design decision (`docs/superpowers/specs/2026-08-04-i18n-support-design.md`), but remains the most user-visible i18n gap for a finance app. Tracked: [#147](https://github.com/jasonkryst/MyFinances/issues/147). | `i18n/I18N_AUDIT_2026-09-02.md` |
+| Misc | `qs`/`body-parser` under `server/`'s Express dependency chain has live-request-path `npm audit` findings. **Corrected 2026-09-04:** the original "fixable via plain `npm audit fix`, no breaking change" claim was verified wrong — `npm audit fix` (no `--force`) makes zero changes; the only real fix is bumping `express` 4.22.2→5.2.1 (a genuine major/breaking upgrade with real API changes), not a quick fix. Needs its own scoped effort with full server-test-suite verification. Tracked: [#141](https://github.com/jasonkryst/MyFinances/issues/141) (blocks PR #115, the Dependabot bump that would fix this). | `other/MISC_AUDIT_2026-09-02.md` |
+| Misc | `tests/integration/test_pwa_offline.py` only asserts the app shell survives an offline reload — no test exercises navigation, data entry, or chart rendering while offline, so the PWA's "usable offline" promise is asserted much more weakly than its own module docstring claims. Tracked: [#148](https://github.com/jasonkryst/MyFinances/issues/148). | `other/MISC_AUDIT_2026-09-02.md` |
+| Misc | Real circular ES-module import chains centered on `ui.js` and `postgresSync.js` (e.g. a 4-file cycle `postgresSync.js → ui.js → ledger.js → settings.js → postgresSync.js`). Not currently crashing (cycle-closing exports are hoisted `function` declarations) but a latent TDZ risk if any were refactored to `const`/arrow functions. Tracked: [#149](https://github.com/jasonkryst/MyFinances/issues/149). | `other/MISC_AUDIT_2026-09-02.md` |
+| Testing | 789 `wait_for_timeout()` calls exist across 54 test files — corrects the June 28 baseline audit's claim that no arbitrary waits were found. Tracked: [#150](https://github.com/jasonkryst/MyFinances/issues/150). | `test/TESTING_AUDIT_2026-09-02.md` |
+| Testing | `test-ui-a`/`test-ui-b` CI shard imbalance (148 vs 101 tests) — smaller-magnitude version of the `test-features-b`/`-c` imbalance fixed in PR #145, not addressed in that pass. Tracked: [#153](https://github.com/jasonkryst/MyFinances/issues/153). | `test/TESTING_AUDIT_2026-09-02.md` |
+| Database | `nginx.conf`'s `/api/`/`/auth/` blocks have no explicit proxy timeouts or `client_max_body_size` (coincidentally matches Express's 1MB limit today, but undocumented and fragile). Tracked: [#154](https://github.com/jasonkryst/MyFinances/issues/154). | `database/DATABASE_AUDIT_2026-09-02.md` |
+| Security | `/auth/register`'s primary remediation (doc corrections) resolved in PR #144; the optional defense-in-depth alternative (gate behind an explicit `ALLOW_SETUP` env var) is not required but tracked separately. Tracked: [#156](https://github.com/jasonkryst/MyFinances/issues/156). | `security/SECURITY_AUDIT_2026-09-02.md` |
 
 ### Low
 
 | Type | Finding | Report |
 |---|---|---|
-| Documentation | `tests/README.md`'s per-file prose write-ups are still missing ~14 newer test files (counts/tree/coverage-matrix were fixed this session; the prose rewrite was left as a separate follow-up). | `documentation/DOCUMENTATION_AUDIT_2026-09-02.md` |
+| Documentation | `tests/README.md`'s per-file prose write-ups are still missing ~14 newer test files (counts/tree/coverage-matrix were fixed this session; the prose rewrite was left as a separate follow-up). Tracked: [#151](https://github.com/jasonkryst/MyFinances/issues/151). | `documentation/DOCUMENTATION_AUDIT_2026-09-02.md` |
 | Misc | Root dev-tooling (Jest/Stryker) and most `server/` dependencies are 1+ major version behind with `npm audit` findings, but almost all sit in dev-only/CLI-only chains (Stryker's bundled Babel/ajv/tmp, `node-pg-migrate`'s `glob`). | `other/MISC_AUDIT_2026-09-02.md` |
+| Database | No `cpus`/`memory` resource limits on any `docker-compose.yml` service. Tracked: [#154](https://github.com/jasonkryst/MyFinances/issues/154). | `database/DATABASE_AUDIT_2026-09-02.md` |
+| Database | `sessions` has no index on `expires_at` (no sweep job exists yet either); migration `down()` functions are all destructive `DROP TABLE` with no populated-database guard (a forward-looking guardrail, not a current bug). Tracked: [#155](https://github.com/jasonkryst/MyFinances/issues/155). | `database/DATABASE_AUDIT_2026-09-02.md` |
+| Misc | `codeql.yml` and `trivy.yml` pin different major versions of `github/codeql-action` for their SARIF-upload steps. Tracked: [#157](https://github.com/jasonkryst/MyFinances/issues/157). | `other/MISC_AUDIT_2026-09-02.md` |
+| Misc | `manifest.json` omits optional-but-recommended PWA fields (`id`, `categories`, `shortcuts`). Tracked: [#158](https://github.com/jasonkryst/MyFinances/issues/158). | `other/MISC_AUDIT_2026-09-02.md` |
 
 ---
 
@@ -149,3 +156,25 @@ Still open: everything listed above as deferred/out of scope, unchanged.
 - Feature-module delegation pattern (`featureFn(app, ...)`) followed with no deviations across all 10 pages.
 - Dependabot config covers all 5 expected ecosystems with a real merge history; Chart.js CDN is pinned to an exact version with an SRI hash.
 - The 33 `tests/postgres/` + 9 non-Postgres pytest failures seen in one local full-suite run were **not real regressions**: the Postgres failures were a test-execution environment gap (no backend server running for that pass), and the 9 non-Postgres failures all passed cleanly on a serial re-run — confirmed `pytest -n 4` parallelization flakiness, not application bugs.
+
+## Tracked work items (2026-09-04)
+
+Every remaining open finding across all 9 sub-reports — not just the ones rolled up into this file's own tables — now has a GitHub issue, filed after the three same-day fix rounds (PRs #143, #144, #145) closed out everything else well-scoped enough to fix directly. A second pass swept every individual report file directly (not just this summary) for lower-priority findings that never made it into the top-level tables above.
+
+| Issue | Finding |
+|---|---|
+| [#146](https://github.com/jasonkryst/MyFinances/issues/146) | Lighthouse code-splitting (High — the last one) |
+| [#147](https://github.com/jasonkryst/MyFinances/issues/147) | `formatCurrency()` hardcoded USD (multi-currency support) |
+| [#148](https://github.com/jasonkryst/MyFinances/issues/148) | PWA offline test coverage |
+| [#149](https://github.com/jasonkryst/MyFinances/issues/149) | `ui.js`/`postgresSync.js` circular import cycle |
+| [#150](https://github.com/jasonkryst/MyFinances/issues/150) | 789 `wait_for_timeout()` sweep |
+| [#151](https://github.com/jasonkryst/MyFinances/issues/151) | `tests/README.md` prose gaps |
+| [#153](https://github.com/jasonkryst/MyFinances/issues/153) | `test-ui-a`/`test-ui-b` shard imbalance |
+| [#154](https://github.com/jasonkryst/MyFinances/issues/154) | nginx/docker-compose deployment hardening (proxy timeouts, resource limits) |
+| [#155](https://github.com/jasonkryst/MyFinances/issues/155) | Migration/schema hygiene (`sessions.expires_at` index, destructive `down()` guards) |
+| [#156](https://github.com/jasonkryst/MyFinances/issues/156) | Optional `/auth/register` defense-in-depth (`ALLOW_SETUP` env-var gate) |
+| [#157](https://github.com/jasonkryst/MyFinances/issues/157) | `codeql-action` version alignment between `codeql.yml`/`trivy.yml` |
+| [#158](https://github.com/jasonkryst/MyFinances/issues/158) | `manifest.json` missing recommended PWA fields |
+| [#141](https://github.com/jasonkryst/MyFinances/issues/141) (pre-existing) | `qs`/`body-parser` — same root cause as the blocked Express 4→5 bump in PR #115; commented with cross-reference |
+
+Not filed as issues (deliberately out of scope, no current driver, or already resolved): `formatCurrency()`'s RTL-readiness note (i18n L2, folded into #147's context), the Ledger page's minor translated/untranslated scope adjacency (i18n L3 — explicitly "not a bug" per that report), dev-dependency version drift (already handled by Dependabot's routine PRs — see #141/PR #115), the security audit's L2 (`ledger-cleared` timestamp truncation — was already resolved same-day as the original 2026-09-02 audit, just missing its own resolution note until now).
