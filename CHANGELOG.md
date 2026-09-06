@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.46.0] — 2026-09-06
+
+### Fixed
+- **Postgres backend is now auto-detected and forced, closing a login bypass (#164)** — `app._storageBackendKind` was previously decided purely from the per-browser `debtTrackerStorageBackend` `localStorage` key. A fresh browser profile (e.g. an incognito window) that never set this key silently defaulted to local-storage mode forever and never saw the login gate, even when the app was served from a live Postgres-backed deployment — so a visitor could end up entering data into a disconnected local-only copy of the app without ever being asked to authenticate. `init()` (`src/app.js`) now calls a new `checkPostgresBackendPresent()` (`src/storage.js` — `GET /auth/setup-status`, same endpoint the login gate already used) whenever the backend preference isn't already Postgres; a successful response forces Postgres mode and persists it, so every subsequent boot goes straight through the existing session-check/login-gate/local-data-migration flow. A plain static/local-only deployment has no `/auth` router, so the detection fetch fails fast and behavior is unchanged. As a side effect, the Settings modal's local/session storage options are now permanently hidden for any browser that has ever detected a Postgres server at this origin (existing UI logic, previously only reachable via a manual Settings switch). New `tests/postgres/test_postgres_forced_detection.py` (3 tests, run against the real docker-compose stack); `tests/postgres/test_postgres_bootstrap.py::test_settings_postgres_option_reloads_to_gate` updated since its old premise — a browser with existing local data staying unauthenticated long enough to open Settings on a real Postgres origin — is exactly the loophole this closes.
+
+---
 ## [4.45.0] — 2026-09-04
 
 ### Fixed
