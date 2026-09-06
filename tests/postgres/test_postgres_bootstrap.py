@@ -101,11 +101,23 @@ async def test_valid_session_skips_gate(pg_page, base_url, credentials):
     assert not await gate.is_visible(), f'Gate shown after valid session reload. Console: {logs}'
 
 
-async def test_settings_postgres_option_reloads_to_gate(base_url):
-    """Selecting Postgres in Settings and clicking Done reloads to login gate."""
+async def test_settings_postgres_option_reloads_to_gate(base_url, bypass_postgres_detection_once):
+    """Selecting Postgres in Settings and clicking Done reloads to login gate.
+
+    Since issue #164, any fresh browser hitting a real Postgres-backed origin
+    is auto-detected and forced straight to the login gate on its very first
+    load (see test_postgres_forced_detection.py) -- so the only way this
+    browser can still be sitting in local mode long enough to open Settings
+    and manually pick Postgres is if that initial detection itself
+    failed/raced (a transient network blip). bypass_postgres_detection_once
+    simulates exactly that; later requests (post-reload, inside
+    showLoginGate) hit the real server normally.
+    """
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         ctx = await browser.new_context()
+        await ctx.route(base_url + '/', bypass_postgres_detection_once())
+
         # Pre-populate localStorage so app has existing data → _isFirstRun is
         # false → setup wizard does not appear and block clicks.
         await ctx.add_init_script("""

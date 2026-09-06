@@ -32,11 +32,11 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, loadFromPostgres } from './storage.js';
+import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, checkPostgresBackendPresent, loadFromPostgres } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgMigrationModal } from './pgMigrationModal.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
-import { createStorageAdapter, getStorageBackendPreference } from './storageAdapters.js';
+import { createStorageAdapter, getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import {
     renderIncomeList,
     addIncome,
@@ -187,6 +187,16 @@ export class DebtTrackerApp {
     }
 
     async init() {
+        // A fresh browser/incognito profile has no stored backend
+        // preference and would otherwise default to local-storage mode
+        // forever, silently bypassing login even when this origin is a
+        // Postgres-backed deployment (issue #164). Detect that case and
+        // force Postgres mode before deciding which init path to take.
+        if (this._storageBackendKind !== 'postgres' && await checkPostgresBackendPresent()) {
+            this._storageBackendKind = 'postgres';
+            setStorageBackendPreference('postgres');
+        }
+
         if (this._storageBackendKind === 'postgres') {
             const hasSession = await checkPostgresSession();
             if (!hasSession) {

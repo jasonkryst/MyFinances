@@ -18,6 +18,32 @@ export async function checkPostgresSession() {
     }
 }
 
+// Detects whether this origin is a Postgres-backed deployment (nginx.conf's
+// `X-Myfinances-Backend: postgres` header, stamped on every /index.html
+// response by the Docker image that always ships alongside the server +
+// postgres services -- see docker-compose.yml) independent of any
+// per-browser storage-backend preference. A fresh browser/incognito
+// profile has no `debtTrackerStorageBackend` key and would otherwise
+// default to local-storage mode forever, silently skipping the login gate
+// even when a Postgres server is live at this origin (issue #164).
+//
+// This deliberately checks a response header on `/` rather than probing a
+// Postgres-only endpoint like /auth/setup-status: a plain static/local-only
+// deployment (e.g. `python -m http.server`) has no /auth router, and a
+// failed fetch to a 404ing path gets logged as a "Failed to load resource"
+// browser console error regardless of the JS try/catch around it -- every
+// page load on every non-Postgres deployment would otherwise fail any
+// "assert no console errors" test. `/` always exists and returns 200 on
+// both deployment types, so this never logs anything.
+export async function checkPostgresBackendPresent() {
+    try {
+        const res = await fetch('/', { method: 'HEAD', cache: 'no-store' });
+        return res.headers.get('x-myfinances-backend') === 'postgres';
+    } catch {
+        return false;
+    }
+}
+
 const POSTGRES_RESOURCE_ENDPOINTS = {
     debts: '/api/debts',
     accounts: '/api/accounts',

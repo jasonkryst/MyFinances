@@ -34,10 +34,19 @@ async def _login(page, base_url, credentials):
     await page.wait_for_load_state('networkidle', timeout=15000)
 
 
-async def test_send_test_email_button_hidden_for_non_postgres_backend(base_url):
+async def test_send_test_email_button_hidden_for_non_postgres_backend(base_url, bypass_postgres_detection_once):
+    """Since issue #164, a fresh browser hitting this real Postgres-backed
+    origin is normally auto-detected and forced straight to the login gate,
+    which would make it impossible to reach Settings in local mode at all
+    (see test_postgres_forced_detection.py). bypass_postgres_detection_once
+    simulates a transient detection miss so the browser lands in local mode
+    long enough to open Settings and check the email-test button stays
+    hidden there, which is what this test is actually about.
+    """
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         ctx = await browser.new_context()
+        await ctx.route(base_url + '/', bypass_postgres_detection_once())
         # Pre-populate localStorage so app has existing data → _isFirstRun is
         # false → the first-run setup wizard does not appear and block the
         # #settingsBtn click (same pattern as

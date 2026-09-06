@@ -306,13 +306,21 @@ async def test_settings_select_hidden_when_on_postgres(pg_page, base_url, creden
     await pg_page.click("#settingsModalDoneBtn")
 
 
-async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, credentials):
-    """Themed confirm modal appears (instead of browser dialog) when user first selects Postgres."""
+async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, credentials, bypass_postgres_detection_once):
+    """Themed confirm modal appears (instead of browser dialog) when user first selects Postgres.
+
+    Since issue #164, a fresh browser hitting this real Postgres-backed
+    origin is normally auto-detected and forced straight to the login gate
+    (see test_postgres_forced_detection.py). bypass_postgres_detection_once
+    simulates a transient detection miss so the browser lands in local mode
+    long enough to reach Settings and manually select Postgres, which is
+    what this test is actually about.
+    """
     from playwright.async_api import async_playwright
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         ctx = await browser.new_context()
-        # No postgres backend pre-set — app runs in local storage mode.
+        await ctx.route(base_url + '/', bypass_postgres_detection_once())
         # Pre-populate debtTrackerData so _isFirstRun is false and the
         # setup wizard does not intercept clicks on #settingsBtn.
         await ctx.add_init_script("""
