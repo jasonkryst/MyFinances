@@ -159,6 +159,9 @@ export class DebtTrackerApp {
         this.planHistory = [];
         this.retirementSnapshots = [];
         this.retirementTargetDate = null;
+        this._retireBalanceChart = null;
+        this._retireContributionChart = null;
+        this._retireBreakdownChart = null;
         this.settings = [];
         this.ledgerAmountOverrides = {};
         this.ledgerClearedTransactions = {};

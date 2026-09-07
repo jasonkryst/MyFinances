@@ -1,8 +1,8 @@
 // Retirement accounts: history log, projection, and page rendering.
 
-import { computeRetirementProjection } from './retirementCalculator.js';
+import { computeRetirementProjection, splitGrowthFromContribution } from './retirementCalculator.js';
 import { pgPost, pgDelete } from './postgresSync.js';
-import { formatCurrency, escapeHtml, todayISO } from './utils.js';
+import { formatCurrency, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
 
 export function getRetirementAccounts(app) {
     return (app.accounts || []).filter(a => a.type === 'Retirement');
@@ -152,6 +152,153 @@ function renderAccountCard(app, account) {
         </div>`;
 }
 
+function destroyChart(app, key) {
+    if (app[key]) { app[key].destroy(); app[key] = null; }
+}
+
+function isDarkMode() { return document.body.classList.contains('dark-mode'); }
+
+function chartColors() {
+    const dark = isDarkMode();
+    return { grid: dark ? '#374151' : '#e5e7eb', label: dark ? '#d1d5db' : '#374151' };
+}
+
+const ACCOUNT_LINE_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'];
+
+function renderBalanceChart(app, accounts) {
+    const canvas = document.getElementById('retireBalanceChart');
+    if (!canvas) return;
+    destroyChart(app, '_retireBalanceChart');
+
+    const allDates = [...new Set(accounts.flatMap(a => getSnapshotsForAccount(app, a.id).map(s => s.date)))].sort();
+    if (allDates.length === 0) return;
+
+    const { grid, label } = chartColors();
+    const datasets = accounts.map((a, i) => {
+        const byDate = Object.fromEntries(getSnapshotsForAccount(app, a.id).map(s => [s.date, s.balance]));
+        return {
+            label: a.name,
+            data: allDates.map(d => byDate[d] ?? null),
+            borderColor: ACCOUNT_LINE_COLORS[i % ACCOUNT_LINE_COLORS.length],
+            spanGaps: true,
+            tension: 0.3,
+            pointRadius: 3
+        };
+    });
+
+    app._retireBalanceChart = new Chart(canvas, {
+        type: 'line',
+        data: { labels: allDates, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } } },
+            scales: { y: { ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }, x: { ticks: { color: label }, grid: { color: grid } } }
+        }
+    });
+
+    renderChartDataTable('retireBalanceChart', {
+        caption: 'Retirement account balances over time',
+        columns: ['Date', ...accounts.map(a => a.name)],
+        rows: allDates.map((d, i) => [d, ...datasets.map(ds => ds.data[i] != null ? formatCurrency(ds.data[i]) : '—')])
+    });
+}
+
+function renderContributionChart(app, accounts) {
+    const canvas = document.getElementById('retireContributionChart');
+    if (!canvas) return;
+    destroyChart(app, '_retireContributionChart');
+
+    const byDate = new Map();
+    for (const account of accounts) {
+        const split = splitGrowthFromContribution(getSnapshotsForAccount(app, account.id));
+        for (const row of split) {
+            const entry = byDate.get(row.date) || { contribution: 0, growth: 0 };
+            entry.contribution += row.contribution;
+            entry.growth += row.growth;
+            byDate.set(row.date, entry);
+        }
+    }
+    const dates = [...byDate.keys()].sort();
+    if (dates.length === 0) return;
+
+    const { grid, label } = chartColors();
+    const contributionData = dates.map(d => byDate.get(d).contribution);
+    const growthData = dates.map(d => byDate.get(d).growth);
+
+    app._retireContributionChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: dates,
+            datasets: [
+                { label: 'Contribution', data: contributionData, backgroundColor: '#2563eb', stack: 's', borderRadius: 4 },
+                { label: 'Growth', data: growthData, backgroundColor: '#10b981', stack: 's', borderRadius: 4 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } } },
+            scales: { y: { stacked: true, ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }, x: { stacked: true, ticks: { color: label }, grid: { color: grid } } }
+        }
+    });
+
+    renderChartDataTable('retireContributionChart', {
+        caption: 'Contribution vs. growth per period, summed across retirement accounts',
+        columns: ['Date', 'Contribution', 'Growth'],
+        rows: dates.map((d, i) => [d, formatCurrency(contributionData[i]), formatCurrency(growthData[i])])
+    });
+}
+
+function renderBreakdownChart(app, accounts) {
+    const canvas = document.getElementById('retireBreakdownChart');
+    if (!canvas) return;
+    destroyChart(app, '_retireBreakdownChart');
+
+    const balances = accounts.map(a => {
+        const snaps = getSnapshotsForAccount(app, a.id);
+        return snaps.length > 0 ? snaps[snaps.length - 1].balance : (Number(a.startingBalance) || 0);
+    });
+    if (balances.every(b => b <= 0)) return;
+
+    const { label } = chartColors();
+    app._retireBreakdownChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels: accounts.map(a => a.name), datasets: [{ data: balances, backgroundColor: ACCOUNT_LINE_COLORS }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatCurrency(ctx.parsed)}` } } }
+        }
+    });
+
+    renderChartDataTable('retireBreakdownChart', {
+        caption: 'Current retirement balance by account',
+        columns: ['Account', 'Balance'],
+        rows: accounts.map((a, i) => [a.name, formatCurrency(balances[i])])
+    });
+}
+
+function renderProjectionPanel(app, accounts) {
+    const panel = document.getElementById('retireProjectionPanel');
+    if (!panel) return;
+
+    if (!app.retirementTargetDate) {
+        panel.innerHTML = `<p class="retire-empty-msg">Set a target retirement date above to see a projected future value.</p>`;
+        return;
+    }
+
+    const rows = accounts.map(a => {
+        const projected = app.computeAccountProjection(a.id);
+        return `<div class="acct-balance-item"><span class="acct-balance-label">${escapeHtml(a.name)}</span><span class="acct-balance-value">${formatCurrency(projected)}</span></div>`;
+    });
+    const total = accounts.reduce((sum, a) => sum + (app.computeAccountProjection(a.id) || 0), 0);
+
+    panel.innerHTML = `
+        <h4 class="rpt-chart-title">Projected Value at ${escapeHtml(app.retirementTargetDate)}</h4>
+        <p class="rpt-chart-sub">Assumes each account's rate of return compounds monthly and its most recently logged contribution (plus employer match) recurs every month until then.</p>
+        <div class="acct-balances">${rows.join('')}</div>
+        <div class="acct-balance-item"><span class="acct-balance-label">Combined Total</span><span class="acct-balance-value">${formatCurrency(total)}</span></div>
+    `;
+}
+
 export function renderRetirementPage(app) {
     const container = document.getElementById('retirementSection');
     if (!container) return;
@@ -175,6 +322,24 @@ export function renderRetirementPage(app) {
             <input type="date" id="retirementTargetDateInput" value="${app.retirementTargetDate || ''}">
         </div>
         <div class="retire-cards">${accounts.map(a => renderAccountCard(app, a)).join('')}</div>
+        <div class="rpt-charts-row">
+            <div class="rpt-chart-card">
+                <h4 class="rpt-chart-title">Balance Over Time</h4>
+                <p class="rpt-chart-sub">Logged balance per retirement account</p>
+                <div class="rpt-chart-canvas-wrap"><canvas id="retireBalanceChart"></canvas></div>
+            </div>
+            <div class="rpt-chart-card">
+                <h4 class="rpt-chart-title">Contribution vs. Growth</h4>
+                <p class="rpt-chart-sub">Per period, summed across all retirement accounts (growth includes any employer match, since match amounts aren't logged separately)</p>
+                <div class="rpt-chart-canvas-wrap"><canvas id="retireContributionChart"></canvas></div>
+            </div>
+            <div class="rpt-chart-card">
+                <h4 class="rpt-chart-title">Current Balance by Account</h4>
+                <p class="rpt-chart-sub">Share of total retirement balance</p>
+                <div class="rpt-chart-canvas-wrap"><canvas id="retireBreakdownChart"></canvas></div>
+            </div>
+        </div>
+        <div class="retire-card" id="retireProjectionPanel"></div>
     `;
 
     document.getElementById('retirementTargetDateInput').onchange = (event) => {
@@ -197,4 +362,9 @@ export function renderRetirementPage(app) {
             app.switchPage('accounts');
         }
     };
+
+    renderBalanceChart(app, accounts);
+    renderContributionChart(app, accounts);
+    renderBreakdownChart(app, accounts);
+    renderProjectionPanel(app, accounts);
 }
