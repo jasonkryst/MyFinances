@@ -2,13 +2,18 @@
 
 import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
 
+const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Other'];
+
 export function sanitizeAccount(record, idFallback) {
     return {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),
         type: normalizeText(record?.type, 30) || 'Other',
         startingBalance: sanitizeFiniteNumber(record?.startingBalance, 0),
-        interestRate: sanitizeFiniteNumber(record?.interestRate, 0, { min: 0, max: 100 })
+        interestRate: sanitizeFiniteNumber(record?.interestRate, 0, { min: 0, max: 100 }),
+        retirementSubtype: RETIREMENT_SUBTYPES.includes(record?.retirementSubtype) ? record.retirementSubtype : 'Other',
+        rateOfReturn: sanitizeFiniteNumber(record?.rateOfReturn, 0, { min: 0, max: 100 }),
+        employerMatchPercent: sanitizeFiniteNumber(record?.employerMatchPercent, 0, { min: 0, max: 100 })
     };
 }
 

@@ -5,7 +5,7 @@ import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
 
-export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
+export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', Retirement: '🏛️', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
@@ -58,7 +58,7 @@ export function renderAccountsList(app) {
         return;
     }
 
-    const ACCT_TYPES = ['Checking','Savings','Cash','Investment','Credit Card','Loan','Other'];
+    const ACCT_TYPES = ['Checking','Savings','Cash','Investment','Retirement','Credit Card','Loan','Other'];
     const typeIcon = ACCOUNT_TYPE_ICONS;
 
     const now = new Date();

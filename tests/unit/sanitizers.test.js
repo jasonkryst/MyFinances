@@ -12,18 +12,40 @@ const {
 describe('sanitizeAccount', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizeAccount({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 }, 1);
-        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 });
+        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0 });
     });
 
     test('applies fallbacks for an empty record', () => {
         const result = sanitizeAccount({}, 42);
-        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0 });
+        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0 });
     });
 
     test('strips markup from name and clamps interestRate to 100', () => {
         const result = sanitizeAccount({ name: '<b>Evil</b>', interestRate: 500 }, 1);
         expect(result.name).toBe('bEvil/b');
         expect(result.interestRate).toBe(100);
+    });
+
+    test('adds retirement fields with defaults for a non-retirement account', () => {
+        const result = sanitizeAccount({ id: 1, name: 'Checking', type: 'Checking', startingBalance: 100, interestRate: 0 }, 1);
+        expect(result.retirementSubtype).toBe('Other');
+        expect(result.rateOfReturn).toBe(0);
+        expect(result.employerMatchPercent).toBe(0);
+    });
+
+    test('accepts a valid retirement subtype and clamps rate/match to [0,100]', () => {
+        const result = sanitizeAccount({
+            name: '401k', type: 'Retirement', retirementSubtype: '401k',
+            rateOfReturn: 250, employerMatchPercent: -5
+        }, 1);
+        expect(result.retirementSubtype).toBe('401k');
+        expect(result.rateOfReturn).toBe(100);
+        expect(result.employerMatchPercent).toBe(0);
+    });
+
+    test('falls back an unrecognized retirementSubtype to Other', () => {
+        const result = sanitizeAccount({ name: 'IRA', type: 'Retirement', retirementSubtype: 'bogus' }, 1);
+        expect(result.retirementSubtype).toBe('Other');
     });
 });
 
