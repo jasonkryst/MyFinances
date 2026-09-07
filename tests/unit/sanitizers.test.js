@@ -7,6 +7,7 @@ const {
     sanitizeRecurringTemplate,
     sanitizeLedgerOverrides,
     sanitizeLedgerClearedTransactions,
+    sanitizeRetirementSnapshot,
 } = require('../../src/sanitizers.js');
 
 describe('sanitizeAccount', () => {
@@ -215,5 +216,26 @@ describe('sanitizeLedgerClearedTransactions', () => {
     test('drops an entry keyed by an empty string', () => {
         const result = sanitizeLedgerClearedTransactions({ '': { clearedAt: '2026-08-30T14:23:05.123Z' } });
         expect(result).toEqual({});
+    });
+});
+
+describe('sanitizeRetirementSnapshot', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizeRetirementSnapshot({ id: 1, accountId: 5, date: '2026-01-01', balance: 10000, contribution: 500 }, 99);
+        expect(result).toEqual({ id: 1, accountId: 5, date: '2026-01-01', balance: 10000, contribution: 500 });
+    });
+
+    test('defaults date to today and numbers to 0 when missing', () => {
+        const result = sanitizeRetirementSnapshot({ accountId: 5 }, 42);
+        expect(result.id).toBe(42);
+        expect(result.accountId).toBe(5);
+        expect(result.balance).toBe(0);
+        expect(result.contribution).toBe(0);
+        expect(typeof result.date).toBe('string');
+    });
+
+    test('rejects a negative balance by clamping to 0', () => {
+        const result = sanitizeRetirementSnapshot({ accountId: 1, date: '2026-01-01', balance: -500 }, 1);
+        expect(result.balance).toBe(0);
     });
 });
