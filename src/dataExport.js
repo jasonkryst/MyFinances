@@ -4,6 +4,7 @@ import { APP_VERSION, normalizeText, sanitizeFiniteNumber } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
 import { sanitizeParsedState } from './sanitizers.js';
 import { replaceForPostgres, mergeForPostgres } from './postgresImport.js';
+import { PLAN_HISTORY_CAP } from './strategyPlanCalculation.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
@@ -37,6 +38,7 @@ export function exportAllJSON(app) {
         emergencyFunds: app.emergencyFunds || [],
         sinkingFunds: app.sinkingFunds || [],
         reconciliations: app.reconciliations || [],
+        planHistory: app.planHistory || [],
         settings: app.settings || [],
         monthlySnapshots: app.monthlySnapshots || [],
         netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
@@ -267,6 +269,12 @@ export function importAllJSON(app, file, options = {}) {
 
         const payload = Array.isArray(parsed) ? { debts: parsed } : parsed;
         const clean = sanitizeParsedState(payload);
+        // Cap a pathologically large import file at the same limit new plan
+        // submissions are trimmed to (issue #162) -- merge mode may still push
+        // the combined total slightly over this until the next Calculate run.
+        if (clean.planHistory.length > PLAN_HISTORY_CAP) {
+            clean.planHistory = clean.planHistory.slice(-PLAN_HISTORY_CAP);
+        }
         const incomingDebts = clean.debts;
         const incomingAccounts = clean.accounts;
         const incomingIncomes = clean.incomes;
@@ -279,6 +287,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingEmergencyFunds = clean.emergencyFunds;
         const incomingSinkingFunds = clean.sinkingFunds;
         const incomingReconciliations = clean.reconciliations;
+        const incomingPlanHistory = clean.planHistory;
         const incomingSettings = clean.settings;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
@@ -295,6 +304,7 @@ export function importAllJSON(app, file, options = {}) {
             || incomingBills.length > 0 || incomingExpenses.length > 0
             || incomingRecurringTemplates.length > 0 || incomingEmergencyFunds.length > 0
             || incomingSinkingFunds.length > 0 || incomingReconciliations.length > 0
+            || incomingPlanHistory.length > 0
             || incomingMonthlySnapshots.length > 0 || incomingNetWorthMilestones.length > 0
             || !!incomingStrategy?.monthlyPayment || !!incomingStrategy?.paymentStrategy;
         if (!hasData) {
@@ -353,6 +363,7 @@ export function importAllJSON(app, file, options = {}) {
             app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
             app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
             app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
+            app.planHistory = incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }));
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
@@ -399,6 +410,7 @@ export function importAllJSON(app, file, options = {}) {
             app.emergencyFunds = [...app.emergencyFunds, ...incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }))];
             app.sinkingFunds = _mergeByName(app.sinkingFunds, incomingSinkingFunds, 5000);
             app.reconciliations = [...app.reconciliations, ...incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }))];
+            app.planHistory = [...app.planHistory, ...incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }))].slice(-PLAN_HISTORY_CAP);
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};

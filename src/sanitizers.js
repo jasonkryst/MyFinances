@@ -229,6 +229,22 @@ export function sanitizeReconciliation(record, idFallback) {
     };
 }
 
+export function sanitizePlanHistoryEntry(record, idFallback) {
+    const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
+        ? record.createdAt
+        : new Date().toISOString();
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        monthlyPayment: sanitizeFiniteNumber(record?.monthlyPayment, 0, { min: 0 }),
+        strategy: normalizeText(record?.strategy, 30) || null,
+        totalInterest: sanitizeFiniteNumber(record?.totalInterest, 0, { min: 0 }),
+        monthsToPayOff: sanitizeInteger(record?.monthsToPayOff, 0, { min: 0 }),
+        payoffDate: sanitizeDateISO(record?.payoffDate),
+        totalDebt: sanitizeFiniteNumber(record?.totalDebt, 0, { min: 0 }),
+        createdAt
+    };
+}
+
 export function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
@@ -256,6 +272,7 @@ export function sanitizeParsedState(parsed = {}) {
         },
         forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
         reconciliations: (Array.isArray(parsed.reconciliations) ? parsed.reconciliations : []).map((r, i) => sanitizeReconciliation(r, now + 5500 + i)).filter(r => r.accountId !== null && Number.isFinite(r.statementBalance)),
+        planHistory: (Array.isArray(parsed.planHistory) ? parsed.planHistory : []).map((h, i) => sanitizePlanHistoryEntry(h, now + 6000 + i)).filter(h => h.monthlyPayment > 0 && !!h.strategy),
         settings: (Array.isArray(parsed.settings) ? parsed.settings : []).map(sanitizeSetting).filter(Boolean)
     };
 }

@@ -48,6 +48,7 @@ jobs:
           pytest \
             tests/features/test_debts.py \
             tests/features/test_strategy.py \
+            tests/features/test_plan_history.py \
             -v
 
   # test_ledger: 18 slow tests (~25s each in CI); isolated to its own shard.

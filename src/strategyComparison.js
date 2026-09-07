@@ -81,7 +81,7 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
         <p class="whatif-desc">Drag the slider to see how paying extra each month changes your payoff.</p>
         <div class="whatif-slider-row">
             <span class="whatif-slider-label">Extra/mo: <strong id="whatifExtraAmt">${formatCurrency(0)}</strong></span>
-            <input type="range" id="whatifSlider" min="0" max="${sliderMax}" step="10" value="0">
+            <input type="range" id="whatifSlider" min="0" max="${sliderMax}" step="10" value="0" aria-label="Extra monthly payment amount">
             <span class="whatif-slider-cap">+${formatCurrency(sliderMax)}</span>
         </div>
         <div id="whatifResult"><p class="whatif-hint">Move the slider to simulate a higher payment.</p></div>

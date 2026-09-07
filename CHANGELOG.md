@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [4.47.0] — 2026-09-06
+
+### Added
+- **Plan History on the Payment Plan page (#162)** — every "Calculate Payment Plan" submission now appends a read-only history entry (date, monthly payment, strategy, total interest, time to pay off, payoff date) to a new collapsible "📜 Plan History" panel, capped at the 20 most recent submissions (older entries are trimmed, and deleted server-side on the Postgres backend). Only the main Calculate flow records an entry — the Target Payoff Date back-calculator remains purely exploratory and doesn't. Separately, reloading the app now silently recalculates and reveals the Results section using the already-persisted last-used monthly payment/strategy (`_savedMonthlyPayment`/`_savedStrategy`, previously only used to pre-fill the form inputs), so the previous plan's results are visible again without re-clicking Calculate. New `plan_history` table/migration, `/api/plan-history` CRUD endpoint (`server/src/routes/planHistory.js`), and `sanitizePlanHistoryEntry()` (`src/sanitizers.js`, shared client/server); wired into JSON export/import and both Postgres import modes (replace/merge) alongside the existing `reconciliations` resource. New `tests/features/test_plan_history.py`, `server/test/planHistory.test.js`, and a `tests/postgres/test_postgres_mutations.py` case.
+
+---
 ## [4.46.0] — 2026-09-06
 
 ### Fixed

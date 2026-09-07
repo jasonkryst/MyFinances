@@ -54,7 +54,8 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
     recurringTemplates: '/api/recurring-templates',
     emergencyFunds: '/api/emergency-funds',
     sinkingFunds: '/api/sinking-funds',
-    reconciliations: '/api/reconciliations'
+    reconciliations: '/api/reconciliations',
+    planHistory: '/api/plan-history'
 };
 
 export async function loadFromPostgres(app) {
@@ -154,6 +155,7 @@ export function saveToStorage(app) {
             emergencyFunds: app.emergencyFunds || [],
             sinkingFunds: app.sinkingFunds || [],
             reconciliations: app.reconciliations || [],
+            planHistory: app.planHistory || [],
             settings: app.settings || [],
             monthlySnapshots: app.monthlySnapshots || [],
             netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
@@ -214,6 +216,7 @@ export function loadFromStorage(app) {
             app.emergencyFunds = clean.emergencyFunds;
             app.sinkingFunds = clean.sinkingFunds;
             app.reconciliations = clean.reconciliations;
+            app.planHistory = clean.planHistory;
             app.settings = clean.settings;
             app.monthlySnapshots = clean.monthlySnapshots;
             app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;
@@ -311,6 +314,7 @@ export function clearAllData(app, options = {}) {
     app.ledgerAmountOverrides = {};
     app.ledgerClearedTransactions = {};
     app.reconciliations = [];
+    app.planHistory = [];
     app.settings = [];
 
     app.editingDebtId = null;

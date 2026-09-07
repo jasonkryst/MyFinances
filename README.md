@@ -274,6 +274,8 @@ Results appear in three tabs:
 | **📋 Debt Summary** | Sortable per-debt table with payoff dates and progress bars; amortization modal |
 | **📅 Schedule** | Tabular (monthly schedule with editable stimulus), Calendar, Chart |
 
+Reloading the app later automatically shows your last-calculated plan's results again — no need to re-enter your payment and re-click Calculate. Every submission is also logged to the collapsible **📜 Plan History** panel (date, payment, strategy, total interest, payoff date), capped at the 20 most recent runs, so you can compare past plans at a glance.
+
 ### 4 — Track your income
 Navigate to **Income**. Add one row per income source. Use the one-time entry section for bonuses, tax refunds, and irregular deposits.
 
@@ -520,7 +522,7 @@ form-action 'self'
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
 - **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
 - **Debt Calculator** — Strategies (incl. multi-debt priority ordering), daily compounding, back-calculator, stimulus edge cases
-- **Strategy / Plan** — Avalanche/Snowball/Priority switching, comparison panel, stimulus validation
+- **Strategy / Plan** — Avalanche/Snowball/Priority switching, comparison panel, stimulus validation, plan history logging/cap, last-plan restore on load
 - **Income** — Sources, frequencies, totals, negative-amount rejection (add + inline edit paths)
 - **Expenses** — Add/edit/delete, amount/date validation
 - **Bills** — Data model, sanitization, calculation integration

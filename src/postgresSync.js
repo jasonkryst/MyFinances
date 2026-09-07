@@ -13,6 +13,7 @@ const ALL_RESOURCE_PATHS = [
     '/api/emergency-funds',
     '/api/sinking-funds',
     '/api/reconciliations',
+    '/api/plan-history',
     '/api/ledger-overrides',
     '/api/ledger-cleared',
     '/api/net-worth-snapshots',

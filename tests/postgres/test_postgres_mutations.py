@@ -269,6 +269,43 @@ async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     assert len(recons) > 0, f'Reconciliation not persisted. Console: {logs}'
 
 
+async def test_plan_history_persists_and_restores(pg_page, base_url, credentials):
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    seed = await _api_post(pg_page, base_url, '/api/debts', {
+        'name': 'Plan History Debt', 'debtType': 'creditCard',
+        'accountBalance': 2000, 'interestRate': 15,
+        'minimumPayment': 50, 'dueDate': 1
+    })
+    assert seed.status == 201
+    # Seeding via direct API call bypasses window.app's in-memory state --
+    # reload so app.debts actually reflects the new debt before calculating
+    # (otherwise calculatePaymentPlanFromInputs's "no debts" guard silently
+    # no-ops and no /api/plan-history POST ever fires).
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+
+    await pg_page.click('[data-page="strategy"]')
+    await pg_page.fill('#monthlyPayment', '200')
+    await pg_page.select_option('#paymentStrategy', 'avalanche')
+    async with pg_page.expect_response(
+        lambda r: '/api/plan-history' in r.url and r.request.method == 'POST',
+        timeout=8000
+    ):
+        await pg_page.click('#calculateBtn')
+
+    history = await (await _api_get(pg_page, base_url, '/api/plan-history')).json()
+    assert len(history) == 1, f'Plan history entry not persisted. Console: {logs}'
+    assert history[0]['strategy'] == 'avalanche'
+
+    # Reloading should silently restore and show the last plan's results
+    # without re-clicking Calculate (issue #162).
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    await pg_page.click('[data-page="strategy"]')
+    await pg_page.wait_for_selector('#resultsSection.visible', timeout=5000)
+
+
 # ---------------------------------------------------------------------------
 # Keyed resources
 # ---------------------------------------------------------------------------

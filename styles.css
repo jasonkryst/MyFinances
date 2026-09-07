@@ -1452,7 +1452,13 @@ section h3 {
 .results-tab-btn--active {
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
-    background: rgba(99,102,241,0.07);
+    background: #f4f4fe;
+}
+
+body.dark-mode .results-tab-btn--active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+    background: #27293d;
 }
 
 .results-tab-panel {
@@ -2915,7 +2921,13 @@ body.dark-mode .neg-amort-badge {
     font-weight: 600;
 }
 .diff-best {
-    color: #9ca3af;
+    color: #4b5563;
+}
+body.dark-mode .diff-best {
+    /* Needs to be lighter than the shared muted-text gray (#94a3b8) since
+       this cell can sit on .comparison-current's darker blue row background
+       (#1e3a5f) rather than the plain dark card background. */
+    color: #a5b2c4;
 }
 
 body.dark-mode .interest-comparison {
@@ -2984,11 +2996,11 @@ body.dark-mode .strat-badge--best {
 }
 .whatif-slider-cap {
     font-size: 0.8rem;
-    color: #9ca3af;
+    color: #6b7280;
 }
 .whatif-hint {
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: #6b7280;
     margin: 10px 0 0;
     font-style: italic;
 }
