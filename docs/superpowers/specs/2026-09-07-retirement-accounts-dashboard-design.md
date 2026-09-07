@@ -158,10 +158,16 @@ Following the established `moduleFn(app, ...)` delegation pattern:
   subtype/rate-of-return/employer-match fields when `type === 'Retirement'`
   is selected (plain `classList` toggle driven by the type `<select>`'s
   `change` event — no inline styles, CSP-compliant).
-- `dataExport.js`: `retirementSnapshots` and `retirementTargetDate` added
-  to the exported/imported JSON shape; bump export format version from
-  `"3.0"` to `"3.1"` (additive fields, old files still import fine with
-  defaults).
+- `dataExport.js`: `exportAllJSON()` adds `retirementSnapshots:
+  app.retirementSnapshots || []` and `retirementTargetDate:
+  app.retirementTargetDate || null` to the payload (the exported `version`
+  field is just `APP_VERSION`, not a separate schema-version counter — no
+  format-version bump needed, this is a purely additive field). Import
+  (`sanitizeParsedState` in `sanitizers.js`) maps `retirementSnapshots`
+  through `sanitizeRetirementSnapshot` the same way `accounts`/`debts`/etc.
+  are mapped through their sanitizers today, and reads `retirementTargetDate`
+  through `sanitizeDateISO`. Both default to empty/null when absent, so
+  pre-5.0.0 export files still import cleanly.
 
 ## Error handling / edge cases
 
@@ -204,7 +210,8 @@ Following the established `moduleFn(app, ...)` delegation pattern:
 - `CLAUDE.md`: new bullet under "Cross-cutting features" describing the
   Retirement page/data model/calculator, following the existing bullet
   style for other features (Ledger, Accounts, etc.).
-- Bump `APP_VERSION` in `src/utils.js`: `4.48.0` → `4.49.0`; matching
-  `sw.js` `CACHE_NAME` bump (PWA cache invalidation).
-- New `## [4.49.0] — 2026-09-07` entry in `CHANGELOG.md` under "Added"
+- Bump `APP_VERSION` in `src/utils.js`: `4.48.0` → `5.0.0` (major, per
+  explicit request rather than the usual minor-for-new-feature convention);
+  matching `sw.js` `CACHE_NAME` bump (PWA cache invalidation).
+- New `## [5.0.0] — 2026-09-07` entry in `CHANGELOG.md` under "Added"
   (kept in sync with `APP_VERSION` per `tests/features/test_versioning.py`).
