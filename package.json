@@ -8,7 +8,7 @@
     "test:mutation": "stryker run"
   },
   "devDependencies": {
-    "jest": "^30.5.0",
+    "jest": "^30.5.1",
     "@stryker-mutator/core": "^10.0.0",
     "@stryker-mutator/jest-runner": "^10.0.0",
     "babel-jest": "^30.5.0",
