@@ -278,6 +278,12 @@ async def test_plan_history_persists_and_restores(pg_page, base_url, credentials
         'minimumPayment': 50, 'dueDate': 1
     })
     assert seed.status == 201
+    # Seeding via direct API call bypasses window.app's in-memory state --
+    # reload so app.debts actually reflects the new debt before calculating
+    # (otherwise calculatePaymentPlanFromInputs's "no debts" guard silently
+    # no-ops and no /api/plan-history POST ever fires).
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
 
     await pg_page.click('[data-page="strategy"]')
     await pg_page.fill('#monthlyPayment', '200')
