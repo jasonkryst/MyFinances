@@ -20,6 +20,8 @@ export default {
         'src/sanitizers.js:77-98', // sanitizeBill, sanitizeExpense
         'src/sanitizers.js:100-130', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
         'src/sanitizers.js:131-152', // sanitizeRecurringTemplate
+        'src/retirementCalculator.js:3-12', // computeRetirementProjection
+        'src/retirementCalculator.js:14-23', // splitGrowthFromContribution
     ],
     jest: {
         configFile: 'jest.config.js',
