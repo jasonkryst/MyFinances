@@ -3,7 +3,7 @@
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v4.47.0';
+const CACHE_NAME = 'myfinances-v4.48.0';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
     '/', '/index.html', '/styles.css', '/styles-csp-classes.css',
     '/guide.html', '/guide.css', '/manifest.json',
     '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/icons/favicon-32.png',
-    '/src/accounts.js', '/src/app.js', '/src/bills.js', '/src/bonusAdvisor.js',
+    '/src/accounts.js', '/src/analytics.js', '/src/app.js', '/src/bills.js', '/src/bonusAdvisor.js',
     '/src/breakEven.js', '/src/charts.js', '/src/commandPalette.js', '/src/dataExport.js',
     '/src/dataTransferModal.js', '/src/debtBreakEven.js', '/src/debtCalculator.js', '/src/debts.js',
     '/src/forecast.js', '/src/guideNav.js', '/src/guideTheme.js', '/src/health.js',

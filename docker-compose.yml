@@ -8,6 +8,8 @@ services:
     ports:
       - "32900:80"
     restart: unless-stopped
+    environment:
+      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
     read_only: true
     tmpfs:
       - /tmp

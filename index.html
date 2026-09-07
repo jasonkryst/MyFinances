@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="MyFinances is a free, privacy-first personal finance tracker for debt payoff planning, budgeting, and net worth — all data stays in your browser, no account or server required.">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com; object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>MyFinances - Track Your Money</title>
@@ -927,6 +927,10 @@
     </div>
 
     <script src="src/debtCalculator.js" defer></script>
+    <!-- Populated at container startup from the optional GA_MEASUREMENT_ID env var;
+         404s harmlessly outside Docker (local dev, tests) leaving window.__ENV__ unset -->
+    <script src="env-config.js" defer></script>
+    <script type="module" src="src/analytics.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous"></script>
     <!-- Accelerate Debt Modal -->
     <div id="accelerateDebtModal" class="accelerate-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="accelerateDebtTitle" tabindex="-1">
