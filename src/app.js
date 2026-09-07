@@ -126,6 +126,13 @@ import { getSetting as getSettingFeature, setSetting as setSettingFeature } from
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { applyStaticTranslations, setLocale as setLocaleFeature } from './i18n.js';
+import {
+    getRetirementAccounts,
+    getSnapshotsForAccount,
+    addRetirementSnapshot as addRetirementSnapshotFeature,
+    deleteRetirementSnapshot as deleteRetirementSnapshotFeature,
+    computeAccountProjection
+} from './retirement.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -149,6 +156,8 @@ export class DebtTrackerApp {
         this.netWorthMilestonesAwarded = [];
         this.reconciliations = [];
         this.planHistory = [];
+        this.retirementSnapshots = [];
+        this.retirementTargetDate = null;
         this.settings = [];
         this.ledgerAmountOverrides = {};
         this.ledgerClearedTransactions = {};
@@ -932,6 +941,17 @@ export class DebtTrackerApp {
     applyReconciliation(accountId, statementBalance, note, date) { return applyReconciliationFeature(this, accountId, statementBalance, note, date); }
     reconcileAccount(accountId) { return reconcileAccountFeature(this, accountId); }
     deleteReconciliationEntry(id) { return deleteReconciliationEntryFeature(this, id); }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  RETIREMENT
+    // ═════════════════════════════════════════════════════════════════════════
+
+    getRetirementAccounts() { return getRetirementAccounts(this); }
+    getSnapshotsForAccount(accountId) { return getSnapshotsForAccount(this, accountId); }
+    addRetirementSnapshot(accountId, date, balance, contribution) { return addRetirementSnapshotFeature(this, accountId, date, balance, contribution); }
+    deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
+    computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
+    renderRetirementPage() { /* implemented in Task 6 */ }
     getExpectedTransactionsInRange(accountId, startDate, endDate) { return getExpectedTransactionsInRangeFeature(this, accountId, startDate, endDate); }
     openReconcileModal(accountId) { return openReconcileModalFeature(this, accountId); }
 
