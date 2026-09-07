@@ -105,7 +105,7 @@ server {
     add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
 
     # Content Security Policy (already in HTML meta tag, but can also set via header)
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
 
     # MyFinances uses stable filenames for its app shell. Require
     # revalidation so browsers receive a new release immediately.
@@ -170,7 +170,7 @@ server {
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
     
     # Content Security Policy (matches HTML meta tag, no 'unsafe-inline')
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 </IfModule>
 
 # Enable GZIP Compression
@@ -213,7 +213,7 @@ server {
 The repository ships with production-ready Docker files. The image is built on `nginx:1.29-alpine` and runs as the non-root `nginx` user.
 
 **Files provided:**
-- `Dockerfile` — multi-stage-ready build; copies `index.html`, `styles.css`, `styles-csp-classes.css`, `guide.html`, `guide.css`, `manifest.json`, `sw.js`, `src/`, and `icons/` (PWA support, #75)
+- `Dockerfile` — multi-stage-ready build; copies `index.html`, `styles.css`, `styles-csp-classes.css`, `guide.html`, `guide.css`, `manifest.json`, `sw.js`, `env-config.js`, `src/`, and `icons/` (PWA support, #75), plus `docker-entrypoint.d/40-ga-env-config.sh` (optional Google Analytics, #131)
 - `nginx.conf` — custom nginx config with security headers, revalidation for stable app-shell files, and 1-year immutable caching only for images/fonts
 - `docker-compose.yml` — hardened Compose config (read-only filesystem, dropped capabilities)
 - `.dockerignore` — excludes tests, docs, Python cache, and editor files from the build context
@@ -254,6 +254,28 @@ Access at: `http://localhost:32900`
 - `cap_drop: ALL` with only `CHOWN`, `SETUID`, `SETGID`, `NET_BIND_SERVICE` re-added
 - Built-in healthcheck via `wget`
 
+### Google Analytics (Optional)
+
+MyFinances ships with no analytics of any kind by default. If you want to see
+usage of your own self-hosted instance, set `GA_MEASUREMENT_ID` (your GA4
+measurement id, e.g. `G-XXXXXXXXXX`) in `.env` before `docker compose up -d`:
+
+```sh
+# .env
+GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+A script that runs automatically at container startup writes that id into
+`env-config.js`, which the app loads before deciding whether to inject
+`gtag.js`. Leaving the variable unset (the default) keeps analytics off —
+nothing is loaded or contacted. The CSP always allow-lists
+`googletagmanager.com`/`google-analytics.com` regardless of whether you set
+this, so no other file needs to change either way.
+
+This only applies to the Docker deployment above — there's no equivalent
+mechanism for the manual Nginx/Apache configs or GitHub Pages below. To enable
+it there, hand-write an `env-config.js` containing
+`window.__ENV__ = { GA_MEASUREMENT_ID: "G-XXXXXXXXXX" };` alongside `index.html`.
 
 ## PostgreSQL Backend Deployment (Optional — Multi-Device Sync)
 

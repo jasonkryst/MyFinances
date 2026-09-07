@@ -727,5 +727,9 @@
 
     <script src="src/guideTheme.js"></script>
     <script src="src/guideNav.js"></script>
+    <!-- Populated at container startup from the optional GA_MEASUREMENT_ID env var;
+         404s harmlessly outside Docker (local dev, tests) leaving window.__ENV__ unset -->
+    <script src="env-config.js" defer></script>
+    <script type="module" src="src/analytics.js"></script>
 </body>
 </html>

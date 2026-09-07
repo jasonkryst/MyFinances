@@ -84,11 +84,11 @@ Strong CSP header implemented in index.html:
 
 ```
 default-src 'self';
-script-src 'self' https://cdn.jsdelivr.net;
+script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com;
 style-src 'self';
 img-src 'self' data:;
 font-src 'self';
-connect-src 'self' https://cdn.jsdelivr.net;
+connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com;
 object-src 'none';
 base-uri 'self';
 form-action 'self'
@@ -96,8 +96,10 @@ form-action 'self'
 
 > **Note**: `frame-ancestors 'none'` is intentionally omitted from the meta tag — browsers ignore it there per spec. Add `frame-ancestors 'none'` to the server-level CSP HTTP header (see [DEPLOYMENT.md](DEPLOYMENT.md)) alongside `X-Frame-Options: DENY` for clickjacking protection.
 
+> **Note**: The `googletagmanager.com`/`google-analytics.com` origins support an opt-in, off-by-default Google Analytics integration for self-hosters (`GA_MEASUREMENT_ID` env var — see [DEPLOYMENT.md](DEPLOYMENT.md)'s "Google Analytics (Optional)" section). They're allow-listed unconditionally so the feature can work when configured, but nothing loads or is contacted unless you set that variable.
+
 **Protection:**
-- Restricts scripts to self and trusted CDN only
+- Restricts scripts to self, the trusted Chart.js CDN, and (only if you opt in) Google Analytics
 - Prevents inline scripts
 - Prevents frame embedding (clickjacking protection)
 - Blocks unsafe objects/embeds
@@ -313,10 +315,10 @@ Remaining considerations:
 - ✓ CSP Level 3 Implementation
 
 ### Privacy
-- ✓ No data collection
-- ✓ No tracking
-- ✓ No external API calls
-- ✓ Local storage only
+- ✓ No data collection by default
+- ✓ No tracking by default — self-hosters may opt their own instance into Google Analytics (see CSP section above)
+- ✓ No external API calls unless you enable that opt-in analytics or the optional self-hosted Postgres backend
+- ✓ Local storage only (unless the optional Postgres backend is configured)
 
 ## Security Contacts
 

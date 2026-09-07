@@ -76,12 +76,12 @@ pytest --cov=. --cov-report=html
 tests/
 ├── conftest.py                 # Shared fixtures and utilities
 ├── README.md                   # This file
-├── security/                   # Security and compliance tests (62 tests)
+├── security/                   # Security and compliance tests (65 tests)
 │   ├── test_xss.py            # XSS prevention tests across all input surfaces
 │   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
 │   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
 │   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
-├── features/                   # Feature-specific tests (385 tests, 35 files)
+├── features/                   # Feature-specific tests (389 tests, 36 files)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning, interest-rate badge display)
 │   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
@@ -141,7 +141,7 @@ tests/
 │   ├── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
 │   ├── test_interest_income_workflow.py # End-to-end interest income workflow
 │   └── test_pwa_offline.py      # Offline app-shell behavior via the service worker
-└── postgres/                     # Optional PostgreSQL backend tests (44 tests — requires Docker stack)
+└── postgres/                     # Optional PostgreSQL backend tests (47 tests — requires Docker stack)
     ├── test_postgres_bootstrap.py     # Auth, login gate, session handling
     ├── test_postgres_import.py        # loadFromPostgres fan-out + import round-trip
     ├── test_postgres_mutations.py     # Per-resource CRUD via pgPost/pgPatch/pgDelete
@@ -150,7 +150,7 @@ tests/
     └── test_postgres_setup_wizard.py  # First-run setup wizard against the Postgres backend
 ```
 
-> Several test files added since this document was last fully revised (e.g. `test_validation_modals.py`, `test_delete_confirm_modal.py`, `test_storage_backend.py`, `test_break_even.py`, `test_interest_income.py`, `test_i18n.py`, `test_pwa.py`, `test_pwa_icons.py`, `test_cash_flow_trend.py`, `test_money_flow_sankey.py`, `test_high_contrast_theme.py`, `test_settings_theme_location.py`, `test_pwa_update_banner.py`, `test_data_transfer_modal.py`, `test_plan_history.py`) are collected and run by `pytest tests/ -v` but do not yet have a dedicated per-file write-up in the "Test Categories" section below.
+> Several test files added since this document was last fully revised (e.g. `test_validation_modals.py`, `test_delete_confirm_modal.py`, `test_storage_backend.py`, `test_break_even.py`, `test_interest_income.py`, `test_i18n.py`, `test_pwa.py`, `test_pwa_icons.py`, `test_cash_flow_trend.py`, `test_money_flow_sankey.py`, `test_high_contrast_theme.py`, `test_settings_theme_location.py`, `test_pwa_update_banner.py`, `test_data_transfer_modal.py`, `test_plan_history.py`, `test_analytics.py`) are collected and run by `pytest tests/ -v` but do not yet have a dedicated per-file write-up in the "Test Categories" section below.
 
 > Ad-hoc manual debugging scripts (no `test_*` functions) live in `tools/debug/`, outside the `tests/` tree, so `tests/` only contains real pytest-collected tests.
 
@@ -590,4 +590,4 @@ Refer to:
 ---
 
 **Last Updated:** September 6, 2026 (Plan History, issue #162)  
-**Test Suite Status:** ✅ Fully Passing (768 tests / 79 files, incl. 44 Postgres/CI-only tests across 6 files)
+**Test Suite Status:** ✅ Fully Passing (778 tests / 81 files, incl. 47 Postgres/CI-only tests across 7 files)

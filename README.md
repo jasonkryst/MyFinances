@@ -48,7 +48,7 @@ MyFinances prioritizes your financial data security:
 ### Security Features
 - ✅ **Zero Data Transmission** — All data stays on your device
 - ✅ **XSS Prevention** — All user input sanitized and HTML-encoded via `escapeHtml()`
-- ✅ **Strong CSP** — `script-src 'self' https://cdn.jsdelivr.net`, `style-src 'self'` — no inline scripts or styles
+- ✅ **Strong CSP** — `script-src 'self' https://cdn.jsdelivr.net`, `style-src 'self'` — no inline scripts or styles (plus `googletagmanager.com`/`google-analytics.com`, allow-listed for the opt-in analytics feature below but never contacted unless you configure it)
 - ✅ **Security Headers** — X-Content-Type-Options, X-Frame-Options, frame-ancestors protection
 - ✅ **No External Dependencies** — Vanilla JavaScript (no npm supply-chain risk)
 - ✅ **Secure File Imports** — JSON validation + 2 MB size limit + full re-sanitization on import
@@ -69,7 +69,7 @@ All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/M
 ### Privacy Guarantee
 - ✅ All calculations run entirely in your browser
 - ✅ No data is sent to any server
-- ✅ No accounts, no tracking, no analytics
+- ✅ No accounts, no tracking, no analytics by default — self-hosters can opt their own instance into Google Analytics via an env var (see [DEPLOYMENT.md](DEPLOYMENT.md)); nothing is ever sent to Google unless you configure it
 - ✅ Data stored only in your browser's `localStorage` (same-origin isolated)
 
 ### Documentation
@@ -377,13 +377,13 @@ server/                     — Optional self-hosted Node.js + PostgreSQL backen
   ├─ docker-entrypoint.sh  — Reads Docker secret → sets DATABASE_URL before Node starts
   ├─ Dockerfile            — node:24-alpine image (build context = repo root for sanitizer reuse)
   └─ README.md             — Server setup, dev, and deployment guide
-tests/ (762 tests across 78 files)
+tests/ (778 tests across 81 files)
   ├─ conftest.py              — Shared fixtures & utilities
   ├─ README.md                — Comprehensive test documentation
-  ├─ security/ (62 tests)     — XSS, CSP, input validation, static scan
+  ├─ security/ (65 tests)     — XSS, CSP, input validation, static scan
   │   ├─ test_xss.py, test_csp.py
   │   └─ test_input_validation.py, test_static_scan.py
-  ├─ features/ (380 tests)    — Per-feature CRUD, calculations, business logic
+  ├─ features/ (389 tests)    — Per-feature CRUD, calculations, business logic
   │   ├─ test_accounts.py, test_debts.py, test_income.py, test_bills.py
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
@@ -392,7 +392,7 @@ tests/ (762 tests across 78 files)
   │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
   │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py, test_versioning.py
   │   ├─ test_break_even.py, test_interest_income.py, test_i18n.py
-  │   ├─ test_storage_backend.py, test_pwa.py, test_pwa_icons.py
+  │   ├─ test_storage_backend.py, test_pwa.py, test_pwa_icons.py, test_analytics.py
   │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py, test_validation_modals.py
   │   └─ test_issue_92_export.py, test_issue_93_expense_save.py
   ├─ ui/ (249 tests)          — UI/UX, responsiveness, accessibility
@@ -410,7 +410,7 @@ tests/ (762 tests across 78 files)
   ├─ integration/ (18 tests)  — End-to-end workflows, import/export, data persistence
   │   ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
   │   └─ test_pwa_offline.py
-  └─ postgres/ (43 tests — requires Docker stack)
+  └─ postgres/ (47 tests — requires Docker stack)
       ├─ test_postgres_bootstrap.py     — Auth, login gate, session handling
       ├─ test_postgres_import.py        — loadFromPostgres fan-out + import round-trip
       ├─ test_postgres_mutations.py     — Per-resource CRUD via pgPost/pgPatch/pgDelete
@@ -504,20 +504,20 @@ form-action 'self'
 ## 🧪 Testing Suite (Updated September 4, 2026)
 
 ### Test Statistics
-- **Total Tests**: 719 comprehensive tests (plus 43 Postgres/CI-only), all passing
-- **Test Files**: 72 organized across 6 categories (78 including `postgres/`)
+- **Total Tests**: 731 comprehensive tests (plus 47 Postgres/CI-only), all passing
+- **Test Files**: 74 organized across 6 categories (81 including `postgres/`)
 - **Framework**: pytest with Playwright browser automation
 - **Coverage**: All major features + security + UI + accessibility + integration paths
 
 ### Test Categories
 
-#### 🔐 Security Tests (62 tests)
+#### 🔐 Security Tests (65 tests)
 - **XSS Prevention** — Input sanitization across accounts, income, debts, recurring, savings, reconciliation, spending, health, ledger
 - **CSP Compliance** — Strict Content Security Policy enforcement; meta tag / nginx header sync check
 - **Input Validation** — Bounds checking, unicode, special characters, negative-amount guards on all forms
 - **Static Analysis** — Code patterns, hardcoded secrets, dependencies
 
-#### 🎯 Feature Tests (380 tests)
+#### 🎯 Feature Tests (389 tests)
 - **Accounts** — CRUD, projections, graceful orphaning of linked items on deletion; interest-rate (% APY) badge display — threshold/formatting boundaries, multi-account scoping, edit-to-clear, reload persistence, import clamping
 - **Debts** — Liability management, interest, amortization, fixed-amount validation
 - **Interest Income** — monthly compounding deposit engine, last-day posting, override-aware compounding, negative/zero/sub-cent skips, Reports/Forecast integration
@@ -540,6 +540,7 @@ form-action 'self'
 - **Storage Quota** — Soft warning at ~80%, dismissibility, re-arming, hard-failure on write error
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 - **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
+- **Analytics** — optional self-hosted Google Analytics stays off with no `window.__ENV__.GA_MEASUREMENT_ID`; injects `gtag.js`/`dataLayer` when it's present; `index.html`/`guide.html` wiring
 
 #### 🎨 UI/UX Tests (249 tests)
 - **Mobile Responsiveness** — Hamburger menu, viewport handling, touch sizing, table horizontal scroll
@@ -573,9 +574,9 @@ Site-wide sweep across all 10 pages × 2 themes + guide.html: dangling ARIA refs
 ### Quick Test Commands
 
 ```bash
-pytest tests/ -v                  # All 762 tests (requires Docker for postgres/)
-pytest tests/security/ -v         # 62 security tests
-pytest tests/features/ -v         # 380 feature tests
+pytest tests/ -v                  # All 778 tests (requires Docker for postgres/)
+pytest tests/security/ -v         # 65 security tests
+pytest tests/features/ -v         # 389 feature tests
 pytest tests/ui/ -v               # 249 UI/UX tests
 pytest tests/a11y/ -v             # 10 accessibility audit tests
 pytest tests/integration/ -v      # 18 integration tests

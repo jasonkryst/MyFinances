@@ -18,9 +18,15 @@ RUN rm /etc/nginx/conf.d/default.conf && \
 COPY nginx.conf /etc/nginx/conf.d/myfinances.conf
 
 # Copy application files
-COPY index.html styles.css styles-csp-classes.css guide.html guide.css manifest.json sw.js /usr/share/nginx/html/
+COPY index.html styles.css styles-csp-classes.css guide.html guide.css manifest.json sw.js env-config.js /usr/share/nginx/html/
 COPY src/ /usr/share/nginx/html/src/
 COPY icons/ /usr/share/nginx/html/icons/
+
+# Optional self-hosted Google Analytics (#131): the base nginx image runs
+# every executable script in /docker-entrypoint.d/ before starting nginx,
+# which generates /tmp/env-config.js from GA_MEASUREMENT_ID (unset by default).
+COPY docker-entrypoint.d/40-ga-env-config.sh /docker-entrypoint.d/40-ga-env-config.sh
+RUN chmod +x /docker-entrypoint.d/40-ga-env-config.sh
 
 # Set correct ownership and permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \

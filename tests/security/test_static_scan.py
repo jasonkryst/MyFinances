@@ -338,11 +338,26 @@ def test_main_nav_has_no_inline_styles():
     )
 
 
+# Every external origin the CSP is allowed to grant, project-wide. Anything
+# else showing up in the policy is an unreviewed new external dependency.
+# https://www.googletagmanager.com/https://www.google-analytics.com support
+# optional self-hosted Google Analytics (GA_MEASUREMENT_ID env var, #131) —
+# gtag.js itself only loads client-side when that id is actually configured.
+ALLOWED_CSP_ORIGINS = {
+    "'self'",
+    "'none'",
+    'data:',
+    'https://cdn.jsdelivr.net',
+    'https://www.googletagmanager.com',
+    'https://www.google-analytics.com',
+}
+
+
 @pytest.mark.security
 def test_no_new_external_origins_introduced():
-    """The CSP's script-src/style-src allowlist must still only reference
-    'self' and the existing Chart.js CDN origin — Enhanced Data Export adds
-    no PDF or image library, so no new origin should appear."""
+    """The CSP's allowlist must only ever reference known, reviewed origins —
+    catches any unreviewed new external dependency (a PDF/image library, a
+    new CDN, etc.) sneaking into the policy."""
     index_path = os.path.join(PROJECT_ROOT, 'index.html')
     with open(index_path, 'r', encoding='utf-8') as f:
         html = f.read()
@@ -351,9 +366,16 @@ def test_no_new_external_origins_introduced():
     csp = csp_match.group(1)
     assert "cdn.jsdelivr.net" in csp
     assert "'self'" in csp
-    forbidden_hosts = ['jspdf', 'html2canvas', 'unpkg.com', 'cdnjs.cloudflare.com']
-    for host in forbidden_hosts:
-        assert host not in csp.lower(), f"Unexpected new external dependency origin in CSP: {host}"
+
+    origins = set()
+    for directive in csp.split(';'):
+        parts = directive.strip().split()
+        if not parts:
+            continue
+        origins.update(parts[1:])
+
+    unexpected = origins - ALLOWED_CSP_ORIGINS
+    assert not unexpected, f"Unreviewed new external origin(s) in CSP: {unexpected}"
 
 
 @pytest.mark.security
@@ -439,6 +461,55 @@ def test_sw_no_cache_detection_catches_missing_block():
     fake_nginx = "server {\n    location ~* \\.(css|js)$ {\n        expires 1y;\n    }\n}\n"
     match = re.search(r'location\s*=\s*/sw\.js\s*\{([^}]*)\}', fake_nginx)
     assert match is None
+
+
+# --- optional self-hosted Google Analytics (#131) ---
+
+@pytest.mark.security
+def test_dockerfile_installs_ga_entrypoint_script():
+    """The Docker image must install the GA env-config generator into
+    /docker-entrypoint.d/ (the base nginx image already runs every executable
+    script there before starting nginx) and make it executable, or
+    GA_MEASUREMENT_ID will never reach the browser in a real deployment."""
+    dockerfile_path = os.path.join(PROJECT_ROOT, 'Dockerfile')
+    with open(dockerfile_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    assert '/docker-entrypoint.d/' in content, (
+        "Dockerfile must COPY the GA env-config script into /docker-entrypoint.d/"
+    )
+    assert re.search(r'chmod\s+\+?x\S*\s+.*docker-entrypoint\.d', content) or \
+        re.search(r'RUN\s+chmod[^\n]*docker-entrypoint\.d[^\n]*\.sh', content), (
+        "The GA env-config script must be made executable or nginx's entrypoint will skip it"
+    )
+
+
+@pytest.mark.security
+def test_nginx_serves_env_config_js_with_no_cache():
+    """/env-config.js is regenerated every container start from GA_MEASUREMENT_ID
+    -- it must never be cached, or a browser could keep an old (or a since-disabled)
+    analytics id."""
+    nginx_path = os.path.join(PROJECT_ROOT, 'nginx.conf')
+    with open(nginx_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    block_match = re.search(r'location\s*=\s*/env-config\.js\s*\{([^}]*)\}', content)
+    assert block_match, "nginx.conf must define a dedicated 'location = /env-config.js' block"
+    assert 'no-cache' in block_match.group(1), "/env-config.js must not be cached"
+
+
+@pytest.mark.security
+def test_docker_compose_passes_ga_measurement_id_env_var():
+    """docker-compose.yml must forward GA_MEASUREMENT_ID to the frontend
+    (nginx) service, following the same optional-env-var pattern already
+    used for SMTP_* on the server service."""
+    compose_path = os.path.join(PROJECT_ROOT, 'docker-compose.yml')
+    with open(compose_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    assert 'GA_MEASUREMENT_ID' in content, (
+        "docker-compose.yml must pass GA_MEASUREMENT_ID through to the myfinances service"
+    )
 
 
 def main():
