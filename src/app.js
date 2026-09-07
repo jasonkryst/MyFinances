@@ -131,7 +131,8 @@ import {
     getSnapshotsForAccount,
     addRetirementSnapshot as addRetirementSnapshotFeature,
     deleteRetirementSnapshot as deleteRetirementSnapshotFeature,
-    computeAccountProjection
+    computeAccountProjection,
+    renderRetirementPage as renderRetirementPageFeature
 } from './retirement.js';
 
 /**
@@ -951,7 +952,7 @@ export class DebtTrackerApp {
     addRetirementSnapshot(accountId, date, balance, contribution) { return addRetirementSnapshotFeature(this, accountId, date, balance, contribution); }
     deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
     computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
-    renderRetirementPage() { /* implemented in Task 6 */ }
+    renderRetirementPage() { return renderRetirementPageFeature(this); }
     getExpectedTransactionsInRange(accountId, startDate, endDate) { return getExpectedTransactionsInRangeFeature(this, accountId, startDate, endDate); }
     openReconcileModal(accountId) { return openReconcileModalFeature(this, accountId); }
 

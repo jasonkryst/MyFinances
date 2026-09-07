@@ -5299,6 +5299,15 @@ body.dark-mode .acct-type-badge { background: #1e1b4b; color: #a5b4fc; }
 }
 body.dark-mode .acct-rate-badge { background: #064e3b; color: #6ee7b7; }
 
+.retire-cards { display: flex; flex-direction: column; gap: 16px; }
+.retire-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; }
+.retire-card-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.retire-stat { display: flex; flex-direction: column; margin-left: auto; }
+.retire-target-date-row { max-width: 260px; margin-bottom: 20px; }
+.retire-snapshot-table { width: 100%; border-collapse: collapse; }
+.retire-snapshot-table th, .retire-snapshot-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+.retire-empty-msg { text-align: center; color: var(--text-muted); padding: 24px 0; }
+
 .acct-balances {
     display: flex;
     gap: 20px;

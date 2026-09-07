@@ -156,6 +156,8 @@ export function saveToStorage(app) {
             sinkingFunds: app.sinkingFunds || [],
             reconciliations: app.reconciliations || [],
             planHistory: app.planHistory || [],
+            retirementSnapshots: app.retirementSnapshots || [],
+            retirementTargetDate: app.retirementTargetDate || null,
             settings: app.settings || [],
             monthlySnapshots: app.monthlySnapshots || [],
             netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
@@ -217,6 +219,8 @@ export function loadFromStorage(app) {
             app.sinkingFunds = clean.sinkingFunds;
             app.reconciliations = clean.reconciliations;
             app.planHistory = clean.planHistory;
+            app.retirementSnapshots = clean.retirementSnapshots;
+            app.retirementTargetDate = clean.retirementTargetDate;
             app.settings = clean.settings;
             app.monthlySnapshots = clean.monthlySnapshots;
             app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;

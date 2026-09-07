@@ -86,6 +86,7 @@
                             <button class="page-button" data-page="reports" data-i18n="nav.reports">Reports</button>
                             <button class="page-button" data-page="ledger" data-i18n="nav.ledger">Ledger</button>
                             <button class="page-button" data-page="reconcile" data-i18n="nav.reconcile">Reconcile</button>
+                            <button class="page-button" data-page="retirement">Retirement</button>
                         </div>
                     </div>
                 </div>
@@ -933,6 +934,13 @@
             </section>
 
             <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Retirement Section                                          -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="retirement-section page-section" id="retirementSection">
+                <!-- Content dynamically rendered by renderRetirementPage() -->
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- Savings Section (Emergency Fund & Sinking Funds)           -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="savings-section page-section" id="savingsSection">
@@ -1076,6 +1084,28 @@
             <div class="modal-actions">
                 <button id="reconcileModalConfirmBtn" class="btn btn-success">Reconcile</button>
                 <button id="reconcileModalCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="retirementSnapshotModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="retirementSnapshotModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="retirementSnapshotModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="retirementSnapshotModalTitle">Log Balance</h3>
+            <div class="form-group modal-form-group">
+                <label for="retirementSnapshotModalDate">Date</label>
+                <input type="date" id="retirementSnapshotModalDate">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="retirementSnapshotModalBalance">Balance ($)</label>
+                <input type="number" id="retirementSnapshotModalBalance" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="retirementSnapshotModalContribution">Contribution This Period ($)</label>
+                <input type="number" id="retirementSnapshotModalContribution" step="0.01" placeholder="0.00">
+            </div>
+            <div class="modal-actions">
+                <button id="retirementSnapshotModalConfirmBtn" class="btn btn-success">Save</button>
+                <button id="retirementSnapshotModalCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

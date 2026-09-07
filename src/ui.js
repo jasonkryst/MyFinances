@@ -586,7 +586,8 @@ export function switchPage(app, pageName) {
         reports: 'reportsSection',
         ledger: 'ledgerSection',
         recurring: 'recurringSection',
-        reconcile: 'reconcileSection'
+        reconcile: 'reconcileSection',
+        retirement: 'retirementSection'
     };
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -648,6 +649,9 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     }
     if (pageName === 'reconcile') {
         app.renderReconciliationPage();
+    }
+    if (pageName === 'retirement') {
+        app.renderRetirementPage();
     }
 }
 
