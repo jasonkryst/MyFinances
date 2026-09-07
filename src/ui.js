@@ -1,6 +1,6 @@
 ﻿﻿﻿// UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
-import { refreshAccountSelectors } from './accounts.js';
+import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { escapeHtml } from './utils.js';
 import { initCommandPalette } from './commandPalette.js';
 
@@ -123,6 +123,8 @@ export function initializeEventListeners(app) {
     if (debtType) {
         debtType.addEventListener('change', () => app.updateFormVisibility());
     }
+
+    document.getElementById('accountType')?.addEventListener('change', updateAccountFormRetirementVisibility);
 
     const categoryFilter = document.getElementById('categoryFilter');
     if (categoryFilter) {
@@ -615,6 +617,7 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     if (pageName === 'accounts') {
         app.renderAccountsList();
         app.renderNetWorthWidget();
+        updateAccountFormRetirementVisibility();
     }
     if (pageName === 'liabilities') {
         // Render both debts and expenses

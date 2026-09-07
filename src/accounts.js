@@ -7,6 +7,14 @@ import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } f
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', Retirement: '🏛️', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
+export function updateAccountFormRetirementVisibility() {
+    const typeEl = document.getElementById('accountType');
+    const isRetirement = typeEl?.value === 'Retirement';
+    for (const id of ['accountRetirementFieldsGroup', 'accountRateOfReturnGroup', 'accountEmployerMatchGroup']) {
+        document.getElementById(id)?.classList.toggle('hidden', !isRetirement);
+    }
+}
+
 export function refreshAccountSelectors(app) {
     const selIds = ['incomeAccount','bonusAccount','billAccount','expenseAccount','debtAccount'];
     // opts must already be fully escaped HTML before reaching el.innerHTML below —
@@ -86,6 +94,20 @@ export function renderAccountsList(app) {
                         <label class="label-compact">Interest Rate (% APY)</label>
                         <input type="number" id="ac-rate-${a.id}" value="${Number(a.interestRate) || 0}" step="0.01" min="0" max="100" class="form-full-width">
                     </div>
+                    <div class="form-group form-no-margin">
+                        <label class="label-compact">Retirement Subtype</label>
+                        <select id="ac-retiresub-${a.id}" class="form-full-width">
+                            ${['401k','Traditional IRA','Roth IRA','HSA','Other'].map(s => `<option value="${s}" ${a.retirementSubtype===s?'selected':''}>${s}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group form-no-margin">
+                        <label class="label-compact">Rate of Return (%/yr)</label>
+                        <input type="number" id="ac-ror-${a.id}" value="${Number(a.rateOfReturn) || 0}" step="0.01" min="0" max="100" class="form-full-width">
+                    </div>
+                    <div class="form-group form-no-margin">
+                        <label class="label-compact">Employer Match (%)</label>
+                        <input type="number" id="ac-match-${a.id}" value="${Number(a.employerMatchPercent) || 0}" step="0.01" min="0" max="100" class="form-full-width">
+                    </div>
                 </div>
                 <div class="acct-edit-actions">
                     <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}">Save</button>
@@ -120,6 +142,7 @@ export function renderAccountsList(app) {
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(a.name)} (${escapeHtml(a.type)})</span>
                     ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
+                    ${a.type === 'Retirement' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(a.retirementSubtype)} · ${Number(a.rateOfReturn).toFixed(1)}% est.</span>` : ''}
                 </div>
                 <div class="acct-balances">
                     <div class="acct-balance-item">
@@ -162,11 +185,14 @@ export async function addAccount(app) {
     const type = normalizeText(document.getElementById('accountType').value, 30);
     const startingBalance = sanitizeFiniteNumber(document.getElementById('accountStartingBalance').value, NaN);
     const interestRate = sanitizeFiniteNumber(document.getElementById('accountInterestRate')?.value, 0, { min: 0, max: 100 });
+    const retirementSubtype = normalizeText(document.getElementById('accountRetirementSubtype')?.value, 30) || 'Other';
+    const rateOfReturn = sanitizeFiniteNumber(document.getElementById('accountRateOfReturn')?.value, 0, { min: 0, max: 100 });
+    const employerMatchPercent = sanitizeFiniteNumber(document.getElementById('accountEmployerMatch')?.value, 0, { min: 0, max: 100 });
 
     if (!name) { await showAlertModal('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { await showAlertModal('Please enter a starting balance (use 0 if unknown).'); return; }
 
-    const account = { id: Date.now(), name, type, startingBalance, interestRate };
+    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent };
     app.accounts.push(account);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -177,6 +203,7 @@ export async function addAccount(app) {
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
     document.getElementById('accountForm').reset();
+    updateAccountFormRetirementVisibility();
 }
 
 export async function deleteAccount(app, id) {
@@ -249,9 +276,12 @@ export async function saveEditAccount(app, id) {
     const type = normalizeText(document.getElementById(`ac-type-${id}`)?.value, 30);
     const startingBalance = sanitizeFiniteNumber(document.getElementById(`ac-bal-${id}`)?.value, NaN);
     const interestRate = sanitizeFiniteNumber(document.getElementById(`ac-rate-${id}`)?.value, 0, { min: 0, max: 100 });
+    const retirementSubtype = normalizeText(document.getElementById(`ac-retiresub-${id}`)?.value, 30) || 'Other';
+    const rateOfReturn = sanitizeFiniteNumber(document.getElementById(`ac-ror-${id}`)?.value, 0, { min: 0, max: 100 });
+    const employerMatchPercent = sanitizeFiniteNumber(document.getElementById(`ac-match-${id}`)?.value, 0, { min: 0, max: 100 });
     if (!name) { await showAlertModal('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { await showAlertModal('Please enter a valid starting balance.'); return; }
-    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate };
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent };
     app.editingAccountId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);

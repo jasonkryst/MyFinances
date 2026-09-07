@@ -135,6 +135,7 @@
                                     <option value="Savings">Savings</option>
                                     <option value="Cash">Cash</option>
                                     <option value="Investment">Investment</option>
+                                    <option value="Retirement">Retirement</option>
                                     <option value="Credit Card">Credit Card</option>
                                     <option value="Loan">Loan</option>
                                     <option value="Other">Other</option>
@@ -151,6 +152,28 @@
                                     <span class="help-icon" tabindex="0" aria-label="Optional annual interest rate for this account. When set above zero, a monthly interest deposit is automatically added to the Ledger on the last day of each month. You can override any month's amount in the Ledger with the true value from your statement.">?</span>
                                 </label>
                                 <input type="number" id="accountInterestRate" placeholder="0.00" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group hidden" id="accountRetirementFieldsGroup">
+                                <label for="accountRetirementSubtype">Retirement Subtype</label>
+                                <select id="accountRetirementSubtype">
+                                    <option value="401k">401k</option>
+                                    <option value="Traditional IRA">Traditional IRA</option>
+                                    <option value="Roth IRA">Roth IRA</option>
+                                    <option value="HSA">HSA</option>
+                                    <option value="Other" selected>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group hidden" id="accountRateOfReturnGroup">
+                                <label for="accountRateOfReturn">Expected Rate of Return (% / yr)
+                                    <span class="help-icon" tabindex="0" aria-label="Your assumed average annual growth rate for this account, used only for the Retirement page's future-value projection.">?</span>
+                                </label>
+                                <input type="number" id="accountRateOfReturn" placeholder="0.00" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group hidden" id="accountEmployerMatchGroup">
+                                <label for="accountEmployerMatch">Employer Match (%)
+                                    <span class="help-icon" tabindex="0" aria-label="Percent of your contribution your employer matches, e.g. 50 for a 50% match. Used in the Retirement page's projection.">?</span>
+                                </label>
+                                <input type="number" id="accountEmployerMatch" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="accountFormSubmit">Add Account</button>
