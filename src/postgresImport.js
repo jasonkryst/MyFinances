@@ -14,6 +14,7 @@ const CRUD_RESOURCES = [
     { field: 'emergencyFunds',     path: '/api/emergency-funds' },
     { field: 'sinkingFunds',       path: '/api/sinking-funds' },
     { field: 'reconciliations',    path: '/api/reconciliations' },
+    { field: 'planHistory',        path: '/api/plan-history' },
 ];
 
 // Resources deduplicated by name in merge mode (same logic as localStorage merge)
@@ -58,6 +59,7 @@ function snapshotAppState(app) {
         emergencyFunds:        app.emergencyFunds.map(r => ({ ...r })),
         sinkingFunds:          app.sinkingFunds.map(r => ({ ...r })),
         reconciliations:       app.reconciliations.map(r => ({ ...r })),
+        planHistory:           (app.planHistory || []).map(r => ({ ...r })),
         ledgerAmountOverrides: { ...app.ledgerAmountOverrides },
         ledgerClearedTransactions: { ...app.ledgerClearedTransactions },
         monthlySnapshots:      app.monthlySnapshots.map(r => ({ ...r })),
@@ -189,6 +191,7 @@ function snapshotToPostData(snapshot) {
         emergencyFunds:        snapshot.emergencyFunds,
         sinkingFunds:          snapshot.sinkingFunds,
         reconciliations:       snapshot.reconciliations,
+        planHistory:           snapshot.planHistory,
         ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
         ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
         monthlySnapshots:      snapshot.monthlySnapshots,
@@ -377,6 +380,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             emergencyFunds:       snapshot.emergencyFunds,
             sinkingFunds:         snapshot.sinkingFunds,
             reconciliations:      snapshot.reconciliations,
+            planHistory:          snapshot.planHistory,
             ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
             ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
             monthlySnapshots:     snapshot.monthlySnapshots,

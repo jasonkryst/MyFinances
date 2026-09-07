@@ -54,11 +54,13 @@ import {
 import { showBonusAdvice } from './bonusAdvisor.js';
 import {
     calculatePaymentPlanFromInputs as calculatePaymentPlanFromInputsFeature,
-    calculateRequiredPayment as calculateRequiredPaymentFeature
+    calculateRequiredPayment as calculateRequiredPaymentFeature,
+    restoreLastPlan as restoreLastPlanFeature
 } from './strategyPlanCalculation.js';
 import {
     displayPaymentPlan as displayPaymentPlanFeature,
-    renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature
+    renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature,
+    renderPlanHistory as renderPlanHistoryFeature
 } from './strategy.js';
 import {
     displayPaymentSchedule as displayPaymentScheduleFeature
@@ -146,6 +148,7 @@ export class DebtTrackerApp {
         this.monthlySnapshots = [];
         this.netWorthMilestonesAwarded = [];
         this.reconciliations = [];
+        this.planHistory = [];
         this.settings = [];
         this.ledgerAmountOverrides = {};
         this.ledgerClearedTransactions = {};
@@ -241,6 +244,15 @@ export class DebtTrackerApp {
      */
     calculatePaymentPlanFromInputs() {
         return calculatePaymentPlanFromInputsFeature(this);
+    }
+
+    /**
+     * Silently recalculate and reveal the last-submitted plan's results on
+     * load, using the saved monthlyPayment/strategy (issue #162). No-op if a
+     * plan is already displayed or no saved plan/debts exist.
+     */
+    restoreLastPlan() {
+        return restoreLastPlanFeature(this);
     }
 
     /**
@@ -510,6 +522,14 @@ export class DebtTrackerApp {
      */
     renderStrategyIncomeWidget() {
         return renderStrategyIncomeWidgetFeature(this);
+    }
+
+    /**
+     * Render the read-only Plan History table on the Plan page — one row per
+     * previously submitted "Calculate Payment Plan" run, newest first.
+     */
+    renderPlanHistory() {
+        return renderPlanHistoryFeature(this);
     }
 
     /**

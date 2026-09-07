@@ -2,6 +2,74 @@
 
 import { formatCurrency, escapeHtml } from './utils.js';
 import { showAlertModal } from './ui.js';
+import { pgPost, pgDelete } from './postgresSync.js';
+
+// Plan History keeps only the most recent submissions -- older entries are
+// trimmed (and, on the Postgres backend, deleted server-side) past this cap.
+export const PLAN_HISTORY_CAP = 20;
+
+// Append a Plan History entry for a just-submitted "Calculate Payment Plan"
+// run (issue #162). Only called from the main Calculate flow, not the
+// Target Payoff Date back-calculator, so history reflects deliberate plan
+// submissions rather than every exploratory calculation.
+export async function recordPlanHistoryEntry(app, monthlyPayment, strategy) {
+    if (!app.lastSummary) return;
+
+    const entry = {
+        id: Date.now(),
+        monthlyPayment,
+        strategy,
+        totalInterest: app.lastSummary.totalInterest,
+        monthsToPayOff: app.lastSummary.monthsToPayOff,
+        payoffDate: app.lastSummary.payOffDate ? app.lastSummary.payOffDate.toISOString() : null,
+        totalDebt: app.lastSummary.totalDebt,
+        createdAt: new Date().toISOString()
+    };
+
+    app.planHistory = app.planHistory || [];
+
+    if (app._storageBackendKind === 'postgres') {
+        const saved = await pgPost(app, '/api/plan-history', entry);
+        if (saved) entry.id = saved.id;
+    }
+
+    app.planHistory.push(entry);
+
+    const overflow = app.planHistory.length - PLAN_HISTORY_CAP;
+    if (overflow > 0) {
+        const trimmed = app.planHistory.splice(0, overflow);
+        if (app._storageBackendKind === 'postgres') {
+            trimmed.forEach(t => pgDelete(app, `/api/plan-history/${t.id}`));
+        }
+    }
+}
+
+// Silently restore and display the last-submitted plan on load (issue #162)
+// so the user sees their previous results without re-clicking Calculate.
+// Guarded by the caller to only run once per load (before any plan exists).
+export function restoreLastPlan(app) {
+    if (app.lastPaymentPlan) return;
+    if (!app._savedMonthlyPayment || !app._savedStrategy) return;
+    if (!app.debts || app.debts.length === 0) return;
+
+    const stimulus = app.perMonthStimulus && app.perMonthStimulus.length > 0
+        ? app.perMonthStimulus
+        : 0;
+
+    recalculatePaymentPlan(app, {
+        monthlyPayment: app._savedMonthlyPayment,
+        strategy: app._savedStrategy,
+        stimulus,
+        onSuccess: () => {
+            const resultsSection = document.getElementById('resultsSection');
+            if (resultsSection) {
+                resultsSection.classList.add('visible'); resultsSection.classList.remove('hidden');
+            }
+            app.displayPaymentPlan();
+        },
+        onError: () => { /* saved values no longer produce a valid plan (e.g. debts changed) -- leave Results hidden */ }
+    });
+}
 
 export function recalculatePaymentPlan(app, { monthlyPayment, strategy, stimulus, onSuccess, onError } = {}) {
     try {
@@ -37,12 +105,14 @@ export async function calculatePaymentPlanFromInputs(app) {
         : 0;
     recalculatePaymentPlan(app, {
         monthlyPayment, strategy, stimulus,
-        onSuccess: () => {
+        onSuccess: async () => {
             const resultsSection = document.getElementById('resultsSection');
             if (resultsSection) {
                 resultsSection.classList.add('visible'); resultsSection.classList.remove('hidden');
             }
             app.displayPaymentPlan();
+            await recordPlanHistoryEntry(app, monthlyPayment, strategy);
+            app.renderPlanHistory();
             app.saveToStorage();
         },
         onError: (err) => {

@@ -87,6 +87,17 @@ export function initializeEventListeners(app) {
         });
     }
 
+    // Plan History panel: collapse/expand toggle
+    const planHistoryToggle = document.getElementById('planHistoryToggle');
+    const planHistoryBodyWrap = document.getElementById('planHistoryBodyWrap');
+    if (planHistoryToggle && planHistoryBodyWrap) {
+        planHistoryToggle.addEventListener('click', () => {
+            const expanded = planHistoryToggle.getAttribute('aria-expanded') === 'true';
+            planHistoryToggle.setAttribute('aria-expanded', String(!expanded));
+            planHistoryBodyWrap.hidden = expanded;
+        });
+    }
+
     // Main plan: calculate using monthly payment + selected strategy
     const calculateBtn = document.getElementById('calculateBtn');
     if (calculateBtn) {
@@ -620,7 +631,7 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
         app.renderSavingsPage();
         app.attachSavingsEventListeners();
     }
-    if (pageName === 'strategy') app.renderStrategyIncomeWidget();
+    if (pageName === 'strategy') { app.renderStrategyIncomeWidget(); app.renderPlanHistory(); }
     if (pageName === 'reports') {
         if (resetToDefaults) app._reportMonthOffset = 0;
         app.renderReportsPage();
@@ -646,6 +657,8 @@ export function updateUI(app) {
         const stratEl = document.getElementById('paymentStrategy');
         if (stratEl) stratEl.value = app._savedStrategy;
     }
+    app.restoreLastPlan();
+    app.renderPlanHistory();
 
     if (app.debts.length === 0) {
         document.getElementById('emptyState').classList.add('visible'); document.getElementById('emptyState').classList.remove('hidden');

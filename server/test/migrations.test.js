@@ -43,6 +43,7 @@ test('every user_id/account_id FK column has an index', async () => {
         emergency_funds: ['user_id', 'account_id'],
         sinking_funds: ['user_id', 'account_id'],
         reconciliations: ['user_id', 'account_id'],
+        plan_history: ['user_id'],
         ledger_amount_overrides: ['account_id']
     };
 

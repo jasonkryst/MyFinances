@@ -2,9 +2,18 @@
 
 import {
     formatCurrency,
+    formatShortDate,
+    escapeHtml,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth
 } from './utils.js';
+
+const PLAN_STRATEGY_LABELS = {
+    avalanche: 'Avalanche',
+    snowball: 'Snowball',
+    'priority-lowest': 'Priority Lowest',
+    'priority-highest': 'Priority Highest'
+};
 
 /**
  * Render the full Results page after a calculation.
@@ -90,4 +99,39 @@ export function renderStrategyIncomeWidget(app) {
         💰 Expected income this month: <strong>${formatCurrency(monthlyTotal)}</strong> ${bonusChip}
         ${ratioHtml}
         ${netHtml}`;
+}
+
+/**
+ * Render the read-only Plan History table — one row per previously submitted
+ * "Calculate Payment Plan" run, newest first. Purely informational; entries
+ * are not editable or reapplyable from this view.
+ */
+export function renderPlanHistory(app) {
+    const body = document.getElementById('planHistoryBody');
+    const empty = document.getElementById('planHistoryEmpty');
+    const table = document.getElementById('planHistoryTable');
+    if (!body) return;
+
+    const entries = (app.planHistory || []).slice().reverse();
+
+    if (entries.length === 0) {
+        body.innerHTML = '';
+        if (table) table.classList.add('hidden');
+        if (empty) empty.classList.remove('hidden');
+        return;
+    }
+
+    if (table) table.classList.remove('hidden');
+    if (empty) empty.classList.add('hidden');
+
+    body.innerHTML = entries.map(entry => `
+        <tr>
+            <td>${escapeHtml(formatShortDate(entry.createdAt))}</td>
+            <td>${formatCurrency(entry.monthlyPayment)}</td>
+            <td>${escapeHtml(PLAN_STRATEGY_LABELS[entry.strategy] || entry.strategy)}</td>
+            <td>${formatCurrency(entry.totalInterest)}</td>
+            <td>${entry.monthsToPayOff} month${entry.monthsToPayOff !== 1 ? 's' : ''}</td>
+            <td>${entry.payoffDate ? escapeHtml(formatShortDate(entry.payoffDate)) : '—'}</td>
+        </tr>
+    `).join('');
 }

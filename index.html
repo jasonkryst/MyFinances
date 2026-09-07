@@ -573,6 +573,32 @@
                     </div>
                 </div>
 
+                <!-- ── Plan History (read-only log of past submissions) ────── -->
+                <div class="target-date-panel">
+                    <button class="target-date-toggle" id="planHistoryToggle" type="button" aria-expanded="false" aria-controls="planHistoryBodyWrap">
+                        📜 Plan History
+                        <span class="target-date-chevron">▼</span>
+                    </button>
+                    <div class="target-date-body" id="planHistoryBodyWrap" hidden>
+                        <p class="target-date-desc" id="planHistoryEmpty">No plans calculated yet. Submit a payment plan below to start building history.</p>
+                        <div class="table-wrapper">
+                            <table id="planHistoryTable" class="hidden">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Monthly Payment</th>
+                                        <th>Strategy</th>
+                                        <th>Total Interest</th>
+                                        <th>Time to Pay Off</th>
+                                        <th>Payoff Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planHistoryBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ── Results (hidden until Calculate is clicked) ────────── -->
                 <div id="resultsSection" class="hidden">
                     <hr class="plan-divider">
