@@ -15,6 +15,7 @@ const CRUD_RESOURCES = [
     { field: 'sinkingFunds',       path: '/api/sinking-funds' },
     { field: 'reconciliations',    path: '/api/reconciliations' },
     { field: 'planHistory',        path: '/api/plan-history' },
+    { field: 'retirementSnapshots', path: '/api/retirement-snapshots' },
 ];
 
 // Resources deduplicated by name in merge mode (same logic as localStorage merge)
@@ -60,6 +61,7 @@ function snapshotAppState(app) {
         sinkingFunds:          app.sinkingFunds.map(r => ({ ...r })),
         reconciliations:       app.reconciliations.map(r => ({ ...r })),
         planHistory:           (app.planHistory || []).map(r => ({ ...r })),
+        retirementSnapshots:   (app.retirementSnapshots || []).map(r => ({ ...r })),
         ledgerAmountOverrides: { ...app.ledgerAmountOverrides },
         ledgerClearedTransactions: { ...app.ledgerClearedTransactions },
         monthlySnapshots:      app.monthlySnapshots.map(r => ({ ...r })),
@@ -79,7 +81,8 @@ function snapshotAppState(app) {
             rangeMonths:          app._forecastRangeMonths          || 1,
             accountId:            app._forecastAccountId            || 'total',
             notableThresholdPct:  app._forecastNotableThresholdPct  || 130
-        }
+        },
+        retirementTargetDate:  app.retirementTargetDate ?? null
     };
 }
 
@@ -136,7 +139,8 @@ async function postAllResources(data) {
         monthlyPayment:  data.monthlyPayment  ?? null,
         perMonthStimulus: data.perMonthStimulus || [],
         ledgerSettings:   data.ledgerSettings,
-        forecastSettings: data.forecastSettings
+        forecastSettings: data.forecastSettings,
+        retirementTargetDate: data.retirementTargetDate ?? null
     });
 
     return { accountResults, resourceResults, idMap, overrideEntries, clearedEntries };
@@ -162,6 +166,7 @@ function applyResultsToApp(app, data, { accountResults, resourceResults, idMap, 
     app.perMonthStimulus           = data.perMonthStimulus || [];
     app._savedMonthlyPayment       = data.monthlyPayment ?? null;
     app._savedStrategy             = data.strategy ?? null;
+    app.retirementTargetDate       = data.retirementTargetDate ?? null;
 
     if (data.ledgerSettings) {
         app._ledgerAccountFilter = data.ledgerSettings.accountFilter || 'all';
@@ -192,6 +197,7 @@ function snapshotToPostData(snapshot) {
         sinkingFunds:          snapshot.sinkingFunds,
         reconciliations:       snapshot.reconciliations,
         planHistory:           snapshot.planHistory,
+        retirementSnapshots:   snapshot.retirementSnapshots,
         ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
         ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
         monthlySnapshots:      snapshot.monthlySnapshots,
@@ -201,7 +207,8 @@ function snapshotToPostData(snapshot) {
         strategy:              snapshot.strategy,
         monthlyPayment:        snapshot.monthlyPayment,
         ledgerSettings:        snapshot.ledgerSettings,
-        forecastSettings:      snapshot.forecastSettings
+        forecastSettings:      snapshot.forecastSettings,
+        retirementTargetDate:  snapshot.retirementTargetDate
     };
 }
 
@@ -358,12 +365,14 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             app._forecastAccountId           = clean.forecastSettings.accountId           || 'total';
             app._forecastNotableThresholdPct = clean.forecastSettings.notableThresholdPct || 130;
         }
+        if (clean.retirementTargetDate) app.retirementTargetDate = clean.retirementTargetDate;
         await apiFetch('PATCH', '/api/plan-settings', {
             strategy:        app._savedStrategy,
             monthlyPayment:  app._savedMonthlyPayment,
             perMonthStimulus: app.perMonthStimulus,
             ledgerSettings:   clean.ledgerSettings,
-            forecastSettings: clean.forecastSettings
+            forecastSettings: clean.forecastSettings,
+            retirementTargetDate: app.retirementTargetDate
         });
 
     } catch (err) {
@@ -381,6 +390,8 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             sinkingFunds:         snapshot.sinkingFunds,
             reconciliations:      snapshot.reconciliations,
             planHistory:          snapshot.planHistory,
+            retirementSnapshots:  snapshot.retirementSnapshots,
+            retirementTargetDate: snapshot.retirementTargetDate,
             ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
             ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
             monthlySnapshots:     snapshot.monthlySnapshots,
