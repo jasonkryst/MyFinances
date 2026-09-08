@@ -171,8 +171,12 @@ def test_login_gate_card_not_white_in_dark_mode(app_page):
 
 @pytest.mark.ui
 def test_login_gate_overlay_not_white_in_dark_mode(app_page):
-    """Login gate overlay (.login-gate) must not be white/transparent in
-    dark mode. var(--bg-primary) is now defined as #0f172a (issue #120)."""
+    """Login gate overlay (.login-gate) must use the dark gradient backdrop,
+    not the light-mode gradient or a plain white/transparent background.
+    Since 5.1.0 the overlay mirrors body's gradient look rather than a flat
+    var(--bg-primary) fill, so this asserts on backgroundImage instead of
+    backgroundColor (a gradient background reports backgroundColor as
+    transparent)."""
     from tests.conftest import open_settings
 
     page = app_page
@@ -180,13 +184,41 @@ def test_login_gate_overlay_not_white_in_dark_mode(app_page):
     page.select_option('#themeSwitcher', 'dark')
     page.wait_for_timeout(200)
 
-    overlay_bg = page.evaluate(
-        "() => getComputedStyle(document.querySelector('.login-gate')).backgroundColor"
+    overlay = page.evaluate("""
+        () => {
+            const style = getComputedStyle(document.querySelector('.login-gate'));
+            return { backgroundImage: style.backgroundImage, backgroundColor: style.backgroundColor };
+        }
+    """)
+    assert overlay['backgroundImage'] != 'none', (
+        ".login-gate overlay must have a gradient background in dark mode"
     )
-    # Must not be transparent (rgba(0,0,0,0)) or white (rgb(255,255,255))
-    assert overlay_bg not in ('rgba(0, 0, 0, 0)', 'rgb(255, 255, 255)'), (
-        ".login-gate overlay must have a defined background in dark mode"
+    assert overlay['backgroundColor'] != 'rgb(255, 255, 255)', (
+        ".login-gate overlay must not be white in dark mode"
     )
-    assert overlay_bg == 'rgb(15, 23, 42)', (
-        ".login-gate overlay background should be the dark --bg-primary (#0f172a)"
+    for stop in ('35, 37, 38', '65, 67, 69'):
+        assert stop in overlay['backgroundImage'], (
+            f".login-gate overlay gradient should include rgb({stop}) in dark mode, "
+            f"got: {overlay['backgroundImage']}"
+        )
+
+
+@pytest.mark.ui
+def test_login_gate_header_band_dark_gradient_in_dark_mode(app_page):
+    """Login gate header band (.login-gate-header) must switch to the dark
+    header gradient (matching the real <header>'s dark-mode gradient), not
+    the light-mode blue gradient."""
+    from tests.conftest import open_settings
+
+    page = app_page
+    open_settings(page)
+    page.select_option('#themeSwitcher', 'dark')
+    page.wait_for_timeout(200)
+
+    bg_image = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.login-gate-header')).backgroundImage"
     )
+    for stop in ('17, 24, 39', '30, 41, 59'):
+        assert stop in bg_image, (
+            f".login-gate-header gradient should include rgb({stop}) in dark mode, got: {bg_image}"
+        )
