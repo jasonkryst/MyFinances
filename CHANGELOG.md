@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.2.0] — 2026-09-08
+
+### Added
+- **PWA manifest completeness** — `manifest.json` now includes the three recommended-but-previously-missing fields: `id` (`"/"`) so an app's installed identity remains stable across any future `start_url` change; `categories` (`["finance", "productivity"]`) for app-store-style PWA listings; and `shortcuts` so the OS launcher can surface quick-jump actions — right-clicking the installed icon offers **Health Dashboard** (`/?page=health`) and **Ledger** (`/?page=ledger`). A matching two-line URL-routing hook in `app.js`'s `DOMContentLoaded` handler reads the `?page=` parameter after `init()` and calls `switchPage()`, so shortcut-launched sessions land directly on the right page. New `test_manifest_shortcuts_structure` and `test_manifest_shortcut_urls_use_known_page_names` tests; `id` and `categories` added to `REQUIRED_MANIFEST_FIELDS` (issue #158).
+
+---
 ## [5.1.0] — 2026-09-08
 
 ### Changed

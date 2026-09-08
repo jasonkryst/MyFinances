@@ -1,7 +1,9 @@
 {
+  "id": "/",
   "name": "MyFinances",
   "short_name": "MyFinances",
   "description": "Privacy-first personal finance tracker — debt payoff, budgets, net worth, all data stays in your browser.",
+  "categories": ["finance", "productivity"],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,5 +13,21 @@
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Health Dashboard",
+      "short_name": "Health",
+      "description": "View your financial health score and metrics",
+      "url": "/?page=health",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ledger",
+      "short_name": "Ledger",
+      "description": "View your transaction ledger",
+      "url": "/?page=ledger",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }

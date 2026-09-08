@@ -43,7 +43,13 @@ def index_html_content():
 REQUIRED_MANIFEST_FIELDS = [
     'name', 'short_name', 'start_url', 'scope', 'display',
     'background_color', 'theme_color', 'icons',
+    'id', 'categories',
 ]
+
+KNOWN_PAGE_NAMES = {
+    'health', 'accounts', 'liabilities', 'income', 'savings',
+    'strategy', 'reports', 'ledger', 'recurring', 'reconcile',
+}
 
 
 @pytest.mark.feature
@@ -70,13 +76,38 @@ def test_index_html_links_manifest_and_icons(index_html_content):
 
 @pytest.mark.feature
 def test_required_field_check_catches_incomplete_manifest():
-    """The same required-field check must flag a manifest missing 'icons', not just pass a well-formed one."""
+    """The required-field check must flag manifests missing any required field."""
     broken_manifest = {
         'name': 'X', 'short_name': 'X', 'start_url': '/', 'scope': '/',
         'display': 'standalone', 'background_color': '#fff', 'theme_color': '#fff',
     }
     missing = [f for f in REQUIRED_MANIFEST_FIELDS if f not in broken_manifest]
-    assert missing == ['icons']
+    assert set(missing) == {'icons', 'id', 'categories'}
+
+
+@pytest.mark.feature
+def test_manifest_shortcuts_structure(manifest_json):
+    """shortcuts must be present with at least one entry containing name and url."""
+    shortcuts = manifest_json.get('shortcuts', [])
+    assert len(shortcuts) >= 1, "manifest.json should declare at least one shortcut"
+    for s in shortcuts:
+        assert 'name' in s, f"shortcut missing 'name': {s}"
+        assert 'url' in s, f"shortcut missing 'url': {s}"
+
+
+@pytest.mark.feature
+def test_manifest_shortcut_urls_use_known_page_names(manifest_json):
+    """Each shortcut's ?page= value must match a page name the app actually handles."""
+    from urllib.parse import urlparse, parse_qs
+    for shortcut in manifest_json.get('shortcuts', []):
+        url = shortcut.get('url', '')
+        params = parse_qs(urlparse(url).query)
+        page_values = params.get('page', [])
+        assert page_values, f"shortcut '{shortcut.get('name')}' url has no ?page= param: {url!r}"
+        assert page_values[0] in KNOWN_PAGE_NAMES, (
+            f"shortcut '{shortcut.get('name')}' uses unknown page '{page_values[0]}'; "
+            f"valid pages: {sorted(KNOWN_PAGE_NAMES)}"
+        )
 
 
 # --- sw.js precache list + versioning ---
