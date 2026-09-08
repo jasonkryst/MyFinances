@@ -1,6 +1,6 @@
 import express from 'express';
 import { query } from '../db.js';
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger } from '../sanitizers/index.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO } from '../sanitizers/index.js';
 
 const router = express.Router();
 
@@ -14,6 +14,7 @@ function rowToJson(row, milestones) {
         perMonthStimulus: row.per_month_stimulus.map(Number),
         ledgerSettings: row.ledger_settings,
         forecastSettings: row.forecast_settings,
+        retirementTargetDate: row.retirement_target_date || null,
         netWorthMilestonesAwarded: milestones
     };
 }
@@ -63,6 +64,7 @@ router.patch('/', async (req, res, next) => {
             accountId: body.forecastSettings?.accountId === 'total' ? 'total' : (normalizeText(body.forecastSettings?.accountId, 30) || 'total'),
             notableThresholdPct: sanitizeFiniteNumber(body.forecastSettings?.notableThresholdPct, 130, { min: 100, max: 500 })
         };
+        const retirementTargetDate = body.retirementTargetDate === undefined ? undefined : sanitizeDateISO(body.retirementTargetDate);
 
         const sets = [];
         const values = [req.userId];
@@ -71,6 +73,7 @@ router.patch('/', async (req, res, next) => {
         if (perMonthStimulus !== undefined) { values.push(perMonthStimulus); sets.push(`per_month_stimulus = $${values.length}`); }
         if (ledgerSettings !== undefined) { values.push(JSON.stringify(ledgerSettings)); sets.push(`ledger_settings = $${values.length}`); }
         if (forecastSettings !== undefined) { values.push(JSON.stringify(forecastSettings)); sets.push(`forecast_settings = $${values.length}`); }
+        if (retirementTargetDate !== undefined) { values.push(retirementTargetDate); sets.push(`retirement_target_date = $${values.length}`); }
 
         if (sets.length > 0) {
             await query(`UPDATE plan_settings SET ${sets.join(', ')} WHERE user_id = $1`, values);
