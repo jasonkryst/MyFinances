@@ -44,7 +44,8 @@ test('every user_id/account_id FK column has an index', async () => {
         sinking_funds: ['user_id', 'account_id'],
         reconciliations: ['user_id', 'account_id'],
         plan_history: ['user_id'],
-        ledger_amount_overrides: ['account_id']
+        ledger_amount_overrides: ['account_id'],
+        retirement_snapshots: ['user_id', 'account_id']
     };
 
     for (const [table, columns] of Object.entries(expectedIndexedColumns)) {
@@ -78,4 +79,28 @@ test('enum-shaped columns reject values outside their sanitizer allow-list', asy
         pool.query("INSERT INTO incomes (user_id, name, frequency) VALUES ($1, 'x', 'daily')", [user.id]),
         /violates check constraint "incomes_frequency_check"/
     );
+});
+
+test('accounts.retirement_subtype rejects a value outside the allow-list', async () => {
+    await resetDb();
+    const user = await createTestUser();
+    await assert.rejects(
+        pool.query(
+            "INSERT INTO accounts (user_id, name, retirement_subtype) VALUES ($1, 'x', 'bogus')",
+            [user.id]
+        ),
+        /violates check constraint "accounts_retirement_subtype_check"/
+    );
+});
+
+test('plan_settings accepts a retirement_target_date', async () => {
+    await resetDb();
+    const user = await createTestUser();
+    await pool.query('INSERT INTO plan_settings (user_id) VALUES ($1)', [user.id]);
+    await pool.query('UPDATE plan_settings SET retirement_target_date = $1 WHERE user_id = $2', ['2050-01-01', user.id]);
+    const { rows } = await pool.query('SELECT retirement_target_date FROM plan_settings WHERE user_id = $1', [user.id]);
+    // db.js overrides the `date` OID type parser to return the raw wire text
+    // (already "YYYY-MM-DD") rather than a JS Date, matching every other
+    // date column in this codebase -- see the comment in src/db.js.
+    assert.equal(rows[0].retirement_target_date, '2050-01-01');
 });
