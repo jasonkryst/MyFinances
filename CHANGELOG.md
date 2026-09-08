@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.0.0] — 2026-09-07
+
+### Added
+- **Retirement accounts dashboard** — a new `Retirement` account type (subtype, assumed rate of return, employer match %) alongside a manually-logged per-account balance/contribution history (`app.retirementSnapshots`), a pure projection calculator (`src/retirementCalculator.js`) that compounds monthly to a user-set target retirement date, and a new "Retirement" nav page with balance-over-time, contribution-vs-growth, and current-balance-breakdown charts plus a per-account and combined projected-value panel. Wired through all three storage backends, including a new `retirement_snapshots` table and `/api/retirement-snapshots` CRUD endpoint on the optional self-hosted Postgres server. New `tests/features/test_retirement.py`, `tests/unit/retirementCalculator.test.js`, `server/test/crudResources.test.js` case, and `tests/postgres/test_postgres_mutations.py` cases.
+
+---
 ## [4.48.0] — 2026-09-07
 
 ### Added
@@ -723,6 +729,7 @@ _Note: `4.7.1` was a version-only commit with no accompanying changes and has no
 ## [3.0.0] and earlier
 
 Core feature set: debt management (credit cards + fixed-amount recurring), account management with projected balances, income tracking (bi-weekly + monthly sources, one-time entries), budget tracking (bills + variable expenses), recurring transaction templates (subscriptions, reimbursements, transfers), savings goals (emergency fund + sinking funds with three allocation methods), unified ledger with amount overrides, calendar + reports (income vs. expenses, money flow, variance dashboard, net worth), debt payoff plan calculator with four strategies (Avalanche, Snowball, Priority-Low, Priority-High), what-if slider, target payoff date back-calculator (binary search), interest paid to date estimate, JSON export/import (legacy v1.0 + current v4.0.0 format), CSV schedule export, dark mode, in-app guide (`guide.html`), strict Content Security Policy.
+
 
 
 
