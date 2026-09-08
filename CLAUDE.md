@@ -97,5 +97,3 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
 - **Strict CSP** in `index.html`: `script-src 'self' https://cdn.jsdelivr.net`, `style-src 'self'` — no inline `<script>`, no inline `style="..."`, no `eval`/`Function()`. All dynamic styling must use CSS classes/variables (see `styles-csp-classes.css`) toggled via `classList`.
 - **All user-supplied data rendered via `innerHTML` must go through `escapeHtml()`** (from `utils.js`). Prefer `textContent` where possible.
 - **All persisted/imported fields must be sanitized** via the `sanitize*` functions in `sanitizers.js` / `utils.js` — never trust raw `localStorage` or imported JSON.
-
-

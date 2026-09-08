@@ -729,7 +729,3 @@ _Note: `4.7.1` was a version-only commit with no accompanying changes and has no
 ## [3.0.0] and earlier
 
 Core feature set: debt management (credit cards + fixed-amount recurring), account management with projected balances, income tracking (bi-weekly + monthly sources, one-time entries), budget tracking (bills + variable expenses), recurring transaction templates (subscriptions, reimbursements, transfers), savings goals (emergency fund + sinking funds with three allocation methods), unified ledger with amount overrides, calendar + reports (income vs. expenses, money flow, variance dashboard, net worth), debt payoff plan calculator with four strategies (Avalanche, Snowball, Priority-Low, Priority-High), what-if slider, target payoff date back-calculator (binary search), interest paid to date estimate, JSON export/import (legacy v1.0 + current v4.0.0 format), CSV schedule export, dark mode, in-app guide (`guide.html`), strict Content Security Policy.
-
-
-
-
