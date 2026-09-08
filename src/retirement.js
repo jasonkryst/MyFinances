@@ -319,7 +319,7 @@ export function renderRetirementPage(app) {
         <div class="page-header-row"><h2>🏛️ Retirement</h2></div>
         <div class="retire-target-date-row form-group">
             <label for="retirementTargetDateInput">Target Retirement Date</label>
-            <input type="date" id="retirementTargetDateInput" value="${app.retirementTargetDate || ''}">
+            <input type="date" id="retirementTargetDateInput" value="${escapeHtml(app.retirementTargetDate || '')}">
         </div>
         <div class="retire-cards">${accounts.map(a => renderAccountCard(app, a)).join('')}</div>
         <div class="rpt-charts-row">

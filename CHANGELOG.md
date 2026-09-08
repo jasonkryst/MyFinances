@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.0.1] — 2026-09-08
+
+### Fixed
+- **XSS via retirement target date input** — the Retirement page's target-date `<input>` interpolated `app.retirementTargetDate` into its `value` attribute without `escapeHtml()`, so a value containing a `"` could break out of the attribute and inject arbitrary HTML on re-render (CodeQL `js/xss-through-dom`, high severity). New `tests/security/test_xss.py::test_xss_in_retirement_target_date_input_value` regression test.
+
+---
 ## [5.0.0] — 2026-09-07
 
 ### Added

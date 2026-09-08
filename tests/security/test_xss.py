@@ -672,3 +672,29 @@ async def test_xss_in_sinking_fund_name_and_notes(async_app_page):
 
     xss_ran_notes = await page.evaluate('() => window.__xss_sinking_notes === 1')
     assert not xss_ran_notes, "XSS payload executed via sinking fund notes!"
+
+
+@pytest.mark.security
+def test_xss_in_retirement_target_date_input_value(app_page):
+    """A retirementTargetDate that breaks out of the target-date <input>'s
+    value attribute is escaped, not reinterpreted as HTML, when the
+    Retirement page renders (CodeQL js/xss-through-dom)."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 9501, name: '401k XSS Test', type: 'Retirement', startingBalance: 1000, rateOfReturn: 7, employerMatchPercent: 0 }];
+        app.retirementSnapshots = [];
+        app.retirementTargetDate = '2050-01-01"><img src=x onerror="window.__xss_retire_target=1">';
+        app.switchPage('retirement');
+    }""")
+    page.wait_for_timeout(300)
+
+    xss_fired = page.evaluate('() => !!window.__xss_retire_target')
+    assert not xss_fired, "XSS payload executed via retirementTargetDate input value!"
+
+    # Browsers re-normalize attribute quoting on read-back (an unquoted
+    # `src=x` becomes `src="x"` in .innerHTML), so a raw substring check
+    # against the serialized HTML is unreliable here -- assert directly that
+    # no live <img> element was created by breaking out of the value attribute.
+    injected_img_count = page.evaluate('() => document.querySelectorAll("#retirementSection img").length')
+    assert injected_img_count == 0, "retirementTargetDate broke out of the input's value attribute and injected a live <img> element"
