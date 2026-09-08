@@ -9,7 +9,7 @@ pytestmark = pytest.mark.feature
 GROUPS = {
     'overview': ['health', 'accounts', 'income'],
     'manage':   ['liabilities', 'recurring', 'savings', 'strategy'],
-    'analyze':  ['reports', 'ledger', 'reconcile'],
+    'analyze':  ['reports', 'ledger', 'reconcile', 'retirement'],
 }
 
 

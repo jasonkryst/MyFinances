@@ -23,6 +23,7 @@ export default {
     'nav.reports': 'Informes',
     'nav.ledger': 'Libro Mayor',
     'nav.reconcile': 'Conciliar',
+    'nav.retirement': 'Jubilación',
 
     'settings.close': 'Cerrar',
     'settings.title': 'Configuración',

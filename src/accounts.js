@@ -94,17 +94,17 @@ export function renderAccountsList(app) {
                         <label class="label-compact">Interest Rate (% APY)</label>
                         <input type="number" id="ac-rate-${a.id}" value="${Number(a.interestRate) || 0}" step="0.01" min="0" max="100" class="form-full-width">
                     </div>
-                    <div class="form-group form-no-margin">
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' ? 'hidden' : ''}">
                         <label class="label-compact">Retirement Subtype</label>
                         <select id="ac-retiresub-${a.id}" class="form-full-width">
                             ${['401k','Traditional IRA','Roth IRA','HSA','Other'].map(s => `<option value="${s}" ${a.retirementSubtype===s?'selected':''}>${s}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="form-group form-no-margin">
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' ? 'hidden' : ''}">
                         <label class="label-compact">Rate of Return (%/yr)</label>
                         <input type="number" id="ac-ror-${a.id}" value="${Number(a.rateOfReturn) || 0}" step="0.01" min="0" max="100" class="form-full-width">
                     </div>
-                    <div class="form-group form-no-margin">
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' ? 'hidden' : ''}">
                         <label class="label-compact">Employer Match (%)</label>
                         <input type="number" id="ac-match-${a.id}" value="${Number(a.employerMatchPercent) || 0}" step="0.01" min="0" max="100" class="form-full-width">
                     </div>

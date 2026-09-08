@@ -145,7 +145,7 @@ function renderAccountCard(app, account) {
             </div>
             <div class="table-wrapper">
                 <table class="retire-snapshot-table">
-                    <thead><tr><th>Date</th><th>Balance</th><th>Contribution</th><th></th></tr></thead>
+                    <thead><tr><th scope="col">Date</th><th scope="col">Balance</th><th scope="col">Contribution</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
             </div>
