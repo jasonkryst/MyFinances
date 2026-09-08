@@ -55,7 +55,8 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
     emergencyFunds: '/api/emergency-funds',
     sinkingFunds: '/api/sinking-funds',
     reconciliations: '/api/reconciliations',
-    planHistory: '/api/plan-history'
+    planHistory: '/api/plan-history',
+    retirementSnapshots: '/api/retirement-snapshots'
 };
 
 export async function loadFromPostgres(app) {
@@ -89,6 +90,7 @@ export async function loadFromPostgres(app) {
     app._forecastRangeMonths = planSettings.forecastSettings?.rangeMonths ?? 1;
     app._forecastAccountId = planSettings.forecastSettings?.accountId ?? 'total';
     app._forecastNotableThresholdPct = planSettings.forecastSettings?.notableThresholdPct ?? 130;
+    app.retirementTargetDate = planSettings.retirementTargetDate ?? null;
 }
 
 // Browsers commonly cap localStorage somewhere in the 5-10MB range. We can't
@@ -134,7 +136,8 @@ export function saveToStorage(app) {
                     rangeMonths: app._forecastRangeMonths || 1,
                     accountId: app._forecastAccountId || 'total',
                     notableThresholdPct: app._forecastNotableThresholdPct || 130
-                }
+                },
+                retirementTargetDate: app.retirementTargetDate || null
             })
         }).then(() => true).catch(err => {
             console.error('Error saving plan settings to Postgres:', err);
@@ -156,6 +159,8 @@ export function saveToStorage(app) {
             sinkingFunds: app.sinkingFunds || [],
             reconciliations: app.reconciliations || [],
             planHistory: app.planHistory || [],
+            retirementSnapshots: app.retirementSnapshots || [],
+            retirementTargetDate: app.retirementTargetDate || null,
             settings: app.settings || [],
             monthlySnapshots: app.monthlySnapshots || [],
             netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
@@ -217,6 +222,8 @@ export function loadFromStorage(app) {
             app.sinkingFunds = clean.sinkingFunds;
             app.reconciliations = clean.reconciliations;
             app.planHistory = clean.planHistory;
+            app.retirementSnapshots = clean.retirementSnapshots;
+            app.retirementTargetDate = clean.retirementTargetDate;
             app.settings = clean.settings;
             app.monthlySnapshots = clean.monthlySnapshots;
             app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;
@@ -315,6 +322,8 @@ export function clearAllData(app, options = {}) {
     app.ledgerClearedTransactions = {};
     app.reconciliations = [];
     app.planHistory = [];
+    app.retirementSnapshots = [];
+    app.retirementTargetDate = null;
     app.settings = [];
 
     app.editingDebtId = null;

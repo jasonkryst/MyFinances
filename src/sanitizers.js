@@ -2,13 +2,18 @@
 
 import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
 
+const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Other'];
+
 export function sanitizeAccount(record, idFallback) {
     return {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),
         type: normalizeText(record?.type, 30) || 'Other',
         startingBalance: sanitizeFiniteNumber(record?.startingBalance, 0),
-        interestRate: sanitizeFiniteNumber(record?.interestRate, 0, { min: 0, max: 100 })
+        interestRate: sanitizeFiniteNumber(record?.interestRate, 0, { min: 0, max: 100 }),
+        retirementSubtype: RETIREMENT_SUBTYPES.includes(record?.retirementSubtype) ? record.retirementSubtype : 'Other',
+        rateOfReturn: sanitizeFiniteNumber(record?.rateOfReturn, 0, { min: 0, max: 100 }),
+        employerMatchPercent: sanitizeFiniteNumber(record?.employerMatchPercent, 0, { min: 0, max: 100 })
     };
 }
 
@@ -245,6 +250,16 @@ export function sanitizePlanHistoryEntry(record, idFallback) {
     };
 }
 
+export function sanitizeRetirementSnapshot(record, idFallback) {
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        accountId: sanitizeInteger(record?.accountId, null),
+        date: sanitizeDateISO(record?.date) || todayISO(),
+        balance: sanitizeFiniteNumber(record?.balance, 0, { min: 0 }),
+        contribution: sanitizeFiniteNumber(record?.contribution, 0, { min: 0 })
+    };
+}
+
 export function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
@@ -273,6 +288,8 @@ export function sanitizeParsedState(parsed = {}) {
         forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
         reconciliations: (Array.isArray(parsed.reconciliations) ? parsed.reconciliations : []).map((r, i) => sanitizeReconciliation(r, now + 5500 + i)).filter(r => r.accountId !== null && Number.isFinite(r.statementBalance)),
         planHistory: (Array.isArray(parsed.planHistory) ? parsed.planHistory : []).map((h, i) => sanitizePlanHistoryEntry(h, now + 6000 + i)).filter(h => h.monthlyPayment > 0 && !!h.strategy),
+        retirementSnapshots: (Array.isArray(parsed.retirementSnapshots) ? parsed.retirementSnapshots : []).map((s, i) => sanitizeRetirementSnapshot(s, now + 6500 + i)).filter(s => s.accountId !== null),
+        retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
         settings: (Array.isArray(parsed.settings) ? parsed.settings : []).map(sanitizeSetting).filter(Boolean)
     };
 }

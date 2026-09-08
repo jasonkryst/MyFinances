@@ -21,6 +21,7 @@ function buildCommands(app) {
         nav('reports', 'Reports', '📈'),
         nav('ledger', 'Ledger', '📒'),
         nav('reconcile', 'Reconcile', '🔄'),
+        nav('retirement', 'Retirement', '🏛️'),
         {
             label: 'Export backup as JSON',
             hint: 'Action',

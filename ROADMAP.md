@@ -187,7 +187,7 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 | Debt Consolidation Calculator | 3 | 📋 | |
 | Custom Categories for Transactions | 4 | 📋 | |
 | Tax Planning Helpers | 4 | 📋 | |
-| Retirement Planning | 4 | 📋 | |
+| Retirement Planning | 4 | ✅ | Delivered v5.0.0, September 7, 2026 — Retirement account type, manual snapshot history, and projection dashboard; narrower scope than the readiness-score/countdown vision below |
 | Credit Score Estimator | 4 | 📋 | |
 | Inflation Calculator | 4 | 📋 | |
 | Enhanced Data Export | 4 | ✅ | Delivered June 23, 2026 |
@@ -560,11 +560,15 @@ Domain-specific tools for advanced users.
 ---
 
 #### 🎯 Retirement Planning
-**Priority**: LOW | **Effort**: MEDIUM-HIGH | **Status**: PROPOSED
+**Priority**: LOW | **Effort**: MEDIUM-HIGH | **Status**: PARTIALLY IMPLEMENTED (v5.0.0, September 7, 2026)
 
-**Features**:
-- Years to retirement countdown
-- Savings needed for retirement
+**Delivered Features**:
+- Retirement account type (401k/Traditional IRA/Roth IRA/HSA/Other subtype, assumed rate of return, employer match %)
+- Manual balance/contribution snapshot history per account
+- Retirement dashboard page: balance-over-time, contribution-vs-growth, and balance-breakdown charts
+- Target-date future-value projection factoring in rate of return, contributions, and employer match
+
+**Not Yet Implemented**:
 - With/without debt comparison
 - Retirement readiness score
 

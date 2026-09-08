@@ -71,3 +71,12 @@ test('POST /milestones rejects a milestone below 5000', async () => {
     });
     assert.equal(res.status, 400);
 });
+
+test('PATCH accepts and persists retirementTargetDate', async () => {
+    await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ retirementTargetDate: '2050-01-01' })
+    });
+    const res = await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } });
+    const body = await res.json();
+    assert.equal(body.retirementTargetDate, '2050-01-01');
+});

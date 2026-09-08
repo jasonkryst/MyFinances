@@ -7,23 +7,46 @@ const {
     sanitizeRecurringTemplate,
     sanitizeLedgerOverrides,
     sanitizeLedgerClearedTransactions,
+    sanitizeRetirementSnapshot,
 } = require('../../src/sanitizers.js');
 
 describe('sanitizeAccount', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizeAccount({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 }, 1);
-        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 });
+        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0 });
     });
 
     test('applies fallbacks for an empty record', () => {
         const result = sanitizeAccount({}, 42);
-        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0 });
+        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0 });
     });
 
     test('strips markup from name and clamps interestRate to 100', () => {
         const result = sanitizeAccount({ name: '<b>Evil</b>', interestRate: 500 }, 1);
         expect(result.name).toBe('bEvil/b');
         expect(result.interestRate).toBe(100);
+    });
+
+    test('adds retirement fields with defaults for a non-retirement account', () => {
+        const result = sanitizeAccount({ id: 1, name: 'Checking', type: 'Checking', startingBalance: 100, interestRate: 0 }, 1);
+        expect(result.retirementSubtype).toBe('Other');
+        expect(result.rateOfReturn).toBe(0);
+        expect(result.employerMatchPercent).toBe(0);
+    });
+
+    test('accepts a valid retirement subtype and clamps rate/match to [0,100]', () => {
+        const result = sanitizeAccount({
+            name: '401k', type: 'Retirement', retirementSubtype: '401k',
+            rateOfReturn: 250, employerMatchPercent: -5
+        }, 1);
+        expect(result.retirementSubtype).toBe('401k');
+        expect(result.rateOfReturn).toBe(100);
+        expect(result.employerMatchPercent).toBe(0);
+    });
+
+    test('falls back an unrecognized retirementSubtype to Other', () => {
+        const result = sanitizeAccount({ name: 'IRA', type: 'Retirement', retirementSubtype: 'bogus' }, 1);
+        expect(result.retirementSubtype).toBe('Other');
     });
 });
 
@@ -193,5 +216,26 @@ describe('sanitizeLedgerClearedTransactions', () => {
     test('drops an entry keyed by an empty string', () => {
         const result = sanitizeLedgerClearedTransactions({ '': { clearedAt: '2026-08-30T14:23:05.123Z' } });
         expect(result).toEqual({});
+    });
+});
+
+describe('sanitizeRetirementSnapshot', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizeRetirementSnapshot({ id: 1, accountId: 5, date: '2026-01-01', balance: 10000, contribution: 500 }, 99);
+        expect(result).toEqual({ id: 1, accountId: 5, date: '2026-01-01', balance: 10000, contribution: 500 });
+    });
+
+    test('defaults date to today and numbers to 0 when missing', () => {
+        const result = sanitizeRetirementSnapshot({ accountId: 5 }, 42);
+        expect(result.id).toBe(42);
+        expect(result.accountId).toBe(5);
+        expect(result.balance).toBe(0);
+        expect(result.contribution).toBe(0);
+        expect(typeof result.date).toBe('string');
+    });
+
+    test('rejects a negative balance by clamping to 0', () => {
+        const result = sanitizeRetirementSnapshot({ accountId: 1, date: '2026-01-01', balance: -500 }, 1);
+        expect(result.balance).toBe(0);
     });
 });

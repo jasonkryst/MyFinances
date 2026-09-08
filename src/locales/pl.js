@@ -23,6 +23,7 @@ export default {
     'nav.reports': 'Raporty',
     'nav.ledger': 'Rejestr',
     'nav.reconcile': 'Uzgadnianie',
+    'nav.retirement': 'Emerytura',
 
     'settings.close': 'Zamknij',
     'settings.title': 'Ustawienia',

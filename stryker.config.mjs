@@ -16,10 +16,12 @@ export default {
         'src/utils.js:10-83', // formatCurrency, normalizeText, sanitizeFiniteNumber, parseFiniteOrNull, formatShortDate, formatMonthYear, sanitizeInteger, sanitizeDateISO
         'src/utils.js:92-97', // dateToISO
         'src/utils.js:284-287', // dailyCompoundInterest
-        'src/sanitizers.js:5-58', // sanitizeAccount, sanitizeDebt, sanitizeIncome
-        'src/sanitizers.js:72-93', // sanitizeBill, sanitizeExpense
-        'src/sanitizers.js:95-125', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
-        'src/sanitizers.js:126-147', // sanitizeRecurringTemplate
+        'src/sanitizers.js:5-63', // sanitizeAccount, sanitizeDebt, sanitizeIncome
+        'src/sanitizers.js:77-98', // sanitizeBill, sanitizeExpense
+        'src/sanitizers.js:100-130', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
+        'src/sanitizers.js:131-152', // sanitizeRecurringTemplate
+        'src/retirementCalculator.js:3-12', // computeRetirementProjection
+        'src/retirementCalculator.js:14-23', // splitGrowthFromContribution
     ],
     jest: {
         configFile: 'jest.config.js',

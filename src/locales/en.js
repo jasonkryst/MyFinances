@@ -25,6 +25,7 @@ export default {
     'nav.reports': 'Reports',
     'nav.ledger': 'Ledger',
     'nav.reconcile': 'Reconcile',
+    'nav.retirement': 'Retirement',
 
     'settings.close': 'Close',
     'settings.title': 'Settings',

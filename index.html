@@ -86,6 +86,7 @@
                             <button class="page-button" data-page="reports" data-i18n="nav.reports">Reports</button>
                             <button class="page-button" data-page="ledger" data-i18n="nav.ledger">Ledger</button>
                             <button class="page-button" data-page="reconcile" data-i18n="nav.reconcile">Reconcile</button>
+                            <button class="page-button" data-page="retirement" data-i18n="nav.retirement">Retirement</button>
                         </div>
                     </div>
                 </div>
@@ -135,6 +136,7 @@
                                     <option value="Savings">Savings</option>
                                     <option value="Cash">Cash</option>
                                     <option value="Investment">Investment</option>
+                                    <option value="Retirement">Retirement</option>
                                     <option value="Credit Card">Credit Card</option>
                                     <option value="Loan">Loan</option>
                                     <option value="Other">Other</option>
@@ -151,6 +153,28 @@
                                     <span class="help-icon" tabindex="0" aria-label="Optional annual interest rate for this account. When set above zero, a monthly interest deposit is automatically added to the Ledger on the last day of each month. You can override any month's amount in the Ledger with the true value from your statement.">?</span>
                                 </label>
                                 <input type="number" id="accountInterestRate" placeholder="0.00" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group hidden" id="accountRetirementFieldsGroup">
+                                <label for="accountRetirementSubtype">Retirement Subtype</label>
+                                <select id="accountRetirementSubtype">
+                                    <option value="401k">401k</option>
+                                    <option value="Traditional IRA">Traditional IRA</option>
+                                    <option value="Roth IRA">Roth IRA</option>
+                                    <option value="HSA">HSA</option>
+                                    <option value="Other" selected>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group hidden" id="accountRateOfReturnGroup">
+                                <label for="accountRateOfReturn">Expected Rate of Return (% / yr)
+                                    <span class="help-icon" tabindex="0" aria-label="Your assumed average annual growth rate for this account, used only for the Retirement page's future-value projection.">?</span>
+                                </label>
+                                <input type="number" id="accountRateOfReturn" placeholder="0.00" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group hidden" id="accountEmployerMatchGroup">
+                                <label for="accountEmployerMatch">Employer Match (%)
+                                    <span class="help-icon" tabindex="0" aria-label="Percent of your contribution your employer matches, e.g. 50 for a 50% match. Used in the Retirement page's projection.">?</span>
+                                </label>
+                                <input type="number" id="accountEmployerMatch" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="accountFormSubmit">Add Account</button>
@@ -910,6 +934,13 @@
             </section>
 
             <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Retirement Section                                          -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="retirement-section page-section" id="retirementSection">
+                <!-- Content dynamically rendered by renderRetirementPage() -->
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- Savings Section (Emergency Fund & Sinking Funds)           -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="savings-section page-section" id="savingsSection">
@@ -1053,6 +1084,28 @@
             <div class="modal-actions">
                 <button id="reconcileModalConfirmBtn" class="btn btn-success">Reconcile</button>
                 <button id="reconcileModalCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="retirementSnapshotModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="retirementSnapshotModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="retirementSnapshotModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="retirementSnapshotModalTitle">Log Balance</h3>
+            <div class="form-group modal-form-group">
+                <label for="retirementSnapshotModalDate">Date</label>
+                <input type="date" id="retirementSnapshotModalDate">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="retirementSnapshotModalBalance">Balance ($)</label>
+                <input type="number" id="retirementSnapshotModalBalance" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="retirementSnapshotModalContribution">Contribution This Period ($)</label>
+                <input type="number" id="retirementSnapshotModalContribution" step="0.01" placeholder="0.00">
+            </div>
+            <div class="modal-actions">
+                <button id="retirementSnapshotModalConfirmBtn" class="btn btn-success">Save</button>
+                <button id="retirementSnapshotModalCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

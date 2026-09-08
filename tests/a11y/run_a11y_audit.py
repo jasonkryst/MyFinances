@@ -25,7 +25,7 @@ BASE_URL = "http://localhost:32900/"
 
 PAGES = [
     "health", "accounts", "income", "liabilities", "recurring",
-    "savings", "strategy", "reports", "ledger", "reconcile",
+    "savings", "strategy", "reports", "ledger", "reconcile", "retirement",
 ]
 
 SAMPLE_DATA = {

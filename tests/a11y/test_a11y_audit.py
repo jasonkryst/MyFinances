@@ -20,7 +20,7 @@ These tests intentionally do NOT duplicate tests/ui/test_accessibility.py's
 28 pytest-native checks (keyboard nav, ARIA roles on the reports/nav
 widgets, reconcile modal focus trap, skip-link presence, etc.). Instead
 they cover the broader, page-spanning sweeps that only run_a11y_audit.py
-performs: site-wide computed-contrast across all 10 pages in both themes,
+performs: site-wide computed-contrast across all 11 pages in both themes,
 dangling ARIA references, duplicate IDs, orphaned inputs/unnamed controls
 across every page (not just one), missing image alt text, and the
 Update Balance / Amortization modal keyboard behavior (test_accessibility.py
@@ -200,7 +200,7 @@ def test_no_images_missing_alt(audit_results):
 @pytest.mark.a11y
 def test_site_wide_color_contrast(audit_results):
     """WCAG 1.4.3 contrast (4.5:1 normal text / 3:1 large text) computed
-    across all 10 SPA pages in light mode, all 10 in dark mode, and
+    across all 11 SPA pages in light mode, all 11 in dark mode, and
     guide.html. This is the broad sweep run_a11y_audit.py performs that
     test_accessibility.py does not attempt (its test_color_contrast only
     checks that <body> has *some* color/bg values set, not actual ratios).

@@ -14,6 +14,7 @@ const ALL_RESOURCE_PATHS = [
     '/api/sinking-funds',
     '/api/reconciliations',
     '/api/plan-history',
+    '/api/retirement-snapshots',
     '/api/ledger-overrides',
     '/api/ledger-cleared',
     '/api/net-worth-snapshots',
@@ -73,7 +74,8 @@ const DEFAULT_PLAN_SETTINGS = {
     monthlyPayment: null,
     perMonthStimulus: [],
     ledgerSettings: { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc' },
-    forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 }
+    forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 },
+    retirementTargetDate: null
 };
 
 export async function pgDeleteAll(app) {

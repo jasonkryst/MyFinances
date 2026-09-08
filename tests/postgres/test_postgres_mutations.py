@@ -269,6 +269,44 @@ async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     assert len(recons) > 0, f'Reconciliation not persisted. Console: {logs}'
 
 
+async def test_retirement_snapshot_add_persists(pg_page, base_url, credentials):
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    account = await _ensure_account(pg_page, base_url)
+
+    r = await _api_post(pg_page, base_url, '/api/retirement-snapshots', {
+        'accountId': account['id'], 'date': '2026-01-01', 'balance': 10000, 'contribution': 300
+    })
+    assert r.status == 201, f'Retirement snapshot POST failed: {await r.text()}. Console: {logs}'
+    snapshot_id = (await r.json())['id']
+
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    snapshots = await (await _api_get(pg_page, base_url, '/api/retirement-snapshots')).json()
+    assert any(s['id'] == snapshot_id for s in snapshots), f'Retirement snapshot not persisted. Console: {logs}'
+
+    # Cleanup
+    await _api_delete(pg_page, base_url, f'/api/retirement-snapshots/{snapshot_id}')
+
+
+async def test_retirement_target_date_persists(pg_page, base_url, credentials):
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+
+    async with pg_page.expect_response(
+        lambda r: '/api/plan-settings' in r.url and r.request.method == 'PATCH',
+        timeout=8000
+    ):
+        await pg_page.evaluate("""
+            () => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(); }
+        """)
+
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    target = await pg_page.evaluate("() => window.app.retirementTargetDate")
+    assert target == '2050-01-01', f'Target date not persisted. Console: {logs}'
+
+
 async def test_plan_history_persists_and_restores(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)

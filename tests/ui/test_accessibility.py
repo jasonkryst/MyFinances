@@ -733,9 +733,9 @@ async def test_main_nav_separators_aria_hidden(async_app_page):
 
 @pytest.mark.ui
 async def test_main_nav_all_pages_keyboard_reachable(async_app_page):
-    """All 10 page buttons must be reachable via Tab key (not hidden, not disabled)."""
+    """All 11 page buttons must be reachable via Tab key (not hidden, not disabled)."""
     btns = await async_app_page.query_selector_all('#topNav .page-button')
-    assert len(btns) == 10, f"Expected 10 .page-button elements in #topNav, got {len(btns)}"
+    assert len(btns) == 11, f"Expected 11 .page-button elements in #topNav, got {len(btns)}"
     for btn in btns:
         # Must not be disabled or have tabindex=-1
         disabled = await btn.get_attribute('disabled')

@@ -9,7 +9,7 @@ pytestmark = pytest.mark.feature
 GROUPS = {
     'overview': ['health', 'accounts', 'income'],
     'manage':   ['liabilities', 'recurring', 'savings', 'strategy'],
-    'analyze':  ['reports', 'ledger', 'reconcile'],
+    'analyze':  ['reports', 'ledger', 'reconcile', 'retirement'],
 }
 
 
@@ -44,10 +44,11 @@ async def test_main_nav_pages_in_correct_groups(async_app_page):
             assert btn is not None, f"Button data-page='{page}' not found in group '{group_name}'"
 
 
-async def test_main_nav_all_ten_pages_present(async_app_page):
-    """Assert exactly 10 [data-page] buttons exist inside #topNav."""
+async def test_main_nav_all_pages_present(async_app_page):
+    """Assert exactly 11 [data-page] buttons exist inside #topNav (10 original pages
+    plus Retirement, added in the retirement accounts dashboard feature)."""
     btns = await async_app_page.query_selector_all('#topNav [data-page]')
-    assert len(btns) == 10
+    assert len(btns) == 11
 
 
 async def test_main_nav_page_switching_still_works(async_app_page):
