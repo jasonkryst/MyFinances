@@ -109,6 +109,14 @@ export const cases = [
         updatedField: 'note',
         updatedValue: 'ATM fee corrected',
         invalidPayload: () => ({ date: '2026-08-01' })
+    },
+    {
+        path: '/api/retirement-snapshots',
+        validPayload: () => ({ accountId, date: '2026-01-01', balance: 10000, contribution: 300 }),
+        updatePayload: { balance: 10500 },
+        updatedField: 'balance',
+        updatedValue: 10500,
+        invalidPayload: () => ({ date: '2026-01-01' })
     }
 ];
 
