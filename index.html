@@ -1112,24 +1112,39 @@
     <!-- Login Gate — full-page overlay for Postgres backend -->
     <div id="loginGate" class="login-gate hidden" role="dialog" aria-modal="true" aria-labelledby="loginGateTitle">
         <div class="login-gate-card">
-            <h1 id="loginGateTitle" class="login-gate-title">MyFinances</h1>
-            <p id="loginGateSubtitle" class="login-gate-subtitle">Sign in to your account</p>
-            <form id="loginGateForm" class="login-gate-form" novalidate>
-                <div class="form-group">
-                    <label for="loginGateEmail">Email</label>
-                    <input type="email" id="loginGateEmail" class="form-control" autocomplete="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="loginGatePassword">Password</label>
-                    <input type="password" id="loginGatePassword" class="form-control" autocomplete="current-password" required>
-                </div>
-                <div id="loginGateConfirmGroup" class="form-group hidden">
-                    <label for="loginGateConfirm">Confirm Password</label>
-                    <input type="password" id="loginGateConfirm" class="form-control" autocomplete="new-password">
-                </div>
-                <p id="loginGateError" class="login-gate-error" role="alert" aria-live="polite"></p>
-                <button type="submit" id="loginGateSubmit" class="btn btn-primary login-gate-submit">Sign In</button>
-            </form>
+            <div class="login-gate-header">
+                <span class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" class="logo-svg">
+                        <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
+                        <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
+                        <circle cx="16" cy="16" r="3" fill="#2563eb"/>
+                        <line x1="16" y1="3" x2="16" y2="8" stroke="#2563eb" stroke-width="2"/>
+                        <line x1="16" y1="24" x2="16" y2="29" stroke="#2563eb" stroke-width="2"/>
+                        <line x1="3" y1="16" x2="8" y2="16" stroke="#2563eb" stroke-width="2"/>
+                        <line x1="24" y1="16" x2="29" y2="16" stroke="#2563eb" stroke-width="2"/>
+                    </svg>
+                </span>
+                <h1 id="loginGateTitle" class="login-gate-title">MyFinances</h1>
+            </div>
+            <div class="login-gate-body">
+                <p id="loginGateSubtitle" class="login-gate-subtitle">Sign in to your account</p>
+                <form id="loginGateForm" class="login-gate-form" novalidate>
+                    <div class="form-group">
+                        <label for="loginGateEmail">Email</label>
+                        <input type="email" id="loginGateEmail" class="form-control" autocomplete="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginGatePassword">Password</label>
+                        <input type="password" id="loginGatePassword" class="form-control" autocomplete="current-password" required>
+                    </div>
+                    <div id="loginGateConfirmGroup" class="form-group hidden">
+                        <label for="loginGateConfirm">Confirm Password</label>
+                        <input type="password" id="loginGateConfirm" class="form-control" autocomplete="new-password">
+                    </div>
+                    <p id="loginGateError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <button type="submit" id="loginGateSubmit" class="btn btn-primary login-gate-submit">Sign In</button>
+                </form>
+            </div>
         </div>
     </div>
     <!-- Postgres Migration Modal - offered once when local data exists and Postgres is empty on first login -->

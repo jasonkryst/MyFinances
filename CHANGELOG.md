@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.1.0] — 2026-09-08
+
+### Changed
+- **Login gate now matches the site's visual theme** — the full-page login/register overlay (`#loginGate`, Postgres backend only) previously used a plain flat background and a bare card with no branding. It now mirrors the rest of the app: the overlay uses the same gradient backdrop as `<body>`, and a new header band atop the card reuses the real `<header>`'s blue gradient plus the goal logo icon. The card body itself stays a flat, opaque surface so the form remains readable. Dark mode gets matching dark gradients; installed-PWA (standalone) mode drops the gradient backdrop and floating-card chrome for the same flat, edge-to-edge look `.container` already uses there; high-contrast mode forces both the overlay and header band to solid black, consistent with that tier's no-gradients rule (issue #33).
+
 ## [5.0.1] — 2026-09-08
 
 ### Fixed

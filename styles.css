@@ -1042,6 +1042,15 @@ body.dark-mode.high-contrast-mode header {
     border-bottom: 2px solid #ffffff;
 }
 
+body.dark-mode.high-contrast-mode .login-gate {
+    background: #000000;
+}
+
+body.dark-mode.high-contrast-mode .login-gate-header {
+    background: #000000;
+    border-bottom: 2px solid #ffffff;
+}
+
 body.dark-mode.high-contrast-mode .top-nav {
     background: #000000;
     border-top: 2px solid #ffffff;
@@ -6519,11 +6528,13 @@ body.dark-mode .accelerate-preview {
     font-style: italic;
 }
 
-/* Login Gate — full-viewport overlay for Postgres backend */
+/* Login Gate — full-viewport overlay for Postgres backend. Mirrors the
+   site's gradient-backdrop-with-floating-card look (see body/.container/
+   header above) so it reads as the same app, not a bare form. */
 .login-gate {
     position: fixed;
     inset: 0;
-    background: var(--bg-primary);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     z-index: 2000;
     display: none;
     align-items: center;
@@ -6532,20 +6543,40 @@ body.dark-mode .accelerate-preview {
 .login-gate.flex-visible {
     display: flex;
 }
+body.dark-mode .login-gate {
+    background: linear-gradient(135deg, #232526 0%, #414345 100%);
+}
 .login-gate-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 2rem;
     width: 100%;
     max-width: 380px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+}
+/* Header band — same blue gradient + logo treatment as the real <header> */
+.login-gate-header {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff;
+    text-align: center;
+    padding: 1.75rem 2rem 1.25rem;
+}
+body.dark-mode .login-gate-header {
+    background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+}
+.login-gate-header .logo-icon {
+    display: inline-flex;
+    margin-bottom: 0.5rem;
+}
+.login-gate-body {
+    padding: 1.75rem 2rem 2rem;
 }
 .login-gate-title {
     font-size: 1.5rem;
     font-weight: 700;
-    margin: 0 0 0.25rem;
-    color: var(--text-primary);
+    margin: 0;
+    color: #fff;
 }
 .login-gate-subtitle {
     color: var(--text-secondary);
@@ -6563,6 +6594,29 @@ body.dark-mode .accelerate-preview {
 }
 .login-gate-submit {
     width: 100%;
+}
+
+/* Installed PWA: same flat, edge-to-edge treatment as .container — drop the
+   gradient backdrop and floating-card chrome; keep the header band gradient,
+   matching how the real <header> also keeps its gradient in standalone mode. */
+@media (display-mode: standalone) {
+    .login-gate {
+        background: var(--bg-primary);
+    }
+    body.dark-mode .login-gate {
+        background: var(--bg-primary);
+    }
+    .login-gate-card {
+        max-width: none;
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
 }
 .pg-migration-error {
     color: var(--danger-color, #dc2626);

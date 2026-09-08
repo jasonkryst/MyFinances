@@ -238,11 +238,23 @@ def test_login_gate_uses_pure_black_surfaces_in_high_contrast(app_page):
     colors = page.evaluate("""
         () => ({
             overlay: getComputedStyle(document.querySelector('.login-gate')).backgroundColor,
+            overlayImage: getComputedStyle(document.querySelector('.login-gate')).backgroundImage,
+            header:  getComputedStyle(document.querySelector('.login-gate-header')).backgroundColor,
+            headerImage: getComputedStyle(document.querySelector('.login-gate-header')).backgroundImage,
             card:    getComputedStyle(document.querySelector('.login-gate-card')).backgroundColor,
         })
     """)
     assert colors['overlay'] == 'rgb(0, 0, 0)', (
         ".login-gate overlay must be pure black (#000000) in high-contrast mode"
+    )
+    assert colors['overlayImage'] == 'none', (
+        ".login-gate overlay must not use a gradient in high-contrast mode (no gradients rule, issue #33)"
+    )
+    assert colors['header'] == 'rgb(0, 0, 0)', (
+        ".login-gate-header band must be pure black (#000000) in high-contrast mode"
+    )
+    assert colors['headerImage'] == 'none', (
+        ".login-gate-header must not use a gradient in high-contrast mode (no gradients rule, issue #33)"
     )
     assert colors['card'] == 'rgb(17, 17, 17)', (
         ".login-gate-card must use #111111 (--bg-secondary) in high-contrast mode"
