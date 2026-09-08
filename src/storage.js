@@ -319,6 +319,8 @@ export function clearAllData(app, options = {}) {
     app.ledgerClearedTransactions = {};
     app.reconciliations = [];
     app.planHistory = [];
+    app.retirementSnapshots = [];
+    app.retirementTargetDate = null;
     app.settings = [];
 
     app.editingDebtId = null;

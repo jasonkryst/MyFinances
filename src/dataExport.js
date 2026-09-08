@@ -39,6 +39,8 @@ export function exportAllJSON(app) {
         sinkingFunds: app.sinkingFunds || [],
         reconciliations: app.reconciliations || [],
         planHistory: app.planHistory || [],
+        retirementSnapshots: app.retirementSnapshots || [],
+        retirementTargetDate: app.retirementTargetDate || null,
         settings: app.settings || [],
         monthlySnapshots: app.monthlySnapshots || [],
         netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
@@ -288,6 +290,8 @@ export function importAllJSON(app, file, options = {}) {
         const incomingSinkingFunds = clean.sinkingFunds;
         const incomingReconciliations = clean.reconciliations;
         const incomingPlanHistory = clean.planHistory;
+        const incomingRetirementSnapshots = clean.retirementSnapshots;
+        const incomingRetirementTargetDate = clean.retirementTargetDate;
         const incomingSettings = clean.settings;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
@@ -306,6 +310,7 @@ export function importAllJSON(app, file, options = {}) {
             || incomingSinkingFunds.length > 0 || incomingReconciliations.length > 0
             || incomingPlanHistory.length > 0
             || incomingMonthlySnapshots.length > 0 || incomingNetWorthMilestones.length > 0
+            || incomingRetirementSnapshots.length > 0 || !!incomingRetirementTargetDate
             || !!incomingStrategy?.monthlyPayment || !!incomingStrategy?.paymentStrategy;
         if (!hasData) {
             if (typeof onNoData === 'function') onNoData();
@@ -319,6 +324,7 @@ export function importAllJSON(app, file, options = {}) {
         if (incomingBills.length) parts.push(`${incomingBills.length} bill(s)`);
         if (incomingExpenses.length) parts.push(`${incomingExpenses.length} expense budget(s)`);
         if (incomingRecurringTemplates.length) parts.push(`${incomingRecurringTemplates.length} recurring item(s)`);
+        if (incomingRetirementSnapshots.length) parts.push(`${incomingRetirementSnapshots.length} retirement snapshot(s)`);
         if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
         const shouldReplace = typeof requestImportMode === 'function'
@@ -364,6 +370,8 @@ export function importAllJSON(app, file, options = {}) {
             app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
             app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
             app.planHistory = incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }));
+            app.retirementSnapshots = incomingRetirementSnapshots.map((s, i) => ({ ...s, id: Date.now() + 6500 + i }));
+            app.retirementTargetDate = incomingRetirementTargetDate || null;
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
@@ -411,6 +419,8 @@ export function importAllJSON(app, file, options = {}) {
             app.sinkingFunds = _mergeByName(app.sinkingFunds, incomingSinkingFunds, 5000);
             app.reconciliations = [...app.reconciliations, ...incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }))];
             app.planHistory = [...app.planHistory, ...incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }))].slice(-PLAN_HISTORY_CAP);
+            app.retirementSnapshots = [...app.retirementSnapshots, ...incomingRetirementSnapshots.map((s, i) => ({ ...s, id: Date.now() + 6500 + i }))];
+            if (incomingRetirementTargetDate) app.retirementTargetDate = incomingRetirementTargetDate;
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
