@@ -971,6 +971,8 @@ export class DebtTrackerApp {
 document.addEventListener('DOMContentLoaded', async () => {
     window.app = new DebtTrackerApp();
     await window.app.init();
+    const pageParam = new URLSearchParams(window.location.search).get('page');
+    if (pageParam) window.app.switchPage(pageParam);
     registerServiceWorker(window.app);
 });
 
