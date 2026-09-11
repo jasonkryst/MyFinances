@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.3.0] — 2026-09-08
+
+### Added
+- Additional manifest links.
+
 ## [5.2.0] — 2026-09-08
 
 ### Added
