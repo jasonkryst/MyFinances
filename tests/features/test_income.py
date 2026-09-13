@@ -44,9 +44,9 @@ def test_create_income(app_page, income_data):
     page.select_option('#incomeFrequency', income_data["frequency"])
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector(f'text={income_data["name"]}', timeout=10000)
-    
-    assert page.query_selector(f'text={income_data["name"]}'), "Income not created"
+    page.wait_for_selector(f'#incomeList >> text={income_data["name"]}', timeout=10000)
+
+    assert page.query_selector(f'#incomeList >> text={income_data["name"]}'), "Income not created"
 
 
 @pytest.mark.feature

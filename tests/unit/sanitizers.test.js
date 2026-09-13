@@ -13,12 +13,12 @@ const {
 describe('sanitizeAccount', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizeAccount({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 }, 1);
-        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0 });
+        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0 });
     });
 
     test('applies fallbacks for an empty record', () => {
         const result = sanitizeAccount({}, 42);
-        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0 });
+        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0 });
     });
 
     test('strips markup from name and clamps interestRate to 100', () => {
@@ -222,7 +222,7 @@ describe('sanitizeLedgerClearedTransactions', () => {
 describe('sanitizeRetirementSnapshot', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizeRetirementSnapshot({ id: 1, accountId: 5, date: '2026-01-01', balance: 10000, contribution: 500 }, 99);
-        expect(result).toEqual({ id: 1, accountId: 5, date: '2026-01-01', balance: 10000, contribution: 500 });
+        expect(result).toEqual({ id: 1, accountId: 5, date: '2026-01-01', balance: 10000, contribution: 500, annualSalary: null });
     });
 
     test('defaults date to today and numbers to 0 when missing', () => {
