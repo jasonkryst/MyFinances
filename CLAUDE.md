@@ -16,6 +16,17 @@ docker compose up -d   # http://localhost:32900
 ```
 Tests assume the app is being served at `http://localhost:32900/` (see `tests/conftest.py` `BASE_URL`) — start the server before running Playwright-based tests.
 
+**Port conflict / Docker:** Docker's port binding on 32900 persists even through `docker compose pause`. If Docker owns the port, either run `docker compose stop` first, or start a server on another port and set `TEST_BASE_URL`:
+```bash
+python -m http.server 32901
+TEST_BASE_URL=http://localhost:32901/ pytest tests/ -v
+```
+
+**Login gate:** When the Docker stack is running, `checkPostgresBackendPresent()` detects the `X-Myfinances-Backend: postgres` header on `HEAD /` and shows a full-page login gate that blocks all tests. The `app_page` fixture in `tests/conftest.py` intercepts that request and strips the header automatically — no manual action needed for tests using `app_page`. To clear any persisted Postgres backend preference left by a prior run, add this before navigating:
+```js
+localStorage.removeItem('debtTrackerStorageBackend');
+```
+
 ### Tests
 ```bash
 pip install playwright pytest pytest-asyncio

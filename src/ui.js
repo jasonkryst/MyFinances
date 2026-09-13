@@ -125,6 +125,7 @@ export function initializeEventListeners(app) {
     }
 
     document.getElementById('accountType')?.addEventListener('change', updateAccountFormRetirementVisibility);
+    document.getElementById('accountRetirementSubtype')?.addEventListener('change', updateAccountFormRetirementVisibility);
 
     const categoryFilter = document.getElementById('categoryFilter');
     if (categoryFilter) {

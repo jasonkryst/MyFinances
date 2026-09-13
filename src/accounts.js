@@ -9,9 +9,16 @@ export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '�
 
 export function updateAccountFormRetirementVisibility() {
     const typeEl = document.getElementById('accountType');
+    const subtypeEl = document.getElementById('accountRetirementSubtype');
     const isRetirement = typeEl?.value === 'Retirement';
-    for (const id of ['accountRetirementFieldsGroup', 'accountRateOfReturnGroup', 'accountEmployerMatchGroup']) {
-        document.getElementById(id)?.classList.toggle('hidden', !isRetirement);
+    const isPension = isRetirement && subtypeEl?.value === 'Pension';
+
+    document.getElementById('accountRetirementFieldsGroup')?.classList.toggle('hidden', !isRetirement);
+    for (const id of ['accountRateOfReturnGroup', 'accountEmployerMatchGroup']) {
+        document.getElementById(id)?.classList.toggle('hidden', !isRetirement || isPension);
+    }
+    for (const id of ['accountPensionSalaryGroup', 'accountPensionContributionRateGroup', 'accountPensionVestingYearsGroup', 'accountPensionMonthlyBenefitGroup', 'accountPensionYearsOfServiceGroup']) {
+        document.getElementById(id)?.classList.toggle('hidden', !isPension);
     }
 }
 
@@ -97,16 +104,36 @@ export function renderAccountsList(app) {
                     <div class="form-group form-no-margin ${a.type !== 'Retirement' ? 'hidden' : ''}">
                         <label class="label-compact">Retirement Subtype</label>
                         <select id="ac-retiresub-${a.id}" class="form-full-width">
-                            ${['401k','Traditional IRA','Roth IRA','HSA','Other'].map(s => `<option value="${s}" ${a.retirementSubtype===s?'selected':''}>${s}</option>`).join('')}
+                            ${['401k','Traditional IRA','Roth IRA','HSA','Pension','Other'].map(s => `<option value="${s}" ${a.retirementSubtype===s?'selected':''}>${s}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="form-group form-no-margin ${a.type !== 'Retirement' ? 'hidden' : ''}">
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' || a.retirementSubtype === 'Pension' ? 'hidden' : ''}">
                         <label class="label-compact">Rate of Return (%/yr)</label>
                         <input type="number" id="ac-ror-${a.id}" value="${Number(a.rateOfReturn) || 0}" step="0.01" min="0" max="100" class="form-full-width">
                     </div>
-                    <div class="form-group form-no-margin ${a.type !== 'Retirement' ? 'hidden' : ''}">
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' || a.retirementSubtype === 'Pension' ? 'hidden' : ''}">
                         <label class="label-compact">Employer Match (%)</label>
                         <input type="number" id="ac-match-${a.id}" value="${Number(a.employerMatchPercent) || 0}" step="0.01" min="0" max="100" class="form-full-width">
+                    </div>
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' || a.retirementSubtype !== 'Pension' ? 'hidden' : ''}">
+                        <label class="label-compact">Annual Salary ($)</label>
+                        <input type="number" id="ac-pension-salary-${a.id}" value="${Number(a.pensionAnnualSalary) || 0}" step="0.01" min="0" class="form-full-width">
+                    </div>
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' || a.retirementSubtype !== 'Pension' ? 'hidden' : ''}">
+                        <label class="label-compact">Contribution Rate (% of salary)</label>
+                        <input type="number" id="ac-pension-rate-${a.id}" value="${Number(a.pensionContributionRatePct) || 0}" step="0.01" min="0" max="100" class="form-full-width">
+                    </div>
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' || a.retirementSubtype !== 'Pension' ? 'hidden' : ''}">
+                        <label class="label-compact">Vesting Years</label>
+                        <input type="number" id="ac-pension-vesting-${a.id}" value="${Number(a.pensionVestingYears) || 0}" step="1" min="0" class="form-full-width">
+                    </div>
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' || a.retirementSubtype !== 'Pension' ? 'hidden' : ''}">
+                        <label class="label-compact">Estimated Monthly Benefit ($)</label>
+                        <input type="number" id="ac-pension-benefit-${a.id}" value="${Number(a.pensionEstimatedMonthlyBenefit) || 0}" step="0.01" min="0" class="form-full-width">
+                    </div>
+                    <div class="form-group form-no-margin ${a.type !== 'Retirement' || a.retirementSubtype !== 'Pension' ? 'hidden' : ''}">
+                        <label class="label-compact">Years of Service</label>
+                        <input type="number" id="ac-pension-service-${a.id}" value="${Number(a.pensionYearsOfService) || 0}" step="1" min="0" class="form-full-width">
                     </div>
                 </div>
                 <div class="acct-edit-actions">
@@ -142,7 +169,8 @@ export function renderAccountsList(app) {
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(a.name)} (${escapeHtml(a.type)})</span>
                     ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
-                    ${a.type === 'Retirement' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(a.retirementSubtype)} · ${Number(a.rateOfReturn).toFixed(1)}% est.</span>` : ''}
+                    ${a.type === 'Retirement' && a.retirementSubtype === 'Pension' ? `<span class="acct-rate-badge">🏛️ Pension · ${formatCurrency(Number(a.pensionAnnualSalary))} salary · ${Number(a.pensionContributionRatePct).toFixed(1)}% contrib.</span>` : ''}
+                    ${a.type === 'Retirement' && a.retirementSubtype !== 'Pension' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(a.retirementSubtype)} · ${Number(a.rateOfReturn).toFixed(1)}% est.</span>` : ''}
                 </div>
                 <div class="acct-balances">
                     <div class="acct-balance-item">
@@ -188,11 +216,16 @@ export async function addAccount(app) {
     const retirementSubtype = normalizeText(document.getElementById('accountRetirementSubtype')?.value, 30) || 'Other';
     const rateOfReturn = sanitizeFiniteNumber(document.getElementById('accountRateOfReturn')?.value, 0, { min: 0, max: 100 });
     const employerMatchPercent = sanitizeFiniteNumber(document.getElementById('accountEmployerMatch')?.value, 0, { min: 0, max: 100 });
+    const pensionAnnualSalary = sanitizeFiniteNumber(document.getElementById('accountPensionSalary')?.value, 0, { min: 0 });
+    const pensionContributionRatePct = sanitizeFiniteNumber(document.getElementById('accountPensionContributionRate')?.value, 0, { min: 0, max: 100 });
+    const pensionVestingYears = sanitizeFiniteNumber(document.getElementById('accountPensionVestingYears')?.value, 0, { min: 0 });
+    const pensionEstimatedMonthlyBenefit = sanitizeFiniteNumber(document.getElementById('accountPensionMonthlyBenefit')?.value, 0, { min: 0 });
+    const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById('accountPensionYearsOfService')?.value, 0, { min: 0 });
 
     if (!name) { await showAlertModal('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { await showAlertModal('Please enter a starting balance (use 0 if unknown).'); return; }
 
-    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent };
+    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService };
     app.accounts.push(account);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -279,9 +312,14 @@ export async function saveEditAccount(app, id) {
     const retirementSubtype = normalizeText(document.getElementById(`ac-retiresub-${id}`)?.value, 30) || 'Other';
     const rateOfReturn = sanitizeFiniteNumber(document.getElementById(`ac-ror-${id}`)?.value, 0, { min: 0, max: 100 });
     const employerMatchPercent = sanitizeFiniteNumber(document.getElementById(`ac-match-${id}`)?.value, 0, { min: 0, max: 100 });
+    const pensionAnnualSalary = sanitizeFiniteNumber(document.getElementById(`ac-pension-salary-${id}`)?.value, 0, { min: 0 });
+    const pensionContributionRatePct = sanitizeFiniteNumber(document.getElementById(`ac-pension-rate-${id}`)?.value, 0, { min: 0, max: 100 });
+    const pensionVestingYears = sanitizeFiniteNumber(document.getElementById(`ac-pension-vesting-${id}`)?.value, 0, { min: 0 });
+    const pensionEstimatedMonthlyBenefit = sanitizeFiniteNumber(document.getElementById(`ac-pension-benefit-${id}`)?.value, 0, { min: 0 });
+    const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById(`ac-pension-service-${id}`)?.value, 0, { min: 0 });
     if (!name) { await showAlertModal('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { await showAlertModal('Please enter a valid starting balance.'); return; }
-    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent };
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService };
     app.editingAccountId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);

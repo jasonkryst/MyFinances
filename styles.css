@@ -5316,6 +5316,7 @@ body.dark-mode .acct-rate-badge { background: #064e3b; color: #6ee7b7; }
 .retire-snapshot-table { width: 100%; border-collapse: collapse; }
 .retire-snapshot-table th, .retire-snapshot-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
 .retire-empty-msg { text-align: center; color: var(--text-muted); padding: 24px 0; }
+.retire-pension-meta { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
 
 .acct-balances {
     display: flex;

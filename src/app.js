@@ -952,7 +952,7 @@ export class DebtTrackerApp {
 
     getRetirementAccounts() { return getRetirementAccounts(this); }
     getSnapshotsForAccount(accountId) { return getSnapshotsForAccount(this, accountId); }
-    addRetirementSnapshot(accountId, date, balance, contribution) { return addRetirementSnapshotFeature(this, accountId, date, balance, contribution); }
+    addRetirementSnapshot(accountId, date, balance, contribution, annualSalary = null) { return addRetirementSnapshotFeature(this, accountId, date, balance, contribution, annualSalary); }
     deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
     computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
     renderRetirementPage() { return renderRetirementPageFeature(this); }

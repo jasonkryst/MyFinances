@@ -1,6 +1,6 @@
 // Retirement accounts: history log, projection, and page rendering.
 
-import { computeRetirementProjection, splitGrowthFromContribution } from './retirementCalculator.js';
+import { computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution } from './retirementCalculator.js';
 import { pgPost, pgDelete } from './postgresSync.js';
 import { formatCurrency, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
 
@@ -14,8 +14,9 @@ export function getSnapshotsForAccount(app, accountId) {
         .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export async function addRetirementSnapshot(app, accountId, date, balance, contribution) {
-    const snapshot = { id: Date.now(), accountId, date, balance, contribution };
+// annualSalary is only populated for pension accounts; balance/contribution remain 0 for those.
+export async function addRetirementSnapshot(app, accountId, date, balance, contribution, annualSalary = null) {
+    const snapshot = { id: Date.now(), accountId, date, balance, contribution, annualSalary };
     app.retirementSnapshots.push(snapshot);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -32,14 +33,26 @@ export function deleteRetirementSnapshot(app, id) {
     app.renderRetirementPage();
 }
 
-// Projects an account's value at app.retirementTargetDate, assuming the
-// account's rateOfReturn compounds monthly and its most recently logged
-// contribution (boosted by employerMatchPercent) recurs every month until
-// then. Returns null if no target date is set or the account doesn't exist.
+// Projects an account's value at app.retirementTargetDate.
+// Investment accounts (401k, IRA, etc.): compounds balance with rate of return.
+// Pension accounts: projects total employee contributions accumulated by the target date.
+// Returns null if no target date is set or the account doesn't exist.
 export function computeAccountProjection(app, accountId) {
     if (!app.retirementTargetDate) return null;
     const account = (app.accounts || []).find(a => a.id === accountId);
     if (!account) return null;
+
+    const monthsUntilTarget = DebtCalculator.calculateMonthsBetweenDates(
+        new Date(),
+        new Date(`${app.retirementTargetDate}T12:00:00`)
+    );
+
+    if (account.retirementSubtype === 'Pension') {
+        const snapshots = getSnapshotsForAccount(app, accountId);
+        const latest = snapshots[snapshots.length - 1];
+        const latestSalary = latest?.annualSalary != null ? latest.annualSalary : (Number(account.pensionAnnualSalary) || 0);
+        return computePensionContributionProjection(latestSalary, Number(account.pensionContributionRatePct) || 0, monthsUntilTarget);
+    }
 
     const snapshots = getSnapshotsForAccount(app, accountId);
     const latest = snapshots[snapshots.length - 1];
@@ -47,11 +60,6 @@ export function computeAccountProjection(app, accountId) {
     const lastContribution = latest ? latest.contribution : 0;
     const employerMultiplier = 1 + (Number(account.employerMatchPercent) || 0) / 100;
     const monthlyContribution = lastContribution * employerMultiplier;
-
-    const monthsUntilTarget = DebtCalculator.calculateMonthsBetweenDates(
-        new Date(),
-        new Date(`${app.retirementTargetDate}T12:00:00`)
-    );
 
     return computeRetirementProjection(currentBalance, monthlyContribution, Number(account.rateOfReturn) || 0, monthsUntilTarget);
 }
@@ -61,19 +69,35 @@ export function openRetirementSnapshotModal(app, accountId) {
     const account = (app.accounts || []).find(a => a.id === accountId);
     if (!modal || !account) return;
 
+    const isPension = account.retirementSubtype === 'Pension';
+
+    const titleEl = document.getElementById('retirementSnapshotModalTitle');
     const dateInput = document.getElementById('retirementSnapshotModalDate');
     const balanceInput = document.getElementById('retirementSnapshotModalBalance');
     const contributionInput = document.getElementById('retirementSnapshotModalContribution');
+    const salaryInput = document.getElementById('retirementSnapshotModalAnnualSalary');
+    const balanceGroup = document.getElementById('retirementSnapshotModalBalanceGroup');
+    const contributionGroup = document.getElementById('retirementSnapshotModalContributionGroup');
+    const salaryGroup = document.getElementById('retirementSnapshotModalSalaryGroup');
     const confirmBtn = document.getElementById('retirementSnapshotModalConfirmBtn');
     const cancelBtn = document.getElementById('retirementSnapshotModalCancelBtn');
     const closeBtn = document.getElementById('retirementSnapshotModalCloseBtn');
-    if (!dateInput || !balanceInput || !contributionInput || !confirmBtn || !cancelBtn || !closeBtn) return;
+    if (!dateInput || !balanceInput || !contributionInput || !salaryInput || !confirmBtn || !cancelBtn || !closeBtn) return;
+
+    if (titleEl) titleEl.textContent = isPension ? 'Log Salary Review' : 'Log Balance';
+    balanceGroup?.classList.toggle('hidden', isPension);
+    contributionGroup?.classList.toggle('hidden', isPension);
+    salaryGroup?.classList.toggle('hidden', !isPension);
 
     const snapshots = getSnapshotsForAccount(app, accountId);
     const latest = snapshots[snapshots.length - 1];
     dateInput.value = todayISO();
-    balanceInput.value = latest ? latest.balance : (Number(account.startingBalance) || 0);
-    contributionInput.value = latest ? latest.contribution : 0;
+    if (isPension) {
+        salaryInput.value = latest?.annualSalary != null ? latest.annualSalary : (Number(account.pensionAnnualSalary) || 0);
+    } else {
+        balanceInput.value = latest ? latest.balance : (Number(account.startingBalance) || 0);
+        contributionInput.value = latest ? latest.contribution : 0;
+    }
 
     const lastFocused = document.activeElement;
     const close = () => {
@@ -83,10 +107,17 @@ export function openRetirementSnapshotModal(app, accountId) {
     };
 
     confirmBtn.onclick = async () => {
-        const balance = Number(balanceInput.value);
-        const contribution = Number(contributionInput.value) || 0;
-        if (!Number.isFinite(balance) || balance < 0) return;
-        await app.addRetirementSnapshot(accountId, dateInput.value || todayISO(), balance, contribution);
+        if (isPension) {
+            const annualSalary = Number(salaryInput.value);
+            if (!Number.isFinite(annualSalary) || annualSalary < 0) return;
+            const monthlyContribution = annualSalary * (Number(account.pensionContributionRatePct) || 0) / 1200;
+            await app.addRetirementSnapshot(accountId, dateInput.value || todayISO(), 0, monthlyContribution, annualSalary);
+        } else {
+            const balance = Number(balanceInput.value);
+            const contribution = Number(contributionInput.value) || 0;
+            if (!Number.isFinite(balance) || balance < 0) return;
+            await app.addRetirementSnapshot(accountId, dateInput.value || todayISO(), balance, contribution, null);
+        }
         close();
     };
     cancelBtn.onclick = close;
@@ -115,10 +146,51 @@ export function openRetirementSnapshotModal(app, accountId) {
 }
 
 function renderAccountCard(app, account) {
+    const isPension = account.retirementSubtype === 'Pension';
     const snapshots = getSnapshotsForAccount(app, account.id);
     const latest = snapshots[snapshots.length - 1];
-    const currentBalance = latest ? latest.balance : (Number(account.startingBalance) || 0);
 
+    if (isPension) {
+        const currentSalary = latest?.annualSalary != null ? latest.annualSalary : (Number(account.pensionAnnualSalary) || 0);
+        const monthlyContrib = currentSalary * (Number(account.pensionContributionRatePct) || 0) / 1200;
+        const rows = snapshots.length === 0
+            ? `<tr><td colspan="4" class="retire-empty-msg">No salary reviews logged yet.</td></tr>`
+            : [...snapshots].reverse().map(s => `
+                <tr>
+                    <td>${escapeHtml(s.date)}</td>
+                    <td>${formatCurrency(s.annualSalary != null ? s.annualSalary : 0)}</td>
+                    <td>${formatCurrency(s.contribution)}</td>
+                    <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}">Delete</button></td>
+                </tr>`).join('');
+        return `
+            <div class="retire-card">
+                <div class="retire-card-header">
+                    <span class="acct-type-icon">🏛️</span>
+                    <div class="acct-card-info">
+                        <span class="acct-card-name">${escapeHtml(account.name)} (Pension)</span>
+                        <span class="acct-rate-badge">💼 ${formatCurrency(currentSalary)}/yr · ${Number(account.pensionContributionRatePct).toFixed(1)}% contrib.${Number(account.pensionVestingYears) > 0 ? ` · vests in ${account.pensionVestingYears} yr` : ''}</span>
+                    </div>
+                    <div class="retire-stat">
+                        <span class="acct-balance-label">Monthly Contribution</span>
+                        <span class="acct-balance-value">${formatCurrency(monthlyContrib)}</span>
+                    </div>
+                    <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}">+ Log Salary Review</button>
+                </div>
+                ${Number(account.pensionEstimatedMonthlyBenefit) > 0 || Number(account.pensionYearsOfService) > 0 ? `
+                <div class="retire-pension-meta">
+                    ${Number(account.pensionYearsOfService) > 0 ? `<span>Years of service: <strong>${account.pensionYearsOfService}</strong></span>` : ''}
+                    ${Number(account.pensionEstimatedMonthlyBenefit) > 0 ? `<span>Est. monthly benefit: <strong>${formatCurrency(account.pensionEstimatedMonthlyBenefit)}</strong></span>` : ''}
+                </div>` : ''}
+                <div class="table-wrapper">
+                    <table class="retire-snapshot-table">
+                        <thead><tr><th scope="col">Date</th><th scope="col">Annual Salary</th><th scope="col">Monthly Contribution</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+    }
+
+    const currentBalance = latest ? latest.balance : (Number(account.startingBalance) || 0);
     const rows = snapshots.length === 0
         ? `<tr><td colspan="4" class="retire-empty-msg">No balances logged yet.</td></tr>`
         : [...snapshots].reverse().map(s => `
@@ -166,6 +238,8 @@ function chartColors() {
 const ACCOUNT_LINE_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'];
 
 function renderBalanceChart(app, accounts) {
+    // Pension accounts don't track an investable balance — exclude them from this chart.
+    accounts = accounts.filter(a => a.retirementSubtype !== 'Pension');
     const canvas = document.getElementById('retireBalanceChart');
     if (!canvas) return;
     destroyChart(app, '_retireBalanceChart');
@@ -204,6 +278,8 @@ function renderBalanceChart(app, accounts) {
 }
 
 function renderContributionChart(app, accounts) {
+    // Pension contributions are salary-derived and don't have market growth — exclude them here.
+    accounts = accounts.filter(a => a.retirementSubtype !== 'Pension');
     const canvas = document.getElementById('retireContributionChart');
     if (!canvas) return;
     destroyChart(app, '_retireContributionChart');
@@ -249,6 +325,8 @@ function renderContributionChart(app, accounts) {
 }
 
 function renderBreakdownChart(app, accounts) {
+    // Pension accounts don't contribute a market balance — exclude them from the balance breakdown.
+    accounts = accounts.filter(a => a.retirementSubtype !== 'Pension');
     const canvas = document.getElementById('retireBreakdownChart');
     if (!canvas) return;
     destroyChart(app, '_retireBreakdownChart');
@@ -287,13 +365,16 @@ function renderProjectionPanel(app, accounts) {
 
     const rows = accounts.map(a => {
         const projected = app.computeAccountProjection(a.id);
-        return `<div class="acct-balance-item"><span class="acct-balance-label">${escapeHtml(a.name)}</span><span class="acct-balance-value">${formatCurrency(projected)}</span></div>`;
+        const label = a.retirementSubtype === 'Pension'
+            ? `${escapeHtml(a.name)} (total contributions)`
+            : escapeHtml(a.name);
+        return `<div class="acct-balance-item"><span class="acct-balance-label">${label}</span><span class="acct-balance-value">${formatCurrency(projected)}</span></div>`;
     });
     const total = accounts.reduce((sum, a) => sum + (app.computeAccountProjection(a.id) || 0), 0);
 
     panel.innerHTML = `
         <h4 class="rpt-chart-title">Projected Value at ${escapeHtml(app.retirementTargetDate)}</h4>
-        <p class="rpt-chart-sub">Assumes each account's rate of return compounds monthly and its most recently logged contribution (plus employer match) recurs every month until then.</p>
+        <p class="rpt-chart-sub">Investment accounts: balance compounds monthly at the account's rate of return (plus employer match). Pension accounts: total employee contributions accumulated by that date.</p>
         <div class="acct-balances">${rows.join('')}</div>
         <div class="acct-balance-item"><span class="acct-balance-label">Combined Total</span><span class="acct-balance-value">${formatCurrency(total)}</span></div>
     `;

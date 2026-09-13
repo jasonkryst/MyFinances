@@ -11,6 +11,7 @@ export default createCrudResource({
         accountId: 'account_id',
         date: 'date',
         balance: 'balance',
-        contribution: 'contribution'
+        contribution: 'contribution',
+        annualSalary: 'annual_salary'
     }
 });

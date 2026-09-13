@@ -104,7 +104,7 @@ def test_income_form_and_bonus_card_hidden_when_printing(app_page, account_data,
     page.select_option('#incomeFrequency', income_data["frequency"])
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector(f'text={income_data["name"]}', timeout=10000)
+    page.wait_for_selector(f'#incomeList >> text={income_data["name"]}', timeout=10000)
 
     page.emulate_media(media="print")
     form_hidden = page.evaluate(

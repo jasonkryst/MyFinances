@@ -11,6 +11,15 @@ export function computeRetirementProjection(currentBalance, monthlyContribution,
     return balance;
 }
 
+// Projects total employee contributions paid into a pension by the target date.
+// Unlike investment accounts, pension value is defined by the employer formula —
+// only the employee's own accumulated contributions are projected here.
+export function computePensionContributionProjection(annualSalary, contributionRatePct, monthsUntilTarget) {
+    if (!(monthsUntilTarget > 0)) return 0;
+    const monthly = (Number(annualSalary) || 0) * (Number(contributionRatePct) || 0) / 1200;
+    return monthly * monthsUntilTarget;
+}
+
 export function splitGrowthFromContribution(snapshotsForOneAccount) {
     const sorted = [...(snapshotsForOneAccount || [])].sort((a, b) => a.date.localeCompare(b.date));
     return sorted.map((snap, i) => {
