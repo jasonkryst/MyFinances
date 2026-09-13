@@ -131,7 +131,7 @@ def test_strategy_schedule_charts_have_sr_tables(app_page, debt_data, income_dat
     page.select_option('#incomeFrequency', income_data["frequency"])
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector(f'text={income_data["name"]}', timeout=10000)
+    page.wait_for_selector(f'#incomeList >> text={income_data["name"]}', timeout=10000)
 
     page.click('button[data-page="strategy"]')
     page.wait_for_timeout(300)

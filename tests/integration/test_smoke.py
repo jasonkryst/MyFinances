@@ -35,7 +35,7 @@ def test_smoke_full_workflow(app_page):
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
     page.wait_for_timeout(500)
-    assert page.query_selector('text=Salary'), "Income creation failed"
+    assert page.query_selector('#incomeList >> text=Salary'), "Income creation failed"
     
     # 3. Add debt
     page.click('button[data-page="liabilities"]')

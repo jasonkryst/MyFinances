@@ -103,7 +103,7 @@ def test_total_income_calculation(app_page):
     page.wait_for_timeout(500)
     
     # Verify income appears
-    assert page.query_selector('text=Salary'), "Income not created"
+    assert page.query_selector('#incomeList >> text=Salary'), "Income not created"
 
 
 @pytest.mark.feature
