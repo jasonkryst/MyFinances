@@ -49,6 +49,7 @@ REQUIRED_MANIFEST_FIELDS = [
 KNOWN_PAGE_NAMES = {
     'health', 'accounts', 'liabilities', 'income', 'savings',
     'strategy', 'reports', 'ledger', 'recurring', 'reconcile',
+    'retirement'
 }
 
 

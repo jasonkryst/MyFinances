@@ -23,10 +23,38 @@
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
+      "name": "Planning Dashboard",
+      "short_name": "Plan",
+      "description": "View your financial planning tools and resources",
+      "url": "/?page=strategy",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Reports",
+      "short_name": "Reports",
+      "description": "View your financial reports and insights",
+      "url": "/?page=reports",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Ledger",
       "short_name": "Ledger",
       "description": "View your transaction ledger",
       "url": "/?page=ledger",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Reconcile",
+      "short_name": "Reconcile",
+      "description": "Reconcile your accounts and transactions",
+      "url": "/?page=reconcile",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Retirement Dashboard",
+      "short_name": "Retirement",
+      "description": "View your retirement planning tools and resources",
+      "url": "/?page=retirement",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]

@@ -4,12 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
-## [5.3.0] — 2026-09-13
+## [5.4.0] — 2026-09-13
 
 ### Added
 - **Pension account type** — a new `Pension` retirement subtype (issue #174) on the Accounts page with five pension-specific fields: Annual Salary, Contribution Rate (% of salary), Vesting Years, Estimated Monthly Benefit (from the administrator's statement), and Years of Service. Pension accounts log annual salary reviews rather than balance snapshots — each review records the updated salary and auto-computes the monthly contribution (`salary × rate ÷ 12`). The Retirement page shows a dedicated salary history table for pension accounts and excludes them from the three investment charts (Balance Over Time, Contribution vs. Growth, Current Balance Breakdown) since those are market-driven metrics. The projection panel labels pension accounts as "total contributions accumulated" by the target date rather than a compounded balance. DB migration adds five `pension_*` columns to `accounts` and an `annual_salary` nullable column to `retirement_snapshots`; the `retirement_subtype` CHECK constraint is extended to include `'Pension'`.
 
 ---
+## [5.3.0] — 2026-09-08
+
+### Added
+- Additional manifest links.
 ## [5.2.0] — 2026-09-08
 
 ### Added
