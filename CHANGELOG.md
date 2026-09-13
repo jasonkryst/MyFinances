@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.4.2] — 2026-09-13
+
+### Changed
+- **docs: `tests/README.md` prose write-ups complete** (issue #151) — added dedicated `#### test_x.py` sections for all 17 test files that were missing from the "Test Categories" prose: `test_validation_modals`, `test_storage_backend`, `test_i18n`, `test_pwa`, `test_pwa_icons`, `test_cash_flow_trend`, `test_money_flow_sankey`, `test_analytics`, `test_versioning`, `test_retirement`, `test_issue_92_export`, `test_issue_93_expense_save` (features) and `test_data_transfer_modal`, `test_delete_confirm_modal`, `test_settings_theme_location`, `test_pwa_update_banner`, `test_login_gate_theme` (UI). Also updated the directory tree to include all missing files and removed the stale "added since last revision" note.
+
+---
 ## [5.4.0] — 2026-09-13
 
 ### Added
