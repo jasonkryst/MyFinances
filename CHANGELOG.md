@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.4.1] — 2026-09-13
+
+### Changed
+- **CI: test-ui split from 2 → 3 parallel shards** (issue #153) — bin-packed all 30 UI test files by test count (a=83, b=85, c=86) rather than file count, keeping each shard well under the 20-minute budget. Also adds `test_login_gate_theme.py` to CI for the first time: it existed in `tests/ui/` but was inadvertently missing from both prior shards.
+
+---
 ## [5.4.0] — 2026-09-13
 
 ### Added
