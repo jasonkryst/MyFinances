@@ -4,14 +4,15 @@ Shared pytest fixtures and configuration for MyFinances test suite.
 Provides common browser setup, test data, and utility functions.
 """
 
+import os
 from datetime import date
 
 import pytest
 from playwright.sync_api import sync_playwright, Browser, Page
 from playwright.async_api import async_playwright
 
-# Configuration
-BASE_URL = "http://localhost:32900/"
+# Configuration — override with TEST_BASE_URL env var when Docker occupies port 32900.
+BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:32900/")
 HEADLESS = True
 
 
@@ -81,6 +82,16 @@ SKIP_FIRST_RUN_WIZARD_SCRIPT = """
 def app_page(page) -> Page:
     """Navigate to the app and return ready page."""
     page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
+    # Prevent Postgres auto-detection from triggering the login gate when a Docker
+    # stack is running at port 32900. checkPostgresBackendPresent() does HEAD /
+    # and checks for the X-Myfinances-Backend: postgres response header; fulfilling
+    # that request with a plain 200 (no header) makes the check return false.
+    def _intercept_head_root(route):
+        if route.request.method == 'HEAD':
+            route.fulfill(status=200)
+        else:
+            route.continue_()
+    page.route(BASE_URL, _intercept_head_root)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     return page
 

@@ -13,6 +13,11 @@ export default createCrudResource({
         interestRate: 'interest_rate',
         retirementSubtype: 'retirement_subtype',
         rateOfReturn: 'rate_of_return',
-        employerMatchPercent: 'employer_match_percent'
+        employerMatchPercent: 'employer_match_percent',
+        pensionAnnualSalary: 'pension_annual_salary',
+        pensionContributionRatePct: 'pension_contribution_rate_pct',
+        pensionVestingYears: 'pension_vesting_years',
+        pensionEstimatedMonthlyBenefit: 'pension_estimated_monthly_benefit',
+        pensionYearsOfService: 'pension_years_of_service'
     }
 });

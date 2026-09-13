@@ -161,6 +161,7 @@
                                     <option value="Traditional IRA">Traditional IRA</option>
                                     <option value="Roth IRA">Roth IRA</option>
                                     <option value="HSA">HSA</option>
+                                    <option value="Pension">Pension</option>
                                     <option value="Other" selected>Other</option>
                                 </select>
                             </div>
@@ -175,6 +176,36 @@
                                     <span class="help-icon" tabindex="0" aria-label="Percent of your contribution your employer matches, e.g. 50 for a 50% match. Used in the Retirement page's projection.">?</span>
                                 </label>
                                 <input type="number" id="accountEmployerMatch" placeholder="0.00" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group hidden" id="accountPensionSalaryGroup">
+                                <label for="accountPensionSalary">Annual Salary ($)
+                                    <span class="help-icon" tabindex="0" aria-label="Your current annual salary. Used to compute your monthly pension contribution amount, which is reviewed each year.">?</span>
+                                </label>
+                                <input type="number" id="accountPensionSalary" placeholder="0.00" step="0.01" min="0">
+                            </div>
+                            <div class="form-group hidden" id="accountPensionContributionRateGroup">
+                                <label for="accountPensionContributionRate">Contribution Rate (% of salary)
+                                    <span class="help-icon" tabindex="0" aria-label="The percentage of your salary deducted each year for pension contributions, e.g. 7 for 7%.">?</span>
+                                </label>
+                                <input type="number" id="accountPensionContributionRate" placeholder="0.00" step="0.01" min="0" max="100">
+                            </div>
+                            <div class="form-group hidden" id="accountPensionVestingYearsGroup">
+                                <label for="accountPensionVestingYears">Vesting Years
+                                    <span class="help-icon" tabindex="0" aria-label="Number of years of service required to be fully vested in the pension benefit.">?</span>
+                                </label>
+                                <input type="number" id="accountPensionVestingYears" placeholder="0" step="1" min="0">
+                            </div>
+                            <div class="form-group hidden" id="accountPensionMonthlyBenefitGroup">
+                                <label for="accountPensionMonthlyBenefit">Estimated Monthly Benefit ($)
+                                    <span class="help-icon" tabindex="0" aria-label="The monthly pension payout your administrator currently estimates you will receive at retirement, from your most recent statement.">?</span>
+                                </label>
+                                <input type="number" id="accountPensionMonthlyBenefit" placeholder="0.00" step="0.01" min="0">
+                            </div>
+                            <div class="form-group hidden" id="accountPensionYearsOfServiceGroup">
+                                <label for="accountPensionYearsOfService">Years of Service
+                                    <span class="help-icon" tabindex="0" aria-label="Your current credited years of service used in the pension benefit formula.">?</span>
+                                </label>
+                                <input type="number" id="accountPensionYearsOfService" placeholder="0" step="1" min="0">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="accountFormSubmit">Add Account</button>
@@ -1095,13 +1126,17 @@
                 <label for="retirementSnapshotModalDate">Date</label>
                 <input type="date" id="retirementSnapshotModalDate">
             </div>
-            <div class="form-group modal-form-group">
+            <div class="form-group modal-form-group" id="retirementSnapshotModalBalanceGroup">
                 <label for="retirementSnapshotModalBalance">Balance ($)</label>
                 <input type="number" id="retirementSnapshotModalBalance" step="0.01" placeholder="0.00">
             </div>
-            <div class="form-group modal-form-group">
+            <div class="form-group modal-form-group" id="retirementSnapshotModalContributionGroup">
                 <label for="retirementSnapshotModalContribution">Contribution This Period ($)</label>
                 <input type="number" id="retirementSnapshotModalContribution" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group modal-form-group hidden" id="retirementSnapshotModalSalaryGroup">
+                <label for="retirementSnapshotModalAnnualSalary">Annual Salary ($)</label>
+                <input type="number" id="retirementSnapshotModalAnnualSalary" step="0.01" placeholder="0.00" min="0">
             </div>
             <div class="modal-actions">
                 <button id="retirementSnapshotModalConfirmBtn" class="btn btn-success">Save</button>

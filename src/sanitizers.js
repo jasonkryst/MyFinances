@@ -2,7 +2,7 @@
 
 import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
 
-const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Other'];
+const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
 export function sanitizeAccount(record, idFallback) {
     return {
@@ -13,7 +13,12 @@ export function sanitizeAccount(record, idFallback) {
         interestRate: sanitizeFiniteNumber(record?.interestRate, 0, { min: 0, max: 100 }),
         retirementSubtype: RETIREMENT_SUBTYPES.includes(record?.retirementSubtype) ? record.retirementSubtype : 'Other',
         rateOfReturn: sanitizeFiniteNumber(record?.rateOfReturn, 0, { min: 0, max: 100 }),
-        employerMatchPercent: sanitizeFiniteNumber(record?.employerMatchPercent, 0, { min: 0, max: 100 })
+        employerMatchPercent: sanitizeFiniteNumber(record?.employerMatchPercent, 0, { min: 0, max: 100 }),
+        pensionAnnualSalary: sanitizeFiniteNumber(record?.pensionAnnualSalary, 0, { min: 0 }),
+        pensionContributionRatePct: sanitizeFiniteNumber(record?.pensionContributionRatePct, 0, { min: 0, max: 100 }),
+        pensionVestingYears: sanitizeInteger(record?.pensionVestingYears, 0, { min: 0 }),
+        pensionEstimatedMonthlyBenefit: sanitizeFiniteNumber(record?.pensionEstimatedMonthlyBenefit, 0, { min: 0 }),
+        pensionYearsOfService: sanitizeInteger(record?.pensionYearsOfService, 0, { min: 0 })
     };
 }
 
@@ -256,7 +261,8 @@ export function sanitizeRetirementSnapshot(record, idFallback) {
         accountId: sanitizeInteger(record?.accountId, null),
         date: sanitizeDateISO(record?.date) || todayISO(),
         balance: sanitizeFiniteNumber(record?.balance, 0, { min: 0 }),
-        contribution: sanitizeFiniteNumber(record?.contribution, 0, { min: 0 })
+        contribution: sanitizeFiniteNumber(record?.contribution, 0, { min: 0 }),
+        annualSalary: sanitizeFiniteNumber(record?.annualSalary, null, { min: 0 })
     };
 }
 

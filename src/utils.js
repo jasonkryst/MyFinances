@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale } from './i18n.js';
 
-export const APP_VERSION = '5.2.0';
+export const APP_VERSION = '5.3.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
