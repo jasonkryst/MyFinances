@@ -81,7 +81,7 @@ tests/
 │   ├── test_csp.py            # CSP compliance + meta-tag/nginx-header sync check
 │   ├── test_input_validation.py # Input sanitization, bounds checking, negative-amount guards
 │   └── test_static_scan.py     # Static security scanning (0 HIGH/MEDIUM)
-├── features/                   # Feature-specific tests (389 tests, 36 files)
+├── features/                   # Feature-specific tests (389+ tests, 37 files)
 │   ├── test_accounts.py        # Account management (incl. delete-with-linked-items orphaning, interest-rate badge display)
 │   ├── test_debts.py           # Debt/liability management, amortization, validation
 │   ├── test_debt_calculator.py # Pure calculation engine (strategies, back-calculator, stimulus)
@@ -106,8 +106,20 @@ tests/
 │   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
 │   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   ├── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
-│   └── test_plan_history.py    # Plan History logging/cap on Calculate, last-plan restore on reload (#162)
-├── ui/                         # UI/UX and responsive tests (249 tests, 29 files)
+│   ├── test_plan_history.py    # Plan History logging/cap on Calculate, last-plan restore on reload (#162)
+│   ├── test_validation_modals.py     # Themed #alertModal replaces native browser alert() for all form validation errors
+│   ├── test_storage_backend.py       # localStorage vs. sessionStorage adapter selection, default/compat path, switchStorageBackend migration
+│   ├── test_i18n.py            # Locale storage, t() lookup with English fallback, applyStaticTranslations(); Spanish/Polish pilot scope
+│   ├── test_pwa.py             # manifest.json validity, SW precache list vs. src/ + APP_VERSION sync, SW browser registration
+│   ├── test_pwa_icons.py       # PNG icon assets from tools/generate-icons.js: correct dimensions via IHDR chunk parse, no Pillow dep
+│   ├── test_cash_flow_trend.py # getCashFlowTrendSeries() income/outflow/net per month correctness; rendered chart widget
+│   ├── test_money_flow_sankey.py     # computeMoneyFlowSankeyData() node/link grouping: income→hub→outflow categories
+│   ├── test_analytics.py       # GA disabled by default; only injects gtag.js when window.__ENV__.GA_MEASUREMENT_ID is present
+│   ├── test_versioning.py      # APP_VERSION (utils.js) and most-recent CHANGELOG.md entry stay in sync (issue #59)
+│   ├── test_retirement.py      # Retirement account type/fields, snapshot logging, charts, projection, export/import round-trip
+│   ├── test_issue_92_export.py # Regression: perMonthStimulus export gap, hardcoded export version, no-data guard, merge mode (#92)
+│   └── test_issue_93_expense_save.py # Regression: expense.date stored as Date object → JSON timestamp → sanitizeDateISO drops it (#93)
+├── ui/                         # UI/UX and responsive tests (254 tests, 30 files)
 │   ├── test_mobile.py          # Mobile responsiveness, hamburger menu, touch sizing
 │   ├── test_modals.py          # Modal visibility, close buttons, calendar day-detail
 │   ├── test_dark_mode.py       # Dark/light theme selection, persistence, corrupted-localStorage fallback
@@ -132,7 +144,12 @@ tests/
 │   ├── test_reconciliation_actions.py # Reconcile-modal flows, history filter/delete
 │   ├── test_spending_ui.py     # Spending charts, ranked list, drill-down modal
 │   ├── test_strategy_calendar.py # Strategy mini-calendar: debt/income/bill/expense/bonus day-markers
-│   └── test_whatif_simulator.py # What-If slider: immediate label update, debounced simulation
+│   ├── test_whatif_simulator.py # What-If slider: immediate label update, debounced simulation
+│   ├── test_data_transfer_modal.py   # Consolidated Backup & Restore two-tab modal; import inline feedback replaces alert()/confirm()
+│   ├── test_delete_confirm_modal.py  # Themed #deleteConfirmModal replaces native browser confirm() for all destructive deletes
+│   ├── test_settings_theme_location.py # Theme selector moved from toolbar into Settings modal (#71); location and label coverage
+│   ├── test_pwa_update_banner.py     # app.showUpdateAvailableBanner() called directly with stub worker; banner show/dismiss/reload
+│   └── test_login_gate_theme.py      # Login gate overlay matches light-mode body gradient + header band; dark/high-contrast in peer tests
 ├── a11y/                        # Site-wide accessibility audit (10 tests)
 │   ├── run_a11y_audit.py       # Standalone Playwright audit script (also runnable directly)
 │   └── test_a11y_audit.py      # Pytest wiring: asserts zero Serious findings from the audit
@@ -150,7 +167,7 @@ tests/
     └── test_postgres_setup_wizard.py  # First-run setup wizard against the Postgres backend
 ```
 
-> Several test files added since this document was last fully revised (e.g. `test_validation_modals.py`, `test_delete_confirm_modal.py`, `test_storage_backend.py`, `test_break_even.py`, `test_interest_income.py`, `test_i18n.py`, `test_pwa.py`, `test_pwa_icons.py`, `test_cash_flow_trend.py`, `test_money_flow_sankey.py`, `test_high_contrast_theme.py`, `test_settings_theme_location.py`, `test_pwa_update_banner.py`, `test_data_transfer_modal.py`, `test_plan_history.py`, `test_analytics.py`) are collected and run by `pytest tests/ -v` but do not yet have a dedicated per-file write-up in the "Test Categories" section below.
+> The directory tree and "Test Categories" prose below were last fully reviewed on 2026-09-13 (issue #151). New test files should be added to both the tree (one-line description) and the prose (#### block) when merged.
 
 > Ad-hoc manual debugging scripts (no `test_*` functions) live in `tools/debug/`, outside the `tests/` tree, so `tests/` only contains real pytest-collected tests.
 
@@ -250,6 +267,67 @@ tests/
 - **Coverage:** Avalanche/Snowball/Priority-Lowest/Priority-Highest switching with no console errors, strategy comparison panel row count, stimulus amount raising a month's total paid, non-numeric stimulus input falling back to 0 (not NaN)
 - **Status:** ✅ PASSING
 
+#### test_validation_modals.py
+- **Tests:** Themed `#alertModal` replaces native `alert()` for all form-validation errors
+- **Coverage:** Modal present and hidden on load; valid submissions succeed without a modal; invalid submissions (missing name, bad amounts, duplicate names) show the modal with the correct message; modal dismissible via OK button and Escape key
+- **Status:** ✅ PASSING
+
+#### test_storage_backend.py
+- **Tests:** `localStorage` vs. `sessionStorage` adapter selection and migration
+- **Coverage:** Default backend is `localStorage` (backward-compatible); data written through one adapter is not visible through the other; `switchStorageBackend()` migrates in-memory state to the new backend and removes it from the old one
+- **Status:** ✅ PASSING
+
+#### test_i18n.py
+- **Tests:** Locale preference, `t()` lookup, and `applyStaticTranslations()` for `[data-i18n]` elements
+- **Coverage:** Default locale is English (no `debtTrackerLocale` key); Settings modal exposes en/es/pl selector; switching to Spanish/Polish changes nav and toolbar text via `[data-i18n]` without reloading; unknown key falls back to raw key string (no crash)
+- **Status:** ✅ PASSING
+
+#### test_pwa.py
+- **Tests:** PWA manifest validity, service-worker precache sync, and SW registration
+- **Coverage:** `manifest.json` is valid JSON with all required fields; precache list in `sw.js` matches actual `src/` files and contains the current `APP_VERSION`; SW successfully registers in Chromium; manifest icon paths resolve to real files
+- **Note:** Offline app-shell behavior is in `tests/integration/test_pwa_offline.py`; update-banner is in `tests/ui/test_pwa_update_banner.py`
+- **Status:** ✅ PASSING
+
+#### test_pwa_icons.py
+- **Tests:** PNG icon assets generated by `tools/generate-icons.js`
+- **Coverage:** Each icon listed in `manifest.json` exists on disk and has the correct pixel dimensions, verified via direct IHDR chunk parsing (no Pillow/image-library dependency, consistent with the app's zero-new-deps constraint)
+- **Status:** ✅ PASSING
+
+#### test_cash_flow_trend.py
+- **Tests:** `getCashFlowTrendSeries()` data-layer correctness and rendered chart widget
+- **Coverage:** Returns correct income/outflow/net per month oldest-first for a multi-month window ending at the current report month; respects `app._reportMonthOffset`; chart canvas renders without errors
+- **Status:** ✅ PASSING
+
+#### test_money_flow_sankey.py
+- **Tests:** `computeMoneyFlowSankeyData()` Sankey node/link grouping
+- **Coverage:** Income sources become source nodes; a single "Account" hub is the intermediate node; bills/expenses group by category, debts and savings by name; link amounts match the summed transactions; zero-flow sources are excluded
+- **Status:** ✅ PASSING
+
+#### test_analytics.py
+- **Tests:** Google Analytics disabled by default; only injects when `window.__ENV__.GA_MEASUREMENT_ID` is set
+- **Coverage:** Negative case (no env var) — no `<script src="gtag.js">` injected, no network call, no console errors; positive case (env var injected) — `<script>` is added and `window.dataLayer` initialized; GA is never active in the standard test-server environment
+- **Status:** ✅ PASSING
+
+#### test_versioning.py
+- **Tests:** `APP_VERSION` (in `src/utils.js`) and the most recent `CHANGELOG.md` entry stay in sync (issue #59)
+- **Coverage:** Parses both files with plain regexes (no browser required); fails if the version string doesn't match the latest `## [x.y.z]` heading; also enforces that changelog headings are in descending order
+- **Status:** ✅ PASSING
+
+#### test_retirement.py
+- **Tests:** Retirement accounts dashboard end-to-end
+- **Coverage:** Retirement account type with subtype/rate/employer-match fields; snapshot logging (add/edit/delete); balance-over-time, contribution-vs-growth, and breakdown charts render without errors; projection panel shows a value; full export/import round-trip preserves all retirement data including snapshots
+- **Status:** ✅ PASSING
+
+#### test_issue_92_export.py
+- **Tests:** Regression suite for import/export gaps fixed in issue #92
+- **Coverage:** `perMonthStimulus` round-trips through export/import; exported version reads `APP_VERSION` not a hardcoded string; "no data" guard accepts files containing only accounts, savings goals, or reconciliations; merge mode preserves rather than replaces non-debt collections
+- **Status:** ✅ PASSING
+
+#### test_issue_93_expense_save.py
+- **Tests:** Regression suite for the expense-date serialization bug fixed in issue #93
+- **Coverage:** `expense.date` stored as a bare `YYYY-MM-DD` string survives a save/reload cycle; the self-healing path in `sanitizeDateISO` converts legacy full ISO timestamps without dropping them; form boundary validation rejects non-date input
+- **Status:** ✅ PASSING
+
 ---
 
 ### 🎨 UI Tests (`tests/ui/`)
@@ -284,6 +362,32 @@ tests/
 #### test_guide_theme.py
 - **Tests:** `guide.html` dark-mode sync via `src/guideTheme.js`
 - **Coverage:** Dark mode applied when `debtTrackerTheme` is `'dark'`; stays light when the key is absent; stays light when explicitly `'light'`
+- **Status:** ✅ PASSING
+
+#### test_data_transfer_modal.py
+- **Tests:** Consolidated Backup & Restore two-tab modal (`#dataTransferModal`)
+- **Coverage:** Old standalone toolbar Export/Import buttons are gone; `#dataTransferBtn` opens the modal; Export tab renders a JSON download button; Import tab's validation errors (invalid JSON, no data, file too large) render inline rather than via `alert()`/`confirm()`; modal closes correctly
+- **Status:** ✅ PASSING
+
+#### test_delete_confirm_modal.py
+- **Tests:** Themed `#deleteConfirmModal` replaces native `confirm()` for all destructive deletes
+- **Coverage:** Modal is present and hidden on load; each delete action (account, debt, income, expense, recurring, milestone) opens the modal rather than a browser dialog; Cancel leaves the record in place; Confirm performs the deletion; modal is reusable across multiple consecutive deletes
+- **Status:** ✅ PASSING
+
+#### test_settings_theme_location.py
+- **Tests:** Theme selector moved from toolbar into Settings modal (issue #71)
+- **Coverage:** `#themeSwitcher` is inside `#settingsModal`, not the header toolbar; it is visible and labeled once Settings is open; opening and closing Settings does not change the currently-applied theme
+- **Status:** ✅ PASSING
+
+#### test_pwa_update_banner.py
+- **Tests:** Service-worker update-available banner
+- **Coverage:** `app.showUpdateAvailableBanner(fakeWorker)` shows the banner with a Reload button; clicking Reload calls `postMessage({type:'SKIP_WAITING'})` on the stub worker; banner disappears after dismissal; calling the method twice does not stack two banners
+- **Note:** Calls the method directly with a stub worker object rather than forcing a real SW update cycle, matching the pattern used in `test_storage_quota.py`
+- **Status:** ✅ PASSING
+
+#### test_login_gate_theme.py
+- **Tests:** Login gate overlay (`#loginGate`) matches the site's light-mode visual theme
+- **Coverage:** Overlay gradient matches `<body>`'s backdrop; header band reuses the `<header>`'s blue gradient and goal logo; card body is flat/opaque; dark-mode and high-contrast variants are tested in `test_dark_mode.py` and `test_high_contrast_theme.py` respectively
 - **Status:** ✅ PASSING
 
 ---
@@ -589,5 +693,5 @@ Refer to:
 
 ---
 
-**Last Updated:** September 6, 2026 (Plan History, issue #162)  
-**Test Suite Status:** ✅ Fully Passing (778 tests / 81 files, incl. 47 Postgres/CI-only tests across 7 files)
+**Last Updated:** September 13, 2026 (issue #151 — prose write-ups for all test files)  
+**Test Suite Status:** ✅ Fully Passing (778+ tests / 81+ files, incl. 47 Postgres/CI-only tests across 7 files)
