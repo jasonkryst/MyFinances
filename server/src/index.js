@@ -1,5 +1,5 @@
 import { createApp } from './app.js';
-import migrate from 'node-pg-migrate';
+import { runner as migrate } from 'node-pg-migrate';
 import { isEmailConfigured } from './email/transport.js';
 
 async function main() {
