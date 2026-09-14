@@ -10,6 +10,12 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **docs: `tests/README.md` prose write-ups complete** (issue #151) — added dedicated `#### test_x.py` sections for all 17 test files that were missing from the "Test Categories" prose: `test_validation_modals`, `test_storage_backend`, `test_i18n`, `test_pwa`, `test_pwa_icons`, `test_cash_flow_trend`, `test_money_flow_sankey`, `test_analytics`, `test_versioning`, `test_retirement`, `test_issue_92_export`, `test_issue_93_expense_save` (features) and `test_data_transfer_modal`, `test_delete_confirm_modal`, `test_settings_theme_location`, `test_pwa_update_banner`, `test_login_gate_theme` (UI). Also updated the directory tree to include all missing files and removed the stale "added since last revision" note.
 
 ---
+## [5.4.1] — 2026-09-13
+
+### Changed
+- **CI: test-ui split from 2 → 3 parallel shards** (issue #153) — bin-packed all 30 UI test files by test count (a=83, b=85, c=86) rather than file count, keeping each shard well under the 20-minute budget. Also adds `test_login_gate_theme.py` to CI for the first time: it existed in `tests/ui/` but was inadvertently missing from both prior shards.
+
+---
 ## [5.4.0] — 2026-09-13
 
 ### Added
