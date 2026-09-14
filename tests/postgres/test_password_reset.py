@@ -79,12 +79,12 @@ async def test_forgot_password_ui_shows_confirmation_after_submit(pg_page, base_
     await pg_page.fill('#loginGateForgotEmail', 'test@example.com')
     await pg_page.locator('#loginGateForgotForm button[type=submit]').click()
 
-    # Form should replace itself with confirmation text
-    await pg_page.wait_for_function(
-        "document.querySelector('#loginGateForgotForm p') !== null",
-        timeout=5000
+    # replaceChildren() swaps the form's content with a single confirmation <p>,
+    # removing the submit button in the process — wait for that as the signal.
+    await pg_page.locator('#loginGateForgotForm button[type=submit]').wait_for(
+        state='hidden', timeout=5000
     )
-    content = await pg_page.locator('#loginGateForgotForm p').text_content()
+    content = await pg_page.locator('#loginGateForgotForm p').first.text_content()
     assert content and len(content.strip()) > 0
 
 
