@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.7.0] — 2026-09-14
+
+### Added
+- **Password reset via email** (issue #176) — "Forgot password?" flow on the login gate: generates a time-limited (1 hour) single-use reset token, emails a reset link via the existing SMTP infrastructure, and provides a new reset-password form shown when `?reset_token=` is present in the URL. Token is stored hashed (SHA-256); the plaintext is only ever sent in email. Always returns HTTP 200 on the forgot-password endpoint to avoid leaking account existence.
+
+---
 ## [5.6.0] — 2026-09-14
 
 ### Performance
