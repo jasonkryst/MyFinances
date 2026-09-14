@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.5.0] — 2026-09-14
+
+### Changed
+- **Server: bump five server dependencies** (PR #169) — argon2 0.41→0.45, express 4.21→5.2 (major), express-rate-limit 7.4→8.7 (major), node-pg-migrate 7.6→9.0 (major), nodemailer 9.1→10.0 (major). The express 4→5 and node-pg-migrate 7→9 upgrades were the two breaking changes tracked in issue #141; both are now resolved: the `runner` named-export fix (PR #188) handles node-pg-migrate v9, and `app.set('trust proxy', 1)` already handles express-rate-limit v8's `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` check. Express 5 compat verified by three new tests in `server/test/app.test.js`.
+
+---
 ## [5.4.4] — 2026-09-14
 
 ### Changed
