@@ -1203,6 +1203,37 @@
                     <p id="loginGateError" class="login-gate-error" role="alert" aria-live="polite"></p>
                     <button type="submit" id="loginGateSubmit" class="btn btn-primary login-gate-submit">Sign In</button>
                 </form>
+                <p id="loginGateForgotLink" class="login-gate-forgot-link">
+                    <button type="button" id="loginGateForgotBtn" class="link-btn">Forgot password?</button>
+                </p>
+                <!-- Forgot-password mode: enter email to receive reset link -->
+                <form id="loginGateForgotForm" class="login-gate-form hidden" novalidate>
+                    <p class="login-gate-subtitle">Enter your email and we'll send a reset link.</p>
+                    <div class="form-group">
+                        <label for="loginGateForgotEmail">Email</label>
+                        <input type="email" id="loginGateForgotEmail" class="form-control" autocomplete="email" required>
+                    </div>
+                    <p id="loginGateForgotError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <button type="submit" class="btn btn-primary login-gate-submit">Send Reset Link</button>
+                    <button type="button" id="loginGateForgotBack" class="link-btn" style="display:block;margin-top:.5rem">Back to sign in</button>
+                </form>
+                <!-- Reset-password mode: shown when ?reset_token=... is present in URL -->
+                <form id="loginGateResetForm" class="login-gate-form hidden" novalidate>
+                    <p class="login-gate-subtitle">Enter your new password.</p>
+                    <div class="form-group">
+                        <label for="loginGateResetPassword">New Password</label>
+                        <input type="password" id="loginGateResetPassword" class="form-control"
+                               autocomplete="new-password" required minlength="12"
+                               placeholder="At least 12 characters">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginGateResetConfirm">Confirm New Password</label>
+                        <input type="password" id="loginGateResetConfirm" class="form-control"
+                               autocomplete="new-password" required minlength="12">
+                    </div>
+                    <p id="loginGateResetError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <button type="submit" class="btn btn-primary login-gate-submit">Set New Password</button>
+                </form>
             </div>
         </div>
     </div>

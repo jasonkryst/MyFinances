@@ -1,5 +1,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
+import { randomBytes, createHash } from 'node:crypto';
 import { query } from '../db.js';
 import { hashPassword, verifyPassword } from '../auth/argon2.js';
 import { createSession, destroySession } from '../auth/sessions.js';
@@ -138,6 +139,73 @@ export function createAuthRouter() {
             if (sessionId) await destroySession(sessionId);
             res.clearCookie('session');
             res.clearCookie('csrf');
+            res.json({ ok: true });
+        } catch (err) {
+            next(err);
+        }
+    });
+
+    const forgotPasswordLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, try again later' } }
+    });
+
+    // Always returns 200 to avoid confirming whether the email is registered.
+    authRouter.post('/forgot-password', forgotPasswordLimiter, async (req, res, next) => {
+        try {
+            const { email } = req.body || {};
+            if (!email) return res.json({ ok: true });
+
+            const { rows } = await query('SELECT id FROM users WHERE email = $1', [email]);
+            if (rows.length === 0) return res.json({ ok: true });
+
+            const token = randomBytes(32).toString('hex');
+            const tokenHash = createHash('sha256').update(token).digest('hex');
+            const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+            await query(
+                'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+                [rows[0].id, tokenHash, expiresAt]
+            );
+
+            const origin = `${req.protocol}://${req.get('host')}`;
+            const resetUrl = `${origin}/?reset_token=${token}`;
+            try {
+                await sendTemplatedEmail(email, 'passwordResetEmail', { resetUrl });
+            } catch (err) {
+                console.error('[auth] password reset email failed:', err);
+            }
+
+            res.json({ ok: true });
+        } catch (err) {
+            next(err);
+        }
+    });
+
+    authRouter.post('/reset-password', async (req, res, next) => {
+        try {
+            const { token, newPassword } = req.body || {};
+            const invalid = () => res.status(400).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired reset link.' } });
+
+            if (!token || !newPassword) return invalid();
+            if (newPassword.length < 12) {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Password must be at least 12 characters.' } });
+            }
+
+            const tokenHash = createHash('sha256').update(token).digest('hex');
+            const { rows } = await query(
+                'SELECT id, user_id FROM password_reset_tokens WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()',
+                [tokenHash]
+            );
+            if (rows.length === 0) return invalid();
+
+            const newHash = await hashPassword(newPassword);
+            await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, rows[0].user_id]);
+            await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [rows[0].id]);
+
             res.json({ ok: true });
         } catch (err) {
             next(err);
