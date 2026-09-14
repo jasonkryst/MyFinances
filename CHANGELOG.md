@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.10.0] — 2026-09-14
+
+### Security
+- **nginx proxy hardening** (issue #154) — explicit `proxy_connect_timeout 10s`, `proxy_read_timeout 30s`, `proxy_send_timeout 10s`, and `client_max_body_size 1m` on the `/api/` and `/auth/` proxy blocks; `client_max_body_size` is now documented alongside the matching `express.json({limit:'1mb'})` so the two limits can't silently drift. Commented-out `deploy.resources.limits` guidance added to all four services in `docker-compose.yml` (conservative starting points for shared-host deployments).
+
+---
 ## [5.9.0] — 2026-09-14
 
 ### Security

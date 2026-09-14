@@ -8,6 +8,13 @@ services:
     ports:
       - "32900:80"
     restart: unless-stopped
+    # Uncomment to cap CPU/memory on shared hosts. Conservative starting
+    # points for a single-user self-hosted deployment.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 64M
     environment:
       GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
     read_only: true
@@ -35,6 +42,12 @@ services:
     image: postgres:16-alpine
     container_name: myfinances-postgres
     restart: unless-stopped
+    # Uncomment to cap CPU/memory on shared hosts.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 256M
     environment:
       POSTGRES_DB: myfinances
       POSTGRES_USER: myfinances
@@ -56,6 +69,12 @@ services:
     image: myfinances-server:latest
     container_name: myfinances-server
     restart: unless-stopped
+    # Uncomment to cap CPU/memory on shared hosts.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 256M
     environment:
       SESSION_TTL_DAYS: "7"
       SMTP_HOST: ${SMTP_HOST:-}
