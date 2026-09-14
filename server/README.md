@@ -66,6 +66,40 @@ The `postgres-data` volume is the only durability layer for this backend —
 use the root-level `backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`
 scripts to back it up; see "Backup and Restore" in the root `DEPLOYMENT.md`.
 
+## Automated Backups
+
+`docker-compose.yml` includes a `backup` service that runs `pg_dump` on a
+cron schedule inside its own container — no host-level cron job required.
+Backup files are written to the `backup-data` Docker named volume.
+
+**Environment variables** (set in your shell or `.env` file):
+
+| Variable | Default | Description |
+|---|---|---|
+| `BACKUP_SCHEDULE` | `0 2 * * *` | Cron schedule (2 am daily). Standard 5-field cron syntax. |
+| `BACKUP_RETENTION_DAYS` | `7` | Days of backups to keep; older `.dump` files are pruned automatically. |
+
+**To trigger an immediate backup:**
+```bash
+docker compose run --rm backup /usr/local/bin/docker-backup.sh
+```
+
+**To list existing backups:**
+```bash
+docker run --rm -v myfinances_backup-data:/backups postgres:16-alpine ls /backups/
+```
+
+**To restore from a backup file:**
+```bash
+docker run --rm \
+  -v myfinances_backup-data:/backups \
+  -e PGPASSWORD=<your-password> \
+  postgres:16-alpine \
+  pg_restore -h postgres -U myfinances -d myfinances /backups/<file>.dump
+```
+Alternatively, copy the `.dump` file out of the volume and use the root-level
+`restore.sh`/`restore.ps1` scripts.
+
 ## Email notifications (optional)
 
 The server can send email over SMTP — currently just a "send test email"

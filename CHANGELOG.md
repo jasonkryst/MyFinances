@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.8.0] — 2026-09-14
+
+### Added
+- **Automated scheduled Postgres backups** (issue #159) — a `backup` service in `docker-compose.yml` runs `pg_dump` on a configurable cron schedule (default: 2 am daily) inside a `postgres:16-alpine` container, writing compressed `.dump` files to a dedicated `backup-data` named volume. No host-level cron required. `BACKUP_SCHEDULE` (cron syntax) and `BACKUP_RETENTION_DAYS` (default 7) env vars control the schedule and retention. Uses the existing `postgres_password` Docker secret.
+
+---
 ## [5.7.0] — 2026-09-14
 
 ### Added
