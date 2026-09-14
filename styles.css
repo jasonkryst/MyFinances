@@ -6596,6 +6596,10 @@ body.dark-mode .login-gate-header {
 .login-gate-submit {
     width: 100%;
 }
+.login-gate-back-btn {
+    display: block;
+    margin-top: 0.5rem;
+}
 
 /* Installed PWA: same flat, edge-to-edge treatment as .container — drop the
    gradient backdrop and floating-card chrome; keep the header band gradient,
