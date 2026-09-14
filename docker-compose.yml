@@ -76,8 +76,32 @@ services:
       retries: 3
       start_period: 5s
 
+  backup:
+    image: postgres:16-alpine
+    container_name: myfinances-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      BACKUP_SCHEDULE: "${BACKUP_SCHEDULE:-0 2 * * *}"
+      BACKUP_RETENTION_DAYS: "${BACKUP_RETENTION_DAYS:-7}"
+    volumes:
+      - backup-data:/backups
+      - ./server/scripts/docker-backup.sh:/usr/local/bin/docker-backup.sh:ro
+    secrets:
+      - postgres_password
+    entrypoint: >
+      sh -c 'echo "$${BACKUP_SCHEDULE} /usr/local/bin/docker-backup.sh >> /var/log/backup.log 2>&1"
+             > /etc/crontabs/root
+             && chmod +x /usr/local/bin/docker-backup.sh
+             && crond -f -l 2'
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   postgres-data:
+  backup-data:
 
 secrets:
   postgres_password:
