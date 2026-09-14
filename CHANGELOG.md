@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.4.4] — 2026-09-14
+
+### Changed
+- **CI: align codeql-action version across workflows** (issue #157) — `codeql.yml` now pins `github/codeql-action/{init,autobuild,analyze}@v4`, matching the `@v4` already used by the three `upload-sarif` steps in `trivy.yml`. Adds a regression test (`test_codeql_action_version_consistent` in `tests/security/test_static_scan.py`) that parses both workflow files and asserts every `github/codeql-action` reference uses the same major version, so drift cannot recur silently.
+
+---
 ## [5.4.3] — 2026-09-13
 
 ### Changed

@@ -512,6 +512,34 @@ def test_docker_compose_passes_ga_measurement_id_env_var():
     )
 
 
+@pytest.mark.security
+def test_codeql_action_version_consistent():
+    """codeql.yml and trivy.yml must pin the same codeql-action major version.
+
+    Both workflows write to the GitHub Security tab via the same underlying
+    action. Pinning different majors means a breaking codeql-action release
+    could surface in one workflow but not the other, making failures hard to
+    diagnose. This test catches drift before it reaches CI.
+    """
+    workflows_dir = os.path.join(PROJECT_ROOT, '.github', 'workflows')
+    version_pattern = re.compile(r'github/codeql-action/\S+@(v\d+)')
+
+    versions_by_file = {}
+    for filename in ('codeql.yml', 'trivy.yml'):
+        path = os.path.join(workflows_dir, filename)
+        with open(path, encoding='utf-8') as f:
+            content = f.read()
+        found = version_pattern.findall(content)
+        assert found, f"{filename} must contain at least one github/codeql-action reference"
+        versions_by_file[filename] = found
+
+    all_majors = {v for versions in versions_by_file.values() for v in versions}
+    assert len(all_majors) == 1, (
+        "github/codeql-action must use the same major version across codeql.yml and trivy.yml; "
+        f"found: {dict((k, sorted(set(v))) for k, v in versions_by_file.items())}"
+    )
+
+
 def main():
     """Run all static security checks."""
     print("\n" + "="*60)
