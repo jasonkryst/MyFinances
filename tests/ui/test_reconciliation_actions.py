@@ -96,7 +96,10 @@ def test_reconcile_button_updates_balance_and_history(app_page):
     page.fill('#recon-balance-8001', '1234.56')
     page.fill('#recon-note-8001', 'Bank fee adjustment')
     page.click('[data-recon-action="reconcile"][data-recon-id="8001"]')
-    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_function(
+        "() => (document.querySelector('.recon-card')?.textContent || '').includes('$1,234.56')",
+        timeout=5000
+    )
 
     card_text = page.query_selector('.recon-card').text_content()
     assert 'Current Tracked Balance: $1,234.56' in card_text
@@ -187,11 +190,12 @@ def test_ledger_reconcile_button_and_modal(app_page):
     assert page.query_selector('#reconcileFromLedgerBtn') is None
 
     page.select_option('#ledgerAccountFilter', label='Recon Ledger (Checking)')
-    page.wait_for_selector('#ledgerTable', state='attached', timeout=5000)
+    page.wait_for_selector('#reconcileFromLedgerBtn', timeout=5000)
 
     reconcile_btn = page.query_selector('#reconcileFromLedgerBtn')
     assert reconcile_btn, "Expected a Reconcile button when a specific account is selected"
     reconcile_btn.click()
+    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("flex-visible")'
@@ -229,12 +233,14 @@ def test_reconcile_modal_escape_and_enter(app_page):
         app.openReconcileModal(8004);
     }""")
 
+    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
     modal_visible = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("flex-visible")'
     )
     assert modal_visible
 
     page.keyboard.press('Escape')
+    page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("hidden")'
@@ -247,7 +253,7 @@ def test_reconcile_modal_escape_and_enter(app_page):
 
     page.fill('#reconcileModalBalance', '650')
     page.keyboard.press('Enter')
-    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
+    page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 
     balance = page.evaluate('() => window.app.accounts.find(a => a.id === 8004).startingBalance')
     assert balance == 650, "Enter should confirm the reconciliation"

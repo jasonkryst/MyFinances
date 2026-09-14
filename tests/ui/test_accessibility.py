@@ -240,7 +240,7 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_selector('#ledgerTable', state='attached', timeout=5000)
+    page.wait_for_selector('#reconcileFromLedgerBtn', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
@@ -270,7 +270,7 @@ def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_selector('#ledgerTable', state='attached', timeout=5000)
+    page.wait_for_selector('#reconcileFromLedgerBtn', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
@@ -413,6 +413,10 @@ def test_settings_modal_focus_and_keyboard_trap(app_page):
 
     page.click('#settingsBtn')
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'settingReconciliationAdjusts'",
+        timeout=2000
+    )
 
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'settingReconciliationAdjusts', "Opening Settings should focus the checkbox"

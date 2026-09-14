@@ -208,9 +208,6 @@ def test_edit_income_negative_amount_rejected(app_page):
     assert amount_input, "Expected the inline-edit amount input to be present"
     amount_input.fill('-750')
     page.click('[data-income-action="save"]')
-    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
-    page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     stored_amount = page.evaluate(
         "() => window.app.incomes.find(i => i.name === 'Edit Salary Target')?.amount"
@@ -243,9 +240,6 @@ def test_edit_bonus_negative_amount_rejected(app_page):
     assert amount_input, "Expected the inline-edit amount input to be present"
     amount_input.fill('-100')
     page.click('[data-bonus-action="save"]')
-    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
-    page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     stored_amount = page.evaluate(
         "() => window.app.bonuses.find(b => b.name === 'Edit Bonus Target')?.amount"

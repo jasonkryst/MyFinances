@@ -11,6 +11,7 @@ def test_active_group_label_highlights_when_tab_in_group_is_active(app_page):
     """When a tab is active, its parent group label chip reaches full opacity (opacity=1)."""
     page = app_page
     _go_to_reports(page)
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
 
     # Click a Trends tab — Money Flow
     page.click('[data-rptab="moneyflow"]')

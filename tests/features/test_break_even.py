@@ -178,6 +178,7 @@ def test_break_even_apply_to_plan(app_page):
 
     apply_btn = page.query_selector('#accelerateApplyBtn')
     apply_btn.click()
+    page.wait_for_selector('#strategySection.active', timeout=5000)
 
     payment_field = page.query_selector('#monthlyPayment')
     assert payment_field is not None
@@ -192,11 +193,8 @@ def test_break_even_plan_table_columns(app_page):
     _create_cc_debt(page, balance="3000", rate="18", min_pay="60")
     _run_plan(page, payment="300")
 
-    # Navigate to debt summary tab
-    page.click('[data-results-tab="debt-summary"]') if page.query_selector('[data-results-tab="debt-summary"]') else None
-    page.wait_for_selector(f'[data-results-panel="debt-summary"]', timeout=5000)
-
-    # Check column headers
+    # Check column headers (table always renders as part of the results section)
+    page.wait_for_selector('#debtSummaryTable thead th', timeout=5000)
     headers = page.query_selector_all('#debtSummaryTable th')
     header_texts = [h.inner_text() for h in headers]
     assert any("Interest Saved" in t for t in header_texts), f"Expected 'Interest Saved' header; got {header_texts}"

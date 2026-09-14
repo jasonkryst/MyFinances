@@ -280,6 +280,8 @@ def test_ledger_export_modal_escape_closes_and_returns_focus(app_page):
         window.app.switchPage('ledger');
     }""")
     page.click('#ledgerExportCsvBtn')
+    page.wait_for_selector('#ledgerExportModal.flex-visible', timeout=5000)
     page.keyboard.press('Escape')
+    page.wait_for_selector('#ledgerExportModal', state='hidden', timeout=5000)
     modal = page.query_selector('#ledgerExportModal')
     assert 'hidden' in (modal.get_attribute('class') or '')

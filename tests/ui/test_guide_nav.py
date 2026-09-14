@@ -123,6 +123,7 @@ def test_back_to_top_hidden_until_scrolled(page):
     assert not visible_before
 
     page.evaluate('() => window.scrollTo(0, 800)')
+    page.wait_for_selector('#backToTop.back-to-top--visible', timeout=5000)
     visible_after = page.eval_on_selector(
         '#backToTop', 'el => el.classList.contains("back-to-top--visible")'
     )

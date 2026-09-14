@@ -50,8 +50,9 @@ def test_calendar_day_click_opens_modal_with_full_event_details(app_page):
     page = app_page
     _seed_calendar_day(page)
 
-    cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    cell = page.wait_for_selector('.rpt-cal-cell.rpt-cal-has-events', timeout=5000)
     cell.click()
+    page.wait_for_selector('#calendarDayModal.flex-visible', timeout=5000)
 
     modal = page.query_selector('#calendarDayModal')
     assert modal

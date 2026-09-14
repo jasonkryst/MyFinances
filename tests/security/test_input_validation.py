@@ -284,7 +284,7 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     await page.fill('#emergencyCurrent', '100')
     await page.fill('#emergencyContribution', '50')
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_selector('#emergencyFormBody', state='hidden', timeout=5000)
+    await page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
 
     modal = await page.query_selector('#alertModal')
     modal_class = await modal.get_attribute('class') if modal else ''
@@ -307,7 +307,6 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     assert not contribution_valid, "Negative monthly contribution should fail min=0 validation"
 
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_selector('#emergencyFormBody', state='hidden', timeout=5000)
     funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
     assert funds_count == 0, "Fund should not be created with a negative monthly contribution"
 
@@ -319,7 +318,6 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     assert not current_valid, "Negative current amount should fail min=0 validation"
 
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_selector('#emergencyFormBody', state='hidden', timeout=5000)
     funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
     assert funds_count == 0, "Fund should not be created with a negative current amount"
 

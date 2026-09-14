@@ -109,7 +109,7 @@ def test_arrow_keys_move_active_selection(app_page):
         '() => document.querySelector(".cmdpal-item--active")?.getAttribute("data-index")'
     )
     page.keyboard.press('ArrowDown')
-    page.wait_for_selector('#commandPaletteList .cmdpal-active', timeout=5000)
+    page.wait_for_selector('#commandPaletteList .cmdpal-item--active[data-index="1"]', timeout=5000)
     second_active = page.evaluate(
         '() => document.querySelector(".cmdpal-item--active")?.getAttribute("data-index")'
     )
