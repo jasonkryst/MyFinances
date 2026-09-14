@@ -64,6 +64,8 @@ Write-Host ""
 
 # -- 3. Start the stack --------------------------------------------------------
 Write-Host "Starting containers (this may take a moment on first run)..."
+$env:ALLOW_SETUP = 'true'
+Write-Host "-> ALLOW_SETUP=true -- /auth/register endpoint is open for first-run setup"
 docker compose up -d --build
 
 Write-Host ""
@@ -100,4 +102,8 @@ Write-Host "Open http://localhost:32900 to access MyFinances."
 Write-Host ""
 Write-Host "In the Settings modal, choose 'PostgreSQL' as your storage backend"
 Write-Host "and log in with the credentials you just created."
+Write-Host ""
+Write-Host "IMPORTANT: Disable the registration endpoint now that setup is complete:"
+Write-Host '  $env:ALLOW_SETUP = ""; docker compose restart server'
+Write-Host "This closes /auth/register (it will return 404 for all future requests)."
 Write-Host ""

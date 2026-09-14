@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.9.0] — 2026-09-14
+
+### Security
+- **Gate `/auth/register` behind `ALLOW_SETUP` env var** (issue #156) — `POST /auth/register` now returns 404 unless `ALLOW_SETUP=true` is set in the server container's environment, closing the deployment-sequencing window where a network-reachable server could be claimed by whoever reaches the endpoint first. The `setup.sh` / `setup.ps1` scripts set it automatically and prompt the operator to remove it after account creation. `docker-compose.yml` documents the variable; `server/README.md` explains the flow.
+
+---
 ## [5.8.0] — 2026-09-14
 
 ### Added

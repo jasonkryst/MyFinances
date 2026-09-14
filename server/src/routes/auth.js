@@ -74,6 +74,9 @@ export function createAuthRouter() {
     // created; the other sees 0 rows returned and gets a 409.
     authRouter.post('/register', registerLimiter, async (req, res, next) => {
         try {
+            if (process.env.ALLOW_SETUP !== 'true') {
+                return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Not found' } });
+            }
             const { email, password } = req.body || {};
             if (!email || !password) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Email and password are required' } });
