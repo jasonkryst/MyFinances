@@ -136,8 +136,12 @@ async def test_malicious_json_import(async_app_page):
         file_input = await page.query_selector('#importJsonInput')
         if file_input:
             await file_input.set_input_files(temp_file)
+            # FileReader is async — wait for the mode-choice UI or a direct import to settle
+            await page.wait_for_selector('#importModeChoice', state='visible', timeout=5000)
             if await page.is_visible('#importModeChoice'):
                 await page.click('#importModeReplaceBtn')
+            # Wait for the import to complete and debt cards to appear
+            await page.wait_for_selector('.debt-card', timeout=10000)
 
             # Verify data was imported but rendered safely
             debts_count = await page.evaluate('() => document.querySelectorAll(".debt-card").length')

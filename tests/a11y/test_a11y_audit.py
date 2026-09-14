@@ -281,6 +281,12 @@ def test_ledger_export_modal_escape_closes_and_returns_focus(app_page):
     }""")
     page.click('#ledgerExportCsvBtn')
     page.wait_for_selector('#ledgerExportModal.flex-visible', timeout=5000)
+    # openLedgerExportModal uses modal.onkeydown (not document-level), so focus must be
+    # inside the modal before Escape fires. The impl calls setTimeout(closeBtn.focus, 30ms).
+    page.wait_for_function(
+        "() => document.activeElement === document.getElementById('ledgerExportCloseBtn')",
+        timeout=2000
+    )
     page.keyboard.press('Escape')
     page.wait_for_selector('#ledgerExportModal', state='hidden', timeout=5000)
     modal = page.query_selector('#ledgerExportModal')

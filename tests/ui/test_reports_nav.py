@@ -16,6 +16,20 @@ def test_active_group_label_highlights_when_tab_in_group_is_active(app_page):
     # Click a Trends tab — Money Flow
     page.click('[data-rptab="moneyflow"]')
     page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
+    # Wait for the 150ms CSS opacity transition to complete before reading computed style
+    page.wait_for_function(
+        """() => {
+            const groups = document.querySelectorAll('.rpt-tab-group');
+            for (const g of groups) {
+                const label = g.querySelector('.rpt-tab-group-label');
+                if (label && label.textContent.trim() === 'Trends') {
+                    return parseFloat(window.getComputedStyle(label).opacity) >= 0.95;
+                }
+            }
+            return false;
+        }""",
+        timeout=2000
+    )
 
     # The Trends group label should be full opacity (has active child)
     trends_opacity = page.evaluate("""
