@@ -15,6 +15,30 @@
     <link rel="icon" href="icons/favicon-32.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <meta name="theme-color" content="#2563eb">
+    <!-- Modulepreload hints for transitive-import modules (level-2+ in the import graph).
+         app.js directly imports 35+ modules; the browser only discovers these deeper modules
+         after parsing each parent, creating a waterfall under HTTP/1.1's 6-connection limit.
+         These hints let the browser fetch and link them in parallel with the parent modules.
+         With HTTP/2 multiplexing at the reverse proxy this is already largely mitigated,
+         but the hints remain valuable for local dev (http.server) and HTTP/1.1 edge cases.
+         See issue #146. The list must stay in sync with the actual import graph —
+         test_performance.py::test_modulepreload_covers_transitive_modules enforces this. -->
+    <link rel="modulepreload" href="src/locales/en.js">
+    <link rel="modulepreload" href="src/locales/es.js">
+    <link rel="modulepreload" href="src/locales/pl.js">
+    <link rel="modulepreload" href="src/ledger.js">
+    <link rel="modulepreload" href="src/commandPalette.js">
+    <link rel="modulepreload" href="src/breakEven.js">
+    <link rel="modulepreload" href="src/forecast.js">
+    <link rel="modulepreload" href="src/spending.js">
+    <link rel="modulepreload" href="src/reportsCalendar.js">
+    <link rel="modulepreload" href="src/reportsVariance.js">
+    <link rel="modulepreload" href="src/postgresSync.js">
+    <link rel="modulepreload" href="src/postgresImport.js">
+    <link rel="modulepreload" href="src/sanitizers.js">
+    <link rel="modulepreload" href="src/retirementCalculator.js">
+    <link rel="modulepreload" href="src/ledgerOverrides.js">
+    <link rel="modulepreload" href="src/ledgerCleared.js">
  </head>
 <body>
     <a href="#main" class="skip-link" data-i18n="app.skipLink">Skip to main content</a>
