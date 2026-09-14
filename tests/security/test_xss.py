@@ -140,8 +140,9 @@ async def test_malicious_json_import(async_app_page):
             await page.wait_for_selector('#importModeChoice', state='visible', timeout=5000)
             if await page.is_visible('#importModeChoice'):
                 await page.click('#importModeReplaceBtn')
-            # Wait for the import to complete and debt cards to appear
-            await page.wait_for_selector('.debt-card', timeout=10000)
+            # Wait for import to complete; .debt-card is in the hidden liabilities
+            # section — use state='attached' since the section isn't the active page
+            await page.wait_for_selector('.debt-card', state='attached', timeout=10000)
 
             # Verify data was imported but rendered safely
             debts_count = await page.evaluate('() => document.querySelectorAll(".debt-card").length')

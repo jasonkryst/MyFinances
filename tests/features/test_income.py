@@ -202,7 +202,7 @@ def test_edit_income_negative_amount_rejected(app_page):
     page.wait_for_selector('text=Edit Salary Target', timeout=10000)
 
     page.click('[data-income-action="edit"]')
-    page.wait_for_selector('[data-action="save"]', timeout=5000)
+    page.wait_for_selector('[data-income-action="save"]', timeout=5000)
 
     amount_input = page.query_selector('input[id^="ie-amount-"]')
     assert amount_input, "Expected the inline-edit amount input to be present"
@@ -234,7 +234,7 @@ def test_edit_bonus_negative_amount_rejected(app_page):
     page.wait_for_selector('text=Edit Bonus Target', timeout=10000)
 
     page.click('[data-bonus-action="edit"]')
-    page.wait_for_selector('[data-action="save"]', timeout=5000)
+    page.wait_for_selector('[data-bonus-action="save"]', timeout=5000)
 
     amount_input = page.query_selector('input[id^="be-amount-"]')
     assert amount_input, "Expected the inline-edit amount input to be present"

@@ -62,7 +62,14 @@ def test_calendar_day_click_opens_modal_with_full_event_details(app_page):
     assert 'Cal Paycheck' in body_text
     assert '$1,500.00' in body_text
 
+    # openCalendarDayModal uses modal.onkeydown (fires only when modal has focus).
+    # Wait for the setTimeout(closeBtn.focus, 30ms) before pressing Escape.
+    page.wait_for_function(
+        "() => document.activeElement === document.getElementById('calendarDayModalCloseBtn')",
+        timeout=2000
+    )
     page.keyboard.press('Escape')
+    page.wait_for_selector('#calendarDayModal', state='hidden', timeout=3000)
     modal = page.query_selector('#calendarDayModal')
     assert 'hidden' in (modal.get_attribute('class') or '')
 
