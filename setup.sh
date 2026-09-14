@@ -64,6 +64,8 @@ echo ""
 
 # ── 3. Start the stack ────────────────────────────────────────────────────────
 echo "Starting containers (this may take a moment on first run)..."
+export ALLOW_SETUP=true
+echo "→ ALLOW_SETUP=true — /auth/register endpoint is open for first-run setup"
 docker compose up -d --build
 
 echo ""
@@ -98,4 +100,9 @@ echo "Open http://localhost:32900 to access MyFinances."
 echo ""
 echo "In the Settings modal, choose 'PostgreSQL' as your storage backend"
 echo "and log in with the credentials you just created."
+echo ""
+echo "IMPORTANT: Disable the registration endpoint now that setup is complete:"
+echo "  export ALLOW_SETUP="
+echo "  docker compose restart server"
+echo "This closes /auth/register (it will return 404 for all future requests)."
 echo ""

@@ -63,6 +63,9 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
+      # Set ALLOW_SETUP=true in the environment ONLY during initial account creation.
+      # Remove it (or restart the server without it) after setup is complete.
+      ALLOW_SETUP: "${ALLOW_SETUP:-}"
     secrets:
       - postgres_password
       - smtp_password

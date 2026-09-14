@@ -42,13 +42,15 @@ Tests require a real Postgres instance (never mocked):
 
 ## Production
 
-> **Don't expose the server/API port publicly until setup is complete.** `POST /auth/register`
-> is a one-shot, atomic, rate-limited endpoint that creates the single admin account — safe
-> against concurrent-request races, but if the port is reachable on the network (a public IP,
-> an unfirewalled LAN, before a reverse proxy is in front of it) before the legitimate operator
-> completes `setup.sh`/`setup.ps1` or the frontend setup wizard, whoever reaches that endpoint
-> first permanently claims the account. Run setup immediately after `docker compose up`, or keep
-> the port firewalled/VPN-only until it's done.
+`POST /auth/register` is disabled (returns 404) unless `ALLOW_SETUP=true` is set in the
+server container's environment. The `setup.sh` / `setup.ps1` scripts set this automatically
+during the guided setup flow and prompt you to remove it after account creation. For manual
+deployments, set it before `docker compose up`, then remove it and restart the server
+(`docker compose restart server`) once your account is created.
+
+> **Don't expose the server/API port publicly until setup is complete.** Even with the
+> `ALLOW_SETUP` gate, `POST /auth/register` creates the single admin account — run setup
+> immediately after `docker compose up`, or keep the port firewalled/VPN-only until it's done.
 
 See the root `docker-compose.yml` (`postgres` and `server` services) and
 `nginx.conf`'s `/api/` and `/auth/` proxy blocks. The `server` service's
