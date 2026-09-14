@@ -186,11 +186,13 @@ def test_high_contrast_focus_visible_outline_is_bold(app_page):
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
     page.wait_for_selector('body.high-contrast-mode', timeout=5000)
-    # Close via Escape (keyboard) rather than clicking Done: a mouse click
-    # here would flip the browser's input-modality heuristic to "mouse",
-    # which suppresses :focus-visible on the *next* focus() call below even
-    # though that call targets an unrelated element.
-    page.keyboard.press('Escape')
+    # Close via Escape dispatched directly on the modal element.
+    # page.keyboard.press() fires on document.activeElement, which is unreliable
+    # after select_option in CI — focus may drift outside the modal's subtree so
+    # the event never bubbles to modal.onkeydown. locator.press() targets the
+    # element regardless of current focus state and still generates a keyboard
+    # event, so :focus-visible input-modality is preserved for the check below.
+    page.locator('#settingsModal').press('Escape')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     page.focus('#dataTransferBtn')
