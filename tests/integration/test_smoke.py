@@ -17,7 +17,7 @@ def test_smoke_full_workflow(app_page):
     
     # 1. Create account
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Smoke Checking')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '5000')
@@ -27,22 +27,21 @@ def test_smoke_full_workflow(app_page):
     
     # 2. Add income
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     page.fill('#incomeName', 'Salary')
     page.fill('#incomeAmount', '5000')
     page.fill('#incomeFirstDate', '2026-05-01')
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_timeout(500)
     assert page.query_selector('#incomeList >> text=Salary'), "Income creation failed"
     
     # 3. Add debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     page.fill('#debtName', 'Credit Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '2500')
@@ -50,7 +49,6 @@ def test_smoke_full_workflow(app_page):
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_timeout(500)
     assert page.query_selector('text=Credit Card'), "Debt creation failed"
     
     # 4. Check net worth
@@ -62,26 +60,26 @@ def test_smoke_full_workflow(app_page):
     
     # 5. Navigate to strategy
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     strategy_section = page.query_selector('#strategySection')
     assert strategy_section, "Strategy section not found"
     
     # 6. Navigate to reports
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     reports_section = page.query_selector('#reportsSection')
     assert reports_section, "Reports section not found"
 
     # 6b. Check Cash Flow Forecast tab renders
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
     forecast_panel = page.query_selector('#reportsCashFlowForecast')
     assert forecast_panel and forecast_panel.evaluate('(el) => el.innerHTML.length > 0'), \
         "Forecast tab should render content"
 
     # 7. Navigate to health dashboard and verify it renders with real data
     page.click('button[data-page="health"]')
-    page.wait_for_timeout(600)
+    page.wait_for_selector('#healthSection.active', timeout=5000)
     health_section = page.query_selector('#healthSection')
     assert health_section, "Health section not found"
     health_cards = page.query_selector_all('.health-metric-card')
@@ -108,7 +106,7 @@ def test_smoke_account_to_networth(app_page):
     
     # Create multiple accounts
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     
     accounts = [('Smoke_1', '3000'), ('Smoke_2', '4000')]
     for name, balance in accounts:
@@ -116,7 +114,6 @@ def test_smoke_account_to_networth(app_page):
         page.select_option('#accountType', label='Checking')
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
-        page.wait_for_timeout(500)
     
     # Verify all accounts created
     for name, _ in accounts:
@@ -134,20 +131,19 @@ def test_smoke_data_persistence(app_page):
     
     # Create account
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Persist Test')
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '9999')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(500)
     
     # Navigate away
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     
     # Navigate back
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     
     # Account should still be there
     assert page.query_selector('text=Persist Test'), "Data not persisted"
@@ -160,12 +156,11 @@ def test_smoke_export_import(app_page):
     
     # Create test data
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Export Test')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(500)
     
     from tests.conftest import open_data_transfer
     open_data_transfer(page)

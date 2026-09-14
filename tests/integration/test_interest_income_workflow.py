@@ -15,7 +15,7 @@ def test_interest_income_end_to_end(app_page):
 
     # 1. Create the account through the real form
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'HY Savings')
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '1000')
@@ -38,11 +38,11 @@ def test_interest_income_end_to_end(app_page):
 
     # 4. Reports page: income stat includes the interest
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     # renderReportsPage() only renders the active sub-tab (performance fix,
     # 2026-09-04); Income vs Expenses isn't the default (Calendar is).
     page.click('[data-rptab="incomeexp"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-incomeexp.rpt-tab-panel--active', timeout=5000)
     income_text = page.evaluate("""() => {
         const strip = document.querySelector('#reportsIncomeExp');
         if (!strip) return '';

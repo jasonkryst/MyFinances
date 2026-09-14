@@ -12,7 +12,7 @@ def test_reports_nav_three_groups_exist(app_page):
     """Four .rpt-tab-group elements exist inside .rpt-tab-bar."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     count = page.evaluate('() => document.querySelectorAll(".rpt-tab-group").length')
     assert count == 4, f"Expected 4 tab groups, got {count}"
@@ -23,7 +23,7 @@ def test_reports_nav_group_labels(app_page):
     """Group chip labels read Activity, Trends, Planning, Print."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     labels = page.evaluate("""
         () => Array.from(document.querySelectorAll('.rpt-tab-group-label'))
@@ -37,7 +37,7 @@ def test_reports_nav_tabs_in_correct_groups(app_page):
     """Each tab button lives inside the correct .rpt-tab-group."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     for group_id, expected_tabs in GROUPS.items():
         for tab_id in expected_tabs:
@@ -56,7 +56,7 @@ def test_reports_nav_all_seven_tabs_present(app_page):
     """All tabs (including the new Summary tab) are reachable after restructure."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     all_tabs = [tab for tabs in GROUPS.values() for tab in tabs]
     for tab_id in all_tabs:
@@ -69,12 +69,11 @@ def test_reports_nav_tab_switching_still_works(app_page):
     """Clicking each tab activates its panel — regression test for switchTab()."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     all_tabs = [tab for tabs in GROUPS.values() for tab in tabs]
     for tab_id in all_tabs:
         page.click(f'[data-rptab="{tab_id}"]')
-        page.wait_for_timeout(150)
 
         is_active = page.evaluate(f"""
             () => document.getElementById('rptPanel-{tab_id}')

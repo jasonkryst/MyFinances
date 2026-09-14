@@ -16,13 +16,12 @@ async def test_negative_balance(async_app_page):
 
     # Navigate to accounts
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     await page.fill('#accountName', 'Negative Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '-5000')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
     
     # Verify account was created (negative balances are allowed)
     account_name = await page.evaluate("""
@@ -41,7 +40,7 @@ async def test_special_characters_in_names(async_app_page):
 
     # Navigate to accounts
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     special_name = "O'Reilly & Associates <Co.>"
 
@@ -49,7 +48,6 @@ async def test_special_characters_in_names(async_app_page):
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1000')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
     
     # Verify name is stored (special characters should be preserved but dangerous ones removed)
     account_text = await page.evaluate("""
@@ -69,7 +67,7 @@ async def test_very_large_amount(async_app_page):
 
     # Navigate to accounts
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     large_amount = "999999999999999"
 
@@ -77,7 +75,6 @@ async def test_very_large_amount(async_app_page):
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', large_amount)
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
     
     # Account should be created
     account_text = await page.evaluate("""
@@ -96,13 +93,12 @@ async def test_decimal_amounts(async_app_page):
 
     # Navigate to accounts
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     await page.fill('#accountName', 'Decimal Test')
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1234.56')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
     
     # Verify account was created with decimal amount
     account_name = await page.evaluate("""
@@ -121,7 +117,7 @@ async def test_empty_string_input(async_app_page):
 
     # Navigate to accounts
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     # Try to submit form with empty name
     await page.fill('#accountName', '')
@@ -130,7 +126,6 @@ async def test_empty_string_input(async_app_page):
     
     # App should prevent submission or handle gracefully
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
     
     # Check if error message appears or form is still visible
     form_visible = await page.evaluate("""
@@ -158,7 +153,6 @@ async def test_interest_rate_bounds(async_app_page):
     await page.fill('#minimumPayment', '50')
     await page.fill('#dueDate', '15')
     await page.click('#debtFormSubmit')
-    await page.wait_for_timeout(500)
     
     # Verify debt was created despite unrealistic interest rate
     debt_name = await page.evaluate("""
@@ -188,7 +182,7 @@ async def test_health_dti_clamps_above_100_percent(async_app_page):
     }""")
 
     await page.click('button[data-page="health"]')
-    await page.wait_for_timeout(500)
+    await page.wait_for_selector('#healthSection.active', timeout=5000)
 
     gauge_value = await page.evaluate("""() => {
         const el = document.querySelector('.health-gauge-value');
@@ -217,7 +211,7 @@ async def test_health_savings_rate_clamps_above_100_percent(async_app_page):
     }""")
 
     await page.click('button[data-page="health"]')
-    await page.wait_for_timeout(500)
+    await page.wait_for_selector('#healthSection.active', timeout=5000)
 
     # The second .health-gauge-value is the savings rate gauge
     gauge_values = await page.evaluate("""() =>
@@ -237,17 +231,16 @@ async def test_recurring_day_of_month_bounds(async_app_page):
 
     # Recurring templates require an account
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
     await page.fill('#accountName', 'Recurring Bounds Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
 
     await page.click('button[data-page="recurring"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#recurringSection.active', timeout=5000)
     await page.click('#recurringFormToggle')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#recurringFormBody:not([hidden])', timeout=5000)
 
     await page.fill('#recurringName', 'Bounds Test Sub')
     await page.fill('#recurringAmount', '20')
@@ -255,7 +248,6 @@ async def test_recurring_day_of_month_bounds(async_app_page):
     await page.select_option('#recurringAccount', label='Recurring Bounds Test (Checking)')
     await page.fill('#recurringStartDate', '2026-01-01')
     await page.click('#recurringFormSubmit')
-    await page.wait_for_timeout(500)
 
     day_value = await page.evaluate("""() => {
         const app = window.app;
@@ -274,17 +266,16 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
 
     # Emergency funds are linked to an account, so create one first
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
     await page.fill('#accountName', 'EF Bounds Checking')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
 
     await page.click('button[data-page="savings"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#savingsSection.active', timeout=5000)
     await page.click('#emergencyFormToggle')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#emergencyFormBody:not(.hidden)', timeout=5000)
 
     await page.select_option('#emergencyAccount', label='EF Bounds Checking (Checking)')
 
@@ -293,7 +284,7 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     await page.fill('#emergencyCurrent', '100')
     await page.fill('#emergencyContribution', '50')
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_timeout(400)
+    await page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
 
     modal = await page.query_selector('#alertModal')
     modal_class = await modal.get_attribute('class') if modal else ''
@@ -303,7 +294,6 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     assert 'valid values' in modal_msg.lower(), \
         f"Expected 'valid values' in modal message, got: {modal_msg!r}"
     await page.click('#alertModalOkBtn')
-    await page.wait_for_timeout(200)
 
     funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
     assert funds_count == 0, "Fund should not be created with a zero target amount"
@@ -317,7 +307,6 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     assert not contribution_valid, "Negative monthly contribution should fail min=0 validation"
 
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_timeout(300)
     funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
     assert funds_count == 0, "Fund should not be created with a negative monthly contribution"
 
@@ -329,14 +318,13 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     assert not current_valid, "Negative current amount should fail min=0 validation"
 
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_timeout(300)
     funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
     assert funds_count == 0, "Fund should not be created with a negative current amount"
 
     # With valid positive values, the fund is created and rendered cleanly
     await page.fill('#emergencyCurrent', '1000')
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#emergencyFormBody', state='hidden', timeout=5000)
 
     funds_count = await page.evaluate('() => (window.app.emergencyFunds || []).length')
     assert funds_count == 1, "Fund should be created with valid positive values"
@@ -367,7 +355,6 @@ async def test_reconciliation_rejects_non_numeric_balance(async_app_page):
 
     await page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
     await page.click('#alertModalOkBtn')
-    await page.wait_for_timeout(200)
 
     result = await page.evaluate("""() => ({
         success: window._reconResult?.success,
@@ -434,7 +421,7 @@ async def test_unicode_in_names(async_app_page):
 
     # Navigate to accounts
     await page.click('button[data-page="accounts"]')
-    await page.wait_for_timeout(300)
+    await page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     unicode_name = "中文 Test 日本語"
 
@@ -442,7 +429,6 @@ async def test_unicode_in_names(async_app_page):
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_timeout(500)
     
     # Verify account was created with unicode
     account_text = await page.evaluate("""

@@ -36,14 +36,14 @@ def test_debt_summary_table_scrolls_within_wrapper_on_mobile(app_page, debt_data
     create_debt(page, debt_data)
 
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.click('#calculateBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.click('[data-rtab="debt-summary"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rPanel-debt-summary', timeout=5000)
 
     wrapped = page.evaluate(
         "() => !!document.querySelector('#debtSummaryTable').closest('.table-wrapper')"
@@ -60,14 +60,14 @@ def test_payment_schedule_table_scrolls_within_wrapper_on_mobile(app_page, debt_
     create_debt(page, debt_data)
 
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.click('#calculateBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.click('[data-rtab="schedule"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
 
     wrapped = page.evaluate(
         "() => !!document.querySelector('#paymentTable').closest('.table-wrapper')"
@@ -85,9 +85,9 @@ def test_summary_report_tables_scroll_within_wrapper_on_mobile(app_page, account
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="summary"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-summary.rpt-tab-panel--active', timeout=5000)
 
     tables = page.evaluate("""
         () => Array.from(document.querySelectorAll('.nw-history-table'))
@@ -110,9 +110,9 @@ def test_summary_report_narrow_tables_have_no_internal_scroll_on_mobile(app_page
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="summary"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-summary.rpt-tab-panel--active', timeout=5000)
 
     tables = page.evaluate("""
         () => Array.from(document.querySelectorAll('#rptPanel-summary .nw-history-table--compact'))
@@ -137,9 +137,9 @@ def test_summary_report_account_balances_stacks_into_labelled_cards_on_mobile(ap
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="summary"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-summary.rpt-tab-panel--active', timeout=5000)
 
     info = page.evaluate("""
         () => {
@@ -172,9 +172,9 @@ def test_summary_report_tables_keep_normal_table_layout_on_desktop(app_page, acc
 
     page.set_viewport_size({"width": 1280, "height": 800})
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="summary"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-summary.rpt-tab-panel--active', timeout=5000)
 
     info = page.evaluate("""
         () => {
@@ -218,7 +218,7 @@ def test_networth_history_table_still_scrolls_within_wrapper_on_mobile(app_page)
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.click('[data-rptab="networth"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
 
     info = page.evaluate("""
         () => {
@@ -249,7 +249,7 @@ def test_ledger_table_scrolls_within_wrapper_on_mobile(app_page, account_data):
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('ledger')")
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
 
     table = page.query_selector('.ledger-table')
     if table:
@@ -269,7 +269,7 @@ def test_reconcile_expected_table_scrolls_within_wrapper_on_mobile(app_page, acc
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('reconcile')")
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#reconcileSection.active', timeout=5000)
 
     table = page.query_selector('.recon-expected-table')
     if table:
@@ -292,7 +292,6 @@ def test_debt_overview_categories_stack_into_labelled_cards_on_mobile(app_page, 
     create_debt(page, debt_data)
 
     page.set_viewport_size(MOBILE_VIEWPORT)
-    page.wait_for_timeout(200)
 
     info = page.evaluate("""
         () => {
@@ -327,7 +326,6 @@ def test_debt_overview_categories_keep_grid_layout_on_desktop(app_page, debt_dat
     create_debt(page, debt_data)
 
     page.set_viewport_size({"width": 1280, "height": 800})
-    page.wait_for_timeout(200)
 
     info = page.evaluate("""
         () => {
@@ -358,11 +356,11 @@ def test_account_money_flow_table_stacks_into_labelled_cards_on_mobile(app_page,
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     # renderReportsPage() only renders the active sub-tab (performance fix,
     # 2026-09-04); Account Balances (Money Flow) isn't the default (Calendar is).
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
 
     info = page.evaluate("""
         () => {
@@ -397,9 +395,9 @@ def test_account_money_flow_table_keeps_grid_layout_on_desktop(app_page, account
 
     page.set_viewport_size({"width": 1280, "height": 800})
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
 
     info = page.evaluate("""
         () => {

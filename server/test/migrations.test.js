@@ -5,6 +5,15 @@ import { resetDb, createTestUser } from './helpers/testDb.js';
 
 after(() => pool.end());
 
+// src/index.js imports { runner as migrate } from 'node-pg-migrate' and calls
+// it at startup before the server binds its port, so an export-shape change
+// on a dep bump crash-loops the container and 502s every request behind nginx.
+// Guard the shape here since no other test exercises src/index.js directly.
+test('node-pg-migrate exports a callable `runner` (the shape src/index.js imports)', async () => {
+    const mod = await import('node-pg-migrate');
+    assert.equal(typeof mod.runner, 'function');
+});
+
 test('users table accepts a hashed-password row', async () => {
     await resetDb();
     const user = await createTestUser();

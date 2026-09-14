@@ -27,7 +27,6 @@ def test_no_warning_banner_under_normal_usage(app_page):
     """A normal, small amount of saved data does not trigger the quota banner."""
     page = app_page
     page.evaluate("() => window.app.saveToStorage()")
-    page.wait_for_timeout(200)
 
     assert not page.is_visible('#storageQuotaBanner')
     assert_no_errors(page)
@@ -38,7 +37,6 @@ def test_warning_banner_appears_above_threshold(app_page):
     """Crossing ~80% of the estimated 5MB quota shows a dismissible warning banner."""
     page = app_page
     _inject_large_blob(page, 4_600_000)
-    page.wait_for_timeout(200)
 
     assert page.is_visible('#storageQuotaBanner'), "Expected the quota warning banner to appear"
     text = page.text_content('#storageQuotaBanner')
@@ -52,11 +50,10 @@ def test_warning_banner_is_dismissible(app_page):
     """Clicking the close button removes the quota warning banner."""
     page = app_page
     _inject_large_blob(page, 4_600_000)
-    page.wait_for_timeout(200)
     assert page.is_visible('#storageQuotaBanner')
 
     page.click('.storage-quota-banner-close')
-    page.wait_for_timeout(100)
+    page.wait_for_selector('#storageQuotaBanner', state='hidden', timeout=5000)
 
     assert not page.is_visible('#storageQuotaBanner')
 
@@ -66,11 +63,9 @@ def test_warning_banner_does_not_duplicate_on_repeated_saves(app_page):
     """Saving repeatedly while over threshold shows only a single banner instance."""
     page = app_page
     _inject_large_blob(page, 4_600_000)
-    page.wait_for_timeout(200)
 
     page.evaluate("() => window.app.saveToStorage()")
     page.evaluate("() => window.app.saveToStorage()")
-    page.wait_for_timeout(200)
 
     banners = page.query_selector_all('#storageQuotaBanner')
     assert len(banners) == 1, f"Expected exactly one banner element, got {len(banners)}"
@@ -81,19 +76,16 @@ def test_usage_drops_below_threshold_resets_warned_flag(app_page):
     """Once usage drops back under 80%, a fresh crossing of the threshold warns again."""
     page = app_page
     _inject_large_blob(page, 4_600_000)
-    page.wait_for_timeout(200)
     page.click('.storage-quota-banner-close')
-    page.wait_for_timeout(100)
+    page.wait_for_selector('#storageQuotaBanner', state='hidden', timeout=5000)
 
     # Drop back under threshold.
     page.evaluate("""() => {
         window.app.ledgerAmountOverrides = {};
         window.app.saveToStorage();
     }""")
-    page.wait_for_timeout(100)
     assert not page.is_visible('#storageQuotaBanner')
 
     # Cross the threshold again — should warn a second time.
     _inject_large_blob(page, 4_600_000)
-    page.wait_for_timeout(200)
     assert page.is_visible('#storageQuotaBanner'), "Expected the banner to reappear after re-crossing the threshold"

@@ -87,7 +87,6 @@ def test_export_then_import_round_trips_retirement_data(app_page):
     )
     assert import_result == "imported"
 
-    page.wait_for_timeout(300)
     restored_snapshots = page.evaluate("() => window.app.retirementSnapshots")
     restored_target = page.evaluate("() => window.app.retirementTargetDate")
     assert len(restored_snapshots) == 1
@@ -141,7 +140,6 @@ def test_add_and_delete_snapshot_via_modal(app_page):
     assert row_count == 1
 
     page.click('[data-retire-action="delete-snapshot"]')
-    page.wait_for_timeout(300)
     snapshots = page.evaluate("() => window.app.retirementSnapshots")
     assert snapshots == []
     assert_no_errors(page)
@@ -156,7 +154,7 @@ def test_charts_render_with_two_snapshots(app_page):
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', 10000, 300)")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-02-01', 10500, 300)")
     page.click('button[data-page="retirement"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
 
     for canvas_id in ['retireBalanceChart', 'retireContributionChart', 'retireBreakdownChart']:
         assert page.locator(f'#{canvas_id}').count() == 1, f'{canvas_id} did not render'
@@ -191,7 +189,6 @@ def test_reload_persists_retirement_data(app_page):
     page.evaluate("() => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(); }")
 
     page.reload(wait_until="networkidle")
-    page.wait_for_timeout(500)
     snapshots = page.evaluate("() => window.app.retirementSnapshots")
     target = page.evaluate("() => window.app.retirementTargetDate")
     assert len(snapshots) == 1
@@ -292,7 +289,6 @@ def test_pension_snapshot_delete_removes_row(app_page):
     page.wait_for_selector('.retire-card', timeout=5000)
 
     page.click('[data-retire-action="delete-snapshot"]')
-    page.wait_for_timeout(300)
     assert page.evaluate("() => window.app.retirementSnapshots.length") == 0
     assert_no_errors(page)
 
@@ -325,7 +321,7 @@ def test_pension_excluded_from_charts(app_page):
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', 0, 466.67, 80000)")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-02-01', 0, 466.67, 80000)")
     page.click('button[data-page="retirement"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
 
     # Charts are present in DOM but should be empty (no data) since pension is excluded.
     for canvas_id in ['retireBalanceChart', 'retireContributionChart', 'retireBreakdownChart']:
@@ -372,7 +368,6 @@ def test_pension_account_round_trips_export_import(app_page):
     )
     assert result == "imported"
 
-    page.wait_for_timeout(300)
     acct = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === 'Pension')")
     assert acct is not None
     assert acct['pensionAnnualSalary'] == 80000
@@ -411,7 +406,6 @@ def test_pension_sanitizer_accepts_valid_fields(app_page):
     _add_pension_account(page, salary="95000", contrib_rate="8", vesting="3", benefit="1500", service="7")
     page.evaluate("() => window.app.saveToStorage()")
     page.reload(wait_until="networkidle")
-    page.wait_for_timeout(500)
 
     acct = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === 'Pension')")
     assert acct['pensionAnnualSalary'] == 95000
@@ -435,13 +429,12 @@ def test_pension_and_investment_coexist_on_retirement_page(app_page):
     assert cards == 2
 
     # Charts should render with at least the investment account data.
-    page.wait_for_timeout(300)
     account_id = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === '401k').id")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', 12000, 400)")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-02-01', 12500, 400)")
     page.click('button[data-page="health"]')
     page.click('button[data-page="retirement"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
 
     sr_rows = page.evaluate("() => document.querySelectorAll('#retireBalanceChart-sr-table tbody tr').length")
     assert sr_rows > 0, "Investment account data should appear in balance chart"

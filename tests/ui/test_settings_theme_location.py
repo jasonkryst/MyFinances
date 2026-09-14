@@ -78,7 +78,7 @@ def test_selecting_theme_from_settings_modal_applies_immediately(app_page):
     open_settings(page)
 
     page.select_option('#themeSwitcher', 'dark')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.dark-mode', timeout=5000)
 
     classes = page.evaluate("() => document.body.className")
     assert 'dark-mode' in classes
@@ -91,7 +91,7 @@ def test_closing_settings_without_changing_theme_leaves_it_untouched(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
     close_settings(page)
 
     classes_after_close = page.evaluate("() => document.body.className")

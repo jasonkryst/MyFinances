@@ -12,16 +12,15 @@ from tests.conftest import create_debt, assert_no_errors
 
 def _create_two_debts(page):
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Strategy Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     debts = [
         ('High Interest Debt', '2000', '24', '100'),
@@ -29,7 +28,7 @@ def _create_two_debts(page):
     ]
     for name, balance, rate, min_pmt in debts:
         page.click('#debtFormToggle')
-        page.wait_for_timeout(200)
+        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
         page.fill('#debtName', name)
         page.select_option('#debtType', 'creditCard')
         page.fill('#accountBalance', balance)
@@ -37,16 +36,15 @@ def _create_two_debts(page):
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
         page.click('#debtFormSubmit')
-        page.wait_for_timeout(300)
 
 
 def _calculate(page, strategy):
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '500')
     page.select_option('#paymentStrategy', strategy)
     page.click('#calculateBtn')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
 
 @pytest.mark.feature
@@ -76,7 +74,7 @@ def test_strategy_comparison_panel_shows_all_strategies(app_page):
     _calculate(page, 'avalanche')
 
     page.click('[data-rtab="overview"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rPanel-overview', timeout=5000)
 
     row_count = page.evaluate(
         "() => document.querySelectorAll('#interestComparison .comparison-table tbody tr').length"
@@ -92,9 +90,9 @@ def test_stimulus_input_increases_month_total_paid(app_page):
     _calculate(page, 'avalanche')
 
     page.click('[data-rtab="schedule"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
     page.click('button[data-tab="tabular"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector(f'button[data-tab="tabular"].active', timeout=5000)
 
     total_before = page.evaluate("""
         () => {
@@ -106,7 +104,6 @@ def test_stimulus_input_increases_month_total_paid(app_page):
 
     page.fill('#stimulus-input-0', '300')
     page.dispatch_event('#stimulus-input-0', 'change')
-    page.wait_for_timeout(500)
 
     total_after = page.evaluate("""
         () => {
@@ -126,9 +123,9 @@ def test_stimulus_non_numeric_input_falls_back_to_zero(app_page):
     _calculate(page, 'avalanche')
 
     page.click('[data-rtab="schedule"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
     page.click('button[data-tab="tabular"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector(f'button[data-tab="tabular"].active', timeout=5000)
 
     page.evaluate("""
         () => {
@@ -137,7 +134,6 @@ def test_stimulus_non_numeric_input_falls_back_to_zero(app_page):
             input.dispatchEvent(new Event('change', { bubbles: true }));
         }
     """)
-    page.wait_for_timeout(300)
 
     stored_value = page.evaluate("() => window.app.perMonthStimulus[0]")
     assert stored_value == 0, f"Expected non-numeric stimulus input to fall back to 0, got {stored_value!r}"

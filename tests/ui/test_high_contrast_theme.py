@@ -36,7 +36,7 @@ def test_selecting_high_contrast_applies_both_body_classes(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
 
     classes = page.evaluate("() => document.body.className")
     assert 'dark-mode' in classes
@@ -51,7 +51,7 @@ def test_selecting_plain_dark_does_not_add_high_contrast_class(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'dark')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.dark-mode', timeout=5000)
 
     classes = page.evaluate("() => document.body.className")
     assert 'dark-mode' in classes
@@ -65,9 +65,9 @@ def test_switching_high_contrast_to_light_removes_both_classes(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
     page.select_option('#themeSwitcher', 'light')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('body:not(.dark-mode)', timeout=5000)
 
     classes = page.evaluate("() => document.body.className")
     assert 'dark-mode' not in classes
@@ -81,7 +81,7 @@ def test_high_contrast_persists_across_reload(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
 
     stored = page.evaluate("() => localStorage.getItem('debtTrackerTheme')")
     assert stored == 'high-contrast'
@@ -125,7 +125,7 @@ def test_high_contrast_uses_pure_black_surfaces(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
 
     colors = page.evaluate("""
         () => ({
@@ -146,12 +146,12 @@ def test_light_and_dark_container_background_unaffected_by_high_contrast_css(app
     open_settings(page)
 
     page.select_option('#themeSwitcher', 'light')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('body:not(.dark-mode)', timeout=5000)
     light_bg = page.evaluate("() => getComputedStyle(document.querySelector('.container')).backgroundColor")
     assert light_bg != 'rgb(0, 0, 0)'
 
     page.select_option('#themeSwitcher', 'dark')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('body.dark-mode', timeout=5000)
     dark_bg = page.evaluate("() => getComputedStyle(document.querySelector('.container')).backgroundColor")
     assert dark_bg != 'rgb(0, 0, 0)', "Plain dark mode's own container color should be untouched"
     assert dark_bg != light_bg
@@ -185,12 +185,14 @@ def test_high_contrast_focus_visible_outline_is_bold(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(150)
-    # Close via Escape (keyboard) rather than clicking Done: a mouse click
-    # here would flip the browser's input-modality heuristic to "mouse",
-    # which suppresses :focus-visible on the *next* focus() call below even
-    # though that call targets an unrelated element.
-    page.keyboard.press('Escape')
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
+    # Close via Escape dispatched directly on the modal element.
+    # page.keyboard.press() fires on document.activeElement, which is unreliable
+    # after select_option in CI — focus may drift outside the modal's subtree so
+    # the event never bubbles to modal.onkeydown. locator.press() targets the
+    # element regardless of current focus state and still generates a keyboard
+    # event, so :focus-visible input-modality is preserved for the check below.
+    page.locator('#settingsModal').press('Escape')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     page.focus('#dataTransferBtn')
@@ -212,7 +214,7 @@ def test_pg_modal_content_uses_dark_surface_in_high_contrast(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
 
     for modal_id in ['pgMigrationModal', 'pgSwitchConfirmModal']:
         bg = page.evaluate(f"""
@@ -233,7 +235,7 @@ def test_login_gate_uses_pure_black_surfaces_in_high_contrast(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
 
     colors = page.evaluate("""
         () => ({
@@ -268,7 +270,7 @@ def test_modal_close_button_visible_in_high_contrast(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'high-contrast')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.high-contrast-mode', timeout=5000)
 
     color = page.evaluate(
         "() => getComputedStyle(document.querySelector('.modal-close')).color"

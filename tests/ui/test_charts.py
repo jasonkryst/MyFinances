@@ -13,11 +13,11 @@ from tests.conftest import create_debt, create_income, assert_no_errors
 def _calculate_plan(page, debt_data):
     create_debt(page, debt_data)
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
 
 @pytest.mark.ui
@@ -27,13 +27,13 @@ def test_balance_chart_survives_repeated_recalculation(app_page, debt_data):
     _calculate_plan(page, debt_data)
 
     page.click('[data-rtab="schedule"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
     page.click('button[data-tab="chart"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector(f'button[data-tab="chart"].active', timeout=5000)
 
     for _ in range(3):
         page.click('#calculateBtn')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     assert_no_errors(page)
 
@@ -52,16 +52,15 @@ def test_health_dti_chart_survives_repeated_rerender(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     for _ in range(3):
         page.click('button[data-page="health"]')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#healthSection.active', timeout=5000)
         page.click('button[data-page="accounts"]')
-        page.wait_for_timeout(150)
+        page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     page.click('button[data-page="health"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#healthSection.active', timeout=5000)
 
     assert_no_errors(page)
 
@@ -84,19 +83,18 @@ def test_networth_trend_chart_survives_repeated_rerender(app_page, account_data)
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     for _ in range(3):
         page.click('[data-rptab="networth"]')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
         page.click('[data-rptab="calendar"]')
-        page.wait_for_timeout(150)
+        page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
 
     page.click('[data-rptab="networth"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
 
     assert_no_errors(page)
 
@@ -119,19 +117,18 @@ def test_forecast_chart_survives_repeated_rerender(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     for _ in range(3):
         page.click('[data-rptab="forecast"]')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
         page.click('[data-rptab="calendar"]')
-        page.wait_for_timeout(150)
+        page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     assert_no_errors(page)
 

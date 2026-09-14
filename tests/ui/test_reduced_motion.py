@@ -58,11 +58,11 @@ def test_chart_animation_disabled_under_reduced_motion(browser, debt_data):
 
     create_debt(page, debt_data)
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     animation_disabled = page.evaluate("() => Chart.defaults.animation === false")
     assert animation_disabled, "Chart.defaults.animation should be false under prefers-reduced-motion: reduce"

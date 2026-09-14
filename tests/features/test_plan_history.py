@@ -20,11 +20,11 @@ def _create_debt(page):
 
 def _calculate(page, monthly_payment="200", strategy="avalanche"):
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', monthly_payment)
     page.select_option('#paymentStrategy', strategy)
     page.click('#calculateBtn')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
 
 @pytest.mark.feature
@@ -93,13 +93,11 @@ def test_target_payoff_calculator_does_not_record_history(app_page):
     _create_debt(page)
 
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.click('#targetDateToggle')
-    page.wait_for_timeout(200)
     page.fill('#targetPayoffDate', '2027-01-01')
     page.select_option('#targetPayoffStrategy', 'avalanche')
     page.click('#calcTargetBtn')
-    page.wait_for_timeout(500)
 
     history = page.evaluate("() => window.app.planHistory")
     assert history == [], "Target Payoff Date calculator should not record plan history"
@@ -114,9 +112,8 @@ def test_reload_restores_last_plan_results(app_page):
     _calculate(page)
 
     page.reload(wait_until="networkidle")
-    page.wait_for_timeout(500)
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
 
     is_visible = page.evaluate(
         "() => document.getElementById('resultsSection').classList.contains('visible')"

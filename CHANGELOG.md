@@ -4,6 +4,24 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.5.0] — 2026-09-14
+
+### Changed
+- **Server: bump five server dependencies** (PR #169) — argon2 0.41→0.45, express 4.21→5.2 (major), express-rate-limit 7.4→8.7 (major), node-pg-migrate 7.6→9.0 (major), nodemailer 9.1→10.0 (major). The express 4→5 and node-pg-migrate 7→9 upgrades were the two breaking changes tracked in issue #141; both are now resolved: the `runner` named-export fix (PR #188) handles node-pg-migrate v9, and `app.set('trust proxy', 1)` already handles express-rate-limit v8's `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` check. Express 5 compat verified by three new tests in `server/test/app.test.js`.
+
+---
+## [5.4.4] — 2026-09-14
+
+### Changed
+- **CI: align codeql-action version across workflows** (issue #157) — `codeql.yml` now pins `github/codeql-action/{init,autobuild,analyze}@v4`, matching the `@v4` already used by the three `upload-sarif` steps in `trivy.yml`. Adds a regression test (`test_codeql_action_version_consistent` in `tests/security/test_static_scan.py`) that parses both workflow files and asserts every `github/codeql-action` reference uses the same major version, so drift cannot recur silently.
+
+---
+## [5.4.3] — 2026-09-13
+
+### Changed
+- **Deterministic test waits** — replaced all non-intentional `wait_for_timeout()` calls in the Playwright test suite with `wait_for_selector` / `wait_for_function` conditions (issue #150). Reduces flakiness from fixed-delay races and makes CI failures point to real problems rather than timing assumptions. Intentional exceptions kept: one `wait_for_timeout(20)` in `test_whatif_simulator.py` (below the 150 ms debounce threshold) and postgres-backend tests with multi-second waits for network-async bulk operations.
+
+---
 ## [5.4.2] — 2026-09-13
 
 ### Changed

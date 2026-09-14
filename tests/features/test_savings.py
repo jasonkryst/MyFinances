@@ -17,7 +17,7 @@ def test_savings_tab_navigation(app_page):
     
     # Navigate to savings
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1000)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     # Check if savingsSection exists
     savings_section = page.query_selector('#savingsSection')
@@ -30,7 +30,7 @@ def test_savings_section_content(app_page):
     page = app_page
     
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1500)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     # Check for emergency and sinking fund sections
     savings_section = page.query_selector('#savingsSection')
@@ -52,7 +52,7 @@ def test_emergency_fund_form(app_page):
     page = app_page
     
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1000)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     # Look for emergency fund form
     emergency_form = page.query_selector('#emergencyForm')
@@ -68,7 +68,7 @@ def test_sinking_fund_form(app_page):
     page = app_page
     
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1000)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     # Look for sinking fund form
     sinking_form = page.query_selector('#sinkingForm')
@@ -84,7 +84,7 @@ def test_multiple_savings_goals(app_page):
     page = app_page
     
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1000)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     savings_section = page.query_selector('#savingsSection')
     assert savings_section, "Savings section not found"
@@ -101,7 +101,7 @@ def test_savings_data_persistence(app_page):
     
     # Navigate to savings
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1000)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     # Check localStorage for savings data
     data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
@@ -109,11 +109,11 @@ def test_savings_data_persistence(app_page):
     
     # Navigate away
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     
     # Navigate back
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1000)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     # Savings section should still be there
     savings_section = page.query_selector('#savingsSection')
@@ -126,7 +126,7 @@ def test_savings_calculations(app_page):
     page = app_page
     
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(1000)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
     
     # Look for any calculation displays
     calculations = page.query_selector_all('[class*="total"], [class*="sum"], [class*="amount"]')

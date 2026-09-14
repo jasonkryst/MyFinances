@@ -47,7 +47,7 @@ def test_hidden_class_applies(app_page):
     
     # Navigate to create a hidden element scenario
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     
     # Check if elements use .hidden class
     hidden_elements = page.query_selector_all('.hidden')
@@ -93,7 +93,7 @@ def test_form_styling(app_page):
     page = app_page
     
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     
     # Find form inputs
     inputs = page.query_selector_all('input[type="text"], input[type="number"]')

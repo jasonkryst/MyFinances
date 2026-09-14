@@ -31,7 +31,6 @@ def test_dark_mode_class_application(app_page):
         dark_toggle = page.query_selector('[class*="dark"], button[aria-label*="dark"]')
         if dark_toggle:
             dark_toggle.click()
-            page.wait_for_timeout(300)
             
             # Dark mode class should be removed
             updated_classes = body.evaluate('(el) => el.className')
@@ -116,7 +115,7 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
     if theme_switcher:
         open_settings(page)
         page.select_option('#themeSwitcher', 'dark')
-        page.wait_for_timeout(200)
+        page.wait_for_selector('body.dark-mode', timeout=5000)
         new_value = page.evaluate("() => localStorage.getItem('debtTrackerTheme')")
         assert new_value in ('light', 'dark', 'high-contrast'), (
             "Selecting a theme after a corrupted value should write a valid value"
@@ -132,7 +131,7 @@ def test_pg_modal_content_not_white_in_dark_mode(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'dark')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.dark-mode', timeout=5000)
 
     for modal_id in ['pgMigrationModal', 'pgSwitchConfirmModal']:
         bg = page.evaluate(f"""
@@ -155,7 +154,7 @@ def test_login_gate_card_not_white_in_dark_mode(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'dark')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.dark-mode', timeout=5000)
 
     card_bg = page.evaluate(
         "() => getComputedStyle(document.querySelector('.login-gate-card')).backgroundColor"
@@ -182,7 +181,7 @@ def test_login_gate_overlay_not_white_in_dark_mode(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'dark')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.dark-mode', timeout=5000)
 
     overlay = page.evaluate("""
         () => {
@@ -213,7 +212,7 @@ def test_login_gate_header_band_dark_gradient_in_dark_mode(app_page):
     page = app_page
     open_settings(page)
     page.select_option('#themeSwitcher', 'dark')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('body.dark-mode', timeout=5000)
 
     bg_image = page.evaluate(
         "() => getComputedStyle(document.querySelector('.login-gate-header')).backgroundImage"
