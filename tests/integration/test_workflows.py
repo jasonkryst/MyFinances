@@ -489,7 +489,7 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
     page.click('#setupWizardVisibleBtn')
-    page.wait_for_selector('#setupWizardModal:not(.hidden)', timeout=5000)
+    page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
 
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
 

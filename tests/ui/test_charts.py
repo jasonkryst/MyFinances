@@ -17,7 +17,7 @@ def _calculate_plan(page, debt_data):
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_selector('.strategy-results-section', timeout=10000)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
 
 @pytest.mark.ui
@@ -33,7 +33,7 @@ def test_balance_chart_survives_repeated_recalculation(app_page, debt_data):
 
     for _ in range(3):
         page.click('#calculateBtn')
-        page.wait_for_selector('.strategy-results-section', timeout=10000)
+        page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     assert_no_errors(page)
 

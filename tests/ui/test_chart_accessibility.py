@@ -134,7 +134,7 @@ def test_strategy_schedule_charts_have_sr_tables(app_page, debt_data, income_dat
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_selector('.strategy-results-section', timeout=10000)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     page.click('[data-rtab="schedule"]')
     page.wait_for_selector('#rPanel-schedule', timeout=5000)

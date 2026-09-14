@@ -44,7 +44,7 @@ def _calculate(page, strategy):
     page.fill('#monthlyPayment', '500')
     page.select_option('#paymentStrategy', strategy)
     page.click('#calculateBtn')
-    page.wait_for_selector('.strategy-results-section', timeout=10000)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
 
 @pytest.mark.feature

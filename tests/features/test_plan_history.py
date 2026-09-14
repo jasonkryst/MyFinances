@@ -24,7 +24,7 @@ def _calculate(page, monthly_payment="200", strategy="avalanche"):
     page.fill('#monthlyPayment', monthly_payment)
     page.select_option('#paymentStrategy', strategy)
     page.click('#calculateBtn')
-    page.wait_for_selector('.strategy-results-section', timeout=10000)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
 
 @pytest.mark.feature

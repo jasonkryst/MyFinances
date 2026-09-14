@@ -16,7 +16,7 @@ def _calculate_plan(page, debt_data):
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_selector('.strategy-results-section', timeout=10000)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
 
 @pytest.mark.ui
@@ -206,6 +206,8 @@ def test_reconcile_modal_focus_and_keyboard_trap(app_page):
         app.openReconcileModal(8503);
     }""")
 
+    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=2000)
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'reconcileModalBalance', "Opening the modal should focus the balance input"
 
@@ -238,7 +240,7 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_selector('#ledgerTable', timeout=5000)
+    page.wait_for_selector('#ledgerTable', state='attached', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
@@ -268,7 +270,7 @@ def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_selector('#ledgerTable', timeout=5000)
+    page.wait_for_selector('#ledgerTable', state='attached', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
@@ -290,6 +292,7 @@ def test_delete_confirm_modal_tab_trap_cycles_focus(app_page, debt_data):
     create_debt(page, debt_data)
     page.click('[data-debt-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#deleteConfirmCancelBtn:focus', timeout=2000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("deleteConfirmModal")?.classList.contains("flex-visible")'
@@ -354,6 +357,8 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
 
     delete_btn = page.query_selector(f'button[data-account-action="delete"][data-account-id="{linked_account_id}"]')
     delete_btn.click()
+    page.wait_for_selector('#accountReplacementModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#accountReplacementCancelBtn:focus', timeout=2000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("accountReplacementModal")?.classList.contains("flex-visible")'
@@ -459,9 +464,14 @@ def test_calendar_day_modal_has_dialog_role_and_focus_management(app_page):
         app.switchPage('reports');
     }""")
 
-    cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.click('[data-rptab="calendar"]')
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
+    cell = page.wait_for_selector('.rpt-cal-cell.rpt-cal-has-events', timeout=5000)
     assert cell, "Expected at least one day cell with events"
     cell.click()
+    page.wait_for_selector('#calendarDayModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#calendarDayModalCloseBtn:focus', timeout=2000)
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'calendarDayModalCloseBtn'
 

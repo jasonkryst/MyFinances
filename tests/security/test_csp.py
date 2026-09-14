@@ -30,7 +30,7 @@ def test_csp_compliance(page):
     wizard = page.query_selector('#setupWizardModal.flex-visible')
     if wizard:
         page.click('#setupWizardVisibleBtn')
-        page.wait_for_selector('#setupWizardModal:not(.hidden)', timeout=5000)
+        page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
 
     # Trigger all page sections so dynamic rendering runs
     for nav in ["accounts", "income", "liabilities", "savings", "strategy", "reports"]:

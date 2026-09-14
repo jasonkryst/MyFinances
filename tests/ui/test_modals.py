@@ -59,7 +59,7 @@ def test_modal_close_button(app_page):
 
     # Close panel by toggling again
     page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    page.wait_for_selector('#debtFormBody[hidden]', timeout=5000)
 
     panel = page.query_selector('#debtFormBody')
     assert panel, "Debt form panel should be present"

@@ -39,7 +39,7 @@ def test_debt_summary_table_scrolls_within_wrapper_on_mobile(app_page, debt_data
     page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.click('#calculateBtn')
-    page.wait_for_selector('.strategy-results-section', timeout=10000)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.click('[data-rtab="debt-summary"]')
@@ -63,7 +63,7 @@ def test_payment_schedule_table_scrolls_within_wrapper_on_mobile(app_page, debt_
     page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.click('#calculateBtn')
-    page.wait_for_selector('.strategy-results-section', timeout=10000)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.click('[data-rtab="schedule"]')

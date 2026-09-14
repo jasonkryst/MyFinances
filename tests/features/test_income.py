@@ -173,7 +173,9 @@ def test_add_bonus_negative_amount_rejected(app_page):
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusCategory', label='Bonus')
     page.click('#bonusForm button[type="submit"]')
-    page.wait_for_selector('#bonusFormBody', state='hidden', timeout=5000)
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    page.click('#alertModalOkBtn')
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     assert page.query_selector('text=Negative Bonus') is None, (
         "A negative bonus amount should be rejected, not silently saved as $0.01"
@@ -206,7 +208,9 @@ def test_edit_income_negative_amount_rejected(app_page):
     assert amount_input, "Expected the inline-edit amount input to be present"
     amount_input.fill('-750')
     page.click('[data-income-action="save"]')
-    page.wait_for_selector('[data-action="save"]', state='detached', timeout=5000)
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    page.click('#alertModalOkBtn')
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     stored_amount = page.evaluate(
         "() => window.app.incomes.find(i => i.name === 'Edit Salary Target')?.amount"
@@ -239,7 +243,9 @@ def test_edit_bonus_negative_amount_rejected(app_page):
     assert amount_input, "Expected the inline-edit amount input to be present"
     amount_input.fill('-100')
     page.click('[data-bonus-action="save"]')
-    page.wait_for_selector('[data-action="save"]', state='detached', timeout=5000)
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    page.click('#alertModalOkBtn')
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     stored_amount = page.evaluate(
         "() => window.app.bonuses.find(b => b.name === 'Edit Bonus Target')?.amount"
@@ -403,7 +409,7 @@ def test_bonus_advice_invalid_amount_shows_validation_alert(app_page):
     _open_bonus_form(page)
 
     page.click('#bonusAdviceBtn')
-    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
 
     modal = page.query_selector('#alertModal')
     assert modal is not None, "#alertModal not found"

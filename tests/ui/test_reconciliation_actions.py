@@ -96,7 +96,7 @@ def test_reconcile_button_updates_balance_and_history(app_page):
     page.fill('#recon-balance-8001', '1234.56')
     page.fill('#recon-note-8001', 'Bank fee adjustment')
     page.click('[data-recon-action="reconcile"][data-recon-id="8001"]')
-    page.wait_for_selector('#reconcileModal:not(.hidden)', timeout=5000)
+    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
     card_text = page.query_selector('.recon-card').text_content()
     assert 'Current Tracked Balance: $1,234.56' in card_text
@@ -187,7 +187,7 @@ def test_ledger_reconcile_button_and_modal(app_page):
     assert page.query_selector('#reconcileFromLedgerBtn') is None
 
     page.select_option('#ledgerAccountFilter', label='Recon Ledger (Checking)')
-    page.wait_for_selector('#ledgerTable', timeout=5000)
+    page.wait_for_selector('#ledgerTable', state='attached', timeout=5000)
 
     reconcile_btn = page.query_selector('#reconcileFromLedgerBtn')
     assert reconcile_btn, "Expected a Reconcile button when a specific account is selected"
@@ -243,7 +243,7 @@ def test_reconcile_modal_escape_and_enter(app_page):
 
     # Reopen and confirm via Enter
     page.evaluate('() => window.app.openReconcileModal(8004)')
-    page.wait_for_selector('#reconcileModal:not(.hidden)', timeout=5000)
+    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
     page.fill('#reconcileModalBalance', '650')
     page.keyboard.press('Enter')

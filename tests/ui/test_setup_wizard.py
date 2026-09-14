@@ -71,7 +71,7 @@ def test_choosing_visible_only_persists_setting_and_closes_modal(page):
     page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
 
     page.click('#setupWizardVisibleBtn')
-    page.wait_for_selector('#setupWizardModal:not(.hidden)', timeout=5000)
+    page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
 
     modal = page.query_selector('#setupWizardModal')
     classes = modal.get_attribute('class') or ''
