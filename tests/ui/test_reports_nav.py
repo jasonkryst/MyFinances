@@ -3,7 +3,7 @@ import pytest
 
 def _go_to_reports(page):
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
 
 @pytest.mark.ui
@@ -11,10 +11,25 @@ def test_active_group_label_highlights_when_tab_in_group_is_active(app_page):
     """When a tab is active, its parent group label chip reaches full opacity (opacity=1)."""
     page = app_page
     _go_to_reports(page)
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
 
     # Click a Trends tab — Money Flow
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
+    # Wait for the 150ms CSS opacity transition to complete before reading computed style
+    page.wait_for_function(
+        """() => {
+            const groups = document.querySelectorAll('.rpt-tab-group');
+            for (const g of groups) {
+                const label = g.querySelector('.rpt-tab-group-label');
+                if (label && label.textContent.trim() === 'Trends') {
+                    return parseFloat(window.getComputedStyle(label).opacity) >= 0.95;
+                }
+            }
+            return false;
+        }""",
+        timeout=2000
+    )
 
     # The Trends group label should be full opacity (has active child)
     trends_opacity = page.evaluate("""
@@ -66,11 +81,11 @@ def test_cross_group_tab_switching_updates_active_class(app_page):
 
     # Start on calendar (Activity group)
     page.click('[data-rptab="calendar"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
 
     # Switch to Net Worth (Trends group)
     page.click('[data-rptab="networth"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
 
     calendar_active = page.evaluate(
         '() => document.querySelector("[data-rptab=\'calendar\']").classList.contains("rpt-tab-btn--active")'
@@ -90,7 +105,6 @@ def test_only_one_tab_active_at_a_time(app_page):
 
     for tab_id in ['calendar', 'spending', 'moneyflow', 'forecast']:
         page.click(f'[data-rptab="{tab_id}"]')
-        page.wait_for_timeout(100)
         active_count = page.evaluate(
             '() => document.querySelectorAll(".rpt-tab-btn--active").length'
         )
@@ -117,7 +131,6 @@ def test_tab_bar_dark_mode_background(app_page):
     _go_to_reports(page)
 
     page.evaluate('() => document.body.classList.add("dark-mode")')
-    page.wait_for_timeout(100)
 
     bg = page.evaluate(
         '() => window.getComputedStyle(document.querySelector(".rpt-tab-bar")).backgroundColor'
@@ -135,10 +148,8 @@ def test_group_separators_are_hidden_on_mobile(app_page):
     page = app_page
     # Navigate to reports at desktop size first, then resize to mobile
     _go_to_reports(page)
-    page.wait_for_timeout(200)
 
     page.set_viewport_size({'width': 480, 'height': 800})
-    page.wait_for_timeout(200)
 
     sep_display = page.evaluate("""
         () => {

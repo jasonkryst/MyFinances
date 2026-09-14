@@ -12,7 +12,7 @@ def test_reports_navigation(app_page):
     page = app_page
     
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     
     # Verify reports section loads
     reports_section = page.query_selector('#reportsSection')
@@ -25,7 +25,7 @@ def test_income_vs_expenses_report(app_page):
     page = app_page
     
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     
     # Look for report tabs
     report_tabs = page.query_selector_all('[data-rptab]')
@@ -38,7 +38,7 @@ def test_money_flow_report(app_page):
     page = app_page
     
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     
     # Reports should be available
     reports_section = page.query_selector('#reportsSection')
@@ -51,13 +51,12 @@ def test_net_worth_report(app_page):
     page = app_page
 
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     # Look for net worth report tab
     nw_tab = page.query_selector('[data-rptab="networth"]')
     if nw_tab:
         nw_tab.click()
-        page.wait_for_timeout(300)
 
         # Should show snapshot history
         history_table = page.query_selector('#netWorthHistoryTable')
@@ -80,7 +79,6 @@ def test_report_far_future_month_renders_empty_state(app_page):
         app._reportMonthOffset = 24;
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
 
     # No console/page errors while rendering a far-future, data-free month
     errors = page.evaluate('() => window.__consoleErrors || []')
@@ -94,19 +92,19 @@ def test_report_far_future_month_renders_empty_state(app_page):
     # 2026-09-04) -- switch into each tab to exercise its empty-state
     # rendering, rather than relying on every panel being pre-rendered.
     page.click('[data-rptab="incomeexp"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-incomeexp.rpt-tab-panel--active', timeout=5000)
     income_exp_text = page.query_selector('#reportsIncomeExp').text_content()
     assert 'Add income sources' in income_exp_text or '$0.00' in income_exp_text, \
         f"Expected empty/zero state for income vs expenses, got: {income_exp_text}"
 
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
     money_flow_text = page.query_selector('#reportsMoneyFlow').text_content()
     assert 'Add income, bills, debts' in money_flow_text, \
         f"Expected empty money flow state, got: {money_flow_text}"
 
     page.click('[data-rptab="variance"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-variance.rpt-tab-panel--active', timeout=5000)
     variance_text = page.query_selector('#reportsVariance').text_content()
     assert 'Month-to-Month Comparison' in variance_text
 
@@ -131,12 +129,10 @@ def test_report_month_offset_year_boundary_label(app_page):
         window.__stepsToJan = (12 - now.getMonth()) % 12;
         if (window.__stepsToJan === 0) window.__stepsToJan = 12;
     }""")
-    page.wait_for_timeout(300)
 
     steps = page.evaluate('() => window.__stepsToJan')
     for _ in range(steps):
         page.click('#rptNextMonth')
-        page.wait_for_timeout(150)
 
     month_label = page.query_selector('#rptMonthLabel').text_content()
     assert 'January' in month_label, f"Expected January after crossing year boundary, got: {month_label}"
@@ -185,10 +181,9 @@ def test_variance_report_income_expense_delta(app_page):
         app._reportMonthOffset = 0;
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
 
     page.click('[data-rptab="variance"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-variance.rpt-tab-panel--active', timeout=5000)
 
     variance_text = page.query_selector('#reportsVariance').text_content()
 

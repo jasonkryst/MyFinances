@@ -5,7 +5,7 @@ from tests.conftest import current_month_iso
 def _seed_and_navigate(page):
     """Seed spending data and open the Spending tab."""
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.evaluate("""(dates) => {
         const app = window.app;
         app.expenses = [
@@ -20,7 +20,7 @@ def _seed_and_navigate(page):
         app.renderReportsPage();
     }""", {"rent": current_month_iso(1), "groceries": current_month_iso(10)})
     page.click('[data-rptab="spending"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
 
 
 @pytest.mark.ui
@@ -28,13 +28,12 @@ def test_spending_tab_exists_and_navigates(app_page):
     """Spending tab button exists and clicking it makes its panel visible."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     btn = page.query_selector('[data-rptab="spending"]')
     assert btn, "Expected a spending tab button with data-rptab='spending'"
 
     btn.click()
-    page.wait_for_timeout(200)
 
     is_active = page.evaluate('() => document.getElementById("rptPanel-spending")?.classList.contains("rpt-tab-panel--active")')
     assert is_active, "Expected #rptPanel-spending to have class rpt-tab-panel--active after clicking the tab"
@@ -84,7 +83,6 @@ def test_spending_ranked_row_opens_modal(app_page):
     row = page.query_selector('[data-spending-cat="Housing"]')
     assert row, "Expected a ranked row for 'Housing'"
     row.click()
-    page.wait_for_timeout(200)
 
     modal_visible = page.is_visible('#spendingDrilldownModal')
     assert modal_visible, "Expected the drill-down modal to be visible after clicking a ranked row"
@@ -100,7 +98,6 @@ def test_spending_modal_shows_transactions(app_page):
     _seed_and_navigate(page)
 
     page.click('[data-spending-cat="Housing"]')
-    page.wait_for_timeout(200)
 
     tx_list = page.evaluate('() => document.querySelector(".spending-modal-tx-list")?.textContent || ""')
     assert 'Rent' in tx_list, f"Expected 'Rent' transaction in modal body, got: {tx_list[:200]}"
@@ -113,11 +110,9 @@ def test_spending_modal_close_button_dismisses(app_page):
     _seed_and_navigate(page)
 
     page.click('[data-spending-cat="Housing"]')
-    page.wait_for_timeout(200)
     assert page.is_visible('#spendingDrilldownModal'), "Modal should be visible before closing"
 
     page.click('#spendingDrilldownClose')
-    page.wait_for_timeout(200)
     assert not page.is_visible('#spendingDrilldownModal'), "Modal should be hidden after clicking Close"
 
 
@@ -126,7 +121,7 @@ def test_spending_empty_state_message(app_page):
     """When there is no spending data, an informational message is shown instead of charts."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.evaluate("""() => {
         const app = window.app;
         app.expenses = []; app.bills = []; app.recurringTemplates = []; app.debts = [];
@@ -137,7 +132,7 @@ def test_spending_empty_state_message(app_page):
         app.renderReportsPage();
     }""")
     page.click('[data-rptab="spending"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
 
     empty = page.query_selector('.spending-empty')
     assert empty, "Expected a .spending-empty element when there is no spending data"

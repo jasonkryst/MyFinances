@@ -163,16 +163,15 @@ def test_import_json_file(app_page):
         try:
             # Click import
             page.click('#importJsonBtn')
-            page.wait_for_timeout(300)
+            page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
 
             # Upload file
             file_input = page.query_selector('#importJsonInput')
             if file_input:
                 file_input.set_input_files(temp_file)
-                page.wait_for_timeout(500)
+                page.wait_for_selector('#importModeChoice, #importError', timeout=5000)
                 if page.is_visible('#importModeChoice'):
                     page.click('#importModeReplaceBtn')
-                page.wait_for_timeout(500)
 
                 # Verify data was imported
                 stored_data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
@@ -193,7 +192,7 @@ def test_import_refreshes_currently_active_page(app_page):
 
     # Stay on the Accounts page (not Liabilities/Debts) while importing.
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     from tests.conftest import open_data_transfer
 
@@ -228,15 +227,14 @@ def test_import_refreshes_currently_active_page(app_page):
         open_data_transfer(page)
         page.click('[data-dt-tab="import"]')
         page.click('#importJsonBtn')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
 
         file_input = page.query_selector('#importJsonInput')
         assert file_input, "Expected the import file input (#importJsonInput) to exist"
         file_input.set_input_files(temp_file)
-        page.wait_for_timeout(500)
+        page.wait_for_selector('#importModeChoice, #importError', timeout=5000)
         if page.is_visible('#importModeChoice'):
             page.click('#importModeReplaceBtn')
-        page.wait_for_timeout(500)
 
         # Still on the Accounts page the whole time -- no manual re-navigation.
         account_list_text = page.evaluate("""() => {
@@ -257,12 +255,11 @@ def test_import_replaces_data(app_page):
     
     # Create initial data
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Original Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(500)
     
     # Import new data
     from tests.conftest import open_data_transfer
@@ -292,15 +289,14 @@ def test_import_replaces_data(app_page):
         
         try:
             page.click('#importJsonBtn')
-            page.wait_for_timeout(300)
+            page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
 
             file_input = page.query_selector('#importJsonInput')
             if file_input:
                 file_input.set_input_files(temp_file)
-                page.wait_for_timeout(500)
+                page.wait_for_selector('#importModeChoice, #importError', timeout=5000)
                 if page.is_visible('#importModeChoice'):
                     page.click('#importModeReplaceBtn')
-                page.wait_for_timeout(500)
 
                 # Data should be replaced
                 stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
@@ -316,12 +312,11 @@ def test_roundtrip_export_import(app_page):
     
     # Create account
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Roundtrip Test')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '7500')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(500)
     
     # Get current data
     original_data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
@@ -347,15 +342,14 @@ def test_roundtrip_export_import(app_page):
             try:
                 page.click('[data-dt-tab="import"]')
                 page.click('#importJsonBtn')
-                page.wait_for_timeout(300)
+                page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
 
                 file_input = page.query_selector('#importJsonInput')
                 if file_input:
                     file_input.set_input_files(temp_file)
-                    page.wait_for_timeout(500)
+                    page.wait_for_selector('#importModeChoice, #importError', timeout=5000)
                     if page.is_visible('#importModeChoice'):
                         page.click('#importModeReplaceBtn')
-                    page.wait_for_timeout(500)
 
                     # Data should match
                     reimported = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
@@ -380,7 +374,7 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
 
     # --- Seed: account, debt, income ---
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Clear Test Checking')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '4200')
@@ -400,7 +394,7 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     page.wait_for_selector('text=Clear Test Card', timeout=10000)
 
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     page.fill('#incomeName', 'Clear Test Salary')
     page.fill('#incomeAmount', '3000')
     page.fill('#incomeFirstDate', '2026-06-01')
@@ -437,7 +431,7 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     # dismiss the #alertModal confirmation that appears after clearing
     page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
     page.click('#alertModalOkBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     cleared_data = page.evaluate(
         '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
@@ -453,14 +447,13 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
         open_data_transfer(page)
         page.click('[data-dt-tab="import"]')
         page.click('#importJsonBtn')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
         file_input = page.query_selector('#importJsonInput')
         assert file_input, "Expected the import file input (#importJsonInput) to exist"
         file_input.set_input_files(temp_file)
-        page.wait_for_timeout(500)
+        page.wait_for_selector('#importModeChoice, #importError', timeout=5000)
         if page.is_visible('#importModeChoice'):
             page.click('#importModeReplaceBtn')
-        page.wait_for_timeout(500)
 
         reimported = page.evaluate(
             '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
@@ -475,7 +468,7 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
         # --- Visit every top-level nav page and verify clean rendering ---
         for page_name in ALL_NAV_PAGES:
             page.click(f'button[data-page="{page_name}"]')
-            page.wait_for_timeout(400)
+            page.wait_for_selector(f'button[data-page="{page_name}"][aria-current="page"]', timeout=5000)
             assert_no_errors(page)
     finally:
         os.unlink(temp_file)
@@ -496,7 +489,7 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
     page.click('#setupWizardVisibleBtn')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
 
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
 
@@ -508,7 +501,7 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     # dismiss the #alertModal confirmation that appears after clearing
     page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
     page.click('#alertModalOkBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     cleared_data = page.evaluate(
         '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
@@ -539,10 +532,8 @@ def test_ledger_export_csv_with_column_picker(app_page):
         app.debts = []; app.bills = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
         app.switchPage('ledger');
     }""")
-    page.wait_for_timeout(300)
 
     page.click('#ledgerExportCsvBtn')
-    page.wait_for_timeout(200)
     modal = page.query_selector('#ledgerExportModal')
     assert modal and 'flex-visible' in (modal.get_attribute('class') or '')
 
@@ -577,12 +568,9 @@ def test_ledger_export_csv_includes_cleared_columns(app_page):
     }""")
     assert tx_id, "Expected at least one clearable ledger row"
 
-    page.wait_for_timeout(300)
     page.click(f'[data-ledger-cleared="{tx_id}"]')
-    page.wait_for_timeout(300)
 
     page.click('#ledgerExportCsvBtn')
-    page.wait_for_timeout(200)
     modal = page.query_selector('#ledgerExportModal')
     assert modal and 'flex-visible' in (modal.get_attribute('class') or '')
 

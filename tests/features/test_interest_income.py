@@ -238,7 +238,7 @@ def test_add_account_with_interest_rate_shows_badge(app_page):
     """Creating an account with a rate persists it and shows the APY badge."""
     page = app_page
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     page.fill('#accountName', 'Rate Savings')
     page.select_option('#accountType', label='Savings')
@@ -284,7 +284,7 @@ def test_zero_rate_account_shows_no_badge(app_page):
     """Leaving the rate blank stores 0 and renders no badge."""
     page = app_page
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     page.fill('#accountName', 'Plain Checking')
     page.select_option('#accountType', label='Checking')
@@ -304,7 +304,7 @@ def test_negative_rate_input_clamped_to_zero(app_page):
     """A negative rate typed into the form is clamped to 0 (no badge)."""
     page = app_page
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     page.fill('#accountName', 'Neg Rate')
     page.select_option('#accountType', label='Savings')
@@ -337,11 +337,11 @@ def test_interest_counts_as_income_in_reports(app_page):
     page = app_page
     _seed_account(page, rate=12, balance=1000)
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     # renderReportsPage() only renders the active sub-tab (performance fix,
     # 2026-09-04); Income vs Expenses isn't the default (Calendar is).
     page.click('[data-rptab="incomeexp"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-incomeexp.rpt-tab-panel--active', timeout=5000)
 
     income_text = _reports_income_stat_text(page)
     assert '10.00' in income_text, \
@@ -354,9 +354,9 @@ def test_interest_absent_from_reports_when_rate_zero(app_page):
     page = app_page
     _seed_account(page, rate=0, balance=1000)
     page.evaluate("() => window.app.switchPage('reports')")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="incomeexp"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-incomeexp.rpt-tab-panel--active', timeout=5000)
 
     income_text = _reports_income_stat_text(page)
     assert '$0.00' in income_text, \

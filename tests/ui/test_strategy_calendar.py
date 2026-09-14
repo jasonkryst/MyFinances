@@ -14,16 +14,16 @@ from tests.conftest import create_debt, current_month_iso, assert_no_errors
 def _calculate_plan_and_open_calendar(page, debt_data):
     create_debt(page, debt_data)
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
 
     page.click('[data-rtab="schedule"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
     page.click('button[data-tab="calendar"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector(f'button[data-tab="calendar"].active', timeout=5000)
 
 
 @pytest.mark.ui
@@ -36,7 +36,6 @@ def test_calendar_shows_bill_due_date(app_page, debt_data):
         window.app.bills = [{ id: 1, name: 'Internet', amount: 60, dueDay: 10, category: 'Internet / Phone', accountId: null }];
         window.app.renderCalendarView(0);
     }""")
-    page.wait_for_timeout(200)
 
     chip = page.query_selector('.cal-bill-event')
     assert chip is not None, "Expected a .cal-bill-event chip for the seeded bill"
@@ -54,7 +53,6 @@ def test_calendar_shows_expense_day(app_page, debt_data):
         window.app.expenses = [{ id: 1, name: 'Groceries', budgetAmount: 300, date: new Date(dateIso + 'T00:00:00'), category: 'Food', accountId: null }];
         window.app.renderCalendarView(0);
     }""", current_month_iso(12))
-    page.wait_for_timeout(200)
 
     chip = page.query_selector('.cal-expense-event')
     assert chip is not None, "Expected a .cal-expense-event chip for the seeded expense"
@@ -75,7 +73,6 @@ def test_calendar_shows_bonus_day(app_page, debt_data):
         window.app.bonuses = [{ id: 1, name: 'Tax Refund', amount: 1500, date: dateIso, category: 'Other', accountId: null, purpose: null }];
         window.app.renderCalendarView(0);
     }""", current_month_iso(20))
-    page.wait_for_timeout(200)
 
     chip = page.query_selector('.cal-bonus-event')
     assert chip is not None, "Expected a .cal-bonus-event chip for the seeded bonus"
@@ -97,7 +94,6 @@ def test_calendar_hides_expense_bonus_legend_when_none_exist(app_page, debt_data
         window.app.bonuses = [];
         window.app.renderCalendarView(0);
     }""")
-    page.wait_for_timeout(200)
 
     assert page.query_selector('.cal-legend-swatch--expense') is None
     assert page.query_selector('.cal-legend-swatch--bonus') is None

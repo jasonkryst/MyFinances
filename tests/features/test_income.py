@@ -11,14 +11,13 @@ BASE_URL = "http://localhost:32900/"
 
 def _create_income_account(page, name="Income Validation Account"):
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', name)
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
 
 
 @pytest.mark.feature
@@ -28,15 +27,14 @@ def test_create_income(app_page, income_data):
 
     # Income requires an account selection
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Income Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
     
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     
     page.fill('#incomeName', income_data["name"])
     page.fill('#incomeAmount', income_data["amount"])
@@ -55,15 +53,14 @@ def test_income_frequencies(app_page):
     page = app_page
     
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Income Freq Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     
     frequencies = ['weekly', 'biweekly', 'twice_monthly', 'monthly']
     
@@ -74,7 +71,6 @@ def test_income_frequencies(app_page):
         page.select_option('#incomeFrequency', freq)
         page.select_option('#incomeAccount', index=1)
         page.click('#incomeFormSubmit')
-        page.wait_for_timeout(500)
 
 
 @pytest.mark.feature
@@ -83,15 +79,14 @@ def test_total_income_calculation(app_page):
     page = app_page
     
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Income Total Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     
     # Add income
     page.fill('#incomeName', 'Salary')
@@ -100,7 +95,6 @@ def test_total_income_calculation(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_timeout(500)
     
     # Verify income appears
     assert page.query_selector('#incomeList >> text=Salary'), "Income not created"
@@ -112,15 +106,14 @@ def test_multiple_income_sources(app_page):
     page = app_page
     
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Income Multi Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     
     incomes = [
         ('Primary Job', '5000', '2026-05-01', 'monthly'),
@@ -135,7 +128,6 @@ def test_multiple_income_sources(app_page):
         page.select_option('#incomeFrequency', freq)
         page.select_option('#incomeAccount', index=1)
         page.click('#incomeFormSubmit')
-        page.wait_for_timeout(500)
     
     # Verify all incomes appear
     for name, _, _, _ in incomes:
@@ -162,7 +154,6 @@ def test_add_income_negative_amount_rejected(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_timeout(300)
 
     assert page.query_selector('text=Negative Salary') is None, (
         "A negative income amount should be rejected, not silently saved as $0.01"
@@ -176,13 +167,15 @@ def test_add_bonus_negative_amount_rejected(app_page):
     _create_income_account(page)
 
     page.click('#bonusFormToggle')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#bonusFormBody:not([hidden])', timeout=5000)
     page.fill('#bonusName', 'Negative Bonus')
     page.fill('#bonusAmount', '-200')
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusCategory', label='Bonus')
     page.click('#bonusForm button[type="submit"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    page.click('#alertModalOkBtn')
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     assert page.query_selector('text=Negative Bonus') is None, (
         "A negative bonus amount should be rejected, not silently saved as $0.01"
@@ -209,13 +202,12 @@ def test_edit_income_negative_amount_rejected(app_page):
     page.wait_for_selector('text=Edit Salary Target', timeout=10000)
 
     page.click('[data-income-action="edit"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('[data-income-action="save"]', timeout=5000)
 
     amount_input = page.query_selector('input[id^="ie-amount-"]')
     assert amount_input, "Expected the inline-edit amount input to be present"
     amount_input.fill('-750')
     page.click('[data-income-action="save"]')
-    page.wait_for_timeout(300)
 
     stored_amount = page.evaluate(
         "() => window.app.incomes.find(i => i.name === 'Edit Salary Target')?.amount"
@@ -233,7 +225,7 @@ def test_edit_bonus_negative_amount_rejected(app_page):
     _create_income_account(page)
 
     page.click('#bonusFormToggle')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#bonusFormBody:not([hidden])', timeout=5000)
     page.fill('#bonusName', 'Edit Bonus Target')
     page.fill('#bonusAmount', '300')
     page.fill('#bonusDate', '2026-05-01')
@@ -242,13 +234,12 @@ def test_edit_bonus_negative_amount_rejected(app_page):
     page.wait_for_selector('text=Edit Bonus Target', timeout=10000)
 
     page.click('[data-bonus-action="edit"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('[data-bonus-action="save"]', timeout=5000)
 
     amount_input = page.query_selector('input[id^="be-amount-"]')
     assert amount_input, "Expected the inline-edit amount input to be present"
     amount_input.fill('-100')
     page.click('[data-bonus-action="save"]')
-    page.wait_for_timeout(300)
 
     stored_amount = page.evaluate(
         "() => window.app.bonuses.find(b => b.name === 'Edit Bonus Target')?.amount"
@@ -266,18 +257,17 @@ def test_edit_bonus_negative_amount_rejected(app_page):
 def _create_debt_for_advisor(page):
     """Minimal interest-bearing debt so the Cash Flow advice branch has something to compute against."""
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Advisor Debt Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     page.fill('#debtName', 'Advisor Test Debt')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '2000')
@@ -290,9 +280,9 @@ def _create_debt_for_advisor(page):
 
 def _open_bonus_form(page):
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     page.click('#bonusFormToggle')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#bonusFormBody:not([hidden])', timeout=5000)
 
 
 @pytest.mark.feature
@@ -347,14 +337,14 @@ def test_bonus_advice_shows_cash_flow_and_savings_numbers(app_page):
 
     # Give the linked account a non-zero APY so the Savings branch has a rate to use.
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.click('[data-account-action="edit"]')
     page.fill('[id^="ac-rate-"]', '5')
     page.click('[data-account-action="save"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-action="save"]', state='detached', timeout=5000)
 
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
 
@@ -364,7 +354,7 @@ def test_bonus_advice_shows_cash_flow_and_savings_numbers(app_page):
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusAccount', index=1)
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'interest saved' in panel_text, f"Expected a computed interest-saved figure, got: {panel_text}"
@@ -381,7 +371,7 @@ def test_bonus_advice_no_debts_shows_not_applicable(app_page):
     page.fill('#bonusAmount', '500')
     page.fill('#bonusDate', '2026-05-01')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'N/A' in panel_text and 'debt' in panel_text.lower(), \
@@ -399,7 +389,7 @@ def test_bonus_advice_no_account_rate_shows_not_applicable(app_page):
     page.fill('#bonusAmount', '400')
     page.fill('#bonusDate', '2026-05-01')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'No interest-bearing account linked' in panel_text, \
@@ -413,7 +403,7 @@ def test_bonus_advice_invalid_amount_shows_validation_alert(app_page):
     _open_bonus_form(page)
 
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
 
     modal = page.query_selector('#alertModal')
     assert modal is not None, "#alertModal not found"
@@ -423,7 +413,7 @@ def test_bonus_advice_invalid_amount_shows_validation_alert(app_page):
     assert 'valid amount' in msg.lower(), \
         f"Modal message should mention 'valid amount', got: {msg!r}"
     page.click('#alertModalOkBtn')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     assert page.query_selector('#bonusAdviceResult').inner_text() == '', \
         "No advice panel content should render when validation fails"
@@ -442,16 +432,15 @@ def _create_three_debts_for_elimination(page):
       - Debt C: balance 5000, min payment 150, rate 15%  (largest balance)
     """
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Elimination Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     debts = [
         ('Debt A', '500', '10', '25'),
@@ -460,7 +449,7 @@ def _create_three_debts_for_elimination(page):
     ]
     for name, balance, rate, min_pmt in debts:
         page.click('#debtFormToggle')
-        page.wait_for_timeout(200)
+        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
         page.fill('#debtName', name)
         page.select_option('#debtType', 'creditCard')
         page.fill('#accountBalance', balance)
@@ -468,7 +457,6 @@ def _create_three_debts_for_elimination(page):
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
         page.click('#debtFormSubmit')
-        page.wait_for_timeout(300)
 
 
 @pytest.mark.feature
@@ -486,7 +474,7 @@ def test_bonus_advice_elimination_plan_eliminates_smallest_and_targets_highest_r
     page.fill('#bonusAmount', '700')
     page.fill('#bonusDate', '2026-05-01')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'Debt A' in panel_text, f"Expected Debt A to be listed as eliminated, got: {panel_text}"
@@ -511,7 +499,7 @@ def test_bonus_advice_elimination_plan_remainder_only_when_bonus_too_small(app_p
     page.fill('#bonusAmount', '100')
     page.fill('#bonusDate', '2026-05-01')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'Debt A' not in panel_text, f"No debt should be listed as eliminated, got: {panel_text}"
@@ -532,7 +520,7 @@ def test_bonus_advice_elimination_plan_pays_off_all_debts(app_page):
     page.fill('#bonusAmount', '6500')
     page.fill('#bonusDate', '2026-05-01')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'Debt A' in panel_text and 'Debt B' in panel_text and 'Debt C' in panel_text, \
@@ -551,16 +539,15 @@ def _create_debts_for_advice_interest_filter(page):
     pool rather than just being decorative.
     """
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Advice Filter Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     debts = [
         ('No Interest Card', '300', '0', '20'),
@@ -568,7 +555,7 @@ def _create_debts_for_advice_interest_filter(page):
     ]
     for name, balance, rate, min_pmt in debts:
         page.click('#debtFormToggle')
-        page.wait_for_timeout(200)
+        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
         page.fill('#debtName', name)
         page.select_option('#debtType', 'creditCard')
         page.fill('#accountBalance', balance)
@@ -576,7 +563,6 @@ def _create_debts_for_advice_interest_filter(page):
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
         page.click('#debtFormSubmit')
-        page.wait_for_timeout(300)
 
 
 @pytest.mark.feature
@@ -594,7 +580,7 @@ def test_bonus_advice_filter_no_interest_only_ignores_interest_bearing_debt(app_
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusAdviceInterestFilter', 'noInterest')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'No Interest Card' in panel_text, f"Expected the 0%-rate card eliminated, got: {panel_text}"
@@ -617,7 +603,7 @@ def test_bonus_advice_filter_interest_bearing_only_ignores_no_interest_debt(app_
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusAdviceInterestFilter', 'interestBearing')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'No Interest Card' not in panel_text, \
@@ -640,7 +626,7 @@ def test_bonus_advice_filter_no_matching_debts_shows_message(app_page):
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusAdviceInterestFilter', 'noInterest')
     page.click('#bonusAdviceBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#bonusAdviceResult:not(:empty)', timeout=5000)
 
     panel_text = page.inner_text('#bonusAdviceResult')
     assert 'No debts match the selected filter' in panel_text, f"Got: {panel_text}"
@@ -659,7 +645,6 @@ def test_income_frequency_weekly_selectable(app_page):
     page.select_option('#incomeFrequency', 'weekly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_timeout(500)
 
     assert page.query_selector('text=Weekly Paycheck') is not None, \
         "Weekly income source not saved"
@@ -682,7 +667,6 @@ def test_income_frequency_twice_monthly_selectable(app_page):
     page.select_option('#incomeFrequency', 'twice_monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_timeout(500)
 
     assert page.query_selector('text=Semi-Monthly Pay') is not None, \
         "Twice-monthly income source not saved"
@@ -697,7 +681,7 @@ def test_income_frequency_select_has_all_four_options(app_page):
     """The income frequency dropdown contains all four options."""
     page = app_page
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
 
     options = page.query_selector_all('#incomeFrequency option')
     values = [o.get_attribute('value') for o in options]

@@ -30,12 +30,12 @@ def test_csp_compliance(page):
     wizard = page.query_selector('#setupWizardModal.flex-visible')
     if wizard:
         page.click('#setupWizardVisibleBtn')
-        page.wait_for_timeout(200)
+        page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
 
     # Trigger all page sections so dynamic rendering runs
     for nav in ["accounts", "income", "liabilities", "savings", "strategy", "reports"]:
         page.click(f'button[data-page="{nav}"]')
-        page.wait_for_timeout(300)
+        page.wait_for_selector(f'button[data-page="{nav}"][aria-current="page"]', timeout=5000)
 
     assert len(csp_errors) == 0, f"CSP violations detected: {csp_errors}"
 
@@ -68,7 +68,7 @@ def test_no_inline_styles_in_html(app_page):
     # Navigate all sections so JS renders dynamic content (debt cards, savings bars, etc.)
     for nav in ["accounts", "income", "liabilities", "savings", "strategy", "reports"]:
         page.click(f'button[data-page="{nav}"]')
-        page.wait_for_timeout(200)
+        page.wait_for_selector(f'button[data-page="{nav}"][aria-current="page"]', timeout=5000)
 
     violations = page.evaluate("""
         () => {
@@ -109,9 +109,9 @@ def test_modal_display_uses_classes_not_styles(app_page):
     # Open debt form panel
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
 
     panel = page.query_selector('#debtFormBody')
     assert panel is not None, "Debt form panel not found"

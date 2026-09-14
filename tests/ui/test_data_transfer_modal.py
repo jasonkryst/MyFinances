@@ -58,7 +58,7 @@ def test_switching_to_import_tab_shows_import_panel(app_page):
     open_data_transfer(page)
 
     page.click('[data-dt-tab="import"]')
-    page.wait_for_timeout(100)
+    page.wait_for_selector('#importJsonBtn', timeout=5000)
 
     assert page.is_visible('#importJsonBtn') is True
     assert page.is_visible('#exportJsonBtn') is False
@@ -118,12 +118,15 @@ def test_import_button_opens_file_picker_and_triggers_import(app_page):
         file_input = page.query_selector('#importJsonInput')
         assert file_input, "Expected #importJsonInput inside the Import panel"
         file_input.set_input_files(temp_file)
-        page.wait_for_timeout(500)
+        page.wait_for_function(
+            "() => !!document.querySelector('#importModeChoice:not(.hidden), #importResultBanner:not(.hidden)')",
+            timeout=5000
+        )
         # A valid, unambiguous single-account file still triggers the
         # Replace/Merge choice (app.js always supplies requestImportMode) -
         # picking either completes the import; Replace is simplest to assert.
         page.click('#importModeReplaceBtn')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#dataTransferModal', timeout=5000)
 
         stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
         assert stored and 'DT Modal Test' in stored
@@ -148,7 +151,10 @@ def test_invalid_json_file_shows_inline_error_banner(app_page):
 
     try:
         page.query_selector('#importJsonInput').set_input_files(temp_file)
-        page.wait_for_timeout(300)
+        page.wait_for_function(
+            "() => !!document.querySelector('#importModeChoice:not(.hidden), #importResultBanner:not(.hidden)')",
+            timeout=5000
+        )
 
         banner = page.query_selector('#importResultBanner')
         assert banner.is_visible()
@@ -176,7 +182,10 @@ def test_empty_data_file_shows_inline_error_banner(app_page):
 
     try:
         page.query_selector('#importJsonInput').set_input_files(temp_file)
-        page.wait_for_timeout(300)
+        page.wait_for_function(
+            "() => !!document.querySelector('#importModeChoice:not(.hidden), #importResultBanner:not(.hidden)')",
+            timeout=5000
+        )
 
         banner = page.query_selector('#importResultBanner')
         assert banner.is_visible()
@@ -219,14 +228,17 @@ def test_replace_vs_merge_choice_shown_inline_not_as_native_confirm(app_page):
 
     try:
         page.query_selector('#importJsonInput').set_input_files(temp_file)
-        page.wait_for_timeout(300)
+        page.wait_for_function(
+            "() => !!document.querySelector('#importModeChoice:not(.hidden), #importResultBanner:not(.hidden)')",
+            timeout=5000
+        )
 
         assert page.is_visible('#importModeChoice')
         summary = page.inner_text('#importModeSummary')
         assert 'account' in summary.lower()
 
         page.click('#importModeMergeBtn')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#dataTransferModal', timeout=5000)
 
         assert page.is_visible('#importModeChoice') is False
         banner = page.query_selector('#importResultBanner')
@@ -268,9 +280,12 @@ def test_merge_with_skipped_duplicates_shows_duplicate_count_not_generic_message
 
     try:
         page.query_selector('#importJsonInput').set_input_files(temp_file)
-        page.wait_for_timeout(300)
+        page.wait_for_function(
+            "() => !!document.querySelector('#importModeChoice:not(.hidden), #importResultBanner:not(.hidden)')",
+            timeout=5000
+        )
         page.click('#importModeMergeBtn')
-        page.wait_for_timeout(300)
+        page.wait_for_selector('#dataTransferModal', timeout=5000)
 
         banner_text = page.inner_text('#importResultBanner')
         assert 'Skipped 1 duplicate' in banner_text
