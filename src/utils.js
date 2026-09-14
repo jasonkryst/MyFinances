@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
-import { getIntlLocale } from './i18n.js';
+import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '5.11.0';
+export const APP_VERSION = '5.12.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -14,13 +14,13 @@ export function debounce(fn, waitMs) {
     };
 }
 
-// Format a number as a USD currency string (e.g., 1234.5 → "$1,234.50" in
-// the default en-US locale; digit grouping/decimal separator/symbol
-// placement follow the active UI locale via getIntlLocale()).
+// Format a number as a currency string using the user's chosen currency code
+// and locale (e.g. 1234.5 → "$1,234.50" for USD/en-US, "€1.234,50" for EUR/es-ES).
+// Both the currency code and locale follow user preferences set in Settings.
 export function formatCurrency(value) {
     return new Intl.NumberFormat(getIntlLocale(), {
         style: 'currency',
-        currency: 'USD',
+        currency: getCurrencyCode(),
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(value);

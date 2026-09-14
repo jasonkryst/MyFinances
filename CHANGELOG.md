@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.12.0] — 2026-09-14
+
+### Added
+- **Currency preference** (issue #147) — Settings modal now has a Currency dropdown (20 major ISO 4217 codes). The selection is persisted under `debtTrackerCurrency` in `localStorage` (same device-preference pattern as `debtTrackerLocale`/`debtTrackerTheme`). `formatCurrency()` reads `getCurrencyCode()` from `i18n.js` instead of hardcoded `'USD'`, so all monetary displays update immediately on save.
+
+---
 ## [5.11.0] — 2026-09-14
 
 ### Changed
