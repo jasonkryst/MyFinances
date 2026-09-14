@@ -14,9 +14,9 @@ def test_modal_classes_not_styles(app_page):
     # Open debt form panel
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtsList', timeout=5000)
     page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
 
     panel = page.query_selector('#debtFormBody')
     assert panel, "Debt form panel should exist"
@@ -32,11 +32,11 @@ def test_modal_visibility_toggle(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtsList', timeout=5000)
 
     # Open debt form panel
     page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
 
     panel = page.query_selector('#debtFormBody')
     assert panel, "Debt form panel should be present"
@@ -51,15 +51,15 @@ def test_modal_close_button(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtsList', timeout=5000)
 
     # Open panel
     page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
 
     # Close panel by toggling again
     page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
 
     panel = page.query_selector('#debtFormBody')
     assert panel, "Debt form panel should be present"
@@ -84,13 +84,13 @@ def test_ledger_override_modal_flow(app_page):
         app.ledgerAmountOverrides = {};
         app.switchPage('ledger');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     override_btn = page.query_selector('[data-ledger-override]')
     assert override_btn, "Expected an override button for the bill transaction"
     assert override_btn.inner_text() == 'Override', "Button should read 'Override' before any override exists"
     override_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("ledgerOverrideModal")?.classList.contains("flex-visible")'
@@ -99,7 +99,7 @@ def test_ledger_override_modal_flow(app_page):
 
     page.fill('#ledgerOverrideAmountInput', '75.50')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("ledgerOverrideModal")?.classList.contains("hidden")'
@@ -117,7 +117,7 @@ def test_ledger_override_modal_flow(app_page):
     clear_btn = page.query_selector('[data-ledger-clear-override]')
     assert clear_btn, "Expected a Reset button once an override exists"
     clear_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     table_html = page.evaluate('() => document.getElementById("ledgerTableContainer")?.innerHTML || ""')
     assert '$75.50' not in table_html, "Overridden amount should be cleared after reset"
@@ -134,19 +134,19 @@ def test_amortization_modal(app_page):
     
     # Create account and debt
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Test Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(500)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Create debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtsList', timeout=5000)
     page.click('#debtFormToggle')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     page.fill('#debtName', 'Test Debt')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '2000')
@@ -154,16 +154,16 @@ def test_amortization_modal(app_page):
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_timeout(500)
+    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     
     # Navigate to strategy and open amortization
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     
     amort_button = page.query_selector('button:has-text("Show Amortization")')
     if amort_button:
         amort_button.click()
-        page.wait_for_timeout(500)
+        page.wait_for_function('true', timeout=1000)
         
         # Modal should be visible
         modal = page.query_selector('#amortizationModal')

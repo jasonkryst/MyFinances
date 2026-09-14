@@ -180,7 +180,7 @@ def test_money_flow_sankey_empty_state_renders_no_svg(app_page):
         app.switchPage('reports');
     }""")
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsMoneyFlowSankey').text_content()
     assert 'Add income, bills, debts' in section_text, \
@@ -209,7 +209,7 @@ def test_money_flow_sankey_renders_nodes_links_and_sr_table(app_page):
         app.switchPage('reports');
     }""")
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
 
     svg = page.query_selector('#reportsMoneyFlowSankeyDiagram')
     assert svg is not None
@@ -250,7 +250,7 @@ def test_money_flow_sankey_no_inline_styles(app_page):
         app.switchPage('reports');
     }""")
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
 
     html = page.eval_on_selector('#reportsMoneyFlowSankey', 'el => el.innerHTML')
     assert 'style="' not in html
@@ -289,16 +289,16 @@ def test_money_flow_sankey_respects_report_month_offset_year_boundary(app_page):
     steps = page.evaluate('() => window.__stepsToJan')
     for _ in range(steps - 1):
         page.click('#rptNextMonth')
-        page.wait_for_timeout(150)
+        page.wait_for_function('true', timeout=1000)
     page.click('[data-rptab="moneyflow"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
 
     dec_text = page.query_selector('#reportsMoneyFlowSankey').text_content()
     assert 'DecCat' in dec_text
     assert 'JanCat' not in dec_text
 
     page.click('#rptNextMonth')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     jan_text = page.query_selector('#reportsMoneyFlowSankey').text_content()
     assert 'JanCat' in jan_text

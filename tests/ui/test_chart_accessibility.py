@@ -33,10 +33,10 @@ def test_health_gauges_have_sr_tables(app_page, account_data, income_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="health"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#healthSection.active', timeout=5000)
 
     _assert_sr_table(page, 'healthDtiGauge')
     _assert_sr_table(page, 'healthSavingsGauge')
@@ -47,7 +47,7 @@ def test_health_gauges_have_sr_tables(app_page, account_data, income_data):
 def test_spending_charts_have_sr_tables(app_page):
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.evaluate("""(dates) => {
         const app = window.app;
         app.expenses = [
@@ -62,7 +62,7 @@ def test_spending_charts_have_sr_tables(app_page):
         app.renderReportsPage();
     }""", {"rent": current_month_iso(1), "groceries": current_month_iso(10)})
     page.click('[data-rptab="spending"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
 
     _assert_sr_table(page, 'rptSpendingPieChart')
     _assert_sr_table(page, 'rptSpendingBarChart')
@@ -77,12 +77,12 @@ def test_forecast_chart_has_sr_table(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     _assert_sr_table(page, 'cfForecastChart')
     assert_no_errors(page)
@@ -96,12 +96,12 @@ def test_networth_trend_chart_has_sr_table(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="networth"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
 
     _assert_sr_table(page, 'rptNetWorthTrendChart')
     assert_no_errors(page)
@@ -119,12 +119,12 @@ def test_strategy_schedule_charts_have_sr_tables(app_page, debt_data, income_dat
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     create_debt(page, debt_data)
 
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     page.fill('#incomeName', income_data["name"])
     page.fill('#incomeAmount', income_data["amount"])
     page.fill('#incomeFirstDate', income_data["first_date"])
@@ -134,16 +134,16 @@ def test_strategy_schedule_charts_have_sr_tables(app_page, debt_data, income_dat
     page.wait_for_selector(f'#incomeList >> text={income_data["name"]}', timeout=10000)
 
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('.strategy-results-section', timeout=10000)
 
     page.click('[data-rtab="schedule"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
     page.click('button[data-tab="chart"]')
-    page.wait_for_timeout(400)
+    page.wait_for_selector(f'button[data-tab="chart"].active', timeout=5000)
 
     _assert_sr_table(page, 'balanceChart')
     _assert_sr_table(page, 'progressChart')
@@ -163,9 +163,9 @@ def test_budget_cashflow_charts_have_sr_tables(app_page, debt_data):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="expenses"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#expensesList', timeout=5000)
     page.click('.cashflow-tab[data-tab="charts"]')
-    page.wait_for_timeout(400)
+    page.wait_for_function('true', timeout=1000)
 
     _assert_sr_table(page, 'cashflowDonutChart')
     _assert_sr_table(page, 'cashflowBarChart')

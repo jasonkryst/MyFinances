@@ -17,13 +17,13 @@ def test_forecast_tab_exists(app_page):
     page = app_page
 
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     tab = page.query_selector('[data-rptab="forecast"]')
     assert tab, "Forecast tab button not found"
 
     tab.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     panel = page.query_selector('#rptPanel-forecast')
     assert panel and panel.evaluate('(el) => el.offsetParent !== null'), \
@@ -39,10 +39,10 @@ def test_forecast_empty_state_with_no_accounts(app_page):
         window.app.accounts = [];
         window.app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Go to Accounts' in section_text, \
@@ -62,10 +62,10 @@ def test_forecast_default_render_with_account(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section = page.query_selector('#reportsCashFlowForecast')
     assert section.query_selector('.cf-controls'), "Forecast controls not rendered"
@@ -94,10 +94,10 @@ def test_forecast_account_dropdown_excludes_liabilities(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     options = page.query_selector_all('#forecastAccountSelect option')
     option_texts = [o.text_content() for o in options]
@@ -121,16 +121,16 @@ def test_forecast_account_selector_switches_view(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert '$7,000.00' in section_text, "Total Cash Position should sum both accounts (5000 + 2000)"
 
     page.select_option('#forecastAccountSelect', label='Checking')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert '$5,000.00' in section_text, "Selecting Checking should show its balance alone"
@@ -150,10 +150,10 @@ def test_forecast_negative_balance_warning(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section = page.query_selector('#reportsCashFlowForecast')
     section_text = section.text_content()
@@ -188,10 +188,10 @@ def test_forecast_intramonth_dip_warning_when_recovers(app_page):
         app._forecastAccountId = 'total';
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Projected to dip negative' in section_text, "Expected an intra-month dip warning"
@@ -227,10 +227,10 @@ def test_forecast_total_view_intramonth_dip_across_accounts(app_page):
         app._forecastAccountId = 'total';
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Projected to dip negative' in section_text, "Expected the combined total to dip negative on the 1st"
@@ -255,10 +255,10 @@ def test_forecast_no_dip_when_balance_monotonic(app_page):
         app._forecastAccountId = 'total';
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Dips to' not in section_text
@@ -281,10 +281,10 @@ def test_forecast_income_only_months_no_notable_drivers(app_page):
         app._forecastAccountId = 'total';
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Driven by' not in section_text, "No notable-month drivers should appear when there is no outflow"
@@ -320,10 +320,10 @@ def test_forecast_total_view_sums_multiple_accounts_over_horizon(app_page):
         app._forecastAccountId = 'total';
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     # Total view: (1000 + 2000) starting + 3 months * (500 + 100) income = 4800
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
@@ -331,7 +331,7 @@ def test_forecast_total_view_sums_multiple_accounts_over_horizon(app_page):
 
     # Switch to Checking only and verify its individual ending balance
     page.select_option('#forecastAccountSelect', label='Checking')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert '$2,500.00' in section_text, "Expected Checking ending balance of $2,500.00 (1000 + 3*500)"
 
@@ -359,10 +359,10 @@ def test_forecast_notable_month_shows_drivers(app_page):
         app._forecastNotableThresholdPct = 130;
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Driven by' in section_text, "Expected a notable-month driver row"
@@ -393,17 +393,17 @@ def test_forecast_threshold_input_updates_notable_months(app_page):
         delete app._forecastNotableThresholdPct;
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Driven by' in section_text, "Expected a notable-month driver row at the default threshold"
 
     page.fill('#forecastThresholdInput', '500')
     page.dispatch_event('#forecastThresholdInput', 'change')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     section_text = page.query_selector('#reportsCashFlowForecast').text_content()
     assert 'Driven by' not in section_text, "Raising the threshold to 500% should clear the notable-month row"
@@ -424,16 +424,16 @@ def test_forecast_horizon_button_changes_table_rows(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     rows = page.query_selector_all('#reportsCashFlowForecast .nw-history-table tbody tr')
     assert len(rows) == 1, f"Expected 1 row for default 1-month horizon, got {len(rows)}"
 
     page.click('[data-forecast-range="6"]')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     rows = page.query_selector_all('#reportsCashFlowForecast .nw-history-table tbody tr')
     assert len(rows) == 6, f"Expected 6 rows after selecting 6-month horizon, got {len(rows)}"
@@ -455,25 +455,25 @@ def test_forecast_settings_persist_after_reload(app_page):
         app.saveToStorage();
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     page.click('[data-forecast-range="3"]')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.fill('#forecastThresholdInput', '200')
     page.dispatch_event('#forecastThresholdInput', 'change')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     page.reload(wait_until="networkidle")
-    page.wait_for_timeout(500)
+    page.wait_for_function('true', timeout=1000)
 
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="forecast"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
 
     active_btn = page.query_selector('[data-forecast-range="3"].active')
     assert active_btn, "3-month horizon should remain selected after reload"
@@ -497,7 +497,7 @@ def test_forecast_settings_export_import_roundtrip(app_page):
         app._forecastNotableThresholdPct = 250;
         app.saveToStorage();
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     result = page.evaluate("""async () => {
         const app = window.app;

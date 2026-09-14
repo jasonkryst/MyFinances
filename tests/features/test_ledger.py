@@ -12,7 +12,7 @@ def test_ledger_navigation(app_page):
     page = app_page
     
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     
     # Verify ledger section loads
     ledger_section = page.query_selector('#ledgerSection')
@@ -26,16 +26,16 @@ def test_transaction_history(app_page):
     
     # Create some transactions first
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Ledger Test')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '5000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(500)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Navigate to ledger
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     
     # Ledger should show transactions
     ledger_section = page.query_selector('#ledgerSection')
@@ -48,7 +48,7 @@ def test_ledger_filtering(app_page):
     page = app_page
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
 
     # Look for filter controls
     filter_elements = page.query_selector_all('[data-filter], [class*="filter"]')
@@ -83,7 +83,7 @@ def _seed_income_for_ledger(page, name="Override Salary", amount=4000):
     the ledger has at least one overridable transaction (income paydays
     project forward from today). Income requires an account selection."""
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Ledger Test Checking')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
@@ -91,7 +91,7 @@ def _seed_income_for_ledger(page, name="Override Salary", amount=4000):
     page.wait_for_selector('text=Ledger Test Checking', timeout=10000)
 
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     page.fill('#incomeName', name)
     page.fill('#incomeAmount', str(amount))
     page.fill('#incomeFirstDate', '2026-06-01')
@@ -111,7 +111,7 @@ def test_ledger_override_modal_updates_row_amount(app_page):
     _seed_income_for_ledger(page)
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector('[data-ledger-override]', timeout=10000)
 
     override_btn = page.query_selector('[data-ledger-override]')
@@ -123,7 +123,7 @@ def test_ledger_override_modal_updates_row_amount(app_page):
 
     page.fill('#ledgerOverrideAmountInput', '1234.56')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
 
     row_amount_text = page.evaluate(
         """(txId) => {
@@ -155,7 +155,7 @@ def test_ledger_override_persists_after_reload(app_page):
     _seed_income_for_ledger(page, name="Persist Salary")
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector('[data-ledger-override]', timeout=10000)
 
     override_btn = page.query_selector('[data-ledger-override]')
@@ -165,7 +165,7 @@ def test_ledger_override_persists_after_reload(app_page):
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '777.77')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
 
     # Confirm it actually landed in localStorage before reloading.
     stored_overrides = page.evaluate(
@@ -182,7 +182,7 @@ def test_ledger_override_persists_after_reload(app_page):
 
     page.reload(wait_until="networkidle")
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector(f'[data-ledger-override="{tx_id}"]', timeout=10000)
 
     row_amount_text = page.evaluate(
@@ -209,7 +209,7 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     _seed_income_for_ledger(page, name="Collision Salary B", amount=3500)
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector('[data-ledger-override]', timeout=10000)
 
     override_btns = page.query_selector_all('[data-ledger-override]')
@@ -224,7 +224,7 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '111.11')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
 
     # Override the second row with a different amount.
     btn2 = page.query_selector(f'[data-ledger-override="{tx_id_2}"]')
@@ -232,7 +232,7 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '222.22')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
 
     stored_overrides = page.evaluate(
         """() => {
@@ -261,7 +261,7 @@ def test_ledger_cleared_checkbox_marks_row_and_records_timestamp(app_page):
     _seed_income_for_ledger(page)
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
 
     checkbox = page.query_selector('[data-ledger-cleared]')
@@ -269,7 +269,7 @@ def test_ledger_cleared_checkbox_marks_row_and_records_timestamp(app_page):
     assert not checkbox.is_checked(), "Row should start uncleared"
 
     checkbox.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     state = page.evaluate(
@@ -294,13 +294,13 @@ def test_ledger_cleared_persists_after_reload(app_page):
     _seed_income_for_ledger(page)
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
 
     checkbox = page.query_selector('[data-ledger-cleared]')
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     checkbox.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     stored = page.evaluate(
         """() => {
@@ -334,17 +334,17 @@ def test_ledger_cleared_unchecking_clears_state_and_timestamp(app_page):
     _seed_income_for_ledger(page)
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
 
     checkbox = page.query_selector('[data-ledger-cleared]')
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     checkbox.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     checkbox_again = page.query_selector(f'[data-ledger-cleared="{tx_id}"]')
     checkbox_again.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     stored = page.evaluate(
         """() => {
@@ -370,7 +370,7 @@ def test_ledger_cleared_for_different_keys_do_not_collide(app_page):
     _seed_income_for_ledger(page, name="Cleared Salary B", amount=3500)
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
 
     checkboxes = page.query_selector_all('[data-ledger-cleared]')
@@ -381,7 +381,7 @@ def test_ledger_cleared_for_different_keys_do_not_collide(app_page):
     assert tx_id_1 != tx_id_2
 
     checkboxes[0].click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     state = page.evaluate(
         """([txId1, txId2]) => ({
@@ -410,7 +410,7 @@ def test_reconciliation_and_rollover_rows_have_no_cleared_checkbox(app_page):
     }""")
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
 
     cleared_present = page.evaluate("""() => {
         const rows = Array.from(document.querySelectorAll('.ledger-row--reconciliation'));
@@ -493,7 +493,7 @@ def test_reconciliation_row_not_editable_via_override_modal(app_page):
     }""")
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
 
     override_present = page.evaluate("""() => {
         const rows = Array.from(document.querySelectorAll('.ledger-row--reconciliation'));

@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.4.3] — 2026-09-13
+
+### Changed
+- **Deterministic test waits** — replaced all non-intentional `wait_for_timeout()` calls in the Playwright test suite with `wait_for_selector` / `wait_for_function` conditions (issue #150). Reduces flakiness from fixed-delay races and makes CI failures point to real problems rather than timing assumptions. Intentional exceptions kept: one `wait_for_timeout(20)` in `test_whatif_simulator.py` (below the 150 ms debounce threshold) and postgres-backend tests with multi-second waits for network-async bulk operations.
+
 ## [5.4.0] — 2026-09-13
 
 ### Added

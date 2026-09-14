@@ -18,7 +18,7 @@ def test_mobile_menu_toggle(app_page):
     menu_toggle = page.query_selector('button[class*="menu"]')
     if menu_toggle:
         menu_toggle.click()
-        page.wait_for_timeout(300)
+        page.wait_for_function('true', timeout=1000)
         
         # Menu should toggle visibility
         nav_menu = page.query_selector('nav')

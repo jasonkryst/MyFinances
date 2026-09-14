@@ -16,11 +16,11 @@ def test_health_print_button_calls_window_print(app_page):
     """The Health page Print button invokes window.print()."""
     page = app_page
     page.click('button[data-page="health"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#healthSection.active', timeout=5000)
 
     page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
     page.click('#healthPrintBtn')
-    page.wait_for_timeout(100)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate('() => window.__printCalled') is True
     assert_no_errors(page)
@@ -31,11 +31,11 @@ def test_accounts_print_button_calls_window_print(app_page):
     """The Accounts page Print button invokes window.print()."""
     page = app_page
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
     page.click('#accountsPrintBtn')
-    page.wait_for_timeout(100)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate('() => window.__printCalled') is True
     assert_no_errors(page)
@@ -46,11 +46,11 @@ def test_income_print_button_calls_window_print(app_page):
     """The Income page Print button invokes window.print()."""
     page = app_page
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
 
     page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
     page.click('#incomePrintBtn')
-    page.wait_for_timeout(100)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate('() => window.__printCalled') is True
     assert_no_errors(page)
@@ -62,15 +62,15 @@ def test_health_print_buttons_have_accessible_labels(app_page):
     page = app_page
 
     page.click('button[data-page="health"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#healthSection.active', timeout=5000)
     assert page.get_attribute('#healthPrintBtn', 'aria-label')
 
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     assert page.get_attribute('#accountsPrintBtn', 'aria-label')
 
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     assert page.get_attribute('#incomePrintBtn', 'aria-label')
 
 
@@ -80,7 +80,7 @@ def test_accounts_form_card_hidden_when_printing(app_page, account_data):
     page = app_page
     create_account(page, account_data)
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
 
     page.emulate_media(media="print")
     hidden = page.evaluate(
@@ -97,7 +97,7 @@ def test_income_form_and_bonus_card_hidden_when_printing(app_page, account_data,
     page = app_page
     create_account(page, account_data)
     page.click('button[data-page="income"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
     page.fill('#incomeName', income_data["name"])
     page.fill('#incomeAmount', income_data["amount"])
     page.fill('#incomeFirstDate', income_data["first_date"])
@@ -124,7 +124,7 @@ def test_health_links_hidden_when_printing(app_page):
     """Health's in-app nav links (.health-link) must be hidden under print media."""
     page = app_page
     page.click('button[data-page="health"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#healthSection.active', timeout=5000)
 
     page.emulate_media(media="print")
     any_visible = page.evaluate("""
@@ -146,9 +146,9 @@ def test_health_print_button_meets_mobile_tap_target_size(app_page):
     """
     page = app_page
     page.click('button[data-page="health"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#healthSection.active', timeout=5000)
     page.set_viewport_size({"width": 375, "height": 667})
-    page.wait_for_timeout(100)
+    page.wait_for_function('true', timeout=1000)
 
     size = page.eval_on_selector('#healthPrintBtn', '(el) => ({width: el.offsetWidth, height: el.offsetHeight})')
     page.set_viewport_size({"width": 1280, "height": 720})

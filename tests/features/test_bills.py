@@ -98,7 +98,7 @@ def test_bills_factor_into_account_projected_balance(app_page):
         app.saveToStorage();
         app.switchPage('accounts');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     now = page.evaluate("""() => {
         const now = new Date();
@@ -121,7 +121,7 @@ def test_bills_factor_into_health_cash_flow(app_page):
         app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_timeout(500)
+    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()

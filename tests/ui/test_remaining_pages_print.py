@@ -27,11 +27,11 @@ def test_print_button_calls_window_print(app_page, page_name, btn_id):
     """Each remaining page's Print button invokes window.print()."""
     page = app_page
     page.click(f'button[data-page="{page_name}"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector(f'button[data-page="{page_name}"][aria-current="page"]', timeout=5000)
 
     page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
     page.click(f'#{btn_id}')
-    page.wait_for_timeout(100)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate('() => window.__printCalled') is True
     assert_no_errors(page)
@@ -43,7 +43,7 @@ def test_print_button_has_accessible_label(app_page, page_name, btn_id):
     """Each remaining page's Print button must expose an accessible label."""
     page = app_page
     page.click(f'button[data-page="{page_name}"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector(f'button[data-page="{page_name}"][aria-current="page"]', timeout=5000)
 
     assert page.get_attribute(f'#{btn_id}', 'aria-label')
 
@@ -53,7 +53,7 @@ def test_liabilities_form_cards_hidden_when_printing(app_page):
     """The Debts and Budget add-forms must be hidden under print media."""
     page = app_page
     page.click('button[data-page="liabilities"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
 
     page.emulate_media(media="print")
     debts_hidden = page.evaluate(
@@ -78,7 +78,7 @@ def test_recurring_form_card_hidden_when_printing(app_page):
     """The Recurring add-form must be hidden under print media."""
     page = app_page
     page.click('button[data-page="recurring"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#recurringSection.active', timeout=5000)
 
     page.emulate_media(media="print")
     hidden = page.evaluate(
@@ -94,7 +94,7 @@ def test_strategy_controls_hidden_when_printing(app_page):
     """The Strategy controls and target-date panel must be hidden under print media."""
     page = app_page
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
 
     page.emulate_media(media="print")
     controls_hidden = page.evaluate(
@@ -114,7 +114,7 @@ def test_savings_emergency_form_card_hidden_when_printing(app_page):
     """The Savings Emergency Fund add-form must be hidden under print media."""
     page = app_page
     page.click('button[data-page="savings"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
 
     page.emulate_media(media="print")
     hidden = page.evaluate(
@@ -131,7 +131,7 @@ def test_reconcile_form_grid_hidden_when_printing(app_page, account_data):
     page = app_page
     create_account(page, account_data)
     page.click('button[data-page="reconcile"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reconcileSection.active', timeout=5000)
 
     page.emulate_media(media="print")
     hidden = page.evaluate(

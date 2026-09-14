@@ -32,7 +32,7 @@ def _add_expense_via_ui(page, name="Groceries", amount="250.00", date="2026-09-0
     page.fill('#expenseBudget', amount)
     page.fill('#expenseDate', date)
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
 
 # ─────────────────────────── positive tests ───────────────────────────
@@ -67,7 +67,7 @@ def test_expense_survives_page_reload(app_page):
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
-    page.wait_for_timeout(400)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=Utilities'), \
         "Expense should survive a page reload (was silently dropped by date sanitisation bug)"
@@ -111,7 +111,7 @@ def test_self_healing_corrupted_utc_date_on_reload(app_page):
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
-    page.wait_for_timeout(400)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=Legacy Corrupted'), \
         "Expense with corrupted UTC date should survive reload after self-healing fix"
@@ -130,14 +130,14 @@ def test_edited_expense_date_survives_reload(app_page):
 
     if expense_id:
         page.evaluate(f"() => window.app.startEditExpense({expense_id})")
-        page.wait_for_timeout(200)
+        page.wait_for_function('true', timeout=1000)
         page.fill(f'#ee-date-{expense_id}', '2026-10-20')
         page.evaluate(f"() => window.app.saveEditExpense({expense_id})")
-        page.wait_for_timeout(200)
+        page.wait_for_function('true', timeout=1000)
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
-    page.wait_for_timeout(400)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=Car Insurance'), \
         "Edited expense should survive reload after date edit"
@@ -157,7 +157,7 @@ def test_expense_add_rejected_when_name_empty(app_page):
 
     initial_count = page.evaluate("() => window.app.expenses.length")
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(200)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
     assert page.evaluate("() => window.app.expenses.length") == initial_count, \
         "Expense should not be added when name is empty"
@@ -177,7 +177,7 @@ def test_expense_add_rejected_when_date_empty(app_page):
 
     initial_count = page.evaluate("() => window.app.expenses.length")
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(200)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
     assert page.evaluate("() => window.app.expenses.length") == initial_count, \
         "Expense should not be added when date is empty"
@@ -196,7 +196,7 @@ def test_expense_add_rejected_when_amount_negative(app_page):
 
     initial_count = page.evaluate("() => window.app.expenses.length")
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(200)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
     assert page.evaluate("() => window.app.expenses.length") == initial_count, \
         "Expense should not be added when amount is negative"
@@ -222,7 +222,7 @@ def test_corrupted_expense_with_null_date_is_dropped(app_page):
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
-    page.wait_for_timeout(400)
+    page.wait_for_function('true', timeout=1000)
 
     counts = page.evaluate("""() => ({
         good: window.app.expenses.filter(e => e.name === 'Good Expense').length,

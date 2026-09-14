@@ -12,11 +12,11 @@ def _calculate_plan(page, debt_data):
     """Create a debt and run a payment plan so the Results tab bar renders."""
     create_debt(page, debt_data)
     page.click('button[data-page="strategy"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', '200')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_timeout(500)
+    page.wait_for_selector('.strategy-results-section', timeout=10000)
 
 
 @pytest.mark.ui
@@ -26,7 +26,7 @@ def test_keyboard_navigation(app_page):
     
     # Tab through page elements
     page.keyboard.press('Tab')
-    page.wait_for_timeout(100)
+    page.wait_for_function('true', timeout=1000)
     
     # Should be able to focus on interactive elements
     focused_elem = page.evaluate('() => document.activeElement.tagName')
@@ -54,7 +54,7 @@ def test_form_labels(app_page):
     page = app_page
     
     page.click('button[data-page="accounts"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
     
     # Find form inputs
     inputs = page.query_selector_all('input')
@@ -113,7 +113,7 @@ def test_focus_indicators(app_page):
     buttons = page.query_selector_all('button')
     if buttons:
         buttons[0].focus()
-        page.wait_for_timeout(100)
+        page.wait_for_function('true', timeout=1000)
         
         # Element should show focus state
         focus_outline = buttons[0].evaluate("""
@@ -162,7 +162,7 @@ def test_reconcile_inputs_have_labels(app_page):
         app._reconciliationAccountFilter = 'all';
         app.switchPage('reconcile');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     for field in ('date', 'balance', 'note'):
         label = page.query_selector(f'label[for="recon-{field}-8501"]')
@@ -184,7 +184,7 @@ def test_reconcile_action_buttons_are_buttons(app_page):
         app.applyReconciliation(8502, 1100, '', '2026-06-10');
         app.switchPage('reconcile');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     reconcile_btn = page.query_selector('[data-recon-action="reconcile"][data-recon-id="8502"]')
     assert reconcile_btn, "Expected a reconcile button"
@@ -209,13 +209,13 @@ def test_reconcile_modal_focus_and_keyboard_trap(app_page):
         app._reconciliationAccountFilter = 'all';
         app.openReconcileModal(8503);
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'reconcileModalBalance', "Opening the modal should focus the balance input"
 
     page.keyboard.press('Escape')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("hidden")'
@@ -237,17 +237,17 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     # The reconcile *modal* opens from the Ledger page's per-account filter
     # (not the Reconcile page's own inline reconcileAccount() form, a
     # separate code path keyed off the same "reconcile" wording).
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#ledgerTableBody', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
     # Last focusable -> Tab -> wraps to first (close button)
     page.evaluate("() => document.getElementById('reconcileModalCancelBtn').focus()")
@@ -271,17 +271,17 @@ def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="ledger"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#ledgerTableBody', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
     page.keyboard.press('Escape')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'reconcileFromLedgerBtn', "Focus should return to the triggering Reconcile button"
@@ -298,7 +298,7 @@ def test_delete_confirm_modal_tab_trap_cycles_focus(app_page, debt_data):
     page = app_page
     create_debt(page, debt_data)
     page.click('[data-debt-action="delete"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("deleteConfirmModal")?.classList.contains("flex-visible")'
@@ -322,10 +322,10 @@ def test_delete_confirm_modal_restores_focus_on_dismiss(app_page, debt_data):
     page = app_page
     create_debt(page, debt_data)
     page.click('[data-debt-action="delete"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
 
     page.keyboard.press('Escape')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     focused_action = page.evaluate('() => document.activeElement.getAttribute("data-debt-action")')
     assert focused_action == 'delete', "Focus should return to the triggering delete button"
@@ -346,12 +346,12 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     page.fill('#accountName', 'Spare Account')
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '500')
     page.click('#accountFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     # Link a debt to the first account so deleting it triggers the replacement modal.
     linked_account_id = page.evaluate("""() => {
@@ -363,11 +363,11 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
         app.renderAccountsList();
         return acct.id;
     }""")
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
 
     delete_btn = page.query_selector(f'button[data-account-action="delete"][data-account-id="{linked_account_id}"]')
     delete_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("accountReplacementModal")?.classList.contains("flex-visible")'
@@ -385,7 +385,7 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
         "Shift+Tab from the first focusable element should wrap to the last"
 
     page.keyboard.press('Escape')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     focused_action = page.evaluate('() => document.activeElement.getAttribute("data-account-action")')
     assert focused_action == 'delete', "Focus should return to the triggering delete button"
@@ -396,7 +396,7 @@ def test_reports_print_button_has_accessible_label(app_page):
     """#rptPrintBtn must have a non-empty aria-label for screen readers."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
     btn = page.query_selector('#rptPrintBtn')
     assert btn
     label = btn.get_attribute('aria-label')
@@ -422,13 +422,13 @@ def test_settings_modal_focus_and_keyboard_trap(app_page):
     page = app_page
 
     page.click('#settingsBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
 
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'settingReconciliationAdjusts', "Opening Settings should focus the checkbox"
 
     page.keyboard.press('Escape')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("settingsModal")?.classList.contains("hidden")'
@@ -474,12 +474,12 @@ def test_calendar_day_modal_has_dialog_role_and_focus_management(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
     assert cell, "Expected at least one day cell with events"
     cell.click()
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'calendarDayModalCloseBtn'
 
@@ -511,7 +511,7 @@ def test_reports_nav_tablist_role(app_page):
     """The Reports tab bar has role=tablist for screen reader semantics."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     role = page.evaluate(
         '() => document.querySelector(".rpt-tab-bar")?.getAttribute("role")'
@@ -524,7 +524,7 @@ def test_reports_tab_buttons_have_role_tab(app_page):
     """Every report tab button has role=tab."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     roles = page.evaluate("""
         () => Array.from(document.querySelectorAll('.rpt-tab-btn'))
@@ -539,10 +539,10 @@ def test_reports_active_tab_aria_selected_true(app_page):
     """The active tab has aria-selected=true; all others have aria-selected=false."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     page.click('[data-rptab="networth"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
 
     result = page.evaluate("""
         () => {
@@ -563,7 +563,7 @@ def test_reports_tab_buttons_have_aria_controls(app_page):
     """Each tab button has aria-controls pointing to its panel id."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     mismatches = page.evaluate("""
         () => {
@@ -591,7 +591,7 @@ def test_reports_group_separators_aria_hidden(app_page):
     """Decorative group separator divs are aria-hidden so screen readers skip them."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     seps = page.evaluate("""
         () => Array.from(document.querySelectorAll('.rpt-tab-group-sep'))
@@ -607,7 +607,7 @@ def test_reports_group_labels_are_not_interactive(app_page):
     """Group chip labels are <span> elements (not buttons), so they are not in the tab focus order."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     tags = page.evaluate("""
         () => Array.from(document.querySelectorAll('.rpt-tab-group-label'))
@@ -622,11 +622,11 @@ def test_reports_tab_keyboard_focus_reachable(app_page):
     """Pressing Tab from the nav bar reaches each tab button via keyboard."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     # Focus the first tab button
     page.evaluate('() => document.querySelector(".rpt-tab-btn").focus()')
-    page.wait_for_timeout(100)
+    page.wait_for_function('true', timeout=1000)
 
     focused = page.evaluate('() => document.activeElement.classList.contains("rpt-tab-btn")')
     assert focused, "Could not focus a .rpt-tab-btn via JS focus()"
@@ -640,7 +640,7 @@ def test_reports_tab_keyboard_focus_reachable(app_page):
         if tab_id:
             focused_tabs.add(tab_id)
         page.keyboard.press('Tab')
-        page.wait_for_timeout(50)
+        page.wait_for_function('true', timeout=1000)
 
     expected = {'calendar', 'spending', 'incomeexp', 'moneyflow', 'variance', 'networth', 'forecast'}
     assert expected.issubset(focused_tabs), \
@@ -652,7 +652,7 @@ def test_reports_active_tab_has_focus_visible_outline(app_page):
     """Tab buttons show a visible focus ring via :focus-visible (not suppressed)."""
     page = app_page
     page.click('button[data-page="reports"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
 
     # Check that :focus-visible outline is not 'none' in the stylesheet
     has_focus_visible = page.evaluate("""
@@ -703,7 +703,7 @@ async def test_main_nav_active_page_aria_current(async_app_page):
 async def test_main_nav_aria_current_updates_on_click(async_app_page):
     """Clicking a page button must move aria-current='page' to the new button."""
     await async_app_page.click('[data-page="reports"]')
-    await async_app_page.wait_for_timeout(200)
+    await async_app_page.wait_for_selector('[data-page="reports"][aria-current="page"]', timeout=5000)
     reports_val = await async_app_page.get_attribute('[data-page="reports"]', 'aria-current')
     health_val  = await async_app_page.get_attribute('[data-page="health"]',  'aria-current')
     assert reports_val == 'page',  f"reports aria-current should be 'page', got {reports_val!r}"
@@ -780,7 +780,7 @@ def test_results_active_tab_aria_selected_true(app_page, debt_data):
     _calculate_plan(page, debt_data)
 
     page.click('[data-rtab="schedule"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
 
     result = page.evaluate("""
         () => {
@@ -825,7 +825,7 @@ def test_results_tab_panel_switch_updates_active_panel(app_page, debt_data):
     _calculate_plan(page, debt_data)
 
     page.click('[data-rtab="debt-summary"]')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#rPanel-debt-summary', timeout=5000)
 
     result = page.evaluate("""
         () => {

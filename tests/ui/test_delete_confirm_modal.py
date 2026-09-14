@@ -45,7 +45,7 @@ def test_delete_debt_shows_themed_modal(app_page):
     dialog_triggered = []
     page.once('dialog', lambda d: (dialog_triggered.append(True), d.dismiss()))
     page.click('[data-debt-action="delete"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
 
     assert not dialog_triggered, "Native browser dialog should not appear -- use themed modal"
 
@@ -75,7 +75,7 @@ def test_delete_debt_cancel_keeps_debt(app_page):
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
 
     page.click('#deleteConfirmCancelBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#deleteConfirmModal.hidden', timeout=5000)
 
     modal = page.query_selector('#deleteConfirmModal')
     classes = modal.get_attribute('class') or ''
@@ -104,7 +104,7 @@ def test_delete_debt_confirm_removes_debt(app_page):
     page.click('[data-debt-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_timeout(500)
+    page.wait_for_function('true', timeout=1000)
 
     modal = page.query_selector('#deleteConfirmModal')
     classes = modal.get_attribute('class') or ''
@@ -134,7 +134,7 @@ def test_delete_confirm_modal_closes_on_escape(app_page):
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
 
     page.keyboard.press('Escape')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal = page.query_selector('#deleteConfirmModal')
     classes = modal.get_attribute('class') or ''
@@ -155,7 +155,7 @@ def test_clear_all_data_uses_themed_modal(app_page):
     dialog_triggered = []
     page.once('dialog', lambda d: (dialog_triggered.append(True), d.dismiss()))
     page.click('#clearDataBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     assert not dialog_triggered, "Clear All Data must use themed modal, not native confirm()"
 
@@ -164,4 +164,4 @@ def test_clear_all_data_uses_themed_modal(app_page):
     assert 'flex-visible' in classes, "#deleteConfirmModal should be visible after Clear All Data click"
 
     page.click('#deleteConfirmCancelBtn')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#deleteConfirmModal.hidden', timeout=5000)

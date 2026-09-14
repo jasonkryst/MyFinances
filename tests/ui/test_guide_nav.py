@@ -59,7 +59,7 @@ def test_mobile_toc_toggle_opens_and_focuses_first_link(page):
     _goto_guide(page, {'width': 390, 'height': 844})
 
     page.click('#tocToggle')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#tocList', timeout=5000)
 
     expanded = page.get_attribute('#tocToggle', 'aria-expanded')
     list_display = page.eval_on_selector('#tocList', 'el => getComputedStyle(el).display')
@@ -76,9 +76,9 @@ def test_mobile_toc_escape_closes_and_returns_focus(page):
     _goto_guide(page, {'width': 390, 'height': 844})
 
     page.click('#tocToggle')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#tocList', timeout=5000)
     page.keyboard.press('Escape')
-    page.wait_for_timeout(150)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     expanded = page.get_attribute('#tocToggle', 'aria-expanded')
     focused_id = page.evaluate('() => document.activeElement.id')
@@ -92,9 +92,9 @@ def test_mobile_toc_outside_click_closes_dropdown(page):
     _goto_guide(page, {'width': 390, 'height': 844})
 
     page.click('#tocToggle')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#tocList', timeout=5000)
     page.evaluate('() => document.body.click()')
-    page.wait_for_timeout(150)
+    page.wait_for_function('true', timeout=1000)
 
     is_open = page.eval_on_selector('#tocList', 'el => el.classList.contains("toc-list--open")')
     assert not is_open
@@ -106,9 +106,9 @@ def test_mobile_toc_link_click_closes_dropdown_and_navigates(page):
     _goto_guide(page, {'width': 390, 'height': 844})
 
     page.click('#tocToggle')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#tocList', timeout=5000)
     page.click('#tocList a[href="#tracking-income"]')
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
 
     is_open = page.eval_on_selector('#tocList', 'el => el.classList.contains("toc-list--open")')
     assert not is_open
@@ -126,7 +126,7 @@ def test_back_to_top_hidden_until_scrolled(page):
     assert not visible_before
 
     page.evaluate('() => window.scrollTo(0, 800)')
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
     visible_after = page.eval_on_selector(
         '#backToTop', 'el => el.classList.contains("back-to-top--visible")'
     )
@@ -139,9 +139,9 @@ def test_back_to_top_scrolls_to_top(page):
     _goto_guide(page, {'width': 1280, 'height': 900})
 
     page.evaluate('() => window.scrollTo(0, 800)')
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
     page.click('#backToTop')
-    page.wait_for_timeout(500)
+    page.wait_for_function('window.scrollY < 100', timeout=5000)
 
     assert page.evaluate('() => window.scrollY') == 0
 

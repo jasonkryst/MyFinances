@@ -12,7 +12,7 @@ def _open_expenses_panel(page):
     """Navigate to Liabilities > Expenses subtab and expand the add-expense form."""
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="expenses"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#expensesList', timeout=5000)
     page.click('#expenseFormToggle')
     page.wait_for_selector('#expenseForm', state="visible", timeout=5000)
 
@@ -40,7 +40,7 @@ def _add_expense(page, expense_data):
         category=expense_data["category"],
     )
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
 
 @pytest.mark.feature
@@ -50,7 +50,7 @@ def test_expense_tab_navigation(app_page):
     
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="expenses"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#expensesList', timeout=5000)
     
     # Verify expense section loads
     expense_section = page.query_selector('#expensesSection')
@@ -63,7 +63,7 @@ def test_bill_tracking(app_page):
     page = app_page
     
     page.click('button[data-page="liabilities"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
     
     # Look for bill management section
     liabilities_section = page.query_selector('#liabilitiesSection')
@@ -107,7 +107,7 @@ def test_edit_expense(app_page, expense_data):
     page.fill(f'#ee-amount-{expense_id}', '450')
     page.select_option(f'#ee-cat-{expense_id}', 'Entertainment')
     page.click(f'.budget-card--editing [data-expense-action="save"]')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     amount_text = page.text_content('.budget-card-amount')
     meta_text = page.text_content('.budget-card-meta')
@@ -129,7 +129,7 @@ def test_delete_expense(app_page, expense_data):
     assert page.query_selector('#expenseList .budget-card'), "Expense should exist before delete"
 
     page.click('.budget-card [data-expense-action="delete"]')
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('#expenseList .budget-card') is None, "Expense card should be removed"
     empty_msg = page.text_content('#expenseList')
@@ -160,7 +160,7 @@ def test_add_expense_invalid_amount_rejected(app_page, expense_data):
         category=expense_data["category"],
     )
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
     assert page.query_selector('#expenseList .budget-card') is None, (
         "No expense should be created for an empty amount"
@@ -210,7 +210,7 @@ def test_add_expense_negative_amount_rejected(app_page, expense_data):
         category=expense_data["category"],
     )
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
     assert page.query_selector('#expenseList .budget-card') is None, (
         "A negative amount should be rejected, not silently clamped to 0 and accepted "
@@ -233,7 +233,7 @@ def test_add_expense_missing_date_rejected(app_page, expense_data):
     # Explicitly clear the date field (HTML date inputs default to empty).
     page.evaluate("document.getElementById('expenseDate').value = ''")
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
     assert page.query_selector('#expenseList .budget-card') is None, (
         "No expense should be created when date is missing"
@@ -258,7 +258,7 @@ def test_add_expense_invalid_date_format_rejected(app_page, expense_data):
     # mirroring how sanitizeDateISO would reject a non ISO-8601 string on import.
     page.evaluate("document.getElementById('expenseDate').value = 'not-a-date'")
     page.click('#expenseFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#expenseName').value === ''", timeout=5000)
 
     assert page.query_selector('#expenseList .budget-card') is None, (
         "No expense should be created when date is invalid"

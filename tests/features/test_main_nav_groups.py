@@ -55,7 +55,7 @@ async def test_main_nav_page_switching_still_works(async_app_page):
     """Click health, accounts, and reports buttons; assert the corresponding page section is visible."""
     for page in ['health', 'accounts', 'reports']:
         await async_app_page.click(f'[data-page="{page}"]')
-        await async_app_page.wait_for_timeout(200)
+        await async_app_page.wait_for_selector(f'.page-button[data-page="{page}"].active', timeout=5000)
         # check the button got .active class
         btn = await async_app_page.query_selector(f'.page-button[data-page="{page}"]')
         assert btn is not None, f"No .page-button for '{page}' after nav redesign"

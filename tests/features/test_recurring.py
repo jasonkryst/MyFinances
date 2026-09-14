@@ -12,9 +12,9 @@ from tests.conftest import assert_no_errors
 def _open_recurring_form(page):
     """Navigate to the recurring page and expand the Add Template form."""
     page.click('button[data-page="recurring"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#recurringSection.active', timeout=5000)
     page.click('#recurringFormToggle')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#recurringFormBody:not([hidden])', timeout=5000)
 
 
 def _seed_account(page, account_id=7201, name="Recurring Test Account"):
@@ -27,7 +27,7 @@ def _seed_account(page, account_id=7201, name="Recurring Test Account"):
         app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('recurring');
     }}""")
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
 
 
 def _fill_recurring_form(page, name, amount, frequency, start_date, account_id, rec_type="subscription"):
@@ -45,7 +45,7 @@ def test_recurring_transactions_navigation(app_page):
     page = app_page
     
     page.click('button[data-page="recurring"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#recurringSection.active', timeout=5000)
     
     # Verify recurring section loads
     recurring_section = page.query_selector('#recurringSection')
@@ -73,7 +73,7 @@ def test_create_recurring_template_monthly(app_page):
 
     _fill_recurring_form(page, 'Netflix', '15.99', 'monthly', '2026-05-01', 7201)
     page.click('#recurringFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#recurringName').value === ''", timeout=5000)
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Netflix', "New monthly template should appear in the recurring list"
@@ -96,7 +96,7 @@ def test_create_recurring_template_biweekly(app_page):
 
     _fill_recurring_form(page, 'Lawn Care', '40', 'biweekly', '2026-05-04', 7201)
     page.click('#recurringFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#recurringName').value === ''", timeout=5000)
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Lawn Care', "New biweekly template should appear in the recurring list"
@@ -116,7 +116,7 @@ def test_create_recurring_template_weekly(app_page):
 
     _fill_recurring_form(page, 'Cleaning Service', '25', 'weekly', '2026-05-06', 7201)
     page.click('#recurringFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#recurringName').value === ''", timeout=5000)
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Cleaning Service', "New weekly template should appear in the recurring list"
@@ -145,19 +145,19 @@ def test_recurring_pause_state_persists_after_reload(app_page):
         app.saveToStorage();
         app.switchPage('recurring');
     }""")
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
 
     pause_btn = page.query_selector('[data-recurring-action="pause"][data-recurring-id="8801"]')
     assert pause_btn, "Expected a Pause button on the seeded active template"
     pause_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' in badge_text, "Template should show Paused badge immediately after pausing"
 
     page.reload(wait_until="networkidle")
     page.click('button[data-page="recurring"]')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#recurringSection.active', timeout=5000)
 
     badge_text_after_reload = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' in badge_text_after_reload, \
@@ -276,7 +276,7 @@ def test_recurring_invalid_amount_rejected_via_ui(app_page):
 
     _fill_recurring_form(page, 'Bad Amount Sub', '0', 'monthly', '2026-05-01', 7201)
     page.click('#recurringFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#recurringName').value === ''", timeout=5000)
 
     templates_count = page.evaluate('() => (window.app.recurringTemplates || []).length')
     assert templates_count == 0, "A zero amount should be rejected and no template should be created"
@@ -355,7 +355,7 @@ def test_recurring_missing_start_date_via_ui_defaults_to_today(app_page):
     page.select_option('#recurringAccount', '7201')
     # Deliberately leave #recurringStartDate blank
     page.click('#recurringFormSubmit')
-    page.wait_for_timeout(300)
+    page.wait_for_function("document.querySelector('#recurringName').value === ''", timeout=5000)
 
     result = page.evaluate("""() => {
         const app = window.app;

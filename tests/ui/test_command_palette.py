@@ -15,7 +15,7 @@ def test_ctrl_k_opens_palette(app_page):
     """Ctrl+K opens the command palette and focuses its search input."""
     page = app_page
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     assert page.is_visible('#commandPaletteOverlay'), "Command palette should be visible after Ctrl+K"
     focused_id = page.evaluate('() => document.activeElement.id')
@@ -28,7 +28,7 @@ def test_toolbar_button_opens_palette(app_page):
     """Clicking the header quick-jump button opens the command palette."""
     page = app_page
     page.click('#commandPaletteBtn')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     assert page.is_visible('#commandPaletteOverlay')
 
@@ -39,10 +39,10 @@ def test_escape_closes_palette_and_restores_focus(app_page):
     page = app_page
     page.focus('#commandPaletteBtn')
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     page.keyboard.press('Escape')
-    page.wait_for_timeout(200)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     assert not page.is_visible('#commandPaletteOverlay'), "Escape should close the palette"
     focused_id = page.evaluate('() => document.activeElement.id')
@@ -54,10 +54,10 @@ def test_filters_commands_by_typed_text(app_page):
     """Typing filters the visible command list to matching labels only."""
     page = app_page
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     page.fill('#commandPaletteInput', 'ledger')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#commandPaletteList', timeout=5000)
 
     labels = page.eval_on_selector_all('.cmdpal-item-label', 'els => els.map(e => e.textContent)')
     assert labels == ['Ledger'], f"Expected only 'Ledger' to match, got {labels}"
@@ -68,10 +68,10 @@ def test_no_match_shows_empty_state(app_page):
     """An unmatched query shows the empty-state message instead of any items."""
     page = app_page
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     page.fill('#commandPaletteInput', 'zzz-not-a-real-command')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#commandPaletteList', timeout=5000)
 
     empty = page.query_selector('.cmdpal-empty')
     items = page.query_selector_all('.cmdpal-item')
@@ -84,12 +84,12 @@ def test_enter_navigates_to_selected_page(app_page):
     """Selecting a page command via Enter navigates to that page and closes the palette."""
     page = app_page
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     page.fill('#commandPaletteInput', 'reports')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
 
     assert not page.is_visible('#commandPaletteOverlay')
     active_page = page.evaluate(
@@ -104,13 +104,13 @@ def test_arrow_keys_move_active_selection(app_page):
     """ArrowDown moves the active selection to the next item in the list."""
     page = app_page
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     first_active = page.evaluate(
         '() => document.querySelector(".cmdpal-item--active")?.getAttribute("data-index")'
     )
     page.keyboard.press('ArrowDown')
-    page.wait_for_timeout(100)
+    page.wait_for_selector('#commandPaletteList .cmdpal-active', timeout=5000)
     second_active = page.evaluate(
         '() => document.querySelector(".cmdpal-item--active")?.getAttribute("data-index")'
     )
@@ -124,10 +124,10 @@ def test_clicking_overlay_backdrop_closes_palette(app_page):
     """Clicking the dimmed backdrop (outside the panel) closes the palette."""
     page = app_page
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     page.click('#commandPaletteOverlay', position={'x': 5, 'y': 5})
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
 
     assert not page.is_visible('#commandPaletteOverlay')
 
@@ -141,22 +141,22 @@ def test_cycle_theme_action_runs_and_closes_palette(app_page):
     assert initial == 'light', "Theme should start at the default 'light'"
 
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
     page.fill('#commandPaletteInput', 'Cycle theme')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
 
     after_one = page.evaluate("() => document.getElementById('themeSwitcher').value")
     assert after_one == 'dark', "First cycle should move Light -> Dark"
     assert not page.is_visible('#commandPaletteOverlay')
 
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
     page.fill('#commandPaletteInput', 'Cycle theme')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
 
     after_two = page.evaluate("() => document.getElementById('themeSwitcher').value")
     assert after_two == 'high-contrast', "Second cycle should move Dark -> High Contrast"
@@ -170,11 +170,11 @@ def test_import_command_opens_data_transfer_modal_on_import_tab(app_page):
     button (which no longer exists)."""
     page = app_page
     page.keyboard.press('Control+k')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
     page.fill('#commandPaletteInput', 'Import backup')
-    page.wait_for_timeout(150)
+    page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
 
     assert page.is_visible('#dataTransferModal')
     assert page.is_visible('#importJsonBtn')

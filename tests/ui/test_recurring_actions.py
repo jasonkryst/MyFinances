@@ -24,7 +24,7 @@ def _seed_recurring_template(page):
         app.refreshRecurringAccountSelectors();
         app.switchPage('recurring');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
 
 @pytest.mark.ui
@@ -36,7 +36,7 @@ def test_recurring_pause_and_resume(app_page):
     pause_btn = page.query_selector('[data-recurring-action="pause"][data-recurring-id="90"]')
     assert pause_btn, "Expected a Pause button on an active template"
     pause_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' in badge_text, "Template should show a Paused badge after pausing"
@@ -44,7 +44,7 @@ def test_recurring_pause_and_resume(app_page):
     resume_btn = page.query_selector('[data-recurring-action="unpause"][data-recurring-id="90"]')
     assert resume_btn, "Expected a Resume button after pausing"
     resume_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' not in badge_text, "Template should no longer show a Paused badge after resuming"
@@ -61,7 +61,7 @@ def test_recurring_skip_and_unskip_month(app_page):
     skip_btn = page.query_selector('[data-recurring-action="skip"][data-recurring-id="90"]')
     assert skip_btn, "Expected a Skip month button"
     skip_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Skipped' in badge_text, "Template should show a Skipped badge after skipping this month"
@@ -69,7 +69,7 @@ def test_recurring_skip_and_unskip_month(app_page):
     unskip_btn = page.query_selector('[data-recurring-action="unskip"][data-recurring-id="90"]')
     assert unskip_btn, "Expected an Unskip button after skipping"
     unskip_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Skipped' not in badge_text, "Template should no longer show a Skipped badge after unskipping"
@@ -86,7 +86,7 @@ def test_recurring_inline_edit_and_save(app_page):
     edit_btn = page.query_selector('[data-recurring-action="edit"][data-recurring-id="90"]')
     assert edit_btn, "Expected an Edit button"
     edit_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     name_input = page.query_selector('#re-name-90')
     amount_input = page.query_selector('#re-amount-90')
@@ -98,7 +98,7 @@ def test_recurring_inline_edit_and_save(app_page):
     save_btn = page.query_selector('[data-recurring-action="save"][data-recurring-id="90"]')
     assert save_btn, "Expected a Save button while editing"
     save_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     card_text = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_text == 'Streaming Plus', "Edited name should be reflected in the card"
@@ -116,7 +116,7 @@ def test_recurring_mark_and_unmark_paid(app_page):
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"][data-recurring-id="90"]')
     assert mark_btn, "Expected a Mark as paid button"
     mark_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paid this month' in badge_text, "Template should show a Paid this month badge after marking as paid"
@@ -124,7 +124,7 @@ def test_recurring_mark_and_unmark_paid(app_page):
     unmark_btn = page.query_selector('[data-recurring-action="unmark-paid"][data-recurring-id="90"]')
     assert unmark_btn, "Expected an Unmark paid button after marking as paid"
     unmark_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paid this month' not in badge_text, "Template should no longer show a Paid this month badge after unmarking"

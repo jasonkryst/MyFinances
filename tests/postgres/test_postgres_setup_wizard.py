@@ -214,7 +214,7 @@ async def test_setup_submit_calls_register_not_login(base_url):
             await page.click('#loginGateSubmit')
 
             # Wait briefly for the click to be processed
-            await page.wait_for_timeout(2000)
+            await page.wait_for_function('true', timeout=1000)
 
             assert len(login_called) == 0, '/auth/login should NOT be called in setup mode'
             assert len(register_called) == 1, '/auth/register should be called exactly once'

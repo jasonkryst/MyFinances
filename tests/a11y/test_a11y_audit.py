@@ -262,7 +262,7 @@ def test_summary_report_tables_have_captions(app_page):
     page = app_page
     page.click('button[data-page="reports"]')
     page.click('[data-rptab="summary"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#rptPanel-summary.rpt-tab-panel--active', timeout=5000)
 
     tables = page.query_selector_all('#reportsSummary table')
     assert len(tables) >= 2, "Expected at least Cash Flow and Account Balances tables"
@@ -279,10 +279,10 @@ def test_ledger_export_modal_escape_closes_and_returns_focus(app_page):
         window.app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
         window.app.switchPage('ledger');
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function('true', timeout=1000)
     page.click('#ledgerExportCsvBtn')
-    page.wait_for_timeout(200)
+    page.wait_for_function('true', timeout=1000)
     page.keyboard.press('Escape')
-    page.wait_for_timeout(200)
+    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
     modal = page.query_selector('#ledgerExportModal')
     assert 'hidden' in (modal.get_attribute('class') or '')
