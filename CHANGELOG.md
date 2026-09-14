@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.6.0] — 2026-09-14
+
+### Performance
+- **JS module-fetch waterfall eliminated with modulepreload hints** (issue #146) — 16 transitive-import modules (not directly imported by `src/app.js` but pulled in one or two levels deep through `ui.js`, `reports.js`, `i18n.js`, `storage.js`, and others) now have `<link rel="modulepreload">` hints in `index.html`'s `<head>`. The browser fetches and links them in parallel while parsing `app.js` and its direct imports, collapsing the 3-level HTTP/1.1 waterfall. For deployments behind nginx proxy manager or any other TLS-terminating reverse proxy with HTTP/2 enabled, multiplexing already handles most of this; the hints remain valuable for local dev (`python -m http.server`) and any HTTP/1.1 path.
+- **HTTP/2 guidance added to `nginx.conf`** — a comment explains that HTTP/2 should be enabled at the reverse proxy layer (nginx proxy manager, Caddy, Traefik), not in this backend's plain-HTTP `listen 80` block, which cannot carry HTTP/2 without TLS.
+- **CSS split deferred** — `styles.css` (170 KB, ~93% unused on first paint per the Lighthouse audit) would benefit from a critical-CSS extraction, but doing this safely without a build step risks silent content-clipping regressions. Tracking as a follow-up that requires introducing a bundler.
+
+### Tests
+- **`tests/features/test_performance.py`** — 22 new tests covering: `lighthouserc.json` validity, all-four-category gating at `"error"` severity with `minScore >= 0.8`, nginx gzip config, the new modulepreload hints (presence, correct module list, real file hrefs, placement in `<head>`), the HTTP/2 proxy-layer comment, and negative cases that verify each check actually catches its target flaw rather than trivially passing.
+
+---
 ## [5.5.0] — 2026-09-14
 
 ### Changed
