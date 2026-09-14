@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.11.0] — 2026-09-14
+
+### Changed
+- **DB schema hygiene** (issue #155) — `sessions.expires_at` index added (migration `1755600000012`) to support future session-sweep jobs without a full-table scan. `CLAUDE.md` gains a migration safety note covering two pitfalls: the `down()` risk profile change when the first alter-populated-table migration lands, and the correct `pgm.sql()` API for raw SQL (vs `db.query()` which throws).
+
+---
 ## [5.10.0] — 2026-09-14
 
 ### Security
