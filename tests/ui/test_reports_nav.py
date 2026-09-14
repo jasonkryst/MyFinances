@@ -90,7 +90,6 @@ def test_only_one_tab_active_at_a_time(app_page):
 
     for tab_id in ['calendar', 'spending', 'moneyflow', 'forecast']:
         page.click(f'[data-rptab="{tab_id}"]')
-        page.wait_for_function('true', timeout=1000)
         active_count = page.evaluate(
             '() => document.querySelectorAll(".rpt-tab-btn--active").length'
         )
@@ -117,7 +116,6 @@ def test_tab_bar_dark_mode_background(app_page):
     _go_to_reports(page)
 
     page.evaluate('() => document.body.classList.add("dark-mode")')
-    page.wait_for_function('true', timeout=1000)
 
     bg = page.evaluate(
         '() => window.getComputedStyle(document.querySelector(".rpt-tab-bar")).backgroundColor'
@@ -135,10 +133,8 @@ def test_group_separators_are_hidden_on_mobile(app_page):
     page = app_page
     # Navigate to reports at desktop size first, then resize to mobile
     _go_to_reports(page)
-    page.wait_for_function('true', timeout=1000)
 
     page.set_viewport_size({'width': 480, 'height': 800})
-    page.wait_for_function('true', timeout=1000)
 
     sep_display = page.evaluate("""
         () => {

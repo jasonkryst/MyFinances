@@ -109,7 +109,7 @@ def test_modal_display_uses_classes_not_styles(app_page):
     # Open debt form panel
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
 

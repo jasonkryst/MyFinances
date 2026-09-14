@@ -28,16 +28,14 @@ def test_add_debt_missing_name_shows_modal(app_page):
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     toggle = page.query_selector('#debtFormToggle')
     if toggle:
         toggle.click()
-        page.wait_for_function('true', timeout=1000)
 
     # Submit with empty name
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
     modal = page.query_selector('#alertModal')
     assert modal is not None, "#alertModal not found"
@@ -58,15 +56,13 @@ def test_alert_modal_ok_button_closes_modal(app_page):
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     toggle = page.query_selector('#debtFormToggle')
     if toggle:
         toggle.click()
-        page.wait_for_function('true', timeout=1000)
 
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
     # Modal should be open
     modal = page.query_selector('#alertModal')
@@ -74,7 +70,7 @@ def test_alert_modal_ok_button_closes_modal(app_page):
 
     # Click OK
     page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal.hidden', timeout=5000)
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
     classes = modal.get_attribute('class') or ''
     assert 'hidden' in classes, "Alert modal should be hidden after clicking OK"
@@ -88,21 +84,18 @@ def test_alert_modal_escape_key_closes_modal(app_page):
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     toggle = page.query_selector('#debtFormToggle')
     if toggle:
         toggle.click()
-        page.wait_for_function('true', timeout=1000)
 
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
     modal = page.query_selector('#alertModal')
     assert 'flex-visible' in (modal.get_attribute('class') or '')
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     classes = modal.get_attribute('class') or ''
     assert 'hidden' in classes, "Alert modal should be hidden after Escape"
@@ -120,17 +113,15 @@ def test_valid_debt_submission_no_modal(app_page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     toggle = page.query_selector('#debtFormToggle')
     if toggle:
         toggle.click()
-        page.wait_for_function('true', timeout=1000)
 
     page.fill('#debtName', 'Valid Test Debt')
     page.fill('#accountBalance', '1000')
@@ -138,7 +129,6 @@ def test_valid_debt_submission_no_modal(app_page):
     page.fill('#minimumPayment', '50')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
     modal = page.query_selector('#alertModal')
     classes = modal.get_attribute('class') or '' if modal else ''
@@ -157,7 +147,6 @@ def test_add_income_missing_fields_shows_modal(app_page):
     submit = page.query_selector('#incomeFormSubmit')
     if submit:
         submit.click()
-        page.wait_for_function('true', timeout=1000)
 
     modal = page.query_selector('#alertModal')
     assert modal is not None, "#alertModal not found"
@@ -167,7 +156,7 @@ def test_add_income_missing_fields_shows_modal(app_page):
 
     # Dismiss
     page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal.hidden', timeout=5000)
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
 
 @pytest.mark.feature
@@ -180,7 +169,6 @@ def test_add_account_missing_name_shows_modal(app_page):
     # Clear name and submit
     page.fill('#accountName', '')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     modal = page.query_selector('#alertModal')
     assert modal is not None
@@ -189,7 +177,7 @@ def test_add_account_missing_name_shows_modal(app_page):
         "Alert modal should appear when account name is missing"
 
     page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal.hidden', timeout=5000)
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
 
 @pytest.mark.feature
@@ -208,7 +196,6 @@ def test_strategy_no_debts_shows_modal(app_page):
         pytest.skip("Calculate button not found")
 
     calc_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     modal = page.query_selector('#alertModal')
     classes = modal.get_attribute('class') or '' if modal else ''
@@ -216,7 +203,7 @@ def test_strategy_no_debts_shows_modal(app_page):
         "Alert modal should appear when calculating with no debts"
 
     page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal.hidden', timeout=5000)
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
 
 @pytest.mark.feature

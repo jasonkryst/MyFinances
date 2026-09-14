@@ -87,7 +87,6 @@ def test_export_then_import_round_trips_retirement_data(app_page):
     )
     assert import_result == "imported"
 
-    page.wait_for_function('true', timeout=1000)
     restored_snapshots = page.evaluate("() => window.app.retirementSnapshots")
     restored_target = page.evaluate("() => window.app.retirementTargetDate")
     assert len(restored_snapshots) == 1
@@ -141,7 +140,6 @@ def test_add_and_delete_snapshot_via_modal(app_page):
     assert row_count == 1
 
     page.click('[data-retire-action="delete-snapshot"]')
-    page.wait_for_function('true', timeout=1000)
     snapshots = page.evaluate("() => window.app.retirementSnapshots")
     assert snapshots == []
     assert_no_errors(page)
@@ -191,7 +189,6 @@ def test_reload_persists_retirement_data(app_page):
     page.evaluate("() => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(); }")
 
     page.reload(wait_until="networkidle")
-    page.wait_for_function('true', timeout=1000)
     snapshots = page.evaluate("() => window.app.retirementSnapshots")
     target = page.evaluate("() => window.app.retirementTargetDate")
     assert len(snapshots) == 1
@@ -292,7 +289,6 @@ def test_pension_snapshot_delete_removes_row(app_page):
     page.wait_for_selector('.retire-card', timeout=5000)
 
     page.click('[data-retire-action="delete-snapshot"]')
-    page.wait_for_function('true', timeout=1000)
     assert page.evaluate("() => window.app.retirementSnapshots.length") == 0
     assert_no_errors(page)
 
@@ -372,7 +368,6 @@ def test_pension_account_round_trips_export_import(app_page):
     )
     assert result == "imported"
 
-    page.wait_for_function('true', timeout=1000)
     acct = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === 'Pension')")
     assert acct is not None
     assert acct['pensionAnnualSalary'] == 80000
@@ -411,7 +406,6 @@ def test_pension_sanitizer_accepts_valid_fields(app_page):
     _add_pension_account(page, salary="95000", contrib_rate="8", vesting="3", benefit="1500", service="7")
     page.evaluate("() => window.app.saveToStorage()")
     page.reload(wait_until="networkidle")
-    page.wait_for_function('true', timeout=1000)
 
     acct = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === 'Pension')")
     assert acct['pensionAnnualSalary'] == 95000
@@ -435,7 +429,6 @@ def test_pension_and_investment_coexist_on_retirement_page(app_page):
     assert cards == 2
 
     # Charts should render with at least the investment account data.
-    page.wait_for_function('true', timeout=1000)
     account_id = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === '401k').id")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', 12000, 400)")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-02-01', 12500, 400)")

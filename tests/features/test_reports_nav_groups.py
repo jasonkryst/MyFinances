@@ -74,7 +74,6 @@ def test_reports_nav_tab_switching_still_works(app_page):
     all_tabs = [tab for tabs in GROUPS.values() for tab in tabs]
     for tab_id in all_tabs:
         page.click(f'[data-rptab="{tab_id}"]')
-        page.wait_for_function('true', timeout=1000)
 
         is_active = page.evaluate(f"""
             () => document.getElementById('rptPanel-{tab_id}')

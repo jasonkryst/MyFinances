@@ -26,7 +26,6 @@ async def test_xss_in_account_name(async_app_page):
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Check if script was rendered as text (escaped)
     account_text = await page.evaluate("""
@@ -51,7 +50,6 @@ async def test_xss_in_income_name(async_app_page):
     await page.fill('#incomeFirstDate', '2025-01-01')
     await page.select_option('#incomeFrequency', 'monthly')
     await page.click('button[type="submit"]:has-text("Add Income")')
-    await page.wait_for_function('true', timeout=1000)
     
     # Verify img tag was escaped
     income_text = await page.evaluate("""
@@ -79,7 +77,6 @@ async def test_xss_in_debt_name(async_app_page):
     await page.fill('#accountBalance', '2000')
     await page.fill('#interestRate', '18')
     await page.click('#debtFormSubmit')
-    await page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     
     # Verify svg tag was escaped
     debt_text = await page.evaluate("""
@@ -135,15 +132,12 @@ async def test_malicious_json_import(async_app_page):
         await page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
         await page.click('[data-dt-tab="import"]')
         await page.click('#importJsonBtn')
-        await page.wait_for_function('true', timeout=1000)
 
         file_input = await page.query_selector('#importJsonInput')
         if file_input:
             await file_input.set_input_files(temp_file)
-            await page.wait_for_function('true', timeout=1000)
             if await page.is_visible('#importModeChoice'):
                 await page.click('#importModeReplaceBtn')
-            await page.wait_for_function('true', timeout=1000)
 
             # Verify data was imported but rendered safely
             debts_count = await page.evaluate('() => document.querySelectorAll(".debt-card").length')
@@ -267,7 +261,6 @@ async def test_xss_in_emergency_fund_notes(async_app_page):
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -280,7 +273,7 @@ async def test_xss_in_emergency_fund_notes(async_app_page):
     await page.fill('#emergencyContribution', '100')
     await page.fill('#emergencyNotes', '<script>window.__xss_ef_notes=true</script>')
     await page.click('#emergencyFormSubmit')
-    await page.wait_for_selector('#emergencyFormBody.hidden', timeout=5000)
+    await page.wait_for_selector('#emergencyFormBody', state='hidden', timeout=5000)
 
     xss_triggered = await page.evaluate('() => window.__xss_ef_notes === true')
     assert not xss_triggered, "XSS payload executed via emergency fund notes!"
@@ -307,7 +300,6 @@ async def test_xss_in_ledger_transaction_name(async_app_page):
         app.ledgerAmountOverrides = {};
         app.switchPage('ledger');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     table_html = await page.evaluate('() => document.getElementById("ledgerTableContainer")?.innerHTML || ""')
     assert '<img src=x' not in table_html, "Unescaped <img> tag found in ledger table"
@@ -320,7 +312,6 @@ async def test_xss_in_ledger_transaction_name(async_app_page):
     override_btn = await page.query_selector('[data-ledger-override]')
     assert override_btn, "Expected an override button for the bill transaction"
     await override_btn.click()
-    await page.wait_for_function('true', timeout=1000)
 
     modal_html = await page.evaluate('() => document.getElementById("ledgerOverrideModal")?.innerHTML || ""')
     assert '<img src=x' not in modal_html, "Unescaped <img> tag found in ledger override modal"
@@ -351,18 +342,15 @@ async def test_ledger_override_amount_extreme_values(async_app_page):
         app.ledgerAmountOverrides = {};
         app.switchPage('ledger');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     override_btn = await page.query_selector('[data-ledger-override]')
     assert override_btn, "Expected an override button for the bill transaction"
     await override_btn.click()
-    await page.wait_for_function('true', timeout=1000)
 
     # A very large, negative override amount should be accepted without
     # producing NaN/Infinity in the rendered ledger.
     await page.fill('#ledgerOverrideAmountInput', '-99999999999999')
     await page.click('#ledgerOverrideConfirmBtn')
-    await page.wait_for_function('true', timeout=1000)
 
     table_html = await page.evaluate('() => document.getElementById("ledgerTableContainer")?.innerHTML || ""')
     assert 'NaN' not in table_html and 'Infinity' not in table_html, \
@@ -394,7 +382,6 @@ async def test_xss_in_recurring_template_category(async_app_page):
         app.renderRecurringPage();
         app.switchPage('recurring');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     section_html = await page.evaluate(
         '() => document.getElementById("recurringSection")?.innerHTML || ""'
@@ -433,11 +420,9 @@ async def test_xss_in_forecast_driver_name(async_app_page):
         app._forecastNotableThresholdPct = 130;
         app.switchPage('reports');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     forecast_tab = await page.query_selector('[data-rptab="forecast"]')
     await forecast_tab.click()
-    await page.wait_for_function('true', timeout=1000)
 
     img_in_table = await page.query_selector('#reportsCashFlowForecast .nw-history-table img')
     assert img_in_table is None, "Malicious expense name was rendered as an HTML element (XSS)!"
@@ -461,7 +446,6 @@ async def test_xss_in_reconciliation_note(async_app_page):
         app.applyReconciliation(7401, 1100, '<img src=x onerror="window.__xss_recon=1">', '2026-06-10');
         app.switchPage('reconcile');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     section_html = await page.evaluate('() => document.getElementById("reconcileSection")?.innerHTML || ""')
     assert '<img src=x' not in section_html, "Unescaped <img> tag found in reconciliation history"
@@ -486,7 +470,6 @@ async def test_xss_in_reconciliation_ledger_row_account_name(async_app_page):
         app.applyReconciliation(7601, 1100, '', new Date().toISOString().slice(0, 10));
         app.switchPage('ledger');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     container_html = await page.evaluate('() => document.getElementById("ledgerTableContainer")?.innerHTML || ""')
     assert '<img src=x' not in container_html, "Unescaped <img> tag found in ledger reconciliation row"
@@ -544,7 +527,6 @@ async def test_xss_in_reports_calendar_expense_name(async_app_page):
         app._reportMonthOffset = 0;
         app.switchPage('reports');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     calendar_html = await page.evaluate(
         '() => document.getElementById("reportsCalendar")?.innerHTML || ""'
@@ -579,12 +561,10 @@ async def test_xss_in_calendar_day_modal_event_name(async_app_page):
         app._reportMonthOffset = 0;
         app.switchPage('reports');
     }""")
-    await page.wait_for_function('true', timeout=1000)
 
     cell = await page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
     assert cell, "Expected a day cell with events to open the modal"
     await cell.click()
-    await page.wait_for_function('true', timeout=1000)
 
     modal_html = await page.evaluate(
         '() => document.getElementById("calendarDayModalBody")?.innerHTML || ""'
@@ -607,7 +587,6 @@ async def test_xss_in_recurring_template_name(async_app_page):
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '500')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     await page.click('button[data-page="recurring"]')
     await page.wait_for_selector('#recurringSection.active', timeout=5000)
@@ -620,7 +599,6 @@ async def test_xss_in_recurring_template_name(async_app_page):
     await page.select_option('#recurringAccount', label='Recurring Name XSS (Checking)')
     await page.fill('#recurringStartDate', '2026-01-01')
     await page.click('#recurringFormSubmit')
-    await page.wait_for_function("document.querySelector('#recurringName').value === ''", timeout=5000)
 
     section_html = await page.evaluate(
         '() => document.getElementById("recurringSection")?.innerHTML || ""'
@@ -643,14 +621,11 @@ async def test_xss_in_sinking_fund_name_and_notes(async_app_page):
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '0')
     await page.click('button:has-text("Add Account")')
-    await page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
     await page.click('[data-savings-subtab="sinking"]')
-    await page.wait_for_function('true', timeout=1000)
     await page.click('#sinkingFormToggle')
-    await page.wait_for_function('true', timeout=1000)
 
     await page.fill('#sinkingName', '<script>window.__xss_sinking_name=1</script>')
     await page.select_option('#sinkingAllocationMethod', 'fixed')
@@ -659,7 +634,6 @@ async def test_xss_in_sinking_fund_name_and_notes(async_app_page):
     await page.select_option('#sinkingAccount', label='Sinking XSS (Savings)')
     await page.fill('#sinkingNotes', '<img src=x onerror="window.__xss_sinking_notes=1">')
     await page.click('#sinkingFormSubmit')
-    await page.wait_for_function('true', timeout=1000)
 
     section_html = await page.evaluate(
         '() => document.getElementById("savingsSection")?.innerHTML || ""'
@@ -687,7 +661,6 @@ def test_xss_in_retirement_target_date_input_value(app_page):
         app.retirementTargetDate = '2050-01-01"><img src=x onerror="window.__xss_retire_target=1">';
         app.switchPage('retirement');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     xss_fired = page.evaluate('() => !!window.__xss_retire_target')
     assert not xss_fired, "XSS payload executed via retirementTargetDate input value!"

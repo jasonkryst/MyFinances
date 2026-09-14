@@ -52,7 +52,6 @@ def test_health_dti_chart_survives_repeated_rerender(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     for _ in range(3):
         page.click('button[data-page="health"]')
@@ -84,7 +83,6 @@ def test_networth_trend_chart_survives_repeated_rerender(app_page, account_data)
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
@@ -119,7 +117,6 @@ def test_forecast_chart_survives_repeated_rerender(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)

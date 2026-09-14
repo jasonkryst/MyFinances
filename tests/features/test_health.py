@@ -91,7 +91,6 @@ def test_health_dti_high_risk_with_large_debt(app_page):
         app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -137,7 +136,6 @@ def test_health_emergency_fund_empty_state(app_page):
         window.app.emergencyFunds = [];
         window.app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -160,7 +158,6 @@ def test_health_emergency_fund_shows_coverage(app_page):
         app.bills = []; app.expenses = []; app.debts = []; app.incomes = [];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -180,7 +177,6 @@ def test_health_timeline_debt_free_state(app_page):
         window.app.debts = [];
         window.app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -201,7 +197,6 @@ def test_health_timeline_shows_years_with_debt(app_page):
         }];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -222,7 +217,6 @@ def test_health_cash_flow_break_even_with_no_data(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -244,7 +238,6 @@ def test_health_cash_flow_surplus(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -266,7 +259,6 @@ def test_health_cash_flow_deficit(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -287,7 +279,6 @@ def test_health_budget_allocation_empty_state(app_page):
         app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section = page.query_selector('#healthSection')
     section_text = section.text_content()
@@ -312,7 +303,6 @@ def test_health_budget_allocation_shows_categories(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     rows = page.query_selector_all('.health-budget-row')
     assert len(rows) >= 2, f"Expected at least 2 budget category rows, got {len(rows)}"
@@ -333,13 +323,11 @@ def test_health_nav_link_to_savings(app_page):
         window.app.emergencyFunds = [];
         window.app.switchPage('health');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     savings_link = page.query_selector('[data-health-nav="savings"]')
     assert savings_link, "No savings navigation link found on health page"
 
     savings_link.click()
-    page.wait_for_function('true', timeout=1000)
 
     savings_section = page.query_selector('#savingsSection')
     assert savings_section and savings_section.evaluate('(el) => el.offsetParent !== null'), \
@@ -358,7 +346,6 @@ def test_health_nav_link_to_strategy(app_page):
     assert strategy_link, "No strategy navigation link found on health page"
 
     strategy_link.click()
-    page.wait_for_function('true', timeout=1000)
 
     strategy_section = page.query_selector('#strategySection')
     assert strategy_section and strategy_section.evaluate('(el) => el.offsetParent !== null'), \

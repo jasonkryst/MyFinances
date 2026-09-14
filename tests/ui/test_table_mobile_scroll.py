@@ -292,7 +292,6 @@ def test_debt_overview_categories_stack_into_labelled_cards_on_mobile(app_page, 
     create_debt(page, debt_data)
 
     page.set_viewport_size(MOBILE_VIEWPORT)
-    page.wait_for_function('true', timeout=1000)
 
     info = page.evaluate("""
         () => {
@@ -327,7 +326,6 @@ def test_debt_overview_categories_keep_grid_layout_on_desktop(app_page, debt_dat
     create_debt(page, debt_data)
 
     page.set_viewport_size({"width": 1280, "height": 800})
-    page.wait_for_function('true', timeout=1000)
 
     info = page.evaluate("""
         () => {

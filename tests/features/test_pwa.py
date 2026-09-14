@@ -209,7 +209,6 @@ def _wait_for_service_worker_registration(page, timeout_ms=10000):
         """)
         if registered:
             return True
-        page.wait_for_function('true', timeout=1000)
     return False
 
 

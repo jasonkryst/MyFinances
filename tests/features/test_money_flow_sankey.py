@@ -289,7 +289,6 @@ def test_money_flow_sankey_respects_report_month_offset_year_boundary(app_page):
     steps = page.evaluate('() => window.__stepsToJan')
     for _ in range(steps - 1):
         page.click('#rptNextMonth')
-        page.wait_for_function('true', timeout=1000)
     page.click('[data-rptab="moneyflow"]')
     page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
 
@@ -298,7 +297,6 @@ def test_money_flow_sankey_respects_report_month_offset_year_boundary(app_page):
     assert 'JanCat' not in dec_text
 
     page.click('#rptNextMonth')
-    page.wait_for_function('true', timeout=1000)
 
     jan_text = page.query_selector('#reportsMoneyFlowSankey').text_content()
     assert 'JanCat' in jan_text

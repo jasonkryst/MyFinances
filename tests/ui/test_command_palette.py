@@ -42,7 +42,6 @@ def test_escape_closes_palette_and_restores_focus(app_page):
     page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     assert not page.is_visible('#commandPaletteOverlay'), "Escape should close the palette"
     focused_id = page.evaluate('() => document.activeElement.id')
@@ -89,7 +88,7 @@ def test_enter_navigates_to_selected_page(app_page):
     page.fill('#commandPaletteInput', 'reports')
     page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
     assert not page.is_visible('#commandPaletteOverlay')
     active_page = page.evaluate(
@@ -127,7 +126,7 @@ def test_clicking_overlay_backdrop_closes_palette(app_page):
     page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     page.click('#commandPaletteOverlay', position={'x': 5, 'y': 5})
-    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
     assert not page.is_visible('#commandPaletteOverlay')
 
@@ -145,7 +144,7 @@ def test_cycle_theme_action_runs_and_closes_palette(app_page):
     page.fill('#commandPaletteInput', 'Cycle theme')
     page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
     after_one = page.evaluate("() => document.getElementById('themeSwitcher').value")
     assert after_one == 'dark', "First cycle should move Light -> Dark"
@@ -156,7 +155,7 @@ def test_cycle_theme_action_runs_and_closes_palette(app_page):
     page.fill('#commandPaletteInput', 'Cycle theme')
     page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
     after_two = page.evaluate("() => document.getElementById('themeSwitcher').value")
     assert after_two == 'high-contrast', "Second cycle should move Dark -> High Contrast"
@@ -174,7 +173,7 @@ def test_import_command_opens_data_transfer_modal_on_import_tab(app_page):
     page.fill('#commandPaletteInput', 'Import backup')
     page.wait_for_selector('#commandPaletteList', timeout=5000)
     page.keyboard.press('Enter')
-    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
     assert page.is_visible('#dataTransferModal')
     assert page.is_visible('#importJsonBtn')

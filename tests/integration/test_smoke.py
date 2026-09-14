@@ -34,13 +34,12 @@ def test_smoke_full_workflow(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
     assert page.query_selector('#incomeList >> text=Salary'), "Income creation failed"
     
     # 3. Add debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     page.fill('#debtName', 'Credit Card')
@@ -50,7 +49,6 @@ def test_smoke_full_workflow(app_page):
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     assert page.query_selector('text=Credit Card'), "Debt creation failed"
     
     # 4. Check net worth
@@ -116,7 +114,6 @@ def test_smoke_account_to_networth(app_page):
         page.select_option('#accountType', label='Checking')
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
-        page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Verify all accounts created
     for name, _ in accounts:
@@ -139,7 +136,6 @@ def test_smoke_data_persistence(app_page):
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '9999')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Navigate away
     page.click('button[data-page="income"]')
@@ -165,7 +161,6 @@ def test_smoke_export_import(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     from tests.conftest import open_data_transfer
     open_data_transfer(page)

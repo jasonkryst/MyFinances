@@ -23,12 +23,11 @@ def test_create_debt(app_page, debt_data):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Navigate to debts
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     
@@ -60,12 +59,11 @@ def test_debt_types(app_page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Navigate to debts
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     
     debt_types = ['creditCard', 'fixedAmount']
     
@@ -85,7 +83,6 @@ def test_debt_types(app_page):
             page.fill('#fixedStartDate', '2026-01-01')
             page.fill('#fixedEndDate', '2026-12-31')
         page.click('#debtFormSubmit')
-        page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
 
 @pytest.mark.feature
@@ -100,12 +97,11 @@ def test_debt_interest_calculation(app_page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Create debt with known interest rate
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     
@@ -116,7 +112,6 @@ def test_debt_interest_calculation(app_page):
     page.fill('#minimumPayment', '150')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     
     # Verify debt is shown
     assert page.query_selector('text=Interest Calc Debt'), "Debt not created"
@@ -148,12 +143,11 @@ def test_amortization_schedule(app_page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Create debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     
@@ -164,7 +158,6 @@ def test_amortization_schedule(app_page):
     page.fill('#minimumPayment', '75')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     
     # Navigate to strategy and check amortization
     page.click('button[data-page="strategy"]')
@@ -174,7 +167,6 @@ def test_amortization_schedule(app_page):
     amort_button = page.query_selector('button:has-text("Show Amortization")')
     if amort_button:
         amort_button.click()
-        page.wait_for_function('true', timeout=1000)
         
         # Check if amortization modal appears
         amort_modal = page.query_selector('#amortizationModal')
@@ -193,12 +185,11 @@ def test_net_worth_includes_debts(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '10000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Create debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     
@@ -209,7 +200,6 @@ def test_net_worth_includes_debts(app_page):
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     
     # Check net worth (should be 10000 - 3000 = 7000)
     net_worth_widget = page.query_selector('#netWorthWidget')
@@ -245,7 +235,7 @@ def test_debt_card_shows_payoff_date_after_plan_calculation(app_page, debt_data)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     card_text = page.evaluate("""() => {
         const card = document.querySelector('#debtsList .debt-card');
@@ -272,7 +262,6 @@ def test_debt_card_shows_last_updated_date(app_page, debt_data):
 
     page = app_page
     create_debt(page, debt_data)
-    page.wait_for_function('true', timeout=1000)
 
     today_iso = datetime.date.today().isoformat()
     stored_updated_at = page.evaluate(
@@ -296,7 +285,7 @@ def test_debt_card_shows_last_updated_date(app_page, debt_data):
     page.wait_for_selector('#updateBalanceModal:not(.hidden)', timeout=5000)
     page.fill('#updateBalanceInput', '999')
     page.click('#confirmUpdateBalance')
-    page.wait_for_selector('#updateBalanceModal.hidden', timeout=5000)
+    page.wait_for_selector('#updateBalanceModal', state='hidden', timeout=5000)
 
     updated_after_balance_change = page.evaluate(
         """(name) => {
@@ -332,11 +321,10 @@ def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
 
@@ -346,7 +334,6 @@ def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
     page.fill('#fixedStartDate', '2026-01-01')
     page.fill('#fixedEndDate', '2026-12-31')
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
     assert page.query_selector('text=Negative Fixed Debt') is None, (
         "A negative fixed-amount debt payment should be rejected, not silently saved as $0.01"
@@ -365,11 +352,10 @@ def _create_interest_and_no_interest_debts(page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     debts = [
         ('No Interest Card', '300', '0', '20'),
@@ -385,7 +371,6 @@ def _create_interest_and_no_interest_debts(page):
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
         page.click('#debtFormSubmit')
-        page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
 
 @pytest.mark.feature
@@ -395,7 +380,6 @@ def test_debt_interest_filter_shows_only_interest_bearing(app_page):
     _create_interest_and_no_interest_debts(page)
 
     page.select_option('#debtInterestFilter', 'interestBearing')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=Interest Bearing Card') is not None
     assert page.query_selector('text=No Interest Card') is None
@@ -408,7 +392,6 @@ def test_debt_interest_filter_shows_only_no_interest(app_page):
     _create_interest_and_no_interest_debts(page)
 
     page.select_option('#debtInterestFilter', 'noInterest')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=No Interest Card') is not None
     assert page.query_selector('text=Interest Bearing Card') is None
@@ -421,9 +404,7 @@ def test_debt_interest_filter_any_shows_both(app_page):
     _create_interest_and_no_interest_debts(page)
 
     page.select_option('#debtInterestFilter', 'interestBearing')
-    page.wait_for_function('true', timeout=1000)
     page.select_option('#debtInterestFilter', '')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=No Interest Card') is not None
     assert page.query_selector('text=Interest Bearing Card') is not None

@@ -17,11 +17,10 @@ def _create_two_debts(page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     debts = [
         ('High Interest Debt', '2000', '24', '100'),
@@ -37,7 +36,6 @@ def _create_two_debts(page):
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
         page.click('#debtFormSubmit')
-        page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
 
 
 def _calculate(page, strategy):
@@ -106,7 +104,6 @@ def test_stimulus_input_increases_month_total_paid(app_page):
 
     page.fill('#stimulus-input-0', '300')
     page.dispatch_event('#stimulus-input-0', 'change')
-    page.wait_for_function('true', timeout=1000)
 
     total_after = page.evaluate("""
         () => {
@@ -137,7 +134,6 @@ def test_stimulus_non_numeric_input_falls_back_to_zero(app_page):
             input.dispatchEvent(new Event('change', { bubbles: true }));
         }
     """)
-    page.wait_for_function('true', timeout=1000)
 
     stored_value = page.evaluate("() => window.app.perMonthStimulus[0]")
     assert stored_value == 0, f"Expected non-numeric stimulus input to fall back to 0, got {stored_value!r}"

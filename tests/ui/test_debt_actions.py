@@ -25,15 +25,13 @@ def test_debt_inline_edit_and_save(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('liabilities');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
     edit_btn = page.query_selector('[data-debt-action="edit"][data-debt-id="95"]')
     assert edit_btn, "Expected an Edit button on the debt card"
     edit_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     name_input = page.query_selector('#inline-name-95')
     balance_input = page.query_selector('#inline-balance-95')
@@ -47,7 +45,6 @@ def test_debt_inline_edit_and_save(app_page):
     save_btn = page.query_selector('[data-debt-action="save-inline"][data-debt-id="95"]')
     assert save_btn, "Expected a Save button while editing"
     save_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     card_text = page.evaluate('() => document.querySelector("#debtsList .debt-name")?.textContent || ""')
     assert 'Visa Platinum' in card_text, "Edited debt name should be reflected in the card"

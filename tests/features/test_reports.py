@@ -57,7 +57,6 @@ def test_net_worth_report(app_page):
     nw_tab = page.query_selector('[data-rptab="networth"]')
     if nw_tab:
         nw_tab.click()
-        page.wait_for_function('true', timeout=1000)
 
         # Should show snapshot history
         history_table = page.query_selector('#netWorthHistoryTable')
@@ -80,7 +79,6 @@ def test_report_far_future_month_renders_empty_state(app_page):
         app._reportMonthOffset = 24;
         app.switchPage('reports');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     # No console/page errors while rendering a far-future, data-free month
     errors = page.evaluate('() => window.__consoleErrors || []')
@@ -131,12 +129,10 @@ def test_report_month_offset_year_boundary_label(app_page):
         window.__stepsToJan = (12 - now.getMonth()) % 12;
         if (window.__stepsToJan === 0) window.__stepsToJan = 12;
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     steps = page.evaluate('() => window.__stepsToJan')
     for _ in range(steps):
         page.click('#rptNextMonth')
-        page.wait_for_function('true', timeout=1000)
 
     month_label = page.query_selector('#rptMonthLabel').text_content()
     assert 'January' in month_label, f"Expected January after crossing year boundary, got: {month_label}"
@@ -185,7 +181,6 @@ def test_variance_report_income_expense_delta(app_page):
         app._reportMonthOffset = 0;
         app.switchPage('reports');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="variance"]')
     page.wait_for_selector('#rptPanel-variance.rpt-tab-panel--active', timeout=5000)

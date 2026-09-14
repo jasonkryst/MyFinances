@@ -52,7 +52,7 @@ def test_switching_to_spanish_translates_nav_and_persists(app_page):
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingLocale', 'es')
     page.click('#settingsModalDoneBtn')
-    page.wait_for_selector('#settingsModal.hidden', timeout=5000)
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     nav_text = page.inner_text('.page-button[data-page="health"]')
     assert nav_text.strip() == 'Salud'
@@ -71,7 +71,7 @@ def test_switching_to_polish_translates_nav_and_persists(app_page):
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingLocale', 'pl')
     page.click('#settingsModalDoneBtn')
-    page.wait_for_selector('#settingsModal.hidden', timeout=5000)
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     nav_text = page.inner_text('.page-button[data-page="health"]')
     assert nav_text.strip() == 'Kondycja'
@@ -113,7 +113,6 @@ def test_untranslated_page_stays_readable_in_english_when_locale_is_spanish(app_
 
     page.evaluate("() => window.app.setLocale('es')")
     page.click('.page-button[data-page="accounts"]')
-    page.wait_for_function('true', timeout=1000)
 
     heading = page.inner_text('#accountsSection h2')
     assert heading.strip() != ''
@@ -126,7 +125,6 @@ def test_switching_to_spanish_translates_health_page_live(app_page):
     page = app_page
 
     page.evaluate("() => window.app.setLocale('es')")
-    page.wait_for_function('true', timeout=1000)
 
     title = page.inner_text('.health-metric-card .health-card-title')
     assert title.strip() == 'Relación Deuda-Ingreso'
@@ -141,7 +139,6 @@ def test_switching_to_polish_translates_health_page_live(app_page):
     page = app_page
 
     page.evaluate("() => window.app.setLocale('pl')")
-    page.wait_for_function('true', timeout=1000)
 
     title = page.inner_text('.health-metric-card .health-card-title')
     assert title.strip() == 'Wskaźnik Zadłużenia do Dochodu'
@@ -159,7 +156,6 @@ def test_health_gauge_sr_tables_translate(app_page, account_data, income_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.evaluate("() => window.app.setLocale('es')")
     page.click('button[data-page="health"]')
@@ -208,7 +204,6 @@ def test_health_page_debt_free_state_translates(app_page):
         window.app.debts = [];
         window.app.setLocale('es');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     value = page.inner_text('.health-empty-value.health-empty--green')
     assert value.strip() == '¡Libre de Deudas!'

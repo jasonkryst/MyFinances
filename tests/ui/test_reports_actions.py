@@ -25,7 +25,6 @@ def _seed_calendar_day(page):
         app.monthlySnapshots = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
 
 @pytest.mark.ui
@@ -53,7 +52,6 @@ def test_calendar_day_click_opens_modal_with_full_event_details(app_page):
 
     cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
     cell.click()
-    page.wait_for_function('true', timeout=1000)
 
     modal = page.query_selector('#calendarDayModal')
     assert modal
@@ -64,7 +62,6 @@ def test_calendar_day_click_opens_modal_with_full_event_details(app_page):
     assert '$1,500.00' in body_text
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
     modal = page.query_selector('#calendarDayModal')
     assert 'hidden' in (modal.get_attribute('class') or '')
 
@@ -78,7 +75,7 @@ def test_calendar_day_keyboard_enter_opens_modal(app_page):
     cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
     cell.focus()
     page.keyboard.press('Enter')
-    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
     modal = page.query_selector('#calendarDayModal')
     assert 'flex-visible' in (modal.get_attribute('class') or '')
@@ -97,7 +94,6 @@ def test_net_worth_capture_snapshot_button(app_page):
         app.monthlySnapshots = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     page.click('[data-rptab="networth"]')
     page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
@@ -105,7 +101,6 @@ def test_net_worth_capture_snapshot_button(app_page):
     capture_btn = page.query_selector('#captureSnapshotBtn')
     assert capture_btn, "Expected a Capture Snapshot Now button"
     capture_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     snapshot_count = page.evaluate('() => (window.app.monthlySnapshots || []).length')
     assert snapshot_count == 1, "Capturing a snapshot should add one entry"
@@ -121,7 +116,6 @@ def test_net_worth_capture_snapshot_button(app_page):
     page.evaluate('() => { window.app.accounts[0].startingBalance = 2000; }')
 
     page.click('#captureSnapshotBtn')
-    page.wait_for_function('true', timeout=1000)
 
     snapshot_count = page.evaluate('() => (window.app.monthlySnapshots || []).length')
     assert snapshot_count == 1, "Re-capturing within the same month should update, not duplicate, the snapshot"
@@ -146,7 +140,6 @@ def test_reports_print_button_calls_window_print(app_page):
 
     page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
     page.click('#rptPrintBtn')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate('() => window.__printCalled') is True
 
@@ -164,13 +157,11 @@ def test_report_tab_switching_toggles_panel_visibility(app_page):
         app.sinkingFunds = []; app.monthlySnapshots = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     tabs = ['calendar', 'spending', 'incomeexp', 'moneyflow', 'variance', 'networth', 'forecast']
 
     for tab in tabs:
         page.click(f'[data-rptab="{tab}"]')
-        page.wait_for_function('true', timeout=1000)
 
         active_panel = page.query_selector(f'#rptPanel-{tab}')
         assert active_panel, f"Panel for tab '{tab}' should exist"
@@ -204,7 +195,6 @@ def test_summary_tab_monthly_yearly_toggle(app_page):
     assert heading and 'Summary Report' in heading.text_content()
 
     page.click('[data-rpt-summary-range="year"]')
-    page.wait_for_function('true', timeout=1000)
     heading = page.query_selector('#reportsSummary h3')
     import datetime
     assert str(datetime.date.today().year) in heading.text_content()

@@ -95,11 +95,9 @@ def test_target_payoff_calculator_does_not_record_history(app_page):
     page.click('button[data-page="strategy"]')
     page.wait_for_selector('#strategySection.active', timeout=5000)
     page.click('#targetDateToggle')
-    page.wait_for_function('true', timeout=1000)
     page.fill('#targetPayoffDate', '2027-01-01')
     page.select_option('#targetPayoffStrategy', 'avalanche')
     page.click('#calcTargetBtn')
-    page.wait_for_function('true', timeout=1000)
 
     history = page.evaluate("() => window.app.planHistory")
     assert history == [], "Target Payoff Date calculator should not record plan history"
@@ -114,7 +112,6 @@ def test_reload_restores_last_plan_results(app_page):
     _calculate(page)
 
     page.reload(wait_until="networkidle")
-    page.wait_for_function('true', timeout=1000)
     page.click('button[data-page="strategy"]')
     page.wait_for_selector('#strategySection.active', timeout=5000)
 

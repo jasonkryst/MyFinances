@@ -31,7 +31,6 @@ def test_transaction_history(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '5000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Navigate to ledger
     page.click('button[data-page="ledger"]')
@@ -123,7 +122,7 @@ def test_ledger_override_modal_updates_row_amount(app_page):
 
     page.fill('#ledgerOverrideAmountInput', '1234.56')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
 
     row_amount_text = page.evaluate(
         """(txId) => {
@@ -165,7 +164,7 @@ def test_ledger_override_persists_after_reload(app_page):
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '777.77')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
 
     # Confirm it actually landed in localStorage before reloading.
     stored_overrides = page.evaluate(
@@ -224,7 +223,7 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '111.11')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
 
     # Override the second row with a different amount.
     btn2 = page.query_selector(f'[data-ledger-override="{tx_id_2}"]')
@@ -232,7 +231,7 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '222.22')
     page.click('#ledgerOverrideConfirmBtn')
-    page.wait_for_selector('#ledgerOverrideModal.hidden', timeout=5000)
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
 
     stored_overrides = page.evaluate(
         """() => {
@@ -269,7 +268,6 @@ def test_ledger_cleared_checkbox_marks_row_and_records_timestamp(app_page):
     assert not checkbox.is_checked(), "Row should start uncleared"
 
     checkbox.click()
-    page.wait_for_function('true', timeout=1000)
 
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     state = page.evaluate(
@@ -300,7 +298,6 @@ def test_ledger_cleared_persists_after_reload(app_page):
     checkbox = page.query_selector('[data-ledger-cleared]')
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     checkbox.click()
-    page.wait_for_function('true', timeout=1000)
 
     stored = page.evaluate(
         """() => {
@@ -340,11 +337,9 @@ def test_ledger_cleared_unchecking_clears_state_and_timestamp(app_page):
     checkbox = page.query_selector('[data-ledger-cleared]')
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     checkbox.click()
-    page.wait_for_function('true', timeout=1000)
 
     checkbox_again = page.query_selector(f'[data-ledger-cleared="{tx_id}"]')
     checkbox_again.click()
-    page.wait_for_function('true', timeout=1000)
 
     stored = page.evaluate(
         """() => {
@@ -381,7 +376,6 @@ def test_ledger_cleared_for_different_keys_do_not_collide(app_page):
     assert tx_id_1 != tx_id_2
 
     checkboxes[0].click()
-    page.wait_for_function('true', timeout=1000)
 
     state = page.evaluate(
         """([txId1, txId2]) => ({

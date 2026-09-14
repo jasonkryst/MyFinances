@@ -31,7 +31,6 @@ def test_print_button_calls_window_print(app_page, page_name, btn_id):
 
     page.evaluate("() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; }")
     page.click(f'#{btn_id}')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate('() => window.__printCalled') is True
     assert_no_errors(page)

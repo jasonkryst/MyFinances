@@ -53,7 +53,6 @@ def test_choosing_adjust_balance_persists_setting_and_closes_modal(page):
     page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
 
     page.click('#setupWizardAdjustBtn')
-    page.wait_for_function('true', timeout=1000)
 
     modal = page.query_selector('#setupWizardModal')
     classes = modal.get_attribute('class') or ''
@@ -128,7 +127,6 @@ def test_wizard_escape_closes_modal(page):
     )
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal = page.query_selector('#setupWizardModal')
     classes = modal.get_attribute('class') or ''
@@ -147,7 +145,6 @@ def test_wizard_backdrop_click_closes_modal(page):
     # Click the top-left corner of the viewport — inside the overlay element
     # but outside the centred .modal-content card.
     page.mouse.click(10, 10)
-    page.wait_for_function('true', timeout=1000)
 
     modal = page.query_selector('#setupWizardModal')
     classes = modal.get_attribute('class') or ''
@@ -162,7 +159,6 @@ def test_wizard_choice_survives_reload(page):
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
     page.click('#setupWizardAdjustBtn')
-    page.wait_for_function('true', timeout=1000)
 
     page.reload(wait_until="networkidle")
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
@@ -200,7 +196,7 @@ def test_settings_modal_save_updates_setting(app_page):
     assert checkbox.is_checked() is False
     checkbox.check()
     page.click('#settingsModalDoneBtn')
-    page.wait_for_selector('#settingsModal.hidden', timeout=5000)
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
     assert setting is True
@@ -226,7 +222,6 @@ def test_settings_modal_escape_closes_without_losing_unsaved_choice_state(app_pa
         timeout=2000
     )
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal = page.query_selector('#settingsModal')
     classes = modal.get_attribute('class') or ''
@@ -279,7 +274,7 @@ def test_settings_modal_switching_backend_migrates_on_done(app_page):
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingStorageBackend', 'session')
     page.click('#settingsModalDoneBtn')
-    page.wait_for_selector('#settingsModal.hidden', timeout=5000)
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     result = page.evaluate("""() => ({
         backend: window.app._storageBackendKind,
@@ -307,7 +302,6 @@ def test_settings_modal_escape_does_not_switch_backend(app_page):
     )
     page.select_option('#settingStorageBackend', 'session')
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     backend = page.evaluate("() => window.app._storageBackendKind")
     assert backend == 'local'
@@ -347,7 +341,7 @@ def test_settings_postgres_switch_cancel_closes_modal_and_keeps_backend(app_page
 
     page.wait_for_selector('#pgSwitchConfirmModal.flex-visible', timeout=5000)
     page.click('#pgSwitchCancelBtn')
-    page.wait_for_selector('#pgSwitchConfirmModal.hidden', timeout=5000)
+    page.wait_for_selector('#pgSwitchConfirmModal', state='hidden', timeout=5000)
 
     modal = page.query_selector('#pgSwitchConfirmModal')
     classes = modal.get_attribute('class') or ''
@@ -375,7 +369,6 @@ def test_settings_postgres_switch_escape_closes_modal_and_keeps_backend(app_page
         timeout=2000
     )
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal = page.query_selector('#pgSwitchConfirmModal')
     classes = modal.get_attribute('class') or ''

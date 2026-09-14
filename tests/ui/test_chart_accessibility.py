@@ -33,7 +33,6 @@ def test_health_gauges_have_sr_tables(app_page, account_data, income_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
@@ -77,7 +76,6 @@ def test_forecast_chart_has_sr_table(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
@@ -96,7 +94,6 @@ def test_networth_trend_chart_has_sr_table(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
@@ -119,7 +116,6 @@ def test_strategy_schedule_charts_have_sr_tables(app_page, debt_data, income_dat
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     create_debt(page, debt_data)
 
@@ -163,9 +159,8 @@ def test_budget_cashflow_charts_have_sr_tables(app_page, debt_data):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="expenses"]')
-    page.wait_for_selector('#expensesList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="expenses"].active', timeout=5000)
     page.click('.cashflow-tab[data-tab="charts"]')
-    page.wait_for_function('true', timeout=1000)
 
     _assert_sr_table(page, 'cashflowDonutChart')
     _assert_sr_table(page, 'cashflowBarChart')

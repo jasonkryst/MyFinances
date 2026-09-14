@@ -34,7 +34,6 @@ def test_spending_tab_exists_and_navigates(app_page):
     assert btn, "Expected a spending tab button with data-rptab='spending'"
 
     btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     is_active = page.evaluate('() => document.getElementById("rptPanel-spending")?.classList.contains("rpt-tab-panel--active")')
     assert is_active, "Expected #rptPanel-spending to have class rpt-tab-panel--active after clicking the tab"
@@ -84,7 +83,6 @@ def test_spending_ranked_row_opens_modal(app_page):
     row = page.query_selector('[data-spending-cat="Housing"]')
     assert row, "Expected a ranked row for 'Housing'"
     row.click()
-    page.wait_for_function('true', timeout=1000)
 
     modal_visible = page.is_visible('#spendingDrilldownModal')
     assert modal_visible, "Expected the drill-down modal to be visible after clicking a ranked row"
@@ -100,7 +98,6 @@ def test_spending_modal_shows_transactions(app_page):
     _seed_and_navigate(page)
 
     page.click('[data-spending-cat="Housing"]')
-    page.wait_for_function('true', timeout=1000)
 
     tx_list = page.evaluate('() => document.querySelector(".spending-modal-tx-list")?.textContent || ""')
     assert 'Rent' in tx_list, f"Expected 'Rent' transaction in modal body, got: {tx_list[:200]}"
@@ -113,11 +110,9 @@ def test_spending_modal_close_button_dismisses(app_page):
     _seed_and_navigate(page)
 
     page.click('[data-spending-cat="Housing"]')
-    page.wait_for_function('true', timeout=1000)
     assert page.is_visible('#spendingDrilldownModal'), "Modal should be visible before closing"
 
     page.click('#spendingDrilldownClose')
-    page.wait_for_function('true', timeout=1000)
     assert not page.is_visible('#spendingDrilldownModal'), "Modal should be hidden after clicking Close"
 
 

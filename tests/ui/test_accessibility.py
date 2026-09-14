@@ -26,7 +26,6 @@ def test_keyboard_navigation(app_page):
     
     # Tab through page elements
     page.keyboard.press('Tab')
-    page.wait_for_function('true', timeout=1000)
     
     # Should be able to focus on interactive elements
     focused_elem = page.evaluate('() => document.activeElement.tagName')
@@ -113,7 +112,6 @@ def test_focus_indicators(app_page):
     buttons = page.query_selector_all('button')
     if buttons:
         buttons[0].focus()
-        page.wait_for_function('true', timeout=1000)
         
         # Element should show focus state
         focus_outline = buttons[0].evaluate("""
@@ -162,7 +160,6 @@ def test_reconcile_inputs_have_labels(app_page):
         app._reconciliationAccountFilter = 'all';
         app.switchPage('reconcile');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     for field in ('date', 'balance', 'note'):
         label = page.query_selector(f'label[for="recon-{field}-8501"]')
@@ -184,7 +181,6 @@ def test_reconcile_action_buttons_are_buttons(app_page):
         app.applyReconciliation(8502, 1100, '', '2026-06-10');
         app.switchPage('reconcile');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     reconcile_btn = page.query_selector('[data-recon-action="reconcile"][data-recon-id="8502"]')
     assert reconcile_btn, "Expected a reconcile button"
@@ -209,13 +205,11 @@ def test_reconcile_modal_focus_and_keyboard_trap(app_page):
         app._reconciliationAccountFilter = 'all';
         app.openReconcileModal(8503);
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'reconcileModalBalance', "Opening the modal should focus the balance input"
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("hidden")'
@@ -237,7 +231,6 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     # The reconcile *modal* opens from the Ledger page's per-account filter
     # (not the Reconcile page's own inline reconcileAccount() form, a
@@ -245,7 +238,7 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_selector('#ledgerTableBody', timeout=5000)
+    page.wait_for_selector('#ledgerTable', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
@@ -271,17 +264,15 @@ def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
     page.select_option('#ledgerAccountFilter', index=1)
-    page.wait_for_selector('#ledgerTableBody', timeout=5000)
+    page.wait_for_selector('#ledgerTable', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'reconcileFromLedgerBtn', "Focus should return to the triggering Reconcile button"
@@ -325,7 +316,6 @@ def test_delete_confirm_modal_restores_focus_on_dismiss(app_page, debt_data):
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     focused_action = page.evaluate('() => document.activeElement.getAttribute("data-debt-action")')
     assert focused_action == 'delete', "Focus should return to the triggering delete button"
@@ -346,12 +336,10 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     page.fill('#accountName', 'Spare Account')
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '500')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     # Link a debt to the first account so deleting it triggers the replacement modal.
     linked_account_id = page.evaluate("""() => {
@@ -363,11 +351,9 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
         app.renderAccountsList();
         return acct.id;
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     delete_btn = page.query_selector(f'button[data-account-action="delete"][data-account-id="{linked_account_id}"]')
     delete_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("accountReplacementModal")?.classList.contains("flex-visible")'
@@ -385,7 +371,6 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
         "Shift+Tab from the first focusable element should wrap to the last"
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     focused_action = page.evaluate('() => document.activeElement.getAttribute("data-account-action")')
     assert focused_action == 'delete', "Focus should return to the triggering delete button"
@@ -428,7 +413,6 @@ def test_settings_modal_focus_and_keyboard_trap(app_page):
     assert focused_id == 'settingReconciliationAdjusts', "Opening Settings should focus the checkbox"
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("settingsModal")?.classList.contains("hidden")'
@@ -474,12 +458,10 @@ def test_calendar_day_modal_has_dialog_role_and_focus_management(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('reports');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     cell = page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
     assert cell, "Expected at least one day cell with events"
     cell.click()
-    page.wait_for_function('true', timeout=1000)
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'calendarDayModalCloseBtn'
 
@@ -626,7 +608,6 @@ def test_reports_tab_keyboard_focus_reachable(app_page):
 
     # Focus the first tab button
     page.evaluate('() => document.querySelector(".rpt-tab-btn").focus()')
-    page.wait_for_function('true', timeout=1000)
 
     focused = page.evaluate('() => document.activeElement.classList.contains("rpt-tab-btn")')
     assert focused, "Could not focus a .rpt-tab-btn via JS focus()"
@@ -640,7 +621,6 @@ def test_reports_tab_keyboard_focus_reachable(app_page):
         if tab_id:
             focused_tabs.add(tab_id)
         page.keyboard.press('Tab')
-        page.wait_for_function('true', timeout=1000)
 
     expected = {'calendar', 'spending', 'incomeexp', 'moneyflow', 'variance', 'networth', 'forecast'}
     assert expected.issubset(focused_tabs), \

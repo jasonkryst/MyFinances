@@ -25,7 +25,6 @@ def _seed_reconciliation_account(page, with_bill=False):
         app._reconciliationAccountFilter = 'all';
         app.switchPage('reconcile');
     }}""")
-    page.wait_for_function('true', timeout=1000)
 
 
 @pytest.mark.ui
@@ -41,7 +40,6 @@ def test_reconcile_empty_state(app_page):
         app.reconciliations = [];
         app.switchPage('reconcile');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     section_text = page.query_selector('#reconcileSection').text_content()
     assert 'No accounts yet. Add an account first to reconcile its balance.' in section_text
@@ -58,7 +56,6 @@ def test_reconcile_card_shows_current_balance_and_live_diff(app_page):
 
     page.fill('#recon-balance-8001', '1100')
     page.dispatch_event('#recon-balance-8001', 'input')
-    page.wait_for_function('true', timeout=1000)
 
     diff_el = page.query_selector('#recon-diff-8001')
     assert diff_el.text_content().strip() == '$100.00'
@@ -66,7 +63,6 @@ def test_reconcile_card_shows_current_balance_and_live_diff(app_page):
 
     page.fill('#recon-balance-8001', '900')
     page.dispatch_event('#recon-balance-8001', 'input')
-    page.wait_for_function('true', timeout=1000)
 
     diff_el = page.query_selector('#recon-diff-8001')
     assert diff_el.text_content().strip() == '-$100.00'
@@ -136,13 +132,11 @@ def test_history_filter_and_delete(app_page):
         app.applyReconciliation(8002, 600, 'Savings adj', '2026-06-02');
         app.switchPage('reconcile');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     rows = page.query_selector_all('.recon-history-table tbody tr')
     assert len(rows) == 2
 
     page.select_option('#reconHistoryAccountFilter', label='Recon Checking (Checking)')
-    page.wait_for_selector('#reconHistoryList', timeout=5000)
 
     rows = page.query_selector_all('.recon-history-table tbody tr')
     assert len(rows) == 1
@@ -151,7 +145,6 @@ def test_history_filter_and_delete(app_page):
     delete_btn = rows[0].query_selector('[data-recon-action="delete-history"]')
     assert delete_btn, "Expected a Delete button on the history row"
     delete_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     history_text = page.query_selector('.recon-history-table').text_content()
     assert 'No reconciliation history yet.' in history_text
@@ -189,18 +182,16 @@ def test_ledger_reconcile_button_and_modal(app_page):
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
         app.switchPage('ledger');
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     # No reconcile button while "All Accounts" is selected
     assert page.query_selector('#reconcileFromLedgerBtn') is None
 
     page.select_option('#ledgerAccountFilter', label='Recon Ledger (Checking)')
-    page.wait_for_selector('#ledgerTableBody', timeout=5000)
+    page.wait_for_selector('#ledgerTable', timeout=5000)
 
     reconcile_btn = page.query_selector('#reconcileFromLedgerBtn')
     assert reconcile_btn, "Expected a Reconcile button when a specific account is selected"
     reconcile_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("flex-visible")'
@@ -212,7 +203,7 @@ def test_ledger_reconcile_button_and_modal(app_page):
 
     page.fill('#reconcileModalBalance', '950')
     page.click('#reconcileModalConfirmBtn')
-    page.wait_for_selector('#reconcileModal.hidden', timeout=5000)
+    page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("hidden")'
@@ -237,7 +228,6 @@ def test_reconcile_modal_escape_and_enter(app_page):
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
         app.openReconcileModal(8004);
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("flex-visible")'
@@ -245,7 +235,6 @@ def test_reconcile_modal_escape_and_enter(app_page):
     assert modal_visible
 
     page.keyboard.press('Escape')
-    page.wait_for_function("document.querySelector('.flex-visible') === null", timeout=5000)
 
     modal_hidden = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("hidden")'
@@ -258,7 +247,7 @@ def test_reconcile_modal_escape_and_enter(app_page):
 
     page.fill('#reconcileModalBalance', '650')
     page.keyboard.press('Enter')
-    page.wait_for_selector('#commandPaletteOverlay.hidden', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
     balance = page.evaluate('() => window.app.accounts.find(a => a.id === 8004).startingBalance')
     assert balance == 650, "Enter should confirm the reconciliation"

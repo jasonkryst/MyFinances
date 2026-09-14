@@ -70,7 +70,6 @@ def test_cash_flow_trend_series_respects_report_month_offset_year_boundary(app_p
     steps = page.evaluate('() => window.__stepsToJan')
     for _ in range(steps):
         page.click('#rptNextMonth')
-        page.wait_for_function('true', timeout=1000)
 
     series = page.evaluate("() => window.app.getCashFlowTrendSeries(3)")
     # series[2] is the anchor (report) month, which is now January.
@@ -130,7 +129,6 @@ def test_cash_flow_trend_range_switch(app_page):
     assert page.evaluate("() => window.app._cashFlowTrendRangeMonths") == 6
 
     page.click('[data-cashflow-range="12"]')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate("() => window.app._cashFlowTrendRangeMonths") == 12
     active_btn = page.query_selector('[data-cashflow-range="12"]')
@@ -140,7 +138,6 @@ def test_cash_flow_trend_range_switch(app_page):
     assert len(series) == 12
 
     page.click('[data-cashflow-range="1"]')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.evaluate("() => window.app._cashFlowTrendRangeMonths") == 1
     active_1m_btn = page.query_selector('[data-cashflow-range="1"]')

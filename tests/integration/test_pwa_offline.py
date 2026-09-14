@@ -30,7 +30,6 @@ def _wait_for_active_service_worker(page, timeout_ms=15000):
         """)
         if active:
             return True
-        page.wait_for_function('true', timeout=1000)
     return False
 
 

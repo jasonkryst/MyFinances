@@ -60,7 +60,7 @@ def test_whatif_label_updates_immediately_but_metrics_are_debounced(app_page, de
         "Expected the simulation to still be debounced immediately after the input event"
 
     # After the debounce window, the metrics render.
-    page.wait_for_function('true', timeout=1000)
+    page.wait_for_selector('#whatifResult:has-text("New Payoff Date")', timeout=2000)
     result = page.inner_text('#whatifResult')
     assert 'New Payoff Date' in result
     assert 'Months Saved' in result
@@ -85,7 +85,7 @@ def test_whatif_rapid_slider_changes_settle_on_final_value(app_page, debt_data):
     label = page.inner_text('#whatifExtraAmt')
     assert '150' in label
 
-    page.wait_for_function('true', timeout=1000)
+    page.wait_for_selector('#whatifResult:has-text("New Payoff Date")', timeout=2000)
     result = page.inner_text('#whatifResult')
     assert 'New Payoff Date' in result
     assert_no_errors(page)
@@ -98,9 +98,9 @@ def test_whatif_returns_to_hint_when_slider_reset_to_zero(app_page, debt_data):
     _calculate_plan(page, debt_data)
 
     _set_slider(page, 200)
-    page.wait_for_function('true', timeout=1000)
+    page.wait_for_selector('#whatifResult:has-text("New Payoff Date")', timeout=2000)
     assert 'New Payoff Date' in page.inner_text('#whatifResult')
 
     _set_slider(page, 0)
-    page.wait_for_function('true', timeout=1000)
+    page.wait_for_selector('#whatifResult:has-text("Move the slider")', timeout=2000)
     assert 'Move the slider' in page.inner_text('#whatifResult')

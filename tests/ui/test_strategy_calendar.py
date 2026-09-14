@@ -36,7 +36,6 @@ def test_calendar_shows_bill_due_date(app_page, debt_data):
         window.app.bills = [{ id: 1, name: 'Internet', amount: 60, dueDay: 10, category: 'Internet / Phone', accountId: null }];
         window.app.renderCalendarView(0);
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     chip = page.query_selector('.cal-bill-event')
     assert chip is not None, "Expected a .cal-bill-event chip for the seeded bill"
@@ -54,7 +53,6 @@ def test_calendar_shows_expense_day(app_page, debt_data):
         window.app.expenses = [{ id: 1, name: 'Groceries', budgetAmount: 300, date: new Date(dateIso + 'T00:00:00'), category: 'Food', accountId: null }];
         window.app.renderCalendarView(0);
     }""", current_month_iso(12))
-    page.wait_for_function('true', timeout=1000)
 
     chip = page.query_selector('.cal-expense-event')
     assert chip is not None, "Expected a .cal-expense-event chip for the seeded expense"
@@ -75,7 +73,6 @@ def test_calendar_shows_bonus_day(app_page, debt_data):
         window.app.bonuses = [{ id: 1, name: 'Tax Refund', amount: 1500, date: dateIso, category: 'Other', accountId: null, purpose: null }];
         window.app.renderCalendarView(0);
     }""", current_month_iso(20))
-    page.wait_for_function('true', timeout=1000)
 
     chip = page.query_selector('.cal-bonus-event')
     assert chip is not None, "Expected a .cal-bonus-event chip for the seeded bonus"
@@ -97,7 +94,6 @@ def test_calendar_hides_expense_bonus_legend_when_none_exist(app_page, debt_data
         window.app.bonuses = [];
         window.app.renderCalendarView(0);
     }""")
-    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('.cal-legend-swatch--expense') is None
     assert page.query_selector('.cal-legend-swatch--bonus') is None

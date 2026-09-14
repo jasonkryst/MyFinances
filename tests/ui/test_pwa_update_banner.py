@@ -32,7 +32,6 @@ def test_update_banner_absent_by_default(app_page):
 def test_update_banner_appears(app_page):
     page = app_page
     _show_banner(page)
-    page.wait_for_function('true', timeout=1000)
 
     assert page.is_visible('#swUpdateBanner'), "Expected the update-available banner to appear"
     assert_no_errors(page)
@@ -42,11 +41,9 @@ def test_update_banner_appears(app_page):
 def test_update_banner_is_dismissible(app_page):
     page = app_page
     _show_banner(page)
-    page.wait_for_function('true', timeout=1000)
     assert page.is_visible('#swUpdateBanner')
 
     page.click('.sw-update-banner-close')
-    page.wait_for_function('true', timeout=1000)
     assert not page.is_visible('#swUpdateBanner')
 
 
@@ -55,7 +52,6 @@ def test_update_banner_does_not_duplicate(app_page):
     page = app_page
     _show_banner(page)
     _show_banner(page)
-    page.wait_for_function('true', timeout=1000)
 
     banners = page.query_selector_all('#swUpdateBanner')
     assert len(banners) == 1, f"Expected exactly one banner element, got {len(banners)}"
@@ -65,10 +61,8 @@ def test_update_banner_does_not_duplicate(app_page):
 def test_reload_button_posts_skip_waiting_to_waiting_worker(app_page):
     page = app_page
     _show_banner(page)
-    page.wait_for_function('true', timeout=1000)
 
     page.click('.sw-update-banner-reload')
-    page.wait_for_function('true', timeout=1000)
 
     calls = page.evaluate("() => window.__swPostMessageCalls")
     assert calls == [{'type': 'SKIP_WAITING'}], f"Expected a single SKIP_WAITING postMessage call, got {calls}"

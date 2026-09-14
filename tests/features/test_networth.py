@@ -31,12 +31,11 @@ def test_net_worth_calculation_basic(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '10000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Create debt (liability)
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     page.fill('#debtName', 'Debt')
@@ -46,7 +45,6 @@ def test_net_worth_calculation_basic(app_page):
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     
     # Check net worth (should be 10000 - 3000 = 7000)
     net_worth_text = page.evaluate('() => document.querySelector("#netWorthWidget").textContent')
@@ -70,7 +68,6 @@ def test_net_worth_updates_on_change(app_page):
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '5000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Net worth should update
     updated_nw = page.evaluate('() => document.querySelector("#netWorthWidget").textContent')
@@ -91,13 +88,11 @@ def test_net_worth_snapshot_capture(app_page):
     nw_tab = page.query_selector('[data-rptab="networth"]')
     if nw_tab:
         nw_tab.click()
-        page.wait_for_function('true', timeout=1000)
         
         # Look for snapshot capture button
         capture_btn = page.query_selector('#captureSnapshotBtn')
         if capture_btn:
             capture_btn.click()
-            page.wait_for_function('true', timeout=1000)
             
             # Snapshot should be saved
             snapshots = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
@@ -116,7 +111,6 @@ def test_net_worth_milestones(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '5000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Navigate to reports to check milestones
     page.click('button[data-page="reports"]')
@@ -125,7 +119,6 @@ def test_net_worth_milestones(app_page):
     nw_tab = page.query_selector('[data-rptab="networth"]')
     if nw_tab:
         nw_tab.click()
-        page.wait_for_function('true', timeout=1000)
         
         # Look for milestone section
         milestone_section = page.query_selector('[class*="milestone"]')
@@ -148,12 +141,11 @@ def test_multiple_assets_and_liabilities(app_page):
         page.select_option('#accountType', label=name)
         page.fill('#accountStartingBalance', amount)
         page.click('#accountFormSubmit')
-        page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Add multiple debts
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
     page.click('#debtFormToggle')
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     
@@ -176,7 +168,6 @@ def test_multiple_assets_and_liabilities(app_page):
             page.fill('#fixedStartDate', '2026-01-01')
             page.fill('#fixedEndDate', '2031-01-01')
         page.click('#debtFormSubmit')
-        page.wait_for_function("document.querySelector('#debtName').value === ''", timeout=5000)
     
     # Net worth should be (5000+10000+3000) - (2000+15000) = 1000
     net_worth_text = page.evaluate('() => document.querySelector("#netWorthWidget").textContent')

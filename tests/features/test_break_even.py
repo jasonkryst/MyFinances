@@ -12,7 +12,7 @@ BASE_URL = "http://localhost:32900/"
 def _nav_debts(page):
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('#debtsList', timeout=5000)
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
 
 def _create_cc_debt(page, name="Visa", balance="2400", rate="18.5", min_pay="100"):
@@ -52,7 +52,6 @@ def test_break_even_badge_no_plan(app_page):
 
     # Click it
     link.click()
-    page.wait_for_function('true', timeout=1000)
 
     # No-plan banner should appear
     banner = page.query_selector('.break-even-no-plan-banner')
@@ -71,7 +70,6 @@ def test_break_even_badge_with_plan(app_page):
     _create_cc_debt(page)
     _run_plan(page, payment="450")
     _nav_debts(page)
-    page.wait_for_function('true', timeout=1000)
 
     # Badge should auto-render (no "Show" link needed)
     show_link = page.query_selector('[data-be-show]')
@@ -93,7 +91,6 @@ def test_break_even_min_type_toggle(app_page):
     _create_cc_debt(page, balance="5000", rate="20", min_pay="100")
     _run_plan(page, payment="500")
     _nav_debts(page)
-    page.wait_for_function('true', timeout=1000)
 
     # Get current min-only value in fixed mode
     rows_fixed = page.query_selector_all('.break-even-row')
@@ -103,7 +100,6 @@ def test_break_even_min_type_toggle(app_page):
     toggle = page.query_selector('.be-min-type')
     assert toggle is not None, "Expected min-type toggle on badge"
     toggle.select_option('percent')
-    page.wait_for_function('true', timeout=1000)
 
     rows_pct = page.query_selector_all('.break-even-row')
     pct_text = rows_pct[-1].inner_text() if rows_pct else ""
@@ -123,12 +119,10 @@ def test_break_even_accelerate_modal_opens(app_page):
     link = page.query_selector('[data-be-show]')
     if link:
         link.click()
-        page.wait_for_function('true', timeout=1000)
 
     acc_btn = page.query_selector('[data-be-accelerate]')
     assert acc_btn is not None, "Expected Accelerate button on badge"
     acc_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     modal = page.query_selector('#accelerateDebtModal')
     assert modal is not None
@@ -149,18 +143,15 @@ def test_break_even_accelerate_preview_updates(app_page):
     link = page.query_selector('[data-be-show]')
     if link:
         link.click()
-        page.wait_for_function('true', timeout=1000)
 
     acc_btn = page.query_selector('[data-be-accelerate]')
     acc_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     payoff_before = page.query_selector('#acceleratePayoff').inner_text()
 
     extra_input = page.query_selector('#accelerateExtraPay')
     extra_input.fill('200')
     extra_input.dispatch_event('input')
-    page.wait_for_function('true', timeout=1000)
 
     payoff_after = page.query_selector('#acceleratePayoff').inner_text()
     # With $200 extra, payoff should change
@@ -177,20 +168,16 @@ def test_break_even_apply_to_plan(app_page):
     link = page.query_selector('[data-be-show]')
     if link:
         link.click()
-        page.wait_for_function('true', timeout=1000)
 
     acc_btn = page.query_selector('[data-be-accelerate]')
     acc_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     extra_input = page.query_selector('#accelerateExtraPay')
     extra_input.fill('50')
     extra_input.dispatch_event('input')
-    page.wait_for_function('true', timeout=1000)
 
     apply_btn = page.query_selector('#accelerateApplyBtn')
     apply_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     payment_field = page.query_selector('#monthlyPayment')
     assert payment_field is not None
@@ -252,7 +239,6 @@ def test_break_even_zero_interest_debt(app_page):
     link = page.query_selector('[data-be-show]')
     if link:
         link.click()
-        page.wait_for_function('true', timeout=1000)
 
     # No JS errors
     assert len(page.page_errors) == 0, f"Page errors: {page.page_errors}"
@@ -270,7 +256,6 @@ def test_break_even_minimum_covers_balance(app_page):
     _create_cc_debt(page, balance="100", rate="5", min_pay="100")
     _run_plan(page, payment="100")
     _nav_debts(page)
-    page.wait_for_function('true', timeout=1000)
 
     assert len(page.page_errors) == 0, f"Page errors: {page.page_errors}"
 
@@ -282,12 +267,10 @@ def test_break_even_invalid_percent(app_page):
     _create_cc_debt(page)
     _run_plan(page, payment="300")
     _nav_debts(page)
-    page.wait_for_function('true', timeout=1000)
 
     toggle = page.query_selector('.be-min-type')
     if toggle:
         toggle.select_option('percent')
-        page.wait_for_function('true', timeout=1000)
         # Set value via evaluate to avoid focus/blur side-effects that can produce
         # transient DOM-removal errors when the section is re-rendered during blur.
         page.evaluate("""() => {
@@ -297,7 +280,6 @@ def test_break_even_invalid_percent(app_page):
                 input.dispatchEvent(new Event('change', { bubbles: true }));
             }
         }""")
-        page.wait_for_function('true', timeout=1000)
 
     assert len(page.page_errors) == 0, f"Page errors after 0% input: {page.page_errors}"
 
@@ -309,17 +291,14 @@ def test_break_even_accelerate_zero_extra(app_page):
     _create_cc_debt(page)
     _run_plan(page, payment="300")
     _nav_debts(page)
-    page.wait_for_function('true', timeout=1000)
 
     acc_btn = page.query_selector('[data-be-accelerate]')
     assert acc_btn is not None
     acc_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     extra_input = page.query_selector('#accelerateExtraPay')
     extra_input.fill('0')
     extra_input.dispatch_event('input')
-    page.wait_for_function('true', timeout=1000)
 
     assert len(page.page_errors) == 0, f"Page errors: {page.page_errors}"
     payoff = page.query_selector('#acceleratePayoff')
@@ -336,16 +315,13 @@ def test_break_even_accelerate_negative_input(app_page):
     link = page.query_selector('[data-be-show]')
     if link:
         link.click()
-        page.wait_for_function('true', timeout=1000)
 
     acc_btn = page.query_selector('[data-be-accelerate]')
     acc_btn.click()
-    page.wait_for_function('true', timeout=1000)
 
     extra_input = page.query_selector('#accelerateExtraPay')
     extra_input.fill('-100')
     extra_input.dispatch_event('input')
-    page.wait_for_function('true', timeout=1000)
 
     assert len(page.page_errors) == 0, f"Page errors: {page.page_errors}"
     # Total should not show negative value

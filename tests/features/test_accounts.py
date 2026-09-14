@@ -46,7 +46,6 @@ def test_account_types(app_page):
         page.select_option('#accountType', label=account_type)
         page.fill('#accountStartingBalance', '1000')
         page.click('#accountFormSubmit')
-        page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
         
         # Verify account created
         assert page.query_selector(f'text={account_type} Test'), \
@@ -66,7 +65,6 @@ def test_account_balance_display(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', balance)
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Find account and check balance display
     account_card = page.query_selector('text=Balance Test')
@@ -89,7 +87,6 @@ def test_net_worth_includes_accounts(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '10000')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Check net worth widget
     net_worth_widget = page.query_selector('#netWorthWidget')
@@ -120,7 +117,6 @@ def test_multiple_accounts(app_page):
         page.select_option('#accountType', label=name)
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
-        page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     
     # Verify all accounts are displayed
     for name, _ in accounts:
@@ -164,7 +160,6 @@ def _seed_accounts(page, accounts):
         app.saveToStorage();
         app.switchPage('accounts');
     }""", accounts)
-    page.wait_for_function('true', timeout=1000)
 
 
 def _badge_text_for_card(page, account_name):
@@ -265,7 +260,6 @@ def test_edit_account_removing_rate_hides_badge(app_page):
     page.wait_for_selector('#ac-rate-1')
     page.fill('#ac-rate-1', '0')
     page.click('[data-account-action="save"][data-account-id="1"]')
-    page.wait_for_function('true', timeout=1000)
 
     assert _badge_text_for_card(page, 'Was Rated') is None, \
         "Badge should disappear once the rate is edited down to 0"
@@ -354,7 +348,6 @@ def _seed_two_accounts(page):
         page.select_option('#accountType', label='Checking')
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
-        page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
     return 'Primary Account', 'Replacement Account'
 
 
@@ -382,7 +375,6 @@ def test_delete_account_no_links_shows_confirm_modal(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
@@ -401,12 +393,10 @@ def test_delete_account_no_links_cancel_keeps_account(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
     page.click('#deleteConfirmCancelBtn')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=Keep Me Account'), "Account should still exist after cancelling delete"
 
@@ -421,12 +411,10 @@ def test_delete_account_no_links_confirm_removes_account(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
 
     names = page.evaluate("() => window.app.accounts.map(a => a.name)")
     assert 'Delete Me Account' not in names, "Account should be removed after confirmation"
@@ -449,13 +437,11 @@ def test_delete_account_with_linked_items_shows_replacement_modal(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     # Click Delete on the first (Primary) account card
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
 
     assert _is_replacement_modal_open(page), "Replacement modal should open when linked items exist"
     assert not _is_confirm_modal_open(page), "Generic confirm modal should NOT open when linked items exist"
@@ -481,12 +467,10 @@ def test_delete_account_replacement_modal_confirm_disabled_without_selection(app
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
 
     assert _is_replacement_modal_open(page), "Replacement modal should be open"
     is_disabled = page.evaluate("() => document.getElementById('accountReplacementConfirmBtn').disabled")
@@ -507,16 +491,13 @@ def test_delete_account_replacement_modal_cancel_keeps_account(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
 
     assert _is_replacement_modal_open(page)
     page.click('#accountReplacementCancelBtn')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=Primary Account'), "Primary account should still exist after cancel"
     page.click('button[data-page="income"]')
@@ -539,18 +520,14 @@ def test_delete_account_replacement_modal_second_confirm_names_target(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
 
     # Select the replacement account
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
-    page.wait_for_function('true', timeout=1000)
     page.click('#accountReplacementConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
 
     # Second confirm modal should be visible and mention the target account name
     assert _is_confirm_modal_open(page), "Second confirm modal should appear after selecting replacement"
@@ -573,20 +550,15 @@ def test_delete_account_with_linked_items_second_confirm_cancel_keeps_account(ap
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
 
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
-    page.wait_for_function('true', timeout=1000)
     page.click('#accountReplacementConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
 
     page.click('#deleteConfirmCancelBtn')
-    page.wait_for_function('true', timeout=1000)
 
     assert page.query_selector('text=Primary Account'), "Account should still exist after second confirm cancel"
     assert_no_errors(page)
@@ -606,19 +578,14 @@ def test_delete_account_reassigns_linked_income_to_replacement(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
 
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
-    page.wait_for_function('true', timeout=1000)
     page.click('#accountReplacementConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
 
     # Primary account should be gone
     acc_names = page.evaluate("() => window.app.accounts.map(a => a.name)")
@@ -660,17 +627,12 @@ def test_delete_account_with_linked_items_reassigns_all_types(app_page):
         app.saveToStorage();
         app.switchPage('accounts');
     }""", [primary_id])
-    page.wait_for_function('true', timeout=1000)
 
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
 
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
-    page.wait_for_function('true', timeout=1000)
     page.click('#accountReplacementConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
 
     result = page.evaluate("""([rid]) => {
         const app = window.app;
@@ -702,18 +664,13 @@ def test_delete_account_with_linked_items_replacement_pages_navigate_cleanly(app
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_function("document.querySelector('#incomeName').value === ''", timeout=5000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.locator('[data-account-action="delete"]').first.click()
-    page.wait_for_function('true', timeout=1000)
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
-    page.wait_for_function('true', timeout=1000)
     page.click('#accountReplacementConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_function('true', timeout=1000)
 
     for nav_page in ['health', 'reports', 'income', 'ledger']:
         page.click(f'button[data-page="{nav_page}"]')
@@ -732,7 +689,6 @@ def test_account_type_shown_in_selectors(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
     page.click('#accountFormSubmit')
-    page.wait_for_function("document.querySelector('#accountName').value === ''", timeout=5000)
 
     expected_label = 'My BCU (Checking)'
 
