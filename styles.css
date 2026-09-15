@@ -6600,6 +6600,23 @@ body.dark-mode .login-gate-header {
     display: block;
     margin-top: 0.5rem;
 }
+.login-gate-forgot-link {
+    margin: 0.5rem 0 0;
+    text-align: center;
+}
+.link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 0.875rem;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.link-btn:hover {
+    color: var(--primary-hover);
+}
 
 /* Installed PWA: same flat, edge-to-edge treatment as .container — drop the
    gradient backdrop and floating-card chrome; keep the header band gradient,
