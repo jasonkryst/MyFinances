@@ -3,7 +3,7 @@
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
-import { getCurrentLocale } from './i18n.js';
+import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showEmailTestToast } from './ui.js';
@@ -81,7 +81,8 @@ export function initSettingsModal(app) {
     const emailTestGroup = document.getElementById('settingsEmailTestGroup');
     const sendTestEmailBtn = document.getElementById('settingsSendTestEmailBtn');
     const localeSelect = document.getElementById('settingLocale');
-    if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect) return;
+    const currencySelect = document.getElementById('settingCurrency');
+    if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect || !currencySelect) return;
 
     let lastFocused = null;
 
@@ -108,6 +109,7 @@ export function initSettingsModal(app) {
             if (emailTestGroup) emailTestGroup.classList.add('hidden');
         }
         localeSelect.value = getCurrentLocale();
+        currencySelect.value = getCurrencyCode();
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
         modal.onkeydown = (event) => {
@@ -130,12 +132,16 @@ export function initSettingsModal(app) {
                 location.reload();
             } else {
                 app.setLocale(localeSelect.value);
+                setCurrencyCode(currencySelect.value);
+                app.refreshCurrentPageData();
                 close();
             }
             return;
         }
         app.switchStorageBackend(storageSelect.value);
         app.setLocale(localeSelect.value);
+        setCurrencyCode(currencySelect.value);
+        app.refreshCurrentPageData();
         close();
     };
 

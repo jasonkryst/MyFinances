@@ -13,6 +13,49 @@ export const LOCALES = [
 ];
 export const LOCALE_PREF_KEY = 'debtTrackerLocale';
 
+export const CURRENCY_PREF_KEY = 'debtTrackerCurrency';
+export const CURRENCIES = [
+    { code: 'USD', name: 'USD — US Dollar' },
+    { code: 'EUR', name: 'EUR — Euro' },
+    { code: 'GBP', name: 'GBP — British Pound' },
+    { code: 'JPY', name: 'JPY — Japanese Yen' },
+    { code: 'CAD', name: 'CAD — Canadian Dollar' },
+    { code: 'AUD', name: 'AUD — Australian Dollar' },
+    { code: 'CHF', name: 'CHF — Swiss Franc' },
+    { code: 'CNY', name: 'CNY — Chinese Yuan' },
+    { code: 'INR', name: 'INR — Indian Rupee' },
+    { code: 'MXN', name: 'MXN — Mexican Peso' },
+    { code: 'BRL', name: 'BRL — Brazilian Real' },
+    { code: 'KRW', name: 'KRW — South Korean Won' },
+    { code: 'SEK', name: 'SEK — Swedish Krona' },
+    { code: 'NOK', name: 'NOK — Norwegian Krone' },
+    { code: 'DKK', name: 'DKK — Danish Krone' },
+    { code: 'SGD', name: 'SGD — Singapore Dollar' },
+    { code: 'HKD', name: 'HKD — Hong Kong Dollar' },
+    { code: 'NZD', name: 'NZD — New Zealand Dollar' },
+    { code: 'ZAR', name: 'ZAR — South African Rand' },
+    { code: 'PLN', name: 'PLN — Polish Zloty' },
+];
+const CURRENCY_CODES = CURRENCIES.map(c => c.code);
+const DEFAULT_CURRENCY = 'USD';
+
+export function getCurrencyCode() {
+    try {
+        const stored = localStorage.getItem(CURRENCY_PREF_KEY);
+        return CURRENCY_CODES.includes(stored) ? stored : DEFAULT_CURRENCY;
+    } catch (_) {
+        return DEFAULT_CURRENCY;
+    }
+}
+
+export function setCurrencyCode(code) {
+    const normalized = CURRENCY_CODES.includes(code) ? code : DEFAULT_CURRENCY;
+    try {
+        localStorage.setItem(CURRENCY_PREF_KEY, normalized);
+    } catch (_) { /* storage unavailable — preference still applies in-memory */ }
+    return normalized;
+}
+
 const LOCALE_CODES = LOCALES.map(l => l.code);
 const DEFAULT_LOCALE = 'en';
 const DICTIONARIES = { en, es, pl };
