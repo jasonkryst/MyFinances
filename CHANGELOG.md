@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.13.0] — 2026-09-15
+
+### Fixed
+- **Login gate UX hardening** — `link-btn` buttons ("Forgot password?" and "Back to sign in") now render as themed text links using `var(--primary-color)` / `var(--primary-hover)` in both light and dark mode; previously had no CSS definition and fell back to browser-default gray button chrome. `login-gate-forgot-link` centering rule also added.
+- **Forgot-password form validation** — client-side email format check added; submitting an empty or `@`-less value now shows an inline error without sending a request.
+- **Reset-password form validation** — 12-character minimum check added client-side to match the server-side guard, giving immediate feedback before the network round-trip.
+- **In-flight double-submit prevention** — submit button is disabled on all four auth forms (forgot-password, reset-password, login, register) for the duration of the in-flight fetch request; re-enabled on every error path.
+- **Forgot-password 429 surfacing** — rate-limit responses from `/auth/forgot-password` now show "Too many attempts. Try again later." rather than being silently swallowed; all other non-success responses still show the generic success message to preserve account-existence privacy.
+
+---
 ## [5.12.0] — 2026-09-14
 
 ### Added
