@@ -54,6 +54,44 @@ function openLedgerExportModal(app) {
     setTimeout(() => closeBtn.focus(), 30);
 }
 
+function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
+    const modal = document.getElementById('ledgerMarkAllClearedModal');
+    if (!modal) return;
+    const desc = document.getElementById('ledgerMarkAllClearedDesc');
+    const confirmBtn = document.getElementById('ledgerMarkAllClearedConfirmBtn');
+    const cancelBtn = document.getElementById('ledgerMarkAllClearedCancelBtn');
+    const closeBtn = document.getElementById('ledgerMarkAllClearedCloseBtn');
+    if (!desc || !confirmBtn || !cancelBtn || !closeBtn) return;
+
+    const count = clearableTxs.length;
+    desc.textContent = `Mark ${count} transaction${count !== 1 ? 's' : ''} as cleared? This will apply to all uncleared transactions matching the current filters.`;
+
+    const close = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex-visible');
+        modal.onkeydown = null;
+    };
+
+    confirmBtn.onclick = () => {
+        for (const tx of clearableTxs) {
+            setLedgerCleared(app, tx.transactionId, true);
+        }
+        app.saveToStorage();
+        close();
+        onComplete();
+    };
+    cancelBtn.onclick = close;
+    closeBtn.onclick = close;
+    modal.onclick = (event) => { if (event.target === modal) close(); };
+    modal.onkeydown = (event) => {
+        if (event.key === 'Escape') { event.preventDefault(); close(); }
+    };
+
+    modal.classList.add('flex-visible');
+    modal.classList.remove('hidden');
+    setTimeout(() => closeBtn.focus(), 30);
+}
+
 // Render the Ledger page
 export function renderLedgerPage(app) {
     // --- Begin: renderLedgerPage logic from app.js ---
@@ -61,7 +99,8 @@ export function renderLedgerPage(app) {
     if (!container) return;
     const accounts = app.accounts || [];
     let selectedAccount = app._ledgerAccountFilter || 'all';
-    let selectedDateRange = app._ledgerDateRange || '30';
+    let selectedDateRange = app._ledgerDateRange || 'around7';
+    let selectedClearedFilter = app._ledgerClearedFilter || 'all';
     let selectedPageSize = parseInt(app._ledgerPageSize, 10);
     if (![10, 25, 50, 100].includes(selectedPageSize)) {
         selectedPageSize = 25;
@@ -71,6 +110,12 @@ export function renderLedgerPage(app) {
         currentPage = 1;
     }
     let transactions = getFilteredSortedLedgerTransactions(app);
+    const clearableUncleared = transactions.filter(tx => tx.transactionId && !tx.cleared);
+    let activeFilterCount = 0;
+    if (selectedAccount !== 'all') activeFilterCount++;
+    if (selectedDateRange !== 'around7') activeFilterCount++;
+    if (selectedClearedFilter !== 'all') activeFilterCount++;
+
     let filterHtml = '';
     filterHtml += `<div class="filter-controls">`;
     if (accounts.length > 0) {
@@ -84,12 +129,19 @@ export function renderLedgerPage(app) {
     }
     filterHtml += `<label for="ledgerDateRange" class="filter-label">Show:</label>
         <select id="ledgerDateRange" class="select-styled">
+            <option value="around7"${selectedDateRange==='around7'?' selected':''}>Around Today (±7 days)</option>
             <option value="all"${selectedDateRange==='all'?' selected':''}>All</option>
-            <option value="past"${selectedDateRange==='past'?' selected':''}>Past & Today Only</option>
+            <option value="past"${selectedDateRange==='past'?' selected':''}>Past &amp; Today Only</option>
             <option value="30"${selectedDateRange==='30'?' selected':''}>Next 30 Days</option>
             <option value="month"${selectedDateRange==='month'?' selected':''}>Through Next Month</option>
             <option value="60"${selectedDateRange==='60'?' selected':''}>Next 60 Days</option>
             <option value="90"${selectedDateRange==='90'?' selected':''}>Next 90 Days</option>
+        </select>`;
+    filterHtml += `<label for="ledgerClearedFilter" class="filter-label">Status:</label>
+        <select id="ledgerClearedFilter" class="select-styled">
+            <option value="all"${selectedClearedFilter==='all'?' selected':''}>All</option>
+            <option value="uncleared"${selectedClearedFilter==='uncleared'?' selected':''}>Uncleared Only</option>
+            <option value="cleared"${selectedClearedFilter==='cleared'?' selected':''}>Cleared Only</option>
         </select>`;
     filterHtml += `<label for="ledgerPageSize" class="filter-label">Rows:</label>
         <select id="ledgerPageSize" class="select-styled">
@@ -101,6 +153,13 @@ export function renderLedgerPage(app) {
     filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
     if (selectedAccount !== 'all') {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
+    }
+    if (clearableUncleared.length > 0) {
+        filterHtml += `<button id="ledgerMarkAllClearedBtn" class="btn btn-secondary btn-small" type="button">✓ Mark ${clearableUncleared.length} as Cleared</button>`;
+    }
+    if (activeFilterCount > 0) {
+        filterHtml += `<button id="ledgerClearFiltersBtn" class="btn btn-secondary btn-small" type="button">✕ Clear Filters</button>`;
+        filterHtml += `<span class="filter-active-badge">${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''} active</span>`;
     }
     filterHtml += `</div>`;
 
@@ -228,6 +287,30 @@ export function renderLedgerPage(app) {
             app._ledgerPageSize = [10, 25, 50, 100].includes(pageSize) ? pageSize : 25;
             app._ledgerPage = 1;
             renderLedgerPage(app);
+        };
+    }
+    const clearedFilterEl = container.querySelector('#ledgerClearedFilter');
+    if (clearedFilterEl) {
+        clearedFilterEl.onchange = (e) => {
+            app._ledgerClearedFilter = e.target.value;
+            app._ledgerPage = 1;
+            renderLedgerPage(app);
+        };
+    }
+    const clearFiltersBtn = container.querySelector('#ledgerClearFiltersBtn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.onclick = () => {
+            app._ledgerAccountFilter = 'all';
+            app._ledgerDateRange = 'around7';
+            app._ledgerClearedFilter = 'all';
+            app._ledgerPage = 1;
+            renderLedgerPage(app);
+        };
+    }
+    const markAllClearedBtn = container.querySelector('#ledgerMarkAllClearedBtn');
+    if (markAllClearedBtn) {
+        markAllClearedBtn.onclick = () => {
+            openLedgerMarkAllClearedModal(app, clearableUncleared, () => renderLedgerPage(app));
         };
     }
     const prevBtn = container.querySelector('#ledgerPrevPage');

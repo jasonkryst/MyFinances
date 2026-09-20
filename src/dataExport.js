@@ -51,9 +51,10 @@ export function exportAllJSON(app) {
         },
         ledgerSettings: {
             accountFilter: app._ledgerAccountFilter || 'all',
-            dateRange: app._ledgerDateRange || 'all',
+            dateRange: app._ledgerDateRange || 'around7',
             sortKey: app._ledgerSortKey || 'date',
-            sortDir: app._ledgerSortDir || 'desc'
+            sortDir: app._ledgerSortDir || 'desc',
+            clearedFilter: app._ledgerClearedFilter || 'all'
         },
         forecastSettings: {
             rangeMonths: app._forecastRangeMonths || 1,
@@ -380,9 +381,10 @@ export function importAllJSON(app, file, options = {}) {
             app.perMonthStimulus = incomingPerMonthStimulus;
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
-                app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
+                app._ledgerDateRange = incomingLedgerSettings.dateRange || 'around7';
                 app._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
                 app._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
+                app._ledgerClearedFilter = incomingLedgerSettings.clearedFilter || 'all';
             }
             if (incomingForecastSettings) {
                 app._forecastRangeMonths = incomingForecastSettings.rangeMonths || 1;
@@ -429,9 +431,10 @@ export function importAllJSON(app, file, options = {}) {
             app.perMonthStimulus = incomingPerMonthStimulus;
             if (incomingLedgerSettings) {
                 app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
-                app._ledgerDateRange = incomingLedgerSettings.dateRange || 'all';
+                app._ledgerDateRange = incomingLedgerSettings.dateRange || 'around7';
                 app._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
                 app._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
+                app._ledgerClearedFilter = incomingLedgerSettings.clearedFilter || 'all';
             }
             if (incomingForecastSettings) {
                 app._forecastRangeMonths = incomingForecastSettings.rangeMonths || 1;

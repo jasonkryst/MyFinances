@@ -73,7 +73,7 @@ const DEFAULT_PLAN_SETTINGS = {
     strategy: null,
     monthlyPayment: null,
     perMonthStimulus: [],
-    ledgerSettings: { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc' },
+    ledgerSettings: { accountFilter: 'all', dateRange: 'around7', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' },
     forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 },
     retirementTargetDate: null
 };
