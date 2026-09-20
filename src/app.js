@@ -1,6 +1,8 @@
 ﻿import {
     addDebt as addDebtFeature,
     deleteDebt as deleteDebtFeature,
+    archiveDebt as archiveDebtFeature,
+    unarchiveDebt as unarchiveDebtFeature,
     showUpdateBalanceModal as showUpdateBalanceModalFeature,
     updateDebtBalance as updateDebtBalanceFeature,
     saveEdit as saveEditFeature,
@@ -283,6 +285,14 @@ export class DebtTrackerApp {
 
     deleteDebt(debtId) {
         return deleteDebtFeature(this, debtId);
+    }
+
+    archiveDebt(debtId) {
+        return archiveDebtFeature(this, debtId);
+    }
+
+    unarchiveDebt(debtId) {
+        return unarchiveDebtFeature(this, debtId);
     }
 
     /**

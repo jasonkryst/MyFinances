@@ -3,7 +3,8 @@ import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompound
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
-import { showDeleteConfirmModal, showAlertModal } from './ui.js';
+import { showDeleteConfirmModal, showAlertModal, showArchiveConfirmModal } from './ui.js';
+import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 
 function recalculateIfConfigured(app) {
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
@@ -96,6 +97,39 @@ export async function deleteDebt(app, debtId) {
 
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/debts/${debtId}`);
+    recalculateIfConfigured(app);
+    app.updateUI();
+}
+
+export function isDebtPaidOff(debt) {
+    if (debt.debtType === 'fixedAmount') {
+        return !!(debt.fixedEndDate && new Date(debt.fixedEndDate) < new Date());
+    }
+    return (debt.accountBalance || 0) <= 0;
+}
+
+export async function archiveDebt(app, debtId) {
+    const debt = app.debts.find(d => d.id === debtId);
+    if (!debt) return;
+    const confirmed = await showArchiveConfirmModal(debt.name);
+    if (!confirmed) return;
+
+    debt.archived = true;
+    debt.updatedAt = todayISO();
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${debtId}`, { archived: true, updatedAt: debt.updatedAt });
+    recalculateIfConfigured(app);
+    app.updateUI();
+}
+
+export async function unarchiveDebt(app, debtId) {
+    const debt = app.debts.find(d => d.id === debtId);
+    if (!debt) return;
+
+    debt.archived = false;
+    debt.updatedAt = todayISO();
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${debtId}`, { archived: false, updatedAt: debt.updatedAt });
     recalculateIfConfigured(app);
     app.updateUI();
 }
@@ -244,14 +278,15 @@ export function renderDebtsList(app) {
         if (app.debts.length === 0) {
             categorySummary.innerHTML = '';
         } else {
-            const totalDebt = app.debts.reduce((s, d) => {
+            const activeDebts = app.debts.filter(d => !d.archived);
+            const totalDebt = activeDebts.reduce((s, d) => {
                 return s + (d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0));
             }, 0);
-            const totalMin = app.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+            const totalMin = activeDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
             const totalInterest = app.lastSummary ? app.lastSummary.totalInterest : null;
 
             const catMap = {};
-            for (const d of app.debts) {
+            for (const d of activeDebts) {
                 const cat = d.category || 'Uncategorized';
                 if (!catMap[cat]) catMap[cat] = { count: 0, total: 0, minTotal: 0 };
                 catMap[cat].count++;
@@ -309,9 +344,12 @@ export function renderDebtsList(app) {
     const debtsList = document.getElementById('debtsList');
     debtsList.innerHTML = '';
 
+    const showArchived = getSetting(app, SHOW_ARCHIVED_DEBTS, false);
+
     const categoryFilter = document.getElementById('categoryFilter');
     if (categoryFilter) {
-        const categories = Array.from(new Set(app.debts.map(d => d.category).filter(Boolean)));
+        const visibleForFilter = showArchived ? app.debts : app.debts.filter(d => !d.archived);
+        const categories = Array.from(new Set(visibleForFilter.map(d => d.category).filter(Boolean)));
         const prevValue = categoryFilter.value;
         categoryFilter.innerHTML = '<option value="">All</option>';
         categories.forEach(cat => {
@@ -325,7 +363,7 @@ export function renderDebtsList(app) {
         }
     }
 
-    let filteredDebts = app.debts;
+    let filteredDebts = showArchived ? app.debts : app.debts.filter(d => !d.archived);
     if (categoryFilter && categoryFilter.value) {
         filteredDebts = filteredDebts.filter(d => d.category === categoryFilter.value);
     }
@@ -482,9 +520,14 @@ export function renderDebtsList(app) {
                         ` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}">Edit</button>
-                    ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}">Update Balance</button>` : ''}
-                    <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}">Delete</button>
+                    ${debt.archived
+                        ? `<span class="debt-archived-badge">Archived</span>
+                           <button class="btn btn-secondary btn-small" data-debt-action="unarchive" data-debt-id="${debt.id}">Unarchive</button>`
+                        : `<button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}">Edit</button>
+                           ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}">Update Balance</button>` : ''}
+                           ${isDebtPaidOff(debt) ? `<button class="btn btn-secondary btn-small" data-debt-action="archive" data-debt-id="${debt.id}">Archive</button>` : ''}
+                           <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}">Delete</button>`
+                    }
                 </div>
             `;
             card.innerHTML = cardHTML;
@@ -542,6 +585,8 @@ export function renderDebtsList(app) {
         if (action === 'edit') app.startEdit(id);
         if (action === 'update-balance') app.showUpdateBalanceModal(id);
         if (action === 'delete') app.deleteDebt(id);
+        if (action === 'archive') app.archiveDebt(id);
+        if (action === 'unarchive') app.unarchiveDebt(id);
     };
 
     debtsList.onchange = (event) => {

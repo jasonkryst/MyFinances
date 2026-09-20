@@ -2375,6 +2375,23 @@ body.dark-mode .debt-type-badge {
     color: #93c5fd;
 }
 
+.debt-archived-badge {
+    display: inline-block;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    padding: 2px 7px;
+    text-transform: uppercase;
+}
+
+body.dark-mode .debt-archived-badge {
+    background: #374151;
+    color: #9ca3af;
+}
+
 /* Sortable table headers */
 th.sortable {
     cursor: pointer;

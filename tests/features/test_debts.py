@@ -408,3 +408,254 @@ def test_debt_interest_filter_any_shows_both(app_page):
 
     assert page.query_selector('text=No Interest Card') is not None
     assert page.query_selector('text=Interest Bearing Card') is not None
+
+
+# ---------------------------------------------------------------------------
+# Archive paid-off debts (issue #202)
+# ---------------------------------------------------------------------------
+
+def _seed_paid_off_debt(page, name='Paid Off Card', balance=0):
+    """Seed app state with a single credit-card debt at the given balance."""
+    page.evaluate(f"""() => {{
+        window.app.debts = [{{
+            id: 9001,
+            name: '{name}',
+            category: '',
+            debtType: 'creditCard',
+            accountBalance: {balance},
+            originalBalance: 1000,
+            interestRate: 18,
+            minimumPayment: 25,
+            originalMinimumPayment: 25,
+            dueDate: 15,
+            debtStartDate: null,
+            fixedAmount: 0,
+            fixedStartDate: null,
+            fixedEndDate: null,
+            updatedAt: null,
+            priority: null,
+            accountId: null,
+            archived: false
+        }}];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }}""")
+    page.wait_for_selector('#debtsList .debt-card', timeout=5000)
+
+
+@pytest.mark.feature
+def test_archive_button_shown_on_paid_off_debt(app_page):
+    """Archive button is present when debt balance is 0."""
+    page = app_page
+    _seed_paid_off_debt(page, balance=0)
+    assert page.query_selector('[data-debt-action="archive"]') is not None
+
+
+@pytest.mark.feature
+def test_archive_button_not_shown_on_active_debt(app_page):
+    """Archive button is absent when debt still has a positive balance."""
+    page = app_page
+    _seed_paid_off_debt(page, name='Active Debt', balance=500)
+    assert page.query_selector('[data-debt-action="archive"]') is None
+
+
+@pytest.mark.feature
+def test_archive_paid_off_debt_hides_from_list(app_page):
+    """Clicking Archive → confirming removes the card from the list."""
+    page = app_page
+    _seed_paid_off_debt(page)
+
+    page.click('[data-debt-action="archive"][data-debt-id="9001"]')
+    page.wait_for_selector('#archiveConfirmModal.flex-visible', timeout=5000)
+    page.click('#archiveConfirmBtn')
+    page.wait_for_selector('#archiveConfirmModal', state='hidden', timeout=5000)
+
+    assert page.query_selector('text=Paid Off Card') is None
+
+
+@pytest.mark.feature
+def test_archive_confirm_cancel_keeps_debt_visible(app_page):
+    """Cancelling the archive modal leaves the debt card in place."""
+    page = app_page
+    _seed_paid_off_debt(page)
+
+    page.click('[data-debt-action="archive"][data-debt-id="9001"]')
+    page.wait_for_selector('#archiveConfirmModal.flex-visible', timeout=5000)
+    page.click('#archiveConfirmCancelBtn')
+    page.wait_for_selector('#archiveConfirmModal', state='hidden', timeout=5000)
+
+    assert page.query_selector('text=Paid Off Card') is not None
+
+
+@pytest.mark.feature
+def test_archived_debts_hidden_by_default(app_page):
+    """An already-archived debt is not shown when Show Archived Debts is off."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 9002,
+            name: 'Already Archived',
+            category: '',
+            debtType: 'creditCard',
+            accountBalance: 0,
+            originalBalance: 500,
+            interestRate: 0,
+            minimumPayment: 0,
+            originalMinimumPayment: 0,
+            dueDate: 1,
+            debtStartDate: null,
+            fixedAmount: 0,
+            fixedStartDate: null,
+            fixedEndDate: null,
+            updatedAt: null,
+            priority: null,
+            accountId: null,
+            archived: true
+        }];
+        window.app.settings = [];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
+    assert page.query_selector('text=Already Archived') is None
+
+
+@pytest.mark.feature
+def test_show_archived_debts_setting_reveals_card(app_page):
+    """Enabling Show Archived Debts in Settings makes archived cards visible."""
+    from tests.conftest import open_settings, close_settings
+    page = app_page
+
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 9003,
+            name: 'Hidden Archived',
+            category: '',
+            debtType: 'creditCard',
+            accountBalance: 0,
+            originalBalance: 200,
+            interestRate: 0,
+            minimumPayment: 0,
+            originalMinimumPayment: 0,
+            dueDate: 1,
+            debtStartDate: null,
+            fixedAmount: 0,
+            fixedStartDate: null,
+            fixedEndDate: null,
+            updatedAt: null,
+            priority: null,
+            accountId: null,
+            archived: true
+        }];
+        window.app.settings = [];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
+    assert page.query_selector('text=Hidden Archived') is None
+
+    open_settings(page)
+    page.check('#settingShowArchivedDebts')
+    close_settings(page)
+
+    page.wait_for_selector('[data-debt-action="unarchive"]', timeout=5000)
+    assert page.query_selector('text=Hidden Archived') is not None
+
+
+@pytest.mark.feature
+def test_unarchive_restores_debt_to_active(app_page):
+    """Unarchive button flips archived=false and re-shows the debt normally."""
+    from tests.conftest import open_settings, close_settings
+    page = app_page
+
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 9004,
+            name: 'Unarchive Me',
+            category: '',
+            debtType: 'creditCard',
+            accountBalance: 0,
+            originalBalance: 300,
+            interestRate: 0,
+            minimumPayment: 0,
+            originalMinimumPayment: 0,
+            dueDate: 1,
+            debtStartDate: null,
+            fixedAmount: 0,
+            fixedStartDate: null,
+            fixedEndDate: null,
+            updatedAt: null,
+            priority: null,
+            accountId: null,
+            archived: true
+        }];
+        window.app.settings = [{ key: 'showArchivedDebts', value: true }];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('[data-debt-action="unarchive"]', timeout=5000)
+
+    page.click('[data-debt-action="unarchive"][data-debt-id="9004"]')
+    page.wait_for_selector('[data-debt-action="archive"]', timeout=5000)
+
+    archived = page.evaluate("() => window.app.debts.find(d => d.id === 9004)?.archived")
+    assert archived is False
+    assert page.query_selector('[data-debt-action="unarchive"]') is None
+
+
+@pytest.mark.feature
+def test_archived_debt_excluded_from_overview_totals(app_page):
+    """Archived debt balance does not count toward the Debt Overview total."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [
+            {
+                id: 9005,
+                name: 'Active Debt',
+                category: '',
+                debtType: 'creditCard',
+                accountBalance: 1000,
+                originalBalance: 1000,
+                interestRate: 15,
+                minimumPayment: 50,
+                originalMinimumPayment: 50,
+                dueDate: 10,
+                debtStartDate: null,
+                fixedAmount: 0,
+                fixedStartDate: null,
+                fixedEndDate: null,
+                updatedAt: null,
+                priority: null,
+                accountId: null,
+                archived: false
+            },
+            {
+                id: 9006,
+                name: 'Archived Debt',
+                category: '',
+                debtType: 'creditCard',
+                accountBalance: 500,
+                originalBalance: 500,
+                interestRate: 0,
+                minimumPayment: 0,
+                originalMinimumPayment: 0,
+                dueDate: 1,
+                debtStartDate: null,
+                fixedAmount: 0,
+                fixedStartDate: null,
+                fixedEndDate: null,
+                updatedAt: null,
+                priority: null,
+                accountId: null,
+                archived: true
+            }
+        ];
+        window.app.settings = [];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('#categorySummary .debt-overview-card', timeout=5000)
+
+    total_text = page.inner_text('.debt-overview-stat-value')
+    assert '1,000' in total_text or '1000' in total_text
+    assert '1,500' not in total_text and '1500' not in total_text

@@ -1,7 +1,7 @@
 // First-run setup wizard and the Settings modal that lets users change their
 // choice later. Both are plain static modals following the same
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
-import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
+import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
@@ -76,6 +76,7 @@ export function initSettingsModal(app) {
     const closeBtn = document.getElementById('settingsModalCloseBtn');
     const doneBtn = document.getElementById('settingsModalDoneBtn');
     const adjustsCheckbox = document.getElementById('settingReconciliationAdjusts');
+    const showArchivedCheckbox = document.getElementById('settingShowArchivedDebts');
     const storageSelect = document.getElementById('settingStorageBackend');
     const postgresLockNote = document.getElementById('settingsStoragePostgresNote');
     const emailTestGroup = document.getElementById('settingsEmailTestGroup');
@@ -96,6 +97,7 @@ export function initSettingsModal(app) {
     const open = () => {
         lastFocused = document.activeElement;
         adjustsCheckbox.checked = Boolean(getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false));
+        if (showArchivedCheckbox) showArchivedCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false));
         const isPostgres = getStorageBackendPreference() === 'postgres';
         if (isPostgres) {
             storageSelect.value = 'postgres';
@@ -123,6 +125,7 @@ export function initSettingsModal(app) {
 
     const save = async () => {
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
+        if (showArchivedCheckbox) setSetting(app, SHOW_ARCHIVED_DEBTS, showArchivedCheckbox.checked);
         if (storageSelect.value === 'postgres') {
             if (getStorageBackendPreference() !== 'postgres') {
                 close();

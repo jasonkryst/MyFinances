@@ -69,9 +69,10 @@ export function renderHealthDashboard(app) {
 
     // ── Shared data ────────────────────────────────────────────────────────────
     const { monthlyTotal: monthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, year, month);
+    const activeDebts   = (app.debts || []).filter(d => !d.archived);
     const totalBills    = (app.bills    || []).reduce((s, b) => s + (b.amount        || 0), 0);
     const totalExpenses = (app.expenses || []).reduce((s, e) => s + (e.budgetAmount  || 0), 0);
-    const totalDebtMin  = (app.debts    || []).reduce((s, d) => s + (d.minimumPayment || 0), 0);
+    const totalDebtMin  = activeDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
     const totalOutflow  = totalBills + totalExpenses + totalDebtMin;
     const net           = monthlyIncome - totalOutflow;
 
@@ -92,7 +93,7 @@ export function renderHealthDashboard(app) {
     const emergencyFunds = app.emergencyFunds || [];
 
     // ── Debt Payoff Timeline ───────────────────────────────────────────────────
-    const hasDebts = (app.debts || []).length > 0;
+    const hasDebts = activeDebts.length > 0;
     let debtTimeline = null;
     if (hasDebts) {
         if (app.lastSummary && typeof app.lastSummary.monthsToPayOff === 'number') {
@@ -100,7 +101,7 @@ export function renderHealthDashboard(app) {
         } else {
             try {
                 const payment = Math.max(totalDebtMin, 1);
-                const result  = DebtCalculator.calculatePaymentPlan(app.debts, payment, 'avalanche');
+                const result  = DebtCalculator.calculatePaymentPlan(activeDebts, payment, 'avalanche');
                 debtTimeline  = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
             } catch (_) { /* silent */ }
         }
@@ -110,7 +111,7 @@ export function renderHealthDashboard(app) {
     const timelineSt     = timelineStatus(timelineMonths);
     const payoffDate     = debtTimeline ? debtTimeline.payOffDate : null;
 
-    const totalDebtBalance  = (app.debts || []).reduce((s, d) =>
+    const totalDebtBalance  = activeDebts.reduce((s, d) =>
         s + (d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0)), 0);
     const totalDebtOriginal = (app.debts || []).reduce((s, d) =>
         s + (d.originalBalance || d.accountBalance || d.fixedAmount || 0), 0);

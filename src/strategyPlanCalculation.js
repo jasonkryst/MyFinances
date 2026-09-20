@@ -50,7 +50,8 @@ export async function recordPlanHistoryEntry(app, monthlyPayment, strategy) {
 export function restoreLastPlan(app) {
     if (app.lastPaymentPlan) return;
     if (!app._savedMonthlyPayment || !app._savedStrategy) return;
-    if (!app.debts || app.debts.length === 0) return;
+    const activeDebtsForRestore = app.debts.filter(d => !d.archived);
+    if (!activeDebtsForRestore.length) return;
 
     const stimulus = app.perMonthStimulus && app.perMonthStimulus.length > 0
         ? app.perMonthStimulus
@@ -73,7 +74,8 @@ export function restoreLastPlan(app) {
 
 export function recalculatePaymentPlan(app, { monthlyPayment, strategy, stimulus, onSuccess, onError } = {}) {
     try {
-        const result = DebtCalculator.calculatePaymentPlan(app.debts, monthlyPayment, strategy, stimulus);
+        const activeDebts = app.debts.filter(d => !d.archived);
+        const result = DebtCalculator.calculatePaymentPlan(activeDebts, monthlyPayment, strategy, stimulus);
         app.lastPaymentPlan = result.paymentPlan;
         app.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
         if (onSuccess) onSuccess();
@@ -95,8 +97,9 @@ export async function calculatePaymentPlanFromInputs(app) {
         return;
     }
 
-    if (!app.debts || app.debts.length === 0) {
-        await showAlertModal('Please add at least one debt before calculating.');
+    const activeDebts = app.debts.filter(d => !d.archived);
+    if (!activeDebts.length) {
+        await showAlertModal('Please add at least one active (non-archived) debt before calculating.');
         return;
     }
 
@@ -136,16 +139,17 @@ export function calculateRequiredPayment(app) {
     const dateVal = document.getElementById('targetPayoffDate').value;
     const strategy = document.getElementById('targetPayoffStrategy').value;
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value) || 0;
+    const activeDebts = app.debts.filter(d => !d.archived);
 
     // If no date provided, just calculate plan with current payment and show results
     if (!dateVal) {
-        if (app.debts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
+        if (activeDebts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
             resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">No interest-bearing debts to calculate for.</div></div>`;
             return;
         }
 
         try {
-            const r = DebtCalculator.calculatePaymentPlan(app.debts, monthlyPayment, strategy, 0);
+            const r = DebtCalculator.calculatePaymentPlan(activeDebts, monthlyPayment, strategy, 0);
             const summary = DebtCalculator.generateSummary(r.workingDebts, r.paymentPlan);
 
             // Store for the full plan display
@@ -183,7 +187,7 @@ export function calculateRequiredPayment(app) {
         return;
     }
 
-    if (app.debts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
+    if (activeDebts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
         console.warn('No interest-bearing debts found');
         resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">No interest-bearing debts to calculate for.</div></div>`;
         return;
@@ -199,17 +203,17 @@ export function calculateRequiredPayment(app) {
     }
 
     // Minimum required payment (sum of minimums)
-    const totalMinimum = app.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+    const totalMinimum = activeDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
 
     // Binary search: find the smallest payment that pays off all debts within targetMonths
     let lo = totalMinimum;
-    let hi = app.debts.reduce((s, d) => s + (d.accountBalance || 0), 0) * 2 + 10000;
+    let hi = activeDebts.reduce((s, d) => s + (d.accountBalance || 0), 0) * 2 + 10000;
     let found = null;
 
     for (let iter = 0; iter < 60; iter++) {
         const mid = (lo + hi) / 2;
         try {
-            const r = DebtCalculator.calculatePaymentPlan(app.debts, mid, strategy, 0);
+            const r = DebtCalculator.calculatePaymentPlan(activeDebts, mid, strategy, 0);
             if (r.paymentPlan.length <= targetMonths) {
                 found = mid;
                 hi = mid;
@@ -236,7 +240,7 @@ export function calculateRequiredPayment(app) {
     let summary;
     let actualMonths;
     try {
-        const r = DebtCalculator.calculatePaymentPlan(app.debts, requiredPayment, strategy, 0);
+        const r = DebtCalculator.calculatePaymentPlan(activeDebts, requiredPayment, strategy, 0);
         summary = DebtCalculator.generateSummary(r.workingDebts, r.paymentPlan);
         actualMonths = r.paymentPlan.length;
     } catch (e) {
