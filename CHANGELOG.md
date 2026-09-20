@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.14.0] — 2026-09-20
+
+### Added
+- **Archive paid-off debts** (issue #202) — Debt cards now show an **Archive** button once the debt is fully paid off (credit-card balance reaches $0, or a fixed-amount debt's end date has passed). Clicking it opens a confirmation modal and hides the debt from the Liabilities list. Archived debts are excluded from all calculations: debt overview totals, Strategy payoff plan, Health page DTI/timeline, account balance projections, and Ledger transactions. A new **Show archived debts** toggle in Settings reveals archived cards with an Unarchive button to restore them. The `archived` flag is persisted through all three storage backends (localStorage, sessionStorage, and Postgres via a new migration).
+
+---
 ## [5.13.0] — 2026-09-15
 
 ### Fixed

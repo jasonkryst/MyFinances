@@ -166,6 +166,8 @@
     margin: auto;
     position: relative;
     outline: 0;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 #ledgerOverrideModal .modal-content {
@@ -2373,6 +2375,23 @@ body.dark-mode .debt-form-toggle--open {
 body.dark-mode .debt-type-badge {
     background: #1e3a8a;
     color: #93c5fd;
+}
+
+.debt-archived-badge {
+    display: inline-block;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    padding: 2px 7px;
+    text-transform: uppercase;
+}
+
+body.dark-mode .debt-archived-badge {
+    background: #374151;
+    color: #9ca3af;
 }
 
 /* Sortable table headers */

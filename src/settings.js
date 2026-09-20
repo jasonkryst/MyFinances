@@ -4,6 +4,7 @@
 import { pgPut } from './postgresSync.js';
 
 export const RECONCILIATION_ADJUSTS_BALANCE = 'reconciliationAdjustsBalance';
+export const SHOW_ARCHIVED_DEBTS = 'showArchivedDebts';
 
 export function getSetting(app, key, defaultValue) {
     const entry = (app.settings || []).find(s => s.key === key);

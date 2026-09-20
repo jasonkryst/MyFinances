@@ -125,7 +125,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
             }
         }
 
-        for (const debt of app.debts || []) {
+        for (const debt of (app.debts || []).filter(d => !d.archived)) {
             if (debt.dueDate && debt.minimumPayment) {
                 const due = new Date(year, month, debt.dueDate);
                 addTx({

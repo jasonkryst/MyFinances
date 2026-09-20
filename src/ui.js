@@ -867,6 +867,53 @@ export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
     });
 }
 
+export function showArchiveConfirmModal(debtName) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('archiveConfirmModal');
+        const messageEl = document.getElementById('archiveConfirmMessage');
+        const confirmBtn = document.getElementById('archiveConfirmBtn');
+        const cancelBtn = document.getElementById('archiveConfirmCancelBtn');
+        if (!modal) { resolve(false); return; }
+
+        if (messageEl) messageEl.textContent = `Archive "${debtName}"?`;
+
+        const lastFocused = document.activeElement;
+        const dismiss = (result) => {
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            resolve(result);
+        };
+
+        confirmBtn.onclick = () => dismiss(true);
+        cancelBtn.onclick = () => dismiss(false);
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); return; }
+            if (event.key === 'Tab') {
+                const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => cancelBtn.focus(), 30);
+    });
+}
+
 export function showAccountReplacementModal(app, id) {
     return new Promise((resolve) => {
         const modal = document.getElementById('accountReplacementModal');
