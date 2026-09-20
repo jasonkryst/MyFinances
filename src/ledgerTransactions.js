@@ -523,7 +523,7 @@ export function getLedgerTransactions(app) {
 export function getFilteredSortedLedgerTransactions(app) {
     let transactions = getLedgerTransactions(app);
     const selectedAccount = app._ledgerAccountFilter || 'all';
-    const selectedDateRange = app._ledgerDateRange || '30';
+    const selectedDateRange = app._ledgerDateRange || 'around7';
 
     if (selectedAccount !== 'all') {
         transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
@@ -537,6 +537,10 @@ export function getFilteredSortedLedgerTransactions(app) {
             const txDateOnly = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
             if (selectedDateRange === 'past') {
                 return txDateOnly <= todayStart;
+            } else if (selectedDateRange === 'around7') {
+                const sevenDaysBefore = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const sevenDaysAfter = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+                return txDateOnly >= sevenDaysBefore && txDateOnly <= sevenDaysAfter;
             } else if (selectedDateRange === '30' || selectedDateRange === '60' || selectedDateRange === '90') {
                 const days = parseInt(selectedDateRange, 10);
                 const futureLimit = new Date(todayStart.getTime() + days * 24 * 60 * 60 * 1000);
@@ -549,6 +553,13 @@ export function getFilteredSortedLedgerTransactions(app) {
             }
             return true;
         });
+    }
+
+    const clearedFilter = app._ledgerClearedFilter || 'all';
+    if (clearedFilter !== 'all') {
+        transactions = transactions.filter(tx =>
+            clearedFilter === 'uncleared' ? !tx.cleared : tx.cleared
+        );
     }
 
     const sortKey = app._ledgerSortKey || 'date';

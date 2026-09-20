@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.16.0] — 2026-09-20
+
+### Added
+- **Ledger filters** (issue #201) — The Ledger page gains three new filter and action controls:
+  - **Around Today (±7 days)** date range — new default Show option, displaying transactions from 7 days ago through 7 days ahead. Designed for reviewing items that are clearing close to today's date.
+  - **Cleared status dropdown** — filters the ledger to "All" / "Uncleared Only" / "Cleared Only" transactions.
+  - **Mark N as Cleared bulk action** — a button appears when the current filtered view contains uncleared rows; clicking it opens a confirmation modal and marks all visible uncleared transactions as cleared in one step.
+  - **Clear Filters button + active badge** — when any filter deviates from its default, a "Clear Filters" button and an "N filters active" badge appear in the filter bar for a one-click reset.
+  - **Sticky filter bar** — the filter controls row sticks to the top of the viewport when scrolling through long ledger views.
+- All new filter state (`clearedFilter`) is persisted alongside existing ledger settings through localStorage, data export/import, and the optional Postgres backend.
+
+---
 ## [5.15.0] — 2026-09-20
 
 ### Added

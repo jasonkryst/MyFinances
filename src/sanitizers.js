@@ -289,9 +289,10 @@ export function sanitizeParsedState(parsed = {}) {
         strategy: normalizeText(parsed.strategy, 30) || null,
         ledgerSettings: {
             accountFilter: normalizeText(parsed?.ledgerSettings?.accountFilter, 20) || 'all',
-            dateRange: normalizeText(parsed?.ledgerSettings?.dateRange, 20) || 'all',
+            dateRange: normalizeText(parsed?.ledgerSettings?.dateRange, 20) || 'around7',
             sortKey: normalizeText(parsed?.ledgerSettings?.sortKey, 20) || 'date',
-            sortDir: parsed?.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc'
+            sortDir: parsed?.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc',
+            clearedFilter: ['all', 'uncleared', 'cleared'].includes(parsed?.ledgerSettings?.clearedFilter) ? parsed.ledgerSettings.clearedFilter : 'all'
         },
         forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
         reconciliations: (Array.isArray(parsed.reconciliations) ? parsed.reconciliations : []).map((r, i) => sanitizeReconciliation(r, now + 5500 + i)).filter(r => r.accountId !== null && Number.isFinite(r.statementBalance)),

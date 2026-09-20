@@ -84,9 +84,10 @@ export async function loadFromPostgres(app) {
     app.perMonthStimulus = planSettings.perMonthStimulus;
     app.netWorthMilestonesAwarded = planSettings.netWorthMilestonesAwarded;
     app._ledgerAccountFilter = planSettings.ledgerSettings?.accountFilter ?? 'all';
-    app._ledgerDateRange = planSettings.ledgerSettings?.dateRange ?? 'all';
+    app._ledgerDateRange = planSettings.ledgerSettings?.dateRange ?? 'around7';
     app._ledgerSortKey = planSettings.ledgerSettings?.sortKey ?? 'date';
     app._ledgerSortDir = planSettings.ledgerSettings?.sortDir ?? 'desc';
+    app._ledgerClearedFilter = planSettings.ledgerSettings?.clearedFilter ?? 'all';
     app._forecastRangeMonths = planSettings.forecastSettings?.rangeMonths ?? 1;
     app._forecastAccountId = planSettings.forecastSettings?.accountId ?? 'total';
     app._forecastNotableThresholdPct = planSettings.forecastSettings?.notableThresholdPct ?? 130;
@@ -128,9 +129,10 @@ export function saveToStorage(app) {
                 strategy: document.getElementById('paymentStrategy')?.value || null,
                 ledgerSettings: {
                     accountFilter: app._ledgerAccountFilter || 'all',
-                    dateRange: app._ledgerDateRange || 'all',
+                    dateRange: app._ledgerDateRange || 'around7',
                     sortKey: app._ledgerSortKey || 'date',
-                    sortDir: app._ledgerSortDir || 'desc'
+                    sortDir: app._ledgerSortDir || 'desc',
+                    clearedFilter: app._ledgerClearedFilter || 'all'
                 },
                 forecastSettings: {
                     rangeMonths: app._forecastRangeMonths || 1,
@@ -169,9 +171,10 @@ export function saveToStorage(app) {
             strategy: document.getElementById('paymentStrategy')?.value || null,
             ledgerSettings: {
                 accountFilter: app._ledgerAccountFilter || 'all',
-                dateRange: app._ledgerDateRange || 'all',
+                dateRange: app._ledgerDateRange || 'around7',
                 sortKey: app._ledgerSortKey || 'date',
-                sortDir: app._ledgerSortDir || 'desc'
+                sortDir: app._ledgerSortDir || 'desc',
+                clearedFilter: app._ledgerClearedFilter || 'all'
             },
             forecastSettings: {
                 rangeMonths: app._forecastRangeMonths || 1,
@@ -232,9 +235,10 @@ export function loadFromStorage(app) {
             app._savedStrategy = clean.strategy;
             // Restore ledger settings if present
             app._ledgerAccountFilter = clean.ledgerSettings.accountFilter;
-            app._ledgerDateRange = clean.ledgerSettings.dateRange;
+            app._ledgerDateRange = clean.ledgerSettings.dateRange || 'around7';
             app._ledgerSortKey = clean.ledgerSettings.sortKey;
             app._ledgerSortDir = clean.ledgerSettings.sortDir;
+            app._ledgerClearedFilter = clean.ledgerSettings.clearedFilter || 'all';
             // Restore forecast settings if present
             app._forecastRangeMonths = clean.forecastSettings.rangeMonths;
             app._forecastAccountId = clean.forecastSettings.accountId;
@@ -334,7 +338,8 @@ export function clearAllData(app, options = {}) {
     app._reportMonthOffset = 0;
 
     app._ledgerAccountFilter = 'all';
-    app._ledgerDateRange = 'all';
+    app._ledgerDateRange = 'around7';
+    app._ledgerClearedFilter = 'all';
     app._ledgerSortKey = 'date';
     app._ledgerSortDir = 'desc';
     app._ledgerPage = 1;

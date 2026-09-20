@@ -530,6 +530,7 @@ def test_ledger_export_csv_with_column_picker(app_page):
         app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
         app.incomes = [{ id: 2, name: 'Paycheck', amount: 2000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }];
         app.debts = []; app.bills = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app._ledgerDateRange = 'all';
         app.switchPage('ledger');
     }""")
 
@@ -562,6 +563,7 @@ def test_ledger_export_csv_includes_cleared_columns(app_page):
         app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
         app.incomes = [{ id: 2, name: 'Paycheck', amount: 2000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }];
         app.debts = []; app.bills = []; app.expenses = []; app.bonuses = []; app.recurringTemplates = [];
+        app._ledgerDateRange = 'all';
         app.switchPage('ledger');
         const tx = app.getFilteredSortedLedgerTransactions().find(t => t.transactionId);
         return tx ? tx.transactionId : null;

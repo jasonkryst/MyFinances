@@ -91,7 +91,7 @@ SAMPLE_DATA = {
     "monthlyPayment": 800,
     "strategy": "avalanche",
     "ledgerAmountOverrides": {},
-    "ledgerSettings": {"accountFilter": "all", "dateRange": "all", "sortKey": "date", "sortDir": "desc"},
+    "ledgerSettings": {"accountFilter": "all", "dateRange": "around7", "sortKey": "date", "sortDir": "desc", "clearedFilter": "all"},
     "forecastSettings": {"rangeMonths": 3, "accountId": "total", "notableThresholdPct": 130},
 }
 

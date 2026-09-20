@@ -337,6 +337,36 @@
 #ledgerTableContainer {
     margin-top: 18px;
 }
+.filter-controls {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #fff;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+.filter-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    white-space: nowrap;
+}
+.filter-active-badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    white-space: nowrap;
+}
 .ledger-table {
     width: 100%;
     border-collapse: separate;
@@ -482,6 +512,13 @@
 body.dark-mode .ledger-section {
     background: #1e293b;
     box-shadow: 0 1px 8px rgba(0,0,0,0.18);
+}
+body.dark-mode .filter-controls {
+    background: #1e293b;
+    border-bottom-color: #374151;
+}
+body.dark-mode .filter-label {
+    color: #94a3b8;
 }
 body.dark-mode .ledger-section h2 {
     color: #60a5fa;

@@ -98,6 +98,8 @@ def _seed_income_for_ledger(page, name="Override Salary", amount=4000):
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
     page.wait_for_selector(f'text={name}', timeout=10000)
+    # Reset date range so seeded transactions are visible regardless of today's date
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; }")
 
 
 @pytest.mark.feature
@@ -783,3 +785,352 @@ def test_ledger_multi_account_rollover_collisions_stay_independent(app_page):
             acct_txs = [tx for tx in transactions if str(tx['accountId']) == acct_id]
             assert len(acct_txs) >= 2
             _assert_running_balance_internally_consistent(acct_txs, sort_dir)
+
+
+# ── Issue #201: Ledger Filters ────────────────────────────────────────────────
+
+
+@pytest.mark.feature
+def test_ledger_around7_filter_includes_transactions_in_window(app_page):
+    """Transactions within ±7 days of today appear with the 'around7' date filter."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const fmt = d => d.toISOString().split('T')[0];
+        const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.expenses = [
+            { id: 1, name: 'Near Past', budgetAmount: 10, accountId: 1, date: fmt(addDays(today, -5)) },
+            { id: 2, name: 'Today Expense', budgetAmount: 20, accountId: 1, date: fmt(today) },
+            { id: 3, name: 'Near Future', budgetAmount: 30, accountId: 1, date: fmt(addDays(today, 5)) },
+        ];
+        app.incomes = []; app.debts = []; app.bills = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
+        app._ledgerAccountFilter = 'all';
+        app._ledgerDateRange = 'around7';
+        app._ledgerClearedFilter = 'all';
+        app._ledgerSortKey = 'date';
+        app._ledgerSortDir = 'asc';
+    }""")
+    txs = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+    names = [tx['name'] for tx in txs]
+    assert 'Near Past' in names, "Expense 5 days ago should appear in ±7-day window"
+    assert 'Today Expense' in names, "Today's expense should appear in ±7-day window"
+    assert 'Near Future' in names, "Expense 5 days ahead should appear in ±7-day window"
+
+
+@pytest.mark.feature
+def test_ledger_around7_filter_excludes_transactions_outside_window(app_page):
+    """Transactions beyond ±7 days of today are excluded by the 'around7' filter."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const fmt = d => d.toISOString().split('T')[0];
+        const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.expenses = [
+            { id: 1, name: 'Near Past', budgetAmount: 10, accountId: 1, date: fmt(addDays(today, -5)) },
+            { id: 2, name: 'Far Past', budgetAmount: 20, accountId: 1, date: fmt(addDays(today, -10)) },
+            { id: 3, name: 'Near Future', budgetAmount: 30, accountId: 1, date: fmt(addDays(today, 5)) },
+            { id: 4, name: 'Far Future', budgetAmount: 40, accountId: 1, date: fmt(addDays(today, 10)) },
+        ];
+        app.incomes = []; app.debts = []; app.bills = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
+        app._ledgerAccountFilter = 'all';
+        app._ledgerDateRange = 'around7';
+        app._ledgerClearedFilter = 'all';
+        app._ledgerSortKey = 'date';
+        app._ledgerSortDir = 'asc';
+    }""")
+    txs = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+    names = [tx['name'] for tx in txs]
+    assert 'Far Past' not in names, "Expense 10 days ago should be excluded from ±7-day window"
+    assert 'Far Future' not in names, "Expense 10 days ahead should be excluded from ±7-day window"
+    assert 'Near Past' in names, "Expense 5 days ago should still appear"
+    assert 'Near Future' in names, "Expense 5 days ahead should still appear"
+
+
+@pytest.mark.feature
+def test_ledger_cleared_filter_uncleared_only(app_page):
+    """'Uncleared only' filter hides rows that have been marked cleared."""
+    page = app_page
+    # Seed two income sources and mark one cleared at the JS level
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.incomes = [
+            { id: 10, name: 'Income A', amount: 1000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' },
+            { id: 11, name: 'Income B', amount: 500, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }
+        ];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
+        app._ledgerAccountFilter = 'all';
+        app._ledgerDateRange = 'all';
+        app._ledgerClearedFilter = 'all';
+        app._ledgerSortKey = 'date';
+        app._ledgerSortDir = 'asc';
+        // Mark the first clearable transaction as cleared
+        const txs = window.app.getFilteredSortedLedgerTransactions();
+        const first = txs.find(tx => tx.transactionId);
+        if (first) {
+            app.ledgerClearedTransactions[first.transactionId] = { clearedAt: new Date().toISOString() };
+        }
+    }""")
+    # Now apply the uncleared-only filter
+    txs = page.evaluate("""() => {
+        window.app._ledgerClearedFilter = 'uncleared';
+        return window.app.getFilteredSortedLedgerTransactions();
+    }""")
+    assert all(not tx['cleared'] for tx in txs if tx.get('transactionId')), \
+        "All clearable transactions in 'uncleared only' view should have cleared=false"
+
+
+@pytest.mark.feature
+def test_ledger_cleared_filter_cleared_only(app_page):
+    """'Cleared only' filter shows only rows that have been marked cleared."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.incomes = [
+            { id: 10, name: 'Income A', amount: 1000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' },
+            { id: 11, name: 'Income B', amount: 500, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }
+        ];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
+        app._ledgerAccountFilter = 'all';
+        app._ledgerDateRange = 'all';
+        app._ledgerClearedFilter = 'all';
+        app._ledgerSortKey = 'date';
+        app._ledgerSortDir = 'asc';
+        const txs = window.app.getFilteredSortedLedgerTransactions();
+        const first = txs.find(tx => tx.transactionId);
+        if (first) {
+            app.ledgerClearedTransactions[first.transactionId] = { clearedAt: new Date().toISOString() };
+        }
+    }""")
+    txs = page.evaluate("""() => {
+        window.app._ledgerClearedFilter = 'cleared';
+        return window.app.getFilteredSortedLedgerTransactions();
+    }""")
+    # Every row returned (that can be cleared) must be cleared
+    clearable = [tx for tx in txs if tx.get('transactionId')]
+    assert len(clearable) >= 1, "Should have at least one cleared transaction to show"
+    assert all(tx['cleared'] for tx in clearable), \
+        "All clearable transactions in 'cleared only' view should have cleared=true"
+
+
+@pytest.mark.feature
+def test_ledger_cleared_filter_all_shows_both(app_page):
+    """'All' cleared filter shows both cleared and uncleared transactions."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.incomes = [
+            { id: 10, name: 'Income A', amount: 1000, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' },
+            { id: 11, name: 'Income B', amount: 500, accountId: 1, frequency: 'monthly', firstDate: '2026-06-01' }
+        ];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
+        app._ledgerAccountFilter = 'all';
+        app._ledgerDateRange = 'all';
+        app._ledgerClearedFilter = 'all';
+        app._ledgerSortKey = 'date';
+        app._ledgerSortDir = 'asc';
+        const txs = window.app.getFilteredSortedLedgerTransactions();
+        const first = txs.find(tx => tx.transactionId);
+        if (first) {
+            app.ledgerClearedTransactions[first.transactionId] = { clearedAt: new Date().toISOString() };
+        }
+    }""")
+    txs = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+    clearable = [tx for tx in txs if tx.get('transactionId')]
+    cleared = [tx for tx in clearable if tx['cleared']]
+    uncleared = [tx for tx in clearable if not tx['cleared']]
+    assert len(cleared) >= 1, "'All' filter should include cleared transactions"
+    assert len(uncleared) >= 1, "'All' filter should include uncleared transactions"
+
+
+@pytest.mark.feature
+def test_ledger_cleared_filter_dropdown_in_dom(app_page):
+    """The cleared-status filter dropdown (#ledgerClearedFilter) is rendered on the Ledger page."""
+    page = app_page
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerClearedFilter', timeout=5000)
+
+    dropdown = page.query_selector('#ledgerClearedFilter')
+    assert dropdown is not None, "#ledgerClearedFilter dropdown should exist"
+    options = page.evaluate("() => Array.from(document.querySelectorAll('#ledgerClearedFilter option')).map(o => o.value)")
+    assert 'all' in options
+    assert 'uncleared' in options
+    assert 'cleared' in options
+
+
+@pytest.mark.feature
+def test_ledger_around7_option_in_show_dropdown(app_page):
+    """The Show dropdown contains an 'around7' option and it is selected by default."""
+    page = app_page
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerDateRange', timeout=5000)
+
+    options = page.evaluate("() => Array.from(document.querySelectorAll('#ledgerDateRange option')).map(o => o.value)")
+    assert 'around7' in options, "'around7' option should be in the Show dropdown"
+
+    selected = page.evaluate("() => document.querySelector('#ledgerDateRange')?.value")
+    assert selected == 'around7', "Default selected option should be 'around7'"
+
+
+@pytest.mark.feature
+def test_ledger_clear_filters_button_absent_with_defaults(app_page):
+    """The 'Clear Filters' button is not shown when all filters are at their defaults."""
+    page = app_page
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerDateRange', timeout=5000)
+
+    clear_btn = page.query_selector('#ledgerClearFiltersBtn')
+    assert clear_btn is None, "Clear Filters button should not appear when all filters are default"
+    badge = page.query_selector('.filter-active-badge')
+    assert badge is None, "Active filter badge should not appear with default filters"
+
+
+@pytest.mark.feature
+def test_ledger_clear_filters_button_appears_when_filter_changed(app_page):
+    """Changing a filter from its default reveals the 'Clear Filters' button and active badge."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerDateRange', timeout=5000)
+
+    # Change date range away from default
+    page.select_option('#ledgerDateRange', 'all')
+    page.wait_for_selector('#ledgerClearFiltersBtn', timeout=5000)
+
+    clear_btn = page.query_selector('#ledgerClearFiltersBtn')
+    assert clear_btn is not None, "Clear Filters button should appear when a filter is non-default"
+
+    badge = page.query_selector('.filter-active-badge')
+    assert badge is not None, "Active filter badge should appear when a filter is non-default"
+    badge_text = badge.inner_text()
+    assert '1' in badge_text, f"Badge should say 1 filter active, got: {badge_text!r}"
+
+
+@pytest.mark.feature
+def test_ledger_clear_filters_button_resets_to_defaults(app_page):
+    """Clicking 'Clear Filters' resets all ledger filters to their default values."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerDateRange', timeout=5000)
+
+    # Apply a non-default filter
+    page.select_option('#ledgerClearedFilter', 'uncleared')
+    page.wait_for_selector('#ledgerClearFiltersBtn', timeout=5000)
+
+    # Click clear
+    page.click('#ledgerClearFiltersBtn')
+    page.wait_for_selector('#ledgerDateRange', timeout=5000)
+
+    # Verify defaults restored
+    date_val = page.evaluate("() => document.querySelector('#ledgerDateRange')?.value")
+    cleared_val = page.evaluate("() => document.querySelector('#ledgerClearedFilter')?.value")
+    assert date_val == 'around7', f"Date range should reset to 'around7', got: {date_val!r}"
+    assert cleared_val == 'all', f"Cleared filter should reset to 'all', got: {cleared_val!r}"
+
+    # Clear Filters button should be gone
+    clear_btn = page.query_selector('#ledgerClearFiltersBtn')
+    assert clear_btn is None, "Clear Filters button should disappear after resetting filters"
+
+
+@pytest.mark.feature
+def test_ledger_mark_all_cleared_button_visible_with_clearable_rows(app_page):
+    """'Mark N as Cleared' button appears when there are uncleared rows in the filtered view."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
+
+    mark_btn = page.query_selector('#ledgerMarkAllClearedBtn')
+    assert mark_btn is not None, "'Mark N as Cleared' button should appear when there are uncleared rows"
+
+
+@pytest.mark.feature
+def test_ledger_mark_all_cleared_opens_confirmation_modal(app_page):
+    """Clicking 'Mark N as Cleared' opens the confirmation modal."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerMarkAllClearedBtn', timeout=10000)
+
+    page.click('#ledgerMarkAllClearedBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal.flex-visible', timeout=5000)
+
+    desc_text = page.inner_text('#ledgerMarkAllClearedDesc')
+    assert 'transaction' in desc_text.lower(), \
+        f"Modal description should mention transactions, got: {desc_text!r}"
+
+
+@pytest.mark.feature
+def test_ledger_mark_all_cleared_modal_cancel_does_not_clear(app_page):
+    """Cancelling the 'Mark All Cleared' modal leaves rows uncleared (negative test)."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerMarkAllClearedBtn', timeout=10000)
+
+    page.click('#ledgerMarkAllClearedBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal.flex-visible', timeout=5000)
+    page.click('#ledgerMarkAllClearedCancelBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal', state='hidden', timeout=5000)
+
+    # Rows should still be uncleared — mark-all button should still appear
+    page.wait_for_selector('#ledgerMarkAllClearedBtn', timeout=5000)
+    mark_btn = page.query_selector('#ledgerMarkAllClearedBtn')
+    assert mark_btn is not None, "Mark-all button should still be present after cancel"
+
+
+@pytest.mark.feature
+def test_ledger_mark_all_cleared_confirm_clears_all_visible_rows(app_page):
+    """Confirming the 'Mark All Cleared' modal marks every clearable visible row as cleared."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerMarkAllClearedBtn', timeout=10000)
+
+    page.click('#ledgerMarkAllClearedBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal.flex-visible', timeout=5000)
+    page.click('#ledgerMarkAllClearedConfirmBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal', state='hidden', timeout=5000)
+
+    # After confirmation, all clearable rows should be checked and the mark-all button gone
+    unchecked = page.query_selector_all('[data-ledger-cleared]:not(:checked)')
+    assert len(unchecked) == 0, \
+        f"After confirming mark-all, all clearable rows should be cleared (found {len(unchecked)} unchecked)"
+
+    mark_btn = page.query_selector('#ledgerMarkAllClearedBtn')
+    assert mark_btn is None, "Mark-all button should disappear after all rows are cleared"
