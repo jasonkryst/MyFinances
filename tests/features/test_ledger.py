@@ -802,9 +802,9 @@ def test_ledger_around7_filter_includes_transactions_in_window(app_page):
         const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
         app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
         app.expenses = [
-            { id: 1, name: 'Near Past', amount: -10, accountId: 1, date: fmt(addDays(today, -5)) },
-            { id: 2, name: 'Today Expense', amount: -20, accountId: 1, date: fmt(today) },
-            { id: 3, name: 'Near Future', amount: -30, accountId: 1, date: fmt(addDays(today, 5)) },
+            { id: 1, name: 'Near Past', budgetAmount: 10, accountId: 1, date: fmt(addDays(today, -5)) },
+            { id: 2, name: 'Today Expense', budgetAmount: 20, accountId: 1, date: fmt(today) },
+            { id: 3, name: 'Near Future', budgetAmount: 30, accountId: 1, date: fmt(addDays(today, 5)) },
         ];
         app.incomes = []; app.debts = []; app.bills = []; app.bonuses = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
@@ -833,10 +833,10 @@ def test_ledger_around7_filter_excludes_transactions_outside_window(app_page):
         const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
         app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
         app.expenses = [
-            { id: 1, name: 'Near Past', amount: -10, accountId: 1, date: fmt(addDays(today, -5)) },
-            { id: 2, name: 'Far Past', amount: -20, accountId: 1, date: fmt(addDays(today, -10)) },
-            { id: 3, name: 'Near Future', amount: -30, accountId: 1, date: fmt(addDays(today, 5)) },
-            { id: 4, name: 'Far Future', amount: -40, accountId: 1, date: fmt(addDays(today, 10)) },
+            { id: 1, name: 'Near Past', budgetAmount: 10, accountId: 1, date: fmt(addDays(today, -5)) },
+            { id: 2, name: 'Far Past', budgetAmount: 20, accountId: 1, date: fmt(addDays(today, -10)) },
+            { id: 3, name: 'Near Future', budgetAmount: 30, accountId: 1, date: fmt(addDays(today, 5)) },
+            { id: 4, name: 'Far Future', budgetAmount: 40, accountId: 1, date: fmt(addDays(today, 10)) },
         ];
         app.incomes = []; app.debts = []; app.bills = []; app.bonuses = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
