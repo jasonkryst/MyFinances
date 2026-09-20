@@ -83,7 +83,7 @@ def test_smoke_full_workflow(app_page):
     health_section = page.query_selector('#healthSection')
     assert health_section, "Health section not found"
     health_cards = page.query_selector_all('.health-metric-card')
-    assert len(health_cards) == 6, f"Expected 6 health metric cards, found {len(health_cards)}"
+    assert len(health_cards) == 7, f"Expected 7 health metric cards, found {len(health_cards)}"
     # With income + debt added above, cash flow should not be Break Even
     health_text = health_section.text_content()
     assert 'Surplus' in health_text or 'Deficit' in health_text, \
