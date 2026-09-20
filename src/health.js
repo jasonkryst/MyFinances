@@ -47,7 +47,15 @@ function budgetCategoryStatusCls(pct, category) {
 function statusFillCls(statusCls) {
     if (statusCls === 'health-status--green') return 'health-fill--green';
     if (statusCls === 'health-status--yellow') return 'health-fill--yellow';
+    if (statusCls === 'health-status--orange') return 'util-fill--orange';
     return 'health-fill--red';
+}
+
+function creditUtilizationStatus(pct) {
+    if (pct <= 10) return { cls: 'health-status--green',  label: 'Good' };
+    if (pct <= 30) return { cls: 'health-status--yellow', label: 'Fair' };
+    if (pct <= 50) return { cls: 'health-status--orange', label: 'High' };
+    return { cls: 'health-status--red', label: pct >= 100 ? 'Maxed' : 'Critical' };
 }
 
 function gaugeColor(statusCls) {
@@ -149,6 +157,17 @@ export function renderHealthDashboard(app) {
             isDebt: true
         });
     }
+
+    // ── Credit Utilization ─────────────────────────────────────────────────────
+    const ccDebtsWithLimit = activeDebts.filter(
+        d => d.debtType === 'creditCard' && d.creditLimit != null && d.creditLimit > 0
+    );
+    const totalCreditBalance = ccDebtsWithLimit.reduce((s, d) => s + (d.accountBalance || 0), 0);
+    const totalCreditLimit   = ccDebtsWithLimit.reduce((s, d) => s + d.creditLimit, 0);
+    const rawUtilPct = totalCreditLimit > 0 ? Math.round((totalCreditBalance / totalCreditLimit) * 100) : 0;
+    const utilDisplayPct = Math.min(rawUtilPct, 100);
+    const utilSt = creditUtilizationStatus(rawUtilPct);
+    const hasUtilData = ccDebtsWithLimit.length > 0;
 
     const gaugeGray = document.body.classList.contains('dark-mode') ? '#334155' : '#e2e8f0';
 
@@ -338,6 +357,38 @@ export function renderHealthDashboard(app) {
                         </div>`;
                 }).join('')}
                 ${budgetCategories.length > 0 ? `<a href="#" class="health-link" data-health-nav="liabilities">${t('health.editBudget')} &rarr;</a>` : ''}
+            </div>
+
+            <!-- Credit Utilization -->
+            <div class="health-metric-card" id="healthCreditUtilCard">
+                <div class="health-card-header">
+                    <span class="health-card-title">Credit Utilization</span>
+                    ${hasUtilData ? `<span class="health-badge ${utilSt.cls}">${utilSt.label}</span>` : ''}
+                </div>
+                <p class="health-card-desc">Total balance vs. credit limit across all credit cards with a limit set.</p>
+                ${!hasUtilData ? `
+                    <div class="health-empty-state">
+                        <span class="health-empty-sub">No credit limits set on any credit card debt.</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="liabilities">Set a credit limit &rarr;</a>
+                ` : `
+                    <div class="health-timeline-hero">
+                        <span class="health-timeline-value">${rawUtilPct}${rawUtilPct >= 100 ? '<span class="health-timeline-unit"> ⚠</span>' : ''}</span>
+                        <span class="health-timeline-unit">%</span>
+                    </div>
+                    <div class="health-progress-label">
+                        <span>Used credit</span>
+                        <span>${utilDisplayPct}%${rawUtilPct > 100 ? ' (over limit)' : ''}</span>
+                    </div>
+                    <div class="progress-bar health-compact-bar">
+                        <div class="progress-fill ${statusFillCls(utilSt.cls)}" data-progress-width="${utilDisplayPct}"></div>
+                    </div>
+                    <div class="health-metric-detail">
+                        <span>Balance: ${formatCurrency(totalCreditBalance)}</span>
+                        <span>Limit: ${formatCurrency(totalCreditLimit)}</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="liabilities">Manage debts &rarr;</a>
+                `}
             </div>
 
         </div>

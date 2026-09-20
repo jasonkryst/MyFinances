@@ -89,10 +89,25 @@ describe('sanitizeDebt', () => {
         const result = sanitizeDebt({ name: 'Visa', notAField: 'evil', __proto__: { polluted: true } }, 1);
         expect(result.notAField).toBeUndefined();
         expect(Object.keys(result).sort()).toEqual([
-            'accountBalance', 'accountId', 'archived', 'category', 'debtStartDate', 'debtType', 'dueDate',
+            'accountBalance', 'accountId', 'archived', 'category', 'creditLimit', 'debtStartDate', 'debtType', 'dueDate',
             'fixedAmount', 'fixedEndDate', 'fixedStartDate', 'id', 'interestRate', 'minimumPayment',
             'name', 'originalBalance', 'originalMinimumPayment', 'priority', 'updatedAt',
         ]);
+    });
+
+    test('passes through a valid creditLimit', () => {
+        expect(sanitizeDebt({ creditLimit: 5000 }, 1).creditLimit).toBe(5000);
+        expect(sanitizeDebt({ creditLimit: '2500' }, 1).creditLimit).toBe(2500);
+    });
+
+    test('returns null creditLimit when missing or non-numeric', () => {
+        expect(sanitizeDebt({}, 1).creditLimit).toBeNull();
+        expect(sanitizeDebt({ creditLimit: null }, 1).creditLimit).toBeNull();
+        expect(sanitizeDebt({ creditLimit: 'abc' }, 1).creditLimit).toBeNull();
+    });
+
+    test('clamps negative creditLimit to 0', () => {
+        expect(sanitizeDebt({ creditLimit: -1000 }, 1).creditLimit).toBe(0);
     });
 });
 

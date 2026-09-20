@@ -5901,15 +5901,27 @@ body.dark-mode .app-footer {
 
 .health-status--green  { background: #dcfce7; color: #15803d; }
 .health-status--yellow { background: #fef9c3; color: #a16207; }
+.health-status--orange { background: #ffedd5; color: #c2410c; }
 .health-status--red    { background: #fee2e2; color: #b91c1c; }
 body.dark-mode .health-status--green  { background: #14532d; color: #86efac; }
 body.dark-mode .health-status--yellow { background: #422006; color: #fde68a; }
+body.dark-mode .health-status--orange { background: #431407; color: #fdba74; }
 body.dark-mode .health-status--red    { background: #450a0a; color: #fca5a5; }
 
 /* Colored progress fills for health cards */
 .health-fill--green  { background: #16a34a !important; }
 .health-fill--yellow { background: #d97706 !important; }
 .health-fill--red    { background: #dc2626 !important; }
+
+/* Utilization-specific progress fill colors (4-tier: green/yellow/orange/red) */
+.util-fill--green  { background: #16a34a !important; }
+.util-fill--yellow { background: #d97706 !important; }
+.util-fill--orange { background: #ea580c !important; }
+.util-fill--red    { background: #dc2626 !important; }
+
+/* Credit utilization detail line inside debt card */
+.debt-util-badge { font-size: 0.75rem; }
+.debt-util-detail { font-size: 0.75rem; color: var(--text-muted, #64748b); margin-top: 0.15rem; }
 
 /* Compact progress bar variant */
 .health-compact-bar { height: 6px !important; margin: 4px 0 !important; }

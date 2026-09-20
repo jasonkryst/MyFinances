@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [5.15.0] — 2026-09-20
+
+### Added
+- **Credit limit & utilization tracking** (issue #200) — Credit-card debts now have an optional **Credit Limit** field (add form, inline edit). When set, each debt card shows a color-coded **utilization bar** immediately below the payoff-progress bar: ≤10% green (Good), 11-30% yellow (Fair), 31-50% orange (High), 51%+ red (Critical), ≥100% red (Maxed). The **Health dashboard** gains a 7th metric card showing aggregate utilization (sum of balances ÷ sum of limits) across all active credit-card debts that have a limit set, with the same 4-tier color scheme. If no limits are set the card shows an empty state with a link to the Liabilities page. New `credit_limit` column added to the Postgres `debts` table (migration 14); `archived` column also wired into the server-side columns map (existing gap).
+
+---
 ## [5.14.0] — 2026-09-20
 
 ### Added

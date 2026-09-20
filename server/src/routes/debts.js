@@ -23,6 +23,8 @@ export default createCrudResource({
         fixedAmount: 'fixed_amount',
         fixedStartDate: 'fixed_start_date',
         fixedEndDate: 'fixed_end_date',
-        updatedAt: 'updated_at'
+        creditLimit: 'credit_limit',
+        updatedAt: 'updated_at',
+        archived: 'archived'
     }
 });

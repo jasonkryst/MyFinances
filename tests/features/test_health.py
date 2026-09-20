@@ -36,7 +36,7 @@ def test_health_renders_six_metric_cards(app_page):
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
     cards = page.query_selector_all('.health-metric-card')
-    assert len(cards) == 6, f"Expected 6 metric cards, found {len(cards)}"
+    assert len(cards) == 7, f"Expected 7 metric cards (including credit utilization), found {len(cards)}"
 
 
 # ── DTI card ───────────────────────────────────────────────────────────────────
@@ -367,3 +367,223 @@ def test_health_no_console_errors(app_page):
         if 'favicon' not in e.lower()
     ]
     assert len(filtered_errors) == 0, f"Console errors on health page: {filtered_errors}"
+
+
+# ── Credit Utilization card ────────────────────────────────────────────────────
+
+
+def _inject_util_state(page, balance, credit_limit):
+    """Inject a single credit-card debt with given balance and credit limit."""
+    page.evaluate(f"""() => {{
+        const app = window.app;
+        app.incomes = [];
+        app.debts = [{{
+            id: 8001, name: 'Visa', debtType: 'creditCard',
+            accountBalance: {balance}, originalBalance: {credit_limit},
+            interestRate: 20, minimumPayment: 25, dueDate: 15,
+            creditLimit: {credit_limit},
+            debtStartDate: null, fixedAmount: 0, fixedStartDate: null,
+            fixedEndDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false
+        }}];
+        app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }}""")
+    page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
+
+
+@pytest.mark.feature
+def test_health_credit_util_card_present(app_page):
+    """Credit utilization card (#healthCreditUtilCard) is always rendered."""
+    page = app_page
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+
+    card = page.query_selector('#healthCreditUtilCard')
+    assert card, "Credit utilization card not found in health dashboard"
+
+
+@pytest.mark.feature
+def test_health_credit_util_empty_state_when_no_limits(app_page):
+    """Credit utilization card shows empty state when no credit cards have a limit set."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [{ id: 1, name: 'Visa', debtType: 'creditCard',
+                       accountBalance: 500, originalBalance: 500,
+                       interestRate: 20, minimumPayment: 25, dueDate: 15,
+                       creditLimit: null, archived: false }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'No credit limits set' in card_text, \
+        f"Expected empty-state message when no limits, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_credit_util_good(app_page):
+    """≤10% aggregate utilization shows 'Good' badge."""
+    page = app_page
+    _inject_util_state(page, balance=80, credit_limit=1000)  # 8%
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'Good' in card_text, f"Expected 'Good' at 8% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_credit_util_fair(app_page):
+    """11-30% aggregate utilization shows 'Fair' badge."""
+    page = app_page
+    _inject_util_state(page, balance=200, credit_limit=1000)  # 20%
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'Fair' in card_text, f"Expected 'Fair' at 20% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_credit_util_high(app_page):
+    """31-50% aggregate utilization shows 'High' badge."""
+    page = app_page
+    _inject_util_state(page, balance=400, credit_limit=1000)  # 40%
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'High' in card_text, f"Expected 'High' at 40% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_credit_util_critical(app_page):
+    """51%+ aggregate utilization shows 'Critical' badge."""
+    page = app_page
+    _inject_util_state(page, balance=600, credit_limit=1000)  # 60%
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'Critical' in card_text, f"Expected 'Critical' at 60% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_credit_util_maxed(app_page):
+    """≥100% aggregate utilization shows 'Maxed' badge."""
+    page = app_page
+    _inject_util_state(page, balance=1100, credit_limit=1000)  # 110%
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'Maxed' in card_text, f"Expected 'Maxed' at 110% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_credit_util_shows_totals(app_page):
+    """Credit utilization card shows aggregate balance and total limit."""
+    page = app_page
+    _inject_util_state(page, balance=500, credit_limit=2000)  # 25%
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert '500' in card_text, "Balance total not shown in credit utilization card"
+    assert '2,000' in card_text or '2000' in card_text, "Credit limit total not shown"
+
+
+# ── Credit Utilization — Negative tests ───────────────────────────────────────
+
+
+@pytest.mark.feature
+def test_health_credit_util_ignores_fixed_debts(app_page):
+    """Fixed-amount debts are not included in the aggregate utilization calculation."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [{
+            id: 8010, name: 'Car Loan', debtType: 'fixedAmount',
+            accountBalance: 0, originalBalance: 15000,
+            minimumPayment: 300, fixedAmount: 300,
+            fixedStartDate: '2025-01-01', fixedEndDate: '2027-01-01',
+            creditLimit: 15000, archived: false
+        }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'No credit limits set' in card_text, \
+        "Fixed-amount debts should not contribute to aggregate credit utilization"
+
+
+@pytest.mark.feature
+def test_health_credit_util_ignores_archived_debts(app_page):
+    """Archived credit-card debts are excluded from utilization calculation."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [{
+            id: 8011, name: 'Old Card', debtType: 'creditCard',
+            accountBalance: 900, originalBalance: 1000,
+            interestRate: 20, minimumPayment: 25, dueDate: 15,
+            creditLimit: 1000, archived: true
+        }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'No credit limits set' in card_text, \
+        "Archived debts should not contribute to credit utilization"
+
+
+@pytest.mark.feature
+def test_health_credit_util_ignores_debts_without_limit(app_page):
+    """Active credit-card debts without a creditLimit are excluded from the calculation."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [{
+            id: 8012, name: 'No Limit Card', debtType: 'creditCard',
+            accountBalance: 800, originalBalance: 1000,
+            interestRate: 18, minimumPayment: 30, dueDate: 10,
+            creditLimit: null, archived: false
+        }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    assert 'No credit limits set' in card_text, \
+        "Debts without creditLimit should not be counted in aggregate utilization"
+
+
+@pytest.mark.feature
+def test_health_credit_util_multiple_cards_aggregated(app_page):
+    """Multiple credit cards with limits are aggregated into a single utilization percentage."""
+    page = app_page
+    # Card A: $300 / $1000 = 30%; Card B: $700 / $1000 = 70%; aggregate: $1000/$2000 = 50%
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [
+            { id: 8020, name: 'Card A', debtType: 'creditCard',
+              accountBalance: 300, originalBalance: 1000,
+              interestRate: 18, minimumPayment: 25, dueDate: 10,
+              creditLimit: 1000, archived: false },
+            { id: 8021, name: 'Card B', debtType: 'creditCard',
+              accountBalance: 700, originalBalance: 1000,
+              interestRate: 22, minimumPayment: 35, dueDate: 15,
+              creditLimit: 1000, archived: false }
+        ];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
+
+    card_text = page.query_selector('#healthCreditUtilCard').text_content()
+    # 50% aggregate → 'High' tier (31-50%)
+    assert 'High' in card_text, \
+        f"Expected 'High' for 50% aggregate utilization across 2 cards, got: {card_text[:200]}"
+    assert '50' in card_text, f"Expected 50% shown in utilization card, got: {card_text[:200]}"
