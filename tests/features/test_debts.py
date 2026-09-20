@@ -660,3 +660,243 @@ def test_archived_debt_excluded_from_overview_totals(app_page):
     total_text = page.inner_text('.debt-overview-stat-value')
     assert '1,000' in total_text or '1000' in total_text
     assert '1,500' not in total_text and '1500' not in total_text
+
+
+# ── Credit Limit & Utilization ─────────────────────────────────────────────────
+
+
+def _seed_cc_debt_with_limit(page, balance=500, credit_limit=1000):
+    """Inject a single credit-card debt with a credit limit into app state."""
+    page.evaluate(f"""() => {{
+        window.app.debts = [{{
+            id: 9100, name: 'Visa Util Test', debtType: 'creditCard',
+            accountBalance: {balance}, originalBalance: {credit_limit},
+            interestRate: 20, minimumPayment: 25, dueDate: 15,
+            creditLimit: {credit_limit},
+            debtStartDate: null, fixedAmount: 0, fixedStartDate: null,
+            fixedEndDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false
+        }}];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }}""")
+    page.wait_for_selector('#debtsList .debt-card', timeout=5000)
+
+
+@pytest.mark.feature
+def test_credit_limit_saves_via_form(app_page):
+    """Credit limit entered in the add-debt form is persisted in app state."""
+    page = app_page
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+
+    page.fill('#debtName', 'Limit Test Card')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '250')
+    page.fill('#interestRate', '19')
+    page.fill('#minimumPayment', '25')
+    page.fill('#dueDate', '10')
+    page.fill('#creditLimit', '1000')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=Limit Test Card', timeout=10000)
+
+    saved_limit = page.evaluate(
+        "() => window.app.debts.find(d => d.name === 'Limit Test Card')?.creditLimit"
+    )
+    assert saved_limit == 1000, f"Expected creditLimit 1000, got {saved_limit}"
+
+
+@pytest.mark.feature
+def test_credit_limit_utilization_bar_appears(app_page):
+    """A utilization bar is rendered inside the debt card when creditLimit is set."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=500, credit_limit=1000)
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Credit utilization' in card_text, \
+        "Expected 'Credit utilization' label in debt card with credit limit"
+
+
+@pytest.mark.feature
+def test_credit_limit_utilization_good_badge(app_page):
+    """≤10% utilization shows the 'Good' badge (green tier)."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=80, credit_limit=1000)  # 8%
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Good' in card_text, f"Expected 'Good' badge at 8% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_credit_limit_utilization_fair_badge(app_page):
+    """11-30% utilization shows the 'Fair' badge (yellow tier)."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=200, credit_limit=1000)  # 20%
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Fair' in card_text, f"Expected 'Fair' badge at 20% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_credit_limit_utilization_high_badge(app_page):
+    """31-50% utilization shows the 'High' badge (orange tier)."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=400, credit_limit=1000)  # 40%
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'High' in card_text, f"Expected 'High' badge at 40% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_credit_limit_utilization_critical_badge(app_page):
+    """51%+ utilization shows the 'Critical' badge (red tier)."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=600, credit_limit=1000)  # 60%
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Critical' in card_text, f"Expected 'Critical' badge at 60% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_credit_limit_utilization_maxed_badge(app_page):
+    """≥100% utilization shows the 'Maxed' badge and a warning indicator."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=1050, credit_limit=1000)  # 105%
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Maxed' in card_text, f"Expected 'Maxed' badge at 105% utilization, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_credit_limit_shows_balance_and_limit(app_page):
+    """Utilization detail line shows formatted balance and credit limit values."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=500, credit_limit=2000)
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert '500' in card_text, "Balance not shown in utilization detail"
+    assert '2,000' in card_text or '2000' in card_text, "Credit limit not shown in utilization detail"
+
+
+@pytest.mark.feature
+def test_credit_limit_inline_edit_saves_new_limit(app_page):
+    """Changing the credit limit via inline edit persists the new value."""
+    page = app_page
+    _seed_cc_debt_with_limit(page, balance=200, credit_limit=1000)
+
+    # Click Edit to open inline edit mode
+    page.click('[data-debt-action="edit"][data-debt-id="9100"]')
+    page.wait_for_selector('#inline-credit-limit-9100', timeout=5000)
+
+    page.fill('#inline-credit-limit-9100', '5000')
+    page.click('[data-debt-action="save-inline"][data-debt-id="9100"]')
+    page.wait_for_selector('#debtsList .debt-card', timeout=5000)
+
+    saved_limit = page.evaluate(
+        "() => window.app.debts.find(d => d.id === 9100)?.creditLimit"
+    )
+    assert saved_limit == 5000, f"Expected creditLimit 5000 after inline edit, got {saved_limit}"
+
+
+# ── Credit Limit — Negative tests ─────────────────────────────────────────────
+
+
+@pytest.mark.feature
+def test_no_credit_limit_shows_no_utilization_bar(app_page):
+    """A debt with no credit limit set does not render a utilization bar."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 9200, name: 'No Limit Card', debtType: 'creditCard',
+            accountBalance: 500, originalBalance: 500,
+            interestRate: 20, minimumPayment: 25, dueDate: 15,
+            creditLimit: null,
+            debtStartDate: null, fixedAmount: 0, fixedStartDate: null,
+            fixedEndDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false
+        }];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('#debtsList .debt-card', timeout=5000)
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Credit utilization' not in card_text, \
+        "Utilization bar should not appear when creditLimit is null"
+
+
+@pytest.mark.feature
+def test_zero_credit_limit_shows_no_utilization_bar(app_page):
+    """A debt with creditLimit of 0 does not render a utilization bar (avoids divide-by-zero)."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 9201, name: 'Zero Limit Card', debtType: 'creditCard',
+            accountBalance: 500, originalBalance: 500,
+            interestRate: 20, minimumPayment: 25, dueDate: 15,
+            creditLimit: 0,
+            debtStartDate: null, fixedAmount: 0, fixedStartDate: null,
+            fixedEndDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false
+        }];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('#debtsList .debt-card', timeout=5000)
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Credit utilization' not in card_text, \
+        "Utilization bar should not appear when creditLimit is 0"
+
+
+@pytest.mark.feature
+def test_fixed_debt_shows_no_utilization_bar(app_page):
+    """Fixed-amount debts do not show a credit utilization bar even if creditLimit is set."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 9202, name: 'Car Loan', debtType: 'fixedAmount',
+            accountBalance: 0, originalBalance: 15000,
+            interestRate: 0, minimumPayment: 300, dueDate: null,
+            fixedAmount: 300, fixedStartDate: '2025-01-01', fixedEndDate: '2027-01-01',
+            creditLimit: 15000,
+            debtStartDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false
+        }];
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('#debtsList .debt-card', timeout=5000)
+
+    card_text = page.inner_text('#debtsList .debt-card')
+    assert 'Credit utilization' not in card_text, \
+        "Fixed-amount debts should never show a credit utilization bar"
+
+
+@pytest.mark.feature
+def test_credit_limit_not_required_for_debt_save(app_page):
+    """Omitting the credit limit field does not prevent debt creation."""
+    page = app_page
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+
+    page.fill('#debtName', 'No Limit Debt')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '300')
+    page.fill('#interestRate', '15')
+    page.fill('#minimumPayment', '30')
+    page.fill('#dueDate', '20')
+    # intentionally leave #creditLimit blank
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=No Limit Debt', timeout=10000)
+
+    saved_limit = page.evaluate(
+        "() => window.app.debts.find(d => d.name === 'No Limit Debt')?.creditLimit"
+    )
+    assert saved_limit is None, f"Expected null creditLimit when field left blank, got {saved_limit}"

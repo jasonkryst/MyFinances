@@ -6,6 +6,13 @@ import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showArchiveConfirmModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 
+function utilizationStatus(pct) {
+    if (pct <= 10) return { cls: 'health-status--green',  label: 'Good' };
+    if (pct <= 30) return { cls: 'health-status--yellow', label: 'Fair' };
+    if (pct <= 50) return { cls: 'health-status--orange', label: 'High' };
+    return { cls: 'health-status--red', label: pct >= 100 ? 'Maxed' : 'Critical' };
+}
+
 function recalculateIfConfigured(app) {
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
     const strategy = document.getElementById('paymentStrategy').value;
@@ -68,6 +75,9 @@ export async function addDebt(app) {
             return;
         }
 
+        const creditLimitRaw = document.getElementById('creditLimit').value;
+        const creditLimit = creditLimitRaw ? sanitizeFiniteNumber(creditLimitRaw, null, { min: 0 }) : null;
+
         debt.accountBalance = accountBalance;
         debt.originalBalance = accountBalance;
         debt.interestRate = interestRate;
@@ -75,6 +85,7 @@ export async function addDebt(app) {
         debt.originalMinimumPayment = minimumPayment;
         debt.dueDate = dueDate;
         debt.debtStartDate = debtStartDate;
+        debt.creditLimit = creditLimit;
     }
 
     app.debts.push(debt);
@@ -233,6 +244,9 @@ export async function saveEdit(app) {
     const idx = app.debts.findIndex(d => d.id === app.editingDebtId);
     if (idx === -1) return;
 
+    const creditLimitRaw = document.getElementById('creditLimit').value;
+    const creditLimit = creditLimitRaw ? sanitizeFiniteNumber(creditLimitRaw, null, { min: 0 }) : null;
+
     app.debts[idx] = {
         ...app.debts[idx],
         name,
@@ -240,7 +254,8 @@ export async function saveEdit(app) {
         interestRate,
         priority,
         minimumPayment,
-        dueDate
+        dueDate,
+        creditLimit
     };
 
     app.saveToStorage();
@@ -403,7 +418,8 @@ export function renderDebtsList(app) {
                         <div class="debt-detail"><strong>Min Payment:</strong> <input id="inline-min-${debt.id}" type="number" step="0.01" value="${debt.minimumPayment}"></div>
                         <div class="debt-detail"><strong>Due Date:</strong> <input id="inline-due-${debt.id}" type="number" min="1" max="31" value="${debt.dueDate}"></div>
                         <div class="debt-detail"><strong>Priority:</strong> <input id="inline-priority-${debt.id}" type="number" min="1" max="100" value="${debt.priority || ''}"></div>
-                        <div class="debt-detail"><strong>Date Opened:</strong> <input id="inline-start-date-cc-${debt.id}" type="date" value="${debt.debtStartDate || ''}"></div>`;
+                        <div class="debt-detail"><strong>Date Opened:</strong> <input id="inline-start-date-cc-${debt.id}" type="date" value="${debt.debtStartDate || ''}"></div>
+                        <div class="debt-detail"><strong>Credit Limit:</strong> <input id="inline-credit-limit-${debt.id}" type="number" step="0.01" min="0" placeholder="optional" value="${debt.creditLimit != null ? debt.creditLimit : ''}"></div>`;
             }
 
             editHTML += `
@@ -500,11 +516,31 @@ export function renderDebtsList(app) {
                                 <strong>Priority:</strong> ${debt.priority}/100
                             </div>
                         ` : ''}`;
+                let utilHTML = '';
+                if (debt.creditLimit != null && debt.creditLimit > 0) {
+                    const rawUtilPct = Math.round((debt.accountBalance / debt.creditLimit) * 100);
+                    const utilPct = Math.min(rawUtilPct, 100);
+                    const utilSt = utilizationStatus(rawUtilPct);
+                    const fillCls = utilSt.cls === 'health-status--green' ? 'util-fill--green'
+                        : utilSt.cls === 'health-status--yellow' ? 'util-fill--yellow'
+                        : utilSt.cls === 'health-status--orange' ? 'util-fill--orange'
+                        : 'util-fill--red';
+                    utilHTML = `
+                    <div class="debt-progress-wrap">
+                        <div class="debt-progress-label">
+                            <span>Credit utilization</span>
+                            <span class="debt-util-badge health-badge ${utilSt.cls}">${utilSt.label} &mdash; ${rawUtilPct}%${rawUtilPct >= 100 ? ' ⚠' : ''}</span>
+                        </div>
+                        <div class="debt-progress-bar"><div class="debt-progress-fill ${fillCls}" data-progress-width="${utilPct}"></div></div>
+                        <div class="debt-util-detail">${formatCurrency(debt.accountBalance)} of ${formatCurrency(debt.creditLimit)} limit</div>
+                    </div>`;
+                }
+
                 cardHTML += `</div>
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label"><span>Payoff progress</span><span>${progressPct}%</span></div>
                         <div class="debt-progress-bar"><div class="debt-progress-fill${progressPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${progressPct}"></div></div>
-                    </div>`;
+                    </div>${utilHTML}`;
             }
 
             cardHTML += `
@@ -642,12 +678,15 @@ export async function saveInlineEdit(app, debtId) {
             const priorityEl = document.getElementById(`inline-priority-${debtId}`);
             const startDateEl = document.getElementById(`inline-start-date-cc-${debtId}`);
 
+            const limitEl = document.getElementById(`inline-credit-limit-${debtId}`);
+
             if (balEl) debt.accountBalance = sanitizeFiniteNumber(balEl.value, 0, { min: 0 });
             if (intEl) debt.interestRate = sanitizeFiniteNumber(intEl.value, 0, { min: 0, max: 100 });
             if (minEl) debt.minimumPayment = sanitizeFiniteNumber(minEl.value, 0, { min: 0 });
             if (dueEl) debt.dueDate = sanitizeInteger(dueEl.value, null, { min: 1, max: 31 });
             if (priorityEl) debt.priority = sanitizeInteger(priorityEl.value, null, { min: 1, max: 100 });
             if (startDateEl) debt.debtStartDate = sanitizeDateISO(startDateEl.value);
+            if (limitEl) debt.creditLimit = limitEl.value ? sanitizeFiniteNumber(limitEl.value, null, { min: 0 }) : null;
         }
 
         if (!debt.name) {
