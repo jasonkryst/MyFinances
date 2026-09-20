@@ -89,7 +89,7 @@ describe('sanitizeDebt', () => {
         const result = sanitizeDebt({ name: 'Visa', notAField: 'evil', __proto__: { polluted: true } }, 1);
         expect(result.notAField).toBeUndefined();
         expect(Object.keys(result).sort()).toEqual([
-            'accountBalance', 'accountId', 'category', 'debtStartDate', 'debtType', 'dueDate',
+            'accountBalance', 'accountId', 'archived', 'category', 'debtStartDate', 'debtType', 'dueDate',
             'fixedAmount', 'fixedEndDate', 'fixedStartDate', 'id', 'interestRate', 'minimumPayment',
             'name', 'originalBalance', 'originalMinimumPayment', 'priority', 'updatedAt',
         ]);

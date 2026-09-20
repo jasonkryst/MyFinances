@@ -470,7 +470,8 @@ def test_archive_paid_off_debt_hides_from_list(app_page):
     page.click('#archiveConfirmBtn')
     page.wait_for_selector('#archiveConfirmModal', state='hidden', timeout=5000)
 
-    assert page.query_selector('text=Paid Off Card') is None
+    # Scope to #debtsList — the modal message still contains the debt name in the DOM
+    assert page.query_selector('[data-debt-id="9001"]') is None
 
 
 @pytest.mark.feature
