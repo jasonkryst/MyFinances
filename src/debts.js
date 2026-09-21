@@ -441,6 +441,12 @@ export function renderDebtsList(app) {
                                 ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`).join('')}
                             </select>
                         </div>
+                        ${(app.persons || []).length > 0 ? `
+                        <div class="debt-detail"><strong>People:</strong>
+                            <select id="inline-persons-${debt.id}" multiple>
+                                ${(app.persons).map(p => `<option value="${p.id}"${(debt.personIds || []).includes(p.id) ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
+                            </select>
+                        </div>` : ''}
                     </div>
                 </div>
                 <div class="debt-actions">
@@ -670,6 +676,9 @@ export async function saveInlineEdit(app, debtId) {
 
         const accountEl = document.getElementById(`inline-account-${debtId}`);
         if (accountEl) debt.accountId = accountEl.value ? parseInt(accountEl.value) : null;
+
+        const personsEl = document.getElementById(`inline-persons-${debtId}`);
+        if (personsEl) debt.personIds = Array.from(personsEl.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite);
 
         if (debt.debtType === 'fixedAmount') {
             const fixedAmtEl = document.getElementById(`inline-fixed-amount-${debtId}`);
