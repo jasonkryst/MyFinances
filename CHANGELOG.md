@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.0.1] — 2026-09-20
+
+### Fixed
+- **Person field in debt inline edit** — the Edit form on each debt card now includes a multi-select **People** field (visible only when persons exist), so family member assignments can be changed without re-opening the main debt form.
+
 ## [6.0.0] — 2026-09-20
 
 ### Added
