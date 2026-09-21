@@ -24,10 +24,12 @@ const MERGE_DEDUP_BY_NAME = new Set([
     'recurringTemplates', 'sinkingFunds'
 ]);
 
-function remapFk(record, idMap) {
+function remapFk(record, idMap, personIdMap = {}) {
     const r = { ...record };
     if (r.accountId != null && idMap[r.accountId] != null) r.accountId = idMap[r.accountId];
     if (r.targetAccountId != null && idMap[r.targetAccountId] != null) r.targetAccountId = idMap[r.targetAccountId];
+    if (r.personId != null && personIdMap[r.personId] != null) r.personId = personIdMap[r.personId];
+    if (Array.isArray(r.personIds)) r.personIds = r.personIds.map(id => personIdMap[id] ?? id);
     return r;
 }
 
@@ -50,6 +52,7 @@ async function apiFetch(method, path, body) {
 
 function snapshotAppState(app) {
     return {
+        persons:               (app.persons || []).map(r => ({ ...r })),
         accounts:              app.accounts.map(r => ({ ...r })),
         debts:                 app.debts.map(r => ({ ...r })),
         incomes:               app.incomes.map(r => ({ ...r })),
@@ -99,11 +102,20 @@ async function postAllResources(data) {
         if (accountResults[i]) idMap[acc.id] = accountResults[i].id;
     });
 
-    // All non-account CRUD arrays in parallel with remapped FK references
+    // Persons second — IDs needed for personId/personIds FK remapping on debts/incomes
+    const personResults = await Promise.all(
+        (data.persons || []).map(p => apiFetch('POST', '/api/persons', p))
+    );
+    const personIdMap = {};
+    (data.persons || []).forEach((p, i) => {
+        if (personResults[i]) personIdMap[p.id] = personResults[i].id;
+    });
+
+    // All non-account/person CRUD arrays in parallel with remapped FK references
     const resourceResults = await Promise.all(
         CRUD_RESOURCES.map(({ field, path }) =>
             Promise.all(
-                (data[field] || []).map(record => apiFetch('POST', path, remapFk(record, idMap)))
+                (data[field] || []).map(record => apiFetch('POST', path, remapFk(record, idMap, personIdMap)))
             )
         )
     );
@@ -113,7 +125,7 @@ async function postAllResources(data) {
     const clearedEntries = Object.entries(data.ledgerClearedTransactions || {});
     await Promise.all([
         ...overrideEntries.map(([key, val]) =>
-            apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap))
+            apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap, personIdMap))
         ),
         ...clearedEntries.map(([key, val]) =>
             apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)
@@ -143,19 +155,20 @@ async function postAllResources(data) {
         retirementTargetDate: data.retirementTargetDate ?? null
     });
 
-    return { accountResults, resourceResults, idMap, overrideEntries, clearedEntries };
+    return { accountResults, personResults, resourceResults, idMap, personIdMap, overrideEntries, clearedEntries };
 }
 
 // Sync app.* with the server-returned records after a successful postAllResources.
-function applyResultsToApp(app, data, { accountResults, resourceResults, idMap, overrideEntries, clearedEntries }) {
+function applyResultsToApp(app, data, { accountResults, personResults, resourceResults, idMap, personIdMap, overrideEntries, clearedEntries }) {
     app.accounts = accountResults.filter(Boolean);
+    app.persons  = (personResults || []).filter(Boolean);
 
     CRUD_RESOURCES.forEach(({ field }, i) => {
         app[field] = resourceResults[i].filter(Boolean);
     });
 
     app.ledgerAmountOverrides = Object.fromEntries(
-        overrideEntries.map(([key, val]) => [key, { overrideKey: key, ...remapFk(val, idMap) }])
+        overrideEntries.map(([key, val]) => [key, { overrideKey: key, ...remapFk(val, idMap, personIdMap) }])
     );
     app.ledgerClearedTransactions = Object.fromEntries(
         clearedEntries.map(([key, val]) => [key, { clearedKey: key, ...val }])
@@ -186,6 +199,7 @@ function applyResultsToApp(app, data, { accountResults, resourceResults, idMap, 
 // postAllResources treats those as localIds and builds a new idMap.
 function snapshotToPostData(snapshot) {
     return {
+        persons:               snapshot.persons,
         accounts:              snapshot.accounts,
         debts:                 snapshot.debts,
         incomes:               snapshot.incomes,
@@ -282,6 +296,30 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             }
         });
 
+        // Build personIdMap from existing persons by name (merge dedup)
+        const personIdMap = {};
+        const existingPersonNames = new Map((app.persons || []).map(p => [p.name.toLowerCase(), p.id]));
+        const newPersons = [];
+        for (const p of (clean.persons || [])) {
+            const existingId = existingPersonNames.get(p.name.toLowerCase());
+            if (existingId != null) {
+                personIdMap[p.id] = existingId;
+            } else {
+                newPersons.push(p);
+            }
+        }
+        const newPersonResults = await Promise.all(
+            newPersons.map(p => apiFetch('POST', '/api/persons', p))
+        );
+        newPersons.forEach((p, i) => {
+            const rec = newPersonResults[i];
+            if (rec) {
+                personIdMap[p.id] = rec.id;
+                newlyCreatedPaths.push(`/api/persons/${rec.id}`);
+                (app.persons = app.persons || []).push(rec);
+            }
+        });
+
         // POST new records for each CRUD resource (dedup by name where applicable)
         for (const { field, path } of CRUD_RESOURCES) {
             const dedup = MERGE_DEDUP_BY_NAME.has(field);
@@ -291,7 +329,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
 
             const toPost = (clean[field] || [])
                 .filter(r => !dedup || !existingNames.has(r.name?.toLowerCase()))
-                .map(r => remapFk(r, idMap));
+                .map(r => remapFk(r, idMap, personIdMap));
 
             const results = await Promise.all(toPost.map(r => apiFetch('POST', path, r)));
             results.forEach(rec => {
@@ -307,7 +345,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
         const clearedEntries = Object.entries(clean.ledgerClearedTransactions || {});
         await Promise.all([
             ...overrideEntries.map(([key, val]) =>
-                apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap))
+                apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap, personIdMap))
             ),
             ...clearedEntries.map(([key, val]) =>
                 apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)
@@ -322,7 +360,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
 
         // Merge keyed resources into app state
         for (const [key, val] of overrideEntries) {
-            app.ledgerAmountOverrides[key] = { overrideKey: key, ...remapFk(val, idMap) };
+            app.ledgerAmountOverrides[key] = { overrideKey: key, ...remapFk(val, idMap, personIdMap) };
         }
         for (const [key, val] of clearedEntries) {
             app.ledgerClearedTransactions[key] = { clearedKey: key, ...val };

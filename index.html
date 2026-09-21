@@ -39,6 +39,7 @@
     <link rel="modulepreload" href="src/retirementCalculator.js">
     <link rel="modulepreload" href="src/ledgerOverrides.js">
     <link rel="modulepreload" href="src/ledgerCleared.js">
+    <link rel="modulepreload" href="src/people.js">
  </head>
 <body>
     <a href="#main" class="skip-link" data-i18n="app.skipLink">Skip to main content</a>
@@ -91,6 +92,7 @@
                             <button class="page-button" data-page="health" data-i18n="nav.health" aria-current="page">Health</button>
                             <button class="page-button" data-page="accounts" data-i18n="nav.accounts">Accounts</button>
                             <button class="page-button" data-page="income" data-i18n="nav.income">Income</button>
+                            <button class="page-button" data-page="people">People</button>
                         </div>
                     </div>
                     <div class="nav-group-sep" aria-hidden="true"></div>
@@ -349,6 +351,14 @@
                                     </select>
                                 </div>
 
+                                <div class="form-group">
+                                    <label for="debtPersons">Family Member(s)
+                                        <span class="help-icon" tabindex="0" aria-label="Which family member(s) own this debt? Hold Ctrl/Cmd to select multiple.">?</span>
+                                    </label>
+                                    <select id="debtPersons" multiple class="form-control">
+                                    </select>
+                                </div>
+
                                 <!-- Fixed-Amount Debt Fields -->
                                 <div class="form-row fixed-amount-fields" id="fixedAmountFieldsContainer">
                                     <div class="form-group">
@@ -519,6 +529,14 @@
                                     <option value="">— No account —</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label for="incomePerson">Person
+                                    <span class="help-icon" tabindex="0" aria-label="Which family member earns this income?">?</span>
+                                </label>
+                                <select id="incomePerson" class="person-selector">
+                                    <option value="">— No person —</option>
+                                </select>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="incomeFormSubmit">Add Income</button>
                     </form>
@@ -591,6 +609,26 @@
 
                 <!-- Monthly Income Summary -->
                 <div id="incomeSummary" class="income-summary"></div>
+            </section>
+
+            <!-- People Section -->
+            <section class="income-section page-section" id="peopleSection">
+                <div class="page-header-row">
+                    <h2>👨‍👩‍👧‍👦 Family Members</h2>
+                </div>
+                <div class="income-form-card">
+                    <h3>Add Family Member</h3>
+                    <form id="personForm" novalidate>
+                        <div class="income-form-grid">
+                            <div class="form-group">
+                                <label for="personName">Name *</label>
+                                <input type="text" id="personName" placeholder="e.g. Alice, Bob" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success" id="personFormSubmit">Add Person</button>
+                    </form>
+                </div>
+                <div id="peopleList" class="income-list"></div>
             </section>
 
             <!-- Budget Section -->
@@ -1317,6 +1355,25 @@
             <div class="modal-actions">
                 <button id="accountReplacementConfirmBtn" class="btn btn-danger" disabled>Delete and Reassign</button>
                 <button id="accountReplacementCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Person Replacement Modal — shown when deleting a person that has linked debts -->
+    <div id="personReplacementModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="personReplacementTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="personReplacementTitle">Delete Family Member</h3>
+            <p id="personReplacementInfo" class="modal-description"></p>
+            <div id="personReplacementLinks" class="account-replacement-links"></div>
+            <div class="form-group modal-form-group">
+                <label for="personReplacementSelect">Reassign debts to</label>
+                <select id="personReplacementSelect">
+                    <option value="">— Unassign (no owner) —</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="personReplacementConfirmBtn" class="btn btn-danger">Delete</button>
+                <button id="personReplacementCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

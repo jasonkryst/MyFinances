@@ -14,6 +14,7 @@ function buildCommands(app) {
         nav('health', 'Health', '🩺'),
         nav('accounts', 'Accounts', '🏦'),
         nav('income', 'Income', '💰'),
+        nav('people', 'People', '👨‍👩‍👧‍👦'),
         nav('liabilities', 'Liabilities', '💳'),
         nav('recurring', 'Recurring', '🔁'),
         nav('savings', 'Savings', '💰'),

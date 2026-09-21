@@ -45,6 +45,7 @@ export async function checkPostgresBackendPresent() {
 }
 
 const POSTGRES_RESOURCE_ENDPOINTS = {
+    persons: '/api/persons',
     debts: '/api/debts',
     accounts: '/api/accounts',
     incomes: '/api/incomes',
@@ -148,6 +149,7 @@ export function saveToStorage(app) {
     }
     try {
         const data = {
+            persons: app.persons || [],
             debts: app.debts,
             accounts: app.accounts || [],
             incomes: app.incomes || [],
@@ -212,6 +214,7 @@ export function loadFromStorage(app) {
         if (data) {
             const parsed = JSON.parse(data);
             const clean = sanitizeParsedState(parsed);
+            app.persons = clean.persons;
             app.debts = clean.debts;
             app.accounts = clean.accounts;
             app.incomes = clean.incomes;
@@ -313,6 +316,7 @@ export function clearAllData(app, options = {}) {
     const wasPostgres = app._storageBackendKind === 'postgres';
     const { onCleared } = options;
 
+    app.persons = [];
     app.debts = [];
     app.accounts = [];
     app.incomes = [];

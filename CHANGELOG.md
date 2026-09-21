@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.0.0] — 2026-09-20
+
+### Added
+- **Person / Family Member entity** (issue #203) — A new top-level **People** page lets you define family members and link financial data to them:
+  - **Add, edit, delete** family members by name; deletion prompts for debt reassignment when the person owns debts.
+  - **Income linking** — income records gain an optional `Person` selector; the person card derives annual income from linked income sources.
+  - **Debt ownership (many-to-many)** — debts gain a multi-select `Family Member(s)` field; a debt can be shared between multiple persons (`personIds: []` on the debt record).
+  - **Per-person dashboard** — the Health page Credit Utilization card now shows a per-person breakdown row (credit utilization % and DTI %) for every family member beneath the family total; persons with no CC debts show 0%.
+  - **Full Postgres wiring** — `persons` table, new migration (`1755600000015_add-persons.js`), `/api/persons` CRUD route, `person_ids INTEGER[]` column on `debts`, `person_id` FK on `incomes`, full import/export round-trip support including ID remapping in both replace and merge modes.
+  - **Command palette** — "People" page registered in the Ctrl/Cmd+K jump list.
+
+---
 ## [5.16.0] — 2026-09-20
 
 ### Added

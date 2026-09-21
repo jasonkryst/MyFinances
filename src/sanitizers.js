@@ -4,6 +4,13 @@ import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, 
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
+export function sanitizePerson(record, idFallback) {
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        name: normalizeText(record?.name, 80)
+    };
+}
+
 export function sanitizeAccount(record, idFallback) {
     return {
         id: sanitizeInteger(record?.id, idFallback),
@@ -49,7 +56,10 @@ export function sanitizeDebt(record, idFallback) {
         fixedEndDate: sanitizeDateISO(record?.fixedEndDate),
         creditLimit: record?.creditLimit != null ? sanitizeFiniteNumber(record.creditLimit, null, { min: 0 }) : null,
         updatedAt: sanitizeDateISO(record?.updatedAt),
-        archived: Boolean(record?.archived ?? false)
+        archived: Boolean(record?.archived ?? false),
+        personIds: Array.isArray(record?.personIds)
+            ? record.personIds.map(id => sanitizeInteger(id, null)).filter(id => id !== null)
+            : []
     };
 }
 
@@ -64,7 +74,8 @@ export function sanitizeIncome(record, idFallback) {
         amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
         firstPayDate: sanitizeDateISO(record?.firstPayDate || record?.firstDate),
         frequency,
-        accountId: sanitizeInteger(record?.accountId, null)
+        accountId: sanitizeInteger(record?.accountId, null),
+        personId: sanitizeInteger(record?.personId, null)
     };
 }
 
@@ -271,6 +282,7 @@ export function sanitizeRetirementSnapshot(record, idFallback) {
 export function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
     return {
+        persons: (Array.isArray(parsed.persons) ? parsed.persons : []).map((p, i) => sanitizePerson(p, now + 7000 + i)).filter(p => !!p.name),
         debts: (Array.isArray(parsed.debts) ? parsed.debts : []).map((d, i) => sanitizeDebt(d, now + i)).filter(d => !!d.name),
         accounts: (Array.isArray(parsed.accounts) ? parsed.accounts : []).map((a, i) => sanitizeAccount(a, now + 500 + i)).filter(a => !!a.name),
         incomes: (Array.isArray(parsed.incomes) ? parsed.incomes : []).map((inc, i) => sanitizeIncome(inc, now + 1000 + i)).filter(i => !!i.name && !!i.firstPayDate),
