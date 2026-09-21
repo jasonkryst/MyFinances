@@ -126,7 +126,7 @@ describe('sanitizeDebt', () => {
         expect(Object.keys(result).sort()).toEqual([
             'accountBalance', 'accountId', 'archived', 'category', 'creditLimit', 'debtStartDate', 'debtType', 'dueDate',
             'fixedAmount', 'fixedEndDate', 'fixedStartDate', 'id', 'interestRate', 'minimumPayment',
-            'name', 'originalBalance', 'originalMinimumPayment', 'priority', 'updatedAt',
+            'name', 'originalBalance', 'originalMinimumPayment', 'personIds', 'priority', 'updatedAt',
         ]);
     });
 
