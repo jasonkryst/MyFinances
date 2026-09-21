@@ -1,5 +1,5 @@
 // Debt management and calculations
-import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, todayISO } from './utils.js';
+import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, todayISO, buildPersonPillsHtml } from './utils.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
@@ -404,6 +404,7 @@ export function renderDebtsList(app) {
     for (const debt of filteredDebts) {
         const card = document.createElement('div');
         card.className = 'debt-card';
+        card.id = `debt-card-${debt.id}`;
 
         const summaryRow = app._debtSummaryRows?.find(r => r.name === debt.name);
         const payoffDetailHTML = (summaryRow && summaryRow.payoffDate)
@@ -462,7 +463,9 @@ export function renderDebtsList(app) {
             if (debt.debtType === 'fixedAmount') {
                 cardHTML += ` <span class="debt-type-badge">Fixed Amount</span>`;
             }
+            const personPills = buildPersonPillsHtml(debt.personIds, app.persons);
             cardHTML += `</div>
+                    ${personPills ? `<div class="person-pills debt-person-pills">${personPills}</div>` : ''}
                     <div class="debt-details">`;
 
             if (debt.debtType === 'fixedAmount') {

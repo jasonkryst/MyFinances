@@ -81,13 +81,40 @@ export function renderPeopleList(app) {
         const totalMinPayment = linkedDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
         const dtiPct = monthlyIncome > 0 ? Math.round((totalMinPayment / monthlyIncome) * 100) : null;
 
+        const hasLinked = linkedIncomes.length > 0 || linkedDebts.length > 0;
+        const linkedSummary = [
+            linkedIncomes.length ? `${linkedIncomes.length} income` : '',
+            linkedDebts.length ? `${linkedDebts.length} debt${linkedDebts.length !== 1 ? 's' : ''}` : '',
+        ].filter(Boolean).join(' · ');
+
         return `
             <div class="income-card">
                 <div class="income-card-info">
                     <span class="income-card-name">${escapeHtml(p.name)}</span>
-                    <span class="income-card-detail">${linkedIncomes.length} income source${linkedIncomes.length !== 1 ? 's' : ''} &mdash; Est. ${formatCurrency(annualIncome)}/yr</span>
-                    <span class="income-card-detail">${linkedDebts.length} debt${linkedDebts.length !== 1 ? 's' : ''} &mdash; Balance: ${formatCurrency(totalDebt)}</span>
+                    <span class="income-card-detail">Est. ${formatCurrency(annualIncome)}/yr &mdash; Balance: ${formatCurrency(totalDebt)}</span>
                     <span class="income-card-freq">Credit Util: ${utilPct}%${dtiPct !== null ? ` &nbsp;&bull;&nbsp; DTI: ${dtiPct}%` : ''}</span>
+                    ${hasLinked ? `
+                    <details class="person-linked-details">
+                        <summary>${linkedSummary}</summary>
+                        <div class="person-linked-body">
+                            ${linkedIncomes.length ? `
+                            <div class="person-linked-section">
+                                <div class="person-linked-label">Income sources</div>
+                                ${linkedIncomes.map(inc => `
+                                <button class="person-link-btn" data-person-nav="income" data-person-nav-id="${inc.id}">
+                                    ${escapeHtml(inc.name)} &mdash; ${formatCurrency(inc.amount)}
+                                </button>`).join('')}
+                            </div>` : ''}
+                            ${linkedDebts.length ? `
+                            <div class="person-linked-section">
+                                <div class="person-linked-label">Liabilities</div>
+                                ${linkedDebts.map(d => `
+                                <button class="person-link-btn" data-person-nav="liabilities" data-person-nav-id="${d.id}">
+                                    ${escapeHtml(d.name)} &mdash; ${formatCurrency(d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0))}
+                                </button>`).join('')}
+                            </div>` : ''}
+                        </div>
+                    </details>` : ''}
                 </div>
                 <div class="debt-actions">
                     <button class="btn-edit" data-person-action="edit" data-person-id="${p.id}">Edit</button>
@@ -97,6 +124,19 @@ export function renderPeopleList(app) {
     }).join('');
 
     listEl.onclick = e => {
+        const navEl = e.target.closest('[data-person-nav]');
+        if (navEl) {
+            const page = navEl.getAttribute('data-person-nav');
+            const navId = parseInt(navEl.getAttribute('data-person-nav-id'), 10);
+            app.switchPage(page);
+            requestAnimationFrame(() => {
+                const target = page === 'liabilities'
+                    ? document.getElementById(`debt-card-${navId}`)
+                    : document.getElementById(`income-card-${navId}`);
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+            return;
+        }
         const el = e.target.closest('[data-person-action]');
         if (!el) return;
         const action = el.getAttribute('data-person-action');

@@ -2414,6 +2414,87 @@ body.dark-mode .debt-type-badge {
     color: #93c5fd;
 }
 
+/* Person / family-member pills — used on debt cards, income cards,
+   ledger rows, and the strategy schedule table header */
+.person-pill {
+    display: inline-block;
+    background: #d1fae5;
+    color: #065f46;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 500;
+}
+
+body.dark-mode .person-pill {
+    background: #064e3b;
+    color: #6ee7b7;
+}
+
+.person-pills {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.debt-person-pills {
+    margin: 2px 0 4px;
+}
+
+/* Collapsible linked-items section on the People page person card */
+.person-linked-details {
+    margin-top: 6px;
+}
+
+.person-linked-details summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--text-secondary, #6b7280);
+    padding: 2px 0;
+    list-style: disclosure-closed;
+}
+
+.person-linked-details[open] summary {
+    list-style: disclosure-open;
+}
+
+.person-linked-body {
+    padding: 6px 0 2px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.person-linked-section {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.person-linked-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary, #6b7280);
+    letter-spacing: 0.05em;
+}
+
+.person-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.82rem;
+    color: var(--primary-color, #2563eb);
+    cursor: pointer;
+    text-align: left;
+    text-decoration: underline;
+}
+
+.person-link-btn:hover {
+    opacity: 0.75;
+}
+
 .debt-archived-badge {
     display: inline-block;
     background: #f3f4f6;

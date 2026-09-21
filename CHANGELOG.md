@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.1.0] — 2026-09-20
+
+### Added
+- **Person association display** (follow-up to issue #203) — Family member linkages are now visible throughout the app without opening edit forms:
+  - **Debt cards** (Liabilities page): each card shows green person pill(s) below the debt name for every linked family member.
+  - **Income cards** (Income page): each card shows a green person pill when an income source is assigned to a family member.
+  - **People page**: each person card gains a collapsible `<details>` section listing linked income sources and liabilities by name/amount; clicking any item navigates directly to that page and scrolls the card into view.
+  - **Strategy / Payment Plan schedule table**: debt column headers show person pills so the payoff schedule can be read per-person at a glance.
+  - **Ledger**: income and debt transaction rows show a person pill below the transaction name.
+  - `buildPersonPillsHtml(personIds, persons)` added to `src/utils.js` as a shared pill-rendering helper.
+
 ## [6.0.1] — 2026-09-20
 
 ### Fixed

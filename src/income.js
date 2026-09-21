@@ -9,7 +9,8 @@ import {
     sanitizeFiniteNumber,
     sanitizeDateISO,
     escapeHtml,
-    formatShortDate
+    formatShortDate,
+    buildPersonPillsHtml
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
@@ -90,10 +91,12 @@ export function renderIncomeList(app) {
             }).join('')
             : '';
 
+        const linkedPerson = inc.personId ? (app.persons || []).find(p => p.id === inc.personId) : null;
         return `
-            <div class="income-card">
+            <div class="income-card" id="income-card-${inc.id}">
                 <div class="income-card-info">
                     <span class="income-card-name">${escapeHtml(inc.name)}</span>
+                    ${linkedPerson ? `<span class="income-card-detail"><span class="person-pill">${escapeHtml(linkedPerson.name)}</span></span>` : ''}
                     <span class="income-card-amount">${formatCurrency(inc.amount)}</span>
                     <span class="income-card-detail">First pay: ${dateStr}</span>
                     <span class="income-card-freq">${escapeHtml(freqLabel[inc.frequency] || inc.frequency)} &mdash; ${escapeHtml(pdayLabel)}</span>

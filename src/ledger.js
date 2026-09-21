@@ -1,6 +1,6 @@
 // Ledger logic: rendering, amount overrides
 
-import { formatCurrency, escapeHtml, formatShortDate } from './utils.js';
+import { formatCurrency, escapeHtml, formatShortDate, buildPersonPillsHtml } from './utils.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
 import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
@@ -218,9 +218,21 @@ export function renderLedgerPage(app) {
                 reconInfoIcon = `<span class="ledger-recon-info${reconAdjusts ? ' ledger-recon-info--active' : ''}" title="${escapeHtml(tipText)}" aria-label="Reconciliation balance info" tabindex="0">ℹ</span>`;
             }
 
+            let txPersonPill = '';
+            if (!isReconciliation && tx.sourceId) {
+                if (tx.type === 'income') {
+                    const inc = (app.incomes || []).find(i => i.id === tx.sourceId);
+                    const person = inc?.personId ? (app.persons || []).find(p => p.id === inc.personId) : null;
+                    if (person) txPersonPill = `<span class="person-pill">${escapeHtml(person.name)}</span>`;
+                } else if (tx.type === 'debt') {
+                    const debt = (app.debts || []).find(d => d.id === tx.sourceId);
+                    const pills = debt ? buildPersonPillsHtml(debt.personIds, app.persons) : '';
+                    if (pills) txPersonPill = `<span class="person-pills">${pills}</span>`;
+                }
+            }
             const nameCell = isReconciliation && tx.meta
                 ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
-                : escapeHtml(tx.name || '');
+                : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}`;
             const overrideActions = canOverride
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit override' : 'Override'}</button>${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
                 : '';

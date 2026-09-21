@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.0.1';
+export const APP_VERSION = '6.1.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -313,6 +313,12 @@ export function computeInterestPaidToDate(debt) {
     const principalPaid = Math.max(0, origBal - debt.accountBalance);
     const interestPaid = Math.max(0, totalAccrued - principalPaid);
     return { interestPaid, days, start };
+}
+
+export function buildPersonPillsHtml(personIds, persons) {
+    if (!personIds || !personIds.length || !persons || !persons.length) return '';
+    const names = personIds.map(id => (persons || []).find(p => p.id === id)?.name).filter(Boolean);
+    return names.map(n => `<span class="person-pill">${escapeHtml(n)}</span>`).join('');
 }
 
 export function getBillsByDayForMonth(bills, year, month) {
