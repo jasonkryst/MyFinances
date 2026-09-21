@@ -265,3 +265,155 @@ def test_people_page_nav(app_page):
     page = app_page
     _nav_people(page)
     assert page.query_selector('#peopleSection.active'), "People section not active after nav"
+
+
+# ── Person association display tests ─────────────────────────────────────────
+
+def _add_income_for_person(page, name, amount, person_label):
+    _nav_income(page)
+    page.fill('#incomeName', name)
+    page.fill('#incomeAmount', str(amount))
+    page.fill('#incomeFirstDate', '2026-01-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomePerson', label=person_label)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector(f'#incomeList >> text={name}', timeout=5000)
+
+
+def _add_debt_for_person(page, name, balance, person_label):
+    _nav_debts(page)
+    _open_debt_form(page)
+    page.fill('#debtName', name)
+    page.fill('#accountBalance', str(balance))
+    page.fill('#interestRate', '5')
+    page.fill('#minimumPayment', '100')
+    page.select_option('#debtPersons', label=person_label)
+    page.click('#debtFormSubmit')
+    page.wait_for_selector(f'#debtList >> text={name}', timeout=5000)
+
+
+@pytest.mark.feature
+def test_debt_card_shows_person_pill(app_page):
+    """A debt linked to a person shows a person pill on the read-only debt card."""
+    page = app_page
+    _add_person(page, 'PillPerson')
+    _add_debt_for_person(page, 'Pill Debt', 5000, 'PillPerson')
+    _nav_debts(page)
+    card = page.query_selector('#debtsList .debt-card .person-pill')
+    assert card, "person-pill not found on debt card"
+    assert 'PillPerson' in card.inner_text(), "Person name not in pill"
+
+
+@pytest.mark.feature
+def test_debt_card_no_pill_without_person(app_page):
+    """A debt not linked to any person shows no person pill."""
+    page = app_page
+    _nav_debts(page)
+    _open_debt_form(page)
+    page.fill('#debtName', 'No Person Debt')
+    page.fill('#accountBalance', '1000')
+    page.fill('#interestRate', '5')
+    page.fill('#minimumPayment', '50')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('#debtList >> text=No Person Debt', timeout=5000)
+    card = page.query_selector('#debtsList .debt-card .person-pill')
+    assert not card, "person-pill should not appear when no person is linked"
+
+
+@pytest.mark.feature
+def test_income_card_shows_person_pill(app_page):
+    """An income linked to a person shows a person pill on the read-only income card."""
+    page = app_page
+    _add_person(page, 'IncomePillPerson')
+    _add_income_for_person(page, 'Salary Pill', 3000, 'IncomePillPerson')
+    _nav_income(page)
+    pill = page.query_selector('#incomeList .income-card .person-pill')
+    assert pill, "person-pill not found on income card"
+    assert 'IncomePillPerson' in pill.inner_text(), "Person name not in income pill"
+
+
+@pytest.mark.feature
+def test_income_card_no_pill_without_person(app_page):
+    """An income not linked to any person shows no person pill."""
+    page = app_page
+    _nav_income(page)
+    page.fill('#incomeName', 'No Person Income')
+    page.fill('#incomeAmount', '2000')
+    page.fill('#incomeFirstDate', '2026-01-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=No Person Income', timeout=5000)
+    pill = page.query_selector('#incomeList .income-card .person-pill')
+    assert not pill, "person-pill should not appear when no person is linked to income"
+
+
+@pytest.mark.feature
+def test_people_page_collapsible_details_shows_linked_items(app_page):
+    """The People page person card has a collapsible <details> listing linked incomes and debts."""
+    page = app_page
+    _add_person(page, 'LinkedPerson')
+    _add_income_for_person(page, 'Linked Salary', 4000, 'LinkedPerson')
+    _add_debt_for_person(page, 'Linked Mortgage', 200000, 'LinkedPerson')
+
+    _nav_people(page)
+    details = page.query_selector('#peopleList .person-linked-details')
+    assert details, "person-linked-details <details> element not found"
+    summary_text = page.inner_text('#peopleList .person-linked-details summary')
+    assert '1 income' in summary_text or '1 debt' in summary_text, \
+        f"Summary does not mention linked counts: {summary_text!r}"
+
+
+@pytest.mark.feature
+def test_people_page_linked_items_expand(app_page):
+    """Expanding a person's details section shows the linked item buttons."""
+    page = app_page
+    _add_person(page, 'ExpandPerson')
+    _add_debt_for_person(page, 'Expand Debt', 8000, 'ExpandPerson')
+
+    _nav_people(page)
+    details = page.query_selector('#peopleList .person-linked-details')
+    assert details, "person-linked-details not found"
+    details.evaluate('el => el.setAttribute("open", "")')  # open the details
+    page.wait_for_timeout(200)
+    btns = page.query_selector_all('#peopleList .person-link-btn')
+    assert btns, "No .person-link-btn found inside expanded details"
+    btn_text = ' '.join(b.inner_text() for b in btns)
+    assert 'Expand Debt' in btn_text, "Linked debt name not in expanded details"
+
+
+@pytest.mark.feature
+def test_people_page_linked_debt_navigates_to_liabilities(app_page):
+    """Clicking a linked debt button on the People page navigates to the Liabilities page."""
+    page = app_page
+    _add_person(page, 'NavPerson')
+    _add_debt_for_person(page, 'Nav Debt', 3000, 'NavPerson')
+
+    _nav_people(page)
+    details = page.query_selector('#peopleList .person-linked-details')
+    assert details
+    details.evaluate('el => el.setAttribute("open", "")')
+    page.wait_for_timeout(200)
+    debt_btn = page.query_selector('#peopleList .person-link-btn[data-person-nav="liabilities"]')
+    assert debt_btn, "Liabilities nav button not found in person details"
+    debt_btn.click()
+    page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
+    assert page.query_selector('#liabilitiesSection.active'), "Did not navigate to Liabilities page"
+
+
+@pytest.mark.feature
+def test_people_page_linked_income_navigates_to_income_page(app_page):
+    """Clicking a linked income button on the People page navigates to the Income page."""
+    page = app_page
+    _add_person(page, 'IncNavPerson')
+    _add_income_for_person(page, 'IncNav Salary', 5000, 'IncNavPerson')
+
+    _nav_people(page)
+    details = page.query_selector('#peopleList .person-linked-details')
+    assert details
+    details.evaluate('el => el.setAttribute("open", "")')
+    page.wait_for_timeout(200)
+    inc_btn = page.query_selector('#peopleList .person-link-btn[data-person-nav="income"]')
+    assert inc_btn, "Income nav button not found in person details"
+    inc_btn.click()
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+    assert page.query_selector('#incomeSection.active'), "Did not navigate to Income page"

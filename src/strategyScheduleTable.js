@@ -2,7 +2,8 @@
 
 import {
     formatCurrency,
-    escapeHtml
+    escapeHtml,
+    buildPersonPillsHtml
 } from './utils.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 
@@ -42,7 +43,9 @@ export function displayPaymentSchedule(app) {
     const headerRow = document.createElement('tr');
     headerRow.innerHTML = '<th>Month</th>';
     for (const debtName of debtNames) {
-        headerRow.innerHTML += `<th>${escapeHtml(debtName)}</th>`;
+        const debt = app.debts.find(d => d.name === debtName);
+        const pills = debt ? buildPersonPillsHtml(debt.personIds, app.persons) : '';
+        headerRow.innerHTML += `<th>${escapeHtml(debtName)}${pills ? `<div class="person-pills">${pills}</div>` : ''}</th>`;
     }
     headerRow.innerHTML += '<th>Stimulus ($)</th>';
     headerRow.innerHTML += '<th>Total Paid</th>';
