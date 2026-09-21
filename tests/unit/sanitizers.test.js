@@ -1,4 +1,5 @@
 const {
+    sanitizePerson,
     sanitizeAccount,
     sanitizeDebt,
     sanitizeIncome,
@@ -9,6 +10,40 @@ const {
     sanitizeLedgerClearedTransactions,
     sanitizeRetirementSnapshot,
 } = require('../../src/sanitizers.js');
+
+describe('sanitizePerson', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizePerson({ id: 7, name: 'Alice' }, 1);
+        expect(result).toEqual({ id: 7, name: 'Alice' });
+    });
+
+    test('applies idFallback when id is missing', () => {
+        const result = sanitizePerson({ name: 'Bob' }, 99);
+        expect(result.id).toBe(99);
+    });
+
+    test('strips HTML markup from name', () => {
+        const result = sanitizePerson({ id: 1, name: '<script>evil</script>' }, 1);
+        expect(result.name).not.toContain('<');
+        expect(result.name).not.toContain('>');
+    });
+
+    test('clamps name to 80 characters', () => {
+        const result = sanitizePerson({ id: 1, name: 'A'.repeat(100) }, 1);
+        expect(result.name.length).toBeLessThanOrEqual(80);
+    });
+
+    test('returns empty name for missing name', () => {
+        const result = sanitizePerson({ id: 1 }, 1);
+        expect(result.name).toBe('');
+    });
+
+    test('handles null record gracefully', () => {
+        const result = sanitizePerson(null, 5);
+        expect(result.id).toBe(5);
+        expect(result.name).toBe('');
+    });
+});
 
 describe('sanitizeAccount', () => {
     test('passes through a well-formed record', () => {
@@ -91,7 +126,7 @@ describe('sanitizeDebt', () => {
         expect(Object.keys(result).sort()).toEqual([
             'accountBalance', 'accountId', 'archived', 'category', 'creditLimit', 'debtStartDate', 'debtType', 'dueDate',
             'fixedAmount', 'fixedEndDate', 'fixedStartDate', 'id', 'interestRate', 'minimumPayment',
-            'name', 'originalBalance', 'originalMinimumPayment', 'priority', 'updatedAt',
+            'name', 'originalBalance', 'originalMinimumPayment', 'personIds', 'priority', 'updatedAt',
         ]);
     });
 

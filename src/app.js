@@ -136,6 +136,15 @@ import {
     computeAccountProjection,
     renderRetirementPage as renderRetirementPageFeature
 } from './retirement.js';
+import {
+    addPerson as addPersonFeature,
+    deletePerson as deletePersonFeature,
+    startEditPerson as startEditPersonFeature,
+    cancelEditPerson as cancelEditPersonFeature,
+    saveEditPerson as saveEditPersonFeature,
+    renderPeopleList as renderPeopleListFeature,
+    refreshPersonSelectors as refreshPersonSelectorsFeature
+} from './people.js';
 
 /**
  * app.js — Debt Tracker Application (ES module)
@@ -146,6 +155,7 @@ import {
 
 export class DebtTrackerApp {
     constructor() {
+        this.persons = [];
         this.debts = [];
         this.accounts = [];
         this.incomes = [];
@@ -173,6 +183,7 @@ export class DebtTrackerApp {
         this.editingDebtId = null;
         this.editingIncomeId = null;
         this.editingAccountId = null;
+        this.editingPersonId = null;
         this.editingRecurringId = null;
         this.savingsSubTab = 'emergency';
         this._reportMonthOffset = 0;
@@ -966,6 +977,15 @@ export class DebtTrackerApp {
     deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
     computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
     renderRetirementPage() { return renderRetirementPageFeature(this); }
+
+    addPerson() { return addPersonFeature(this); }
+    deletePerson(id) { return deletePersonFeature(this, id); }
+    startEditPerson(id) { return startEditPersonFeature(this, id); }
+    cancelEditPerson() { return cancelEditPersonFeature(this); }
+    saveEditPerson(id) { return saveEditPersonFeature(this, id); }
+    renderPeopleList() { return renderPeopleListFeature(this); }
+    refreshPersonSelectors() { return refreshPersonSelectorsFeature(this); }
+
     getExpectedTransactionsInRange(accountId, startDate, endDate) { return getExpectedTransactionsInRangeFeature(this, accountId, startDate, endDate); }
     openReconcileModal(accountId) { return openReconcileModalFeature(this, accountId); }
 

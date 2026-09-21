@@ -12,6 +12,7 @@ import {
     formatShortDate
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
+import { buildPersonOptionsHtml } from './people.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
 
@@ -59,6 +60,12 @@ export function renderIncomeList(app) {
                                 <label class="label-compact">Account</label>
                                 <select id="ie-account-${inc.id}" class="form-control form-full-width">
                                     ${buildAccountOptionsHtml(app.accounts, inc.accountId, { emptyLabel: '— No account —' })}
+                                </select>
+                            </div>
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Person</label>
+                                <select id="ie-person-${inc.id}" class="form-control form-full-width">
+                                    ${buildPersonOptionsHtml(app.persons, inc.personId, { emptyLabel: '— No person —' })}
                                 </select>
                             </div>
                         </div>
@@ -165,13 +172,15 @@ export async function addIncome(app) {
     const firstPayDate = sanitizeDateISO(document.getElementById('incomeFirstDate').value);
     const frequency = document.getElementById('incomeFrequency').value;
     const accountId = parseInt(document.getElementById('incomeAccount')?.value);
+    const personIdRaw = document.getElementById('incomePerson')?.value;
+    const personId = personIdRaw ? parseInt(personIdRaw, 10) : null;
 
     if (!name) { await showAlertModal('Please enter a name for this income source.'); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
     if (!firstPayDate) { await showAlertModal('Please enter the first pay date.'); return; }
     if (!accountId || isNaN(accountId)) { await showAlertModal('Please select an account for this income source.'); return; }
 
-    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId };
+    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId };
     app.incomes.push(income);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -214,6 +223,7 @@ export async function saveEditIncome(app, incomeId) {
     const dateEl      = document.getElementById(`ie-date-${incomeId}`);
     const freqEl      = document.getElementById(`ie-freq-${incomeId}`);
     const accountEl   = document.getElementById(`ie-account-${incomeId}`);
+    const personEl    = document.getElementById(`ie-person-${incomeId}`);
 
     if (!nameEl || !amountEl || !dateEl || !freqEl) return;
 
@@ -223,6 +233,7 @@ export async function saveEditIncome(app, incomeId) {
     const firstPayDate = sanitizeDateISO(dateEl.value);
     const frequency   = freqEl.value;
     const accountId   = accountEl?.value ? parseInt(accountEl.value) : null;
+    const personId    = personEl?.value ? parseInt(personEl.value, 10) : null;
 
     if (!name)                        { await showAlertModal('Please enter a name.');            return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount.');     return; }
@@ -231,7 +242,7 @@ export async function saveEditIncome(app, incomeId) {
     const idx = app.incomes.findIndex(i => i.id === incomeId);
     if (idx === -1) return;
 
-    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId };
+    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId };
     app.editingIncomeId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);

@@ -38,6 +38,11 @@ export async function addDebt(app) {
         return;
     }
 
+    const personIdsEl = document.getElementById('debtPersons');
+    const personIds = personIdsEl
+        ? Array.from(personIdsEl.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite)
+        : [];
+
     const debt = {
         id: Date.now(),
         name,
@@ -45,6 +50,7 @@ export async function addDebt(app) {
         priority,
         debtType,
         accountId,
+        personIds,
         updatedAt: todayISO()
     };
 
@@ -246,6 +252,10 @@ export async function saveEdit(app) {
 
     const creditLimitRaw = document.getElementById('creditLimit').value;
     const creditLimit = creditLimitRaw ? sanitizeFiniteNumber(creditLimitRaw, null, { min: 0 }) : null;
+    const personIdsEl = document.getElementById('debtPersons');
+    const personIds = personIdsEl
+        ? Array.from(personIdsEl.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite)
+        : app.debts[idx].personIds || [];
 
     app.debts[idx] = {
         ...app.debts[idx],
@@ -255,7 +265,8 @@ export async function saveEdit(app) {
         priority,
         minimumPayment,
         dueDate,
-        creditLimit
+        creditLimit,
+        personIds
     };
 
     app.saveToStorage();

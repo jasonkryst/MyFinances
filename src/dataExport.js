@@ -27,6 +27,7 @@ export function exportAllJSON(app) {
         version: APP_VERSION,
         exportedAt: new Date().toISOString(),
         accounts: app.accounts || [],
+        persons: app.persons || [],
         debts: normalisedDebts,
         incomes: app.incomes || [],
         bonuses: app.bonuses || [],
@@ -278,6 +279,7 @@ export function importAllJSON(app, file, options = {}) {
         if (clean.planHistory.length > PLAN_HISTORY_CAP) {
             clean.planHistory = clean.planHistory.slice(-PLAN_HISTORY_CAP);
         }
+        const incomingPersons = clean.persons || [];
         const incomingDebts = clean.debts;
         const incomingAccounts = clean.accounts;
         const incomingIncomes = clean.incomes;
@@ -360,6 +362,7 @@ export function importAllJSON(app, file, options = {}) {
         }
 
         if (shouldReplace) {
+            app.persons = incomingPersons.map((p, i) => ({ ...p, id: Date.now() + 7000 + i }));
             app.accounts = incomingAccounts;
             app.debts = validDebts.map((d, i) => ({ ...d, id: Date.now() + i }));
             app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
@@ -411,6 +414,7 @@ export function importAllJSON(app, file, options = {}) {
                 onMergeDuplicates(toAdd.length, skipped);
                 mergeDuplicatesReported = true;
             }
+            app.persons = _mergeByName(app.persons || [], incomingPersons, 7000);
             app.accounts = _mergeByName(app.accounts, incomingAccounts, 0);
             app.incomes = _mergeByName(app.incomes, incomingIncomes, 1000);
             app.bonuses = _mergeByName(app.bonuses, incomingBonuses, 1500);

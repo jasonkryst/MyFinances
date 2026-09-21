@@ -45,10 +45,10 @@ async def test_main_nav_pages_in_correct_groups(async_app_page):
 
 
 async def test_main_nav_all_pages_present(async_app_page):
-    """Assert exactly 11 [data-page] buttons exist inside #topNav (10 original pages
-    plus Retirement, added in the retirement accounts dashboard feature)."""
+    """Assert exactly 12 [data-page] buttons exist inside #topNav (10 original pages
+    plus Retirement and People, added in the retirement accounts dashboard and Person entity features)."""
     btns = await async_app_page.query_selector_all('#topNav [data-page]')
-    assert len(btns) == 11
+    assert len(btns) == 12
 
 
 async def test_main_nav_page_switching_still_works(async_app_page):

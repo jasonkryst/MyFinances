@@ -20,6 +20,7 @@ import ledgerOverridesRouter from './routes/ledgerOverrides.js';
 import ledgerClearedRouter from './routes/ledgerCleared.js';
 import planSettingsRouter from './routes/planSettings.js';
 import createNotificationsRouter from './routes/notifications.js';
+import personsRouter from './routes/persons.js';
 
 export function createApp() {
     const app = express();
@@ -58,6 +59,7 @@ export function createApp() {
     api.use('/settings', settingsRouter);
     api.use('/ledger-overrides', ledgerOverridesRouter);
     api.use('/ledger-cleared', ledgerClearedRouter);
+    api.use('/persons', personsRouter);
     api.use('/plan-settings', planSettingsRouter);
     api.use('/notifications', createNotificationsRouter());
     app.use('/api', api);

@@ -89,6 +89,27 @@ async def test_xss_in_debt_name(async_app_page):
 
 
 @pytest.mark.security
+async def test_xss_in_person_name(async_app_page):
+    """Test XSS prevention in person (family member) names."""
+    page = async_app_page
+
+    await page.click('button[data-page="people"]')
+    await page.wait_for_selector('#peopleSection.active', timeout=5000)
+
+    await page.fill('#personName', '<script>alert("xss")</script>')
+    await page.click('#personFormSubmit')
+    await page.wait_for_selector('#peopleList .income-card', timeout=5000)
+
+    person_text = await page.evaluate("""
+        () => {
+            const cards = document.querySelectorAll('.income-card-name');
+            return cards.length > 0 ? cards[0].textContent : '';
+        }
+    """)
+    assert '<script>' not in person_text, "Script tag was not escaped in person name!"
+
+
+@pytest.mark.security
 async def test_malicious_json_import(async_app_page):
     """Test that malicious data in JSON import is sanitized."""
     page = async_app_page

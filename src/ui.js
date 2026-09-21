@@ -1,6 +1,7 @@
 ﻿﻿﻿// UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
+import { refreshPersonSelectors } from './people.js';
 import { escapeHtml } from './utils.js';
 import { initCommandPalette } from './commandPalette.js';
 
@@ -187,6 +188,14 @@ export function initializeEventListeners(app) {
         incomeForm.addEventListener('submit', e => {
             e.preventDefault();
             app.addIncome();
+        });
+    }
+
+    const personForm = document.getElementById('personForm');
+    if (personForm) {
+        personForm.addEventListener('submit', e => {
+            e.preventDefault();
+            app.addPerson();
         });
     }
 
@@ -588,7 +597,8 @@ export function switchPage(app, pageName) {
         ledger: 'ledgerSection',
         recurring: 'recurringSection',
         reconcile: 'reconcileSection',
-        retirement: 'retirementSection'
+        retirement: 'retirementSection',
+        people: 'peopleSection'
     };
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -626,12 +636,13 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
         app.renderDebtsList();
         app.renderBudgetPage();
         refreshAccountSelectors(app);
+        refreshPersonSelectors(app);
         // Attach liabilities subtab listeners
         attachLiabilitiesEventListeners(app);
         // Default to debts subtab
         if (resetToDefaults) app.switchLiabilitiesSubTab('debts');
     }
-    if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); }
+    if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); refreshPersonSelectors(app); }
     if (pageName === 'savings') {
         app.renderSavingsPage();
         app.attachSavingsEventListeners();
@@ -653,6 +664,10 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     }
     if (pageName === 'retirement') {
         app.renderRetirementPage();
+    }
+    if (pageName === 'people') {
+        app.renderPeopleList();
+        app.refreshPersonSelectors();
     }
 }
 
@@ -975,6 +990,74 @@ export function showAccountReplacementModal(app, id) {
         if (cancelBtn) cancelBtn.onclick = () => dismiss(null);
         modal.onkeydown = (event) => {
             if (event.key === 'Escape') { event.preventDefault(); dismiss(null); return; }
+            if (event.key === 'Tab') {
+                const focusable = modal.querySelectorAll('button, input, select, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => { if (cancelBtn) cancelBtn.focus(); }, 30);
+    });
+}
+
+// Resolves with: null (cancelled), null also for "unassign" when no other persons,
+// or a person id (number) to reassign to, or null for "unassign" from the modal.
+export function showPersonReplacementModal(app, personId, otherPersons, linkedDebts) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('personReplacementModal');
+        const titleEl = document.getElementById('personReplacementTitle');
+        const infoEl = document.getElementById('personReplacementInfo');
+        const linksEl = document.getElementById('personReplacementLinks');
+        const select = document.getElementById('personReplacementSelect');
+        const confirmBtn = document.getElementById('personReplacementConfirmBtn');
+        const cancelBtn = document.getElementById('personReplacementCancelBtn');
+        if (!modal) { resolve(null); return; }
+
+        const person = (app.persons || []).find(p => p.id === personId);
+        if (titleEl) titleEl.textContent = `Delete Person: ${person?.name ?? ''}`;
+        if (infoEl) infoEl.textContent = 'This person has linked debts. Choose a replacement (or leave blank to unassign).';
+
+        if (linksEl) {
+            linksEl.innerHTML = linkedDebts.map(d =>
+                `<div class="acct-replacement-group">${escapeHtml(d.name)}</div>`
+            ).join('');
+        }
+
+        if (select) {
+            select.innerHTML = [
+                `<option value="">— Unassign these debts —</option>`,
+                ...otherPersons.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`),
+            ].join('');
+        }
+
+        const lastFocused = document.activeElement;
+        const dismiss = (result) => {
+            if (confirmBtn) confirmBtn.onclick = null;
+            if (cancelBtn) cancelBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            resolve(result);
+        };
+
+        // confirm resolves with the chosen person id (or null to unassign); cancel resolves with undefined
+        if (confirmBtn) confirmBtn.onclick = () => dismiss(select?.value ? parseInt(select.value, 10) : null);
+        if (cancelBtn) cancelBtn.onclick = () => dismiss(undefined);
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(undefined); return; }
             if (event.key === 'Tab') {
                 const focusable = modal.querySelectorAll('button, input, select, [tabindex]:not([tabindex="-1"])');
                 const first = focusable[0];

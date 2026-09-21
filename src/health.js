@@ -169,6 +169,25 @@ export function renderHealthDashboard(app) {
     const utilSt = creditUtilizationStatus(rawUtilPct);
     const hasUtilData = ccDebtsWithLimit.length > 0;
 
+    // ── Per-person utilization + DTI ───────────────────────────────────────────
+    const personRows = (app.persons || []).map(p => {
+        const personCcDebts = ccDebtsWithLimit.filter(d => (d.personIds || []).includes(p.id));
+        const personAllDebts = activeDebts.filter(d => (d.personIds || []).includes(p.id));
+        const pBalance = personCcDebts.reduce((s, d) => s + (d.accountBalance || 0), 0);
+        const pLimit   = personCcDebts.reduce((s, d) => s + d.creditLimit, 0);
+        const pUtilRaw = pLimit > 0 ? Math.round((pBalance / pLimit) * 100) : 0;
+        const pUtilDisp = Math.min(pUtilRaw, 100);
+        const pUtilSt = creditUtilizationStatus(pUtilRaw);
+        const FREQ_MULTIPLIERS = { biweekly: 26, weekly: 52, twice_monthly: 24, monthly: 12 };
+        const pAnnualIncome = (app.incomes || [])
+            .filter(inc => inc.personId === p.id)
+            .reduce((s, inc) => s + (inc.amount || 0) * (FREQ_MULTIPLIERS[inc.frequency] || 12), 0);
+        const pMonthlyIncome = pAnnualIncome / 12;
+        const pMinPayment = personAllDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+        const pDtiRaw = pMonthlyIncome > 0 ? Math.round((pMinPayment / pMonthlyIncome) * 100) : null;
+        return { p, pUtilRaw, pUtilDisp, pUtilSt, pLimit, pBalance, pDtiRaw };
+    });
+
     const gaugeGray = document.body.classList.contains('dark-mode') ? '#334155' : '#e2e8f0';
 
     const monthYearLong = now.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
@@ -387,6 +406,22 @@ export function renderHealthDashboard(app) {
                         <span>Balance: ${formatCurrency(totalCreditBalance)}</span>
                         <span>Limit: ${formatCurrency(totalCreditLimit)}</span>
                     </div>
+                    ${personRows.length > 0 ? `
+                        <div class="health-person-util-list">
+                            ${personRows.map(({ p, pUtilRaw, pUtilDisp, pUtilSt, pLimit, pBalance, pDtiRaw }) => `
+                                <div class="health-person-util-row">
+                                    <div class="health-person-util-hd">
+                                        <span class="health-person-util-name">${escapeHtml(p.name)}</span>
+                                        <span class="health-badge health-badge--sm ${pUtilSt.cls}">${pUtilRaw}%</span>
+                                        ${pDtiRaw !== null ? `<span class="health-person-util-dti">DTI ${pDtiRaw}%</span>` : ''}
+                                    </div>
+                                    <div class="progress-bar health-compact-bar">
+                                        <div class="progress-fill ${statusFillCls(pUtilSt.cls)}" data-progress-width="${pUtilDisp}"></div>
+                                    </div>
+                                    ${pLimit > 0 ? `<div class="health-person-util-detail">${formatCurrency(pBalance)} of ${formatCurrency(pLimit)}</div>` : '<div class="health-person-util-detail">No credit cards assigned</div>'}
+                                </div>`).join('')}
+                        </div>
+                    ` : ''}
                     <a href="#" class="health-link" data-health-nav="liabilities">Manage debts &rarr;</a>
                 `}
             </div>

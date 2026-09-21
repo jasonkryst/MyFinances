@@ -3,6 +3,7 @@ import { showLoginGate } from './loginGate.js';
 import { showPgErrorToast } from './ui.js';
 
 const ALL_RESOURCE_PATHS = [
+    '/api/persons',
     '/api/debts',
     '/api/accounts',
     '/api/incomes',
