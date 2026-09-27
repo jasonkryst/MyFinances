@@ -127,6 +127,7 @@ import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransacti
 import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
+import { initCalendarFeedModal } from './calendarFeed.js';
 import { applyStaticTranslations, setLocale as setLocaleFeature } from './i18n.js';
 import {
     getRetirementAccounts,
@@ -255,6 +256,7 @@ export class DebtTrackerApp {
         backfillIncomeAccountIds(this);
         initSettingsModalFeature(this);
         initDataTransferModal(this);
+        initCalendarFeedModal(this);
         this.updateUI();
         this.updateFormVisibility();
         this.switchPage('health');
