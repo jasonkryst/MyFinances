@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.2.0] — 2026-09-27
+
+### Added
+- **Calendar Feed** (issue #212) — export bills, debts, recurring templates, and expenses to a calendar application:
+  - New toolbar calendar icon opens the Calendar Feed modal.
+  - **Download .ics**: generates a standard iCal file (RFC 5545) covering a ±12-month window and triggers a browser download. Works for all storage backends (local, session, PostgreSQL).
+  - **Live subscription** (PostgreSQL backend only): generates a `webcal://` URL backed by a per-user random token stored in `plan_settings.calendar_token`. Google Calendar and other apps can subscribe to this URL and receive automatic updates on each poll.
+  - Token management: Generate / Regenerate buttons in the modal; token is a 128-bit random hex value. The public `GET /calendar.ics?token=<token>` endpoint bypasses session auth but validates the token before serving.
+  - Events are titled `Bill - Name`, `Debt - Name`, `Subscription - Name`, `Reimbursement - Name`, `Transfer - Name`, or `Expense - Name`. Description includes amount, category, and linked account name.
+  - All events scheduled at 9 AM floating local time; individual occurrences generated per month (not RRULE). Paused, skipped, and paid recurring months are excluded.
+  - New DB migration `1755600000016_add-calendar-token.js` adds `calendar_token TEXT` column to `plan_settings`.
+
 ## [6.1.0] — 2026-09-20
 
 ### Added

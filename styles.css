@@ -6794,3 +6794,38 @@ body.dark-mode .login-gate-header {
     font-size: 0.875rem;
     margin: 0.5rem 0;
 }
+/* Calendar Feed Modal */
+.cal-token-url {
+    display: block;
+    word-break: break-all;
+    background: var(--bg-secondary, #f3f4f6);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    margin: 0.75rem 0 0.5rem;
+}
+.cal-token-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.btn-outline-danger {
+    background: transparent;
+    border: 1px solid var(--danger-color, #dc2626);
+    color: var(--danger-color, #dc2626);
+}
+.btn-outline-danger:hover {
+    background: var(--danger-color, #dc2626);
+    color: #fff;
+}
+.modal-divider {
+    border: none;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    margin: 1.25rem 0;
+}
+.cal-token-warning {
+    font-size: 0.78rem;
+    color: var(--text-muted, #6b7280);
+    margin: 0.5rem 0 0;
+}
