@@ -78,8 +78,12 @@ async function networkFirst(request) {
     }
 
     try {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.put(request, response.clone());
+        // Honour Cache-Control: no-store from the server — don't persist
+        // sensitive responses (e.g. /calendar.ics) in the SW cache.
+        if (!response.headers.get('cache-control')?.includes('no-store')) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
+        }
     } catch (err) {
         // A failed cache write must not prevent an online response from loading.
     }
