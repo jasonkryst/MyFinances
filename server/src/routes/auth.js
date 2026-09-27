@@ -208,6 +208,9 @@ export function createAuthRouter() {
             const newHash = await hashPassword(newPassword);
             await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, rows[0].user_id]);
             await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [rows[0].id]);
+            // Invalidate the calendar subscription token so a leaked URL stops
+            // working after a credential reset — user must regenerate from the modal.
+            await query('UPDATE plan_settings SET calendar_token = NULL WHERE user_id = $1', [rows[0].user_id]);
 
             res.json({ ok: true });
         } catch (err) {

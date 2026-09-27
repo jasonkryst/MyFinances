@@ -21,7 +21,7 @@ import ledgerClearedRouter from './routes/ledgerCleared.js';
 import planSettingsRouter from './routes/planSettings.js';
 import createNotificationsRouter from './routes/notifications.js';
 import personsRouter from './routes/persons.js';
-import calendarRouter, { handlePublicCalendar } from './routes/calendar.js';
+import calendarRouter, { handlePublicCalendar, createCalendarRateLimiter } from './routes/calendar.js';
 
 export function createApp() {
     const app = express();
@@ -66,7 +66,7 @@ export function createApp() {
     api.use('/calendar', calendarRouter);
     app.use('/api', api);
 
-    app.get('/calendar.ics', handlePublicCalendar);
+    app.get('/calendar.ics', createCalendarRateLimiter(), handlePublicCalendar);
 
     app.use((req, res) => {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });

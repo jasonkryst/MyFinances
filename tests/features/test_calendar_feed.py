@@ -296,6 +296,23 @@ def test_ics_escapes_special_characters_in_names(app_page):
     assert 'SUMMARY:Bill - Gas, Water; Electric' not in content
 
 
+@pytest.mark.feature
+def test_subscription_section_shows_security_warning(app_page):
+    """
+    After generating a token the modal must display a warning that the URL
+    should be treated like a password.  This is static HTML; it does not
+    require the Postgres backend to be active.
+    """
+    page = app_page
+    # The warning is inside #calendarTokenUrlRow which is hidden until a token
+    # is generated. Verify the text is present in the DOM regardless.
+    warning_count = page.locator('.cal-token-warning').count()
+    assert warning_count >= 1, 'Security warning element (.cal-token-warning) not found in modal'
+    text = page.locator('.cal-token-warning').first.inner_text()
+    assert 'password' in text.lower(), f'Warning should mention "password", got: {text!r}'
+    assert_no_errors(page)
+
+
 @pytest.mark.security
 def test_ics_xss_payload_in_name_does_not_appear_verbatim(app_page):
     """

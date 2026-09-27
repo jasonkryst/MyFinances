@@ -6824,3 +6824,8 @@ body.dark-mode .login-gate-header {
     border-top: 1px solid var(--border-color, #e5e7eb);
     margin: 1.25rem 0;
 }
+.cal-token-warning {
+    font-size: 0.78rem;
+    color: var(--text-muted, #6b7280);
+    margin: 0.5rem 0 0;
+}
