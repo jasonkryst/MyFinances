@@ -1,8 +1,10 @@
 // Calendar feed: ICS generation and subscription modal for bills, debts,
-// recurring templates, and expenses.
+// recurring templates, expenses, and income paydays.
 
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getCsrfCookie } from './storage.js';
+import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
+import { getIncomePaydaysInMonth } from './utils.js';
 
 const WINDOW_MONTHS = 12;
 
@@ -34,9 +36,9 @@ function isoDateStr(year, month, day) {
 }
 
 // Build a DESCRIPTION value (raw string, not yet escaped).
-function buildDesc(amount, category, account, appUrl) {
+function buildDesc(amount, category, account, appUrl, amountLabel = 'Amount Due') {
     const parts = [];
-    if (Number(amount) > 0) parts.push(`Amount Due: $${Number(amount).toFixed(2)}`);
+    if (Number(amount) > 0) parts.push(`${amountLabel}: $${Number(amount).toFixed(2)}`);
     if (category) parts.push(`Category: ${category}`);
     if (account) parts.push(`Account: ${account}`);
     if (appUrl) parts.push(`View in MyFinances: ${appUrl}`);
@@ -70,6 +72,9 @@ function vevent(uid, summary, dateStr, description) {
 export function generateIcs(app) {
     const accountMap = Object.fromEntries((app.accounts || []).map(a => [a.id, a.name]));
     const appUrl = window.location.origin;
+    // Mirrors the Liabilities page: archived debts only appear when the
+    // "Show archived debts" setting is on, and are then labeled as such.
+    const showArchived = Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false));
     const now = new Date();
     const events = [];
 
@@ -93,12 +98,13 @@ export function generateIcs(app) {
         }
 
         for (const debt of app.debts || []) {
+            if (debt.archived && !showArchived) continue;
             if (!debt.dueDate) continue;
             const d = Math.min(debt.dueDate, daysInMo);
             const dateStr = isoDateStr(y, mo, d);
             events.push(vevent(
                 `debt-${debt.id}-${dateStr}@myfinances`,
-                `Debt - ${debt.name}`,
+                `${debt.archived ? 'Debt (Archived)' : 'Debt'} - ${debt.name}`,
                 dateStr,
                 buildDesc(debt.minimumPayment, debt.category, debt.accountId ? accountMap[debt.accountId] : null, appUrl)
             ));
@@ -116,6 +122,18 @@ export function generateIcs(app) {
                     `${typeLabel} - ${t.name}`,
                     dateStr,
                     buildDesc(t.amount, t.category, t.accountId ? accountMap[t.accountId] : null, appUrl)
+                ));
+            }
+        }
+
+        for (const inc of app.incomes || []) {
+            for (const pay of getIncomePaydaysInMonth(inc, y, mo)) {
+                const dateStr = isoDateStr(pay.getFullYear(), pay.getMonth(), pay.getDate());
+                events.push(vevent(
+                    `income-${inc.id}-${dateStr}@myfinances`,
+                    `Payday - ${inc.name}`,
+                    dateStr,
+                    buildDesc(inc.amount, null, inc.accountId ? accountMap[inc.accountId] : null, appUrl, 'Amount')
                 ));
             }
         }

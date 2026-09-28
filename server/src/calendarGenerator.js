@@ -1,7 +1,8 @@
 // Server-side ICS generator for the public calendar.ics endpoint.
-// The occurrence engine below mirrors src/recurring.js::getRecurringOccurrencesInMonth —
-// that function is a pure DOM-free calculation, duplicated here because the
-// frontend ES module carries DOM-dependent imports that can't run in Node.
+// The occurrence engine below mirrors src/recurring.js::getRecurringOccurrencesInMonth,
+// and getPaydays mirrors src/utils.js::getIncomePaydaysInMonth — both are pure
+// DOM-free calculations, duplicated here because the frontend ES modules carry
+// DOM-dependent imports that can't run in Node.
 
 import { query } from './db.js';
 
@@ -58,6 +59,38 @@ function getOccurrences(template, year, month) {
     return dates;
 }
 
+function getPaydays(income, year, month) {
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const first = new Date((income.firstPayDate || '') + 'T12:00:00');
+    if (isNaN(first.getTime())) return [];
+
+    const paydays = [];
+    const freq = income.frequency;
+
+    if (freq === 'weekly' || freq === 'biweekly' || freq === 'bi-weekly') {
+        const interval = freq === 'weekly' ? 7 : 14;
+        let pay = new Date(first);
+        const periods = Math.floor(Math.floor((monthStart - pay) / msPerDay) / interval);
+        pay = new Date(pay.getTime() + Math.max(0, periods) * interval * msPerDay);
+        while (pay < monthStart) pay = new Date(pay.getTime() + interval * msPerDay);
+        while (pay <= monthEnd) {
+            paydays.push(new Date(pay));
+            pay = new Date(pay.getTime() + interval * msPerDay);
+        }
+    } else if (freq === 'twice_monthly') {
+        const mid = new Date(year, month, 15, 12, 0, 0);
+        const last = new Date(year, month, monthEnd.getDate(), 12, 0, 0);
+        if (mid >= first) paydays.push(mid);
+        if (last >= first) paydays.push(last);
+    } else {
+        const candidate = new Date(year, month, Math.min(first.getDate(), monthEnd.getDate()), 12, 0, 0);
+        if (candidate >= monthStart && candidate <= monthEnd) paydays.push(candidate);
+    }
+    return paydays;
+}
+
 function icsEscape(text) {
     return String(text ?? '')
         .replace(/\\/g, '\\\\')
@@ -82,9 +115,9 @@ function isoDateStr(year, month, day) {
     return `${year}${String(month + 1).padStart(2, '0')}${String(day).padStart(2, '0')}`;
 }
 
-function buildDesc(amount, category, account, appUrl) {
+function buildDesc(amount, category, account, appUrl, amountLabel = 'Amount Due') {
     const parts = [];
-    if (Number(amount) > 0) parts.push(`Amount Due: $${Number(amount).toFixed(2)}`);
+    if (Number(amount) > 0) parts.push(`${amountLabel}: $${Number(amount).toFixed(2)}`);
     if (category) parts.push(`Category: ${category}`);
     if (account) parts.push(`Account: ${account}`);
     if (appUrl) parts.push(`View in MyFinances: ${appUrl}`);
@@ -114,14 +147,19 @@ function vevent(uid, summary, dateStr, description) {
 }
 
 export async function generateIcsFromDbRows(userId, baseUrl) {
-    const [acctRes, billsRes, debtsRes, recurringRes, expensesRes] = await Promise.all([
+    const [acctRes, billsRes, debtsRes, recurringRes, expensesRes, incomesRes, showArchivedRes] = await Promise.all([
         query('SELECT id, name FROM accounts WHERE user_id = $1', [userId]),
         query('SELECT id, name, amount, due_day, category, account_id FROM bills WHERE user_id = $1', [userId]),
-        query('SELECT id, name, minimum_payment, due_date, category, account_id FROM debts WHERE user_id = $1', [userId]),
+        query('SELECT id, name, minimum_payment, due_date, category, account_id, archived FROM debts WHERE user_id = $1', [userId]),
         query('SELECT id, name, type, amount, frequency, day_of_month, category, account_id, start_date, end_date, paused, skipped_months, paid_months FROM recurring_templates WHERE user_id = $1', [userId]),
         query('SELECT id, name, budget_amount, date, category, account_id FROM expenses WHERE user_id = $1', [userId]),
+        query('SELECT id, name, amount, first_pay_date, frequency, account_id FROM incomes WHERE user_id = $1', [userId]),
+        query("SELECT value FROM settings WHERE user_id = $1 AND key = 'showArchivedDebts'", [userId]),
     ]);
 
+    // Mirrors the frontend's "Show archived debts" setting (settings.value is
+    // jsonb, so pg hands back an already-parsed boolean).
+    const showArchived = showArchivedRes.rows[0]?.value === true;
     const accountMap = Object.fromEntries(acctRes.rows.map(r => [r.id, r.name]));
     const now = new Date();
     const events = [];
@@ -146,12 +184,13 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
         }
 
         for (const debt of debtsRes.rows) {
+            if (debt.archived && !showArchived) continue;
             if (!debt.due_date) continue;
             const d = Math.min(debt.due_date, daysInMo);
             const dateStr = isoDateStr(y, mo, d);
             events.push(vevent(
                 `debt-${debt.id}-${dateStr}@myfinances`,
-                `Debt - ${debt.name}`,
+                `${debt.archived ? 'Debt (Archived)' : 'Debt'} - ${debt.name}`,
                 dateStr,
                 buildDesc(debt.minimum_payment, debt.category, debt.account_id ? accountMap[debt.account_id] : null, baseUrl)
             ));
@@ -177,6 +216,19 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                     `${typeLabel} - ${row.name}`,
                     dateStr,
                     buildDesc(row.amount, row.category, row.account_id ? accountMap[row.account_id] : null, baseUrl)
+                ));
+            }
+        }
+
+        for (const inc of incomesRes.rows) {
+            const income = { firstPayDate: inc.first_pay_date, frequency: inc.frequency };
+            for (const pay of getPaydays(income, y, mo)) {
+                const dateStr = isoDateStr(pay.getFullYear(), pay.getMonth(), pay.getDate());
+                events.push(vevent(
+                    `income-${inc.id}-${dateStr}@myfinances`,
+                    `Payday - ${inc.name}`,
+                    dateStr,
+                    buildDesc(inc.amount, null, inc.account_id ? accountMap[inc.account_id] : null, baseUrl, 'Amount')
                 ));
             }
         }

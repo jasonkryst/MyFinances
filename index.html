@@ -1433,7 +1433,7 @@
                     <input type="checkbox" id="settingShowArchivedDebts">
                     <span>Show archived debts</span>
                 </label>
-                <p class="modal-helper-text">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations.</p>
+                <p class="modal-helper-text">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
             </div>
             <div class="form-group modal-form-group">
                 <label for="settingStorageBackend" data-i18n="settings.dataStorageLabel">Data Storage</label>
@@ -1562,7 +1562,7 @@
         <div class="modal-content">
             <button id="calendarFeedModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="calendarFeedModalTitle">Calendar Feed</h3>
-            <p class="modal-description">Export your bills, debts, recurring items, and expenses to a calendar application.</p>
+            <p class="modal-description">Export your bills, debts, recurring items, expenses, and paydays to a calendar application. Archived debts are included only when Settings → Show archived debts is on.</p>
             <button id="calendarDownloadBtn" class="btn btn-primary">Download .ics file</button>
             <div id="calendarSubscriptionSection" class="hidden">
                 <hr class="modal-divider">

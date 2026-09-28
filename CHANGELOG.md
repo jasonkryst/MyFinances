@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.4.0] — 2026-09-28
+
+### Added
+- **Calendar Feed — paydays** (issue #217) — income paydays now appear in both the downloadable ICS and the server-side webcal subscription feed as all-day `Payday - Name` events (UID `income-<id>-<date>`), using the same weekly / biweekly / twice-monthly / monthly schedule as the Income page and Reports calendar. The description shows `Amount: $X`, the linked account, and the app link. The server generator carries a Node-side copy of `getIncomePaydaysInMonth()`.
+
+### Changed
+- **Calendar Feed — archived debts follow "Show archived debts"** (issue #217) — archived debts are omitted from the ICS download and the webcal feed by default (previously they always appeared). When Settings → Show archived debts is on, they are included and titled `Debt (Archived) - Name` so they're distinguishable from active debts. The server feed reads the `showArchivedDebts` row from the `settings` table.
+- Calendar Feed modal and the Show-archived-debts setting helper text now mention paydays / the calendar feed behavior.
+
 ## [6.3.0] — 2026-09-28
 
 ### Changed
