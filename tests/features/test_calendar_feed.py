@@ -5,10 +5,14 @@ Covers:
   - Positive: ICS download contains expected VCALENDAR structure
   - Positive: Events for bills, debts, recurring templates, and expenses appear
   - Positive: Paid months are excluded from the feed
+  - Positive: Archived debts follow Settings -> Show archived debts (issue #217)
+  - Positive: Income paydays appear as 'Payday - Name' events (issue #217)
   - Positive: Toolbar button opens the calendar feed modal
   - Negative: Empty app state produces a valid (but event-free) ICS
   - Negative: XSS / special characters in item names are escaped in ICS output
   - Negative: Items without a due date are skipped
+  - Negative: Archived debts omitted while the setting is off; paydays before
+    firstPayDate / incomes without firstPayDate produce no events (issue #217)
 """
 
 import pytest
@@ -193,8 +197,10 @@ def test_paid_months_excluded_from_feed(app_page):
     }}""")
     content, _ = _download_ics(page)
 
-    # The event for the current month should not appear (paid)
-    assert 'SUMMARY:Subscription - PaidSub' not in content
+    # Only the paid month is suppressed; other months still emit the event.
+    this_month = f"{today.year}{str(today.month).zfill(2)}10"
+    assert f'UID:recurring-999-{this_month}@myfinances' not in content
+    assert 'SUMMARY:Subscription - PaidSub' in content
 
 
 @pytest.mark.feature
@@ -224,7 +230,7 @@ def test_modal_closes_on_escape(app_page):
     page = app_page
     _open_calendar_modal(page)
     page.keyboard.press('Escape')
-    page.wait_for_selector('#calendarFeedModal.hidden', timeout=3000)
+    page.wait_for_selector('#calendarFeedModal.hidden', state='attached', timeout=3000)
     assert not page.is_visible('#calendarFeedModal')
 
 
@@ -264,6 +270,213 @@ def test_debt_without_due_date_is_skipped(app_page):
     }""")
     content, _ = _download_ics(page)
     assert 'SUMMARY:Debt - NoDueDebt' not in content
+
+
+def _seed_archived_debts(page, show_archived):
+    """One archived + one active debt; show_archived drives the Settings value."""
+    page.evaluate("""async (showArchived) => {
+        const app = window.app;
+        const { setSetting, SHOW_ARCHIVED_DEBTS } = await import('/src/settings.js');
+        app.accounts = [];
+        app.bills = [];
+        app.incomes = [];
+        app.debts = [
+            { id: 1, name: 'ArchivedVisa', minimumPayment: 100, dueDate: 10,
+              accountBalance: 1000, interestRate: 0, category: 'Credit Card',
+              debtType: 'creditCard', accountId: null, originalBalance: 1000,
+              archived: true },
+            { id: 2, name: 'ActiveLoan', minimumPayment: 200, dueDate: 15,
+              accountBalance: 2000, interestRate: 5, category: 'Loan',
+              debtType: 'personal', accountId: null, originalBalance: 2000,
+              archived: false }
+        ];
+        app.recurringTemplates = [];
+        app.expenses = [];
+        setSetting(app, SHOW_ARCHIVED_DEBTS, showArchived);
+    }""", show_archived)
+
+
+@pytest.mark.feature
+def test_archived_debt_excluded_when_show_archived_off(app_page):
+    """Show archived debts off: archived debts are omitted from the ICS."""
+    page = app_page
+    _seed_archived_debts(page, False)
+    content, _ = _download_ics(page)
+    assert 'ArchivedVisa' not in content
+    assert 'SUMMARY:Debt - ActiveLoan' in content
+
+
+@pytest.mark.feature
+def test_archived_debt_excluded_when_setting_never_set(app_page):
+    """No settings entry at all behaves like 'off' -- archived debts are omitted."""
+    page = app_page
+    _seed_archived_debts(page, False)
+    page.evaluate("() => { window.app.settings = []; window.app.saveToStorage(); }")
+    content, _ = _download_ics(page)
+    assert 'ArchivedVisa' not in content
+    assert 'SUMMARY:Debt - ActiveLoan' in content
+
+
+@pytest.mark.feature
+def test_archived_debt_included_and_labeled_when_show_archived_on(app_page):
+    """Show archived debts on: archived debts appear titled 'Debt (Archived) - Name';
+    active debts keep the plain 'Debt - Name' title."""
+    page = app_page
+    _seed_archived_debts(page, True)
+    content, _ = _download_ics(page)
+    assert 'SUMMARY:Debt (Archived) - ArchivedVisa' in content
+    assert 'SUMMARY:Debt - ArchivedVisa' not in content
+    assert 'SUMMARY:Debt - ActiveLoan' in content
+    assert 'SUMMARY:Debt (Archived) - ActiveLoan' not in content
+
+
+# ─── Paydays (issue #217) ─────────────────────────────────────────────────────
+
+def _seed_incomes(page, incomes):
+    page.evaluate("""(incomes) => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Payroll Checking', type: 'Checking', startingBalance: 0, interestRate: 0 }];
+        app.bills = [];
+        app.debts = [];
+        app.recurringTemplates = [];
+        app.expenses = [];
+        app.incomes = incomes;
+        app.saveToStorage();
+    }""", incomes)
+
+
+def _ymd(d):
+    return d.strftime('%Y%m%d')
+
+
+def _unfold(content):
+    # _download_ics reads in text mode, so CRLF arrives as '\n'.
+    return content.replace('\r\n ', '').replace('\n ', '')
+
+
+@pytest.mark.feature
+def test_monthly_payday_appears_in_feed(app_page):
+    """A monthly income emits a 'Payday - Name' all-day event on its pay day,
+    with 'Amount:' (not 'Amount Due:') and the linked account in the description."""
+    from datetime import date
+    today = date.today()
+    first = date(today.year - 1, today.month, 5)
+    page = app_page
+    _seed_incomes(page, [{
+        'id': 7, 'name': 'Acme Salary', 'amount': 2500, 'frequency': 'monthly',
+        'firstPayDate': first.isoformat(), 'accountId': 1, 'personId': None,
+    }])
+    content, _ = _download_ics(page)
+    this_month = _ymd(date(today.year, today.month, 5))
+    assert f'UID:income-7-{this_month}@myfinances' in content
+    assert f'DTSTART;VALUE=DATE:{this_month}' in content
+    assert 'SUMMARY:Payday - Acme Salary' in content
+    unfolded = _unfold(content)
+    assert 'Amount: $2500.00' in unfolded
+    assert 'Account: Payroll Checking' in unfolded
+    assert 'Amount Due: $2500.00' not in unfolded
+
+
+@pytest.mark.feature
+def test_biweekly_payday_emits_every_occurrence(app_page):
+    """A biweekly income emits one event per payday (every 14 days), not one per month."""
+    from datetime import date, timedelta
+    today = date.today()
+    first = date(today.year, today.month, 1) - timedelta(days=70)
+    page = app_page
+    _seed_incomes(page, [{
+        'id': 8, 'name': 'Biweekly Pay', 'amount': 1200, 'frequency': 'biweekly',
+        'firstPayDate': first.isoformat(), 'accountId': None, 'personId': None,
+    }])
+    content, _ = _download_ics(page)
+    for n in range(5, 10):
+        assert f'UID:income-8-{_ymd(first + timedelta(days=14 * n))}@myfinances' in content
+    # Nothing on the day midway between two paydays
+    assert f'UID:income-8-{_ymd(first + timedelta(days=14 * 6 + 7))}@myfinances' not in content
+
+
+@pytest.mark.feature
+def test_twice_monthly_payday_on_15th_and_last_day(app_page):
+    """twice_monthly paydays land on the 15th and the last day of the month."""
+    import calendar as pycal
+    from datetime import date
+    today = date.today()
+    page = app_page
+    _seed_incomes(page, [{
+        'id': 9, 'name': 'Semi Pay', 'amount': 1000, 'frequency': 'twice_monthly',
+        'firstPayDate': f'{today.year - 1}-01-01', 'accountId': None, 'personId': None,
+    }])
+    content, _ = _download_ics(page)
+    last = pycal.monthrange(today.year, today.month)[1]
+    assert f'UID:income-9-{_ymd(date(today.year, today.month, 15))}@myfinances' in content
+    assert f'UID:income-9-{_ymd(date(today.year, today.month, last))}@myfinances' in content
+    assert f'UID:income-9-{_ymd(date(today.year, today.month, 1))}@myfinances' not in content
+
+
+@pytest.mark.feature
+def test_no_payday_before_first_pay_date(app_page):
+    """Paydays before an income's firstPayDate are not emitted."""
+    from datetime import date
+    today = date.today()
+    # First pay date ~3 months in the future (still inside the +12-month window)
+    m0 = today.month - 1 + 3
+    first = date(today.year + m0 // 12, m0 % 12 + 1, 10)
+    page = app_page
+    _seed_incomes(page, [{
+        'id': 10, 'name': 'Future Job', 'amount': 3000, 'frequency': 'biweekly',
+        'firstPayDate': first.isoformat(), 'accountId': None, 'personId': None,
+    }])
+    content, _ = _download_ics(page)
+    prefix = 'UID:income-10-'
+    uids = [ln for ln in content.splitlines() if ln.startswith(prefix)]
+    assert f'{prefix}{_ymd(first)}@myfinances' in uids
+    assert all(ln[len(prefix):len(prefix) + 8] >= _ymd(first) for ln in uids)
+
+
+@pytest.mark.feature
+def test_income_without_first_pay_date_is_skipped(app_page):
+    """An income with no (or an invalid) firstPayDate generates no payday events."""
+    page = app_page
+    _seed_incomes(page, [
+        {'id': 11, 'name': 'NoDate', 'amount': 100, 'frequency': 'monthly',
+         'firstPayDate': '', 'accountId': None, 'personId': None},
+        {'id': 12, 'name': 'BadDate', 'amount': 100, 'frequency': 'monthly',
+         'firstPayDate': 'not-a-date', 'accountId': None, 'personId': None},
+    ])
+    content, _ = _download_ics(page)
+    assert 'Payday - NoDate' not in content
+    assert 'Payday - BadDate' not in content
+    assert content.strip().endswith('END:VCALENDAR')
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_zero_amount_payday_omits_amount_line(app_page):
+    """A $0 income still gets a payday event but no 'Amount:' description line."""
+    from datetime import date
+    today = date.today()
+    page = app_page
+    _seed_incomes(page, [{
+        'id': 13, 'name': 'Unpaid Intern', 'amount': 0, 'frequency': 'monthly',
+        'firstPayDate': f'{today.year - 1}-{today.month:02d}-01', 'accountId': None, 'personId': None,
+    }])
+    content, _ = _download_ics(page)
+    assert 'SUMMARY:Payday - Unpaid Intern' in content
+    assert 'Amount: $0.00' not in _unfold(content)
+
+
+@pytest.mark.security
+def test_payday_name_special_characters_escaped(app_page):
+    """RFC 5545 special characters in an income name are escaped in SUMMARY."""
+    from datetime import date
+    today = date.today()
+    page = app_page
+    _seed_incomes(page, [{
+        'id': 14, 'name': 'Pay; Bonus, Inc', 'amount': 50, 'frequency': 'monthly',
+        'firstPayDate': f'{today.year - 1}-{today.month:02d}-01', 'accountId': None, 'personId': None,
+    }])
+    content, _ = _download_ics(page)
+    assert 'SUMMARY:Payday - Pay\\; Bonus\\, Inc' in content
 
 
 @pytest.mark.feature

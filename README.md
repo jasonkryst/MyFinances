@@ -198,6 +198,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Spending Analysis** — doughnut pie of all outflows for the selected month; 6-month stacked bar trend; ranked category list with month-over-month % badges; drill-down modal per category
 - **Cash Flow Forecast** — project balances 1/2/3/6/12 months ahead for total cash position or a single account; notable-month driver flags; negative-balance and intra-month dip warnings
 - **Summary Report** — Monthly/Yearly toggle with cash flow, per-account balance changes, and net worth for the selected period
+- **Calendar Feed** — toolbar 📅 button exports bills, debts, recurring items, expenses, and income paydays (`Payday - Name`) as all-day iCal events over a ±12-month window; download a `.ics` file (any backend) or subscribe via a live `webcal://` link (PostgreSQL backend). Archived debts follow Settings → Show archived debts and are titled `Debt (Archived) - Name` when shown
 
 ---
 
