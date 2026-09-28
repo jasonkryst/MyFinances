@@ -134,16 +134,29 @@ def test_ics_contains_expense_event(app_page):
 
 
 @pytest.mark.feature
-def test_ics_events_use_9am_floating_time(app_page):
-    """Events are scheduled at 9AM floating local time (no Z, no TZID)."""
+def test_ics_events_are_all_day(app_page):
+    """All events use RFC 5545 DATE value type (all-day, no time component)."""
     page = app_page
     _seed_calendar_data(page)
     content, _ = _download_ics(page)
 
-    # Floating time: DTSTART:YYYYMMDDТ090000 (no suffix)
-    assert 'T090000' in content
-    assert 'T090000Z' not in content
-    assert 'TZID=' not in content
+    assert 'DTSTART;VALUE=DATE:' in content
+    assert 'DTEND;VALUE=DATE:' in content
+    # No time component — these must not appear
+    assert 'T090000' not in content
+    assert 'T100000' not in content
+
+
+@pytest.mark.feature
+def test_ics_description_includes_app_link(app_page):
+    """Each event description contains a 'View in MyFinances:' link to the app root."""
+    page = app_page
+    _seed_calendar_data(page)
+    content, _ = _download_ics(page)
+
+    assert 'View in MyFinances:' in content
+    # The link must include the origin (http://localhost:32900 in test env)
+    assert 'localhost' in content
 
 
 @pytest.mark.feature

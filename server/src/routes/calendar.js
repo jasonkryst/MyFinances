@@ -70,7 +70,8 @@ export async function handlePublicCalendar(req, res, next) {
             [token]
         );
         if (rows.length === 0) return res.status(401).end();
-        const ics = await generateIcsFromDbRows(rows[0].user_id);
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const ics = await generateIcsFromDbRows(rows[0].user_id, baseUrl);
         // Prevent proxy/CDN caching of financial data, and keep search engines
         // from indexing the token URL if it ever appears in a shared link.
         res.setHeader('Cache-Control', 'no-store, private');

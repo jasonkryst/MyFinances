@@ -82,20 +82,30 @@ function isoDateStr(year, month, day) {
     return `${year}${String(month + 1).padStart(2, '0')}${String(day).padStart(2, '0')}`;
 }
 
-function buildDesc(amount, category, account) {
+function buildDesc(amount, category, account, appUrl) {
     const parts = [];
     if (Number(amount) > 0) parts.push(`Amount Due: $${Number(amount).toFixed(2)}`);
     if (category) parts.push(`Category: ${category}`);
     if (account) parts.push(`Account: ${account}`);
+    if (appUrl) parts.push(`View in MyFinances: ${appUrl}`);
     return parts.join('\n');
+}
+
+// RFC 5545 YYYYMMDD for the calendar day after dateStr.
+function nextDayStr(dateStr) {
+    const y = parseInt(dateStr.slice(0, 4), 10);
+    const m = parseInt(dateStr.slice(4, 6), 10) - 1;
+    const d = parseInt(dateStr.slice(6, 8), 10);
+    const next = new Date(y, m, d + 1);
+    return isoDateStr(next.getFullYear(), next.getMonth(), next.getDate());
 }
 
 function vevent(uid, summary, dateStr, description) {
     const lines = [
         'BEGIN:VEVENT',
         `UID:${uid}`,
-        `DTSTART:${dateStr}T090000`,
-        `DTEND:${dateStr}T100000`,
+        `DTSTART;VALUE=DATE:${dateStr}`,
+        `DTEND;VALUE=DATE:${nextDayStr(dateStr)}`,
         `SUMMARY:${icsEscape(summary)}`,
     ];
     if (description) lines.push(`DESCRIPTION:${icsEscape(description)}`);
@@ -103,7 +113,7 @@ function vevent(uid, summary, dateStr, description) {
     return lines.map(icsFold).join('');
 }
 
-export async function generateIcsFromDbRows(userId) {
+export async function generateIcsFromDbRows(userId, baseUrl) {
     const [acctRes, billsRes, debtsRes, recurringRes, expensesRes] = await Promise.all([
         query('SELECT id, name FROM accounts WHERE user_id = $1', [userId]),
         query('SELECT id, name, amount, due_day, category, account_id FROM bills WHERE user_id = $1', [userId]),
@@ -131,7 +141,7 @@ export async function generateIcsFromDbRows(userId) {
                 `bill-${bill.id}-${dateStr}@myfinances`,
                 `Bill - ${bill.name}`,
                 dateStr,
-                buildDesc(bill.amount, bill.category, bill.account_id ? accountMap[bill.account_id] : null)
+                buildDesc(bill.amount, bill.category, bill.account_id ? accountMap[bill.account_id] : null, baseUrl)
             ));
         }
 
@@ -143,7 +153,7 @@ export async function generateIcsFromDbRows(userId) {
                 `debt-${debt.id}-${dateStr}@myfinances`,
                 `Debt - ${debt.name}`,
                 dateStr,
-                buildDesc(debt.minimum_payment, debt.category, debt.account_id ? accountMap[debt.account_id] : null)
+                buildDesc(debt.minimum_payment, debt.category, debt.account_id ? accountMap[debt.account_id] : null, baseUrl)
             ));
         }
 
@@ -166,7 +176,7 @@ export async function generateIcsFromDbRows(userId) {
                     `recurring-${row.id}-${dateStr}@myfinances`,
                     `${typeLabel} - ${row.name}`,
                     dateStr,
-                    buildDesc(row.amount, row.category, row.account_id ? accountMap[row.account_id] : null)
+                    buildDesc(row.amount, row.category, row.account_id ? accountMap[row.account_id] : null, baseUrl)
                 ));
             }
         }
@@ -181,7 +191,7 @@ export async function generateIcsFromDbRows(userId) {
                 `expense-${exp.id}-${dateStr}@myfinances`,
                 `Expense - ${exp.name}`,
                 dateStr,
-                buildDesc(exp.budget_amount, exp.category, exp.account_id ? accountMap[exp.account_id] : null)
+                buildDesc(exp.budget_amount, exp.category, exp.account_id ? accountMap[exp.account_id] : null, baseUrl)
             ));
         }
     }

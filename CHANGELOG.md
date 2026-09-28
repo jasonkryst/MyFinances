@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.3.0] — 2026-09-28
+
+### Changed
+- **Calendar Feed** (issue #214) — all events (bills, debts, recurring, expenses) now render as all-day events in calendar apps (`DTSTART;VALUE=DATE`) rather than a 9–10 AM time slot; each event description now includes a "View in MyFinances" link back to the application.
+
 ## [6.2.0] — 2026-09-27
 
 ### Added
