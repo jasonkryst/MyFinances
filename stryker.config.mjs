@@ -16,10 +16,11 @@ export default {
         'src/utils.js:10-83', // formatCurrency, normalizeText, sanitizeFiniteNumber, parseFiniteOrNull, formatShortDate, formatMonthYear, sanitizeInteger, sanitizeDateISO
         'src/utils.js:92-97', // dateToISO
         'src/utils.js:284-287', // dailyCompoundInterest
-        'src/sanitizers.js:5-63', // sanitizeAccount, sanitizeDebt, sanitizeIncome
-        'src/sanitizers.js:77-98', // sanitizeBill, sanitizeExpense
-        'src/sanitizers.js:100-130', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
-        'src/sanitizers.js:131-152', // sanitizeRecurringTemplate
+        'src/sanitizers.js:5-64', // sanitizeAccount, sanitizeDebt, sanitizeIncome
+        'src/sanitizers.js:78-99', // sanitizeBill, sanitizeExpense
+        'src/sanitizers.js:101-131', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
+        'src/sanitizers.js:132-153', // sanitizeRecurringTemplate
+        'src/sanitizers.js:286-300', // sanitizeBalanceHistoryEntry
         'src/retirementCalculator.js:3-12', // computeRetirementProjection
         'src/retirementCalculator.js:14-23', // splitGrowthFromContribution
         'src/balanceHistoryCore.js', // balance history pure helpers
