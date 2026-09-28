@@ -22,6 +22,7 @@ export default {
         'src/sanitizers.js:131-152', // sanitizeRecurringTemplate
         'src/retirementCalculator.js:3-12', // computeRetirementProjection
         'src/retirementCalculator.js:14-23', // splitGrowthFromContribution
+        'src/balanceHistoryCore.js', // balance history pure helpers
     ],
     jest: {
         configFile: 'jest.config.js',
