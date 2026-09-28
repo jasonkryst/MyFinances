@@ -179,8 +179,10 @@ a rollback since the field is informational and newly introduced.
 - `routes/balanceHistory.js` via `createCrudResource`, `foreignKeys: { debtId: 'debts', accountId:
   'accounts' }`, columns `id, debtId→debt_id, accountId→account_id, date, balance,
   minimumPayment→minimum_payment`; mounted at `/api/balance-history`. The CRUD router's
-  `requiredFields` cannot express "exactly one of"; the shared sanitizer (null result → 400) and the
-  DB CHECK enforce it. `server/src/sanitizers/index.js` re-exports `sanitizeBalanceHistoryEntry`.
+  `requiredFields` cannot express "exactly one of"; the shared sanitizer and the DB CHECK enforce it.
+  `crudRouter.js` currently dereferences `clean[f]` unconditionally, so a `null` sanitizer result
+  would throw (500); POST and PATCH handlers gain `if (!clean) return 400 VALIDATION_FAILED` before
+  the `requiredFields` check (no effect on existing sanitizers, which never return `null`). `server/src/sanitizers/index.js` re-exports `sanitizeBalanceHistoryEntry`.
 - `routes/accounts.js` column map gains `minimumPayment: 'minimum_payment'`.
 - Frontend: `POSTGRES_RESOURCE_ENDPOINTS` (`storage.js`) and `ALL_RESOURCE_PATHS`
   (`postgresSync.js`) gain `balanceHistory` / `/api/balance-history`.
