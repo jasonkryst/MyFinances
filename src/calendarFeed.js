@@ -34,21 +34,31 @@ function isoDateStr(year, month, day) {
 }
 
 // Build a DESCRIPTION value (raw string, not yet escaped).
-function buildDesc(amount, category, account) {
+function buildDesc(amount, category, account, appUrl) {
     const parts = [];
     if (Number(amount) > 0) parts.push(`Amount Due: $${Number(amount).toFixed(2)}`);
     if (category) parts.push(`Category: ${category}`);
     if (account) parts.push(`Account: ${account}`);
+    if (appUrl) parts.push(`View in MyFinances: ${appUrl}`);
     return parts.join('\n');
 }
 
-// Build a single VEVENT block (already CRLF-terminated).
+// RFC 5545 YYYYMMDD for the calendar day after dateStr.
+function nextDayStr(dateStr) {
+    const y = parseInt(dateStr.slice(0, 4), 10);
+    const m = parseInt(dateStr.slice(4, 6), 10) - 1;
+    const d = parseInt(dateStr.slice(6, 8), 10);
+    const next = new Date(y, m, d + 1);
+    return isoDateStr(next.getFullYear(), next.getMonth(), next.getDate());
+}
+
+// Build a single VEVENT block (all-day, already CRLF-terminated).
 function vevent(uid, summary, dateStr, description) {
     const lines = [
         'BEGIN:VEVENT',
         `UID:${uid}`,
-        `DTSTART:${dateStr}T090000`,
-        `DTEND:${dateStr}T100000`,
+        `DTSTART;VALUE=DATE:${dateStr}`,
+        `DTEND;VALUE=DATE:${nextDayStr(dateStr)}`,
         `SUMMARY:${icsEscape(summary)}`,
     ];
     if (description) lines.push(`DESCRIPTION:${icsEscape(description)}`);
@@ -59,6 +69,7 @@ function vevent(uid, summary, dateStr, description) {
 // Generate a full ICS string from the current app state.
 export function generateIcs(app) {
     const accountMap = Object.fromEntries((app.accounts || []).map(a => [a.id, a.name]));
+    const appUrl = window.location.origin;
     const now = new Date();
     const events = [];
 
@@ -77,7 +88,7 @@ export function generateIcs(app) {
                 `bill-${bill.id}-${dateStr}@myfinances`,
                 `Bill - ${bill.name}`,
                 dateStr,
-                buildDesc(bill.amount, bill.category, bill.accountId ? accountMap[bill.accountId] : null)
+                buildDesc(bill.amount, bill.category, bill.accountId ? accountMap[bill.accountId] : null, appUrl)
             ));
         }
 
@@ -89,7 +100,7 @@ export function generateIcs(app) {
                 `debt-${debt.id}-${dateStr}@myfinances`,
                 `Debt - ${debt.name}`,
                 dateStr,
-                buildDesc(debt.minimumPayment, debt.category, debt.accountId ? accountMap[debt.accountId] : null)
+                buildDesc(debt.minimumPayment, debt.category, debt.accountId ? accountMap[debt.accountId] : null, appUrl)
             ));
         }
 
@@ -104,7 +115,7 @@ export function generateIcs(app) {
                     `recurring-${t.id}-${dateStr}@myfinances`,
                     `${typeLabel} - ${t.name}`,
                     dateStr,
-                    buildDesc(t.amount, t.category, t.accountId ? accountMap[t.accountId] : null)
+                    buildDesc(t.amount, t.category, t.accountId ? accountMap[t.accountId] : null, appUrl)
                 ));
             }
         }
@@ -118,7 +129,7 @@ export function generateIcs(app) {
                 `expense-${exp.id}-${dateStr}@myfinances`,
                 `Expense - ${exp.name}`,
                 dateStr,
-                buildDesc(exp.budgetAmount, exp.category, exp.accountId ? accountMap[exp.accountId] : null)
+                buildDesc(exp.budgetAmount, exp.category, exp.accountId ? accountMap[exp.accountId] : null, appUrl)
             ));
         }
     }
