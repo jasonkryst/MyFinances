@@ -364,3 +364,96 @@ def test_escape_defers_to_command_palette_when_both_open(app_page):
     page.keyboard.press('Escape')
     assert not page.is_visible('#commandPaletteOverlay'), "Escape should close the layered command palette"
     assert modal.is_visible(), "History modal should stay open when Escape closes a layered command palette"
+
+
+def _import_json(page, payload, replace=True):
+    # A merge that skips name-duplicates calls onMergeDuplicates mid-import and
+    # never calls onImported, so completion is detected via the last step both
+    # import paths share: app.refreshCurrentPageData().
+    return page.evaluate(
+        """([json, replace]) => new Promise((resolve) => {
+            const app = window.app;
+            const origRefresh = app.refreshCurrentPageData;
+            app.refreshCurrentPageData = function (...args) {
+                app.refreshCurrentPageData = origRefresh;
+                const result = origRefresh.apply(app, args);
+                resolve('imported');
+                return result;
+            };
+            const file = new File([new Blob([json], { type: 'application/json' })], 'backup.json', { type: 'application/json' });
+            import('/src/dataExport.js').then(({ importAllJSON }) => {
+                importAllJSON(app, file, {
+                    requestImportMode: async () => replace,
+                    onNoData: () => resolve('no-data'),
+                    onInvalidJSON: () => resolve('invalid'),
+                    onImportError: () => resolve('error')
+                });
+            });
+        })""",
+        [json.dumps(payload), replace])
+
+
+BACKUP = {
+    "accounts": [{"id": 700, "name": "Car Loan", "type": "Loan", "startingBalance": -9000, "minimumPayment": 210}],
+    "debts": [{"id": 100, "name": "Visa", "debtType": "creditCard", "accountBalance": 800, "minimumPayment": 30,
+               "interestRate": 20, "dueDate": 5}],
+    "balanceHistory": [
+        {"id": 1, "debtId": 100, "date": "2026-01-01", "balance": 1000, "minimumPayment": 40},
+        {"id": 2, "debtId": 100, "date": "2026-05-01", "balance": 800, "minimumPayment": 30},
+        {"id": 3, "accountId": 700, "date": "2026-02-01", "balance": -9500, "minimumPayment": 210},
+        {"id": 4, "debtId": 555, "date": "2026-02-01", "balance": 1, "minimumPayment": 1}
+    ]
+}
+
+
+@pytest.mark.feature
+def test_replace_import_remaps_owner_ids_and_drops_orphans(app_page):
+    page = app_page
+    assert _import_json(page, BACKUP, replace=True) == 'imported'
+    state = page.evaluate("() => ({ debts: window.app.debts, accounts: window.app.accounts, history: window.app.balanceHistory })")
+    debt_id = state['debts'][0]['id']
+    acct_id = state['accounts'][0]['id']
+    assert state['accounts'][0]['minimumPayment'] == 210
+    debt_rows = sorted([h for h in state['history'] if h['debtId'] == debt_id], key=lambda h: h['date'])
+    assert [h['balance'] for h in debt_rows] == [1000, 800]
+    assert [h['balance'] for h in state['history'] if h['accountId'] == acct_id] == [-9500]
+    assert len(state['history']) == 3
+
+
+@pytest.mark.feature
+def test_merge_import_maps_to_name_matched_debt_and_skips_duplicate_dates(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 1, name: 'Visa', debtType: 'creditCard', accountBalance: 700, minimumPayment: 28, interestRate: 20, dueDate: 5 }];
+        window.app.accounts = [];
+        window.app.balanceHistory = [{ id: 11, debtId: 1, accountId: null, date: '2026-05-01', balance: 777, minimumPayment: 28 }];
+        window.app.saveToStorage();
+    }""")
+    assert _import_json(page, BACKUP, replace=False) == 'imported'
+    history = page.evaluate("() => window.app.balanceHistory")
+    visa = sorted([h for h in history if h['debtId'] == 1], key=lambda h: h['date'])
+    # 2026-01-01 imported; 2026-05-01 already existed and keeps its local value.
+    assert [(h['date'], h['balance']) for h in visa] == [('2026-01-01', 1000), ('2026-05-01', 777)]
+
+
+@pytest.mark.feature
+def test_legacy_import_without_history_is_seeded(app_page):
+    page = app_page
+    legacy = {k: v for k, v in BACKUP.items() if k != 'balanceHistory'}
+    assert _import_json(page, legacy, replace=True) == 'imported'
+    history = page.evaluate("() => window.app.balanceHistory")
+    assert len([h for h in history if h['debtId'] is not None]) == 1
+    assert len([h for h in history if h['accountId'] is not None]) == 1
+
+
+@pytest.mark.feature
+def test_export_includes_balance_history(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 1, name: 'Visa', debtType: 'creditCard', accountBalance: 700, minimumPayment: 28, interestRate: 20, dueDate: 5 }];
+        window.app.balanceHistory = [{ id: 11, debtId: 1, accountId: null, date: '2026-05-01', balance: 700, minimumPayment: 28 }];
+    }""")
+    with page.expect_download() as dl:
+        page.evaluate("() => import('/src/dataExport.js').then(m => m.exportAllJSON(window.app))")
+    exported = json.loads(open(dl.value.path(), encoding='utf-8').read())
+    assert exported['balanceHistory'] == [{"id": 11, "debtId": 1, "accountId": None, "date": "2026-05-01", "balance": 700, "minimumPayment": 28}]

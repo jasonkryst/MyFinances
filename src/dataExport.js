@@ -5,6 +5,8 @@ import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
 import { sanitizeParsedState } from './sanitizers.js';
 import { replaceForPostgres, mergeForPostgres } from './postgresImport.js';
 import { PLAN_HISTORY_CAP } from './strategyPlanCalculation.js';
+import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
+import { seedMissingBalanceHistory } from './balanceHistory.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
@@ -41,6 +43,7 @@ export function exportAllJSON(app) {
         reconciliations: app.reconciliations || [],
         planHistory: app.planHistory || [],
         retirementSnapshots: app.retirementSnapshots || [],
+        balanceHistory: app.balanceHistory || [],
         retirementTargetDate: app.retirementTargetDate || null,
         settings: app.settings || [],
         monthlySnapshots: app.monthlySnapshots || [],
@@ -294,6 +297,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingReconciliations = clean.reconciliations;
         const incomingPlanHistory = clean.planHistory;
         const incomingRetirementSnapshots = clean.retirementSnapshots;
+        const incomingBalanceHistory = clean.balanceHistory || [];
         const incomingRetirementTargetDate = clean.retirementTargetDate;
         const incomingSettings = clean.settings;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
@@ -353,6 +357,7 @@ export function importAllJSON(app, file, options = {}) {
                 if (mpEl && payment !== null) mpEl.value = payment;
                 if (psEl && strategy) psEl.value = strategy;
             }
+            await seedMissingBalanceHistory(app);
             app.updateUI();
             app.refreshCurrentPageData();
             if (!mergeDuplicatesReported && typeof onImported === 'function') {
@@ -375,6 +380,11 @@ export function importAllJSON(app, file, options = {}) {
             app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
             app.planHistory = incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }));
             app.retirementSnapshots = incomingRetirementSnapshots.map((s, i) => ({ ...s, id: Date.now() + 6500 + i }));
+            // Debts get fresh ids by index; accounts keep their ids in replace mode.
+            const debtIdMap = new Map(validDebts.map((d, i) => [d.id, app.debts[i].id]));
+            const accountIdMap = new Map(app.accounts.map(a => [a.id, a.id]));
+            app.balanceHistory = remapHistoryOwners(incomingBalanceHistory, debtIdMap, accountIdMap)
+                .map((h, i) => ({ ...h, id: Date.now() + 8000 + i }));
             app.retirementTargetDate = incomingRetirementTargetDate || null;
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
@@ -426,6 +436,17 @@ export function importAllJSON(app, file, options = {}) {
             app.reconciliations = [...app.reconciliations, ...incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }))];
             app.planHistory = [...app.planHistory, ...incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }))].slice(-PLAN_HISTORY_CAP);
             app.retirementSnapshots = [...app.retirementSnapshots, ...incomingRetirementSnapshots.map((s, i) => ({ ...s, id: Date.now() + 6500 + i }))];
+            // Name-matched debts/accounts resolve to the surviving record's id.
+            const debtIdByName = new Map(app.debts.map(d => [d.name.toLowerCase(), d.id]));
+            const accountIdByName = new Map(app.accounts.map(a => [a.name.toLowerCase(), a.id]));
+            const debtIdMap = new Map(validDebts.map(d => [d.id, debtIdByName.get(d.name.toLowerCase())]));
+            const accountIdMap = new Map(incomingAccounts.map(a => [a.id, accountIdByName.get(a.name.toLowerCase())]));
+            const remappedHistory = remapHistoryOwners(incomingBalanceHistory, debtIdMap, accountIdMap);
+            app.balanceHistory = [
+                ...(app.balanceHistory || []),
+                ...excludeExistingHistory(app.balanceHistory || [], remappedHistory)
+                    .map((h, i) => ({ ...h, id: Date.now() + 8000 + i }))
+            ];
             if (incomingRetirementTargetDate) app.retirementTargetDate = incomingRetirementTargetDate;
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
@@ -456,6 +477,7 @@ export function importAllJSON(app, file, options = {}) {
             if (psEl && strategy) psEl.value = strategy;
         }
 
+        await seedMissingBalanceHistory(app);
         app.saveToStorage();
         app.updateUI();
         app.refreshCurrentPageData();
