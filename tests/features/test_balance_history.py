@@ -256,3 +256,89 @@ def test_deleting_account_removes_its_history(app_page):
     page.click('#deleteConfirmBtn')
     page.wait_for_function(f"() => !window.app.accounts.some(a => a.id === {acct_id})")
     assert _account_history(page, acct_id) == []
+
+
+@pytest.mark.feature
+def test_history_modal_shows_chart_table_and_rows(app_page, debt_data):
+    page = app_page
+    create_debt(page, debt_data)
+    debt_id = _only_debt_id(page)
+    page.evaluate("() => { window.app.balanceHistory[0].date = '2026-01-01'; }")
+    page.evaluate(f"() => window.app.updateDebtBalance({debt_id}, 2000, 80)")
+
+    page.click(f'[data-debt-action="history"][data-debt-id="{debt_id}"]')
+    modal = page.locator('#balanceHistoryModal')
+    modal.wait_for(state='visible')
+    assert page.locator('#balanceHistoryName').text_content() == debt_data['name']
+    assert page.locator('#balanceHistoryRows tr').count() == 2
+    # newest first
+    assert '2,000' in page.locator('#balanceHistoryRows tr').first.text_content()
+    assert page.locator('#balanceHistoryChart-sr-table').count() == 1
+    assert page.locator('#balanceHistoryEmpty').is_hidden()
+
+    page.keyboard.press('Escape')
+    modal.wait_for(state='hidden')
+
+
+@pytest.mark.feature
+def test_history_button_present_on_archived_and_fixed_debts(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [
+            { id: 51, name: 'Paid Card', debtType: 'creditCard', accountBalance: 0, minimumPayment: 0, interestRate: 10, dueDate: 1, archived: true },
+            { id: 52, name: 'Daycare', debtType: 'fixedAmount', fixedAmount: 900, minimumPayment: 900, fixedStartDate: '2026-01-01', fixedEndDate: '2027-01-01' }
+        ];
+        window.app.settings = [{ key: 'showArchivedDebts', value: true }];
+        window.app.updateUI();
+    }""")
+    page.click('button[data-page="liabilities"]')
+    assert page.locator('[data-debt-action="history"][data-debt-id="52"]').count() == 1
+    assert page.locator('[data-debt-action="history"][data-debt-id="51"]').count() == 1
+
+
+@pytest.mark.feature
+def test_fixed_amount_modal_uses_monthly_amount_column(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 52, name: 'Daycare', debtType: 'fixedAmount', fixedAmount: 900, minimumPayment: 900, fixedStartDate: '2026-01-01', fixedEndDate: '2027-01-01' }];
+        window.app.balanceHistory = [
+            { id: 1, debtId: 52, accountId: null, date: '2026-01-01', balance: null, minimumPayment: 900 },
+            { id: 2, debtId: 52, accountId: null, date: '2026-05-01', balance: null, minimumPayment: 950 }
+        ];
+        window.app.showBalanceHistoryModal({ kind: 'debt', id: 52 });
+    }""")
+    page.locator('#balanceHistoryModal').wait_for(state='visible')
+    assert page.locator('#bhColMin').text_content() == 'Monthly amount'
+    assert 'bh-table--fixed' in page.locator('.bh-table').get_attribute('class')
+
+
+@pytest.mark.feature
+def test_delete_entry_requires_two_clicks_and_last_delete_shows_empty_state(app_page):
+    page = app_page
+    msgs = []
+    page.on('console', lambda m: msgs.append(m) if m.type == 'error' else None)
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 60, name: 'Visa', debtType: 'creditCard', accountBalance: 500, minimumPayment: 25, interestRate: 20, dueDate: 1 }];
+        window.app.balanceHistory = [{ id: 61, debtId: 60, accountId: null, date: '2026-01-01', balance: 500, minimumPayment: 25 }];
+        window.app.showBalanceHistoryModal({ kind: 'debt', id: 60 });
+    }""")
+    btn = page.locator('[data-bh-delete="61"]')
+    btn.click()
+    assert page.evaluate("() => window.app.balanceHistory.length") == 1
+    assert btn.text_content() == 'Confirm'
+    btn.click()
+    assert page.evaluate("() => window.app.balanceHistory.length") == 0
+    assert page.locator('#balanceHistoryRows tr').count() == 0
+    assert page.locator('#balanceHistoryEmpty').is_visible()
+    assert page.locator('#balanceHistoryChartWrap').is_hidden()
+    assert msgs == []
+
+
+@pytest.mark.feature
+def test_account_history_button_opens_modal(app_page):
+    page = app_page
+    acct_id = _add_account(page, 'Mortgage', 'Loan', '-200000', '1500')
+    page.click(f'[data-account-action="history"][data-account-id="{acct_id}"]')
+    page.locator('#balanceHistoryModal').wait_for(state='visible')
+    assert page.locator('#balanceHistoryName').text_content() == 'Mortgage'
+    assert page.locator('#balanceHistoryRows tr').count() == 1

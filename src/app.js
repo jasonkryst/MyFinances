@@ -45,6 +45,7 @@ import {
     deleteBalanceHistoryEntry as deleteBalanceHistoryEntryFeature,
     seedMissingBalanceHistory as seedMissingBalanceHistoryFeature
 } from './balanceHistory.js';
+import { showBalanceHistoryModal as showBalanceHistoryModalFeature } from './balanceHistoryModal.js';
 import {
     renderIncomeList,
     addIncome,
@@ -988,6 +989,7 @@ export class DebtTrackerApp {
     getBalanceHistory(owner) { return getBalanceHistoryFeature(this, owner); }
     deleteBalanceHistoryEntry(id) { return deleteBalanceHistoryEntryFeature(this, id); }
     seedMissingBalanceHistory() { return seedMissingBalanceHistoryFeature(this); }
+    showBalanceHistoryModal(owner) { return showBalanceHistoryModalFeature(this, owner); }
     deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
     computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
     renderRetirementPage() { return renderRetirementPageFeature(this); }

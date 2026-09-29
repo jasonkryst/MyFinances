@@ -213,6 +213,7 @@ export function renderAccountsList(app) {
         if (action === 'save') app.saveEditAccount(id);
         if (action === 'edit') app.startEditAccount(id);
         if (action === 'delete') app.deleteAccount(id);
+        if (action === 'history') app.showBalanceHistoryModal({ kind: 'account', id });
     };
     container.onchange = (event) => {
         const typeSelect = event.target.closest('select[id^="ac-type-"]');

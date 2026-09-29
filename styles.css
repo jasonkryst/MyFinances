@@ -6829,3 +6829,35 @@ body.dark-mode .login-gate-header {
     color: var(--text-muted, #6b7280);
     margin: 0.5rem 0 0;
 }
+
+/* ── Balance History modal ──────────────────────────────────────────────── */
+.modal-content--history { max-width: 720px; width: 100%; }
+.bh-chart-wrap { position: relative; height: 260px; margin: 12px 0; }
+.bh-table-wrap { max-height: 320px; overflow-y: auto; }
+.bh-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.bh-table th,
+.bh-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); text-align: right; }
+.bh-table th:first-child,
+.bh-table td:first-child { text-align: left; }
+.bh-table--fixed .bh-col-balance { display: none; }
+
+@media (max-width: 640px) {
+    .bh-table thead { display: none; }
+    .bh-table,
+    .bh-table tbody,
+    .bh-table tr,
+    .bh-table td { display: block; width: 100%; }
+    .bh-table tr { margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 8px; padding: 2px 10px; }
+    .bh-table td { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right; }
+    .bh-table td:last-child { border-bottom: none; }
+    .bh-table td::before {
+        content: attr(data-label);
+        text-align: left;
+        font-size: 0.76rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+    .bh-table--fixed .bh-col-balance { display: none; }
+}

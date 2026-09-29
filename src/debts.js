@@ -583,9 +583,11 @@ export function renderDebtsList(app) {
                 <div class="debt-actions">
                     ${debt.archived
                         ? `<span class="debt-archived-badge">Archived</span>
+                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}">History</button>
                            <button class="btn btn-secondary btn-small" data-debt-action="unarchive" data-debt-id="${debt.id}">Unarchive</button>`
                         : `<button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}">Edit</button>
                            ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}">Update Balance</button>` : ''}
+                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}">History</button>
                            ${isDebtPaidOff(debt) ? `<button class="btn btn-secondary btn-small" data-debt-action="archive" data-debt-id="${debt.id}">Archive</button>` : ''}
                            <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}">Delete</button>`
                     }
@@ -645,6 +647,7 @@ export function renderDebtsList(app) {
         if (action === 'save-inline') app.saveInlineEdit(id);
         if (action === 'edit') app.startEdit(id);
         if (action === 'update-balance') app.showUpdateBalanceModal(id);
+        if (action === 'history') app.showBalanceHistoryModal({ kind: 'debt', id });
         if (action === 'delete') app.deleteDebt(id);
         if (action === 'archive') app.archiveDebt(id);
         if (action === 'unarchive') app.unarchiveDebt(id);

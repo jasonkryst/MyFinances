@@ -1132,6 +1132,33 @@
             </div>
         </div>
     </div>
+    <!-- Balance History Modal (top-level so position:fixed works from any page) -->
+    <div id="balanceHistoryModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="balanceHistoryTitle" tabindex="-1">
+        <div class="modal-content modal-content--history">
+            <button id="balanceHistoryClose" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="balanceHistoryTitle">Balance History</h3>
+            <p class="modal-subtitle"><strong id="balanceHistoryName"></strong></p>
+            <p id="balanceHistoryEmpty" class="modal-helper-text hidden">History starts here — updates you make will be recorded.</p>
+            <div class="bh-chart-wrap" id="balanceHistoryChartWrap"><canvas id="balanceHistoryChart"></canvas></div>
+            <div class="bh-table-wrap">
+                <table class="bh-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col" class="bh-col-balance">Balance</th>
+                            <th scope="col" id="bhColMin">Min. payment</th>
+                            <th scope="col">Change</th>
+                            <th scope="col"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="balanceHistoryRows"></tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button id="balanceHistoryCloseBtn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
     <div id="ledgerOverrideModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1">
         <div class="modal-content">
             <button id="ledgerOverrideCloseBtn" aria-label="Close" class="modal-close">&times;</button>
