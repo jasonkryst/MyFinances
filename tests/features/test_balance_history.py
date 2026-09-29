@@ -173,3 +173,86 @@ def test_deleting_debt_removes_its_history(app_page, debt_data):
     history = _history(page)
     assert all(h['debtId'] != debt_id for h in history)
     assert any(h['accountId'] == 777 for h in history)
+
+
+def _add_account(page, name, acct_type, balance, min_payment=None):
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.fill('#accountName', name)
+    page.select_option('#accountType', label=acct_type)
+    page.fill('#accountStartingBalance', balance)
+    if min_payment is not None:
+        page.fill('#accountMinimumPayment', min_payment)
+    page.click('#accountFormSubmit')
+    page.wait_for_selector(f'text={name}', timeout=10000)
+    return page.evaluate(f"() => window.app.accounts.find(a => a.name === {json.dumps(name)}).id")
+
+
+def _account_history(page, account_id):
+    return page.evaluate(f"() => window.app.getBalanceHistory({{ kind: 'account', id: {account_id} }})")
+
+
+@pytest.mark.feature
+def test_min_payment_field_visibility_follows_type(app_page):
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    group = page.locator('#accountMinimumPaymentGroup')
+    page.select_option('#accountType', label='Checking')
+    assert group.is_hidden()
+    page.select_option('#accountType', label='Credit Card')
+    assert group.is_visible()
+    page.select_option('#accountType', label='Loan')
+    assert group.is_visible()
+
+
+@pytest.mark.feature
+def test_credit_card_account_add_and_edit_record_history(app_page):
+    page = app_page
+    acct_id = _add_account(page, 'Amex', 'Credit Card', '-1200', '40')
+    assert page.evaluate(f"() => window.app.accounts.find(a => a.id === {acct_id}).minimumPayment") == 40
+    history = _account_history(page, acct_id)
+    assert len(history) == 1 and history[0]['balance'] == -1200 and history[0]['minimumPayment'] == 40
+
+    page.evaluate("() => { window.app.balanceHistory.forEach(h => { h.date = '2026-01-01'; }); }")
+    page.click(f'[data-account-action="edit"][data-account-id="{acct_id}"]')
+    page.fill(f'#ac-bal-{acct_id}', '-1000')
+    page.fill(f'#ac-minpay-{acct_id}', '35')
+    page.click(f'[data-account-action="save"][data-account-id="{acct_id}"]')
+    page.wait_for_function(f"() => window.app.balanceHistory.filter(h => h.accountId === {acct_id}).length === 2")
+    history = _account_history(page, acct_id)
+    assert (history[-1]['balance'], history[-1]['minimumPayment']) == (-1000, 35)
+    assert page.locator(f'[data-account-action="history"][data-account-id="{acct_id}"]').count() == 1
+
+
+@pytest.mark.feature
+def test_checking_account_records_nothing_and_has_no_history_button(app_page):
+    page = app_page
+    acct_id = _add_account(page, 'Everyday', 'Checking', '500')
+    assert _account_history(page, acct_id) == []
+    assert page.locator(f'[data-account-action="history"][data-account-id="{acct_id}"]').count() == 0
+
+
+@pytest.mark.feature
+def test_account_changed_to_credit_card_starts_recording(app_page):
+    page = app_page
+    acct_id = _add_account(page, 'Switcher', 'Checking', '0')
+    page.click(f'[data-account-action="edit"][data-account-id="{acct_id}"]')
+    page.select_option(f'#ac-type-{acct_id}', 'Credit Card')
+    assert page.locator(f'#ac-minpay-group-{acct_id}').is_visible()
+    page.fill(f'#ac-minpay-{acct_id}', '15')
+    page.click(f'[data-account-action="save"][data-account-id="{acct_id}"]')
+    page.wait_for_function(f"() => window.app.balanceHistory.some(h => h.accountId === {acct_id})")
+    assert _account_history(page, acct_id)[0]['minimumPayment'] == 15
+    assert page.locator(f'[data-account-action="history"][data-account-id="{acct_id}"]').count() == 1
+
+
+@pytest.mark.feature
+def test_deleting_account_removes_its_history(app_page):
+    page = app_page
+    acct_id = _add_account(page, 'Old Loan', 'Loan', '-500', '50')
+    assert len(_account_history(page, acct_id)) == 1
+    page.click(f'[data-account-action="delete"][data-account-id="{acct_id}"]')
+    page.click('#deleteConfirmBtn')
+    page.wait_for_function(f"() => !window.app.accounts.some(a => a.id === {acct_id})")
+    assert _account_history(page, acct_id) == []
