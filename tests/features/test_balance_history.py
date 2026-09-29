@@ -73,3 +73,103 @@ def test_clear_all_data_resets_history(app_page):
     }""")
     page.evaluate("() => import('/src/storage.js').then(m => m.clearAllData(window.app))")
     assert _history(page) == []
+
+
+def _debt_history(page, debt_id):
+    return page.evaluate(f"() => window.app.getBalanceHistory({{ kind: 'debt', id: {debt_id} }})")
+
+
+def _only_debt_id(page):
+    return page.evaluate("() => window.app.debts[0].id")
+
+
+@pytest.mark.feature
+def test_adding_debt_records_first_entry(app_page, debt_data):
+    page = app_page
+    create_debt(page, debt_data)
+    debt_id = _only_debt_id(page)
+    history = _debt_history(page, debt_id)
+    assert len(history) == 1
+    assert history[0]['balance'] == 2500 and history[0]['minimumPayment'] == 100
+
+
+@pytest.mark.feature
+def test_update_balance_same_day_updates_and_new_day_inserts(app_page, debt_data):
+    page = app_page
+    create_debt(page, debt_data)
+    debt_id = _only_debt_id(page)
+
+    page.evaluate(f"() => window.app.updateDebtBalance({debt_id}, 2300, 95)")
+    history = _debt_history(page, debt_id)
+    assert len(history) == 1 and history[0]['balance'] == 2300 and history[0]['minimumPayment'] == 95
+
+    # Backdate the existing entry so the next update lands on a new day.
+    page.evaluate("() => { window.app.balanceHistory[0].date = '2026-01-01'; }")
+    page.evaluate(f"() => window.app.updateDebtBalance({debt_id}, 2100, 90)")
+    history = _debt_history(page, debt_id)
+    assert [(h['balance'], h['minimumPayment']) for h in history] == [(2300, 95), (2100, 90)]
+
+
+@pytest.mark.feature
+def test_inline_edit_records_and_unchanged_save_does_not(app_page, debt_data):
+    page = app_page
+    create_debt(page, debt_data)
+    debt_id = _only_debt_id(page)
+    page.evaluate("() => { window.app.balanceHistory[0].date = '2026-01-01'; }")
+
+    # Save with no value change -> no new entry.
+    page.evaluate(f"() => window.app.startEdit({debt_id})")
+    page.evaluate(f"() => window.app.saveInlineEdit({debt_id})")
+    assert len(_debt_history(page, debt_id)) == 1
+
+    page.evaluate(f"() => window.app.startEdit({debt_id})")
+    page.fill(f'#inline-balance-{debt_id}', '1999')
+    page.evaluate(f"() => window.app.saveInlineEdit({debt_id})")
+    history = _debt_history(page, debt_id)
+    assert len(history) == 2 and history[-1]['balance'] == 1999
+
+
+@pytest.mark.feature
+def test_fixed_amount_change_is_recorded(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 42, name: 'Daycare', debtType: 'fixedAmount', fixedAmount: 900, minimumPayment: 900,
+                              fixedStartDate: '2026-01-01', fixedEndDate: '2027-01-01' }];
+        window.app.balanceHistory = [{ id: 1, debtId: 42, accountId: null, date: '2026-01-01', balance: null, minimumPayment: 900 }];
+        window.app.updateUI();
+    }""")
+    page.click('button[data-page="liabilities"]')
+    page.evaluate("() => window.app.startEdit(42)")
+    page.fill('#inline-fixed-amount-42', '950')
+    page.evaluate("() => window.app.saveInlineEdit(42)")
+    history = _debt_history(page, 42)
+    assert [(h['balance'], h['minimumPayment']) for h in history] == [(None, 900), (None, 950)]
+
+
+@pytest.mark.feature
+def test_original_balance_of_zero_is_preserved(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 43, name: 'New Card', debtType: 'creditCard', accountBalance: 0, originalBalance: 0,
+                              minimumPayment: 0, originalMinimumPayment: 0, interestRate: 20, dueDate: 1 }];
+        window.app.updateUI();
+    }""")
+    page.evaluate("() => window.app.updateDebtBalance(43, 300, 25)")
+    assert page.evaluate("() => window.app.debts[0].originalBalance") == 0
+
+
+@pytest.mark.feature
+def test_deleting_debt_removes_its_history(app_page, debt_data):
+    page = app_page
+    create_debt(page, debt_data)
+    debt_id = _only_debt_id(page)
+    page.evaluate("""() => {
+        window.app.balanceHistory.push({ id: 5, debtId: null, accountId: 777, date: '2026-01-01', balance: 1, minimumPayment: 1 });
+    }""")
+    page.click(f'[data-debt-action="delete"][data-debt-id="{debt_id}"]')
+    # showDeleteConfirmModal is an in-app modal (#deleteConfirmModal), not a native dialog.
+    page.click('#deleteConfirmBtn')
+    page.wait_for_function(f"() => !window.app.debts.some(d => d.id === {debt_id})")
+    history = _history(page)
+    assert all(h['debtId'] != debt_id for h in history)
+    assert any(h['accountId'] == 777 for h in history)

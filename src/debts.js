@@ -5,6 +5,7 @@ import { renderBreakEvenBadge } from './debtBreakEven.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showArchiveConfirmModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
+import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
 
 function utilizationStatus(pct) {
     if (pct <= 10) return { cls: 'health-status--green',  label: 'Good' };
@@ -100,6 +101,7 @@ export async function addDebt(app) {
         const saved = await pgPost(app, '/api/debts', debt);
         if (saved?.id) debt.id = saved.id;
     }
+    await recordBalanceHistory(app, { kind: 'debt', id: debt.id });
     recalculateIfConfigured(app);
     app.updateUI();
     app.cancelEdit();
@@ -110,6 +112,7 @@ export async function deleteDebt(app, debtId) {
     if (!confirmed) return;
 
     app.debts = app.debts.filter(d => d.id !== debtId);
+    removeHistoryForOwner(app, { kind: 'debt', id: debtId });
     if (app.editingDebtId === debtId) app.editingDebtId = null;
 
     app.saveToStorage();
@@ -210,11 +213,11 @@ export function showUpdateBalanceModal(app, debtId) {
     };
 }
 
-export function updateDebtBalance(app, debtId, newBalance, newMinPayment) {
+export async function updateDebtBalance(app, debtId, newBalance, newMinPayment) {
     const idx = app.debts.findIndex(d => Number(d.id) === Number(debtId));
     if (idx === -1) return;
 
-    if (!app.debts[idx].originalBalance) {
+    if (app.debts[idx].originalBalance == null) {
         app.debts[idx].originalBalance = app.debts[idx].accountBalance;
     }
     app.debts[idx].accountBalance = newBalance;
@@ -228,6 +231,7 @@ export function updateDebtBalance(app, debtId, newBalance, newMinPayment) {
     app.debts[idx].updatedAt = todayISO();
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${app.debts[idx].id}`, app.debts[idx]);
+    await recordBalanceHistory(app, { kind: 'debt', id: app.debts[idx].id });
     recalculateIfConfigured(app);
     app.renderDebtsList();
 }
@@ -271,6 +275,7 @@ export async function saveEdit(app) {
 
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${app.debts[idx].id}`, app.debts[idx]);
+    await recordBalanceHistory(app, { kind: 'debt', id: app.debts[idx].id });
     app.updateUI();
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
     const strategy = document.getElementById('paymentStrategy').value;
@@ -720,6 +725,7 @@ export async function saveInlineEdit(app, debtId) {
         debt.updatedAt = todayISO();
         app.saveToStorage();
         if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${debt.id}`, debt);
+        await recordBalanceHistory(app, { kind: 'debt', id: debt.id });
         app.editingDebtId = null;
         app.renderDebtsList();
         app.updateUI();
