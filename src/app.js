@@ -40,6 +40,12 @@ import { showPgMigrationModal } from './pgMigrationModal.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import { createStorageAdapter, getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import {
+    recordBalanceHistory as recordBalanceHistoryFeature,
+    getBalanceHistory as getBalanceHistoryFeature,
+    deleteBalanceHistoryEntry as deleteBalanceHistoryEntryFeature,
+    seedMissingBalanceHistory as seedMissingBalanceHistoryFeature
+} from './balanceHistory.js';
+import {
     renderIncomeList,
     addIncome,
     deleteIncome,
@@ -172,6 +178,7 @@ export class DebtTrackerApp {
         this.planHistory = [];
         this.retirementSnapshots = [];
         this.retirementTargetDate = null;
+        this.balanceHistory = [];
         this._retireBalanceChart = null;
         this._retireContributionChart = null;
         this._retireBreakdownChart = null;
@@ -254,6 +261,7 @@ export class DebtTrackerApp {
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
         this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
         backfillIncomeAccountIds(this);
+        await this.seedMissingBalanceHistory();
         initSettingsModalFeature(this);
         initDataTransferModal(this);
         initCalendarFeedModal(this);
@@ -976,6 +984,10 @@ export class DebtTrackerApp {
     getRetirementAccounts() { return getRetirementAccounts(this); }
     getSnapshotsForAccount(accountId) { return getSnapshotsForAccount(this, accountId); }
     addRetirementSnapshot(accountId, date, balance, contribution, annualSalary = null) { return addRetirementSnapshotFeature(this, accountId, date, balance, contribution, annualSalary); }
+    recordBalanceHistory(owner) { return recordBalanceHistoryFeature(this, owner); }
+    getBalanceHistory(owner) { return getBalanceHistoryFeature(this, owner); }
+    deleteBalanceHistoryEntry(id) { return deleteBalanceHistoryEntryFeature(this, id); }
+    seedMissingBalanceHistory() { return seedMissingBalanceHistoryFeature(this); }
     deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
     computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
     renderRetirementPage() { return renderRetirementPageFeature(this); }
