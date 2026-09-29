@@ -326,6 +326,7 @@ def test_delete_entry_requires_two_clicks_and_last_delete_shows_empty_state(app_
     btn.click()
     assert page.evaluate("() => window.app.balanceHistory.length") == 1
     assert btn.text_content() == 'Confirm'
+    assert btn.get_attribute('aria-label') == 'Confirm delete entry from 2026-01-01'
     btn.click()
     assert page.evaluate("() => window.app.balanceHistory.length") == 0
     assert page.locator('#balanceHistoryRows tr').count() == 0
@@ -342,3 +343,24 @@ def test_account_history_button_opens_modal(app_page):
     page.locator('#balanceHistoryModal').wait_for(state='visible')
     assert page.locator('#balanceHistoryName').text_content() == 'Mortgage'
     assert page.locator('#balanceHistoryRows tr').count() == 1
+
+
+@pytest.mark.feature
+def test_escape_defers_to_command_palette_when_both_open(app_page):
+    """Escape while the command palette is layered on top of the History
+    modal closes only the palette -- the History modal (opened first) must
+    stay open, since commandPalette.js owns its own Escape handling."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{ id: 70, name: 'Visa', debtType: 'creditCard', accountBalance: 500, minimumPayment: 25, interestRate: 20, dueDate: 1 }];
+        window.app.showBalanceHistoryModal({ kind: 'debt', id: 70 });
+    }""")
+    modal = page.locator('#balanceHistoryModal')
+    modal.wait_for(state='visible')
+
+    page.keyboard.press('Control+k')
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
+
+    page.keyboard.press('Escape')
+    assert not page.is_visible('#commandPaletteOverlay'), "Escape should close the layered command palette"
+    assert modal.is_visible(), "History modal should stay open when Escape closes a layered command palette"

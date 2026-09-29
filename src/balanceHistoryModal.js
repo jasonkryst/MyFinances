@@ -112,6 +112,7 @@ function renderHistoryRows(app, owner, entries, isFixed, minLabel) {
                 btn.textContent = 'Confirm';
                 btn.classList.remove('btn-secondary');
                 btn.classList.add('btn-danger');
+                btn.setAttribute('aria-label', `Confirm delete entry from ${entry.date}`);
                 return;
             }
             deleteBalanceHistoryEntry(app, entry.id);
@@ -146,15 +147,36 @@ export function showBalanceHistoryModal(app, owner) {
     // A prior open's keydown listener may still be registered on `document`
     // (e.g. History clicked again for another row before the first close) --
     // drop it before attaching a new one so Escape/Tab never double-fire.
-    if (modal._bhKeydownHandler) document.removeEventListener('keydown', modal._bhKeydownHandler);
+    // (Capture-phase, matching how it's (re-)added below.)
+    if (modal._bhKeydownHandler) document.removeEventListener('keydown', modal._bhKeydownHandler, true);
 
     const lastFocused = document.activeElement;
 
-    // Listens on `document`, not the modal element: right after opening, focus
-    // is still on the button that was clicked (outside the modal's subtree)
-    // until the setTimeout below lands it on the Close button, so a keydown
-    // listener scoped to the modal would miss an Escape pressed in that window.
+    // True when some other overlay (currently: the command palette) is showing
+    // on top of this modal. commandPalette.js has its own document-level
+    // Escape/Ctrl+K handler (bubble-phase), so this modal's listener must defer
+    // to it rather than also closing itself on the same keypress.
+    function anotherOverlayIsOnTop() {
+        const palette = document.getElementById('commandPaletteOverlay');
+        return !!(palette && !palette.classList.contains('hidden'));
+    }
+
+    // Listens on `document` in the CAPTURE phase, not the modal element:
+    // right after opening, focus is still on the button that was clicked
+    // (outside the modal's subtree) until the setTimeout below lands it on the
+    // Close button, so a bubble-phase listener scoped to the modal would miss
+    // an Escape pressed in that window. Capture (rather than bubble) also
+    // guarantees this runs *before* commandPalette.js's own bubble-phase
+    // document listener, so `anotherOverlayIsOnTop()` observes the palette's
+    // state prior to that handler reacting to the same keypress and closing it.
     function onKeydown(e) {
+        if (!modal.classList.contains('flex-visible')) return;
+        if (anotherOverlayIsOnTop()) return;
+        // Also defer when the key event's own target lives inside a different
+        // dialog than this one (covers overlays besides the command palette).
+        const targetDialog = e.target.closest && e.target.closest('[role="dialog"]');
+        if (targetDialog && targetDialog !== modal) return;
+
         if (e.key === 'Escape') { close(); return; }
         if (e.key === 'Tab') {
             const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
@@ -172,7 +194,7 @@ export function showBalanceHistoryModal(app, owner) {
     function close() {
         destroyHistoryChart(app);
         modal.classList.add('hidden'); modal.classList.remove('flex-visible');
-        document.removeEventListener('keydown', onKeydown);
+        document.removeEventListener('keydown', onKeydown, true);
         modal._bhKeydownHandler = null;
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     }
@@ -185,5 +207,5 @@ export function showBalanceHistoryModal(app, owner) {
     document.getElementById('balanceHistoryCloseBtn').onclick = close;
     modal.onclick = (e) => { if (e.target === modal) close(); };
     modal._bhKeydownHandler = onKeydown;
-    document.addEventListener('keydown', onKeydown);
+    document.addEventListener('keydown', onKeydown, true);
 }
