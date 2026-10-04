@@ -11,6 +11,7 @@ import {
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
+import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -42,7 +43,7 @@ const CATEGORIES = [
  * the given calendar month (year/month where month is 0-indexed).
  */
 export function getRecurringOccurrencesInMonth(template, year, month) {
-    if (!template || template.paused) return [];
+    if (!template || template.paused || template.archived) return [];
 
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
     if (Array.isArray(template.skippedMonths) && template.skippedMonths.includes(monthKey)) return [];
@@ -114,10 +115,19 @@ export function renderRecurringPage(app) {
     const container = document.getElementById('recurringList');
     if (!container) return;
 
-    const templates = app.recurringTemplates || [];
+    const allTemplates = app.recurringTemplates || [];
+    const showArchived = getSetting(app, SHOW_ARCHIVED_RECURRING, false);
 
-    if (templates.length === 0) {
+    const active = allTemplates.filter(t => !t.archived);
+    const archived = allTemplates.filter(t => t.archived);
+    const visible = showArchived ? allTemplates : active;
+
+    if (allTemplates.length === 0) {
         container.innerHTML = `<p class="recurring-empty-msg">No recurring templates yet. Add your first subscription, reimbursement, or transfer above.</p>`;
+        return;
+    }
+    if (active.length === 0 && !showArchived) {
+        container.innerHTML = `<p class="recurring-empty-msg">All recurring templates are archived. Enable "Show archived recurring templates" in Settings to see them.</p>`;
         return;
     }
 
@@ -126,14 +136,18 @@ export function renderRecurringPage(app) {
     const month = now.getMonth();
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
 
-    const cards = templates.map(t => {
+    const cards = visible.map(t => {
         if (app.editingRecurringId === t.id) {
             return _buildEditCard(app, t);
         }
         return _buildReadCard(app, t, year, month, monthKey);
     }).join('');
 
-    container.innerHTML = cards;
+    const archivedNote = (archived.length > 0 && !showArchived)
+        ? `<p class="recurring-archived-note">${archived.length} archived template${archived.length !== 1 ? 's' : ''} hidden — enable "Show archived recurring templates" in Settings to view them.</p>`
+        : '';
+
+    container.innerHTML = cards + archivedNote;
 
     container.onclick = async (event) => {
         const actionEl = event.target.closest('[data-recurring-action]');
@@ -157,6 +171,8 @@ export function renderRecurringPage(app) {
         else if (action === 'unskip') app.skipRecurringOccurrence(id, mk, true);
         else if (action === 'mark-paid') app.markRecurringPaid(id, mk, false);
         else if (action === 'unmark-paid') app.markRecurringPaid(id, mk, true);
+        else if (action === 'archive') app.archiveRecurringTemplate(id);
+        else if (action === 'unarchive') app.unarchiveRecurringTemplate(id);
     };
 }
 
@@ -203,7 +219,11 @@ function _buildReadCard(app, t, year, month, monthKey) {
         ? `<span class="recurring-this-month">This month: <strong>${sign}${formatCurrency(thisMonthTotal)}</strong> (${occurrences.length}×${nextDates ? ' on ' + nextDates : ''})</span>`
         : '';
 
-    return `<div class="recurring-card${t.paused ? ' recurring-card--paused' : ''}">
+    const archivedBadge = t.archived
+        ? `<span class="recurring-badge recurring-badge--archived">📦 Archived</span>`
+        : '';
+
+    return `<div class="recurring-card${t.paused ? ' recurring-card--paused' : ''}${t.archived ? ' recurring-card--archived' : ''}">
         <div class="recurring-card-header">
             <span class="recurring-type-icon">${typeIcon}</span>
             <div class="recurring-card-info">
@@ -222,25 +242,30 @@ function _buildReadCard(app, t, year, month, monthKey) {
             ${t.endDate ? `<span class="recurring-meta-item">🔚 Until ${escapeHtml(t.endDate)}</span>` : ''}
         </div>
         <div class="recurring-card-status">
-            ${statusBadge}
-            ${thisMonthLine}
+            ${archivedBadge}
+            ${t.archived ? '' : statusBadge}
+            ${t.archived ? '' : thisMonthLine}
         </div>
         <div class="recurring-card-actions">
-            <button class="btn btn-secondary btn-small" data-recurring-action="edit" data-recurring-id="${t.id}">Edit</button>
-            ${t.paused
-                ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}">▶ Resume</button>`
-                : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}">⏸ Pause</button>`}
-            ${(!t.paused && !isSkippedThisMonth && occurrences.length > 0)
-                ? (isPaidThisMonth
-                    ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unmark paid</button>`
-                    : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">✅ Mark as paid</button>`)
-                : ''}
-            ${isSkippedThisMonth
-                ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unskip</button>`
-                : !t.paused
-                    ? `<button class="btn btn-secondary btn-small" data-recurring-action="skip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">⏭ Skip month</button>`
-                    : ''}
-            <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}">Delete</button>
+            ${t.archived
+                ? `<button class="btn btn-secondary btn-small" data-recurring-action="unarchive" data-recurring-id="${t.id}">↩ Unarchive</button>
+                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}">Delete</button>`
+                : `<button class="btn btn-secondary btn-small" data-recurring-action="edit" data-recurring-id="${t.id}">Edit</button>
+                   ${t.paused
+                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}">▶ Resume</button>`
+                       : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}">⏸ Pause</button>`}
+                   ${(!t.paused && !isSkippedThisMonth && occurrences.length > 0)
+                       ? (isPaidThisMonth
+                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unmark paid</button>`
+                           : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">✅ Mark as paid</button>`)
+                       : ''}
+                   ${isSkippedThisMonth
+                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unskip</button>`
+                       : !t.paused
+                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="skip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">⏭ Skip month</button>`
+                           : ''}
+                   <button class="btn btn-secondary btn-small" data-recurring-action="archive" data-recurring-id="${t.id}">Archive</button>
+                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}">Delete</button>`}
         </div>
     </div>`;
 }
@@ -456,6 +481,24 @@ export async function saveEditRecurring(app, id) {
  * Populate a recurring template account selector with current app accounts.
  * Pass in the select element's id and optional current value.
  */
+export function archiveRecurringTemplate(app, id) {
+    const t = app.recurringTemplates?.find(x => x.id === id);
+    if (!t) return;
+    t.archived = true;
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, { archived: true });
+    app.renderRecurringPage();
+}
+
+export function unarchiveRecurringTemplate(app, id) {
+    const t = app.recurringTemplates?.find(x => x.id === id);
+    if (!t) return;
+    t.archived = false;
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, { archived: false });
+    app.renderRecurringPage();
+}
+
 export function refreshRecurringAccountSelectors(app) {
     const accountSelectors = [
         document.getElementById('recurringAccount'),

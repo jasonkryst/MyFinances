@@ -164,6 +164,7 @@ export function sanitizeRecurringTemplate(record, idFallback) {
         startDate: sanitizeDateISO(record?.startDate),
         endDate: sanitizeDateISO(record?.endDate),
         paused: Boolean(record?.paused),
+        archived: Boolean(record?.archived),
         skippedMonths,
         paidMonths
     };

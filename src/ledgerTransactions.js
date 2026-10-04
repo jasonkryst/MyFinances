@@ -172,7 +172,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
             }
         }
 
-        for (const tmpl of app.recurringTemplates || []) {
+        for (const tmpl of (app.recurringTemplates || []).filter(t => !t.archived)) {
             const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
             for (const occDate of occurrences) {
                 if (tmpl.type === 'reimbursement') {
