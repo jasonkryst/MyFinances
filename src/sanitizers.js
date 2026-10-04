@@ -25,7 +25,8 @@ export function sanitizeAccount(record, idFallback) {
         pensionContributionRatePct: sanitizeFiniteNumber(record?.pensionContributionRatePct, 0, { min: 0, max: 100 }),
         pensionVestingYears: sanitizeInteger(record?.pensionVestingYears, 0, { min: 0 }),
         pensionEstimatedMonthlyBenefit: sanitizeFiniteNumber(record?.pensionEstimatedMonthlyBenefit, 0, { min: 0 }),
-        pensionYearsOfService: sanitizeInteger(record?.pensionYearsOfService, 0, { min: 0 })
+        pensionYearsOfService: sanitizeInteger(record?.pensionYearsOfService, 0, { min: 0 }),
+        minimumPayment: sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 })
     };
 }
 
@@ -279,9 +280,28 @@ export function sanitizeRetirementSnapshot(record, idFallback) {
     };
 }
 
+// Exactly one of debtId / accountId must be set; returns null (filtered out
+// by callers, 400 on the server) otherwise. balance is null for Fixed Amount
+// debts and may be negative for Credit Card / Loan accounts.
+export function sanitizeBalanceHistoryEntry(record, idFallback) {
+    const debtId = sanitizeInteger(record?.debtId, null);
+    const accountId = sanitizeInteger(record?.accountId, null);
+    const date = sanitizeDateISO(record?.date);
+    if ((debtId === null) === (accountId === null) || !date) return null;
+    const rawBalance = record?.balance;
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        debtId,
+        accountId,
+        date,
+        balance: rawBalance === null || rawBalance === undefined || rawBalance === '' ? null : sanitizeFiniteNumber(rawBalance, null),
+        minimumPayment: sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 })
+    };
+}
+
 export function sanitizeParsedState(parsed = {}) {
     const now = Date.now();
-    return {
+    const state = {
         persons: (Array.isArray(parsed.persons) ? parsed.persons : []).map((p, i) => sanitizePerson(p, now + 7000 + i)).filter(p => !!p.name),
         debts: (Array.isArray(parsed.debts) ? parsed.debts : []).map((d, i) => sanitizeDebt(d, now + i)).filter(d => !!d.name),
         accounts: (Array.isArray(parsed.accounts) ? parsed.accounts : []).map((a, i) => sanitizeAccount(a, now + 500 + i)).filter(a => !!a.name),
@@ -311,6 +331,12 @@ export function sanitizeParsedState(parsed = {}) {
         planHistory: (Array.isArray(parsed.planHistory) ? parsed.planHistory : []).map((h, i) => sanitizePlanHistoryEntry(h, now + 6000 + i)).filter(h => h.monthlyPayment > 0 && !!h.strategy),
         retirementSnapshots: (Array.isArray(parsed.retirementSnapshots) ? parsed.retirementSnapshots : []).map((s, i) => sanitizeRetirementSnapshot(s, now + 6500 + i)).filter(s => s.accountId !== null),
         retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
-        settings: (Array.isArray(parsed.settings) ? parsed.settings : []).map(sanitizeSetting).filter(Boolean)
+        settings: (Array.isArray(parsed.settings) ? parsed.settings : []).map(sanitizeSetting).filter(Boolean),
+        balanceHistory: (Array.isArray(parsed.balanceHistory) ? parsed.balanceHistory : []).map((h, i) => sanitizeBalanceHistoryEntry(h, now + 8000 + i)).filter(Boolean)
     };
+    const debtIds = new Set(state.debts.map(d => d.id));
+    const accountIds = new Set(state.accounts.map(a => a.id));
+    state.balanceHistory = state.balanceHistory.filter(h =>
+        h.debtId !== null ? debtIds.has(h.debtId) : accountIds.has(h.accountId));
+    return state;
 }

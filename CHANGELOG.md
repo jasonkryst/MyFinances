@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.5.0] — 2026-10-04
+
+### Added
+- **Balance History** (issue #TBD) — every debt and every Credit Card / Loan account now records a dated history of balance and minimum payment. A **History** button appears on each debt row and eligible account card, opening a modal with a line chart of balance over time and an editable entry table (add, edit, delete entries). Balance and minimum payment are auto-recorded whenever a debt or account is added, edited, or the balance is updated; the first entry is seeded from the current `accountBalance` / `startingBalance` on load. Fixed-Amount debt entries store `balance: null` and record `minimumPayment = fixedAmount`.
+- **Account minimum payment field** — Credit Card and Loan accounts gain a **Minimum Payment** field (informational; does not affect forecasts or ledger calculations). Persisted across all three storage backends.
+- Postgres backend: `balance_history` table with `debt_id` / `account_id` cascading FKs and a `CHECK` constraint enforcing exactly one owner; `minimum_payment` column on `accounts`; `/api/balance-history` CRUD route.
+- Export/import: balance history round-trips through JSON export/import with owner-id remapping for all three backends (local, session, Postgres replace and merge modes).
+- Jest/Stryker unit-test coverage for `src/balanceHistoryCore.js` pure helpers.
+
 ## [6.4.0] — 2026-09-28
 
 ### Added

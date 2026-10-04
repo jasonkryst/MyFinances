@@ -57,7 +57,8 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
     sinkingFunds: '/api/sinking-funds',
     reconciliations: '/api/reconciliations',
     planHistory: '/api/plan-history',
-    retirementSnapshots: '/api/retirement-snapshots'
+    retirementSnapshots: '/api/retirement-snapshots',
+    balanceHistory: '/api/balance-history'
 };
 
 export async function loadFromPostgres(app) {
@@ -165,6 +166,7 @@ export function saveToStorage(app) {
             planHistory: app.planHistory || [],
             retirementSnapshots: app.retirementSnapshots || [],
             retirementTargetDate: app.retirementTargetDate || null,
+            balanceHistory: app.balanceHistory || [],
             settings: app.settings || [],
             monthlySnapshots: app.monthlySnapshots || [],
             netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
@@ -230,6 +232,7 @@ export function loadFromStorage(app) {
             app.planHistory = clean.planHistory;
             app.retirementSnapshots = clean.retirementSnapshots;
             app.retirementTargetDate = clean.retirementTargetDate;
+            app.balanceHistory = clean.balanceHistory;
             app.settings = clean.settings;
             app.monthlySnapshots = clean.monthlySnapshots;
             app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;
@@ -332,6 +335,7 @@ export function clearAllData(app, options = {}) {
     app.planHistory = [];
     app.retirementSnapshots = [];
     app.retirementTargetDate = null;
+    app.balanceHistory = [];
     app.settings = [];
 
     app.editingDebtId = null;

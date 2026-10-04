@@ -4,6 +4,8 @@ import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from 
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
+import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
+import { isHistoryTrackedAccount, HISTORY_TRACKED_ACCOUNT_TYPES } from './balanceHistoryCore.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', Retirement: '🏛️', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -20,6 +22,7 @@ export function updateAccountFormRetirementVisibility() {
     for (const id of ['accountPensionSalaryGroup', 'accountPensionContributionRateGroup', 'accountPensionVestingYearsGroup', 'accountPensionMonthlyBenefitGroup', 'accountPensionYearsOfServiceGroup']) {
         document.getElementById(id)?.classList.toggle('hidden', !isPension);
     }
+    document.getElementById('accountMinimumPaymentGroup')?.classList.toggle('hidden', !HISTORY_TRACKED_ACCOUNT_TYPES.includes(typeEl?.value));
 }
 
 export function refreshAccountSelectors(app) {
@@ -100,6 +103,10 @@ export function renderAccountsList(app) {
                     <div class="form-group form-no-margin">
                         <label class="label-compact">Interest Rate (% APY)</label>
                         <input type="number" id="ac-rate-${a.id}" value="${Number(a.interestRate) || 0}" step="0.01" min="0" max="100" class="form-full-width">
+                    </div>
+                    <div class="form-group form-no-margin ${isHistoryTrackedAccount(a) ? '' : 'hidden'}" id="ac-minpay-group-${a.id}">
+                        <label class="label-compact">Minimum Payment ($)</label>
+                        <input type="number" id="ac-minpay-${a.id}" value="${Number(a.minimumPayment) || 0}" step="0.01" min="0" class="form-full-width">
                     </div>
                     <div class="form-group form-no-margin ${a.type !== 'Retirement' ? 'hidden' : ''}">
                         <label class="label-compact">Retirement Subtype</label>
@@ -183,6 +190,7 @@ export function renderAccountsList(app) {
                     </div>
                 </div>
                 <div class="debt-actions">
+                    ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}">History</button>` : ''}
                     <button class="btn-edit" data-account-action="edit" data-account-id="${a.id}">Edit</button>
                     <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}">Delete</button>
                 </div>
@@ -205,6 +213,13 @@ export function renderAccountsList(app) {
         if (action === 'save') app.saveEditAccount(id);
         if (action === 'edit') app.startEditAccount(id);
         if (action === 'delete') app.deleteAccount(id);
+        if (action === 'history') app.showBalanceHistoryModal({ kind: 'account', id });
+    };
+    container.onchange = (event) => {
+        const typeSelect = event.target.closest('select[id^="ac-type-"]');
+        if (!typeSelect) return;
+        const id = typeSelect.id.slice('ac-type-'.length);
+        document.getElementById(`ac-minpay-group-${id}`)?.classList.toggle('hidden', !HISTORY_TRACKED_ACCOUNT_TYPES.includes(typeSelect.value));
     };
 }
 
@@ -221,17 +236,19 @@ export async function addAccount(app) {
     const pensionVestingYears = sanitizeFiniteNumber(document.getElementById('accountPensionVestingYears')?.value, 0, { min: 0 });
     const pensionEstimatedMonthlyBenefit = sanitizeFiniteNumber(document.getElementById('accountPensionMonthlyBenefit')?.value, 0, { min: 0 });
     const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById('accountPensionYearsOfService')?.value, 0, { min: 0 });
+    const minimumPayment = sanitizeFiniteNumber(document.getElementById('accountMinimumPayment')?.value, 0, { min: 0 });
 
     if (!name) { await showAlertModal('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { await showAlertModal('Please enter a starting balance (use 0 if unknown).'); return; }
 
-    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService };
+    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment };
     app.accounts.push(account);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
         const saved = await pgPost(app, '/api/accounts', account);
         if (saved?.id) account.id = saved.id;
     }
+    await recordBalanceHistory(app, { kind: 'account', id: account.id });
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
@@ -272,6 +289,7 @@ export async function deleteAccount(app, id) {
     }
 
     app.accounts = app.accounts.filter(a => a.id !== id);
+    removeHistoryForOwner(app, { kind: 'account', id });
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/accounts/${id}`);
     app.renderAccountsList();
@@ -317,12 +335,14 @@ export async function saveEditAccount(app, id) {
     const pensionVestingYears = sanitizeFiniteNumber(document.getElementById(`ac-pension-vesting-${id}`)?.value, 0, { min: 0 });
     const pensionEstimatedMonthlyBenefit = sanitizeFiniteNumber(document.getElementById(`ac-pension-benefit-${id}`)?.value, 0, { min: 0 });
     const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById(`ac-pension-service-${id}`)?.value, 0, { min: 0 });
+    const minimumPayment = sanitizeFiniteNumber(document.getElementById(`ac-minpay-${id}`)?.value, 0, { min: 0 });
     if (!name) { await showAlertModal('Please enter an account name.'); return; }
     if (isNaN(startingBalance)) { await showAlertModal('Please enter a valid starting balance.'); return; }
-    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService };
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment };
     app.editingAccountId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);
+    await recordBalanceHistory(app, { kind: 'account', id: app.accounts[idx].id });
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);

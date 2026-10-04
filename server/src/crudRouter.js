@@ -45,6 +45,9 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
     router.post('/', async (req, res, next) => {
         try {
             const clean = sanitize(req.body, Date.now());
+            if (!clean) {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Invalid payload' } });
+            }
             if (requiredFields.some(f => isMissing(clean[f]))) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${requiredFields[0]} is required` } });
             }
@@ -80,6 +83,9 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             }
             const merged = { ...rowToJson(existing.rows[0]), ...req.body };
             const clean = sanitize(merged, existing.rows[0].id);
+            if (!clean) {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Invalid payload' } });
+            }
             if (requiredFields.some(f => isMissing(clean[f]))) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${requiredFields[0]} is required` } });
             }

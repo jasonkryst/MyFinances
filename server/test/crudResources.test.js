@@ -117,6 +117,14 @@ export const cases = [
         updatedField: 'balance',
         updatedValue: 10500,
         invalidPayload: () => ({ date: '2026-01-01' })
+    },
+    {
+        path: '/api/balance-history',
+        validPayload: () => ({ accountId, date: '2026-01-01', balance: -500, minimumPayment: 25 }),
+        updatePayload: { balance: -450 },
+        updatedField: 'balance',
+        updatedValue: -450,
+        invalidPayload: () => ({ date: '2026-01-01' })
     }
 ];
 

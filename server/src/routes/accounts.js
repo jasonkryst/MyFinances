@@ -18,6 +18,7 @@ export default createCrudResource({
         pensionContributionRatePct: 'pension_contribution_rate_pct',
         pensionVestingYears: 'pension_vesting_years',
         pensionEstimatedMonthlyBenefit: 'pension_estimated_monthly_benefit',
-        pensionYearsOfService: 'pension_years_of_service'
+        pensionYearsOfService: 'pension_years_of_service',
+        minimumPayment: 'minimum_payment'
     }
 });

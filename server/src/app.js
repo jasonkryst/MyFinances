@@ -14,6 +14,7 @@ import sinkingFundsRouter from './routes/sinkingFunds.js';
 import reconciliationsRouter from './routes/reconciliations.js';
 import planHistoryRouter from './routes/planHistory.js';
 import retirementSnapshotsRouter from './routes/retirementSnapshots.js';
+import balanceHistoryRouter from './routes/balanceHistory.js';
 import netWorthSnapshotsRouter from './routes/netWorthSnapshots.js';
 import settingsRouter from './routes/settings.js';
 import ledgerOverridesRouter from './routes/ledgerOverrides.js';
@@ -56,6 +57,7 @@ export function createApp() {
     api.use('/reconciliations', reconciliationsRouter);
     api.use('/plan-history', planHistoryRouter);
     api.use('/retirement-snapshots', retirementSnapshotsRouter);
+    api.use('/balance-history', balanceHistoryRouter);
     api.use('/net-worth-snapshots', netWorthSnapshotsRouter);
     api.use('/settings', settingsRouter);
     api.use('/ledger-overrides', ledgerOverridesRouter);

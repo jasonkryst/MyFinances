@@ -434,7 +434,11 @@ export function getAccountForecastSeries(app, accountId, monthsAhead) {
 // Gather all transactions for the ledger
 export function getLedgerTransactions(app) {
     const today = new Date();
-    const accountMap = buildProjectedAccountTransactions(app, today.getFullYear(), today.getMonth(), 12);
+    // Start one month back so the ±7-day filter works at month boundaries
+    // (e.g. Oct 4: "5 days ago" = Sep 29 would otherwise be outside the window).
+    const prevMonth = today.getMonth() === 0 ? 11 : today.getMonth() - 1;
+    const prevYear  = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
+    const accountMap = buildProjectedAccountTransactions(app, prevYear, prevMonth, 13);
     const allTxs = [];
     const adjustsBalance = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
 

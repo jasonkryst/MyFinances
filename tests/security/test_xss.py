@@ -697,3 +697,24 @@ def test_xss_in_retirement_target_date_input_value(app_page):
     # no live <img> element was created by breaking out of the value attribute.
     injected_img_count = page.evaluate('() => document.querySelectorAll("#retirementSection img").length')
     assert injected_img_count == 0, "retirementTargetDate broke out of the input's value attribute and injected a live <img> element"
+
+
+@pytest.mark.security
+def test_xss_in_balance_history_modal_names(app_page):
+    """Debt and account names render inertly in the Balance History modal."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        const payload = '<img src=x onerror="window.__xss_bh=1">';
+        app.debts = [{ id: 9601, name: payload, debtType: 'creditCard', accountBalance: 10, minimumPayment: 1, interestRate: 1, dueDate: 1 }];
+        app.accounts = [{ id: 9602, name: payload, type: 'Loan', startingBalance: -10, minimumPayment: 1 }];
+        app.balanceHistory = [
+            { id: 1, debtId: 9601, accountId: null, date: '2026-01-01', balance: 10, minimumPayment: 1 },
+            { id: 2, debtId: null, accountId: 9602, date: '2026-01-01', balance: -10, minimumPayment: 1 }
+        ];
+        app.showBalanceHistoryModal({ kind: 'debt', id: 9601 });
+    }""")
+    assert page.locator('#balanceHistoryName').text_content().startswith('<img')
+    page.evaluate("() => window.app.showBalanceHistoryModal({ kind: 'account', id: 9602 })")
+    assert not page.evaluate('() => !!window.__xss_bh'), "XSS payload executed via balance history modal"
+    assert page.evaluate('() => document.querySelectorAll("#balanceHistoryModal img").length') == 0

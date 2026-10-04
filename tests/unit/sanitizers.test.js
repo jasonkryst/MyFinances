@@ -9,6 +9,8 @@ const {
     sanitizeLedgerOverrides,
     sanitizeLedgerClearedTransactions,
     sanitizeRetirementSnapshot,
+    sanitizeBalanceHistoryEntry,
+    sanitizeParsedState,
 } = require('../../src/sanitizers.js');
 
 describe('sanitizePerson', () => {
@@ -48,12 +50,12 @@ describe('sanitizePerson', () => {
 describe('sanitizeAccount', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizeAccount({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 }, 1);
-        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0 });
+        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0 });
     });
 
     test('applies fallbacks for an empty record', () => {
         const result = sanitizeAccount({}, 42);
-        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0 });
+        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0 });
     });
 
     test('strips markup from name and clamps interestRate to 100', () => {
@@ -287,5 +289,62 @@ describe('sanitizeRetirementSnapshot', () => {
     test('rejects a negative balance by clamping to 0', () => {
         const result = sanitizeRetirementSnapshot({ accountId: 1, date: '2026-01-01', balance: -500 }, 1);
         expect(result.balance).toBe(0);
+    });
+});
+
+describe('sanitizeAccount minimumPayment', () => {
+    test('defaults to 0 and clamps negatives', () => {
+        expect(sanitizeAccount({ name: 'Visa', type: 'Credit Card' }, 1).minimumPayment).toBe(0);
+        expect(sanitizeAccount({ name: 'Visa', minimumPayment: -5 }, 1).minimumPayment).toBe(0);
+        expect(sanitizeAccount({ name: 'Visa', minimumPayment: '35.5' }, 1).minimumPayment).toBe(35.5);
+    });
+});
+
+describe('sanitizeBalanceHistoryEntry', () => {
+    test('valid debt entry', () => {
+        expect(sanitizeBalanceHistoryEntry({ id: 3, debtId: '5', date: '2026-09-01', balance: '120.5', minimumPayment: 25 }, 9))
+            .toEqual({ id: 3, debtId: 5, accountId: null, date: '2026-09-01', balance: 120.5, minimumPayment: 25 });
+    });
+    test('valid account entry keeps negative balance', () => {
+        expect(sanitizeBalanceHistoryEntry({ accountId: 7, date: '2026-09-01', balance: -400, minimumPayment: 10 }, 9))
+            .toEqual({ id: 9, debtId: null, accountId: 7, date: '2026-09-01', balance: -400, minimumPayment: 10 });
+    });
+    test('null/absent balance stays null (fixed amount)', () => {
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5, date: '2026-09-01', balance: null, minimumPayment: 800 }, 9).balance).toBeNull();
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5, date: '2026-09-01', minimumPayment: 800 }, 9).balance).toBeNull();
+    });
+    test('non-numeric balance becomes null', () => {
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5, date: '2026-09-01', balance: 'abc' }, 9).balance).toBeNull();
+    });
+    test('minimumPayment defaults to 0 and clamps negatives', () => {
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5, date: '2026-09-01' }, 9).minimumPayment).toBe(0);
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5, date: '2026-09-01', minimumPayment: -1 }, 9).minimumPayment).toBe(0);
+    });
+    test('rejects both owners, neither owner, and missing/invalid date', () => {
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5, accountId: 7, date: '2026-09-01' }, 9)).toBeNull();
+        expect(sanitizeBalanceHistoryEntry({ date: '2026-09-01' }, 9)).toBeNull();
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5 }, 9)).toBeNull();
+        expect(sanitizeBalanceHistoryEntry({ debtId: 5, date: 'not-a-date' }, 9)).toBeNull();
+        expect(sanitizeBalanceHistoryEntry(null, 9)).toBeNull();
+    });
+});
+
+describe('sanitizeParsedState balanceHistory', () => {
+    test('keeps entries whose owner exists and drops orphans', () => {
+        const state = sanitizeParsedState({
+            debts: [{ id: 1, name: 'Visa' }],
+            accounts: [{ id: 7, name: 'Loan', type: 'Loan' }],
+            balanceHistory: [
+                { id: 1, debtId: 1, date: '2026-09-01', balance: 10, minimumPayment: 1 },
+                { id: 2, accountId: 7, date: '2026-09-01', balance: -10, minimumPayment: 1 },
+                { id: 3, debtId: 99, date: '2026-09-01', balance: 10, minimumPayment: 1 },
+                { id: 4, accountId: 98, date: '2026-09-01', balance: 10, minimumPayment: 1 },
+                { id: 5, date: '2026-09-01' }
+            ]
+        });
+        expect(state.balanceHistory.map(h => h.id)).toEqual([1, 2]);
+    });
+    test('missing balanceHistory yields empty array', () => {
+        expect(sanitizeParsedState({}).balanceHistory).toEqual([]);
     });
 });
