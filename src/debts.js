@@ -300,6 +300,32 @@ export function cancelEdit(app) {
     if (typeof window.closeDebtForm === 'function') window.closeDebtForm();
 }
 
+// Returns 0–1 payoff progress for a debt, or null if not calculable.
+// Credit cards: (limit - balance) / limit. Fixed-amount: elapsed/total time.
+// Other installment loans: null (no original balance stored) → sort to bottom.
+function _debtPayoffProgress(debt) {
+    if (debt.debtType === 'fixedAmount') {
+        const start = new Date(debt.fixedStartDate + 'T12:00:00');
+        const end = new Date(debt.fixedEndDate + 'T12:00:00');
+        const total = end - start;
+        if (!total || total <= 0) return null;
+        const elapsed = Math.max(0, Math.min(Date.now() - start, total));
+        return elapsed / total;
+    }
+    if (debt.creditLimit && debt.creditLimit > 0) {
+        return Math.max(0, (debt.creditLimit - (debt.accountBalance || 0)) / debt.creditLimit);
+    }
+    return null;
+}
+
+// Returns utilization 0–N for a debt, or null if no credit limit.
+function _debtUtilization(debt) {
+    if (debt.creditLimit && debt.creditLimit > 0) {
+        return (debt.accountBalance || 0) / debt.creditLimit;
+    }
+    return null;
+}
+
 /**
  * Render the Debts page list.
  */
@@ -394,9 +420,33 @@ export function renderDebtsList(app) {
         }
     }
 
+    // Populate account filter dropdown
+    const accountFilter = document.getElementById('debtAccountFilter');
+    if (accountFilter) {
+        const prevAcct = accountFilter.value;
+        accountFilter.innerHTML = '<option value="">All</option>';
+        const linkedAccounts = Array.from(new Set(
+            (showArchived ? app.debts : app.debts.filter(d => !d.archived))
+                .map(d => d.accountId).filter(Boolean)
+        ));
+        linkedAccounts.forEach(id => {
+            const acct = app.accounts?.find(a => a.id === id);
+            if (!acct) return;
+            const opt = document.createElement('option');
+            opt.value = String(id);
+            opt.textContent = acct.name;
+            accountFilter.appendChild(opt);
+        });
+        if (linkedAccounts.map(String).includes(prevAcct)) accountFilter.value = prevAcct;
+    }
+
     let filteredDebts = showArchived ? app.debts : app.debts.filter(d => !d.archived);
     if (categoryFilter && categoryFilter.value) {
         filteredDebts = filteredDebts.filter(d => d.category === categoryFilter.value);
+    }
+
+    if (accountFilter && accountFilter.value) {
+        filteredDebts = filteredDebts.filter(d => String(d.accountId) === accountFilter.value);
     }
 
     const interestFilter = document.getElementById('debtInterestFilter');
@@ -404,6 +454,69 @@ export function renderDebtsList(app) {
         filteredDebts = filteredDebts.filter(d => (d.interestRate || 0) > 0);
     } else if (interestFilter && interestFilter.value === 'noInterest') {
         filteredDebts = filteredDebts.filter(d => !((d.interestRate || 0) > 0));
+    }
+
+    const progressFilter = document.getElementById('debtProgressFilter');
+    if (progressFilter && progressFilter.value) {
+        filteredDebts = filteredDebts.filter(d => {
+            const pct = _debtPayoffProgress(d);
+            if (pct === null) return false;
+            if (progressFilter.value === 'inprogress') return pct > 0 && pct < 1;
+            if (progressFilter.value === 'half') return pct >= 0.5;
+            if (progressFilter.value === 'most') return pct >= 0.75;
+            if (progressFilter.value === 'paid') return pct >= 1;
+            return true;
+        });
+    }
+
+    const utilizationFilter = document.getElementById('debtUtilizationFilter');
+    if (utilizationFilter && utilizationFilter.value) {
+        filteredDebts = filteredDebts.filter(d => {
+            const util = _debtUtilization(d);
+            if (util === null) return false;
+            if (utilizationFilter.value === 'low') return util < 0.30;
+            if (utilizationFilter.value === 'medium') return util >= 0.30 && util <= 0.70;
+            if (utilizationFilter.value === 'high') return util > 0.70;
+            return true;
+        });
+    }
+
+    const sortBy = document.getElementById('debtSortBy')?.value || '';
+    if (sortBy) {
+        filteredDebts = [...filteredDebts].sort((a, b) => {
+            if (sortBy === 'balance-desc' || sortBy === 'balance-asc') {
+                const va = a.debtType === 'fixedAmount' ? (a.fixedAmount || 0) : (a.accountBalance || 0);
+                const vb = b.debtType === 'fixedAmount' ? (b.fixedAmount || 0) : (b.accountBalance || 0);
+                return sortBy === 'balance-desc' ? vb - va : va - vb;
+            }
+            if (sortBy === 'interest-desc' || sortBy === 'interest-asc') {
+                const va = a.interestRate || 0, vb = b.interestRate || 0;
+                return sortBy === 'interest-desc' ? vb - va : va - vb;
+            }
+            if (sortBy === 'minpay-desc' || sortBy === 'minpay-asc') {
+                const va = a.minimumPayment || 0, vb = b.minimumPayment || 0;
+                return sortBy === 'minpay-desc' ? vb - va : va - vb;
+            }
+            if (sortBy === 'progress-desc' || sortBy === 'progress-asc') {
+                const va = _debtPayoffProgress(a), vb = _debtPayoffProgress(b);
+                if (va === null && vb === null) return 0;
+                if (va === null) return 1;
+                if (vb === null) return -1;
+                return sortBy === 'progress-desc' ? vb - va : va - vb;
+            }
+            if (sortBy === 'utilization-desc' || sortBy === 'utilization-asc') {
+                const va = _debtUtilization(a), vb = _debtUtilization(b);
+                if (va === null && vb === null) return 0;
+                if (va === null) return 1;
+                if (vb === null) return -1;
+                return sortBy === 'utilization-desc' ? vb - va : va - vb;
+            }
+            if (sortBy === 'due-asc') {
+                const va = a.dueDate || 32, vb = b.dueDate || 32;
+                return va - vb;
+            }
+            return 0;
+        });
     }
 
     for (const debt of filteredDebts) {
