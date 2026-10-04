@@ -1290,6 +1290,81 @@ body.dark-mode .header-icon-btn:hover {
 /* Keep old class names harmless if referenced elsewhere */
 .header-toolbar-btn { display: none; }
 
+/* ── Account menu dropdown ───────────────────────────────────────────────── */
+.account-menu-wrap {
+    position: relative;
+}
+.account-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 200px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 1000;
+    overflow: hidden;
+}
+.account-menu-header {
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: #6b7280;
+    font-weight: 500;
+    word-break: break-all;
+}
+.account-menu-divider {
+    height: 1px;
+    background: #f3f4f6;
+    margin: 2px 0;
+}
+.account-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 9px 14px;
+    border: none;
+    background: none;
+    color: #374151;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.account-menu-item:hover {
+    background: #f9fafb;
+}
+.account-menu-item--logout {
+    color: #dc2626;
+}
+.account-menu-item--logout:hover {
+    background: #fff5f5;
+}
+body.dark-mode .account-menu-dropdown {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+body.dark-mode .account-menu-header {
+    color: #94a3b8;
+}
+body.dark-mode .account-menu-divider {
+    background: #334155;
+}
+body.dark-mode .account-menu-item {
+    color: #e2e8f0;
+}
+body.dark-mode .account-menu-item:hover {
+    background: #273447;
+}
+body.dark-mode .account-menu-item--logout {
+    color: #f87171;
+}
+body.dark-mode .account-menu-item--logout:hover {
+    background: #2d1515;
+}
+
 body.dark-mode .top-nav {
     background: rgba(0,0,0,0.30);
     border-top-color: rgba(255,255,255,0.08);

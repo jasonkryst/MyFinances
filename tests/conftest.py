@@ -220,7 +220,7 @@ def open_settings(page):
     """Open the Settings modal (#71: theme, storage backend, and language
     all live here now) and wait for it to be visible before interacting
     with any control inside it."""
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
 
 
@@ -234,7 +234,7 @@ def open_data_transfer(page):
     """Open the Backup & Restore modal (#exportJsonBtn/#importJsonBtn live
     here now) and wait for it to be visible before interacting with any
     control inside it."""
-    page.click('#dataTransferBtn')
+    page.evaluate("() => document.getElementById('dataTransferBtn').click()")
     page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
 
 

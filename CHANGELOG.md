@@ -6,6 +6,8 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ## [6.5.3] — 2026-10-04
 
+### Changed
+- **Account menu** (issue #221) — the toolbar's Backup & Restore and Settings buttons are now consolidated into an Account menu (person icon, top right). The dropdown shows the logged-in email (display-only, Postgres mode only), Backup & Restore, Settings, and a Sign Out button (Postgres mode only). The Calendar feed button remains in the toolbar. Existing keyboard/command-palette shortcuts for Settings and Backup & Restore still work.
 ### Added
 - **Recurring template archiving** (issue #222) — recurring templates can now be archived via an **Archive** button on each card. Archived templates are excluded from the ledger, calendar feed, and occurrence calculations everywhere (the same behavior as archived debts). A **Show archived** toggle in Settings makes archived templates visible on the Recurring page with a muted appearance and an **Unarchive** button. The archived count is shown as a note below the active list. The `archived` flag is persisted through all storage backends (local, session, Postgres).
 

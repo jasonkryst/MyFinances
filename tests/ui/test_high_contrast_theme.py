@@ -195,10 +195,10 @@ def test_high_contrast_focus_visible_outline_is_bold(app_page):
     page.locator('#settingsModal').press('Escape')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
-    page.focus('#dataTransferBtn')
+    page.focus('#accountMenuBtn')
     outline = page.evaluate("""
         () => {
-            const s = getComputedStyle(document.getElementById('dataTransferBtn'));
+            const s = getComputedStyle(document.getElementById('accountMenuBtn'));
             return { style: s.outlineStyle, width: s.outlineWidth };
         }
     """)

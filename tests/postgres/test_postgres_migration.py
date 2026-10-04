@@ -1,4 +1,4 @@
-﻿"""
+"""
 Postgres Phase 2c migration integration tests.
 
 Tests local-to-Postgres data migration UX and the one-way lock.
@@ -295,7 +295,7 @@ async def test_settings_select_hidden_when_on_postgres(pg_page, base_url, creden
     """Storage select is hidden and lock note is visible in Settings when on Postgres."""
     await _login_with_local_data(pg_page, base_url, credentials, local_data=None)
     await _wait_for_app_ready(pg_page)
-    await pg_page.click("#settingsBtn")
+    await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.locator("#settingsModal").wait_for(state="visible", timeout=5000)
 
     assert not await pg_page.locator("#settingStorageBackend").is_visible(), \
@@ -343,7 +343,7 @@ async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, creden
             timeout=15000,
         )
 
-        await page.click("#settingsBtn")
+        await page.evaluate("() => document.getElementById('settingsBtn').click()")
         await page.locator("#settingsModal").wait_for(state="visible", timeout=5000)
         await page.select_option("#settingStorageBackend", "postgres")
         await page.click("#settingsModalDoneBtn")

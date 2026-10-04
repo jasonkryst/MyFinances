@@ -351,7 +351,7 @@ async def test_plan_history_persists_and_restores(pg_page, base_url, credentials
 async def test_setting_persists(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
-    await pg_page.click('#settingsBtn')
+    await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
     checkbox = pg_page.locator('#settingReconciliationAdjusts')
     initial_state = await checkbox.is_checked()
@@ -365,7 +365,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
         await pg_page.click('#settingsModalDoneBtn')
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
-    await pg_page.click('#settingsBtn')
+    await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
     new_state = await pg_page.locator('#settingReconciliationAdjusts').is_checked()
     assert new_state != initial_state, f'Setting not persisted after reload. Console: {logs}'
