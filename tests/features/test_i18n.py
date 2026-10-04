@@ -30,7 +30,7 @@ def test_settings_modal_has_language_selector_with_three_options(app_page):
     """The Settings modal exposes a language <select> with en/es/pl options."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
 
     values = page.eval_on_selector_all(
@@ -48,7 +48,7 @@ def test_switching_to_spanish_translates_nav_and_persists(app_page):
     and persists debtTrackerLocale to localStorage."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingLocale', 'es')
     page.click('#settingsModalDoneBtn')
@@ -67,7 +67,7 @@ def test_switching_to_polish_translates_nav_and_persists(app_page):
     and persists debtTrackerLocale to localStorage."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingLocale', 'pl')
     page.click('#settingsModalDoneBtn')
@@ -182,7 +182,7 @@ def test_settings_modal_postgres_storage_option_translates(app_page):
     page = app_page
 
     page.evaluate("() => window.app.setLocale('es')")
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
 
     option_text = page.inner_text('#settingStorageBackend option[value="postgres"]')

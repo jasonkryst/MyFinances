@@ -324,7 +324,7 @@ def collect_audit_findings(headless=True):
         # It now lives inside the Settings modal (#71), so it must be opened
         # before the select is interactable, and closed again afterward so
         # it doesn't sit open over the rest of the audit.
-        page.click("#settingsBtn")
+        page.evaluate("() => document.getElementById('settingsBtn').click()")
         page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
         page.select_option("#themeSwitcher", "dark")
         page.wait_for_timeout(150)
@@ -339,7 +339,7 @@ def collect_audit_findings(headless=True):
             # above the 4.5:1 threshold; see a11y audit report Finding F1).
             page.wait_for_timeout(350)
             results["dark_mode_contrast"][name] = page.evaluate(JS_CONTRAST)
-        page.click("#settingsBtn")
+        page.evaluate("() => document.getElementById('settingsBtn').click()")
         page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
         page.select_option("#themeSwitcher", "light")  # back to light
         page.wait_for_timeout(150)

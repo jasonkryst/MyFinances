@@ -1,4 +1,4 @@
-﻿import re
+import re
 import pytest
 from playwright.async_api import async_playwright, expect
 
@@ -137,7 +137,7 @@ async def test_settings_postgres_option_reloads_to_gate(base_url, bypass_postgre
         await page.goto(base_url)
         await page.wait_for_selector('#topNav', state='visible', timeout=8000)
 
-        await page.click('#settingsBtn')
+        await page.evaluate("() => document.getElementById('settingsBtn').click()")
         await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
 
         await page.select_option('#settingStorageBackend', 'postgres')

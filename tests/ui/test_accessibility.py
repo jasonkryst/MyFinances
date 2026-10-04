@@ -395,14 +395,15 @@ def test_reports_print_button_has_accessible_label(app_page):
 
 @pytest.mark.ui
 def test_settings_button_has_accessible_label(app_page):
-    """The gear toolbar button must be reachable via keyboard and announce
-    its purpose via aria-label, matching the other header-icon-btn controls."""
+    """The account menu button in the toolbar must be reachable via keyboard
+    and announce its purpose via aria-label (#221: settings now accessed via
+    account menu; legacy #settingsBtn kept as a hidden proxy)."""
     page = app_page
 
-    btn = page.query_selector('#settingsBtn')
-    assert btn, "Expected a #settingsBtn gear toolbar button"
+    btn = page.query_selector('#accountMenuBtn')
+    assert btn, "Expected a #accountMenuBtn toolbar button"
     aria_label = btn.get_attribute('aria-label')
-    assert aria_label, "Settings button should have an aria-label"
+    assert aria_label, "Account menu button should have an aria-label"
     assert btn.get_attribute('tabindex') != '-1'
 
 
@@ -411,7 +412,7 @@ def test_settings_modal_focus_and_keyboard_trap(app_page):
     """Opening the Settings modal focuses the checkbox; Escape closes it."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.wait_for_function(
         "() => document.activeElement && document.activeElement.id === 'settingReconciliationAdjusts'",

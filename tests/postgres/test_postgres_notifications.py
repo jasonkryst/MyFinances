@@ -66,7 +66,7 @@ async def test_send_test_email_button_hidden_for_non_postgres_backend(base_url, 
         page = await ctx.new_page()
         await page.goto(base_url)
         await page.wait_for_selector('#topNav', state='visible', timeout=8000)
-        await page.click('#settingsBtn')
+        await page.evaluate("() => document.getElementById('settingsBtn').click()")
         await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
         assert not await page.locator('#settingsEmailTestGroup').is_visible()
         await browser.close()
@@ -76,7 +76,7 @@ async def test_send_test_email_delivers_to_mailpit(pg_page, base_url, credential
     await _clear_mailpit(pg_page)
     await _login(pg_page, base_url, credentials)
 
-    await pg_page.click('#settingsBtn')
+    await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
 
     group = pg_page.locator('#settingsEmailTestGroup')

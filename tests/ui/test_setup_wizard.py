@@ -176,7 +176,7 @@ def test_settings_button_opens_settings_modal(app_page):
     page = app_page
 
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
 
     checked = page.evaluate("""() => document.getElementById('settingReconciliationAdjusts').checked""")
@@ -189,7 +189,7 @@ def test_settings_modal_save_updates_setting(app_page):
     page = app_page
 
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', false); }""")
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
 
     checkbox = page.query_selector('#settingReconciliationAdjusts')
@@ -212,7 +212,7 @@ def test_settings_modal_escape_closes_without_losing_unsaved_choice_state(app_pa
     pattern used by the reconcile/ledger-override modals)."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     # The modal's Escape handler is wired on the modal element itself, so the
     # keydown only bubbles through it once focus has actually moved inside
@@ -252,7 +252,7 @@ def test_settings_modal_shows_current_storage_backend(app_page):
     """Opening Settings reflects the active storage backend in the select."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
 
     value = page.evaluate("() => document.getElementById('settingStorageBackend').value")
@@ -270,7 +270,7 @@ def test_settings_modal_switching_backend_migrates_on_done(app_page):
         window.app.saveToStorage();
     }""")
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingStorageBackend', 'session')
     page.click('#settingsModalDoneBtn')
@@ -294,7 +294,7 @@ def test_settings_modal_escape_does_not_switch_backend(app_page):
     reconciliation-checkbox discard-on-escape behavior."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.wait_for_function(
         "() => document.activeElement && document.activeElement.id === 'settingReconciliationAdjusts'",
@@ -313,7 +313,7 @@ def test_settings_postgres_switch_shows_confirm_modal(app_page):
     instead of a browser dialog — the modal must be visible with both buttons."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingStorageBackend', 'postgres')
     page.click('#settingsModalDoneBtn')
@@ -334,7 +334,7 @@ def test_settings_postgres_switch_cancel_closes_modal_and_keeps_backend(app_page
     the active backend unchanged."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingStorageBackend', 'postgres')
     page.click('#settingsModalDoneBtn')
@@ -358,7 +358,7 @@ def test_settings_postgres_switch_escape_closes_modal_and_keeps_backend(app_page
     the active backend unchanged."""
     page = app_page
 
-    page.click('#settingsBtn')
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.select_option('#settingStorageBackend', 'postgres')
     page.click('#settingsModalDoneBtn')

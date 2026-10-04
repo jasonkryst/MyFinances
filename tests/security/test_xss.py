@@ -149,7 +149,7 @@ async def test_malicious_json_import(async_app_page):
     
     try:
         # Open the Backup & Restore modal, switch to Import, upload file
-        await page.click('#dataTransferBtn')
+        await page.evaluate("() => document.getElementById('dataTransferBtn').click()")
         await page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
         await page.click('[data-dt-tab="import"]')
         await page.click('#importJsonBtn')
