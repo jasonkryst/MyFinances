@@ -20,6 +20,22 @@ function buildCommands(app) {
         nav('savings', 'Savings', '💰'),
         nav('strategy', 'Plan', '🎯'),
         nav('reports', 'Reports', '📈'),
+        {
+            label: 'Reports — Calendar',
+            hint: 'Go to page',
+            icon: '📅',
+            run: () => {
+                document.querySelectorAll('.rpt-tab-btn').forEach(b => {
+                    const active = b.getAttribute('data-rptab') === 'calendar';
+                    b.classList.toggle('rpt-tab-btn--active', active);
+                    b.setAttribute('aria-selected', String(active));
+                });
+                document.querySelectorAll('.rpt-tab-panel').forEach(p => {
+                    p.classList.toggle('rpt-tab-panel--active', p.id === 'rptPanel-calendar');
+                });
+                app.switchPage('reports');
+            }
+        },
         nav('ledger', 'Ledger', '📒'),
         nav('reconcile', 'Reconcile', '🔄'),
         nav('retirement', 'Retirement', '🏛️'),

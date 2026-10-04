@@ -1,4 +1,5 @@
 import pytest
+from tests.conftest import assert_no_errors
 
 
 def _go_to_reports(page):
@@ -161,3 +162,105 @@ def test_group_separators_are_hidden_on_mobile(app_page):
         f"Expected all separators display:none on mobile, got: {sep_display}"
 
     page.set_viewport_size({'width': 1280, 'height': 800})
+
+
+# ─── Issue #233: Calendar shortcut button + command palette ───────────────────
+
+@pytest.mark.ui
+def test_reports_calendar_shortcut_btn_exists_in_toolbar(app_page):
+    """#reportsCalendarShortcutBtn is visible in the toolbar (issue #233)."""
+    page = app_page
+    assert page.is_visible('#reportsCalendarShortcutBtn'), \
+        "#reportsCalendarShortcutBtn should be visible in the toolbar"
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_reports_calendar_shortcut_btn_navigates_to_reports(app_page):
+    """Clicking the toolbar shortcut navigates to Reports with the Calendar sub-tab active."""
+    page = app_page
+    # Start on a different page to verify navigation
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    page.click('#reportsCalendarShortcutBtn')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
+
+    calendar_active = page.evaluate(
+        '() => document.querySelector("[data-rptab=\'calendar\']").classList.contains("rpt-tab-btn--active")'
+    )
+    assert calendar_active, "Calendar sub-tab should be active after clicking the shortcut"
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_reports_calendar_shortcut_forces_calendar_tab_from_other_subtab(app_page):
+    """Shortcut button forces Calendar sub-tab even if a different sub-tab was last active."""
+    page = app_page
+    # Go to Reports and switch to a non-Calendar sub-tab
+    _go_to_reports(page)
+    page.click('[data-rptab="networth"]')
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
+
+    # Navigate away
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    # Use the shortcut — should land on Calendar, not Net Worth
+    page.click('#reportsCalendarShortcutBtn')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
+
+    calendar_active = page.evaluate(
+        '() => document.querySelector("[data-rptab=\'calendar\']").classList.contains("rpt-tab-btn--active")'
+    )
+    assert calendar_active, "Calendar tab should be forced active by the shortcut button"
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_command_palette_has_reports_calendar_entry(app_page):
+    """Command palette contains a 'Reports — Calendar' entry (issue #233)."""
+    page = app_page
+    page.keyboard.press('Control+k')
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=3000)
+
+    has_entry = page.evaluate("""() => {
+        const items = document.querySelectorAll('.cmdpal-item-label');
+        return Array.from(items).some(el => el.textContent.includes('Reports') && el.textContent.includes('Calendar'));
+    }""")
+    assert has_entry, "'Reports — Calendar' entry not found in command palette"
+
+    page.keyboard.press('Escape')
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_command_palette_reports_calendar_navigates(app_page):
+    """Selecting 'Reports — Calendar' in the command palette navigates to Reports with Calendar active."""
+    page = app_page
+    # Start on a different page
+    page.click('button[data-page="savings"]')
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
+
+    page.keyboard.press('Control+k')
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=3000)
+    page.fill('#commandPaletteInput', 'Reports — Calendar')
+    page.wait_for_function(
+        """() => {
+            const items = document.querySelectorAll('.cmdpal-item-label');
+            return Array.from(items).some(el => el.textContent.includes('Reports') && el.textContent.includes('Calendar'));
+        }""",
+        timeout=2000
+    )
+    page.keyboard.press('Enter')
+
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
+
+    calendar_active = page.evaluate(
+        '() => document.querySelector("[data-rptab=\'calendar\']").classList.contains("rpt-tab-btn--active")'
+    )
+    assert calendar_active, "Calendar sub-tab should be active after command palette jump"
+    assert_no_errors(page)
