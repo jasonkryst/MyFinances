@@ -153,21 +153,23 @@ export function renderAccountsList(app) {
         const projBalance = app.computeAccountBalance(a.id);
         const balClass = projBalance >= 0 ? 'acct-balance--pos' : 'acct-balance--neg';
 
-        // Items linked to this account
-        const linkedIncome  = app.incomes.filter(i => i.accountId === a.id);
-        const linkedBonuses = app.bonuses.filter(b => b.accountId === a.id);
-        const linkedDebts   = app.debts.filter(d => d.accountId === a.id);
-        const linkedBills   = app.bills.filter(b => b.accountId === a.id);
-        const linkedExp     = app.expenses.filter(e => e.accountId === a.id);
-        const hasLinks = linkedIncome.length || linkedBonuses.length || linkedDebts.length || linkedBills.length || linkedExp.length;
+        // Items linked to this account — shown as grouped count chips, not per-item pills
+        const linkedIncomeCount   = app.incomes.filter(i => i.accountId === a.id).length
+                                  + app.bonuses.filter(b => b.accountId === a.id).length;
+        const linkedDebtCount     = app.debts.filter(d => d.accountId === a.id).length;
+        const linkedBillCount     = app.bills.filter(b => b.accountId === a.id).length;
+        const linkedExpCount      = app.expenses.filter(e => e.accountId === a.id).length;
+        const linkedRecurringCount = (app.recurringTemplates || []).filter(r => r.accountId === a.id || r.targetAccountId === a.id).length;
+        const typeGroups = [
+            { label: 'Income',    count: linkedIncomeCount,    page: 'income',      cls: 'acct-link--income'    },
+            { label: 'Debts',     count: linkedDebtCount,      page: 'liabilities', cls: 'acct-link--debt'      },
+            { label: 'Budget',    count: linkedBillCount + linkedExpCount, page: 'liabilities', cls: 'acct-link--bill' },
+            { label: 'Recurring', count: linkedRecurringCount, page: 'recurring',   cls: 'acct-link--recurring' },
+        ].filter(g => g.count > 0);
 
-        const linkRows = !hasLinks ? '' : `
+        const linkRows = typeGroups.length === 0 ? '' : `
             <div class="acct-links">
-                ${linkedIncome.map(i  => `<span class="acct-link acct-link--income">💰 ${escapeHtml(i.name)}</span>`).join('')}
-                ${linkedBonuses.map(b => `<span class="acct-link acct-link--bonus">🎁 ${escapeHtml(b.name)}</span>`).join('')}
-                ${linkedDebts.map(d   => `<span class="acct-link acct-link--debt">💳 ${escapeHtml(d.name)}</span>`).join('')}
-                ${linkedBills.map(b   => `<span class="acct-link acct-link--bill">🧾 ${escapeHtml(b.name)}</span>`).join('')}
-                ${linkedExp.map(e     => `<span class="acct-link acct-link--exp">💸 ${escapeHtml(e.name)}</span>`).join('')}
+                ${typeGroups.map(g => `<button class="acct-link ${escapeHtml(g.cls)} acct-link--nav" data-account-nav-page="${escapeHtml(g.page)}" title="Go to ${escapeHtml(g.label)}">${escapeHtml(g.label)} (${g.count})</button>`).join('')}
             </div>`;
 
         return `<div class="acct-card">
@@ -201,6 +203,11 @@ export function renderAccountsList(app) {
 
     container.innerHTML = cards;
     container.onclick = (event) => {
+        const navChip = event.target.closest('[data-account-nav-page]');
+        if (navChip) {
+            app.switchPage(navChip.getAttribute('data-account-nav-page'));
+            return;
+        }
         const actionEl = event.target.closest('[data-account-action]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-account-action');

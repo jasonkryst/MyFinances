@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.5.2] — 2026-10-04
+
+### Changed
+- **Account linked-item chips** (issue #223) — account cards now show grouped count chips ("Income (2)", "Debts (1)", etc.) instead of one pill per item name. Recurring templates are now included (previously missing from the display). Each chip is clickable and navigates to the corresponding page. The chip set includes: Income (income + bonuses), Debts, Budget (bills + expenses), and Recurring. Accounts with no linked items show nothing.
+
 ## [6.5.1] — 2026-10-04
 
 ### Fixed

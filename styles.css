@@ -5496,16 +5496,20 @@ body.dark-mode .acct-balance--neg { color: #f87171; }
     border-radius: 20px;
     white-space: nowrap;
 }
-.acct-link--income  { background: #d1fae5; color: #065f46; }
-.acct-link--bonus   { background: #fef3c7; color: #92400e; }
-.acct-link--debt    { background: #fee2e2; color: #7f1d1d; }
-.acct-link--bill    { background: #fffbeb; color: #78350f; }
-.acct-link--exp     { background: #f5f3ff; color: #4c1d95; }
-body.dark-mode .acct-link--income  { background: #064e3b; color: #6ee7b7; }
-body.dark-mode .acct-link--bonus   { background: #451a03; color: #fcd34d; }
-body.dark-mode .acct-link--debt    { background: #450a0a; color: #fca5a5; }
-body.dark-mode .acct-link--bill    { background: #1c1400; color: #fcd34d; }
-body.dark-mode .acct-link--exp     { background: #1e1b4b; color: #c4b5fd; }
+.acct-link--income    { background: #d1fae5; color: #065f46; }
+.acct-link--bonus     { background: #fef3c7; color: #92400e; }
+.acct-link--debt      { background: #fee2e2; color: #7f1d1d; }
+.acct-link--bill      { background: #fffbeb; color: #78350f; }
+.acct-link--exp       { background: #f5f3ff; color: #4c1d95; }
+.acct-link--recurring { background: #e0f2fe; color: #0c4a6e; }
+.acct-link--nav { cursor: pointer; border: none; }
+.acct-link--nav:hover { filter: brightness(0.92); }
+body.dark-mode .acct-link--income    { background: #064e3b; color: #6ee7b7; }
+body.dark-mode .acct-link--bonus     { background: #451a03; color: #fcd34d; }
+body.dark-mode .acct-link--debt      { background: #450a0a; color: #fca5a5; }
+body.dark-mode .acct-link--bill      { background: #1c1400; color: #fcd34d; }
+body.dark-mode .acct-link--exp       { background: #1e1b4b; color: #c4b5fd; }
+body.dark-mode .acct-link--recurring { background: #082f49; color: #7dd3fc; }
 /* ── Account replacement modal ─────────────────────────────────────────── */
 .account-replacement-links {
     margin: 0.5rem 0 1rem;
