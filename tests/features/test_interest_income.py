@@ -79,7 +79,7 @@ def test_interest_compounds_month_over_month(app_page):
     _seed_account(page, rate=12, balance=1000)
 
     txs = _interest_txs(page)
-    assert len(txs) == 12, f"Expected 12 monthly interest txs, got {len(txs)}"
+    assert len(txs) == 13, f"Expected 13 monthly interest txs, got {len(txs)}"
     assert abs(txs[0]["amount"] - 10.00) < 0.001
     assert abs(txs[1]["amount"] - 10.10) < 0.001, \
         f"Month 2 should compound on $1,010 -> $10.10, got {txs[1]['amount']}"
@@ -98,10 +98,12 @@ def test_interest_transaction_id_is_deterministic(app_page):
             .filter(t => t.type === 'interest')
             .sort((a, b) => new Date(a.date) - new Date(b.date));
         const now = new Date();
-        const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        const y = last.getFullYear();
-        const m = String(last.getMonth() + 1).padStart(2, '0');
-        const d = String(last.getDate()).padStart(2, '0');
+        // getLedgerTransactions starts one month back, so the first interest tx
+        // is on the last day of the previous month.
+        const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        const y = prevMonthEnd.getFullYear();
+        const m = String(prevMonthEnd.getMonth() + 1).padStart(2, '0');
+        const d = String(prevMonthEnd.getDate()).padStart(2, '0');
         return { actual: txs[0].transactionId, expected: `interest|1|1|${y}-${m}-${d}` };
     }""")
 
@@ -173,7 +175,7 @@ def test_interest_only_after_balance_turns_positive(app_page):
 
     txs = _interest_txs(page)
     # Month 1 balance: -500 + 2000 = 1500 -> positive, earns 1% = $15.00
-    assert len(txs) == 12
+    assert len(txs) == 13
     assert abs(txs[0]["amount"] - 15.00) < 0.001, \
         f"Expected $15.00 on recovered balance, got {txs[0]['amount']}"
 
