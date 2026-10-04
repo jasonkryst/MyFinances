@@ -17,12 +17,37 @@ export function renderExpenseList(app) {
     const container = document.getElementById('expenseList');
     if (!container) return;
     const EXP_CATS = ['Subscription','Insurance','Rent / Mortgage','Utilities','Transport','Food','Entertainment','Health','Education','Savings','Transfer','Reimbursement','Other'];
-    if (app.expenses.length === 0) {
-        container.innerHTML = `<p class="empty-budget-msg">No expense budgets added yet.</p>`;
+
+    const offset = app._expenseMonthOffset ?? 0;
+    const now = new Date();
+    const base = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const targetYear = base.getFullYear();
+    const targetMonth = base.getMonth(); // 0-indexed
+    const monthLabel = base.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+    const filtered = app.expenses.filter(exp => {
+        if (!exp.date) return false;
+        if (exp.date instanceof Date) return exp.date.getFullYear() === targetYear && exp.date.getMonth() === targetMonth;
+        const parts = String(exp.date).split('-');
+        return parseInt(parts[0], 10) === targetYear && parseInt(parts[1], 10) - 1 === targetMonth;
+    });
+
+    const navHtml = `<div class="expense-month-nav">
+        <button class="btn btn-secondary btn-small" data-expense-month-nav="prev" aria-label="Previous month">&#8249;</button>
+        <span class="expense-month-label">${escapeHtml(monthLabel)}</span>
+        <button class="btn btn-secondary btn-small" data-expense-month-nav="next" aria-label="Next month">&#8250;</button>
+    </div>`;
+
+    if (filtered.length === 0) {
+        container.innerHTML = navHtml + `<p class="empty-budget-msg">No expenses for ${escapeHtml(monthLabel)}.</p>`;
+        container.onclick = (event) => {
+            const nav = event.target.closest('[data-expense-month-nav]');
+            if (nav) { app._expenseMonthOffset = (app._expenseMonthOffset ?? 0) + (nav.dataset.expenseMonthNav === 'prev' ? -1 : 1); app.renderBudgetPage(); }
+        };
         return;
     }
 
-    const cards = app.expenses.map(exp => {
+    const cards = filtered.map(exp => {
         if (app.editingExpenseId === exp.id) {
             return `<div class="budget-card budget-card--editing">
                 <div class="budget-edit-grid">
@@ -61,33 +86,39 @@ export function renderExpenseList(app) {
     }).join('');
 
     const catMap = {};
-    for (const exp of app.expenses) {
+    for (const exp of filtered) {
         const cat = exp.category || 'Other';
         if (!catMap[cat]) catMap[cat] = { count: 0, total: 0 };
         catMap[cat].count++;
         catMap[cat].total += exp.budgetAmount;
     }
-    const totalExp = app.expenses.reduce((s, e) => s + e.budgetAmount, 0);
+    const totalExp = filtered.reduce((s, e) => s + e.budgetAmount, 0);
     const catRows = Object.entries(catMap)
         .sort((a, b) => b[1].total - a[1].total)
         .map(([cat, v]) => `
             <div class="budget-cat-row budget-cat-row--expense">
                 <span class="budget-cat-name">${escapeHtml(cat)}</span>
                 <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
-                <span class="budget-cat-amount">${formatCurrency(v.total)}/mo</span>
+                <span class="budget-cat-amount">${formatCurrency(v.total)}</span>
             </div>`).join('');
 
     const summaryHTML = `
         <div class="budget-cat-summary budget-cat-summary--expense">
             <div class="budget-cat-summary-header">
                 <span>Expenses by Category</span>
-                <span class="budget-cat-summary-total">${formatCurrency(totalExp)}/mo total</span>
+                <span class="budget-cat-summary-total">${formatCurrency(totalExp)} total</span>
             </div>
             ${catRows}
         </div>`;
 
-    container.innerHTML = cards + summaryHTML;
+    container.innerHTML = navHtml + cards + summaryHTML;
     container.onclick = (event) => {
+        const nav = event.target.closest('[data-expense-month-nav]');
+        if (nav) {
+            app._expenseMonthOffset = (app._expenseMonthOffset ?? 0) + (nav.dataset.expenseMonthNav === 'prev' ? -1 : 1);
+            app.renderBudgetPage();
+            return;
+        }
         const actionEl = event.target.closest('[data-expense-action]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-expense-action');
@@ -108,9 +139,20 @@ export function renderCashFlowSummary(app) {
     if (!el) return;
 
     const now = new Date();
+    const offset = app._expenseMonthOffset ?? 0;
+    const base = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const targetYear = base.getFullYear();
+    const targetMonth = base.getMonth();
+    const filteredExpenses = app.expenses.filter(exp => {
+        if (!exp.date) return false;
+        if (exp.date instanceof Date) return exp.date.getFullYear() === targetYear && exp.date.getMonth() === targetMonth;
+        const parts = String(exp.date).split('-');
+        return parseInt(parts[0], 10) === targetYear && parseInt(parts[1], 10) - 1 === targetMonth;
+    });
+
     const { monthlyTotal: monthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
     const totalBills = app.bills.reduce((s, b) => s + b.amount, 0);
-    const totalExpenses = app.expenses.reduce((s, e) => s + e.budgetAmount, 0);
+    const totalExpenses = filteredExpenses.reduce((s, e) => s + e.budgetAmount, 0);
     const totalDebtMin = app.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
     const totalOutflow = totalBills + totalExpenses + totalDebtMin;
     const net = monthlyIncome - totalOutflow;
@@ -141,7 +183,7 @@ export function renderCashFlowSummary(app) {
     let expCatRows = '';
     if (totalExpenses > 0) {
         const expCats = {};
-        for (const e of app.expenses) {
+        for (const e of filteredExpenses) {
             const cat = e.category || 'Other';
             expCats[cat] = (expCats[cat] || 0) + e.budgetAmount;
         }
@@ -213,13 +255,13 @@ export function renderCashFlowSummary(app) {
             btn.classList.add('cashflow-tab--active');
             el.querySelector(`#cashflowPanel${btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)}`).classList.add('cashflow-tab-panel--active');
             if (btn.dataset.tab === 'charts') {
-                renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBills, totalExpenses, net);
+                renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBills, totalExpenses, net, filteredExpenses);
             }
         });
     });
 }
 
-export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBills, totalExpenses, net) {
+export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBills, totalExpenses, net, filteredExpenses) {
     const donutCanvas = document.getElementById('cashflowDonutChart');
     if (donutCanvas) {
         if (app._cashflowDonutChart) { app._cashflowDonutChart.destroy(); app._cashflowDonutChart = null; }
@@ -269,7 +311,7 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
             .forEach(([cat, amt]) => { labels.push(cat); values.push(amt); colors.push('#f59e0b'); });
 
         const expCats = {};
-        for (const e of app.expenses) { const c = e.category || 'Other'; expCats[c] = (expCats[c] || 0) + e.budgetAmount; }
+        for (const e of (filteredExpenses ?? app.expenses)) { const c = e.category || 'Other'; expCats[c] = (expCats[c] || 0) + e.budgetAmount; }
         Object.entries(expCats).sort((a, b) => b[1] - a[1])
             .forEach(([cat, amt]) => { labels.push(cat); values.push(amt); colors.push('#8b5cf6'); });
 

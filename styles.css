@@ -4183,6 +4183,18 @@ body.dark-mode .budget-card-meta { color: #94a3b8; }
     gap: 8px;
     justify-content: flex-end;
 }
+.expense-month-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.expense-month-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-width: 130px;
+    text-align: center;
+}
 .empty-budget-msg {
     color: #9ca3af;
     font-style: italic;

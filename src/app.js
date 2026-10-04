@@ -196,6 +196,7 @@ export class DebtTrackerApp {
         this.editingRecurringId = null;
         this.savingsSubTab = 'emergency';
         this._reportMonthOffset = 0;
+        this._expenseMonthOffset = 0;
             this.liabilitiesSubTab = 'debts';
         this._savedMonthlyPayment = null;
         this._savedStrategy = null;
