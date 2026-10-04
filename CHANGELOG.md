@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.6.0] — 2026-10-04
+
+### Added
+- **Sort and filter controls** (issue #219) — all three list pages now have sort/filter toolbars:
+  - **Liabilities (Debts)**: Sort by Balance, Interest Rate, Min Payment, Payoff Progress, Utilization, or Due Soonest. Filter by Category, Account, Interest type, Payoff Progress, and Utilization. Debts where progress/utilization cannot be calculated (no credit limit or original balance) sort to the bottom.
+  - **Recurring**: Sort by Amount or Due Soonest (day of month). Filter by Category, Account, and Month (shows only templates with at least one occurrence in the selected month).
+  - **Accounts**: Sort by Name, Type, Balance (projected), or APY. Filter by Type.
+  - All controls are in-page DOM selects — no persistence, resets naturally on page reload.
+
 ## [6.5.3] — 2026-10-04
 
 ### Changed

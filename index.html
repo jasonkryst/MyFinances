@@ -267,6 +267,32 @@
                     </form>
                 </div>
 
+                <!-- Account list controls -->
+                <div class="debts-toolbar-filter accounts-toolbar-filter">
+                    <label for="accountSortBy" class="category-filter-label">Sort:</label>
+                    <select id="accountSortBy" class="category-filter">
+                        <option value="">Default</option>
+                        <option value="name-asc">Name A–Z</option>
+                        <option value="name-desc">Name Z–A</option>
+                        <option value="type-asc">Type A–Z</option>
+                        <option value="balance-desc">Balance ↓</option>
+                        <option value="balance-asc">Balance ↑</option>
+                        <option value="apy-desc">APY ↓</option>
+                        <option value="apy-asc">APY ↑</option>
+                    </select>
+                    <label for="accountTypeFilter" class="category-filter-label">Type:</label>
+                    <select id="accountTypeFilter" class="category-filter">
+                        <option value="">All</option>
+                        <option value="Checking">Checking</option>
+                        <option value="Savings">Savings</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Investment">Investment</option>
+                        <option value="Retirement">Retirement</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Loan">Loan</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
                 <!-- Account list -->
                 <div id="accountList"></div>
             </section>
@@ -425,15 +451,49 @@
                                     <div class="debts-list-header">
                                         <h2>Your Debts</h2>
                                         <div class="debts-toolbar-filter">
-                                            <label for="categoryFilter" class="category-filter-label">Filter:</label>
+                                            <label for="debtSortBy" class="category-filter-label">Sort:</label>
+                                            <select id="debtSortBy" class="category-filter">
+                                                <option value="">Default</option>
+                                                <option value="balance-desc">Balance ↓</option>
+                                                <option value="balance-asc">Balance ↑</option>
+                                                <option value="interest-desc">Interest Rate ↓</option>
+                                                <option value="interest-asc">Interest Rate ↑</option>
+                                                <option value="minpay-desc">Min Payment ↓</option>
+                                                <option value="minpay-asc">Min Payment ↑</option>
+                                                <option value="progress-desc">Payoff Progress ↓</option>
+                                                <option value="progress-asc">Payoff Progress ↑</option>
+                                                <option value="utilization-desc">Utilization ↓</option>
+                                                <option value="utilization-asc">Utilization ↑</option>
+                                                <option value="due-asc">Due Soonest</option>
+                                            </select>
+                                            <label for="categoryFilter" class="category-filter-label">Category:</label>
                                             <select id="categoryFilter" class="category-filter">
-                                                <option value="">All categories</option>
+                                                <option value="">All</option>
+                                            </select>
+                                            <label for="debtAccountFilter" class="category-filter-label">Account:</label>
+                                            <select id="debtAccountFilter" class="category-filter">
+                                                <option value="">All</option>
                                             </select>
                                             <label for="debtInterestFilter" class="category-filter-label">Interest:</label>
                                             <select id="debtInterestFilter" class="category-filter">
                                                 <option value="">Any</option>
-                                                <option value="interestBearing">Interest Bearing Only</option>
-                                                <option value="noInterest">No Interest Only</option>
+                                                <option value="interestBearing">Interest Bearing</option>
+                                                <option value="noInterest">No Interest</option>
+                                            </select>
+                                            <label for="debtProgressFilter" class="category-filter-label">Progress:</label>
+                                            <select id="debtProgressFilter" class="category-filter">
+                                                <option value="">Any</option>
+                                                <option value="inprogress">In Progress</option>
+                                                <option value="half">≥50% Paid</option>
+                                                <option value="most">≥75% Paid</option>
+                                                <option value="paid">Paid Off</option>
+                                            </select>
+                                            <label for="debtUtilizationFilter" class="category-filter-label">Utilization:</label>
+                                            <select id="debtUtilizationFilter" class="category-filter">
+                                                <option value="">Any</option>
+                                                <option value="low">Low (&lt;30%)</option>
+                                                <option value="medium">Medium (30–70%)</option>
+                                                <option value="high">High (&gt;70%)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1051,6 +1111,30 @@
                     </div>
                 </div>
 
+                <!-- Template List controls -->
+                <div class="debts-toolbar-filter recurring-toolbar-filter">
+                    <label for="recurringSortBy" class="category-filter-label">Sort:</label>
+                    <select id="recurringSortBy" class="category-filter">
+                        <option value="">Default</option>
+                        <option value="amount-desc">Amount ↓</option>
+                        <option value="amount-asc">Amount ↑</option>
+                        <option value="due-asc">Due Soonest</option>
+                        <option value="due-desc">Due Latest</option>
+                        <option value="name-asc">Name A–Z</option>
+                    </select>
+                    <label for="recurringCategoryFilter" class="category-filter-label">Category:</label>
+                    <select id="recurringCategoryFilter" class="category-filter">
+                        <option value="">All</option>
+                    </select>
+                    <label for="recurringAccountFilter" class="category-filter-label">Account:</label>
+                    <select id="recurringAccountFilter" class="category-filter">
+                        <option value="">All</option>
+                    </select>
+                    <label for="recurringMonthFilter" class="category-filter-label">Month:</label>
+                    <select id="recurringMonthFilter" class="category-filter">
+                        <option value="">Any</option>
+                    </select>
+                </div>
                 <!-- Template List -->
                 <div id="recurringList" class="recurring-list"></div>
             </section>

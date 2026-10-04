@@ -82,7 +82,31 @@ export function renderAccountsList(app) {
     const now = new Date();
     const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-    const cards = app.accounts.map(a => {
+    // Apply type filter
+    const typeFilter = document.getElementById('accountTypeFilter')?.value || '';
+    let displayAccounts = typeFilter
+        ? app.accounts.filter(a => a.type === typeFilter)
+        : app.accounts.slice();
+
+    // Apply sort
+    const sortBy = document.getElementById('accountSortBy')?.value || '';
+    if (sortBy) {
+        displayAccounts = [...displayAccounts].sort((a, b) => {
+            if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
+            if (sortBy === 'name-desc') return (b.name || '').localeCompare(a.name || '');
+            if (sortBy === 'type-asc') return (a.type || '').localeCompare(b.type || '');
+            if (sortBy === 'balance-desc' || sortBy === 'balance-asc') {
+                const va = app.computeAccountBalance(a.id);
+                const vb = app.computeAccountBalance(b.id);
+                return sortBy === 'balance-desc' ? vb - va : va - vb;
+            }
+            if (sortBy === 'apy-desc') return (b.interestRate || 0) - (a.interestRate || 0);
+            if (sortBy === 'apy-asc') return (a.interestRate || 0) - (b.interestRate || 0);
+            return 0;
+        });
+    }
+
+    const cards = displayAccounts.map(a => {
         if (app.editingAccountId === a.id) {
             return `<div class="acct-card acct-card--editing">
                 <div class="acct-edit-grid">

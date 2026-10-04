@@ -136,7 +136,85 @@ export function renderRecurringPage(app) {
     const month = now.getMonth();
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
 
-    const cards = visible.map(t => {
+    // Populate category filter
+    const catFilter = document.getElementById('recurringCategoryFilter');
+    if (catFilter) {
+        const prevCat = catFilter.value;
+        catFilter.innerHTML = '<option value="">All</option>';
+        const cats = Array.from(new Set(allTemplates.map(t => t.category).filter(Boolean))).sort();
+        cats.forEach(c => {
+            const o = document.createElement('option');
+            o.value = c; o.textContent = c;
+            catFilter.appendChild(o);
+        });
+        if (cats.includes(prevCat)) catFilter.value = prevCat;
+    }
+
+    // Populate account filter
+    const acctFilter = document.getElementById('recurringAccountFilter');
+    if (acctFilter) {
+        const prevAcct = acctFilter.value;
+        acctFilter.innerHTML = '<option value="">All</option>';
+        const acctIds = Array.from(new Set(allTemplates.flatMap(t => [t.accountId, t.targetAccountId].filter(Boolean))));
+        acctIds.forEach(id => {
+            const a = app.accounts?.find(a => a.id === id);
+            if (!a) return;
+            const o = document.createElement('option');
+            o.value = String(id); o.textContent = a.name;
+            acctFilter.appendChild(o);
+        });
+        if (acctIds.map(String).includes(prevAcct)) acctFilter.value = prevAcct;
+    }
+
+    // Populate month filter (current month + next 11 months)
+    const monthFilterEl = document.getElementById('recurringMonthFilter');
+    if (monthFilterEl) {
+        const prevMonth = monthFilterEl.value;
+        monthFilterEl.innerHTML = '<option value="">Any</option>';
+        for (let d = 0; d < 12; d++) {
+            const ref = new Date(year, month + d, 1);
+            const ky = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`;
+            const label = ref.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            const o = document.createElement('option');
+            o.value = ky; o.textContent = label;
+            monthFilterEl.appendChild(o);
+        }
+        if (monthFilterEl.querySelector(`option[value="${prevMonth}"]`)) monthFilterEl.value = prevMonth;
+    }
+
+    // Apply filters
+    let displayTemplates = visible.slice();
+    if (catFilter && catFilter.value) {
+        displayTemplates = displayTemplates.filter(t => t.category === catFilter.value);
+    }
+    if (acctFilter && acctFilter.value) {
+        displayTemplates = displayTemplates.filter(t =>
+            String(t.accountId) === acctFilter.value || String(t.targetAccountId) === acctFilter.value
+        );
+    }
+    if (monthFilterEl && monthFilterEl.value) {
+        const [fy, fm] = monthFilterEl.value.split('-').map(Number);
+        displayTemplates = displayTemplates.filter(t =>
+            t.archived || getRecurringOccurrencesInMonth(t, fy, fm - 1).length > 0
+        );
+    }
+
+    // Apply sort
+    const sortBy = document.getElementById('recurringSortBy')?.value || '';
+    if (sortBy) {
+        displayTemplates = [...displayTemplates].sort((a, b) => {
+            if (sortBy === 'amount-desc') return (b.amount || 0) - (a.amount || 0);
+            if (sortBy === 'amount-asc') return (a.amount || 0) - (b.amount || 0);
+            if (sortBy === 'due-asc' || sortBy === 'due-desc') {
+                const va = a.dayOfMonth || 32, vb = b.dayOfMonth || 32;
+                return sortBy === 'due-asc' ? va - vb : vb - va;
+            }
+            if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
+            return 0;
+        });
+    }
+
+    const cards = displayTemplates.map(t => {
         if (app.editingRecurringId === t.id) {
             return _buildEditCard(app, t);
         }

@@ -2429,6 +2429,11 @@ body.dark-mode .debt-form-toggle--open {
     display: flex;
     align-items: center;
     gap: 4px;
+    flex-wrap: wrap;
+}
+.recurring-toolbar-filter,
+.accounts-toolbar-filter {
+    margin-bottom: 12px;
 }
 
 .debts-toolbar-actions {

@@ -138,6 +138,18 @@ export function initializeEventListeners(app) {
         debtInterestFilter.addEventListener('change', () => app.renderDebtsList());
     }
 
+    ['debtSortBy', 'debtAccountFilter', 'debtProgressFilter', 'debtUtilizationFilter'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', () => app.renderDebtsList());
+    });
+
+    ['recurringSortBy', 'recurringCategoryFilter', 'recurringAccountFilter', 'recurringMonthFilter'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', () => app.renderRecurringPage());
+    });
+
+    ['accountSortBy', 'accountTypeFilter'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', () => app.renderAccountsList());
+    });
+
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => app.cancelEdit());
