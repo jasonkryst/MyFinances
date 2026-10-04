@@ -634,6 +634,7 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     if (pageName === 'liabilities') {
         // Render both debts and expenses
         app.renderDebtsList();
+        if (resetToDefaults) app._expenseMonthOffset = 0;
         app.renderBudgetPage();
         refreshAccountSelectors(app);
         refreshPersonSelectors(app);

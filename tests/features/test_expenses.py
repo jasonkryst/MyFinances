@@ -3,6 +3,8 @@
 Expense Tracking Tests
 """
 
+from datetime import date
+
 import pytest
 
 from tests.conftest import assert_no_errors
@@ -130,7 +132,7 @@ def test_delete_expense(app_page, expense_data):
 
     assert page.query_selector('#expenseList .budget-card') is None, "Expense card should be removed"
     empty_msg = page.text_content('#expenseList')
-    assert "No expense budgets added yet" in empty_msg
+    assert "No expenses for" in empty_msg
 
     assert_no_errors(page)
 
@@ -277,5 +279,115 @@ def test_monthly_category_total_calculation(app_page, expense_data):
 
     grand_total_text = page.text_content('.budget-cat-summary-header')
     assert "450.00" in grand_total_text, "Overall total should also reflect the sum"
+
+    assert_no_errors(page)
+
+
+# ── Month scoping tests (issue #220) ────────────────────────────────────────
+
+@pytest.mark.feature
+def test_expense_month_navigator_visible(app_page, expense_data):
+    """The month navigator (prev/next buttons and label) is visible on the expenses tab."""
+    page = app_page
+
+    _add_expense(page, expense_data)
+
+    nav = page.query_selector('.expense-month-nav')
+    assert nav, "Month navigator should be rendered"
+    label = page.text_content('.expense-month-label')
+    today = date.today()
+    assert str(today.year) in label, "Navigator label should show the current year"
+
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_expense_scoped_to_current_month_by_default(app_page, expense_data):
+    """An expense dated in the current month is visible in the default view."""
+    page = app_page
+
+    _add_expense(page, expense_data)  # date = current month 15th
+
+    card = page.query_selector('#expenseList .budget-card')
+    assert card, "Current-month expense should appear in default view"
+
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_expense_from_other_month_excluded_by_default(app_page, expense_data):
+    """An expense dated in a different month is not shown in the current-month default view."""
+    page = app_page
+
+    # Add expense dated 2 months ago
+    today = date.today()
+    prev_month_date = date(today.year, today.month, 1)
+    # Step back 2 months safely
+    year, month = today.year, today.month - 2
+    if month <= 0:
+        year -= 1
+        month += 12
+    old_date = f"{year}-{month:02d}-10"
+
+    _add_expense(page, {**expense_data, "date": old_date})
+
+    # Default view is current month — the old expense should not appear
+    card = page.query_selector('#expenseList .budget-card')
+    assert card is None, "Expense from a prior month should not appear in the current-month default view"
+
+    empty_msg = page.text_content('#expenseList')
+    assert "No expenses for" in empty_msg
+
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_expense_prev_month_nav_shows_older_expense(app_page, expense_data):
+    """Clicking the prev-month button navigates to the prior month and shows expenses dated there."""
+    page = app_page
+
+    today = date.today()
+    year, month = today.year, today.month - 1
+    if month <= 0:
+        year -= 1
+        month += 12
+    prev_date = f"{year}-{month:02d}-10"
+
+    _add_expense(page, {**expense_data, "name": "Last Month Expense", "date": prev_date})
+
+    # Default view = current month, expense shouldn't appear yet
+    assert page.query_selector('#expenseList .budget-card') is None
+
+    # Click prev
+    page.click('[data-expense-month-nav="prev"]')
+    page.wait_for_selector('#expenseList .budget-card', timeout=5000)
+
+    name_text = page.text_content('.budget-card-name')
+    assert "Last Month Expense" in name_text
+
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_expense_summary_matches_visible_list(app_page, expense_data):
+    """The category summary total equals the sum of expenses visible in the current month list."""
+    page = app_page
+
+    _add_expense(page, expense_data)  # $300, current month
+
+    # Add a second current-month expense in a different category
+    page.click('#expenseFormToggle')
+    page.wait_for_selector('#expenseForm', state='visible', timeout=5000)
+    _fill_expense_form(page, name='Bus Pass', amount='80', date=expense_data['date'], category='Transport')
+    page.click('#expenseFormSubmit')
+
+    summary = page.text_content('.budget-cat-summary--expense')
+    assert 'Food' in summary
+    assert 'Transport' in summary
+    assert '300.00' in summary
+    assert '80.00' in summary
+
+    grand_total = page.text_content('.budget-cat-summary-header')
+    assert '380.00' in grand_total, "Grand total should be sum of current-month expenses only"
 
     assert_no_errors(page)

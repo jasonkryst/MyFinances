@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.5.1] — 2026-10-04
+
+### Fixed
+- **Expenses month scoping** (issue #220) — the Expenses list, category summary, cash flow totals, and outflow bar chart now all scope to the same calendar month. A `‹ Month Year ›` navigator above the expense list lets you browse other months. Previously, all expenses across all time were aggregated together, causing the list and summary figures to diverge from any single-month view.
+
 ## [6.5.0] — 2026-10-04
 
 ### Added

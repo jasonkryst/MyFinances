@@ -175,11 +175,12 @@ def income_data():
 
 @pytest.fixture
 def expense_data():
-    """Standard expense test data."""
+    """Standard expense test data — date uses the current month so it appears in the default month view."""
+    today = date.today()
     return {
         "name": "Groceries",
         "amount": "300",
-        "date": "2026-05-15",
+        "date": today.strftime("%Y-%m-15"),
         "category": "Food"
     }
 

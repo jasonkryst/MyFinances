@@ -13,6 +13,8 @@ validation guards at the form boundary and that the self-healing path
 handles already-corrupted localStorage records.
 """
 
+from datetime import date
+
 import pytest
 
 
@@ -24,7 +26,15 @@ def _navigate_to_expenses(page):
     page.wait_for_selector('#expensesPanel', state='visible')
 
 
-def _add_expense_via_ui(page, name="Groceries", amount="250.00", date="2026-09-01"):
+def _this_month(day=1):
+    """Return a YYYY-MM-DD string for the given day in the current month."""
+    today = date.today()
+    return f"{today.year}-{today.month:02d}-{day:02d}"
+
+
+def _add_expense_via_ui(page, name="Groceries", amount="250.00", date=None):
+    if date is None:
+        date = _this_month(1)
     _navigate_to_expenses(page)
     page.click('#expenseFormToggle')
     page.wait_for_selector('#expenseFormBody:not([hidden])')
@@ -40,7 +50,7 @@ def _add_expense_via_ui(page, name="Groceries", amount="250.00", date="2026-09-0
 def test_expense_appears_on_screen_after_add(app_page):
     """An expense added via the form appears in the expense list immediately."""
     page = app_page
-    _add_expense_via_ui(page, name="Groceries", amount="250.00", date="2026-09-01")
+    _add_expense_via_ui(page, name="Groceries", amount="250.00")
     assert page.query_selector('text=Groceries'), "Expense should render in the list right after add"
 
 
@@ -96,39 +106,45 @@ def test_self_healing_corrupted_utc_date_on_reload(app_page):
     """
     page = app_page
 
-    page.evaluate("""() => {
+    corrupt_date = f"{date.today().year}-{date.today().month:02d}-15T05:00:00.000Z"
+    page.evaluate(f"""() => {{
         const key = 'debtTrackerData';
-        const d = JSON.parse(localStorage.getItem(key) || '{}');
-        d.expenses = [{
+        const d = JSON.parse(localStorage.getItem(key) || '{{}}');
+        d.expenses = [{{
             id: 9999, name: 'Legacy Corrupted', budgetAmount: 99,
-            date: '2026-08-30T05:00:00.000Z',
+            date: '{corrupt_date}',
             category: 'Other', accountId: null
-        }];
+        }}];
         localStorage.setItem(key, JSON.stringify(d));
-    }""")
+    }}""")
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
 
+    # The expense must survive reload: the corrupted UTC timestamp is healed in memory
+    # (so the expense isn't dropped). Verify it is visible in the current-month view.
     assert page.query_selector('text=Legacy Corrupted'), \
         "Expense with corrupted UTC date should survive reload after self-healing fix"
+    # Confirm the in-memory entry exists and has a valid (truthy) date — not null/dropped.
+    has_date = page.evaluate("""() => {
+        const exp = (window.app.expenses || []).find(e => e.name === 'Legacy Corrupted');
+        return exp != null && exp.date != null;
+    }""")
+    assert has_date, "Healed expense should have a valid date in memory (not null/dropped)"
 
 
 @pytest.mark.feature
 def test_edited_expense_date_survives_reload(app_page):
     """Editing an expense via inline edit also stores date as an ISO string."""
     page = app_page
-    _add_expense_via_ui(page, name="Car Insurance", amount="180.00", date="2026-09-20")
+    _add_expense_via_ui(page, name="Car Insurance", amount="180.00", date=_this_month(20))
 
-    expense_id = page.evaluate(
-        "(name) => window.app.expenses.find(e => e.name === name)?.id",
-        "Car Insurance"
-    )
-
-    if expense_id:
-        page.evaluate(f"() => window.app.startEditExpense({expense_id})")
-        page.fill(f'#ee-date-{expense_id}', '2026-10-20')
-        page.evaluate(f"() => window.app.saveEditExpense({expense_id})")
+    # Enter inline edit mode via the UI button, change the date, save.
+    page.click('.budget-card [data-expense-action="edit"]')
+    page.wait_for_selector('.budget-card--editing', timeout=5000)
+    expense_id = page.get_attribute('.budget-card--editing [data-expense-action="save"]', 'data-expense-id')
+    page.fill(f'#ee-date-{expense_id}', _this_month(25))
+    page.click(f'.budget-card--editing [data-expense-action="save"]')
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
