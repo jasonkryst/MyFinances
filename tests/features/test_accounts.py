@@ -720,3 +720,147 @@ def test_account_type_shown_in_selectors(app_page):
         f"ledgerAccountFilter should show '{expected_label}', got: {ledger_opts}"
 
     assert_no_errors(page)
+
+
+# ── Linked-item grouped chips (issue #223) ──────────────────────────────────
+
+def _seed_account_with_links(page, account_id=99):
+    """Seed one account plus one item of each type linked to it."""
+    page.evaluate(f"""() => {{
+        const app = window.app;
+        const aid = {account_id};
+        app.accounts = [{{ id: aid, name: 'Linked Account', type: 'Checking', startingBalance: 1000 }}];
+        app.incomes = [{{ id: 1, name: 'Salary', amount: 5000, firstPayDate: '2026-01-01', frequency: 'monthly', accountId: aid }}];
+        app.bonuses = [{{ id: 2, name: 'Year-End Bonus', amount: 1000, date: '2026-12-31', accountId: aid }}];
+        app.debts = [{{ id: 3, name: 'Car Loan', debtType: 'loan', accountBalance: 10000, interestRate: 5, minimumPayment: 200, dueDate: 1, accountId: aid }}];
+        app.bills = [{{ id: 4, name: 'Water Bill', amount: 50, dueDay: 5, category: 'Utilities', accountId: aid }}];
+        app.expenses = [{{ id: 5, name: 'Groceries', budgetAmount: 300, date: '2026-10-15', category: 'Food', accountId: aid }}];
+        app.recurringTemplates = [{{ id: 6, name: 'Netflix', amount: 16, type: 'Subscription', frequency: 'monthly', startDate: '2026-01-01', accountId: aid }}];
+        app.renderAccountsList();
+    }}""")
+
+
+@pytest.mark.feature
+def test_linked_account_shows_income_chip(app_page):
+    """Account with linked income shows an 'Income' count chip."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    _seed_account_with_links(page)
+
+    chips_text = page.evaluate("""() => {
+        const card = document.querySelector('.acct-card');
+        return Array.from(card?.querySelectorAll('.acct-link--income') ?? []).map(b => b.textContent);
+    }""")
+    assert any('Income' in t for t in chips_text), \
+        f"Expected an Income chip, got: {chips_text}"
+    # Income + 1 bonus = count 2
+    assert any('2' in t for t in chips_text), \
+        f"Income chip should count income+bonuses (2), got: {chips_text}"
+
+
+@pytest.mark.feature
+def test_linked_account_shows_debt_chip(app_page):
+    """Account with linked debt shows a 'Debts' count chip."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    _seed_account_with_links(page)
+
+    chips_text = page.evaluate("""() => {
+        const card = document.querySelector('.acct-card');
+        return Array.from(card?.querySelectorAll('.acct-link--debt') ?? []).map(b => b.textContent);
+    }""")
+    assert any('Debts' in t for t in chips_text), \
+        f"Expected a Debts chip, got: {chips_text}"
+    assert any('1' in t for t in chips_text), \
+        f"Debts chip should show count 1, got: {chips_text}"
+
+
+@pytest.mark.feature
+def test_linked_account_shows_recurring_chip(app_page):
+    """Account with linked recurring template shows a 'Recurring' count chip (previously missing)."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    _seed_account_with_links(page)
+
+    chips_text = page.evaluate("""() => {
+        const card = document.querySelector('.acct-card');
+        return Array.from(card?.querySelectorAll('.acct-link--recurring') ?? []).map(b => b.textContent);
+    }""")
+    assert any('Recurring' in t for t in chips_text), \
+        f"Expected a Recurring chip (was missing before fix), got: {chips_text}"
+
+
+@pytest.mark.feature
+def test_unlinked_account_shows_no_chips(app_page):
+    """An account with no linked items shows no chips at all."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Empty Account', type: 'Savings', startingBalance: 500 }];
+        app.incomes = [];
+        app.debts = [];
+        app.bills = [];
+        app.expenses = [];
+        app.recurringTemplates = [];
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    chip_count = page.evaluate("""() => {
+        const card = document.querySelector('.acct-card');
+        return card?.querySelectorAll('.acct-link--nav').length ?? 0;
+    }""")
+    assert chip_count == 0, \
+        f"Account with no links should show 0 chips, got: {chip_count}"
+
+
+@pytest.mark.feature
+def test_linked_chip_navigates_to_page(app_page):
+    """Clicking a chip on an account card navigates to the corresponding page."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    _seed_account_with_links(page)
+
+    # Click the Debts chip — should navigate to liabilities
+    page.click('.acct-link--debt')
+    page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
+    is_liabilities = page.evaluate("""() => {
+        return document.querySelector('#liabilitiesSection')?.classList.contains('active');
+    }""")
+    assert is_liabilities, "Clicking Debts chip should navigate to the Liabilities page"
+
+
+@pytest.mark.feature
+def test_chip_count_reflects_actual_linked_items(app_page):
+    """Chip count matches the exact number of linked items, not an over-count."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 10, name: 'Count Test', type: 'Checking', startingBalance: 0 }];
+        app.incomes = [
+            { id: 1, name: 'Job 1', amount: 3000, firstPayDate: '2026-01-01', frequency: 'monthly', accountId: 10 },
+            { id: 2, name: 'Job 2', amount: 2000, firstPayDate: '2026-01-01', frequency: 'monthly', accountId: 10 },
+            { id: 3, name: 'Other Job', amount: 1000, firstPayDate: '2026-01-01', frequency: 'monthly', accountId: 99 },
+        ];
+        app.debts = [];
+        app.bills = [];
+        app.expenses = [];
+        app.recurringTemplates = [];
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    income_chip_text = page.evaluate("""() => {
+        const card = document.querySelector('.acct-card');
+        return card?.querySelector('.acct-link--income')?.textContent ?? '';
+    }""")
+    assert '2' in income_chip_text, \
+        f"Income chip should show 2 (only items linked to this account), got: '{income_chip_text}'"
+    assert '3' not in income_chip_text, \
+        f"Chip must not count items linked to other accounts, got: '{income_chip_text}'"
