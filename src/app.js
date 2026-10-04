@@ -109,6 +109,8 @@ import {
     addRecurringTemplate as addRecurringTemplateFeature,
     deleteRecurringTemplate as deleteRecurringTemplateFeature,
     pauseRecurringTemplate as pauseRecurringTemplateFeature,
+    archiveRecurringTemplate as archiveRecurringTemplateFeature,
+    unarchiveRecurringTemplate as unarchiveRecurringTemplateFeature,
     skipRecurringOccurrence as skipRecurringOccurrenceFeature,
     markRecurringPaid as markRecurringPaidFeature,
     startEditRecurring as startEditRecurringFeature,
@@ -957,6 +959,8 @@ export class DebtTrackerApp {
     addRecurringTemplate() { return addRecurringTemplateFeature(this); }
     deleteRecurringTemplate(id) { return deleteRecurringTemplateFeature(this, id); }
     pauseRecurringTemplate(id, paused) { return pauseRecurringTemplateFeature(this, id, paused); }
+    archiveRecurringTemplate(id) { return archiveRecurringTemplateFeature(this, id); }
+    unarchiveRecurringTemplate(id) { return unarchiveRecurringTemplateFeature(this, id); }
     skipRecurringOccurrence(id, monthKey, unskip) { return skipRecurringOccurrenceFeature(this, id, monthKey, unskip); }
     markRecurringPaid(id, monthKey, unmark) { return markRecurringPaidFeature(this, id, monthKey, unmark); }
     startEditRecurring(id) { return startEditRecurringFeature(this, id); }
