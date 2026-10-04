@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.6.1] — 2026-10-04
+
+### Changed
+- **Calendar shortcut / nav changes** (issue #233):
+  - Added a **Reports → Calendar shortcut** button to the toolbar (next to the command palette button) — clicking it navigates directly to the Reports page with the Calendar sub-tab active.
+  - Added a **"Reports — Calendar"** entry to the command palette (Ctrl+K) for keyboard-first navigation to that sub-tab.
+  - **Moved Calendar Feed** out of the toolbar and into the account dropdown menu (alongside Backup & Restore and Settings).
+
 ## [6.6.0] — 2026-10-04
 
 ### Added

@@ -127,16 +127,33 @@ def test_standalone_data_transfer_button_hidden_from_toolbar(app_page):
 
 
 @pytest.mark.feature
-def test_calendar_feed_button_still_in_toolbar(app_page):
-    """The Calendar feed button remains directly in the toolbar (not moved to Account menu)."""
+def test_calendar_feed_in_account_menu_dropdown(app_page):
+    """Calendar Feed is in the account dropdown menu, not visible as a top-level toolbar button."""
     page = app_page
-    is_visible = page.evaluate("""() => {
+    # calendarFeedBtn is now a hidden proxy — not visible in toolbar
+    is_toolbar_visible = page.evaluate("""() => {
         const btn = document.getElementById('calendarFeedBtn');
         if (!btn) return false;
         const style = window.getComputedStyle(btn);
         return style.display !== 'none' && !btn.classList.contains('hidden');
     }""")
-    assert is_visible, "calendarFeedBtn should still be visible directly in the toolbar"
+    assert not is_toolbar_visible, "calendarFeedBtn should be a hidden proxy, not visible in toolbar"
+
+    # The account menu dropdown should contain the Calendar Feed item
+    menu_item = page.query_selector('#accountMenuCalendarFeedBtn')
+    assert menu_item is not None, "#accountMenuCalendarFeedBtn should exist in the account menu"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_account_menu_calendar_feed_opens_modal(app_page):
+    """Calendar Feed item in account dropdown opens the calendar feed modal."""
+    page = app_page
+    page.click('#accountMenuBtn')
+    page.wait_for_selector('#accountMenuDropdown:not(.hidden)', timeout=3000)
+    page.click('#accountMenuCalendarFeedBtn')
+    page.wait_for_selector('#calendarFeedModal:not(.hidden)', timeout=5000)
+    assert page.is_visible('#calendarFeedModal')
     assert_no_errors(page)
 
 

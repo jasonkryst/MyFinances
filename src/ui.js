@@ -39,6 +39,12 @@ export function initializeEventListeners(app) {
         });
     }
 
+    // Reports → Calendar shortcut button in toolbar
+    const reportsCalendarShortcutBtn = document.getElementById('reportsCalendarShortcutBtn');
+    if (reportsCalendarShortcutBtn) {
+        reportsCalendarShortcutBtn.addEventListener('click', () => navigateToReportsCalendar(app));
+    }
+
     // Mobile menu toggle
     const navToggle = document.getElementById('navToggle');
     const topNav = document.getElementById('topNav');
@@ -497,6 +503,18 @@ export function initializeEventListeners(app) {
     initAccountMenu(app);
 }
 
+export function navigateToReportsCalendar(app) {
+    document.querySelectorAll('.rpt-tab-btn').forEach(b => {
+        const active = b.getAttribute('data-rptab') === 'calendar';
+        b.classList.toggle('rpt-tab-btn--active', active);
+        b.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('.rpt-tab-panel').forEach(p => {
+        p.classList.toggle('rpt-tab-panel--active', p.id === 'rptPanel-calendar');
+    });
+    app.switchPage('reports');
+}
+
 export function updateAccountMenuEmail(app) {
     const emailEl = document.getElementById('accountMenuEmail');
     const logoutItem = document.getElementById('accountMenuLogoutBtn');
@@ -520,6 +538,7 @@ export function initAccountMenu(app) {
     const dropdown = document.getElementById('accountMenuDropdown');
     if (!wrap || !btn || !dropdown) return;
 
+    const calendarFeedItem = document.getElementById('accountMenuCalendarFeedBtn');
     const backupItem = document.getElementById('accountMenuBackupBtn');
     const settingsItem = document.getElementById('accountMenuSettingsBtn');
     const logoutItem = document.getElementById('accountMenuLogoutBtn');
@@ -539,6 +558,7 @@ export function initAccountMenu(app) {
     btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
 
     // Proxy menu items to the hidden legacy buttons
+    if (calendarFeedItem) calendarFeedItem.addEventListener('click', () => { close(); document.getElementById('calendarFeedBtn')?.click(); });
     if (backupItem) backupItem.addEventListener('click', () => { close(); document.getElementById('dataTransferBtn')?.click(); });
     if (settingsItem) settingsItem.addEventListener('click', () => { close(); document.getElementById('settingsBtn')?.click(); });
     if (logoutItem) {

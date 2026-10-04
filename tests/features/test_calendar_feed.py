@@ -48,7 +48,9 @@ def _seed_calendar_data(page):
 
 
 def _open_calendar_modal(page):
-    page.click('#calendarFeedBtn')
+    page.click('#accountMenuBtn')
+    page.wait_for_selector('#accountMenuDropdown:not(.hidden)', timeout=3000)
+    page.click('#accountMenuCalendarFeedBtn')
     page.wait_for_selector('#calendarFeedModal:not(.hidden)', timeout=5000)
 
 
@@ -67,11 +69,13 @@ def _download_ics(page):
 # ─── Positive tests ───────────────────────────────────────────────────────────
 
 @pytest.mark.feature
-def test_calendar_toolbar_button_opens_modal(app_page):
-    """Toolbar calendar icon is present and clicking it shows the modal."""
+def test_calendar_account_menu_opens_modal(app_page):
+    """Calendar Feed item in account dropdown is present and opens the modal."""
     page = app_page
-    assert page.is_visible('#calendarFeedBtn')
-    page.click('#calendarFeedBtn')
+    page.click('#accountMenuBtn')
+    page.wait_for_selector('#accountMenuDropdown:not(.hidden)', timeout=3000)
+    assert page.is_visible('#accountMenuCalendarFeedBtn')
+    page.click('#accountMenuCalendarFeedBtn')
     page.wait_for_selector('#calendarFeedModal:not(.hidden)', timeout=5000)
     assert page.is_visible('#calendarFeedModal')
     assert page.is_visible('#calendarDownloadBtn')
