@@ -19,6 +19,7 @@ const ALL_RESOURCE_PATHS = [
     '/api/ledger-overrides',
     '/api/ledger-cleared',
     '/api/net-worth-snapshots',
+    '/api/balance-history',
     '/api/settings',
 ];
 

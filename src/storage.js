@@ -57,7 +57,8 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
     sinkingFunds: '/api/sinking-funds',
     reconciliations: '/api/reconciliations',
     planHistory: '/api/plan-history',
-    retirementSnapshots: '/api/retirement-snapshots'
+    retirementSnapshots: '/api/retirement-snapshots',
+    balanceHistory: '/api/balance-history'
 };
 
 export async function loadFromPostgres(app) {

@@ -2,6 +2,7 @@ import { getCsrfCookie } from './storage.js';
 import { pgDeleteAll, pgDeleteMilestones } from './postgresSync.js';
 import { showPgErrorToast } from './ui.js';
 import { sanitizeFiniteNumber, normalizeText } from './utils.js';
+import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
 
 // CRUD resources that carry accountId / targetAccountId FK references
 const CRUD_RESOURCES = [
@@ -23,6 +24,10 @@ const MERGE_DEDUP_BY_NAME = new Set([
     'debts', 'incomes', 'bonuses', 'bills',
     'recurringTemplates', 'sinkingFunds'
 ]);
+
+function accountIdMapFrom(idMap) {
+    return new Map(Object.entries(idMap).map(([localId, serverId]) => [Number(localId), serverId]));
+}
 
 function remapFk(record, idMap, personIdMap = {}) {
     const r = { ...record };
@@ -65,6 +70,7 @@ function snapshotAppState(app) {
         reconciliations:       app.reconciliations.map(r => ({ ...r })),
         planHistory:           (app.planHistory || []).map(r => ({ ...r })),
         retirementSnapshots:   (app.retirementSnapshots || []).map(r => ({ ...r })),
+        balanceHistory:        (app.balanceHistory || []).map(r => ({ ...r })),
         ledgerAmountOverrides: { ...app.ledgerAmountOverrides },
         ledgerClearedTransactions: { ...app.ledgerClearedTransactions },
         monthlySnapshots:      app.monthlySnapshots.map(r => ({ ...r })),
@@ -155,17 +161,31 @@ async function postAllResources(data) {
         retirementTargetDate: data.retirementTargetDate ?? null
     });
 
-    return { accountResults, personResults, resourceResults, idMap, personIdMap, overrideEntries, clearedEntries };
+    // Balance history FKs to debts (which remapFk doesn't handle), so it is
+    // posted after debts exist, remapping debtId via the debt POST responses.
+    const debtsIndex = CRUD_RESOURCES.findIndex(r => r.field === 'debts');
+    const debtIdMap = new Map();
+    (data.debts || []).forEach((d, i) => {
+        const rec = resourceResults[debtsIndex][i];
+        if (rec) debtIdMap.set(d.id, rec.id);
+    });
+    const balanceHistoryResults = await Promise.all(
+        remapHistoryOwners(data.balanceHistory || [], debtIdMap, accountIdMapFrom(idMap))
+            .map(h => apiFetch('POST', '/api/balance-history', h))
+    );
+
+    return { accountResults, personResults, resourceResults, balanceHistoryResults, idMap, personIdMap, overrideEntries, clearedEntries };
 }
 
 // Sync app.* with the server-returned records after a successful postAllResources.
-function applyResultsToApp(app, data, { accountResults, personResults, resourceResults, idMap, personIdMap, overrideEntries, clearedEntries }) {
+function applyResultsToApp(app, data, { accountResults, personResults, resourceResults, balanceHistoryResults, idMap, personIdMap, overrideEntries, clearedEntries }) {
     app.accounts = accountResults.filter(Boolean);
     app.persons  = (personResults || []).filter(Boolean);
 
     CRUD_RESOURCES.forEach(({ field }, i) => {
         app[field] = resourceResults[i].filter(Boolean);
     });
+    app.balanceHistory = (balanceHistoryResults || []).filter(Boolean);
 
     app.ledgerAmountOverrides = Object.fromEntries(
         overrideEntries.map(([key, val]) => [key, { overrideKey: key, ...remapFk(val, idMap, personIdMap) }])
@@ -212,6 +232,7 @@ function snapshotToPostData(snapshot) {
         reconciliations:       snapshot.reconciliations,
         planHistory:           snapshot.planHistory,
         retirementSnapshots:   snapshot.retirementSnapshots,
+        balanceHistory:        snapshot.balanceHistory,
         ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
         ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
         monthlySnapshots:      snapshot.monthlySnapshots,
@@ -340,6 +361,22 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             });
         }
 
+        // Balance history: debts are name-deduped, so resolve each incoming
+        // debt to the surviving (existing or newly posted) debt by name.
+        const debtIdByName = new Map(app.debts.map(d => [d.name?.toLowerCase(), d.id]));
+        const debtIdMap = new Map((clean.debts || []).map(d => [d.id, debtIdByName.get(d.name?.toLowerCase())]));
+        const historyToPost = excludeExistingHistory(
+            app.balanceHistory || [],
+            remapHistoryOwners(clean.balanceHistory || [], debtIdMap, accountIdMapFrom(idMap))
+        );
+        const historyResults = await Promise.all(historyToPost.map(h => apiFetch('POST', '/api/balance-history', h)));
+        historyResults.forEach(rec => {
+            if (rec) {
+                newlyCreatedPaths.push(`/api/balance-history/${rec.id}`);
+                (app.balanceHistory = app.balanceHistory || []).push(rec);
+            }
+        });
+
         // Keyed resources -- always upsert (safe merge semantics)
         const overrideEntries = Object.entries(clean.ledgerAmountOverrides || {});
         const clearedEntries = Object.entries(clean.ledgerClearedTransactions || {});
@@ -430,6 +467,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             planHistory:          snapshot.planHistory,
             retirementSnapshots:  snapshot.retirementSnapshots,
             retirementTargetDate: snapshot.retirementTargetDate,
+            balanceHistory:       snapshot.balanceHistory,
             ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
             ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
             monthlySnapshots:     snapshot.monthlySnapshots,
