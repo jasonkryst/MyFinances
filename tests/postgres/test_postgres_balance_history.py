@@ -60,6 +60,9 @@ async def test_update_balance_persists_history(pg_page, base_url, credentials):
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)  # load-time seeding POSTs the first entry
 
+    # Backdate the in-memory entry so updateDebtBalance treats today as a new
+    # date and inserts a second entry rather than overwriting the seeded one.
+    await pg_page.evaluate("() => { window.app.balanceHistory.forEach(h => { h.date = '2026-01-01'; }); }")
     rows = await (await _api_get(pg_page, base_url, '/api/balance-history')).json()
     seeded = [h for h in rows if h['debtId'] == debt_id]
     assert len(seeded) == 1
