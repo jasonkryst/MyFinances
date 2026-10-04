@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.5.3] — 2026-10-04
+
+### Changed
+- **Account menu** (issue #221) — the toolbar's Backup & Restore and Settings buttons are now consolidated into an Account menu (person icon, top right). The dropdown shows the logged-in email (display-only, Postgres mode only), Backup & Restore, Settings, and a Sign Out button (Postgres mode only). The Calendar feed button remains in the toolbar. Existing keyboard/command-palette shortcuts for Settings and Backup & Restore still work.
+
 ## [6.5.2] — 2026-10-04
 
 ### Changed

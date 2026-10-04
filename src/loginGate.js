@@ -1,3 +1,5 @@
+import { updateAccountMenuEmail } from './ui.js';
+
 export async function showLoginGate(app) {
     let needsSetup = false;
     try {
@@ -214,6 +216,11 @@ export async function showLoginGate(app) {
             form.onsubmit = null;
             gate.classList.add('hidden');
             gate.classList.remove('flex-visible');
+            // Store the logged-in email so the account menu can display it
+            if (app && emailInput.value) {
+                app.userEmail = emailInput.value.trim();
+                updateAccountMenuEmail(app);
+            }
             resolve();
         };
     });

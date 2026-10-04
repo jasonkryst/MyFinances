@@ -480,6 +480,74 @@ export function initializeEventListeners(app) {
             window.URL.revokeObjectURL(url);
         });
     }
+
+    // Account menu dropdown
+    initAccountMenu(app);
+}
+
+export function updateAccountMenuEmail(app) {
+    const emailEl = document.getElementById('accountMenuEmail');
+    const logoutItem = document.getElementById('accountMenuLogoutBtn');
+    if (emailEl) {
+        if (app.userEmail) {
+            emailEl.textContent = app.userEmail;
+            emailEl.classList.remove('hidden');
+        } else {
+            emailEl.textContent = '';
+            emailEl.classList.add('hidden');
+        }
+    }
+    if (logoutItem) {
+        logoutItem.classList.toggle('hidden', app._storageBackendKind !== 'postgres');
+    }
+}
+
+export function initAccountMenu(app) {
+    const wrap = document.getElementById('accountMenuWrap');
+    const btn = document.getElementById('accountMenuBtn');
+    const dropdown = document.getElementById('accountMenuDropdown');
+    if (!wrap || !btn || !dropdown) return;
+
+    const backupItem = document.getElementById('accountMenuBackupBtn');
+    const settingsItem = document.getElementById('accountMenuSettingsBtn');
+    const logoutItem = document.getElementById('accountMenuLogoutBtn');
+
+    updateAccountMenuEmail(app);
+
+    const close = () => {
+        dropdown.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+    };
+    const open = () => {
+        dropdown.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+    };
+    const toggle = () => dropdown.classList.contains('hidden') ? open() : close();
+
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+
+    // Proxy menu items to the hidden legacy buttons
+    if (backupItem) backupItem.addEventListener('click', () => { close(); document.getElementById('dataTransferBtn')?.click(); });
+    if (settingsItem) settingsItem.addEventListener('click', () => { close(); document.getElementById('settingsBtn')?.click(); });
+    if (logoutItem) {
+        logoutItem.addEventListener('click', async () => {
+            close();
+            try {
+                const csrf = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf='))?.split('=')[1] || '';
+                await fetch('/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf }, credentials: 'include' });
+            } catch (_) { /* ignore */ }
+            location.reload();
+        });
+    }
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!wrap.contains(e.target)) close();
+    });
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+    });
 }
 
 export function switchTab(app, tabName) {
