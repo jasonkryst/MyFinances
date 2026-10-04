@@ -14,14 +14,19 @@ def test_mobile_menu_toggle(app_page):
     """Test mobile menu toggle functionality."""
     page = app_page
     
-    # Find menu toggle button
-    menu_toggle = page.query_selector('button[class*="menu"]')
+    # Find the account menu toggle button (visible in toolbar)
+    menu_toggle = page.query_selector('#accountMenuBtn')
     if menu_toggle:
         menu_toggle.click()
-        
-        # Menu should toggle visibility
-        nav_menu = page.query_selector('nav')
-        assert nav_menu, "Navigation menu should exist"
+
+        # Dropdown should now be open
+        dropdown = page.query_selector('#accountMenuDropdown:not(.hidden)')
+        assert dropdown, "Account menu dropdown should be visible after toggle"
+
+        # Close by clicking again
+        menu_toggle.click()
+        closed = page.query_selector('#accountMenuDropdown.hidden')
+        assert closed, "Account menu dropdown should be hidden after second toggle"
 
 
 @pytest.mark.ui
