@@ -340,6 +340,11 @@ function renderSurplusSection(app) {
     // ── Sparkline chart ───────────────────────────────────────────────────────
     const sparkCanvas = document.getElementById('healthSurplusSparkline');
     if (sparkCanvas && sparkPoints && sparkPoints.length > 1) {
+        // Fix the canvas to its container dimensions before Chart.js touches it,
+        // preventing responsive-mode from computing a huge height on a just-shown section.
+        sparkCanvas.style.width  = `${sparkCanvas.parentElement.clientWidth || 300}px`;
+        sparkCanvas.style.height = '80px';
+
         const isDark   = document.body.classList.contains('dark-mode');
         const lineClr  = surplus >= 0 ? '#15803d' : '#dc2626';
         const fillClr  = surplus >= 0 ? 'rgba(21,128,61,0.10)' : 'rgba(220,38,38,0.10)';
@@ -375,7 +380,7 @@ function renderSurplusSection(app) {
                 ],
             },
             options: {
-                responsive: true,
+                responsive: false,
                 maintainAspectRatio: false,
                 animation: false,
                 plugins: {
