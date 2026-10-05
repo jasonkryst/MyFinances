@@ -461,7 +461,7 @@ async def test_ledger_cleared_filter_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     csrf = await _csrf(pg_page)
     patch_resp = await pg_page.request.patch(
-        f"{base_url}api/plan-settings",
+        f"{base_url}/api/plan-settings",
         data={'ledgerSettings': {'accountFilter': 'all', 'dateRange': 'all',
                                  'sortKey': 'date', 'sortDir': 'desc',
                                  'clearedFilter': 'cleared'}},

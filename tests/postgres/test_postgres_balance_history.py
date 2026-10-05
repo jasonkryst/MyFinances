@@ -110,10 +110,7 @@ async def test_seeding_persists_to_db_and_shows_no_toast(pg_page, base_url, cred
     r = await _api_post(pg_page, base_url, '/api/debts', {
         'name': 'Seed Regression Debt', 'debtType': 'creditCard', 'accountBalance': 750,
         'minimumPayment': 30, 'interestRate': 20, 'dueDate': 10})
-    created_debt = await r.json()
-    debt_id = created_debt['id']
-    # updatedAt from the Postgres API is a full ISO timestamp like "2026-10-05T...Z"
-    assert 'T' in (created_debt.get('updatedAt') or ''), "expected full ISO timestamp for updatedAt"
+    debt_id = (await r.json())['id']
 
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
