@@ -63,7 +63,9 @@ export function upsertHistoryEntry(entries, entry, newId) {
 }
 
 export function seedHistoryForDebt(debt, today) {
-    const current = buildHistoryEntry({ kind: 'debt', id: debt.id }, debt, debt.updatedAt || today);
+    // Slice to YYYY-MM-DD: Postgres API returns updatedAt as a full ISO timestamp
+    const currentDate = debt.updatedAt ? String(debt.updatedAt).slice(0, 10) : today;
+    const current = buildHistoryEntry({ kind: 'debt', id: debt.id }, debt, currentDate);
     if (debt.debtType === 'fixedAmount') return [current];
     const original = {
         ...current,

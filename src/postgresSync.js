@@ -38,7 +38,9 @@ async function pgFetch(app, method, path, body) {
             return null;
         }
         if (!res.ok) {
-            console.error(`[postgresSync] ${method} ${path} failed: ${res.status}`);
+            let errorBody = null;
+            try { errorBody = await res.json(); } catch { /* non-JSON body */ }
+            console.error(`[postgresSync] ${method} ${path} failed: ${res.status}`, errorBody);
             showPgErrorToast();
             return null;
         }

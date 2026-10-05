@@ -447,3 +447,35 @@ async def test_401_shows_login_gate(pg_page, base_url, credentials):
 
     await pg_page.locator('#loginGate').wait_for(state='visible', timeout=8000)
     assert await pg_page.locator('#loginGate').is_visible(), f'Login gate not shown on 401. Console: {logs}'
+
+
+# ---------------------------------------------------------------------------
+# plan-settings clearedFilter round-trip (issue #232 companion fix)
+# ---------------------------------------------------------------------------
+
+async def test_ledger_cleared_filter_persists(pg_page, base_url, credentials):
+    """Regression: PATCH /api/plan-settings must preserve clearedFilter in
+    ledgerSettings; the server was previously dropping it when rebuilding
+    the JSON object (only the four explicit fields were kept)."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    csrf = await _csrf(pg_page)
+    patch_resp = await pg_page.request.patch(
+        f"{base_url}api/plan-settings",
+        data={'ledgerSettings': {'accountFilter': 'all', 'dateRange': 'all',
+                                 'sortKey': 'date', 'sortDir': 'desc',
+                                 'clearedFilter': 'cleared'}},
+        headers={'X-CSRF-Token': csrf, 'Content-Type': 'application/json'}
+    )
+    assert patch_resp.status == 200
+    body = await patch_resp.json()
+    assert body['ledgerSettings']['clearedFilter'] == 'cleared', \
+        f'clearedFilter not preserved in PATCH response. Console: {logs}'
+
+    # Verify it survives a reload (persisted to DB, not just echoed)
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    get_resp = await _api_get(pg_page, base_url, '/api/plan-settings')
+    body = await get_resp.json()
+    assert body['ledgerSettings']['clearedFilter'] == 'cleared', \
+        f'clearedFilter lost after reload. Console: {logs}'

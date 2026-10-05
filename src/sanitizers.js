@@ -56,7 +56,7 @@ export function sanitizeDebt(record, idFallback) {
         fixedStartDate: sanitizeDateISO(record?.fixedStartDate),
         fixedEndDate: sanitizeDateISO(record?.fixedEndDate),
         creditLimit: record?.creditLimit != null ? sanitizeFiniteNumber(record.creditLimit, null, { min: 0 }) : null,
-        updatedAt: sanitizeDateISO(record?.updatedAt),
+        updatedAt: sanitizeTimestampISO(record?.updatedAt),
         archived: Boolean(record?.archived ?? false),
         personIds: Array.isArray(record?.personIds)
             ? record.personIds.map(id => sanitizeInteger(id, null)).filter(id => id !== null)
