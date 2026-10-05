@@ -786,3 +786,87 @@ def test_surplus_window_control_updates_result(app_page):
     result_html = page.query_selector('#healthSurplusResult').inner_html()
     assert '30' in result_html, \
         f"Expected window value '30' reflected in result breakdown, got: {result_html[:300]}"
+
+
+@pytest.mark.feature
+def test_surplus_zero_balance_debts_excluded(app_page):
+    """Debts with zero balance are excluded from surplus recommendations."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', accountType: 'checking', startingBalance: 50000 }];
+        // Two debts: one paid off ($0 balance), one with balance
+        app.debts = [
+            { id: 10, name: 'PaidOff', debtType: 'creditCard', accountBalance: 0,
+              originalBalance: 1000, minimumPayment: 0, interestRate: 20, dueDate: 15,
+              apr: 20, archived: false },
+            { id: 11, name: 'ActiveDebt', debtType: 'creditCard', accountBalance: 500,
+              originalBalance: 500, minimumPayment: 25, interestRate: 15, dueDate: 10,
+              apr: 15, archived: false },
+        ];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.settings = [
+            { key: 'surplusAccountId', value: 1 },
+            { key: 'surplusWindowDays', value: 90 },
+            { key: 'surplusCushionPct', value: 0 },
+        ];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(300)
+
+    result_text = page.query_selector('#healthSurplusResult').text_content()
+    assert 'PaidOff' not in result_text, \
+        "Zero-balance debt 'PaidOff' should not appear in recommendations"
+    assert 'ActiveDebt' in result_text, \
+        "Debt with balance 'ActiveDebt' should still appear in recommendations"
+
+
+@pytest.mark.feature
+def test_surplus_transparency_toggle_shows_transactions(app_page):
+    """Clicking 'Show projected transactions' reveals the income/expense detail list."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', accountType: 'checking', startingBalance: 50000 }];
+        app.incomes = [{ id: 2, name: 'Salary', amount: 3000,
+                         firstPayDate: '2026-10-01', frequency: 'monthly', accountId: 1 }];
+        app.debts = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.settings = [
+            { key: 'surplusAccountId', value: 1 },
+            { key: 'surplusWindowDays', value: 90 },
+            { key: 'surplusCushionPct', value: 0 },
+        ];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(300)
+
+    toggle = page.query_selector('#healthSurplusTxToggle')
+    assert toggle, "Transaction toggle button (#healthSurplusTxToggle) should be present"
+
+    detail = page.query_selector('#healthSurplusTxDetail')
+    assert detail, "Transaction detail panel (#healthSurplusTxDetail) should be present"
+    assert detail.get_attribute('hidden') is not None, \
+        "Detail panel should be hidden before toggle is clicked"
+
+    toggle.click()
+    page.wait_for_timeout(100)
+
+    assert detail.get_attribute('hidden') is None, \
+        "Detail panel should be visible after clicking the toggle"
+    detail_text = detail.text_content()
+    assert 'Income' in detail_text or 'Expenses' in detail_text, \
+        "Detail panel should contain Income or Expenses group label"

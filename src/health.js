@@ -81,8 +81,10 @@ function computeSurplusAnalysis(app, accountId, windowDays, cushionPct) {
     const txs = (accountMap[accountId]?.txs) || [];
 
     let windowIncome = 0, windowOutflow = 0;
+    const windowTxs = [];
     for (const tx of txs) {
         if (tx.date >= today && tx.date <= endDate) {
+            windowTxs.push(tx);
             if (tx.originalAmount >= 0) windowIncome  += tx.originalAmount;
             else                        windowOutflow  += Math.abs(tx.originalAmount);
         }
@@ -94,13 +96,13 @@ function computeSurplusAnalysis(app, accountId, windowDays, cushionPct) {
     const currentBalance  = Number(account.startingBalance) || 0;
     const surplus         = currentBalance - minimumReserve;
 
-    return { account, windowIncome, windowOutflow, netOutflow, cushionAmount, minimumReserve, currentBalance, surplus };
+    return { account, windowIncome, windowOutflow, netOutflow, cushionAmount, minimumReserve, currentBalance, surplus, windowTxs };
 }
 
 function buildSurplusRecommendations(app, surplus) {
     if (surplus <= 0) return [];
     const recs = [];
-    const activeDebts = (app.debts || []).filter(d => !d.archived);
+    const activeDebts = (app.debts || []).filter(d => !d.archived && debtBal(d) > 0);
 
     function debtBal(d) {
         return d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
@@ -144,7 +146,7 @@ function buildSurplusRecommendations(app, surplus) {
             amount: Math.min(surplus, fund.remaining),
         });
     }
-    return recs;
+    return recs.filter(r => r.amount > 0);
 }
 
 function renderSurplusSection(app) {
@@ -170,7 +172,7 @@ function renderSurplusSection(app) {
         return;
     }
 
-    const { currentBalance, windowIncome, windowOutflow, cushionAmount, minimumReserve, surplus } = analysis;
+    const { currentBalance, windowIncome, windowOutflow, cushionAmount, minimumReserve, surplus, windowTxs } = analysis;
     const st = surplusStatus(surplus);
 
     if (badgeEl) {
@@ -179,6 +181,34 @@ function renderSurplusSection(app) {
     }
 
     const recs = buildSurplusRecommendations(app, surplus);
+
+    const incomeTxs  = (windowTxs || []).filter(tx => tx.originalAmount > 0);
+    const expenseTxs = (windowTxs || []).filter(tx => tx.originalAmount < 0);
+
+    function txRow(tx) {
+        const sign = tx.originalAmount >= 0 ? '+' : '';
+        const cls  = tx.originalAmount >= 0 ? 'health-cf-income' : 'health-cf-out';
+        return `<div class="health-surplus-tx-row">
+            <span class="health-surplus-tx-name">${escapeHtml(tx.name || '')}</span>
+            <span class="health-surplus-tx-date">${escapeHtml(tx.date instanceof Date ? tx.date.toLocaleDateString() : String(tx.date))}</span>
+            <span class="health-surplus-tx-amt ${cls}">${sign}${escapeHtml(formatCurrency(tx.originalAmount))}</span>
+        </div>`;
+    }
+
+    const txDetailHtml = (incomeTxs.length + expenseTxs.length) === 0 ? '' : `
+        <button class="health-surplus-tx-toggle" id="healthSurplusTxToggle" aria-expanded="false" aria-controls="healthSurplusTxDetail">
+            &#x25BC; Show projected transactions (${incomeTxs.length + expenseTxs.length})
+        </button>
+        <div id="healthSurplusTxDetail" class="health-surplus-tx-detail" hidden>
+            ${incomeTxs.length > 0 ? `
+                <div class="health-surplus-tx-group-label">Income (${incomeTxs.length})</div>
+                ${incomeTxs.map(txRow).join('')}
+            ` : ''}
+            ${expenseTxs.length > 0 ? `
+                <div class="health-surplus-tx-group-label health-surplus-tx-group-label--spaced">Expenses (${expenseTxs.length})</div>
+                ${expenseTxs.map(txRow).join('')}
+            ` : ''}
+        </div>`;
 
     resultDiv.innerHTML = `
         <div class="health-cashflow-hero ${surplus >= 0 ? 'health-cashflow-hero--positive' : 'health-cashflow-hero--negative'} health-surplus-hero">
@@ -191,6 +221,7 @@ function renderSurplusSection(app) {
             <span>Cushion (${cushionPct}%)</span><span class="health-cf-out">&minus;${escapeHtml(formatCurrency(cushionAmount))}</span>
             <span>Minimum reserve</span><span class="health-cf-out">&minus;${escapeHtml(formatCurrency(minimumReserve))}</span>
         </div>
+        ${txDetailHtml}
         ${recs.length > 0 ? `
             <div class="health-surplus-recs-label">Ways to put your surplus to work:</div>
             <div class="health-surplus-recs">
@@ -209,6 +240,19 @@ function renderSurplusSection(app) {
             <div class="health-surplus-deficit-note">Reduce expenses or increase income over the next ${windowDays} days to free up cash.</div>
         `}
     `;
+
+    const txToggle = document.getElementById('healthSurplusTxToggle');
+    const txDetail = document.getElementById('healthSurplusTxDetail');
+    if (txToggle && txDetail) {
+        txToggle.addEventListener('click', () => {
+            const expanded = txDetail.hidden === false;
+            txDetail.hidden = expanded;
+            txToggle.setAttribute('aria-expanded', String(!expanded));
+            txToggle.textContent = expanded
+                ? `▼ Show projected transactions (${incomeTxs.length + expenseTxs.length})`
+                : `▲ Hide projected transactions`;
+        });
+    }
 }
 
 function gaugeColor(statusCls) {

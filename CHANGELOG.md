@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.8.0] — 2026-10-05
+
+### Added
+- **Surplus Analysis transparency view** — the Surplus Analysis card now has a collapsible "Show projected transactions" toggle that reveals the individual income and expense transactions driving the window estimates, so users can verify exactly what's included in the calculation.
+
+### Fixed
+- **Zero-balance recommendations** — the Surplus Analysis recommendations list now filters out any debt with a zero balance before building strategy suggestions, and applies a final guard so no recommendation with a $0 suggested amount can appear for any category.
+
 ## [6.7.0] — 2026-10-05
 
 ### Added
