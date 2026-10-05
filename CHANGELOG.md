@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.7.0] — 2026-10-05
+
+### Added
+- **Surplus Analysis** (issue #237) — new full-width card on the Health page that estimates free cash flow over a user-defined rolling window (default 90 days) for a selected account. Calculates projected income and expenses using the ledger projection engine, applies a configurable cushion percentage (default 20%) on top of the net outflow to determine a minimum reserve, then displays the difference as surplus or deficit. When a surplus exists, the card surfaces up to five read-only recommendations: the three best debt-paydown targets by strategy (highest APR, highest balance, snowball) and up to two open savings goals. The selected account, window length, and cushion percentage are all sticky settings persisted via `getSetting`/`setSetting`.
+
 ## [6.6.2] — 2026-10-05
 
 ### Fixed

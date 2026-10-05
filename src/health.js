@@ -1,5 +1,7 @@
 import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
+import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
+import { getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT } from './settings.js';
 
 function dtiStatus(ratio) {
     if (ratio < 0.28) return { cls: 'health-status--green', label: t('health.status.healthy') };
@@ -56,6 +58,157 @@ function creditUtilizationStatus(pct) {
     if (pct <= 30) return { cls: 'health-status--yellow', label: 'Fair' };
     if (pct <= 50) return { cls: 'health-status--orange', label: 'High' };
     return { cls: 'health-status--red', label: pct >= 100 ? 'Maxed' : 'Critical' };
+}
+
+function surplusStatus(surplus) {
+    if (surplus > 0)  return { cls: 'health-status--green',  label: 'Surplus' };
+    if (surplus === 0) return { cls: 'health-status--yellow', label: 'Break-even' };
+    return { cls: 'health-status--red', label: 'Deficit' };
+}
+
+function computeSurplusAnalysis(app, accountId, windowDays, cushionPct) {
+    const account = (app.accounts || []).find(a => a.id === accountId);
+    if (!account) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(today.getTime() + windowDays * 24 * 60 * 60 * 1000);
+    const monthsNeeded = Math.ceil(windowDays / 28) + 2;
+
+    const accountMap = buildProjectedAccountTransactions(
+        app, today.getFullYear(), today.getMonth(), monthsNeeded
+    );
+    const txs = (accountMap[accountId]?.txs) || [];
+
+    let windowIncome = 0, windowOutflow = 0;
+    for (const tx of txs) {
+        if (tx.date >= today && tx.date <= endDate) {
+            if (tx.originalAmount >= 0) windowIncome  += tx.originalAmount;
+            else                        windowOutflow  += Math.abs(tx.originalAmount);
+        }
+    }
+
+    const netOutflow      = Math.max(0, windowOutflow - windowIncome);
+    const cushionAmount   = windowOutflow * (cushionPct / 100);
+    const minimumReserve  = netOutflow + cushionAmount;
+    const currentBalance  = Number(account.startingBalance) || 0;
+    const surplus         = currentBalance - minimumReserve;
+
+    return { account, windowIncome, windowOutflow, netOutflow, cushionAmount, minimumReserve, currentBalance, surplus };
+}
+
+function buildSurplusRecommendations(app, surplus) {
+    if (surplus <= 0) return [];
+    const recs = [];
+    const activeDebts = (app.debts || []).filter(d => !d.archived);
+
+    function debtBal(d) {
+        return d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
+    }
+
+    if (activeDebts.length > 0) {
+        const seen = new Set();
+        const strategies = [
+            ['Highest interest rate', [...activeDebts].sort((a, b) => (b.apr || 0) - (a.apr || 0))[0]],
+            ['Highest balance',       [...activeDebts].sort((a, b) => debtBal(b) - debtBal(a))[0]],
+            ['Lowest balance (snowball)', [...activeDebts].sort((a, b) => debtBal(a) - debtBal(b))[0]],
+        ];
+        for (const [label, debt] of strategies) {
+            if (debt && !seen.has(debt.id)) {
+                seen.add(debt.id);
+                recs.push({
+                    category: 'debt',
+                    label,
+                    name: debt.name,
+                    extra: (debt.apr > 0) ? `${debt.apr}% APR` : '',
+                    amount: Math.min(surplus, debtBal(debt)),
+                });
+            }
+        }
+    }
+
+    const openFunds = [
+        ...(app.emergencyFunds || [])
+            .filter(f => (f.currentAmount || 0) < (f.targetAmount || 0))
+            .map(f => ({ name: f.name || 'Emergency Fund', remaining: f.targetAmount - f.currentAmount, type: 'emergency' })),
+        ...(app.sinkingFunds || [])
+            .filter(f => (f.currentAmount || 0) < (f.targetAmount || 0))
+            .map(f => ({ name: f.name, remaining: f.targetAmount - f.currentAmount, type: 'sinking' })),
+    ];
+    for (const fund of openFunds.slice(0, 2)) {
+        recs.push({
+            category: 'savings',
+            label: fund.type === 'emergency' ? 'Emergency fund' : 'Savings goal',
+            name: fund.name,
+            extra: `${formatCurrency(fund.remaining)} remaining`,
+            amount: Math.min(surplus, fund.remaining),
+        });
+    }
+    return recs;
+}
+
+function renderSurplusSection(app) {
+    const sel        = document.getElementById('healthSurplusAcct');
+    const winInput   = document.getElementById('healthSurplusWindow');
+    const cushInput  = document.getElementById('healthSurplusCushion');
+    const resultDiv  = document.getElementById('healthSurplusResult');
+    const badgeEl    = document.getElementById('healthSurplusBadge');
+    if (!resultDiv) return;
+
+    const accountId  = parseInt(sel?.value, 10) || null;
+    const windowDays = Math.max(7, Math.min(365, parseInt(winInput?.value, 10) || 90));
+    const cushionPct = Math.max(0, Math.min(100, parseInt(cushInput?.value, 10) || 20));
+
+    if (!accountId) {
+        resultDiv.innerHTML = '<div class="health-empty-state"><span class="health-empty-sub">Select an account to analyze.</span></div>';
+        return;
+    }
+
+    const analysis = computeSurplusAnalysis(app, accountId, windowDays, cushionPct);
+    if (!analysis) {
+        resultDiv.innerHTML = '<div class="health-empty-state"><span class="health-empty-sub">Account not found.</span></div>';
+        return;
+    }
+
+    const { currentBalance, windowIncome, windowOutflow, cushionAmount, minimumReserve, surplus } = analysis;
+    const st = surplusStatus(surplus);
+
+    if (badgeEl) {
+        badgeEl.className  = `health-badge ${st.cls}`;
+        badgeEl.textContent = st.label;
+    }
+
+    const recs = buildSurplusRecommendations(app, surplus);
+
+    resultDiv.innerHTML = `
+        <div class="health-cashflow-hero ${surplus >= 0 ? 'health-cashflow-hero--positive' : 'health-cashflow-hero--negative'} health-surplus-hero">
+            ${surplus >= 0 ? '+' : ''}${escapeHtml(formatCurrency(surplus))}
+        </div>
+        <div class="health-surplus-breakdown">
+            <span>Current balance</span><span>${escapeHtml(formatCurrency(currentBalance))}</span>
+            <span>Est. income (${windowDays}d)</span><span class="health-cf-income">+${escapeHtml(formatCurrency(windowIncome))}</span>
+            <span>Est. expenses (${windowDays}d)</span><span class="health-cf-out">&minus;${escapeHtml(formatCurrency(windowOutflow))}</span>
+            <span>Cushion (${cushionPct}%)</span><span class="health-cf-out">&minus;${escapeHtml(formatCurrency(cushionAmount))}</span>
+            <span>Minimum reserve</span><span class="health-cf-out">&minus;${escapeHtml(formatCurrency(minimumReserve))}</span>
+        </div>
+        ${recs.length > 0 ? `
+            <div class="health-surplus-recs-label">Ways to put your surplus to work:</div>
+            <div class="health-surplus-recs">
+                ${recs.map(r => `
+                    <div class="health-surplus-rec health-surplus-rec--${r.category}">
+                        <div class="health-surplus-rec-info">
+                            <div class="health-surplus-rec-strategy">${escapeHtml(r.label)}</div>
+                            <div class="health-surplus-rec-name">${escapeHtml(r.name)}${r.extra ? ` &mdash; <span class="health-surplus-rec-extra">${escapeHtml(r.extra)}</span>` : ''}</div>
+                        </div>
+                        <div class="health-surplus-rec-amount">+${escapeHtml(formatCurrency(r.amount))}</div>
+                    </div>`).join('')}
+            </div>
+        ` : surplus > 0 ? `
+            <div class="health-empty-state"><span class="health-empty-sub">No active debts or open savings goals to recommend.</span></div>
+        ` : `
+            <div class="health-surplus-deficit-note">Reduce expenses or increase income over the next ${windowDays} days to free up cash.</div>
+        `}
+    `;
 }
 
 function gaugeColor(statusCls) {
@@ -187,6 +340,12 @@ export function renderHealthDashboard(app) {
         const pDtiRaw = pMonthlyIncome > 0 ? Math.round((pMinPayment / pMonthlyIncome) * 100) : null;
         return { p, pUtilRaw, pUtilDisp, pUtilSt, pLimit, pBalance, pDtiRaw };
     });
+
+    // ── Surplus Analysis ──────────────────────────────────────────────────────
+    const accounts = app.accounts || [];
+    const surplusAcctId   = getSetting(app, SURPLUS_ACCOUNT_ID, accounts[0]?.id ?? null);
+    const surplusWindow   = getSetting(app, SURPLUS_WINDOW_DAYS, 90);
+    const surplusCushion  = getSetting(app, SURPLUS_CUSHION_PCT, 20);
 
     const gaugeGray = document.body.classList.contains('dark-mode') ? '#334155' : '#e2e8f0';
 
@@ -426,6 +585,41 @@ export function renderHealthDashboard(app) {
                 `}
             </div>
 
+            <!-- Surplus Analysis -->
+            <div class="health-metric-card health-surplus-card">
+                <div class="health-card-header">
+                    <span class="health-card-title">Surplus Analysis</span>
+                    <span class="health-badge" id="healthSurplusBadge">&mdash;</span>
+                </div>
+                <p class="health-card-desc">Estimates free cash over a rolling window by subtracting projected expenses (plus a cushion) from your current account balance.</p>
+                <div class="health-surplus-controls">
+                    <div class="health-surplus-ctrl-group">
+                        <label class="health-surplus-label" for="healthSurplusAcct">Account</label>
+                        <select class="health-surplus-select" id="healthSurplusAcct">
+                            ${accounts.length === 0
+                                ? '<option value="">No accounts</option>'
+                                : accounts.map(a => `<option value="${a.id}"${a.id === surplusAcctId ? ' selected' : ''}>${escapeHtml(a.name)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="health-surplus-ctrl-group">
+                        <label class="health-surplus-label" for="healthSurplusWindow">Window</label>
+                        <div class="health-surplus-input-wrap">
+                            <input type="number" class="health-surplus-input" id="healthSurplusWindow" value="${surplusWindow}" min="7" max="365" step="1">
+                            <span class="health-surplus-unit">days</span>
+                        </div>
+                    </div>
+                    <div class="health-surplus-ctrl-group">
+                        <label class="health-surplus-label" for="healthSurplusCushion">Cushion</label>
+                        <div class="health-surplus-input-wrap">
+                            <input type="number" class="health-surplus-input" id="healthSurplusCushion" value="${surplusCushion}" min="0" max="100" step="1">
+                            <span class="health-surplus-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="healthSurplusResult"></div>
+                <a href="#" class="health-link" data-health-nav="accounts">View Accounts &rarr;</a>
+            </div>
+
         </div>
     `;
 
@@ -464,6 +658,36 @@ export function renderHealthDashboard(app) {
     const healthPrintBtn = document.getElementById('healthPrintBtn');
     if (healthPrintBtn) {
         healthPrintBtn.addEventListener('click', () => window.print());
+    }
+
+    // ── Surplus Analysis wiring ────────────────────────────────────────────────
+    renderSurplusSection(app);
+
+    const surplusAcctSel   = document.getElementById('healthSurplusAcct');
+    const surplusWinInput  = document.getElementById('healthSurplusWindow');
+    const surplusCushInput = document.getElementById('healthSurplusCushion');
+
+    if (surplusAcctSel) {
+        surplusAcctSel.addEventListener('change', () => {
+            setSetting(app, SURPLUS_ACCOUNT_ID, parseInt(surplusAcctSel.value, 10) || null);
+            renderSurplusSection(app);
+        });
+    }
+    if (surplusWinInput) {
+        surplusWinInput.addEventListener('change', () => {
+            const v = Math.max(7, Math.min(365, parseInt(surplusWinInput.value, 10) || 90));
+            surplusWinInput.value = v;
+            setSetting(app, SURPLUS_WINDOW_DAYS, v);
+            renderSurplusSection(app);
+        });
+    }
+    if (surplusCushInput) {
+        surplusCushInput.addEventListener('change', () => {
+            const v = Math.max(0, Math.min(100, parseInt(surplusCushInput.value, 10) || 20));
+            surplusCushInput.value = v;
+            setSetting(app, SURPLUS_CUSHION_PCT, v);
+            renderSurplusSection(app);
+        });
     }
 }
 
