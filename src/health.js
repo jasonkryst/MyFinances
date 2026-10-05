@@ -100,7 +100,7 @@ function computeSurplusAnalysis(app, accountId, windowDays, cushionPct) {
 function buildSurplusRecommendations(app, surplus) {
     if (surplus <= 0) return [];
     const recs = [];
-    const activeDebts = (app.debts || []).filter(d => !d.archived);
+    const activeDebts = (app.debts || []).filter(d => !d.archived && debtBal(d) > 0);
 
     function debtBal(d) {
         return d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
