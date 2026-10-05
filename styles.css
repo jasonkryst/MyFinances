@@ -6280,7 +6280,7 @@ body.dark-mode .health-surplus-dip-warning { background: rgba(245,158,11,0.12); 
     background: #dcfce7; color: #15803d; border-radius: 4px;
     font-size: 0.68rem; font-weight: 700; vertical-align: middle; white-space: nowrap;
 }
-body.dark-mode .health-surplus-rec-accel { background: rgba(74,222,128,0.15); color: #ffffff; }
+body.dark-mode .health-surplus-rec-accel { background: #166534; color: #ffffff; }
 .health-surplus-alloc-row {
     display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.5rem;
     padding: 0.5rem 0.7rem; background: var(--card-bg);
