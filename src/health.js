@@ -3,6 +3,9 @@ import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT } from './settings.js';
 
+// Persists allocation slider position across renderSurplusSection re-renders (0–100 = % to debt).
+let _surplusDebtPct = 100;
+
 function dtiStatus(ratio) {
     if (ratio < 0.28) return { cls: 'health-status--green', label: t('health.status.healthy') };
     if (ratio < 0.40) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
@@ -66,6 +69,51 @@ function surplusStatus(surplus) {
     return { cls: 'health-status--red', label: 'Deficit' };
 }
 
+// Walk windowTxs in date order and build a running-balance series plus the
+// minimum balance and the date it occurs.
+function computeRunningBalance(startBalance, windowTxs) {
+    const sorted = [...windowTxs].sort((a, b) => a.date - b.date);
+    const points = [{ date: sorted[0]?.date ?? new Date(), balance: startBalance }];
+    let bal = startBalance;
+    let minBalance = startBalance;
+    let minDate = points[0].date;
+
+    for (const tx of sorted) {
+        bal += tx.originalAmount;
+        if (bal < minBalance) { minBalance = bal; minDate = tx.date; }
+        const last = points[points.length - 1];
+        if (last.date.getTime() === tx.date.getTime()) {
+            last.balance = bal;
+        } else {
+            points.push({ date: tx.date, balance: bal });
+        }
+    }
+    return { points, minBalance, minDate };
+}
+
+// Estimate how many months earlier `debt` would be paid off if `extraPayment`
+// were applied as a one-time balance reduction today.
+function computeMonthsSaved(debt, extraPayment) {
+    if (debt.debtType === 'fixedAmount') return null;
+    if (typeof DebtCalculator === 'undefined') return null;
+    const bal = debt.accountBalance || 0;
+    if (bal <= 0 || extraPayment <= 0) return null;
+    const minPmt = Math.max(1, debt.minimumPayment || 1);
+    try {
+        const base = DebtCalculator.calculatePaymentPlan([{ ...debt }], minPmt, 'avalanche');
+        const baseMonths = base.workingDebts[0]?.paidOffMonth ?? null;
+        if (baseMonths === null) return null;
+        const newBal = Math.max(0, bal - extraPayment);
+        if (newBal === 0) return baseMonths;
+        const accel = DebtCalculator.calculatePaymentPlan(
+            [{ ...debt, accountBalance: newBal }], minPmt, 'avalanche'
+        );
+        const accelMonths = accel.workingDebts[0]?.paidOffMonth ?? null;
+        if (accelMonths === null) return null;
+        return Math.max(0, baseMonths - accelMonths);
+    } catch (_) { return null; }
+}
+
 function computeSurplusAnalysis(app, accountId, windowDays, cushionPct) {
     const account = (app.accounts || []).find(a => a.id === accountId);
     if (!account) return null;
@@ -81,8 +129,10 @@ function computeSurplusAnalysis(app, accountId, windowDays, cushionPct) {
     const txs = (accountMap[accountId]?.txs) || [];
 
     let windowIncome = 0, windowOutflow = 0;
+    const windowTxs = [];
     for (const tx of txs) {
         if (tx.date >= today && tx.date <= endDate) {
+            windowTxs.push(tx);
             if (tx.originalAmount >= 0) windowIncome  += tx.originalAmount;
             else                        windowOutflow  += Math.abs(tx.originalAmount);
         }
@@ -94,7 +144,12 @@ function computeSurplusAnalysis(app, accountId, windowDays, cushionPct) {
     const currentBalance  = Number(account.startingBalance) || 0;
     const surplus         = currentBalance - minimumReserve;
 
-    return { account, windowIncome, windowOutflow, netOutflow, cushionAmount, minimumReserve, currentBalance, surplus };
+    const { points: sparkPoints, minBalance, minDate } =
+        windowTxs.length > 0
+            ? computeRunningBalance(currentBalance, windowTxs)
+            : { points: [{ date: today, balance: currentBalance }, { date: endDate, balance: currentBalance }], minBalance: currentBalance, minDate: today };
+
+    return { account, windowIncome, windowOutflow, netOutflow, cushionAmount, minimumReserve, currentBalance, surplus, windowTxs, sparkPoints, minBalance, minDate };
 }
 
 function buildSurplusRecommendations(app, surplus) {
@@ -116,12 +171,14 @@ function buildSurplusRecommendations(app, surplus) {
         for (const [label, debt] of strategies) {
             if (debt && !seen.has(debt.id)) {
                 seen.add(debt.id);
+                const amount = Math.min(surplus, debtBal(debt));
                 recs.push({
                     category: 'debt',
                     label,
                     name: debt.name,
                     extra: (debt.apr > 0) ? `${debt.apr}% APR` : '',
-                    amount: Math.min(surplus, debtBal(debt)),
+                    amount,
+                    monthsSaved: computeMonthsSaved(debt, amount),
                 });
             }
         }
@@ -144,7 +201,7 @@ function buildSurplusRecommendations(app, surplus) {
             amount: Math.min(surplus, fund.remaining),
         });
     }
-    return recs;
+    return recs.filter(r => r.amount > 0);
 }
 
 function renderSurplusSection(app) {
@@ -170,15 +227,86 @@ function renderSurplusSection(app) {
         return;
     }
 
-    const { currentBalance, windowIncome, windowOutflow, cushionAmount, minimumReserve, surplus } = analysis;
+    const { currentBalance, windowIncome, windowOutflow, cushionAmount, minimumReserve, surplus,
+            windowTxs, sparkPoints, minBalance, minDate } = analysis;
     const st = surplusStatus(surplus);
 
     if (badgeEl) {
-        badgeEl.className  = `health-badge ${st.cls}`;
+        badgeEl.className   = `health-badge ${st.cls}`;
         badgeEl.textContent = st.label;
     }
 
+    // Destroy any previous sparkline before overwriting the DOM
+    if (app._healthSurplusSparkline) { app._healthSurplusSparkline.destroy(); app._healthSurplusSparkline = null; }
+
     const recs = buildSurplusRecommendations(app, surplus);
+    const hasDebtRecs    = recs.some(r => r.category === 'debt');
+    const hasSavingsRecs = recs.some(r => r.category === 'savings');
+    const showAllocSlider = hasDebtRecs && hasSavingsRecs;
+
+    // ── Balance dip warning ───────────────────────────────────────────────────
+    const dipWarningHtml = (surplus > 0 && minBalance < minimumReserve) ? `
+        <div class="health-surplus-dip-warning">
+            &#9888; Balance dips to ${escapeHtml(formatCurrency(minBalance))} on
+            ${escapeHtml(minDate instanceof Date ? minDate.toLocaleDateString() : String(minDate))}
+            &mdash; below your minimum reserve.
+        </div>` : '';
+
+    // ── Transaction detail toggle ─────────────────────────────────────────────
+    const incomeTxs  = (windowTxs || []).filter(tx => tx.originalAmount > 0);
+    const expenseTxs = (windowTxs || []).filter(tx => tx.originalAmount < 0);
+    const txCount    = incomeTxs.length + expenseTxs.length;
+
+    function txRow(tx) {
+        const sign = tx.originalAmount >= 0 ? '+' : '';
+        const cls  = tx.originalAmount >= 0 ? 'health-cf-income' : 'health-cf-out';
+        return `<div class="health-surplus-tx-row">
+            <span class="health-surplus-tx-name">${escapeHtml(tx.name || '')}</span>
+            <span class="health-surplus-tx-date">${escapeHtml(tx.date instanceof Date ? tx.date.toLocaleDateString() : String(tx.date))}</span>
+            <span class="health-surplus-tx-amt ${cls}">${sign}${escapeHtml(formatCurrency(tx.originalAmount))}</span>
+        </div>`;
+    }
+
+    const txDetailHtml = txCount === 0 ? '' : `
+        <button class="health-surplus-tx-toggle" id="healthSurplusTxToggle" aria-expanded="false" aria-controls="healthSurplusTxDetail">
+            &#x25BC; Show projected transactions (${txCount})
+        </button>
+        <div id="healthSurplusTxDetail" class="health-surplus-tx-detail" hidden>
+            ${incomeTxs.length > 0 ? `
+                <div class="health-surplus-tx-group-label">Income (${incomeTxs.length})</div>
+                ${incomeTxs.map(txRow).join('')}
+            ` : ''}
+            ${expenseTxs.length > 0 ? `
+                <div class="health-surplus-tx-group-label health-surplus-tx-group-label--spaced">Expenses (${expenseTxs.length})</div>
+                ${expenseTxs.map(txRow).join('')}
+            ` : ''}
+        </div>`;
+
+    // ── Allocation slider (only when both categories present) ─────────────────
+    const allocSliderHtml = showAllocSlider ? `
+        <div class="health-surplus-alloc-row">
+            <span class="health-surplus-alloc-label">
+                Allocation &mdash; Debt: <strong id="healthSurplusAllocDebt">${_surplusDebtPct}%</strong>
+                &nbsp;/&nbsp; Savings: <strong id="healthSurplusAllocSave">${100 - _surplusDebtPct}%</strong>
+            </span>
+            <input type="range" class="health-surplus-alloc-slider" id="healthSurplusAllocSlider"
+                   min="0" max="100" step="5" value="${_surplusDebtPct}"
+                   aria-label="Allocate surplus between debt and savings">
+        </div>` : '';
+
+    // ── Recommendations ───────────────────────────────────────────────────────
+    function recHtml(r) {
+        const monthsTag = r.monthsSaved > 0
+            ? `<span class="health-surplus-rec-accel">${r.monthsSaved} mo sooner</span>` : '';
+        return `<div class="health-surplus-rec health-surplus-rec--${r.category}"
+                     data-raw-amount="${r.amount}" data-category="${r.category}">
+            <div class="health-surplus-rec-info">
+                <div class="health-surplus-rec-strategy">${escapeHtml(r.label)}</div>
+                <div class="health-surplus-rec-name">${escapeHtml(r.name)}${r.extra ? ` &mdash; <span class="health-surplus-rec-extra">${escapeHtml(r.extra)}</span>` : ''}${monthsTag}</div>
+            </div>
+            <div class="health-surplus-rec-amount">+${escapeHtml(formatCurrency(r.amount))}</div>
+        </div>`;
+    }
 
     resultDiv.innerHTML = `
         <div class="health-cashflow-hero ${surplus >= 0 ? 'health-cashflow-hero--positive' : 'health-cashflow-hero--negative'} health-surplus-hero">
@@ -191,17 +319,16 @@ function renderSurplusSection(app) {
             <span>Cushion (${cushionPct}%)</span><span class="health-cf-out">&minus;${escapeHtml(formatCurrency(cushionAmount))}</span>
             <span>Minimum reserve</span><span class="health-cf-out">&minus;${escapeHtml(formatCurrency(minimumReserve))}</span>
         </div>
+        ${dipWarningHtml}
+        <div class="health-surplus-sparkline-wrap">
+            <canvas id="healthSurplusSparkline" height="80" aria-label="Projected balance over ${windowDays} days"></canvas>
+        </div>
+        ${txDetailHtml}
         ${recs.length > 0 ? `
+            ${allocSliderHtml}
             <div class="health-surplus-recs-label">Ways to put your surplus to work:</div>
-            <div class="health-surplus-recs">
-                ${recs.map(r => `
-                    <div class="health-surplus-rec health-surplus-rec--${r.category}">
-                        <div class="health-surplus-rec-info">
-                            <div class="health-surplus-rec-strategy">${escapeHtml(r.label)}</div>
-                            <div class="health-surplus-rec-name">${escapeHtml(r.name)}${r.extra ? ` &mdash; <span class="health-surplus-rec-extra">${escapeHtml(r.extra)}</span>` : ''}</div>
-                        </div>
-                        <div class="health-surplus-rec-amount">+${escapeHtml(formatCurrency(r.amount))}</div>
-                    </div>`).join('')}
+            <div class="health-surplus-recs" id="healthSurplusRecs">
+                ${recs.map(recHtml).join('')}
             </div>
         ` : surplus > 0 ? `
             <div class="health-empty-state"><span class="health-empty-sub">No active debts or open savings goals to recommend.</span></div>
@@ -209,6 +336,115 @@ function renderSurplusSection(app) {
             <div class="health-surplus-deficit-note">Reduce expenses or increase income over the next ${windowDays} days to free up cash.</div>
         `}
     `;
+
+    // ── Sparkline chart ───────────────────────────────────────────────────────
+    const sparkCanvas = document.getElementById('healthSurplusSparkline');
+    if (sparkCanvas && sparkPoints && sparkPoints.length > 1) {
+        const isDark   = document.body.classList.contains('dark-mode');
+        const lineClr  = surplus >= 0 ? '#15803d' : '#dc2626';
+        const fillClr  = surplus >= 0 ? 'rgba(21,128,61,0.10)' : 'rgba(220,38,38,0.10)';
+        const gridClr  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+        const tickClr  = isDark ? '#94a3b8' : '#64748b';
+
+        app._healthSurplusSparkline = new Chart(sparkCanvas, {
+            type: 'line',
+            data: {
+                labels: sparkPoints.map(p => p.date instanceof Date ? p.date.toLocaleDateString() : String(p.date)),
+                datasets: [
+                    {
+                        label: 'Projected balance',
+                        data: sparkPoints.map(p => p.balance),
+                        fill: true,
+                        tension: 0.3,
+                        borderColor: lineClr,
+                        backgroundColor: fillClr,
+                        borderWidth: 2,
+                        pointRadius: sparkPoints.length <= 12 ? 3 : 0,
+                        pointHoverRadius: 5,
+                    },
+                    {
+                        label: 'Minimum reserve',
+                        data: sparkPoints.map(() => minimumReserve),
+                        fill: false,
+                        borderColor: '#f59e0b',
+                        borderDash: [5, 4],
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+                        },
+                    },
+                },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        ticks: {
+                            callback: v => formatCurrency(v),
+                            font: { size: 10 },
+                            maxTicksLimit: 4,
+                            color: tickClr,
+                        },
+                        grid: { color: gridClr },
+                    },
+                },
+            },
+        });
+        renderChartDataTable('healthSurplusSparkline', {
+            caption: `Projected balance over ${windowDays} days`,
+            columns: ['Date', 'Balance'],
+            rows: sparkPoints.map(p => [
+                p.date instanceof Date ? p.date.toLocaleDateString() : String(p.date),
+                formatCurrency(p.balance),
+            ]),
+        });
+    }
+
+    // ── Toggle & slider event wiring ──────────────────────────────────────────
+    const txToggle = document.getElementById('healthSurplusTxToggle');
+    const txDetail = document.getElementById('healthSurplusTxDetail');
+    if (txToggle && txDetail) {
+        txToggle.addEventListener('click', () => {
+            const expanded = !txDetail.hidden;
+            txDetail.hidden = expanded;
+            txToggle.setAttribute('aria-expanded', String(!expanded));
+            txToggle.textContent = expanded
+                ? `▼ Show projected transactions (${txCount})`
+                : `▲ Hide projected transactions`;
+        });
+    }
+
+    const allocSlider = document.getElementById('healthSurplusAllocSlider');
+    if (allocSlider && showAllocSlider) {
+        allocSlider.addEventListener('input', () => {
+            _surplusDebtPct = parseInt(allocSlider.value, 10);
+            const saveEl = document.getElementById('healthSurplusAllocSave');
+            const debtEl = document.getElementById('healthSurplusAllocDebt');
+            if (debtEl) debtEl.textContent = `${_surplusDebtPct}%`;
+            if (saveEl) saveEl.textContent = `${100 - _surplusDebtPct}%`;
+
+            const debtAlloc = surplus * (_surplusDebtPct / 100);
+            const saveAlloc = surplus * ((100 - _surplusDebtPct) / 100);
+            document.querySelectorAll('#healthSurplusRecs .health-surplus-rec').forEach(row => {
+                const rawAmt = parseFloat(row.dataset.rawAmount) || 0;
+                const cat    = row.dataset.category;
+                const alloc  = cat === 'debt' ? debtAlloc : saveAlloc;
+                const newAmt = Math.min(rawAmt, alloc);
+                const amtEl  = row.querySelector('.health-surplus-rec-amount');
+                if (amtEl) amtEl.textContent = `+${formatCurrency(newAmt)}`;
+            });
+        });
+    }
 }
 
 function gaugeColor(statusCls) {
@@ -221,8 +457,9 @@ export function renderHealthDashboard(app) {
     const section = document.getElementById('healthSection');
     if (!section) return;
 
-    if (app._healthDtiChart)     { app._healthDtiChart.destroy();     app._healthDtiChart = null; }
-    if (app._healthSavingsChart) { app._healthSavingsChart.destroy(); app._healthSavingsChart = null; }
+    if (app._healthDtiChart)        { app._healthDtiChart.destroy();        app._healthDtiChart = null; }
+    if (app._healthSavingsChart)    { app._healthSavingsChart.destroy();    app._healthSavingsChart = null; }
+    if (app._healthSurplusSparkline){ app._healthSurplusSparkline.destroy(); app._healthSurplusSparkline = null; }
 
     const now = new Date();
     const year = now.getFullYear();
