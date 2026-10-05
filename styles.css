@@ -6280,7 +6280,7 @@ body.dark-mode .health-surplus-dip-warning { background: rgba(245,158,11,0.12); 
     background: #dcfce7; color: #15803d; border-radius: 4px;
     font-size: 0.68rem; font-weight: 700; vertical-align: middle; white-space: nowrap;
 }
-body.dark-mode .health-surplus-rec-accel { background: rgba(21,128,61,0.25); color: #4ade80; }
+body.dark-mode .health-surplus-rec-accel { background: rgba(74,222,128,0.15); color: #ffffff; }
 .health-surplus-alloc-row {
     display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.5rem;
     padding: 0.5rem 0.7rem; background: var(--card-bg);
@@ -6297,6 +6297,7 @@ body.dark-mode .health-surplus-rec-accel { background: rgba(21,128,61,0.25); col
     margin-bottom: 0.35rem; text-decoration: none;
 }
 .health-surplus-tx-toggle:hover { text-decoration: underline; }
+body.dark-mode .health-surplus-tx-toggle { color: #60a5fa; }
 .health-surplus-tx-detail {
     border: 1px solid var(--border-color); border-radius: 8px;
     padding: 0.55rem 0.75rem; margin-bottom: 0.5rem;
