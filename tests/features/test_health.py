@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Financial Health Dashboard Tests
-Tests the six metric cards: DTI, savings rate, emergency fund coverage,
-debt payoff timeline, monthly cash flow, and budget allocation.
+Tests the metric cards: DTI, savings rate, emergency fund coverage,
+debt payoff timeline, monthly cash flow, budget allocation, credit utilization,
+and surplus analysis.
 """
 
 import pytest
@@ -28,15 +29,15 @@ def test_health_navigation(app_page):
 
 
 @pytest.mark.feature
-def test_health_renders_six_metric_cards(app_page):
-    """All six metric cards are present in the dashboard."""
+def test_health_renders_metric_cards(app_page):
+    """All metric cards are present in the dashboard (7 standard + 1 surplus analysis)."""
     page = app_page
 
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
     cards = page.query_selector_all('.health-metric-card')
-    assert len(cards) == 7, f"Expected 7 metric cards (including credit utilization), found {len(cards)}"
+    assert len(cards) == 8, f"Expected 8 metric cards (7 standard + surplus analysis), found {len(cards)}"
 
 
 # ── DTI card ───────────────────────────────────────────────────────────────────
@@ -587,3 +588,201 @@ def test_health_credit_util_multiple_cards_aggregated(app_page):
     assert 'High' in card_text, \
         f"Expected 'High' for 50% aggregate utilization across 2 cards, got: {card_text[:200]}"
     assert '50' in card_text, f"Expected 50% shown in utilization card, got: {card_text[:200]}"
+
+
+# ── Surplus Analysis card ───────────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_surplus_card_renders(app_page):
+    """Surplus Analysis card is present with controls and result container."""
+    page = app_page
+
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+
+    assert page.query_selector('.health-surplus-card'), "Surplus Analysis card not found"
+    assert page.query_selector('#healthSurplusAcct'), "Account select not found"
+    assert page.query_selector('#healthSurplusWindow'), "Window input not found"
+    assert page.query_selector('#healthSurplusCushion'), "Cushion input not found"
+    assert page.query_selector('#healthSurplusResult'), "Result container not found"
+
+
+@pytest.mark.feature
+def test_surplus_empty_state_no_accounts(app_page):
+    """Surplus card shows empty-state prompt when no accounts are configured."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [];
+        app.debts = []; app.bills = []; app.incomes = [];
+        app.recurringTemplates = []; app.expenses = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+
+    result_text = page.query_selector('#healthSurplusResult').text_content()
+    assert 'Select an account' in result_text, \
+        f"Expected empty-state prompt when no accounts, got: {result_text}"
+
+
+@pytest.mark.feature
+def test_surplus_positive_with_high_balance(app_page):
+    """Surplus badge shows Surplus when account balance far exceeds projected expenses."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 5001, name: 'Checking', type: 'Checking', startingBalance: 50000 }];
+        app.incomes = [{
+            id: 5002, name: 'Salary', amount: 5000,
+            firstPayDate: '2026-10-01', frequency: 'monthly', accountId: 5001
+        }];
+        app.bills = [{ id: 5003, name: 'Rent', amount: 1200, dueDay: 1, category: 'Housing', accountId: 5001 }];
+        app.debts = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '5001'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(300)
+
+    badge_text = page.query_selector('#healthSurplusBadge').text_content().strip()
+    result_text = page.query_selector('#healthSurplusResult').text_content()
+
+    assert badge_text == 'Surplus', f"Expected Surplus badge, got: {badge_text}"
+    assert '+' in result_text, f"Expected positive surplus amount (+), got: {result_text[:200]}"
+
+
+@pytest.mark.feature
+def test_surplus_deficit_with_low_balance(app_page):
+    """Surplus badge shows Deficit when balance cannot cover expenses plus cushion."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 6001, name: 'Low Account', type: 'Checking', startingBalance: 100 }];
+        app.incomes = [];
+        app.bills = [{ id: 6002, name: 'BigBill', amount: 2000, dueDay: 5, category: 'Other', accountId: 6001 }];
+        app.debts = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '6001'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(300)
+
+    badge_text = page.query_selector('#healthSurplusBadge').text_content().strip()
+    assert badge_text == 'Deficit', \
+        f"Expected Deficit badge for $100 balance vs $2000 bill, got: {badge_text}"
+
+
+@pytest.mark.feature
+def test_surplus_debt_recommendations_shown(app_page):
+    """Surplus card lists debt-paydown recommendations when surplus is positive."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7001, name: 'Main', type: 'Checking', startingBalance: 20000 }];
+        app.incomes = []; app.bills = [];
+        app.debts = [
+            { id: 7002, name: 'High APR Card', debtType: 'creditCard',
+              accountBalance: 3000, originalBalance: 5000,
+              apr: 24, interestRate: 24, minimumPayment: 60, dueDate: 15, archived: false },
+            { id: 7003, name: 'Car Loan', debtType: 'loan',
+              accountBalance: 8000, originalBalance: 10000,
+              apr: 5, interestRate: 5, minimumPayment: 250, dueDate: 20, archived: false }
+        ];
+        app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '7001'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(300)
+
+    result_text = page.query_selector('#healthSurplusResult').text_content()
+    assert 'Highest interest rate' in result_text, \
+        f"Expected 'Highest interest rate' strategy, got: {result_text[:400]}"
+    assert 'Highest balance' in result_text, \
+        f"Expected 'Highest balance' strategy, got: {result_text[:400]}"
+
+
+@pytest.mark.feature
+def test_surplus_savings_recommendations_shown(app_page):
+    """Surplus card recommends open savings goals when surplus is positive."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 8001, name: 'Savings', type: 'Savings', startingBalance: 15000 }];
+        app.incomes = []; app.bills = []; app.debts = []; app.expenses = [];
+        app.recurringTemplates = [];
+        app.emergencyFunds = [{
+            id: 8002, name: 'Emergency Fund', accountId: 8001,
+            currentAmount: 1000, targetAmount: 10000, monthlyContribution: 200, autoContribute: true
+        }];
+        app.sinkingFunds = [{
+            id: 8003, name: 'Vacation Fund', accountId: 8001,
+            currentAmount: 500, targetAmount: 3000, monthlyAllocation: 100, autoContribute: true
+        }];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '8001'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(300)
+
+    result_text = page.query_selector('#healthSurplusResult').text_content()
+    assert 'Emergency fund' in result_text or 'Savings goal' in result_text, \
+        f"Expected savings recommendation, got: {result_text[:400]}"
+
+
+@pytest.mark.feature
+def test_surplus_window_control_updates_result(app_page):
+    """Changing the window input re-renders the result with the new window value."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 9101, name: 'Budget', type: 'Checking', startingBalance: 5000 }];
+        app.incomes = []; app.bills = []; app.debts = [];
+        app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '9101'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(200)
+
+    # Change window to 30 days
+    page.evaluate("""() => {
+        const inp = document.getElementById('healthSurplusWindow');
+        if (inp) { inp.value = '30'; inp.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(200)
+
+    result_html = page.query_selector('#healthSurplusResult').inner_html()
+    assert '30' in result_html, \
+        f"Expected window value '30' reflected in result breakdown, got: {result_html[:300]}"
