@@ -6262,7 +6262,7 @@ body.dark-mode .health-surplus-select, body.dark-mode .health-surplus-input { ba
 .health-surplus-rec-strategy { font-size: 0.72rem; color: var(--text-secondary); }
 .health-surplus-rec-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .health-surplus-rec-extra { font-weight: 400; color: var(--text-secondary); }
-.health-surplus-rec-amount { font-weight: 700; color: #16a34a; white-space: nowrap; }
+.health-surplus-rec-amount { font-weight: 700; color: #15803d; white-space: nowrap; }
 body.dark-mode .health-surplus-rec-amount { color: #4ade80; }
 .health-surplus-deficit-note { font-size: 0.78rem; color: var(--text-secondary); padding: 0.4rem 0; }
 
