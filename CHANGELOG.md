@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.6.2] — 2026-10-05
+
+### Fixed
+- **Sync error toast on every Postgres session start** (issue #232) — `seedMissingBalanceHistory` was POSTing balance history entries with `date` values taken directly from `debt.updatedAt`, which the Postgres API returns as a full ISO timestamp (`"2026-10-05T12:34:56.789Z"`). The server sanitizer heals this, but the comparison `debt.debtStartDate < debt.updatedAt` used the raw timestamp in string comparison, and could produce unexpected branch behavior. `seedHistoryForDebt` now slices the date to `YYYY-MM-DD` before use.
+- **`clearedFilter` preference lost on Postgres reload** — the `PATCH /api/plan-settings` handler rebuilt `ledgerSettings` from only four explicit fields, silently dropping `clearedFilter`. The field is now preserved.
+- **`pgFetch` error logging now includes the server response body** — previously only the HTTP status code was logged on a non-ok response, making it impossible to see the server's error message. The response JSON is now logged alongside the status.
+
 ## [6.6.1] — 2026-10-04
 
 ### Changed

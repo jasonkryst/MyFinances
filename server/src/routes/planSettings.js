@@ -4,7 +4,7 @@ import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO }
 
 const router = express.Router();
 
-const DEFAULT_LEDGER_SETTINGS = { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc' };
+const DEFAULT_LEDGER_SETTINGS = { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' };
 const DEFAULT_FORECAST_SETTINGS = { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 };
 
 function rowToJson(row, milestones) {
@@ -57,7 +57,8 @@ router.patch('/', async (req, res, next) => {
             accountFilter: normalizeText(body.ledgerSettings?.accountFilter, 20) || 'all',
             dateRange: normalizeText(body.ledgerSettings?.dateRange, 20) || 'all',
             sortKey: normalizeText(body.ledgerSettings?.sortKey, 20) || 'date',
-            sortDir: body.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc'
+            sortDir: body.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc',
+            clearedFilter: ['all', 'uncleared', 'cleared'].includes(body.ledgerSettings?.clearedFilter) ? body.ledgerSettings.clearedFilter : 'all'
         };
         const forecastSettings = body.forecastSettings === undefined ? undefined : {
             rangeMonths: [1, 2, 3, 6, 12].includes(sanitizeInteger(body.forecastSettings?.rangeMonths, 1)) ? sanitizeInteger(body.forecastSettings?.rangeMonths, 1) : 1,

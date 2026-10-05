@@ -99,3 +99,29 @@ async def test_merge_import_maps_to_existing_debt(pg_page, base_url, credentials
     rows = await (await _api_get(pg_page, base_url, '/api/balance-history')).json()
     visa = sorted([(h['date'], h['balance']) for h in rows if h['debtId'] == debt_id])
     assert visa == [('2026-01-01', 1000), ('2026-05-01', 777)]
+
+
+async def test_seeding_persists_to_db_and_shows_no_toast(pg_page, base_url, credentials):
+    """Regression for #232: seeding on first load must POST entries to the DB and
+    must not trigger a sync error toast. Covers the case where debt.updatedAt is
+    a full ISO timestamp from the Postgres API (not a bare YYYY-MM-DD)."""
+    await _login(pg_page, base_url, credentials)
+    await _reset(pg_page, base_url)
+    r = await _api_post(pg_page, base_url, '/api/debts', {
+        'name': 'Seed Regression Debt', 'debtType': 'creditCard', 'accountBalance': 750,
+        'minimumPayment': 30, 'interestRate': 20, 'dueDate': 10})
+    debt_id = (await r.json())['id']
+
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+
+    # Seeding must have persisted the entry to the DB
+    rows = await (await _api_get(pg_page, base_url, '/api/balance-history')).json()
+    seeded = [h for h in rows if h['debtId'] == debt_id]
+    assert len(seeded) == 1, f"expected 1 seeded entry in DB, got {len(seeded)}"
+    # date must be YYYY-MM-DD, not a full timestamp
+    assert len(seeded[0]['date']) == 10 and 'T' not in seeded[0]['date']
+
+    # No sync error toast should appear (issue #232)
+    toast = await pg_page.query_selector('#pgErrorToast')
+    assert toast is None, "sync error toast appeared during load-time seeding (issue #232)"
