@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.9.0] — 2026-10-05
+
+### Added
+- **Surplus Analysis — payoff acceleration** — each debt recommendation now shows a "X mo sooner" badge indicating how many months earlier the debt would be paid off if the suggested amount were applied as a one-time extra payment today, computed by running `DebtCalculator.calculatePaymentPlan` twice per debt (baseline vs. reduced balance).
+- **Surplus Analysis — balance dip warning** — a visible warning appears when the projected running balance dips below the minimum reserve at any point during the window, even when the net surplus is positive. Surfaces cash-flow timing risk hidden by net-only analysis.
+- **Surplus Analysis — running balance sparkline** — a compact Chart.js line chart inside the card plots the projected account balance across the window, with a dashed amber reference line at the minimum reserve floor.
+- **Surplus Analysis — allocation slider** — when both debt and savings recommendations are present, a range slider (0–100%) lets the user split the surplus between debt paydown and savings goals; recommendation amounts update live in-place without re-running the projection.
+
 ## [6.8.0] — 2026-10-05
 
 ### Added

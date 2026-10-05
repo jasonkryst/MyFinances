@@ -870,3 +870,151 @@ def test_surplus_transparency_toggle_shows_transactions(app_page):
     detail_text = detail.text_content()
     assert 'Income' in detail_text or 'Expenses' in detail_text, \
         "Detail panel should contain Income or Expenses group label"
+
+
+@pytest.mark.feature
+def test_surplus_sparkline_canvas_rendered(app_page):
+    """Sparkline canvas is rendered when an account is selected."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', accountType: 'checking', startingBalance: 10000 }];
+        app.incomes = [{ id: 2, name: 'Paycheck', amount: 2000,
+                         firstPayDate: '2026-10-01', frequency: 'monthly', accountId: 1 }];
+        app.debts = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.settings = [{ key: 'surplusAccountId', value: 1 }];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(400)
+
+    canvas = page.query_selector('#healthSurplusSparkline')
+    assert canvas, "Sparkline canvas (#healthSurplusSparkline) should be rendered"
+
+
+@pytest.mark.feature
+def test_surplus_payoff_acceleration_shown(app_page):
+    """Debt recommendations show 'mo sooner' badge when payoff is accelerated."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', accountType: 'checking', startingBalance: 50000 }];
+        app.debts = [{
+            id: 20, name: 'AutoLoan', debtType: 'creditCard',
+            accountBalance: 8000, originalBalance: 8000,
+            minimumPayment: 200, interestRate: 7, apr: 7, dueDate: 10, archived: false,
+        }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.settings = [
+            { key: 'surplusAccountId', value: 1 },
+            { key: 'surplusWindowDays', value: 90 },
+            { key: 'surplusCushionPct', value: 0 },
+        ];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(400)
+
+    result_text = page.query_selector('#healthSurplusResult').text_content()
+    assert 'sooner' in result_text, \
+        "Debt recommendations should show 'mo sooner' payoff acceleration badge"
+
+
+@pytest.mark.feature
+def test_surplus_balance_dip_warning(app_page):
+    """Warning is shown when projected balance dips below the minimum reserve mid-window."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        // Low balance account so even one debt payment triggers a dip warning
+        app.accounts = [{ id: 1, name: 'Checking', accountType: 'checking', startingBalance: 300 }];
+        app.incomes = [];
+        app.debts = [{
+            id: 30, name: 'CreditCard', debtType: 'creditCard',
+            accountBalance: 500, originalBalance: 500,
+            minimumPayment: 250, interestRate: 20, apr: 20, dueDate: 5, archived: false,
+            accountId: 1,
+        }];
+        app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.settings = [
+            { key: 'surplusAccountId', value: 1 },
+            { key: 'surplusWindowDays', value: 90 },
+            { key: 'surplusCushionPct', value: 20 },
+        ];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(400)
+
+    result_text = page.query_selector('#healthSurplusResult').text_content()
+    # Either dip warning or deficit notice — both indicate the cash flow problem
+    has_dip_warning = 'dips to' in result_text.lower()
+    has_deficit     = 'Deficit' in result_text or 'Reduce expenses' in result_text
+    assert has_dip_warning or has_deficit, \
+        "Expected dip warning or deficit indicator when balance cannot cover reserve"
+
+
+@pytest.mark.feature
+def test_surplus_allocation_slider_shown_with_mixed_recs(app_page):
+    """Allocation slider appears when both debt and savings recommendations are present."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', accountType: 'checking', startingBalance: 50000 }];
+        app.debts = [{
+            id: 40, name: 'Visa', debtType: 'creditCard',
+            accountBalance: 1000, originalBalance: 1000,
+            minimumPayment: 50, interestRate: 18, apr: 18, dueDate: 15, archived: false,
+        }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = [];
+        app.emergencyFunds = [{
+            id: 50, name: 'Emergency', currentAmount: 500, targetAmount: 5000,
+            monthlyContribution: 100,
+        }];
+        app.sinkingFunds = [];
+        app.settings = [
+            { key: 'surplusAccountId', value: 1 },
+            { key: 'surplusWindowDays', value: 90 },
+            { key: 'surplusCushionPct', value: 0 },
+        ];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthSurplusResult', timeout=5000)
+    page.evaluate("""() => {
+        const sel = document.getElementById('healthSurplusAcct');
+        if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
+    }""")
+    page.wait_for_timeout(400)
+
+    slider = page.query_selector('#healthSurplusAllocSlider')
+    assert slider, "Allocation slider (#healthSurplusAllocSlider) should appear with mixed recs"
+
+    # Drag slider to 50% debt and verify amounts update
+    page.evaluate("""() => {
+        const s = document.getElementById('healthSurplusAllocSlider');
+        if (s) { s.value = '50'; s.dispatchEvent(new Event('input')); }
+    }""")
+    page.wait_for_timeout(100)
+
+    alloc_text = page.query_selector('#healthSurplusResult').text_content()
+    assert '50%' in alloc_text, "Allocation label should reflect 50% debt slider position"
