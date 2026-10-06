@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.7] — 2026-10-06
+
+### Fixed
+- **Liabilities filter dropdowns still clipped** — the filter-pair stacked layout was only activating at ≤640px, but `.debts-layout` switches to single-column at ≤900px. In the 641–900px range the twelve flat flex items (6 labels + 6 selects via `display: contents`) had a minimum combined width of ~660px which overflowed the column and was hard-clipped by `overflow-x: clip`. Fix: raise the filter breakpoint to ≤900px to match the grid, add `max-width: 100%` + `overflow: hidden` on `.filter-pair`, and set `width: 0` (basis) on the select so flex grow fills the row without asserting an intrinsic minimum.
+
 ## [6.10.6] — 2026-10-06
 
 ### Fixed

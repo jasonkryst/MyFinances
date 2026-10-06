@@ -2440,7 +2440,7 @@ body.dark-mode .debt-form-toggle--open {
     margin-bottom: 14px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
     .debts-list-header {
         display: block;
     }
@@ -2477,24 +2477,28 @@ body.dark-mode .debt-form-toggle--open {
     min-width: 0;
 }
 
-/* Each label+select pair stays together on mobile as a self-contained row */
+/* Each label+select pair stays together as a self-contained row when in
+   single-column layout (≤900px matches the grid breakpoint in .debts-layout). */
 .filter-pair {
-    display: contents; /* transparent wrapper on desktop — children flow directly into parent flex */
+    display: contents; /* transparent on wide two-column layout */
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
     .debts-toolbar-filter {
         display: flex;
         flex-direction: column;
         align-items: stretch;
         gap: 6px;
         width: 100%;
+        max-width: 100%;
     }
     .filter-pair {
         display: flex;
         align-items: center;
         gap: 8px;
         width: 100%;
+        max-width: 100%;
+        overflow: hidden;
     }
     .filter-pair .category-filter-label {
         flex: 0 0 auto;
@@ -2504,7 +2508,8 @@ body.dark-mode .debt-form-toggle--open {
     .filter-pair .category-filter {
         flex: 1 1 0;
         min-width: 0;
-        width: 100%;
+        max-width: 100%;
+        width: 0;
     }
 }
 .recurring-toolbar-filter,
