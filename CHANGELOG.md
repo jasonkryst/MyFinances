@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.1] — 2026-10-06
+
+### Fixed
+- **Ledger "Columns" popover layout** — the column-visibility popover now renders as an absolutely-positioned overlay instead of a block element that pushed filter controls onto a new line on mobile.
+- **Mobile page gutters** — Ledger, Recurring Templates, and Savings pages use an outer-card container that compounded with `main`'s mobile padding; side padding now reduces at ≤480px so all pages have equivalent usable content width on narrow screens.
+- **Section heading size** — `section h2` reduced from `1.5rem` to `1.4rem` to match the Ledger/Recurring/Savings overrides that already used `1.4rem`; all page headings now use a consistent size.
+- **Liabilities debt filter selects** — `.category-filter` dropdowns now have the same border, padding, background, and dark-mode treatment as `.select-styled` filters used on other pages.
+
 ## [6.10.0] — 2026-10-05
 
 ### Added
@@ -14,7 +22,6 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **People page dark-mode link contrast** — income/debt navigation links inside person cards were near-invisible in dark mode (medium blue on dark navy); corrected to a lighter `#60a5fa` with high-contrast mode also covered.
 - **Reports tab bar mobile layout** — replaced the horizontal scroll strip with a compact wrapping pill grid at ≤640px; all report tabs are now visible without scrolling.
 - **Retirement page horizontal overflow** — retirement account cards and their nested snapshot tables no longer cause page-level horizontal scroll on mobile (`min-width: 0`, `overflow-x: hidden` on card containers).
-- **Page-level horizontal overflow** — active page sections now clip overflowing content with `overflow-x: clip`, containing any element that was inadvertently wider than the viewport on mobile (Liabilities, Reports content, etc.) while preserving sticky positioning for the ledger filter bar and reports tab bar.
 
 ## [6.9.0] — 2026-10-05
 
