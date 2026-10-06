@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.5] — 2026-10-06
+
+### Fixed
+- **Liabilities filter dropdowns clipped on mobile** — replaced the flat label/select CSS-grid approach with explicit `<div class="filter-pair">` wrappers; each pair is a self-contained `display: flex` row on mobile (`display: contents` on desktop so children flow into the parent flex as before). `.debts-list-header` now uses `display: block` at ≤640px so the filter always occupies its own full-width row rather than sharing a flex line with the "Your Debts" heading.
+
+## [6.10.4] — 2026-10-06
+
+### Fixed
+- **PWA horizontal scroll** — `.container` in `display-mode: standalone` had `overflow: visible`, which let child overflow propagate past all page-section clips to the document level; changed to `overflow-x: clip` to contain it.
+- **Dark-mode native select arrows invisible** — added `color-scheme: dark` to `body.dark-mode` so browsers render native form control indicators (select chevrons, scrollbars, checkboxes) in light colors that are visible against dark backgrounds.
+
 ## [6.10.3] — 2026-10-06
 
 ### Fixed
