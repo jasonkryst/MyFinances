@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.0] — 2026-10-05
+
+### Added
+- **Bonus/deposit year filter** — the "One-time Bonuses & Deposits" list on the Income page now defaults to showing the current year with prev/next year navigation and an "All time" toggle, preventing old entries from dominating the view.
+- **Ledger column visibility** — a "Columns ▾" button in the Ledger filter bar opens an inline checklist to show/hide any of the six columns (Date, Account, Transaction, Amount, Running Balance, Cleared); preference persists per device in `localStorage`.
+
+### Fixed
+- **People page dark-mode link contrast** — income/debt navigation links inside person cards were near-invisible in dark mode (medium blue on dark navy); corrected to a lighter `#60a5fa` with high-contrast mode also covered.
+- **Reports tab bar mobile layout** — replaced the horizontal scroll strip with a compact wrapping pill grid at ≤640px; all report tabs are now visible without scrolling.
+- **Retirement page horizontal overflow** — retirement account cards and their nested snapshot tables no longer cause page-level horizontal scroll on mobile (`min-width: 0`, `overflow-x: hidden` on card containers).
+- **Page-level horizontal overflow** — active page sections now clip overflowing content with `overflow-x: clip`, containing any element that was inadvertently wider than the viewport on mobile (Liabilities, Reports content, etc.) while preserving sticky positioning for the ledger filter bar and reports tab bar.
+
 ## [6.9.0] — 2026-10-05
 
 ### Added

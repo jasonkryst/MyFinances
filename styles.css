@@ -356,6 +356,36 @@
     color: var(--text-secondary, #6b7280);
     white-space: nowrap;
 }
+/* Ledger column visibility */
+.ledger-col-hidden { display: none !important; }
+
+.ledger-cols-popover {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+    box-shadow: var(--shadow-lg);
+    z-index: 10;
+}
+.ledger-cols-check {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.83rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+body.dark-mode .ledger-cols-popover {
+    background: #1e293b;
+    border-color: #334155;
+}
+
 .filter-active-badge {
     display: inline-flex;
     align-items: center;
@@ -1507,7 +1537,7 @@ header p {
 }
 
 .page-section { display: none; }
-.page-section.active { display: block; }
+.page-section.active { display: block; overflow-x: clip; }
 
 main {
     padding: 40px 20px;
@@ -2573,6 +2603,13 @@ body.dark-mode .person-pill {
 
 .person-link-btn:hover {
     opacity: 0.75;
+}
+
+body.dark-mode .person-link-btn {
+    color: #60a5fa;
+}
+body.dark-mode.high-contrast-mode .person-link-btn {
+    color: #99ccff;
 }
 
 .debt-archived-badge {
@@ -3760,6 +3797,51 @@ body.dark-mode .bonus-form-toggle:hover { background: #334155; }
     margin: 0 0 10px 0;
 }
 
+/* Year filter row for bonus list */
+.bonus-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.bonus-filter-nav {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s;
+}
+.bonus-filter-nav:disabled { opacity: 0.3; cursor: default; }
+.bonus-filter-nav:not(:disabled):hover { background: var(--light-bg); color: var(--primary-color); }
+.bonus-filter-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 64px;
+    text-align: center;
+}
+.bonus-filter-all {
+    background: none;
+    border: none;
+    font-size: 0.78rem;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 2px 4px;
+    text-decoration: underline;
+    margin-left: 4px;
+}
+.bonus-filter-all:hover { opacity: 0.75; }
+body.dark-mode .bonus-filter-nav { border-color: #334155; color: #94a3b8; }
+body.dark-mode .bonus-filter-nav:not(:disabled):hover { background: #1e293b; color: #60a5fa; }
+body.dark-mode .bonus-filter-all { color: #60a5fa; }
+
 .bonus-card {
     display: flex;
     align-items: center;
@@ -4789,7 +4871,7 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 }
 .rpt-chart-title  { margin: 0 0 2px; font-size: 1rem; font-weight: 700; color: var(--text-color); }
 .rpt-chart-sub    { margin: 0 0 16px; font-size: 0.8rem; color: var(--text-muted); }
-.rpt-chart-canvas-wrap { position: relative; height: 280px; }
+.rpt-chart-canvas-wrap { position: relative; height: 280px; min-width: 0; }
 
 /* ── Money Flow ─────────────────────────────────────────────────────────── */
 .rpt-section-title { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
@@ -5244,10 +5326,13 @@ body.dark-mode .cf-row--negative td {
 }
 
 @media (max-width: 640px) {
-    .rpt-cal-cell     { min-height: 44px; }
-    .rpt-tab-bar      { flex-wrap: nowrap; overflow-x: auto; gap: 8px; }
+    .rpt-cal-cell      { min-height: 44px; }
+    /* Tab bar: switch from a scrolling strip to a compact wrapping pill grid */
+    .rpt-tab-bar       { flex-wrap: wrap; overflow-x: visible; gap: 4px; }
+    .rpt-tab-group     { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .rpt-tab-group-label { display: none; }
     .rpt-tab-group-sep { display: none; }
-    .rpt-tab-btn      { font-size: 11px; padding: 7px 10px; }
+    .rpt-tab-btn       { font-size: 11px; padding: 6px 10px; }
     .rpt-moneyflow-wrap { height: 260px; }
 }
 
@@ -5538,9 +5623,9 @@ body.dark-mode .acct-type-badge { background: #1e1b4b; color: #a5b4fc; }
 body.dark-mode .acct-rate-badge { background: #064e3b; color: #6ee7b7; }
 
 .retire-cards { display: flex; flex-direction: column; gap: 16px; }
-.retire-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; }
-.retire-card-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.retire-stat { display: flex; flex-direction: column; margin-left: auto; }
+.retire-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; min-width: 0; overflow-x: hidden; }
+.retire-card-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; min-width: 0; }
+.retire-stat { display: flex; flex-direction: column; margin-left: auto; min-width: 0; }
 .retire-target-date-row { max-width: 260px; margin-bottom: 20px; }
 .retire-snapshot-table { width: 100%; border-collapse: collapse; }
 .retire-snapshot-table th, .retire-snapshot-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }

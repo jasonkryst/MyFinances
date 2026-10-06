@@ -251,6 +251,88 @@ def test_edit_bonus_negative_amount_rejected(app_page):
 
 
 # ---------------------------------------------------------------------------
+# Bonus / deposit year filter
+# ---------------------------------------------------------------------------
+
+def _inject_bonuses(page, bonuses):
+    """Inject bonus data directly and re-render the bonus list."""
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+    page.evaluate(f"""(bonuses) => {{
+        window.app.bonuses = bonuses;
+        window.app.renderBonusList();
+    }}""", bonuses)
+    page.wait_for_selector('#bonusList .bonus-filter-row', timeout=5000)
+
+
+@pytest.mark.feature
+def test_bonus_list_shows_filter_row_when_bonuses_exist(app_page):
+    """Bonus list renders year filter controls when at least one bonus is saved."""
+    page = app_page
+    _inject_bonuses(page, [
+        {'id': 1, 'name': 'Year Filter Test', 'amount': 500, 'date': '2026-03-15', 'category': 'Bonus'}
+    ])
+
+    assert page.query_selector('#bonusList .bonus-filter-row'), (
+        "Year filter row should appear once bonuses exist"
+    )
+    label_text = page.inner_text('#bonusList .bonus-filter-label')
+    assert label_text.strip() != '', "Filter label should not be empty"
+
+
+@pytest.mark.feature
+def test_bonus_list_all_time_shows_all_entries(app_page):
+    """'All time' toggle reveals bonuses from all years."""
+    page = app_page
+    _inject_bonuses(page, [
+        {'id': 1, 'name': 'Current Year Bonus', 'amount': 400, 'date': '2026-06-01', 'category': 'Bonus'},
+        {'id': 2, 'name': 'Old Year Bonus', 'amount': 200, 'date': '2024-01-15', 'category': 'Bonus'},
+    ])
+
+    # Default shows current year; click All time to reveal all
+    all_time_btn = page.query_selector('#bonusList [data-bonus-show-all]')
+    if all_time_btn:
+        all_time_btn.click()
+        page.wait_for_timeout(200)
+
+    content = page.inner_text('#bonusList')
+    assert 'Old Year Bonus' in content, (
+        "Old Year Bonus should be visible when 'All time' is selected"
+    )
+    assert 'Current Year Bonus' in content, (
+        "Current Year Bonus should be visible when 'All time' is selected"
+    )
+
+
+@pytest.mark.feature
+def test_bonus_list_year_nav_hides_other_year(app_page):
+    """Navigating to a specific year hides bonuses from other years."""
+    page = app_page
+    _inject_bonuses(page, [
+        {'id': 1, 'name': 'This Year Entry', 'amount': 300, 'date': '2026-04-10', 'category': 'Bonus'},
+        {'id': 2, 'name': 'Past Year Entry', 'amount': 150, 'date': '2024-11-20', 'category': 'Bonus'},
+    ])
+
+    # Click All time so both years are available to navigate between
+    all_time_btn = page.query_selector('#bonusList [data-bonus-show-all]')
+    if all_time_btn:
+        all_time_btn.click()
+        page.wait_for_timeout(200)
+
+    # Navigate to 2026 using the year button
+    this_year_btn = page.query_selector('#bonusList [data-bonus-show-year="2026"]')
+    if this_year_btn:
+        this_year_btn.click()
+        page.wait_for_timeout(200)
+
+    content = page.inner_text('#bonusList')
+    assert 'This Year Entry' in content, "2026 entry should be visible when filtered to 2026"
+    assert 'Past Year Entry' not in content, (
+        "2024 entry should be hidden when filtered to 2026"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Bonus Advisor (issue #64)
 # ---------------------------------------------------------------------------
 
