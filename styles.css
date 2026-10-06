@@ -1538,7 +1538,7 @@ header p {
 }
 
 .page-section { display: none; }
-.page-section.active { display: block; }
+.page-section.active { display: block; overflow-x: clip; }
 
 main {
     padding: 40px 20px;

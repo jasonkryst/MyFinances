@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.3] — 2026-10-06
+
+### Fixed
+- **Page-level horizontal overflow (restored)** — `overflow-x: clip` was re-added to `.page-section.active` after the Columns floating popover (which had been clipped by it) was replaced with a native `<select multiple>`; all pages including Liabilities now correctly contain horizontal overflow without breaking sticky filter bars.
+
 ## [6.10.2] — 2026-10-06
 
 ### Changed
