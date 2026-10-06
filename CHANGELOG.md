@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.4] — 2026-10-06
+
+### Fixed
+- **PWA horizontal scroll** — `.container` in `display-mode: standalone` had `overflow: visible`, which let child overflow propagate past all page-section clips to the document level; changed to `overflow-x: clip` to contain it.
+- **Dark-mode native select arrows invisible** — added `color-scheme: dark` to `body.dark-mode` so browsers render native form control indicators (select chevrons, scrollbars, checkboxes) in light colors that are visible against dark backgrounds.
+
 ## [6.10.3] — 2026-10-06
 
 ### Fixed

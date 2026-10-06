@@ -802,6 +802,7 @@ body.dark-mode .rpt-month-label {
 
 /* Dark mode styles */
 body.dark-mode {
+    color-scheme: dark;
     background: linear-gradient(135deg, #232526 0%, #414345 100%);
     color: #f1f5f9;
 
@@ -1248,7 +1249,7 @@ body {
         margin: 0;
         border-radius: 0;
         box-shadow: none;
-        overflow: visible;
+        overflow-x: clip;
     }
 }
 
