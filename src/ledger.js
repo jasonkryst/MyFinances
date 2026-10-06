@@ -7,6 +7,28 @@ import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOver
 import { setLedgerCleared } from './ledgerCleared.js';
 import { LEDGER_EXPORT_COLUMN_KEYS } from './dataExport.js';
 
+const LEDGER_ALL_COLS = ['date', 'account', 'name', 'amount', 'balance', 'cleared'];
+const LEDGER_COL_LABELS = { date: 'Date', account: 'Account', name: 'Transaction', amount: 'Amount', balance: 'Running Balance', cleared: 'Cleared' };
+const LEDGER_COLS_LS_KEY = 'ledgerHiddenColumns';
+
+function loadHiddenCols() {
+    try {
+        const raw = localStorage.getItem(LEDGER_COLS_LS_KEY);
+        if (!raw) return new Set();
+        return new Set(raw.split(',').filter(c => LEDGER_ALL_COLS.includes(c)));
+    } catch { return new Set(); }
+}
+
+function saveHiddenCols(hidden) {
+    try {
+        if (hidden.size === 0) {
+            localStorage.removeItem(LEDGER_COLS_LS_KEY);
+        } else {
+            localStorage.setItem(LEDGER_COLS_LS_KEY, [...hidden].join(','));
+        }
+    } catch { /* quota — non-fatal */ }
+}
+
 function openLedgerExportModal(app) {
     const modal = document.getElementById('ledgerExportModal');
     const confirmBtn = document.getElementById('ledgerExportConfirmBtn');
@@ -150,6 +172,7 @@ export function renderLedgerPage(app) {
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
             <option value="100"${selectedPageSize===100?' selected':''}>100</option>
         </select>`;
+    filterHtml += `<button id="ledgerColsBtn" class="btn btn-secondary btn-small" type="button" aria-expanded="false" aria-controls="ledgerColsPopover">Columns &#9662;</button>`;
     filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
     if (selectedAccount !== 'all') {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
@@ -162,6 +185,10 @@ export function renderLedgerPage(app) {
         filterHtml += `<span class="filter-active-badge">${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''} active</span>`;
     }
     filterHtml += `</div>`;
+    // Column-visibility popover (initially hidden, toggled by #ledgerColsBtn)
+    filterHtml += `<div id="ledgerColsPopover" class="ledger-cols-popover" hidden>
+        ${LEDGER_ALL_COLS.map(col => `<label class="ledger-cols-check"><input type="checkbox" data-ledger-col="${col}" checked> ${escapeHtml(LEDGER_COL_LABELS[col])}</label>`).join('')}
+    </div>`;
 
     const totalRows = transactions.length;
     const totalPages = Math.max(1, Math.ceil(totalRows / selectedPageSize));
@@ -183,19 +210,23 @@ export function renderLedgerPage(app) {
     };
     const reconAdjusts = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
 
+    const hiddenCols = loadHiddenCols();
+    const ch = col => hiddenCols.has(col) ? ' class="ledger-col-hidden"' : '';
+
     let html = filterHtml;
     html += `<div class="table-wrapper"><table class="ledger-table">
         <thead><tr>
-            <th data-key="date">Date ${sortIcon('date')}</th>
-            <th data-key="account">Account ${sortIcon('account')}</th>
-            <th data-key="name">Transaction ${sortIcon('name')}</th>
-            <th data-key="amount">Amount ${sortIcon('amount')}</th>
-            <th data-key="balance">Running Balance ${sortIcon('balance')}</th>
-            <th>Cleared</th>
+            <th data-key="date" data-col="date"${ch('date')}>Date ${sortIcon('date')}</th>
+            <th data-key="account" data-col="account"${ch('account')}>Account ${sortIcon('account')}</th>
+            <th data-key="name" data-col="name"${ch('name')}>Transaction ${sortIcon('name')}</th>
+            <th data-key="amount" data-col="amount"${ch('amount')}>Amount ${sortIcon('amount')}</th>
+            <th data-key="balance" data-col="balance"${ch('balance')}>Running Balance ${sortIcon('balance')}</th>
+            <th data-col="cleared"${ch('cleared')}>Cleared</th>
         </tr></thead>
         <tbody>`;
+    const visibleColCount = LEDGER_ALL_COLS.length - hiddenCols.size;
     if (pagedTransactions.length === 0) {
-        html += `<tr><td colspan="6" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
+        html += `<tr><td colspan="${visibleColCount}" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
     } else {
         for (const tx of pagedTransactions) {
             const isReconciliation = tx.type === 'reconciliation';
@@ -240,12 +271,12 @@ export function renderLedgerPage(app) {
                 ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark cleared">`
                 : '';
             html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
-                <td>${tx.date ? formatShortDate(tx.date) : ''}</td>
-                <td>${escapeHtml(tx.account || '')}</td>
-                <td>${nameCell}</td>
-                <td class="text-right ${amountColorClass}">${amountCell}${overrideActions}</td>
-                <td class="text-right">${formatCurrency(tx.balance)}</td>
-                <td class="text-center">${clearedCell}</td>
+                <td data-col="date"${ch('date')}>${tx.date ? formatShortDate(tx.date) : ''}</td>
+                <td data-col="account"${ch('account')}>${escapeHtml(tx.account || '')}</td>
+                <td data-col="name"${ch('name')}>${nameCell}</td>
+                <td data-col="amount" class="text-right ${amountColorClass}"${ch('amount')}>${amountCell}${overrideActions}</td>
+                <td data-col="balance" class="text-right"${ch('balance')}>${formatCurrency(tx.balance)}</td>
+                <td data-col="cleared" class="text-center"${ch('cleared')}>${clearedCell}</td>
             </tr>`;
         }
     }
@@ -385,6 +416,47 @@ export function renderLedgerPage(app) {
     const exportCsvBtn = container.querySelector('#ledgerExportCsvBtn');
     if (exportCsvBtn) {
         exportCsvBtn.onclick = () => openLedgerExportModal(app);
+    }
+
+    // Column visibility popover
+    const colsBtn = container.querySelector('#ledgerColsBtn');
+    const colsPopover = container.querySelector('#ledgerColsPopover');
+    if (colsBtn && colsPopover) {
+        // Restore checkbox state from saved prefs
+        const saved = loadHiddenCols();
+        colsPopover.querySelectorAll('[data-ledger-col]').forEach(cb => {
+            cb.checked = !saved.has(cb.getAttribute('data-ledger-col'));
+        });
+        colsBtn.onclick = (e) => {
+            e.stopPropagation();
+            const isOpen = !colsPopover.hidden;
+            colsPopover.hidden = isOpen;
+            colsBtn.setAttribute('aria-expanded', String(!isOpen));
+            if (!isOpen) {
+                // One-time outside-click dismissal
+                document.addEventListener('click', function dismiss() {
+                    colsPopover.hidden = true;
+                    colsBtn.setAttribute('aria-expanded', 'false');
+                    document.removeEventListener('click', dismiss);
+                }, { once: true });
+            }
+        };
+        colsPopover.onchange = (event) => {
+            const cb = event.target.closest('[data-ledger-col]');
+            if (!cb) return;
+            const col = cb.getAttribute('data-ledger-col');
+            const newHidden = loadHiddenCols();
+            if (cb.checked) newHidden.delete(col); else newHidden.add(col);
+            // Keep at least one column always visible
+            if (newHidden.size >= LEDGER_ALL_COLS.length) { cb.checked = true; return; }
+            saveHiddenCols(newHidden);
+            // Toggle class on existing th/td without full re-render
+            container.querySelectorAll(`[data-col="${col}"]`).forEach(el => {
+                el.classList.toggle('ledger-col-hidden', !cb.checked);
+            });
+        };
+        // Prevent popover clicks from bubbling to the dismiss handler
+        colsPopover.addEventListener('click', e => e.stopPropagation());
     }
     // --- End: renderLedgerPage logic ---
 }

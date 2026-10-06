@@ -18,6 +18,9 @@ import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
 
 
+// Module-level filter state for the bonus list (null = all time).
+let _bonusFilterYear = new Date().getFullYear();
+
 // Render the income list and summary panel inside the Income page.
 export function renderIncomeList(app) {
     const container = document.getElementById('incomeList');
@@ -345,8 +348,27 @@ export function renderBonusList(app) {
     }
 
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Build sorted list of years that have at least one bonus entry
+    const availableYears = [...new Set(
+        app.bonuses.map(b => new Date(b.date + 'T12:00:00').getFullYear())
+    )].sort((a, b) => a - b);
+
+    // Clamp filter to an actually-present year when navigating
+    if (_bonusFilterYear !== null && !availableYears.includes(_bonusFilterYear)) {
+        _bonusFilterYear = availableYears[availableYears.length - 1] ?? currentYear;
+    }
+
+    const filtered = _bonusFilterYear === null
+        ? app.bonuses
+        : app.bonuses.filter(b => new Date(b.date + 'T12:00:00').getFullYear() === _bonusFilterYear);
+
+    const yearIdx = _bonusFilterYear !== null ? availableYears.indexOf(_bonusFilterYear) : -1;
+    const prevYear = yearIdx > 0 ? availableYears[yearIdx - 1] : null;
+    const nextYear = yearIdx !== -1 && yearIdx < availableYears.length - 1 ? availableYears[yearIdx + 1] : null;
+
     const catBadgeClass = {
         Bonus: 'bonus-cat--bonus',
         'Tax Refund': 'bonus-cat--tax',
@@ -359,93 +381,127 @@ export function renderBonusList(app) {
         savings:  { cls: 'bonus-purpose--savings',  label: '🏦 Savings' }
     };
 
+    const filterHtml = `
+        <div class="bonus-filter-row">
+            <button class="bonus-filter-nav" data-bonus-year-nav="prev"
+                ${prevYear === null ? 'disabled aria-disabled="true"' : `aria-label="Show ${prevYear}"`}>&#8249;</button>
+            <span class="bonus-filter-label">${_bonusFilterYear ?? 'All time'}</span>
+            <button class="bonus-filter-nav" data-bonus-year-nav="next"
+                ${nextYear === null ? 'disabled aria-disabled="true"' : `aria-label="Show ${nextYear}"`}>&#8250;</button>
+            ${_bonusFilterYear !== null
+                ? `<button class="bonus-filter-all" data-bonus-show-all>All time</button>`
+                : `<button class="bonus-filter-all" data-bonus-show-year="${currentYear}">This year</button>`
+            }
+        </div>`;
+
+    const cardsHtml = filtered.length === 0
+        ? `<p class="text-muted-secondary" style="padding:12px 0;font-size:0.9rem;">No entries for ${_bonusFilterYear ?? 'this period'}.</p>`
+        : filtered.map(b => {
+            const d = new Date(b.date + 'T12:00:00');
+            const isThisMonth = d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+            const dateStr = formatShortDate(d);
+            const badgeCls = catBadgeClass[b.category] || 'bonus-cat--other';
+
+            if (app.editingBonusId === b.id) {
+                return `
+                <div class="bonus-card bonus-card--editing">
+                    <div class="bonus-edit-grid">
+                        <div class="form-group form-no-margin">
+                            <label class="label-compact">Label</label>
+                            <input type="text" id="be-name-${b.id}" value="${escapeHtml(b.name)}" class="form-full-width">
+                        </div>
+                        <div class="form-group form-no-margin">
+                            <label class="label-compact">Amount ($)</label>
+                            <input type="number" id="be-amount-${b.id}" value="${b.amount}" min="0.01" step="0.01" class="form-full-width">
+                        </div>
+                        <div class="form-group form-no-margin">
+                            <label class="label-compact">Date received</label>
+                            <input type="date" id="be-date-${b.id}" value="${b.date}" class="form-full-width">
+                        </div>
+                        <div class="form-group form-no-margin">
+                            <label class="label-compact">Category</label>
+                            <select id="be-category-${b.id}" class="form-full-width">
+                                <option value="Bonus"        ${b.category==='Bonus'        ?'selected':''}>Bonus</option>
+                                <option value="Tax Refund"   ${b.category==='Tax Refund'   ?'selected':''}>Tax Refund</option>
+                                <option value="Cash Deposit" ${b.category==='Cash Deposit' ?'selected':''}>Cash Deposit</option>
+                                <option value="Check Deposit"${b.category==='Check Deposit'?'selected':''}>Check Deposit</option>
+                                <option value="Other"        ${b.category==='Other'        ?'selected':''}>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-no-margin">
+                            <label class="label-compact">Account</label>
+                            <select id="be-account-${b.id}" class="form-full-width">
+                                ${buildAccountOptionsHtml(app.accounts, b.accountId, { emptyLabel: '— No account —' })}
+                            </select>
+                        </div>
+                        <div class="form-group form-no-margin">
+                            <label class="label-compact">Purpose</label>
+                            <select id="be-purpose-${b.id}" class="form-full-width">
+                                <option value=""         ${!b.purpose             ?'selected':''}>— Not decided —</option>
+                                <option value="cashFlow" ${b.purpose==='cashFlow' ?'selected':''}>💳 Cash Flow</option>
+                                <option value="savings"  ${b.purpose==='savings'  ?'selected':''}>🏦 Savings</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="income-edit-actions margin-top-auto">
+                        <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}">Save</button>
+                        <button class="btn btn-secondary btn-small" data-bonus-action="cancel">Cancel</button>
+                    </div>
+                </div>`;
+            }
+
+            const purposeMeta = purposeBadgeMeta[b.purpose];
+            const purposeBadge = purposeMeta
+                ? `<span class="bonus-purpose-badge ${purposeMeta.cls}">${escapeHtml(purposeMeta.label)}</span>`
+                : '';
+
+            return `
+            <div class="bonus-card${isThisMonth ? ' bonus-card--current' : ''}">
+                <div class="bonus-card-info">
+                    <span class="bonus-card-name">${escapeHtml(b.name)}</span>
+                    <span class="bonus-card-amount">${formatCurrency(b.amount)}</span>
+                    <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(b.category)}</span>${purposeBadge ? ' ' + purposeBadge : ''}</span>
+                    ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
+                </div>
+                <div class="debt-actions">
+                    <button class="btn-edit" data-bonus-action="edit" data-bonus-id="${b.id}">Edit</button>
+                    <button class="btn btn-danger btn-small" data-bonus-action="delete" data-bonus-id="${b.id}">Delete</button>
+                </div>
+            </div>`;
+        }).join('');
+
     container.innerHTML = `
         <div class="bonus-list-wrap">
             <h4 class="bonus-list-title">One-time Bonuses &amp; Deposits</h4>
-            ${app.bonuses.map(b => {
-                const d = new Date(b.date + 'T12:00:00');
-                const isThisMonth = d.getFullYear() === year && d.getMonth() === month;
-                const dateStr = formatShortDate(d);
-                const badgeCls = catBadgeClass[b.category] || 'bonus-cat--other';
-
-                if (app.editingBonusId === b.id) {
-                    return `
-                    <div class="bonus-card bonus-card--editing">
-                        <div class="bonus-edit-grid">
-                            <div class="form-group form-no-margin">
-                                <label class="label-compact">Label</label>
-                                <input type="text" id="be-name-${b.id}" value="${escapeHtml(b.name)}" class="form-full-width">
-                            </div>
-                            <div class="form-group form-no-margin">
-                                <label class="label-compact">Amount ($)</label>
-                                <input type="number" id="be-amount-${b.id}" value="${b.amount}" min="0.01" step="0.01" class="form-full-width">
-                            </div>
-                            <div class="form-group form-no-margin">
-                                <label class="label-compact">Date received</label>
-                                <input type="date" id="be-date-${b.id}" value="${b.date}" class="form-full-width">
-                            </div>
-                            <div class="form-group form-no-margin">
-                                <label class="label-compact">Category</label>
-                                <select id="be-category-${b.id}" class="form-full-width">
-                                    <option value="Bonus"      ${b.category==='Bonus'      ?'selected':''}>Bonus</option>
-                                    <option value="Tax Refund" ${b.category==='Tax Refund' ?'selected':''}>Tax Refund</option>
-                                    <option value="Cash Deposit" ${b.category==='Cash Deposit' ?'selected':''}>Cash Deposit</option>
-                                    <option value="Check Deposit" ${b.category==='Check Deposit' ?'selected':''}>Check Deposit</option>
-                                    <option value="Other"      ${b.category==='Other'      ?'selected':''}>Other</option>
-                                </select>
-                            </div>
-                            <div class="form-group form-no-margin">
-                                <label class="label-compact">Account</label>
-                                <select id="be-account-${b.id}" class="form-full-width">
-                                    ${buildAccountOptionsHtml(app.accounts, b.accountId, { emptyLabel: '— No account —' })}
-                                </select>
-                            </div>
-                            <div class="form-group form-no-margin">
-                                <label class="label-compact">Purpose</label>
-                                <select id="be-purpose-${b.id}" class="form-full-width">
-                                    <option value=""        ${!b.purpose             ?'selected':''}>— Not decided —</option>
-                                    <option value="cashFlow" ${b.purpose==='cashFlow' ?'selected':''}>💳 Cash Flow</option>
-                                    <option value="savings"  ${b.purpose==='savings'  ?'selected':''}>🏦 Savings</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="income-edit-actions margin-top-auto">
-                            <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}">Save</button>
-                            <button class="btn btn-secondary btn-small" data-bonus-action="cancel">Cancel</button>
-                        </div>
-                    </div>`;
-                }
-
-                const purposeMeta = purposeBadgeMeta[b.purpose];
-                const purposeBadge = purposeMeta
-                    ? `<span class="bonus-purpose-badge ${purposeMeta.cls}">${escapeHtml(purposeMeta.label)}</span>`
-                    : '';
-
-                return `
-                <div class="bonus-card${isThisMonth ? ' bonus-card--current' : ''}">
-                    <div class="bonus-card-info">
-                        <span class="bonus-card-name">${escapeHtml(b.name)}</span>
-                        <span class="bonus-card-amount">${formatCurrency(b.amount)}</span>
-                        <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(b.category)}</span>${purposeBadge ? ' ' + purposeBadge : ''}</span>
-                        ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
-                    </div>
-                    <div class="debt-actions">
-                        <button class="btn-edit" data-bonus-action="edit" data-bonus-id="${b.id}">Edit</button>
-                        <button class="btn btn-danger btn-small" data-bonus-action="delete" data-bonus-id="${b.id}">Delete</button>
-                    </div>
-                </div>`;
-            }).join('')}
+            ${filterHtml}
+            ${cardsHtml}
         </div>`;
 
     container.onclick = event => {
+        const navEl = event.target.closest('[data-bonus-year-nav]');
+        if (navEl) {
+            const dir = navEl.getAttribute('data-bonus-year-nav');
+            if (dir === 'prev' && prevYear !== null) _bonusFilterYear = prevYear;
+            if (dir === 'next' && nextYear !== null) _bonusFilterYear = nextYear;
+            renderBonusList(app);
+            return;
+        }
+        if (event.target.closest('[data-bonus-show-all]')) {
+            _bonusFilterYear = null;
+            renderBonusList(app);
+            return;
+        }
+        const showYearEl = event.target.closest('[data-bonus-show-year]');
+        if (showYearEl) {
+            _bonusFilterYear = parseInt(showYearEl.getAttribute('data-bonus-show-year'), 10);
+            renderBonusList(app);
+            return;
+        }
         const actionEl = event.target.closest('[data-bonus-action]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-bonus-action');
         const id = parseInt(actionEl.getAttribute('data-bonus-id'), 10);
-        if (action === 'cancel') {
-            app.cancelEditBonus();
-            return;
-        }
+        if (action === 'cancel') { app.cancelEditBonus(); return; }
         if (Number.isNaN(id)) return;
         if (action === 'save') app.saveEditBonus(id);
         if (action === 'edit') app.startEditBonus(id);

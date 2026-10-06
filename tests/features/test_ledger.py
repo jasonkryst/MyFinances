@@ -1134,3 +1134,104 @@ def test_ledger_mark_all_cleared_confirm_clears_all_visible_rows(app_page):
 
     mark_btn = page.query_selector('#ledgerMarkAllClearedBtn')
     assert mark_btn is None, "Mark-all button should disappear after all rows are cleared"
+
+
+# ── Ledger column visibility (issue UI polish) ────────────────────────────────
+
+
+def _navigate_to_ledger_with_data(page):
+    """Navigate to ledger with injected data and 'all' date range so rows appear."""
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Test Checking', type: 'Checking', startingBalance: 1000 }];
+        app.incomes = [{ id: 10, name: 'Monthly Pay', amount: 3000, accountId: 1,
+                         frequency: 'monthly', firstPayDate: '2026-06-01' }];
+        app.debts = []; app.bills = []; app.expenses = []; app.bonuses = [];
+        app.recurringTemplates = [];
+        app._ledgerDateRange = 'all';
+        app._ledgerAccountFilter = 'all';
+        app._ledgerClearedFilter = 'all';
+        app.refreshCurrentPageData();
+    }""")
+    page.wait_for_selector('#ledgerTableContainer .ledger-table', timeout=5000)
+
+
+@pytest.mark.feature
+def test_ledger_columns_button_present(app_page):
+    """'Columns' button is visible in the ledger filter bar."""
+    page = app_page
+    _navigate_to_ledger_with_data(page)
+
+    btn = page.query_selector('#ledgerColsBtn')
+    assert btn is not None, "'Columns ▾' button should be present in the ledger filter bar"
+
+
+@pytest.mark.feature
+def test_ledger_columns_popover_opens_on_click(app_page):
+    """Clicking 'Columns ▾' opens the column-visibility popover."""
+    page = app_page
+    _navigate_to_ledger_with_data(page)
+
+    # Popover starts hidden
+    assert page.evaluate("() => document.getElementById('ledgerColsPopover')?.hidden !== false"), \
+        "Column popover should start hidden"
+
+    page.click('#ledgerColsBtn')
+    page.wait_for_selector('#ledgerColsPopover:not([hidden])', timeout=3000)
+
+    popover = page.query_selector('#ledgerColsPopover')
+    assert popover is not None, "Column popover should appear after clicking Columns button"
+    is_hidden = page.evaluate("() => document.getElementById('ledgerColsPopover').hidden")
+    assert not is_hidden, "Column popover should not be hidden after clicking Columns button"
+
+
+@pytest.mark.feature
+def test_ledger_columns_hide_column(app_page):
+    """Unchecking a column in the popover hides it from the table."""
+    page = app_page
+    _navigate_to_ledger_with_data(page)
+
+    # Open the popover
+    page.click('#ledgerColsBtn')
+    page.wait_for_selector('#ledgerColsPopover:not([hidden])', timeout=3000)
+
+    # Uncheck the 'account' column
+    account_cb = page.query_selector('[data-ledger-col="account"]')
+    assert account_cb is not None, "Account column checkbox should be in the popover"
+    page.evaluate("() => { const cb = document.querySelector('[data-ledger-col=\"account\"]'); cb.checked = false; cb.dispatchEvent(new Event('change', {bubbles:true})); }")
+
+    # The account th/td cells should now have ledger-col-hidden
+    hidden_cells = page.query_selector_all('[data-col="account"].ledger-col-hidden')
+    assert len(hidden_cells) > 0, "Account column cells should gain ledger-col-hidden class when unchecked"
+
+
+@pytest.mark.feature
+def test_ledger_columns_preference_persists(app_page):
+    """Column visibility choice is saved to localStorage and re-applied on re-render."""
+    page = app_page
+    _navigate_to_ledger_with_data(page)
+
+    # Open popover and hide the 'account' column
+    page.click('#ledgerColsBtn')
+    page.wait_for_selector('#ledgerColsPopover:not([hidden])', timeout=3000)
+    page.evaluate("""() => {
+        const cb = document.querySelector('[data-ledger-col="account"]');
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change', {bubbles: true}));
+    }""")
+
+    # Verify it was saved to localStorage
+    saved = page.evaluate("() => localStorage.getItem('ledgerHiddenColumns')")
+    assert saved is not None and 'account' in saved, \
+        f"'account' should be in ledgerHiddenColumns localStorage, got: {saved!r}"
+
+    # Re-render the ledger (simulate state refresh)
+    page.evaluate("() => window.app.refreshCurrentPageData()")
+    page.wait_for_selector('.ledger-table', timeout=5000)
+
+    # The account column should still be hidden after re-render
+    hidden_cells = page.query_selector_all('[data-col="account"].ledger-col-hidden')
+    assert len(hidden_cells) > 0, \
+        "Account column should remain hidden after re-render (preference persisted)"
