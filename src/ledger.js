@@ -172,13 +172,10 @@ export function renderLedgerPage(app) {
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
             <option value="100"${selectedPageSize===100?' selected':''}>100</option>
         </select>`;
-    // Columns button + popover wrapped together so the popover can be position:absolute
-    filterHtml += `<span class="ledger-cols-wrap">
-        <button id="ledgerColsBtn" class="btn btn-secondary btn-small" type="button" aria-expanded="false" aria-controls="ledgerColsPopover">Columns &#9662;</button>
-        <div id="ledgerColsPopover" class="ledger-cols-popover" hidden>
-            ${LEDGER_ALL_COLS.map(col => `<label class="ledger-cols-check"><input type="checkbox" data-ledger-col="${col}" checked> ${escapeHtml(LEDGER_COL_LABELS[col])}</label>`).join('')}
-        </div>
-    </span>`;
+    filterHtml += `<label for="ledgerColsSelect" class="filter-label">Columns:</label>
+        <select id="ledgerColsSelect" class="ledger-cols-select" multiple size="${LEDGER_ALL_COLS.length}" aria-label="Visible columns">
+            ${LEDGER_ALL_COLS.map(col => `<option value="${col}">${escapeHtml(LEDGER_COL_LABELS[col])}</option>`).join('')}
+        </select>`;
     filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
     if (selectedAccount !== 'all') {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
@@ -420,45 +417,28 @@ export function renderLedgerPage(app) {
         exportCsvBtn.onclick = () => openLedgerExportModal(app);
     }
 
-    // Column visibility popover
-    const colsBtn = container.querySelector('#ledgerColsBtn');
-    const colsPopover = container.querySelector('#ledgerColsPopover');
-    if (colsBtn && colsPopover) {
-        // Restore checkbox state from saved prefs
+    // Column visibility multi-select
+    const colsSelect = container.querySelector('#ledgerColsSelect');
+    if (colsSelect) {
         const saved = loadHiddenCols();
-        colsPopover.querySelectorAll('[data-ledger-col]').forEach(cb => {
-            cb.checked = !saved.has(cb.getAttribute('data-ledger-col'));
+        Array.from(colsSelect.options).forEach(opt => {
+            opt.selected = !saved.has(opt.value);
         });
-        colsBtn.onclick = (e) => {
-            e.stopPropagation();
-            const isOpen = !colsPopover.hidden;
-            colsPopover.hidden = isOpen;
-            colsBtn.setAttribute('aria-expanded', String(!isOpen));
-            if (!isOpen) {
-                // One-time outside-click dismissal
-                document.addEventListener('click', function dismiss() {
-                    colsPopover.hidden = true;
-                    colsBtn.setAttribute('aria-expanded', 'false');
-                    document.removeEventListener('click', dismiss);
-                }, { once: true });
+        colsSelect.onchange = () => {
+            const selected = new Set(Array.from(colsSelect.selectedOptions).map(o => o.value));
+            // Require at least one column visible
+            if (selected.size === 0) {
+                Array.from(colsSelect.options).forEach(opt => { opt.selected = true; });
+                return;
             }
-        };
-        colsPopover.onchange = (event) => {
-            const cb = event.target.closest('[data-ledger-col]');
-            if (!cb) return;
-            const col = cb.getAttribute('data-ledger-col');
-            const newHidden = loadHiddenCols();
-            if (cb.checked) newHidden.delete(col); else newHidden.add(col);
-            // Keep at least one column always visible
-            if (newHidden.size >= LEDGER_ALL_COLS.length) { cb.checked = true; return; }
+            const newHidden = new Set(LEDGER_ALL_COLS.filter(c => !selected.has(c)));
             saveHiddenCols(newHidden);
-            // Toggle class on existing th/td without full re-render
-            container.querySelectorAll(`[data-col="${col}"]`).forEach(el => {
-                el.classList.toggle('ledger-col-hidden', !cb.checked);
+            LEDGER_ALL_COLS.forEach(col => {
+                container.querySelectorAll(`[data-col="${col}"]`).forEach(el => {
+                    el.classList.toggle('ledger-col-hidden', newHidden.has(col));
+                });
             });
         };
-        // Prevent popover clicks from bubbling to the dismiss handler
-        colsPopover.addEventListener('click', e => e.stopPropagation());
     }
     // --- End: renderLedgerPage logic ---
 }

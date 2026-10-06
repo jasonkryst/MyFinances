@@ -364,38 +364,19 @@
 /* Ledger column visibility */
 .ledger-col-hidden { display: none !important; }
 
-.ledger-cols-wrap {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-.ledger-cols-popover {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 14px;
+.ledger-cols-select {
+    border: 1.5px solid var(--border-color);
+    border-radius: 6px;
     background: var(--card-bg, #fff);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px 14px;
-    box-shadow: var(--shadow-lg);
-    z-index: 100;
-    white-space: nowrap;
-}
-.ledger-cols-check {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.83rem;
-    cursor: pointer;
     color: var(--text-primary);
-    white-space: nowrap;
+    font-size: 0.83rem;
+    padding: 2px 4px;
+    cursor: pointer;
 }
-body.dark-mode .ledger-cols-popover {
+body.dark-mode .ledger-cols-select {
     background: #1e293b;
     border-color: #334155;
+    color: #e2e8f0;
 }
 
 .filter-active-badge {
@@ -2480,6 +2461,20 @@ body.dark-mode .debt-form-toggle--open {
     align-items: center;
     gap: 4px;
     flex-wrap: wrap;
+    min-width: 0;
+}
+@media (max-width: 640px) {
+    .debts-toolbar-filter {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 6px 8px;
+        width: 100%;
+    }
+    .debts-toolbar-filter .category-filter {
+        min-width: 0;
+        width: 100%;
+    }
 }
 .recurring-toolbar-filter,
 .accounts-toolbar-filter {

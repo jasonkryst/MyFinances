@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.2] — 2026-10-06
+
+### Changed
+- **Ledger column selector** — replaced the floating popover with a `<select multiple>` list box; all six columns are always visible and individually togglable without opening a separate panel, eliminating positioning/overflow issues on mobile.
+
+### Fixed
+- **Liabilities filter horizontal overflow** — at ≤640px the debt filter toolbar now uses a 2-column label/select grid (`auto 1fr`) instead of a flat flex row, so it can never be wider than the viewport.
+
 ## [6.10.1] — 2026-10-06
 
 ### Fixed
