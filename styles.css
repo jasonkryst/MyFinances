@@ -2997,6 +2997,8 @@ body.dark-mode .stimulus-amount {
 
     .debt-actions {
         width: 100%;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .strategy-controls .form-row {

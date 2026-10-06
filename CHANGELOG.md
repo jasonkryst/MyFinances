@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.6] — 2026-10-06
+
+### Fixed
+- **Debt card action buttons clipped on mobile** — `.debt-actions` now uses `flex-wrap: wrap; gap: 6px` at ≤768px so the five buttons (Edit, Update Balance, History, Archive, Delete) wrap into two rows instead of overflowing the card's right edge.
+
 ## [6.10.5] — 2026-10-06
 
 ### Fixed
