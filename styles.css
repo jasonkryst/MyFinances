@@ -2440,6 +2440,18 @@ body.dark-mode .debt-form-toggle--open {
     margin-bottom: 14px;
 }
 
+@media (max-width: 640px) {
+    .debts-list-header {
+        display: block;
+    }
+    .debts-list-header h2 {
+        margin-bottom: 10px;
+    }
+    .debts-list-header .debts-toolbar-filter {
+        width: 100%;
+    }
+}
+
 .debts-list-header h2 {
     margin: 0;
     font-size: 1.05rem;
@@ -2464,15 +2476,33 @@ body.dark-mode .debt-form-toggle--open {
     flex-wrap: wrap;
     min-width: 0;
 }
+
+/* Each label+select pair stays together on mobile as a self-contained row */
+.filter-pair {
+    display: contents; /* transparent wrapper on desktop — children flow directly into parent flex */
+}
+
 @media (max-width: 640px) {
     .debts-toolbar-filter {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        align-items: center;
-        gap: 6px 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
         width: 100%;
     }
-    .debts-toolbar-filter .category-filter {
+    .filter-pair {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+    .filter-pair .category-filter-label {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        min-width: 80px;
+    }
+    .filter-pair .category-filter {
+        flex: 1 1 0;
         min-width: 0;
         width: 100%;
     }

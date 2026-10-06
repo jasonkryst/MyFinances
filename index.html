@@ -456,50 +456,62 @@
                                     <div class="debts-list-header">
                                         <h2>Your Debts</h2>
                                         <div class="debts-toolbar-filter">
-                                            <label for="debtSortBy" class="category-filter-label">Sort:</label>
-                                            <select id="debtSortBy" class="category-filter">
-                                                <option value="">Default</option>
-                                                <option value="balance-desc">Balance ↓</option>
-                                                <option value="balance-asc">Balance ↑</option>
-                                                <option value="interest-desc">Interest Rate ↓</option>
-                                                <option value="interest-asc">Interest Rate ↑</option>
-                                                <option value="minpay-desc">Min Payment ↓</option>
-                                                <option value="minpay-asc">Min Payment ↑</option>
-                                                <option value="progress-desc">Payoff Progress ↓</option>
-                                                <option value="progress-asc">Payoff Progress ↑</option>
-                                                <option value="utilization-desc">Utilization ↓</option>
-                                                <option value="utilization-asc">Utilization ↑</option>
-                                                <option value="due-asc">Due Soonest</option>
-                                            </select>
-                                            <label for="categoryFilter" class="category-filter-label">Category:</label>
-                                            <select id="categoryFilter" class="category-filter">
-                                                <option value="">All</option>
-                                            </select>
-                                            <label for="debtAccountFilter" class="category-filter-label">Account:</label>
-                                            <select id="debtAccountFilter" class="category-filter">
-                                                <option value="">All</option>
-                                            </select>
-                                            <label for="debtInterestFilter" class="category-filter-label">Interest:</label>
-                                            <select id="debtInterestFilter" class="category-filter">
-                                                <option value="">Any</option>
-                                                <option value="interestBearing">Interest Bearing</option>
-                                                <option value="noInterest">No Interest</option>
-                                            </select>
-                                            <label for="debtProgressFilter" class="category-filter-label">Progress:</label>
-                                            <select id="debtProgressFilter" class="category-filter">
-                                                <option value="">Any</option>
-                                                <option value="inprogress">In Progress</option>
-                                                <option value="half">≥50% Paid</option>
-                                                <option value="most">≥75% Paid</option>
-                                                <option value="paid">Paid Off</option>
-                                            </select>
-                                            <label for="debtUtilizationFilter" class="category-filter-label">Utilization:</label>
-                                            <select id="debtUtilizationFilter" class="category-filter">
-                                                <option value="">Any</option>
-                                                <option value="low">Low (&lt;30%)</option>
-                                                <option value="medium">Medium (30–70%)</option>
-                                                <option value="high">High (&gt;70%)</option>
-                                            </select>
+                                            <div class="filter-pair">
+                                                <label for="debtSortBy" class="category-filter-label">Sort:</label>
+                                                <select id="debtSortBy" class="category-filter">
+                                                    <option value="">Default</option>
+                                                    <option value="balance-desc">Balance ↓</option>
+                                                    <option value="balance-asc">Balance ↑</option>
+                                                    <option value="interest-desc">Interest Rate ↓</option>
+                                                    <option value="interest-asc">Interest Rate ↑</option>
+                                                    <option value="minpay-desc">Min Payment ↓</option>
+                                                    <option value="minpay-asc">Min Payment ↑</option>
+                                                    <option value="progress-desc">Payoff Progress ↓</option>
+                                                    <option value="progress-asc">Payoff Progress ↑</option>
+                                                    <option value="utilization-desc">Utilization ↓</option>
+                                                    <option value="utilization-asc">Utilization ↑</option>
+                                                    <option value="due-asc">Due Soonest</option>
+                                                </select>
+                                            </div>
+                                            <div class="filter-pair">
+                                                <label for="categoryFilter" class="category-filter-label">Category:</label>
+                                                <select id="categoryFilter" class="category-filter">
+                                                    <option value="">All</option>
+                                                </select>
+                                            </div>
+                                            <div class="filter-pair">
+                                                <label for="debtAccountFilter" class="category-filter-label">Account:</label>
+                                                <select id="debtAccountFilter" class="category-filter">
+                                                    <option value="">All</option>
+                                                </select>
+                                            </div>
+                                            <div class="filter-pair">
+                                                <label for="debtInterestFilter" class="category-filter-label">Interest:</label>
+                                                <select id="debtInterestFilter" class="category-filter">
+                                                    <option value="">Any</option>
+                                                    <option value="interestBearing">Interest Bearing</option>
+                                                    <option value="noInterest">No Interest</option>
+                                                </select>
+                                            </div>
+                                            <div class="filter-pair">
+                                                <label for="debtProgressFilter" class="category-filter-label">Progress:</label>
+                                                <select id="debtProgressFilter" class="category-filter">
+                                                    <option value="">Any</option>
+                                                    <option value="inprogress">In Progress</option>
+                                                    <option value="half">≥50% Paid</option>
+                                                    <option value="most">≥75% Paid</option>
+                                                    <option value="paid">Paid Off</option>
+                                                </select>
+                                            </div>
+                                            <div class="filter-pair">
+                                                <label for="debtUtilizationFilter" class="category-filter-label">Utilization:</label>
+                                                <select id="debtUtilizationFilter" class="category-filter">
+                                                    <option value="">Any</option>
+                                                    <option value="low">Low (&lt;30%)</option>
+                                                    <option value="medium">Medium (30–70%)</option>
+                                                    <option value="high">High (&gt;70%)</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
                                     <div id="debtsList" class="debts-list"></div>
