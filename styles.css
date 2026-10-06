@@ -281,8 +281,13 @@
 }
 
 .category-filter {
-    margin-left: 6px;
-    min-width: 120px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border-color);
+    font-size: 0.9rem;
+    min-width: 110px;
+    background: var(--card-bg, #fff);
+    color: var(--text-primary);
 }
 
 .category-summary {
@@ -359,8 +364,15 @@
 /* Ledger column visibility */
 .ledger-col-hidden { display: none !important; }
 
-.ledger-cols-popover {
+.ledger-cols-wrap {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.ledger-cols-popover {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
     display: flex;
     flex-wrap: wrap;
     gap: 6px 14px;
@@ -368,9 +380,9 @@
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 10px 14px;
-    margin-bottom: 4px;
     box-shadow: var(--shadow-lg);
-    z-index: 10;
+    z-index: 100;
+    white-space: nowrap;
 }
 .ledger-cols-check {
     display: flex;
@@ -539,6 +551,9 @@ body.dark-mode .ledger-cols-popover {
     cursor: not-allowed;
 }
 
+@media (max-width: 480px) {
+    .ledger-section { padding: 16px 12px 20px 12px; }
+}
 body.dark-mode .ledger-section {
     background: #1e293b;
     box-shadow: 0 1px 8px rgba(0,0,0,0.18);
@@ -971,6 +986,11 @@ body.dark-mode #monthlyInterestCostValue {
 }
 
 /* ── Category summary / filter ── */
+body.dark-mode .category-filter {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
 body.dark-mode .category-summary,
 body.dark-mode #categorySummary {
     color: #94a3b8;
@@ -1537,7 +1557,7 @@ header p {
 }
 
 .page-section { display: none; }
-.page-section.active { display: block; overflow-x: clip; }
+.page-section.active { display: block; }
 
 main {
     padding: 40px 20px;
@@ -1548,7 +1568,7 @@ section {
 }
 
 section h2 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     margin-bottom: 20px;
     color: var(--text-primary);
     border-bottom: 2px solid var(--primary-color);
@@ -6038,6 +6058,7 @@ body.dark-mode .recurring-this-month strong { color: #f1f5f9; }
 }
 @media (max-width: 480px) {
     .recurring-edit-grid { grid-template-columns: 1fr; }
+    .recurring-section { padding: 16px 12px 20px 12px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -6047,6 +6068,9 @@ body.dark-mode .recurring-this-month strong { color: #f1f5f9; }
 .savings-section { background: var(--card-bg, #fff); border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); padding: 28px 24px 32px 24px; margin-bottom: 40px; }
 .savings-section h2 { color: var(--primary-color); font-size: 1.4rem; margin-bottom: 18px; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; }
 .section-description { color: var(--text-muted, #6b7280); font-size: 0.92rem; margin: 0 0 20px; }
+@media (max-width: 480px) {
+    .savings-section { padding: 16px 12px 20px 12px; }
+}
 
 .savings-subtabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
 body.dark-mode .savings-subtabs { border-bottom-color: #334155; }

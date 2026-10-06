@@ -172,7 +172,13 @@ export function renderLedgerPage(app) {
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
             <option value="100"${selectedPageSize===100?' selected':''}>100</option>
         </select>`;
-    filterHtml += `<button id="ledgerColsBtn" class="btn btn-secondary btn-small" type="button" aria-expanded="false" aria-controls="ledgerColsPopover">Columns &#9662;</button>`;
+    // Columns button + popover wrapped together so the popover can be position:absolute
+    filterHtml += `<span class="ledger-cols-wrap">
+        <button id="ledgerColsBtn" class="btn btn-secondary btn-small" type="button" aria-expanded="false" aria-controls="ledgerColsPopover">Columns &#9662;</button>
+        <div id="ledgerColsPopover" class="ledger-cols-popover" hidden>
+            ${LEDGER_ALL_COLS.map(col => `<label class="ledger-cols-check"><input type="checkbox" data-ledger-col="${col}" checked> ${escapeHtml(LEDGER_COL_LABELS[col])}</label>`).join('')}
+        </div>
+    </span>`;
     filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
     if (selectedAccount !== 'all') {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
@@ -185,10 +191,6 @@ export function renderLedgerPage(app) {
         filterHtml += `<span class="filter-active-badge">${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''} active</span>`;
     }
     filterHtml += `</div>`;
-    // Column-visibility popover (initially hidden, toggled by #ledgerColsBtn)
-    filterHtml += `<div id="ledgerColsPopover" class="ledger-cols-popover" hidden>
-        ${LEDGER_ALL_COLS.map(col => `<label class="ledger-cols-check"><input type="checkbox" data-ledger-col="${col}" checked> ${escapeHtml(LEDGER_COL_LABELS[col])}</label>`).join('')}
-    </div>`;
 
     const totalRows = transactions.length;
     const totalPages = Math.max(1, Math.ceil(totalRows / selectedPageSize));
