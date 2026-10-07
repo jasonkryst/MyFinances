@@ -1353,3 +1353,99 @@ def test_ledger_enter_actual_becomes_edit_actual_after_override(app_page):
     }""", tx_id)
     assert btn_text == 'Edit actual', \
         f"Button should read 'Edit actual' after override is set on variable income, got: {btn_text!r}"
+
+
+# ── L-01 Override indicator (pencil icon) in amount cell ────────────────────
+
+@pytest.mark.feature
+def test_ledger_override_icon_absent_on_unoverridden_row(app_page):
+    """A row with no override should not show the pencil override icon."""
+    page = app_page
+    _seed_income_for_ledger(page)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('.ledger-table', timeout=5000)
+
+    icon = page.query_selector('.ledger-override-icon')
+    assert icon is None, \
+        "Pencil override icon should not appear on rows with no override set"
+
+
+@pytest.mark.feature
+def test_ledger_override_icon_present_after_override_set(app_page):
+    """After setting an override, the pencil icon appears inside the amount cell of that row."""
+    page = app_page
+    _seed_income_for_ledger(page)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('.ledger-table', timeout=5000)
+
+    # Open override modal via the Override button in the actions column
+    override_btn = page.query_selector('[data-ledger-override]')
+    assert override_btn, "Expected an override button in the ledger"
+    override_btn.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    page.fill('#ledgerOverrideAmountInput', '1500.00')
+    page.click('#ledgerOverrideConfirmBtn')
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+
+    icon = page.query_selector('.ledger-override-icon')
+    assert icon is not None, \
+        "Pencil override icon should appear in the amount cell after an override is set"
+
+
+@pytest.mark.feature
+def test_ledger_override_icon_tooltip_shows_original_amount(app_page):
+    """The pencil icon's title attribute shows the original pre-override amount."""
+    page = app_page
+    _seed_income_for_ledger(page, amount=2000)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('.ledger-table', timeout=5000)
+
+    override_btn = page.query_selector('[data-ledger-override]')
+    assert override_btn, "Expected an override button"
+    override_btn.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    page.fill('#ledgerOverrideAmountInput', '1750.00')
+    page.click('#ledgerOverrideConfirmBtn')
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+
+    icon = page.query_selector('.ledger-override-icon')
+    assert icon is not None, "Expected pencil override icon"
+    title = icon.get_attribute('title') or ''
+    assert '2,000' in title or '2000' in title, \
+        f"Pencil icon title should reference the original amount $2,000, got: {title!r}"
+
+
+@pytest.mark.feature
+def test_ledger_override_icon_click_opens_override_modal(app_page):
+    """Clicking the pencil override icon opens the same override modal as the button."""
+    page = app_page
+    _seed_income_for_ledger(page)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('.ledger-table', timeout=5000)
+
+    # First set an override so the pencil icon appears
+    override_btn = page.query_selector('[data-ledger-override]')
+    assert override_btn
+    override_btn.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    page.fill('#ledgerOverrideAmountInput', '1500.00')
+    page.click('#ledgerOverrideConfirmBtn')
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+
+    # Now click the pencil icon itself
+    icon = page.query_selector('.ledger-override-icon')
+    assert icon is not None, "Expected pencil icon after override set"
+    icon.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+
+    modal = page.query_selector('#ledgerOverrideModal')
+    assert 'flex-visible' in (modal.get_attribute('class') or ''), \
+        "Override modal should open when pencil icon is clicked"

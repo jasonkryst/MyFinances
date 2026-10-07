@@ -3779,6 +3779,24 @@ body.dark-mode .ledger-est-badge { background: #451a03; color: #fcd34d; }
     border-color: var(--primary-color, #2563eb);
 }
 
+.ledger-override-icon {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: var(--primary-color, #2563eb);
+    margin-left: 4px;
+    vertical-align: middle;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+.ledger-override-icon:hover,
+.ledger-override-icon:focus { opacity: 1; outline: 2px solid var(--primary-color, #2563eb); border-radius: 2px; }
+body.dark-mode .ledger-override-icon { color: #60a5fa; }
+
+.debt-breakeven-btn {
+    margin-left: 4px;
+}
+
 body.dark-mode .income-card-amount {
     color: #34d399;
 }

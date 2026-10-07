@@ -241,7 +241,7 @@ export function renderLedgerPage(app) {
             const amountCell = isReconciliation
                 ? `<span class="ledger-recon-diff ${reconDiffClass}">${tx.meta ? formatCurrency(tx.meta.difference) : formatCurrency(tx.amount)}</span>`
                 : tx.hasOverride
-                    ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
+                    ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-override-icon" data-ledger-override="${escapeHtml(tx.transactionId)}" title="Overridden — original: ${formatCurrency(tx.originalAmount)}" aria-label="Amount overridden, original was ${formatCurrency(tx.originalAmount)}" role="button" tabindex="0">✎</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
                     : isVariableIncome
                         ? `<span>${formatCurrency(tx.amount)}</span><span class="ledger-est-badge" title="Estimated — enter actual amount when paycheck arrives">~ Est.</span>`
                         : `<span>${formatCurrency(tx.amount)}</span>`;
