@@ -234,6 +234,10 @@ export function renderLedgerPage(app) {
             const reconDiffClass = isReconciliation && tx.meta
                 ? (tx.meta.difference > 0 ? 'recon-diff--pos' : tx.meta.difference < 0 ? 'recon-diff--neg' : 'recon-diff--zero')
                 : '';
+            const isVariableIncome = tx.type === 'income' && (() => {
+                const inc = (app.incomes || []).find(i => i.id === tx.sourceId);
+                return inc?.isVariable === true;
+            })();
             const amountCell = isReconciliation
                 ? `<span class="ledger-recon-diff ${reconDiffClass}">${tx.meta ? formatCurrency(tx.meta.difference) : formatCurrency(tx.amount)}</span>`
                 : tx.hasOverride
@@ -265,10 +269,6 @@ export function renderLedgerPage(app) {
             const nameCell = isReconciliation && tx.meta
                 ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
                 : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}`;
-            const isVariableIncome = tx.type === 'income' && (() => {
-                const inc = (app.incomes || []).find(i => i.id === tx.sourceId);
-                return inc?.isVariable === true;
-            })();
             const overrideActions = canOverride
                 ? `<div class="ledger-override-actions">${isVariableIncome && !tx.hasOverride ? `<button class="ledger-override-btn ledger-enter-actual-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">Enter actual</button>` : `<button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit actual' : 'Override'}</button>`}${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
                 : '';
