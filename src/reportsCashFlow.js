@@ -224,6 +224,11 @@ export function renderReportsIncomeExp(app) {
                     }
                 }
             });
+            renderChartDataTable('rptIncomeChart', {
+                caption: 'Income by source',
+                columns: ['Source', 'Amount'],
+                rows: incomeLabels.map((label, i) => [label, fmt(incomeData[i])])
+            });
         }
     }
 
@@ -250,6 +255,11 @@ export function renderReportsIncomeExp(app) {
                         y: { ticks: { color: labelColor }, grid: { display: false } }
                     }
                 }
+            });
+            renderChartDataTable('rptOutflowChart', {
+                caption: 'Outflow by category',
+                columns: ['Category', 'Amount'],
+                rows: outflowLabels.map((label, i) => [label, fmt(outflowData[i])])
             });
         }
     }
@@ -381,6 +391,11 @@ export function renderReportsMoneyFlow(app) {
                 ctx.restore();
             }
         }]
+    });
+    renderChartDataTable('rptMoneyFlowChart', {
+        caption: 'Cumulative money flow by day',
+        columns: ['Day', 'Cumulative Income', 'Cumulative Outflow', 'Net Balance'],
+        rows: labels.map((d, i) => [d, fmt(cumInData[i]), fmt(cumOutData[i]), fmt(netData[i])])
     });
 }
 
