@@ -336,3 +336,71 @@ def test_break_even_accelerate_negative_input(app_page):
     # Total should equal base pay (negative clamped to 0)
     total_text = total_el.inner_text()
     assert '-' not in total_text or total_text.startswith('$'), "Negative extra should be clamped to 0"
+
+
+# ── D-03: Break-even shortcut button on debt cards ───────────────────────────
+
+@pytest.mark.feature
+def test_breakeven_shortcut_button_present_for_eligible_debt(app_page):
+    """An interest-bearing debt with a positive balance shows a 'Break-even' button."""
+    page = app_page
+    _create_cc_debt(page)
+    _nav_debts(page)
+
+    btn = page.query_selector('[data-be-shortcut]')
+    assert btn is not None, \
+        "Expected a 'Break-even' button (data-be-shortcut) on an interest-bearing debt card"
+    assert 'break' in (btn.text_content() or '').lower(), \
+        f"Button text should mention 'break', got: {btn.text_content()!r}"
+
+
+@pytest.mark.feature
+def test_breakeven_shortcut_button_reveals_break_even_section(app_page):
+    """Clicking the 'Break-even' button on a debt card reveals its break-even section."""
+    page = app_page
+    _create_cc_debt(page)
+    _nav_debts(page)
+
+    btn = page.query_selector('[data-be-shortcut]')
+    assert btn is not None, "Expected 'Break-even' button"
+    btn.click()
+
+    # The break-even section should now be visible (dataset.revealed = 'true')
+    section_revealed = page.evaluate("""() => {
+        const s = document.querySelector('.break-even-section');
+        return s && s.dataset.revealed === 'true';
+    }""")
+    assert section_revealed, \
+        "break-even section should have data-revealed='true' after clicking the shortcut button"
+
+
+@pytest.mark.feature
+def test_breakeven_shortcut_button_absent_for_fixed_amount_debt(app_page):
+    """A fixed-amount debt (no interest calculation) shows no 'Break-even' button."""
+    page = app_page
+    _nav_debts(page)
+    page.click('#debtFormToggle')
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    page.fill('#debtName', 'Fixed Loan')
+    page.select_option('#debtType', 'fixedAmount')
+    page.fill('#fixedAmount', '1000')
+    page.fill('#fixedStartDate', '2026-01-01')
+    page.fill('#fixedEndDate', '2026-12-31')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('.debt-card:has-text("Fixed Loan")', timeout=10000)
+
+    btn = page.query_selector('[data-be-shortcut]')
+    assert btn is None, \
+        "Fixed-amount debts should not show the 'Break-even' shortcut button"
+
+
+@pytest.mark.feature
+def test_breakeven_shortcut_button_absent_for_zero_interest_debt(app_page):
+    """A 0% APR debt shows no 'Break-even' button (no interest to compare)."""
+    page = app_page
+    _create_cc_debt(page, rate="0")
+    _nav_debts(page)
+
+    btn = page.query_selector('[data-be-shortcut]')
+    assert btn is None, \
+        "0% interest debts should not show the 'Break-even' shortcut button"

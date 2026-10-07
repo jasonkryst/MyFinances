@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.12.0] — 2026-10-07
+
+### Added
+- **D-03 — Break-even shortcut button on debt cards** — interest-bearing debts with a positive balance now show a "Break-even" button in their action row. Clicking it reveals the break-even section (reusing the existing `[data-be-show]` mechanism) and scrolls it into view. Fixed-amount debts and 0% APR debts do not show the button (closes #360).
+- **L-01 — Override indicator (pencil icon) in Ledger amount cell** — rows with an active override now display a `✎` pencil icon (`ledger-override-icon`) inline next to the effective amount. The icon's `title` shows the original pre-override amount as a tooltip, and clicking the icon opens the existing override modal (reuses the `[data-ledger-override]` click delegation already wired in `ledger.js`) (closes #361).
+
+### Changed
+- **CSS** — added `.debt-breakeven-btn` (small margin); `.ledger-override-icon` (primary-color, hover/focus outline, dark-mode variant).
+
 ## [6.11.0] — 2026-10-07
 
 ### Added
