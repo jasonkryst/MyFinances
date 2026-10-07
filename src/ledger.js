@@ -241,7 +241,7 @@ export function renderLedgerPage(app) {
             const amountCell = isReconciliation
                 ? `<span class="ledger-recon-diff ${reconDiffClass}">${tx.meta ? formatCurrency(tx.meta.difference) : formatCurrency(tx.amount)}</span>`
                 : tx.hasOverride
-                    ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-override-icon" data-ledger-override="${escapeHtml(tx.transactionId)}" title="Overridden — original: ${formatCurrency(tx.originalAmount)}" aria-label="Amount overridden, original was ${formatCurrency(tx.originalAmount)}" role="button" tabindex="0">✎</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
+                    ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-override-icon" data-ledger-edit-icon="${escapeHtml(tx.transactionId)}" title="Overridden — original: ${formatCurrency(tx.originalAmount)}" aria-label="Amount overridden, original was ${formatCurrency(tx.originalAmount)}" role="button" tabindex="0">✎</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
                     : isVariableIncome
                         ? `<span>${formatCurrency(tx.amount)}</span><span class="ledger-est-badge" title="Estimated — enter actual amount when paycheck arrives">~ Est.</span>`
                         : `<span>${formatCurrency(tx.amount)}</span>`;
@@ -388,6 +388,15 @@ export function renderLedgerPage(app) {
     container.querySelectorAll('[data-ledger-override]').forEach(btn => {
         btn.onclick = () => {
             const txId = btn.getAttribute('data-ledger-override');
+            const tx = transactions.find(item => item.transactionId === txId);
+            if (!tx || tx.isRollover) return;
+            openLedgerOverrideModal(app, tx, () => renderLedgerPage(app));
+        };
+    });
+
+    container.querySelectorAll('[data-ledger-edit-icon]').forEach(icon => {
+        icon.onclick = () => {
+            const txId = icon.getAttribute('data-ledger-edit-icon');
             const tx = transactions.find(item => item.transactionId === txId);
             if (!tx || tx.isRollover) return;
             openLedgerOverrideModal(app, tx, () => renderLedgerPage(app));

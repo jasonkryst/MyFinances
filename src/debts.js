@@ -701,7 +701,7 @@ export function renderDebtsList(app) {
                         : `<button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}">Edit</button>
                            ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}">Update Balance</button>` : ''}
                            <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}">History</button>
-                           ${debt.debtType !== 'fixedAmount' && debt.accountBalance > 0 && debt.interestRate > 0 ? `<button class="btn btn-secondary btn-small debt-breakeven-btn" data-be-show="${debt.id}" aria-label="Run break-even analysis for ${escapeHtml(debt.name)}">Break-even</button>` : ''}
+                           ${debt.debtType !== 'fixedAmount' && debt.accountBalance > 0 && debt.interestRate > 0 ? `<button class="btn btn-secondary btn-small debt-breakeven-btn" data-be-shortcut="${debt.id}" aria-label="Run break-even analysis for ${escapeHtml(debt.name)}">Break-even</button>` : ''}
                            ${isDebtPaidOff(debt) ? `<button class="btn btn-secondary btn-small" data-debt-action="archive" data-debt-id="${debt.id}">Archive</button>` : ''}
                            <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}">Delete</button>`
                     }
@@ -721,7 +721,22 @@ export function renderDebtsList(app) {
     }
 
     debtsList.onclick = (event) => {
-        // Break-even "Show" / "Break-even" shortcut button
+        // D-03: Break-even shortcut button in the debt actions row
+        const shortcutEl = event.target.closest('[data-be-shortcut]');
+        if (shortcutEl) {
+            const id = parseInt(shortcutEl.getAttribute('data-be-shortcut'), 10);
+            const debt = app.debts.find(d => d.id === id);
+            const card = shortcutEl.closest('.debt-card');
+            if (debt && card) {
+                const s = card.querySelector('.break-even-section');
+                if (s) s.dataset.revealed = 'true';
+                renderBreakEvenBadge(app, debt, card);
+                card.querySelector('.break-even-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            return;
+        }
+
+        // Break-even "Show payoff estimate" inline link
         const showEl = event.target.closest('[data-be-show]');
         if (showEl) {
             const id = parseInt(showEl.getAttribute('data-be-show'), 10);

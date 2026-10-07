@@ -347,9 +347,9 @@ def test_breakeven_shortcut_button_present_for_eligible_debt(app_page):
     _create_cc_debt(page)
     _nav_debts(page)
 
-    btn = page.query_selector('.debt-breakeven-btn')
+    btn = page.query_selector('[data-be-shortcut]')
     assert btn is not None, \
-        "Expected a 'Break-even' button on an interest-bearing debt card"
+        "Expected a 'Break-even' button (data-be-shortcut) on an interest-bearing debt card"
     assert 'break' in (btn.text_content() or '').lower(), \
         f"Button text should mention 'break', got: {btn.text_content()!r}"
 
@@ -361,7 +361,7 @@ def test_breakeven_shortcut_button_reveals_break_even_section(app_page):
     _create_cc_debt(page)
     _nav_debts(page)
 
-    btn = page.query_selector('.debt-breakeven-btn')
+    btn = page.query_selector('[data-be-shortcut]')
     assert btn is not None, "Expected 'Break-even' button"
     btn.click()
 
@@ -383,14 +383,13 @@ def test_breakeven_shortcut_button_absent_for_fixed_amount_debt(app_page):
     page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     page.fill('#debtName', 'Fixed Loan')
     page.select_option('#debtType', 'fixedAmount')
-    page.fill('#accountBalance', '1000')
-    page.fill('#interestRate', '0')
-    page.fill('#minimumPayment', '200')
-    page.fill('#dueDate', '1')
+    page.fill('#fixedAmount', '1000')
+    page.fill('#fixedStartDate', '2026-01-01')
+    page.fill('#fixedEndDate', '2026-12-31')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('text=Fixed Loan', timeout=10000)
+    page.wait_for_selector('.debt-card:has-text("Fixed Loan")', timeout=10000)
 
-    btn = page.query_selector('.debt-breakeven-btn')
+    btn = page.query_selector('[data-be-shortcut]')
     assert btn is None, \
         "Fixed-amount debts should not show the 'Break-even' shortcut button"
 
@@ -399,18 +398,9 @@ def test_breakeven_shortcut_button_absent_for_fixed_amount_debt(app_page):
 def test_breakeven_shortcut_button_absent_for_zero_interest_debt(app_page):
     """A 0% APR debt shows no 'Break-even' button (no interest to compare)."""
     page = app_page
+    _create_cc_debt(page, rate="0")
     _nav_debts(page)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
-    page.fill('#debtName', 'Zero Rate Card')
-    page.select_option('#debtType', 'creditCard')
-    page.fill('#accountBalance', '500')
-    page.fill('#interestRate', '0')
-    page.fill('#minimumPayment', '50')
-    page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
-    page.wait_for_selector('text=Zero Rate Card', timeout=10000)
 
-    btn = page.query_selector('.debt-breakeven-btn')
+    btn = page.query_selector('[data-be-shortcut]')
     assert btn is None, \
         "0% interest debts should not show the 'Break-even' shortcut button"

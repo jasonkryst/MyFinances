@@ -1414,7 +1414,7 @@ def test_ledger_override_icon_tooltip_shows_original_amount(app_page):
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
 
-    icon = page.query_selector('.ledger-override-icon')
+    icon = page.query_selector('[data-ledger-edit-icon]')
     assert icon is not None, "Expected pencil override icon"
     title = icon.get_attribute('title') or ''
     assert '2,000' in title or '2000' in title, \
@@ -1440,9 +1440,9 @@ def test_ledger_override_icon_click_opens_override_modal(app_page):
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
 
-    # Now click the pencil icon itself
-    icon = page.query_selector('.ledger-override-icon')
-    assert icon is not None, "Expected pencil icon after override set"
+    # Now click the pencil icon itself (uses data-ledger-edit-icon attribute)
+    icon = page.query_selector('[data-ledger-edit-icon]')
+    assert icon is not None, "Expected pencil icon (data-ledger-edit-icon) after override set"
     icon.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
 
