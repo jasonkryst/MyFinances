@@ -265,9 +265,10 @@ def test_summary_metrics_year_net_worth_change_without_january_snapshot(app_page
 def test_print_css_hides_nav(app_page):
     """Under @media print emulation, navigation is hidden."""
     page = app_page
-    page.emulate_media(media='print')
+    # Navigate first — emulate_media(print) hides the nav so clicking it would time out
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.emulate_media(media='print')
 
     nav_visible = page.evaluate("""() => {
         const nav = document.querySelector('nav.top-nav') || document.querySelector('header');
@@ -281,9 +282,10 @@ def test_print_css_hides_nav(app_page):
 def test_print_css_shows_active_section(app_page):
     """Under @media print emulation, the active page section remains visible."""
     page = app_page
-    page.emulate_media(media='print')
+    # Navigate first — emulate_media(print) hides the nav so clicking it would time out
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.emulate_media(media='print')
 
     section_display = page.evaluate(
         "() => window.getComputedStyle(document.getElementById('reportsSection')).display"
