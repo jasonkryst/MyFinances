@@ -190,3 +190,10 @@ New `tests/features/test_money_flow_sankey.py`:
   "Added", referencing #79.
 - `CLAUDE.md`: add `reportsMoneyFlowSankey.js` to the feature-module list in
   the "Central app object + feature-module delegation pattern" section.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.15.0. `src/reportsMoneyFlowSankey.js` renders the Sankey-style flow diagram as hand-drawn inline SVG on the Reports Money Flow tab. Shows income sources flowing through an Account hub to outflow categories (bills, expenses, recurring, debt minimums, savings). Surplus/Shortfall node balances the diagram. No new external dependency — Chart.js remains the only one.
+- **Deviations**: None identified. The inline-SVG approach (not Chart.js native, which has no Sankey type) was the designed solution.
+- **Superseded by**: Nothing.

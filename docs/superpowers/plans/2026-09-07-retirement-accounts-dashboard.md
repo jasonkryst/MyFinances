@@ -1975,3 +1975,10 @@ git commit -m "docs: document retirement accounts dashboard, bump version to 5.0
 - **Spec coverage:** account type/subtype/rate/match (Tasks 1-2), retirement snapshots + history (Tasks 4-5), calculation engine (Task 3), page/charts/projection (Tasks 6-7), export/import (Task 8), full Postgres parity (Tasks 10-14), docs/version (Task 15) — every section of the spec has a task.
 - **Type consistency:** `sanitizeAccount` (Task 1) → `retirementSubtype`/`rateOfReturn`/`employerMatchPercent` used identically in `src/accounts.js` (Task 2), `server/src/routes/accounts.js` columns (Task 11), and `retirement.js` (Tasks 5-7). `sanitizeRetirementSnapshot` (Task 4) → `{ id, accountId, date, balance, contribution }` used identically in `retirement.js` (Task 5), the server route (Task 11), and every sync/import list (Tasks 8, 13).
 - **Line-number drift:** Tasks that reference specific line numbers in files touched by earlier tasks (e.g. Task 8 editing `dataExport.js` after Task 1 touched `sanitizers.js`, not `dataExport.js`) are unaffected by earlier tasks' edits, since each task edits a different region or a different file than the one whose line numbers it cites — the one intra-file case (Task 1's `sanitizers.js` edit shifting later stryker ranges) has an explicit re-verification step built in.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v5.0.0. `src/retirement.js`, `src/retirementCalculator.js`, Retirement account type, `app.retirementSnapshots`, three charts, projection panel, full Postgres wiring. Pension subtype added in v5.4.0 as an extension.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: Pension subtype (v5.4.0) was a post-spec addition.

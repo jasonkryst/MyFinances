@@ -818,3 +818,10 @@ to:
 git add CLAUDE.md CHANGELOG.md ROADMAP.md src/utils.js
 git commit -m "Documents storage abstraction layer and bumps version to 4.6.0 per #41"
 ```
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.6.0. `src/storageAdapters.js` with `LocalStorageAdapter` and `SessionStorageAdapter`. Settings modal backend picker. Data migration on switch.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

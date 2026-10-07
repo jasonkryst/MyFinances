@@ -76,3 +76,10 @@ New: `tests/features/test_settings.py`, `tests/ui/test_setup_wizard.py`. Extende
 `tests/security/test_input_validation.py`, `tests/security/test_xss.py`,
 `tests/integration/test_workflows.py`, `tests/ui/test_accessibility.py`. Full suite:
 405 passed.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.0.0. Reconciliation marker rows appear on the Ledger. A global Reconciliation Mode setting (Adjust Balance vs. Visible Only) is stored in `app.settings` via `src/settings.js`. First-run setup wizard prompts for mode choice on first visit. In v4.2.0, a ledger ℹ icon on reconciliation rows shows the active mode and an info tooltip.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing. The spec itself notes "Status: Implemented (v4.0.0)" at the top.

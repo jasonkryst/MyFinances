@@ -277,3 +277,10 @@ features, following the existing minor-version convention seen in
 - **`tests/integration/test_smoke.py`**: no new steps required — existing
   Debts and Recurring page smoke coverage will exercise the new markup
   without errors.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Both features shipped in v3.2.0. Debt Payoff Date display on each debt card (`📅 Payoff Date` row, sourced from `app._debtSummaryRows`). Recurring Template "Mark as Paid This Month" toggle with `paidMonths` array per template, distinct badge, and round-trip through export/import.
+- **Deviations**: None — implemented exactly as specified.
+- **Superseded by**: Nothing.

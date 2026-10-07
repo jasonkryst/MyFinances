@@ -816,3 +816,10 @@ git commit -m "Document Stryker mutation testing and bump APP_VERSION to 4.7.3 (
 - **Spec coverage:** All 6 spec goals map to tasks — toolchain (Task 1), unit tests (Tasks 2–4), Stryker config + real thresholds (Task 5), CI job (Task 6), docs (Task 7). `ROADMAP.md` was checked for any reference to issue #52/mutation testing/Stryker during planning — no matches found, so no edit is needed there (confirmed via grep against the spec's conditional "if it references" clause).
 - **Type/name consistency:** `npm run test:unit` / `npm run test:mutation` script names are defined once in Task 1 and referenced identically in Tasks 5–7. Function names in test files (`calculatePaymentPlan`, `normalizeText`, etc.) match the actual exports read from `src/debtCalculator.js`, `src/utils.js`, `src/sanitizers.js` during planning.
 - **No placeholders:** Threshold values in Task 5 are a concrete deterministic formula applied to a real printed number, not a guess — by design, per the approved spec's "run it locally first" decision.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.7.3. `package.json`, `stryker.config.mjs`, `tests/unit/*.test.js`. Stryker line-range scoping, real local threshold derivation, CI `mutation-testing` and `test-unit` jobs.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: Stale line ranges corrected in v4.43.0 when code shifted.

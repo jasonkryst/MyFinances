@@ -79,3 +79,10 @@ python -m http.server 5500
       (Reconciliation Mode + Settings + Ledger marker-row sections)
 - [x] `docs/audit/security/SECURITY_AUDIT_2026-06-19.md` resolution-update note
 - [x] This plan + the paired design spec
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.0.0. Reconciliation marker rows on the Ledger, global mode setting (Adjust Balance vs. Visible Only), first-run setup wizard. In-line ℹ icon on ledger rows added in v4.2.0.
+- **Tasks completed**: All tasks executed as written (plan is short, 81 lines).
+- **Deviations**: None.

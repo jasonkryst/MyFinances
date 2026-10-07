@@ -161,3 +161,10 @@ Playwright/pytest, served at `http://localhost:5500/`.
 - **Daily compounding (mirror `debtCalculator.js`)** — rejected: real
   complexity in the projection loop for pennies of difference; the override
   system exists precisely to correct estimates against reality.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.4.0. Accounts can carry an APY field; non-zero rates auto-generate a monthly Interest deposit in the Ledger on the last day of each month. Interest rows support ledger amount overrides with downstream compounding. Interest counts in Reports (stat strip, income-by-source, calendar, net-worth). APY badge shown on account cards. 23 Playwright tests added.
+- **Deviations**: Monthly compounding was used instead of daily compounding (the spec explicitly records this as a decided rejection of daily compounding).
+- **Superseded by**: Nothing.

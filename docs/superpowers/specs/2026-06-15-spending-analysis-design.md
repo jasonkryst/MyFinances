@@ -190,3 +190,10 @@ Existing smoke test navigates all pages; once the Spending tab is added to `inde
 - `README.md` — add "Spending Analysis by Category (NEW)" subsection under Key Product Updates; bump version and date
 - `guide.html` — add "Spending by Category" section explaining the tab, pie chart, ranked list, drill-down modal, and trend chart
 - `src/utils.js` — bump `APP_VERSION` to `3.6.0`
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: `src/spending.js` shipped in v3.5.0. The Spending tab on the Reports page has a doughnut pie chart, 6-month stacked bar trend, ranked category list with month-over-month change badges, and a drill-down modal per category. `.sr-only` screen-reader data tables present for both charts.
+- **Deviations**: None identified. All designed components are present.
+- **Superseded by**: Nothing.

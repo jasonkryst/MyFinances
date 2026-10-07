@@ -363,3 +363,10 @@ All existing tests that navigate pages via `page.click('button[data-page="..."]'
 | `tests/features/test_main_nav_groups.py` | New: 5 feature/structure tests |
 | `tests/ui/test_main_nav.py` | New: 5 behavioral/edge-case tests |
 | `tests/ui/test_accessibility.py` | Append: 6 a11y tests |
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v3.5.0 and v4.9.0. The main nav is organized into three labeled groups (Overview · Manage · Analyze) with pill-badge group labels, `aria-current="page"`, hamburger menu at <=768px, and keyboard-accessible `:focus-visible` rings. High-Contrast theme support added in v4.9.0.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing.

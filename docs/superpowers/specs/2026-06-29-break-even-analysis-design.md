@@ -201,3 +201,10 @@ accelerateDebtModal oninput
 | `index.html` | Accelerate modal markup |
 | `src/styles.css` | Badge, savings highlight, mini-chart container styles |
 | `tests/features/test_break_even.py` | 13 new test cases |
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.3.0. `src/breakEven.js` and `src/debtBreakEven.js` exist. Each credit-card debt card shows a Payoff Analysis badge comparing plan payment vs. minimum-only, with months/interest saved. Includes mini Chart.js payoff chart with SR data table, min-type toggle (Fixed vs. % of Balance), and the Accelerate modal with live extra-payment preview.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing.

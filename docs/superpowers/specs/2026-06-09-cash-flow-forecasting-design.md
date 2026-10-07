@@ -178,3 +178,10 @@ Additional:
 - XSS check: account names and transaction "driver" names in the table are
   rendered via `escapeHtml()` — extend `tests/security/test_xss.py`
 - Add a Forecast-tab step to `tests/integration/test_smoke.py`
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: `src/forecast.js` and `getAccountForecastSeries` in `src/ledger.js` were shipped in v3.3.0. All designed controls (horizon buttons, account selector, notable-threshold input) are present. `forecastSettings` persists to localStorage and round-trips through export/import. An additional intra-month dip detection feature (not in the spec) was also added, walking each month's transactions to surface the true lowest mid-month balance.
+- **Deviations**: Intra-month dip detection is an enhancement beyond the spec. All other spec features were built as described.
+- **Superseded by**: Nothing — still the active Forecast implementation.

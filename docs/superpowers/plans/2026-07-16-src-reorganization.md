@@ -1665,3 +1665,10 @@ Start the dev server (`python -m http.server 5500`), open every page (`health`, 
 
 Run: `wc -l src/*.js | sort -n`
 Expected: no single file (other than the necessarily-larger `app.js`, which still holds all state + delegation) should be dramatically larger than the design spec's estimates — flag anything that looks like a split didn't actually happen.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.7.0. Six oversized modules split into 15 focused files. Duplicate helpers consolidated. Timezone bug fixed during consolidation. All tests remain green.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: A timezone-rollback bug was discovered and fixed as a bonus during the refactor.

@@ -1331,3 +1331,10 @@ Implements spec: docs/superpowers/specs/2026-08-24-postgresql-storage-phase2b-de
 - [ ] **Step 3: Watch CI — confirm `test-postgres` job passes**
 
 Monitor the Actions tab. The `test-postgres` job runs the docker-compose stack and executes both `tests/postgres/test_postgres_bootstrap.py` and the new `tests/postgres/test_postgres_mutations.py`.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.23.0. `src/postgresSync.js` with `pgPost`/`pgPatch`/`pgDelete`/`pgPut`/`pgDeleteAll`. All 11 feature modules wired. v4.24.0 fixed a few missed income/snapshot mutation sites.
+- **Tasks completed**: All tasks executed as written; income and net-worth snapshot mutations needed a follow-up fix in v4.24.0.
+- **Deviations**: Minor initial gaps in income and net-worth snapshot wiring, corrected promptly.

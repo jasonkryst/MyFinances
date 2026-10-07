@@ -195,3 +195,10 @@ styles live): `.recon-card`, `.recon-diff--pos/neg/zero`, `.recon-history-table`
 - `ROADMAP.md`: move "🔧 Account Reconciliation Tool" from the v3.4+ PROPOSED
   list to a shipped entry, following the format used for Cash Flow
   Forecasting (date-stamped "shipped early" note).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: `src/reconciliation.js` shipped in v3.4.0. Includes per-account reconcile cards, live difference display, history table with delete, "Expected transactions since {date}" listing, `app.reconciliations` data model, storage round-trips, and the Ledger "Reconcile this account" quick-modal. The reconciliation mode setting (Adjust Balance vs. Visible Only) was added in v4.0.0 as a follow-on spec (`2026-06-21-reconciliation-ledger-visibility-design.md`).
+- **Deviations**: None significant. The reconciliation mode was a planned extension delivered shortly after in v4.0.0.
+- **Superseded by**: Nothing — `src/reconciliation.js` is the active implementation.

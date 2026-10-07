@@ -845,3 +845,10 @@ If the smoke/integration test fails due to a console error, check that `--primar
 git add -A
 git commit -m "Fix any remaining issues from full suite run"
 ```
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v3.5.0. Sticky grouped Reports tab bar with colored group badges (Activity, Trends, Planning) and pill tab buttons.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

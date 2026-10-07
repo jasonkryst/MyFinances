@@ -83,3 +83,10 @@ Covered by the "negative" test cases enumerated per file above — the point of 
 - Real local Stryker run during implementation determines the actual mutation score and, from it, the `thresholds` values committed in `stryker.config.mjs`.
 - Existing Python suite (`pytest tests/ -v`) is unaffected and re-run as a regression check that nothing in `src/` was changed by this work (it shouldn't be — this issue adds tests and tooling only, not behavior changes).
 - The new CI `mutation-testing` job is the first real end-to-end verification of the CI wiring itself (local Node install is direct-path-only right now — `C:\nvm\v26.5.1\node.exe` — since PATH hasn't propagated to this shell session; CI uses a clean runner so isn't affected by that).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.7.3. `package.json`, `stryker.config.mjs`, and `tests/unit/*.test.js` exist. Jest unit tests cover `src/debtCalculator.js`, `src/utils.js`, and `src/sanitizers.js`. Stryker is scoped to line ranges covering the tested functions. A `mutation-testing` CI job runs on push to main; a `test-unit` job runs on every PR. Mutation score threshold set from a real local run (47.04%).
+- **Deviations**: None. A later pass (v4.43.0) corrected stale line ranges when code shifted.
+- **Superseded by**: Nothing.

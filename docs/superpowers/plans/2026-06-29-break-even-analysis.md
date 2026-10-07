@@ -1543,3 +1543,10 @@ git commit -m "feat: add 13 break-even analysis tests (positive and negative cas
 - `_debtSummaryRows` entries extended with `interestSaved: number|null` and `monthsSaved: number|null` in Task 5, consumed by sort and render in same task
 - `app._breakEvenCharts` map created/destroyed consistently in Task 4
 - `app._accelerateChart` single instance created/destroyed in Task 4
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.3.0. `src/breakEven.js` and `src/debtBreakEven.js` exist. Per-debt Payoff Analysis badge, mini Chart.js chart, min-type toggle, and Accelerate modal with live preview.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

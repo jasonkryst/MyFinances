@@ -1481,3 +1481,10 @@ Run: `npm install && npm run test:unit`
 Expected: PASS (this plan doesn't touch `src/debtCalculator.js`, `src/utils.js`'s Stryker-covered ranges, or `src/sanitizers.js`'s covered ranges, so this should be a no-op confirmation)
 
 No commit for this task — it's a verification gate before opening the PR.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.42.0. `server/src/email/transport.js`, `send.js`, `templates/` (test, welcome, alert). SMTP optional via env vars/Docker secret. Test email endpoint. Welcome email on account creation.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None from the spec's foundation scope. No scheduled notifications (explicitly out of scope).

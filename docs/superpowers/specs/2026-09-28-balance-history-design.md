@@ -218,3 +218,10 @@ a rollback since the field is informational and newly introduced.
   entry; `src/balanceHistory.js` added to the `sw.js` precache list.
 - CLAUDE.md: add `balanceHistory.js` to the module list and a "Balance history" Cross-cutting
   features bullet (owner model, informational account min payment, `postgresImport.js` special step).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v6.5.0. `src/balanceHistory.js`, `src/balanceHistoryCore.js`, and `src/balanceHistoryModal.js` exist. Dated balance/minimum-payment history for debts and Credit Card/Loan accounts. History button on each debt row and eligible account card opens a modal with a line chart and editable table. Auto-seeded from current values on load; updated on add/edit/balance-update. `minimumPayment` field added to Credit Card and Loan accounts. Postgres: `balance_history` table with `CHECK` constraint, `/api/balance-history` route, `minimum_payment` column on accounts. Export/import round-trips with owner-id remapping.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing.

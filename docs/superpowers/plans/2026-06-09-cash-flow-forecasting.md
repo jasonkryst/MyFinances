@@ -1420,3 +1420,10 @@ git commit -m "test: add XSS and smoke coverage for Cash Flow Forecast"
 - `app._forecastRangeMonths` / `app._forecastAccountId` / `app._forecastNotableThresholdPct` — same names used in `forecast.js` (Task 1), `ui.js` (Task 2), `storage.js` and `app.js` (Task 3).
 - `forecastSettings: { rangeMonths, accountId, notableThresholdPct }` — identical field names across `sanitizeForecastSettings`, `saveToStorage`, `loadFromStorage`, `exportAllJSON`, `importAllJSON`.
 - `getForecastAssetAccounts(app)` — defined once in `forecast.js`, used by `computeForecastSeries` and `getOutflowDrivers`.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: All tasks completed and shipped in v3.3.0. `src/forecast.js`, `getAccountForecastSeries` in `src/ledger.js`, forecastSettings persistence, all controls, chart, table, and tests are present. An intra-month dip detection enhancement was also added.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: Extra intra-month dip detection feature added beyond the plan.

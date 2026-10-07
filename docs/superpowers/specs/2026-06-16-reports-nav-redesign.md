@@ -281,3 +281,10 @@ All existing `tests/ui/test_spending_ui.py` tests navigate to the Spending tab v
 | `tests/ui/test_reports_nav.py` | New file — 5 tests |
 
 No changes to `src/ui.js`, `src/reports.js`, or any other JS module.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v3.5.0. The Reports page tab bar uses a grouped sticky nav with colored group chip badges (Activity, Trends, Planning) and outlined pill tab buttons. The layout is responsive and replaced the previous flat horizontal scroll bar.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing.

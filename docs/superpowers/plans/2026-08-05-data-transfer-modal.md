@@ -1714,3 +1714,10 @@ Expected: PASS (all tests, including the new `dataExport.test.js` from Task 3)
 - [ ] **Step 4: Manually verify in a real browser**
 
 With the server running, open `http://localhost:5500/`, click the new toolbar button, confirm both tabs render and switch correctly, export a backup, then import it back and walk through both the Replace and Merge paths at least once each, in both light and dark mode (the CSS is copied from `.rpt-tab-btn`, which already has dark-mode coverage, but confirm visually since this is a new UI surface).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.12.0. `src/dataTransferModal.js` and the consolidated Backup & Restore toolbar button with two-tab modal.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

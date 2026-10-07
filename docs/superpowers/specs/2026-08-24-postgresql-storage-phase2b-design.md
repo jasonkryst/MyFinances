@@ -231,3 +231,10 @@ New tests in `tests/postgres/test_postgres_mutations.py`, run in the existing `t
 - `src/app.js` — delegating wrappers stay synchronous at the method level; async bubbles up only inside the module functions
 - `src/storageAdapters.js`, `src/loginGate.js` — untouched
 - All render/report/calculation modules — untouched
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.23.0. `src/postgresSync.js` exports `pgPost`/`pgPatch`/`pgDelete`/`pgPut`/`pgDeleteAll`. All 11 feature modules wire their mutation sites to the corresponding REST endpoint. `add*` functions are `async` to receive DB-assigned IDs. `clearAllData` fans out to all resource endpoints. Error handling is console-only (optimistic updates, no rollback) as designed.
+- **Deviations**: A follow-on fix in v4.24.0 corrected income mutations and net-worth snapshot captures that were missed in the initial wiring. Phase 2c (v4.27.0/4.28.0) added bulk import/export and local→Postgres migration beyond this spec's scope.
+- **Superseded by**: Nothing — Phase 2c extends this work.

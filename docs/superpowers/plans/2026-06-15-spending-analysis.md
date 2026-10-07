@@ -1259,3 +1259,10 @@ pytest tests/ -v
 ```
 
 Expected: All tests PASS (200 existing + 16 new = 216 total, no regressions).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v3.5.0. `src/spending.js` with all designed components: doughnut chart, 6-month stacked bar, ranked category list, drill-down modal.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.
