@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.15.1] — 2026-10-07
+
+### Fixed
+- **Calendar feed modal Escape key** — `initCalendarFeedModal` switched from `modal.onkeydown` to `document.addEventListener('keydown', ...)` so the Escape key closes the modal regardless of focus location (fixes `test_modal_closes_on_escape`).
+- **People tests `#debtList` selector** — `tests/features/test_people.py` corrected all 5 `#debtList` references to `#debtsList` (the actual element ID in `index.html`); `test_people.py` and `test_calendar_feed.py` re-added to CI shards E and I respectively.
+
 ## [6.15.0] — 2026-10-07
 
 ### Added
