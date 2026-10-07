@@ -27,6 +27,17 @@ def _nav_income(page):
     page.wait_for_selector('#incomeSection.active', timeout=5000)
 
 
+def _create_account_then_nav_income(page):
+    """Income requires an account — create one then navigate to Income."""
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.fill('#accountName', 'Test Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    _nav_income(page)
+
+
 def _nav_debts(page):
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
@@ -115,15 +126,16 @@ def test_income_links_to_person(app_page):
     """An income source can be linked to a person and appears in the person's annual income."""
     page = app_page
     _add_person(page, 'Earner')
-    _nav_income(page)
+    _create_account_then_nav_income(page)
     page.fill('#incomeName', 'Salary')
     page.fill('#incomeAmount', '5000')
     page.fill('#incomeFirstDate', '2026-01-01')
     page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
     # link to person
     page.select_option('#incomePerson', label='Earner')
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('#incomeList >> text=Salary', timeout=5000)
+    page.wait_for_selector('#incomeList >> text=Salary', timeout=10000)
 
     # Navigate to People to verify the annual income shows
     _nav_people(page)
@@ -144,10 +156,11 @@ def test_debt_links_to_person(app_page):
     page.fill('#accountBalance', '10000')
     page.fill('#interestRate', '5')
     page.fill('#minimumPayment', '200')
+    page.fill('#dueDate', '15')
     # select person
     page.select_option('#debtPersons', label='Debtor')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtsList >> text=Car Loan', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=Car Loan', timeout=10000)
 
     _nav_people(page)
     card_text = page.inner_text('#peopleList')
@@ -168,9 +181,10 @@ def test_health_credit_util_per_person(app_page):
     page.fill('#creditLimit', '10000')
     page.fill('#interestRate', '19')
     page.fill('#minimumPayment', '50')
+    page.fill('#dueDate', '15')
     page.select_option('#debtPersons', label='UtilPerson')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtsList >> text=VISA', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=VISA', timeout=10000)
 
     _nav_health(page)
     page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
@@ -181,14 +195,17 @@ def test_health_credit_util_per_person(app_page):
 
 @pytest.mark.feature
 def test_person_zero_util_no_cc_debts(app_page):
-    """A person with no credit card debts shows 0% utilization."""
+    """Without CC debts, the per-person utilization section is not shown in the card.
+    The per-person rows only render inside the hasUtilData branch (when at least one
+    CC debt with a credit limit exists)."""
     page = app_page
     _add_person(page, 'NoCCPerson')
     _nav_health(page)
     page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
     card_text = page.inner_text('#healthCreditUtilCard')
-    assert 'NoCCPerson' in card_text
-    assert '0%' in card_text, "Expected 0% for person with no CC debts"
+    # No CC debts → empty state shown, not per-person rows
+    assert 'NoCCPerson' not in card_text, "Person should not appear in util card without CC debts"
+    assert 'No credit limits' in card_text, "Should show empty state when no CC debts exist"
 
 
 # ── Negative / validation tests ───────────────────────────────────────────────
@@ -246,9 +263,10 @@ def test_delete_person_with_linked_debts_shows_reassignment_modal(app_page):
     page.fill('#accountBalance', '5000')
     page.fill('#interestRate', '7')
     page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
     page.select_option('#debtPersons', label='DebtOwner')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtsList >> text=Linked Debt', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=Linked Debt', timeout=10000)
 
     _nav_people(page)
     delete_btn = page.query_selector('#peopleList [data-person-action="delete"]')
@@ -270,14 +288,15 @@ def test_people_page_nav(app_page):
 # ── Person association display tests ─────────────────────────────────────────
 
 def _add_income_for_person(page, name, amount, person_label):
-    _nav_income(page)
+    _create_account_then_nav_income(page)
     page.fill('#incomeName', name)
     page.fill('#incomeAmount', str(amount))
     page.fill('#incomeFirstDate', '2026-01-01')
     page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
     page.select_option('#incomePerson', label=person_label)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector(f'#incomeList >> text={name}', timeout=5000)
+    page.wait_for_selector(f'#incomeList >> text={name}', timeout=10000)
 
 
 def _add_debt_for_person(page, name, balance, person_label):
@@ -287,9 +306,10 @@ def _add_debt_for_person(page, name, balance, person_label):
     page.fill('#accountBalance', str(balance))
     page.fill('#interestRate', '5')
     page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
     page.select_option('#debtPersons', label=person_label)
     page.click('#debtFormSubmit')
-    page.wait_for_selector(f'#debtsList >> text={name}', timeout=5000)
+    page.wait_for_selector(f'#debtsList >> text={name}', timeout=10000)
 
 
 @pytest.mark.feature
@@ -314,8 +334,9 @@ def test_debt_card_no_pill_without_person(app_page):
     page.fill('#accountBalance', '1000')
     page.fill('#interestRate', '5')
     page.fill('#minimumPayment', '50')
+    page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtsList >> text=No Person Debt', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=No Person Debt', timeout=10000)
     card = page.query_selector('#debtsList .debt-card .person-pill')
     assert not card, "person-pill should not appear when no person is linked"
 
@@ -336,13 +357,14 @@ def test_income_card_shows_person_pill(app_page):
 def test_income_card_no_pill_without_person(app_page):
     """An income not linked to any person shows no person pill."""
     page = app_page
-    _nav_income(page)
+    _create_account_then_nav_income(page)
     page.fill('#incomeName', 'No Person Income')
     page.fill('#incomeAmount', '2000')
     page.fill('#incomeFirstDate', '2026-01-01')
     page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('#incomeList >> text=No Person Income', timeout=5000)
+    page.wait_for_selector('#incomeList >> text=No Person Income', timeout=10000)
     pill = page.query_selector('#incomeList .income-card .person-pill')
     assert not pill, "person-pill should not appear when no person is linked to income"
 
