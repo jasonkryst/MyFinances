@@ -109,11 +109,91 @@ export function getRecurringOccurrencesInMonth(template, year, month) {
     return dates;
 }
 
+// ─── R-02: Overdue detection ──────────────────────────────────────────────────
+
+function isOverdue(template, now) {
+    if (!template || template.paused || template.archived) return false;
+    if (template.frequency !== 'monthly') return false;
+    const dom = Number(template.dayOfMonth);
+    if (!dom || dom < 1 || dom > 31) return false;
+
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    if (Array.isArray(template.paidMonths) && template.paidMonths.includes(monthKey)) return false;
+    if (Array.isArray(template.skippedMonths) && template.skippedMonths.includes(monthKey)) return false;
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const dueDay = Math.min(dom, daysInMonth);
+    return now.getDate() > dueDay;
+}
+
+// ─── R-01: Upcoming this month panel ─────────────────────────────────────────
+
+function renderUpcomingThisMonthPanel(app) {
+    const panel = document.getElementById('recurringUpcomingPanel');
+    if (!panel) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    const active = (app.recurringTemplates || []).filter(t => !t.paused && !t.archived);
+
+    if (active.length === 0) {
+        panel.innerHTML = `<div class="recurring-upcoming-panel recurring-upcoming-panel--empty" role="region" aria-label="Upcoming this month"><span class="recurring-upcoming-empty">No active recurring items this month.</span></div>`;
+        return;
+    }
+
+    let totalCount = 0;
+    let totalAmount = 0;
+    let paidCount = 0;
+    let overdueCount = 0;
+
+    for (const t of active) {
+        const occurrences = getRecurringOccurrencesInMonth(t, year, month);
+        if (occurrences.length === 0) continue;
+        const isPaid = Array.isArray(t.paidMonths) && t.paidMonths.includes(monthKey);
+        totalCount += occurrences.length;
+        totalAmount += occurrences.length * (t.amount || 0);
+        if (isPaid) paidCount++;
+        if (isOverdue(t, now)) overdueCount++;
+    }
+
+    const overdueHtml = overdueCount > 0
+        ? `<div class="recurring-upcoming-stat recurring-upcoming-stat--overdue"><span class="recurring-upcoming-label">Overdue</span><span class="recurring-upcoming-value recurring-upcoming-value--overdue">${overdueCount}</span></div>`
+        : '';
+
+    panel.innerHTML = `
+        <div class="recurring-upcoming-panel" role="region" aria-label="Upcoming this month">
+            <h3 class="recurring-upcoming-title">Upcoming this month</h3>
+            <div class="recurring-upcoming-stats">
+                <div class="recurring-upcoming-stat">
+                    <span class="recurring-upcoming-label">Occurrences</span>
+                    <span class="recurring-upcoming-value">${totalCount}</span>
+                </div>
+                <div class="recurring-upcoming-stat">
+                    <span class="recurring-upcoming-label">Total</span>
+                    <span class="recurring-upcoming-value">${formatCurrency(totalAmount)}</span>
+                </div>
+                <div class="recurring-upcoming-stat">
+                    <span class="recurring-upcoming-label">Paid</span>
+                    <span class="recurring-upcoming-value">${paidCount}</span>
+                </div>
+                ${overdueHtml}
+            </div>
+        </div>`;
+}
+
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
 export function renderRecurringPage(app) {
     const container = document.getElementById('recurringList');
     if (!container) return;
+
+    renderUpcomingThisMonthPanel(app);
 
     const allTemplates = app.recurringTemplates || [];
     const showArchived = getSetting(app, SHOW_ARCHIVED_RECURRING, false);
@@ -301,7 +381,12 @@ function _buildReadCard(app, t, year, month, monthKey) {
         ? `<span class="recurring-badge recurring-badge--archived">📦 Archived</span>`
         : '';
 
-    return `<div class="recurring-card${t.paused ? ' recurring-card--paused' : ''}${t.archived ? ' recurring-card--archived' : ''}">
+    const now = new Date();
+    const overdueBadge = isOverdue(t, now)
+        ? `<span class="recurring-overdue-badge" role="status" aria-label="Overdue">Overdue</span>`
+        : '';
+
+    return `<div class="recurring-card${t.paused ? ' recurring-card--paused' : ''}${t.archived ? ' recurring-card--archived' : ''}${isOverdue(t, now) ? ' recurring-card--overdue' : ''}">
         <div class="recurring-card-header">
             <span class="recurring-type-icon">${typeIcon}</span>
             <div class="recurring-card-info">
@@ -321,6 +406,7 @@ function _buildReadCard(app, t, year, month, monthKey) {
         </div>
         <div class="recurring-card-status">
             ${archivedBadge}
+            ${t.archived ? '' : overdueBadge}
             ${t.archived ? '' : statusBadge}
             ${t.archived ? '' : thisMonthLine}
         </div>

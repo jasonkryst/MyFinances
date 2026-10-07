@@ -6145,6 +6145,67 @@ body.dark-mode .recurring-badge--archived { background: #1f2937; color: #9ca3af;
 .recurring-this-month strong { color: var(--text-primary, #111827); }
 body.dark-mode .recurring-this-month strong { color: #f1f5f9; }
 
+/* R-02: Overdue badge */
+.recurring-overdue-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: #fee2e2;
+    color: #991b1b;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+body.dark-mode .recurring-overdue-badge { background: #450a0a; color: #fca5a5; }
+.recurring-card--overdue { border-left: 3px solid #ef4444; }
+body.dark-mode .recurring-card--overdue { border-left-color: #dc2626; }
+
+/* R-01: Upcoming this month panel */
+.recurring-upcoming-panel {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+}
+.recurring-upcoming-panel--empty { color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+.recurring-upcoming-empty { display: block; text-align: center; padding: 4px 0; }
+.recurring-upcoming-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 10px;
+}
+.recurring-upcoming-stats {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.recurring-upcoming-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.recurring-upcoming-label {
+    font-size: 0.72rem;
+    color: var(--text-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.recurring-upcoming-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary, #111827);
+}
+.recurring-upcoming-value--overdue { color: #dc2626; }
+body.dark-mode .recurring-upcoming-value--overdue { color: #f87171; }
+body.dark-mode .recurring-upcoming-panel { background: var(--card-bg-dark, #1e293b); border-color: var(--border-dark, #334155); }
+body.dark-mode .recurring-upcoming-title { color: #94a3b8; }
+body.dark-mode .recurring-upcoming-value { color: #f1f5f9; }
+
 .recurring-card-actions {
     display: flex;
     flex-wrap: wrap;
