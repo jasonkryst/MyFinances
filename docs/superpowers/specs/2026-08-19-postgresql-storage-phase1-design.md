@@ -410,3 +410,10 @@ extend once the frontend actually talks to this API.
   item as delivered by this work (in the sense that Postgres now has one;
   the localStorage JSON blob's sanitizer-based migration is unaffected and
   continues to serve local-only users).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.21.0. `server/` directory is fully populated with a Node.js + Express + PostgreSQL API. All relational tables mirror `sanitizers.js` record shapes. argon2id password hashing, server-side sessions, CSRF double-submit, CRUD routes for all resource types, granular REST endpoints, Docker/docker-compose setup. `server/README.md`, `DEPLOYMENT.md`, `setup.sh`/`setup.ps1` completed.
+- **Deviations**: None from the spec scope. Many enhancements shipped later (auto-migration on startup v4.33.1, connection pool hardening v4.44.0, scheduled backups v5.8.0, password reset v5.7.0, etc.).
+- **Superseded by**: Nothing — the server continues to evolve beyond this spec.

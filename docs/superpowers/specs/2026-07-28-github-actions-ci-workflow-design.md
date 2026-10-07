@@ -120,3 +120,10 @@ No `puppeteerScript`/`puppeteerLaunchOptions` — ThePlayground's `lighthouse-pu
 ## Docs
 
 - No `CLAUDE.md` changes needed — the "Commands" section already documents local pytest usage; CI running the same suites doesn't change local dev workflow. Optionally mention the new CI workflow in `README.md` if the user wants a badge, but that's not required for the story.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.7.2. `.github/workflows/ci.yml` runs pytest by category (security/features/ui/integration), Docker build, Trivy image scan, and Lighthouse audit. Subsequent versions significantly expanded CI: parallel shards (v4.36.0), pip/Playwright browser caching, Trivy filesystem + IaC scans, CodeQL (v4.31.0), dependency-review workflow, mutation-testing job. `.github/workflows/` now has `ci.yml`, `codeql.yml`, `dependency-review.yml`, `docker-image.yml`, `trivy.yml`.
+- **Deviations**: The initial spec described a simpler 5-job layout; many more jobs were added post-launch.
+- **Superseded by**: Nothing — the spec describes the initial CI setup, which was then extended iteratively.

@@ -140,3 +140,10 @@ New `tests/features/test_cash_flow_trend.py`:
 - No `CLAUDE.md` changes needed: the existing "Reports/Forecast/Health" bullet
   already describes this class of feature generically, and no new module or
   top-level page is introduced.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.14.0 as `renderReportsCashFlowTrend` in `src/reportsCashFlow.js`. Multi-month (3M/6M/12M) Income vs. Outflow bar chart with Net balance line overlay. Reuses ledger-derived per-month totals consistent with the Income vs. Expenses report.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing.

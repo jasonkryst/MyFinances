@@ -1092,3 +1092,10 @@ With the dev server running, open `http://localhost:5500/`:
 - [ ] **Step 4: Final commit if any cleanup was needed**
 
 If steps 1-3 required any fixes, commit them with a descriptive message. Otherwise, no commit needed — this task is verification-only.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.8.0. `src/bonusAdvisor.js`, `purpose` field on bonus records, "What should I do with this?" advisor panel with debt payoff and savings growth computations, "Pay Off Debts Now" plan.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

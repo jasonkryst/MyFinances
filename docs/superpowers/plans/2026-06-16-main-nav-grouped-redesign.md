@@ -934,3 +934,10 @@ If the smoke/integration test logs a console error about `:has()` CSS selector, 
 git add -A
 git commit -m "Fix any remaining issues from full suite run"
 ```
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v3.5.0. Three labeled nav groups (Overview / Manage / Analyze), pill-badge labels, `aria-current`, hamburger menu at <=768px.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

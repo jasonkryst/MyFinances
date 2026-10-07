@@ -760,3 +760,10 @@ Expected: PASS (all suites, including the new `test_money_flow_sankey.py`).
 git add src/utils.js CHANGELOG.md CLAUDE.md
 git commit -m "chore: bump version to 4.15.0 for money flow sankey diagram (#79)"
 ```
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.15.0. `src/reportsMoneyFlowSankey.js` renders inline SVG Sankey diagram. Income sources → Account hub → Outflow categories, with Surplus/Shortfall node.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

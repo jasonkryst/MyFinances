@@ -396,3 +396,10 @@ Once all checks are green and the user has reviewed the PR, merge per the user's
 - **Spec coverage:** all 5 goals from the spec are covered — Task 2 (goal 1: trigger + 5 pytest jobs), Task 3 (goals 3–4: docker-build + trivy), Task 4 + Task 1 (goal 5: lighthouse + config). Non-goals (no lint/lint-css/npm-audit, no `docker-image.yml` changes, no branch-protection changes) are respected — no task touches any of those.
 - **Type/name consistency:** job names (`test-features`, `test-integration`, `test-ui`, `test-security`, `test-a11y`, `docker-build`, `trivy`, `lighthouse`) and the image tag (`myfinances:ci`) are used identically across Tasks 2–5. `lighthouserc.json`'s two URLs match the two real top-level HTML files confirmed via `ls` during brainstorming (`index.html`, `guide.html`).
 - **No placeholders:** every step has literal YAML/JSON/commands, not descriptions of what to write.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.7.2. `.github/workflows/ci.yml` with pytest-by-category jobs, Docker build, Trivy, Lighthouse. Significantly expanded in later versions (parallel shards, CodeQL, dependency-review, Playwright caching, mutation-testing separation).
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: Initial spec covered the base setup; many enhancements were added post-launch.

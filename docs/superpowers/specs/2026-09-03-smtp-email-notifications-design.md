@@ -254,3 +254,10 @@ real Postgres via `resetDb()`/`createTestUser()`):
   descriptions, so future sessions know it exists and why it's server-only.
 - `CHANGELOG.md` + `APP_VERSION` bump per repo convention
   (`tests/features/test_versioning.py` enforces the two stay in sync).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.42.0. `server/src/email/` contains `transport.js`, `send.js`, and `templates/`. Configured via `SMTP_HOST`/`PORT`/`USER`/`FROM`/`SECURE` env vars plus `secrets/smtp_password.txt` Docker secret. Silent no-op when unconfigured. Authenticated `POST /api/notifications/test-email` endpoint (Settings modal "Send test email" button). Welcome email on account creation from both `server/scripts/create-user.js` and `POST /auth/register`. `setup.sh`/`setup.ps1` have optional SMTP configuration step.
+- **Deviations**: None from the spec's defined foundation scope. No automatic/scheduled notifications exist yet (explicitly out of scope in the spec).
+- **Superseded by**: Nothing.

@@ -696,3 +696,10 @@ git commit -m "chore: bump version to 4.14.0 for cash flow trend chart (#76)"
   (`getCashFlowTrendSeriesFeature`). `app._cashFlowTrendRangeMonths` is
   declared in Task 1, read/written in Task 2's render function and click
   handler — same name throughout.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.14.0 as part of `src/reportsCashFlow.js`. 3M/6M/12M Income vs. Outflow bar chart with Net line.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

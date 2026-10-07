@@ -819,3 +819,10 @@ Find the `- **Backend service (optional, Phase 1)** — ...` bullet and update o
 git add CLAUDE.md
 git commit -m "docs: update CLAUDE.md for Phase 2a async bootstrap and login gate"
 ```
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.22.0. Async `init()`, login gate (`src/loginGate.js`), Postgres backend picker in Settings, parallel `loadFromPostgres()`, `getCsrfCookie()`.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: `checkPostgresBackendPresent()` auto-detection was added later (v4.46.0) as a gap-fix.

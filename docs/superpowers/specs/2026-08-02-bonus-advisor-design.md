@@ -159,3 +159,10 @@ Playwright/pytest, served at `http://localhost:5500/`.
   pass: those views only aggregate bonus totals today with no per-item
   render to attach a badge to; adding one would be a larger, separate UI
   change beyond what issue #64 asks for.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.8.0. `src/bonusAdvisor.js` is present. Bonus records have a `purpose` field (Cash Flow / Long-term Savings). A "What should I do with this?" button computes interest saved + months-sooner payoff (via `DebtCalculator` stimulus) and projected 1/5-year growth. The Cash Flow card includes a "Pay Off Debts Now" plan showing which debts the bonus can eliminate. `purpose` is sanitized in `src/sanitizers.js`.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing.

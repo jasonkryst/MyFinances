@@ -258,3 +258,10 @@ could also continue serving an active worker's old cache while online.
 The implementation therefore uses network-first handling for same-origin
 app-shell requests, with the precache as an offline fallback, and requires
 browser revalidation for every stable app-shell URL.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.13.0. `manifest.json`, root-scoped `sw.js` (app-shell precaching + stale-while-revalidate for Chart.js CDN), generated `icons/` via `tools/generate-icons.js`. New-version install-and-wait strategy with dismissible "Reload" update banner. Subsequent patches: v5.2.0 added `id`, `categories`, and `shortcuts`; v5.3.0 added manifest links; `CACHE_NAME` kept in sync with `APP_VERSION` enforced by a test.
+- **Deviations**: None from the core spec. Additional manifest fields (id, categories, shortcuts) were added later per follow-up issues.
+- **Superseded by**: Nothing.

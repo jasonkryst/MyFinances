@@ -902,3 +902,10 @@ Run: `pytest tests/features/test_settings.py -v` (version/footer coverage lives 
 git add guide.html README.md CHANGELOG.md src/utils.js
 git commit -m "Documents interest income and bumps version to 4.4.0 per #30"
 ```
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.4.0. APY field on accounts, auto-generated monthly Interest ledger rows, override support, Reports integration, 23 Playwright tests.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: Monthly compounding (not daily) as decided in the spec.

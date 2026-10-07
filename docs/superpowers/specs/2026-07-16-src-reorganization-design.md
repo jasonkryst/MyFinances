@@ -121,3 +121,10 @@ Account-domain helpers stay in `accounts.js` rather than `utils.js`:
 - Bump `APP_VERSION` in `utils.js`: `4.6.1` → `4.7.0` (minor — organizational change, no user-facing behavior change).
 - Update `CLAUDE.md`: the "Every feature module..." file list in the Architecture section, plus any prose referencing file line-count assumptions or the specific files being split.
 - No change to the JSON export format version (`"3.0"`) — this refactor doesn't touch persisted data shape.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.7.0. Six oversized modules were split into 15 focused files matching the spec exactly: `sanitizers.js`, `dataExport.js`, `ledgerTransactions.js`, `ledgerOverrides.js`, `strategyPlanCalculation.js`, `strategyCalendar.js`, `strategyComparison.js`, `strategySummaryTable.js`, `strategyScheduleTable.js`, `debtBreakEven.js`, `reportsNetWorth.js`, `reportsCalendar.js`, `reportsCashFlow.js`, `reportsVariance.js`, `reportsSummary.js`. Duplicate helpers consolidated into `utils.js` and `accounts.js`. A timezone-rollback bug was discovered and fixed during consolidation.
+- **Deviations**: None. Pure refactor with no behavior changes.
+- **Superseded by**: Nothing.

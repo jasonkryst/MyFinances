@@ -191,3 +191,10 @@ New `tests/features/test_i18n.py` (Playwright, following
 - `src/utils.js`: bump `APP_VERSION` `'4.9.0'` → `'4.10.0'` (minor — new
   feature, no breaking change), matching the changelog entry per
   `tests/features/test_versioning.py`.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Partially Implemented
+- **What was built**: Shipped in v4.10.0. `src/i18n.js` provides `t()`, `applyStaticTranslations()`, `getCurrentLocale()`/`getIntlLocale()`. Locale dictionaries in `src/locales/{en,es,pl}.js`. Navigation, toolbar, Settings modal, and Health dashboard are translated into Spanish and Polish. `formatCurrency`/`formatShortDate`/`formatMonthYear` use the active locale. Language selector in Settings. Currency preference added in v5.12.0.
+- **Deviations**: The spec explicitly scoped remaining pages (Accounts, Income, Liabilities, Recurring, Savings, Plan, Reports, Ledger, Reconcile) as follow-up work. As of 2026-10-06, those pages remain in English — only the pilot slice from the spec has been translated.
+- **Superseded by**: Nothing — incremental translation is the stated ongoing plan.

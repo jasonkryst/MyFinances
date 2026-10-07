@@ -82,3 +82,10 @@ No new data sources. All four sub-features read existing in-memory state (`app.d
 - `README.md`: add the four capabilities to the feature list under Reports/Ledger.
 - `guide.html`: extend the existing "Exporting Data" / "Exporting Schedule to CSV" sections with the new column-picker CSV export, the Summary Report tab, the Print/PDF button, and per-chart PNG export.
 - `SECURITY.md`: no changes expected (no new dependencies, no new external origins, no new persisted PII-bearing fields beyond a column-name whitelist) — confirm during implementation.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Partially Implemented
+- **What was built**: Three of four sub-features were implemented: (1) Print stylesheet (`@media print`) across all pages (v4.0.0 and v4.1.0); (2) Summary Report tab (`src/reportsSummary.js`) is present; (3) Custom-column CSV export for the Ledger's filtered transactions (`src/dataExport.js`) is present.
+- **Deviations**: Per-chart PNG export buttons (sub-feature 3 in the spec) were not implemented — no `toBase64Image` or PNG-download code exists in any source file.
+- **Superseded by**: Nothing.

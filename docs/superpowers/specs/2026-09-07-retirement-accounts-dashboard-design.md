@@ -215,3 +215,10 @@ Following the established `moduleFn(app, ...)` delegation pattern:
   matching `sw.js` `CACHE_NAME` bump (PWA cache invalidation).
 - New `## [5.0.0] — 2026-09-07` entry in `CHANGELOG.md` under "Added"
   (kept in sync with `APP_VERSION` per `tests/features/test_versioning.py`).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v5.0.0. `src/retirement.js` and `src/retirementCalculator.js` exist. `Retirement` account type with subtype (401k/Traditional IRA/Roth IRA/HSA/Other), assumed rate of return, employer match %. `app.retirementSnapshots` for manually-logged balance/contribution history. Three Chart.js charts plus projection panel on a new Retirement page. Postgres backend: `retirement_snapshots` table, `/api/retirement-snapshots` CRUD, `retirement_target_date` on `plan_settings`. Export/import round-trips. A Pension subtype with five pension-specific fields was added in v5.4.0 as an extension.
+- **Deviations**: Pension subtype was added beyond the original spec in v5.4.0. Otherwise no deviations.
+- **Superseded by**: Nothing.

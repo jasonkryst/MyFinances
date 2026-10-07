@@ -179,3 +179,10 @@ aren't yet on the i18n pilot.
   untouched — this only consolidates the full-JSON-backup buttons.
 - No change to the sanitization/import-parsing logic in `dataExport.js`
   beyond the async `requestImportMode` await.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.12.0. `src/dataTransferModal.js` is present. The toolbar now has a single Backup & Restore button opening a two-tab modal (Export/Import). Import feedback (invalid file, file too large, Replace/Merge choice) is inline in the modal rather than native popups.
+- **Deviations**: None identified.
+- **Superseded by**: Nothing.

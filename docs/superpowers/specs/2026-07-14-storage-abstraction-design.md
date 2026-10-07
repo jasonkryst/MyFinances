@@ -122,3 +122,10 @@ New Playwright coverage, likely `tests/features/test_storage_backend.py`:
 - `ROADMAP.md`: note the delivered abstraction under the BED (Storage /
   data-layer logic) section, and record the "async backend would need an
   interface promotion" limitation as a known future consideration.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.6.0. `src/storageAdapters.js` provides `LocalStorageAdapter` and `SessionStorageAdapter`. `storage.js` routes through `app.storageAdapter`. Settings modal has a Local/Session storage picker. Switching migrates data to the new backend. The spec's deliberate limitation (no async backend) is documented and intact. Phase 1 PostgreSQL was later added as a fully separate load/save path (not through the adapter interface), per the design decision recorded in the Phase 2a spec.
+- **Deviations**: None from the spec's defined scope.
+- **Superseded by**: Nothing; the abstraction is still in use alongside the separate Postgres code path.

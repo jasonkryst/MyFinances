@@ -2514,3 +2514,10 @@ cd server && docker compose -f docker-compose.test.yml down
 ```
 
 No commit for this task — it's verification-only.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.21.0. Full `server/` directory: Express + PostgreSQL API, all tables, argon2id auth, CSRF, CRUD routes. Docker/docker-compose, setup scripts, `server/README.md`.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: Many post-launch enhancements (backups, auto-migration, pool hardening, password reset, email notifications, etc.).

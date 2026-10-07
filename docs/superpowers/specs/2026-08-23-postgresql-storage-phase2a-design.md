@@ -225,3 +225,10 @@ Existing Playwright suite (local-only, no backend) must keep passing unmodified 
 
 - `CLAUDE.md`: extend the Phase 1 "Backend service (optional, Phase 1)" bullet (or add a new one) once Phase 2a lands, noting the login gate and that `storage.js` now branches on `app._storageBackendKind` for Postgres.
 - `CHANGELOG.md` + `APP_VERSION` bump per repo convention.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.22.0. Async `DebtTrackerApp.init()` checks Postgres session, shows `#loginGate` (`src/loginGate.js`) when unauthenticated, calls `loadFromPostgres()` fanning out to all resource endpoints via `Promise.all`. `saveToStorage()` branches on `_storageBackendKind` for a Postgres PATCH of scalar settings. `getCsrfCookie()` helper in `storage.js`. Postgres option in Settings modal. Auto-detection of Postgres server via `checkPostgresBackendPresent()` added in v4.46.0.
+- **Deviations**: None from the spec. Auto-detection (v4.46.0) was a follow-on gap-fix beyond the original spec scope.
+- **Superseded by**: Nothing.

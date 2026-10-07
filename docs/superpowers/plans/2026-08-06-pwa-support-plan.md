@@ -1279,3 +1279,10 @@ git commit -m "Bump version to 4.13.0 for PWA support; update docs (#75)"
 - **Spec coverage:** every design-doc section (manifest, icons, `sw.js`, registration, update banner, deploy wiring, versioning, testing, docs) maps to a task above (Tasks 1-7). `guide.html` precaching is covered by `sw.js`'s `PRECACHE_URLS` (Task 3), matching the design's "Out of scope" note that it's precached but otherwise unchanged.
 - **Type/name consistency checked:** `registerServiceWorker(app)` (Task 4) matches its call site in `app.js`; `showUpdateAvailableBanner`/`showUpdateAvailableBannerFeature` naming matches the existing `showStorageQuotaWarning`/`showStorageQuotaWarningFeature` pair exactly; `CACHE_NAME`/`PRECACHE_URLS` names in `sw.js` (Task 3) match what Task 3's own tests parse for; banner id `swUpdateBanner` and classes `sw-update-banner`/`sw-update-banner-reload`/`sw-update-banner-close` are used identically across `ui.js`, the CSS, and both new test files.
 - **No placeholders:** every step has real, complete code — no "add appropriate handling" or "similar to Task N" shorthand.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v4.13.0. `sw.js`, `manifest.json`, `icons/`, `tools/generate-icons.js`, `src/serviceWorker.js`, update banner. Extended in v5.2.0/5.3.0 with additional manifest fields.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: Additional manifest fields (id, categories, shortcuts) added later as a follow-on.

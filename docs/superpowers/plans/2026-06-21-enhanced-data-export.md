@@ -1536,3 +1536,10 @@ git commit -m "docs: document Enhanced Data Export features (CSV columns, summar
 - Spec coverage: CSV custom columns → Task 9-10; Monthly/yearly summary → Task 6-7; PDF generation → Task 5; Chart export as images → Tasks 1-4; Print-friendly Reports view → Task 5. All five spec bullets have a task.
 - `app.settings`'s scalar-only constraint (Global Constraints) is honored: ledger export columns are stored as a comma-joined string via the existing generic `setSetting`/`getSetting`, not a new array field or sanitizer.
 - Every new exported function got a delegating method on `DebtTrackerApp` per the project's module pattern, except `renderReportsSummary` and `openLedgerExportModal`/`getFilteredSortedLedgerTransactions`'s internal callers — `renderReportsSummary` is called only internally from `renderReportsPage` (already delegated), consistent with how `renderReportsIncomeExp` etc. are never delegated individually either.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Partially Implemented
+- **What was built**: Print stylesheet, Summary Report tab, and custom-column CSV Ledger export were all implemented. These shipped across v4.0.0–v4.1.0 and in `src/reportsSummary.js` and `src/dataExport.js`.
+- **Tasks completed**: All tasks except the per-chart PNG export buttons, which were not implemented.
+- **Deviations**: PNG export sub-feature was skipped. No `toBase64Image` or per-chart download code exists in any source file.

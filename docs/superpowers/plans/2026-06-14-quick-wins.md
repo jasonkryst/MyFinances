@@ -1022,3 +1022,10 @@ git commit -m "Document payoff date and mark-as-paid features in user guide"
 
 Expected: All PASS (no regressions introduced across security, feature, UI, and
 integration suites).
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Both features shipped in v3.2.0. Debt Payoff Date display and Recurring Template `paidMonths` / Mark-as-Paid toggle.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.

@@ -1499,3 +1499,10 @@ Open `http://localhost:5500/` in a browser, open Settings, switch to Polski, con
 
 Run: `pytest tests/security/ -v`
 Expected: all tests PASS — confirms the new `data-i18n`/`data-i18n-attr` attributes and `textContent`-only translation approach introduced no CSP or `innerHTML`-escaping violations.
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Partially Implemented
+- **What was built**: Shipped in v4.10.0. Framework (`src/i18n.js`, `src/locales/`) and pilot slice (nav, toolbar, Settings, Health) in Spanish and Polish.
+- **Tasks completed**: All planned tasks for the pilot scope executed. Follow-up translation of remaining pages is explicitly deferred.
+- **Deviations**: Remaining pages (Accounts, Income, Liabilities, Recurring, Savings, Plan, Reports, Ledger, Reconcile) are still English as of 2026-10-06.

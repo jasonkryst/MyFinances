@@ -2501,3 +2501,10 @@ Optionally run `npm run test:mutation` and confirm the score stays above the `br
 git add src/utils.js sw.js CHANGELOG.md CLAUDE.md README.md
 git commit -m "chore: release 6.5.0 — balance history"
 ```
+
+## Implementation Status (2026-10-06)
+
+- **Status**: Fully Implemented
+- **What was built**: Shipped in v6.5.0. `src/balanceHistory.js`, `src/balanceHistoryCore.js`, `src/balanceHistoryModal.js`. Dated history for debts and Credit Card/Loan accounts. History modal with chart and editable table. `minimumPayment` on accounts. Postgres `balance_history` table and route. Export/import round-trips.
+- **Tasks completed**: All tasks executed as written.
+- **Deviations**: None.
