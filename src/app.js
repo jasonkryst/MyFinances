@@ -69,7 +69,8 @@ import {
 import {
     displayPaymentPlan as displayPaymentPlanFeature,
     renderStrategyIncomeWidget as renderStrategyIncomeWidgetFeature,
-    renderPlanHistory as renderPlanHistoryFeature
+    renderPlanHistory as renderPlanHistoryFeature,
+    suggestMonthlyPayment as suggestMonthlyPaymentFeature
 } from './strategy.js';
 import {
     displayPaymentSchedule as displayPaymentScheduleFeature
@@ -570,6 +571,10 @@ export class DebtTrackerApp {
      */
     renderStrategyIncomeWidget() {
         return renderStrategyIncomeWidgetFeature(this);
+    }
+
+    suggestMonthlyPayment() {
+        return suggestMonthlyPaymentFeature(this);
     }
 
     /**

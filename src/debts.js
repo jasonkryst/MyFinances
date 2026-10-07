@@ -44,6 +44,8 @@ export async function addDebt(app) {
         ? Array.from(personIdsEl.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite)
         : [];
 
+    const notes = normalizeText(document.getElementById('debtNotes')?.value ?? '', 500);
+
     const debt = {
         id: Date.now(),
         name,
@@ -52,6 +54,7 @@ export async function addDebt(app) {
         debtType,
         accountId,
         personIds,
+        notes,
         updatedAt: todayISO()
     };
 
@@ -261,6 +264,8 @@ export async function saveEdit(app) {
         ? Array.from(personIdsEl.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite)
         : app.debts[idx].personIds || [];
 
+    const notes = normalizeText(document.getElementById('debtNotes')?.value ?? '', 500);
+
     app.debts[idx] = {
         ...app.debts[idx],
         name,
@@ -270,7 +275,8 @@ export async function saveEdit(app) {
         minimumPayment,
         dueDate,
         creditLimit,
-        personIds
+        personIds,
+        notes
     };
 
     app.saveToStorage();
@@ -566,6 +572,9 @@ export function renderDebtsList(app) {
                                 ${(app.persons).map(p => `<option value="${p.id}"${(debt.personIds || []).includes(p.id) ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
                             </select>
                         </div>` : ''}
+                        <div class="debt-detail debt-detail--notes"><strong>Notes:</strong>
+                            <textarea id="inline-notes-${debt.id}" rows="2" maxlength="500" placeholder="Optional notes…">${escapeHtml(debt.notes || '')}</textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="debt-actions">
@@ -685,6 +694,11 @@ export function renderDebtsList(app) {
                         ${debt.category ? `
                             <div class="debt-detail">
                                 <strong>Category:</strong> ${escapeHtml(debt.category)}
+                            </div>
+                        ` : ''}
+                        ${debt.notes ? `
+                            <div class="debt-detail debt-notes-display">
+                                ${escapeHtml(debt.notes)}
                             </div>
                         ` : ''}
                         ${debt.updatedAt ? `
@@ -849,6 +863,9 @@ export async function saveInlineEdit(app, debtId) {
             if (startDateEl) debt.debtStartDate = sanitizeDateISO(startDateEl.value);
             if (limitEl) debt.creditLimit = limitEl.value ? sanitizeFiniteNumber(limitEl.value, null, { min: 0 }) : null;
         }
+
+        const notesEl = document.getElementById(`inline-notes-${debtId}`);
+        if (notesEl) debt.notes = normalizeText(notesEl.value, 500);
 
         if (!debt.name) {
             await showAlertModal('Please enter a name for the debt.');

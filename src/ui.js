@@ -113,6 +113,14 @@ export function initializeEventListeners(app) {
         });
     }
 
+    // Suggest payment button
+    const suggestPaymentBtn = document.getElementById('suggestPaymentBtn');
+    if (suggestPaymentBtn) {
+        suggestPaymentBtn.addEventListener('click', () => {
+            app.suggestMonthlyPayment();
+        });
+    }
+
     // Debt form submit and related controls
     const debtForm = document.getElementById('debtForm');
     if (debtForm) {

@@ -3405,6 +3405,46 @@ body.dark-mode .iptd-sub {
 body.dark-mode .iptd-value {
     color: #f87171;
 }
+.input-with-action {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.input-with-action input {
+    flex: 1;
+    min-width: 0;
+}
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-secondary {
+    background: var(--border-color, #e5e7eb);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-secondary:hover {
+    background: var(--secondary-color, #d1d5db);
+}
+
+.debt-notes-display {
+    font-size: 0.82rem;
+    color: var(--text-muted, #6b7280);
+    white-space: pre-wrap;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    padding-top: 6px;
+    margin-top: 4px;
+}
+.debt-detail--notes textarea {
+    width: 100%;
+    font-size: 0.85rem;
+    resize: vertical;
+}
 
 /* ---- Target Payoff Date panel ---- */
 .target-date-panel {
@@ -6905,37 +6945,82 @@ body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
 
 /* ── Print stylesheet (Reports, Health, Accounts, Income pages) ─────────── */
 @media print {
+    /* ── Hide interactive chrome ── */
     header, nav.top-nav, .rpt-tab-bar,
-    .rpt-month-btn, button, select, input, .nw-range-buttons,
-    .filter-controls, .ledger-pagination {
+    .rpt-month-btn, button, select, input, textarea,
+    .nw-range-buttons, .filter-controls, .ledger-pagination,
+    .header-toolbar, .debts-toolbar-filter, .accounts-toolbar-filter,
+    .recurring-toolbar-filter, .health-link,
+    #commandPaletteBtn, #helpBtn, #settingsBtn,
+    #toastContainer, #updateAvailableBanner,
+    .command-palette-overlay, .modal-overlay, .modal,
+    .amortization-modal-fixed, .accelerate-modal-overlay,
+    .ledger-override-modal, .data-transfer-modal,
+    .pg-migration-modal, #loginGate, #setupWizardOverlay,
+    .strategy-income-widget {
         display: none !important;
     }
+
+    /* ── Show only the active section ── */
     .page-section { display: none !important; }
-    .page-section.active { display: block !important; }
+    .page-section.active { display: block !important; width: 100% !important; }
     .rpt-tab-panel { display: none !important; }
     .rpt-tab-panel.rpt-tab-panel--active { display: block !important; }
-    .account-form-card, .income-form-card, .bonus-section, .health-link,
+
+    /* ── Hide data-entry forms ── */
+    .account-form-card, .income-form-card, .bonus-section,
     .debts-form-card, .budget-form-card, .recurring-form-card,
     .emergency-form-card, .sinking-form-card,
     .strategy-controls, .target-date-panel,
-    .recon-form-grid, .recon-expected {
+    .recon-form-grid, .recon-expected,
+    .retirement-add-snapshot-btn, .retirement-snapshot-form {
         display: none !important;
+    }
+
+    /* ── Base print styles ── */
+    *, *::before, *::after {
+        box-shadow: none !important;
+        text-shadow: none !important;
     }
     body {
         background: white !important;
         color: black !important;
+        font-size: 11pt;
+        line-height: 1.4;
     }
-    .rpt-chart-card, .nw-history-card, .acct-mf-section {
+    a { color: black !important; text-decoration: none !important; }
+
+    /* ── Cards and sections: no shadows, keep borders ── */
+    .dashboard-card, .account-card, .debt-card, .income-card,
+    .health-metric-card, .savings-card, .retirement-account-card,
+    .rpt-chart-card, .nw-history-card, .acct-mf-section,
+    .comparison-card {
         border: 1px solid #ccc !important;
         box-shadow: none !important;
         page-break-inside: avoid;
+        break-inside: avoid;
     }
+
+    /* ── Tables ── */
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 4pt 6pt; font-size: 9pt; }
+    thead { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .table-wrapper, .table-wrap { overflow: visible !important; }
+
+    /* ── Chart sizing ── */
     .rpt-chart-canvas-wrap, .rpt-moneyflow-wrap {
-        height: 320px !important;
+        height: 280px !important;
     }
-    .rpt-month-label {
-        font-size: 1.2rem;
-        font-weight: 700;
+
+    /* ── Typography ── */
+    .rpt-month-label { font-size: 1.2rem; font-weight: 700; }
+    h1, h2, h3 { page-break-after: avoid; break-after: avoid; }
+
+    /* ── Layout: full width, no sidebar ── */
+    .app-container, .main-content, .page-section.active {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 }
 
