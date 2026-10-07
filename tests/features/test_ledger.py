@@ -1255,7 +1255,7 @@ def _seed_variable_income_for_ledger(page, name="Hourly Payday", amount=1200):
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
-    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.renderLedger(); }")
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
     page.wait_for_selector('.ledger-table', timeout=5000)
 
 
@@ -1279,7 +1279,7 @@ def test_ledger_enter_actual_absent_for_fixed_income(app_page):
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
-    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.renderLedger(); }")
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
     page.wait_for_selector('.ledger-table', timeout=5000)
 
     btn = page.query_selector('.ledger-enter-actual-btn')
@@ -1338,7 +1338,7 @@ def test_ledger_enter_actual_becomes_edit_actual_after_override(app_page):
 
     # Button label should change
     btn_text = page.evaluate(
-        "() => document.querySelector('.ledger-enter-actual-btn')?.textContent || ''"
+        "() => document.querySelector('[data-ledger-override]')?.textContent || ''"
     )
-    assert 'edit' in btn_text.lower() or 'actual' in btn_text.lower(), \
-        f"Button should read 'Edit actual' after override is set, got: {btn_text!r}"
+    assert btn_text == 'Edit actual', \
+        f"Button should read 'Edit actual' after override is set on variable income, got: {btn_text!r}"
