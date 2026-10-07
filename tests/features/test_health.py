@@ -1032,15 +1032,18 @@ def test_health_trend_arrow_present_when_income_changes(app_page):
         const now = new Date();
         const yr = now.getFullYear();
         const mo = now.getMonth();
-        // Use a monthly income so exactly 1 payday per month regardless of date.
+        // Monthly income running since prev month (1 payday in both months).
         const prevYear  = mo === 0 ? yr - 1 : yr;
         const prevMonth = mo === 0 ? 11 : mo - 1;
         const firstDate = new Date(prevYear, prevMonth, 1);
         const firstPayDate = firstDate.toISOString().slice(0, 10);
+        // Add a one-time bonus this month to make current-month income != prev-month income.
+        const bonusDate = `${yr}-${String(mo + 1).padStart(2, '0')}-15`;
         app.incomes = [{
             id: 1, name: 'Job', amount: 5000, firstPayDate,
             frequency: 'monthly', accountId: null, personId: null, category: 'Salary'
         }];
+        app.bonuses = [{ id: 10, name: 'Bonus', amount: 1000, date: bonusDate, accountId: null }];
         app.debts = [{ id: 2, name: 'Loan', accountBalance: 10000, originalBalance: 10000,
                        minimumPayment: 500, interestRate: 5, debtType: 'personal',
                        accountId: null }];
