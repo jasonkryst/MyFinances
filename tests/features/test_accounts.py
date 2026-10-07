@@ -864,3 +864,125 @@ def test_chip_count_reflects_actual_linked_items(app_page):
         f"Income chip should show 2 (only items linked to this account), got: '{income_chip_text}'"
     assert '3' not in income_chip_text, \
         f"Chip must not count items linked to other accounts, got: '{income_chip_text}'"
+
+
+# ── A-01 Account archive / unarchive ───────────────────────────────────────────
+
+@pytest.mark.feature
+def test_account_archive_button_present(app_page):
+    """Each account card has an Archive button."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'My Checking', type: 'Checking',
+                          startingBalance: 500, archived: false }];
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    btn = page.query_selector('[data-account-action="archive"]')
+    assert btn, "Archive button should be present on an active account card"
+
+
+@pytest.mark.feature
+def test_account_archive_hides_card(app_page):
+    """Clicking Archive removes the account card from the visible list."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Hide Me', type: 'Savings',
+                          startingBalance: 100, archived: false }];
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    page.click('[data-account-action="archive"]')
+    page.wait_for_timeout(300)
+
+    # Card should be gone from the list (archived accounts hidden by default)
+    cards = page.query_selector_all('.acct-card')
+    assert len(cards) == 0 or not any(
+        'Hide Me' in (c.text_content() or '') for c in cards
+    ), "Archived account should not appear in default list"
+
+
+@pytest.mark.feature
+def test_account_show_archived_toggle(app_page):
+    """Show-archived toggle appears and reveals archived accounts when clicked."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [
+            { id: 1, name: 'Active', type: 'Checking', startingBalance: 0, archived: false },
+            { id: 2, name: 'OldAccount', type: 'Savings', startingBalance: 0, archived: true },
+        ];
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    toggle = page.query_selector('#acctToggleArchived')
+    assert toggle, "Show-archived toggle should appear when archived accounts exist"
+    assert '1' in (toggle.text_content() or ''), "Toggle should show count of archived accounts"
+
+    toggle.click()
+    page.wait_for_timeout(300)
+
+    # Both accounts visible now
+    list_text = page.query_selector('#accountList').text_content()
+    assert 'OldAccount' in list_text, "Archived account should appear after toggling show-archived"
+
+
+@pytest.mark.feature
+def test_account_unarchive_restores_card(app_page):
+    """Unarchive button on an archived card makes it active again."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 5, name: 'Comeback', type: 'Other',
+                          startingBalance: 0, archived: true }];
+        // Force show-archived so the card is visible
+        app.settings = (app.settings || []).filter(s => s.key !== 'showArchivedAccounts');
+        app.settings.push({ key: 'showArchivedAccounts', value: true });
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    unarchive_btn = page.query_selector('[data-account-action="unarchive"]')
+    assert unarchive_btn, "Unarchive button should appear on archived card when show-archived is on"
+
+    unarchive_btn.click()
+    page.wait_for_timeout(300)
+
+    # Should now show as an active card with Archive (not Unarchive) button
+    archive_btn = page.query_selector('[data-account-action="archive"]')
+    assert archive_btn, "After unarchiving, the card should have an Archive button again"
+
+
+@pytest.mark.feature
+def test_archived_account_badge_visible(app_page):
+    """Archived account card shows the Archived badge when show-archived is on."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 7, name: 'Old Bank', type: 'Checking',
+                          startingBalance: 0, archived: true }];
+        app.settings = (app.settings || []).filter(s => s.key !== 'showArchivedAccounts');
+        app.settings.push({ key: 'showArchivedAccounts', value: true });
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    badge = page.query_selector('.acct-archived-badge')
+    assert badge, "Archived badge should appear on archived account card"
+    assert 'Archived' in (badge.text_content() or ''), "Badge should say 'Archived'"
+

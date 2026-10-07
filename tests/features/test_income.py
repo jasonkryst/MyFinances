@@ -772,3 +772,94 @@ def test_income_frequency_select_has_all_four_options(app_page):
     assert 'biweekly' in values, "'biweekly' option missing from frequency dropdown"
     assert 'twice_monthly' in values, "'twice_monthly' option missing from frequency dropdown"
     assert 'monthly' in values, "'monthly' option missing from frequency dropdown"
+
+
+# ── I-01 Income categories ──────────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_income_category_field_present_in_add_form(app_page):
+    """The Add Income form contains a Category dropdown."""
+    page = app_page
+
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    select = page.query_selector('#incomeCategory')
+    assert select, "Category select (#incomeCategory) should be present in the add-income form"
+
+    options = page.query_selector_all('#incomeCategory option')
+    values = [o.get_attribute('value') for o in options]
+    assert 'Salary' in values
+    assert 'Freelance' in values
+    assert 'Rental' in values
+    assert 'Investment' in values
+    assert 'Other' in values
+
+
+@pytest.mark.feature
+def test_income_category_badge_shown_for_non_salary(app_page):
+    """A non-Salary category shows a badge on the income card."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{
+            id: 1, name: 'Rental Property', amount: 1200,
+            firstPayDate: '2026-01-01', frequency: 'monthly',
+            accountId: null, personId: null, category: 'Rental'
+        }];
+        app.renderIncomeList();
+    }""")
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    badge = page.query_selector('.income-category-badge')
+    assert badge, "Category badge should appear for a non-Salary income"
+    assert 'Rental' in (badge.text_content() or ''), "Badge should display the category name"
+
+
+@pytest.mark.feature
+def test_income_salary_category_has_no_badge(app_page):
+    """Salary is the default — no category badge shown for Salary income."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{
+            id: 2, name: 'Day Job', amount: 4000,
+            firstPayDate: '2026-01-01', frequency: 'monthly',
+            accountId: null, personId: null, category: 'Salary'
+        }];
+        app.renderIncomeList();
+    }""")
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    badge = page.query_selector('.income-category-badge')
+    assert badge is None, "No category badge should appear for Salary (default) income"
+
+
+@pytest.mark.feature
+def test_income_category_persists_in_edit_form(app_page):
+    """The edit form for an income pre-selects the correct category."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{
+            id: 3, name: 'Freelance Work', amount: 800,
+            firstPayDate: '2026-01-01', frequency: 'monthly',
+            accountId: null, personId: null, category: 'Freelance'
+        }];
+        app.renderIncomeList();
+    }""")
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    # Open edit
+    page.click('[data-income-action="edit"]')
+    page.wait_for_timeout(300)
+
+    selected = page.evaluate("() => document.querySelector('[id^=\"ie-category-\"]')?.value")
+    assert selected == 'Freelance', \
+        f"Edit form should pre-select 'Freelance', got '{selected}'"

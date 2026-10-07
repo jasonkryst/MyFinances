@@ -6,6 +6,7 @@ import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
 import { isHistoryTrackedAccount, HISTORY_TRACKED_ACCOUNT_TYPES } from './balanceHistoryCore.js';
+import { getSetting, setSetting, SHOW_ARCHIVED_ACCOUNTS } from './settings.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', Retirement: '🏛️', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -82,11 +83,15 @@ export function renderAccountsList(app) {
     const now = new Date();
     const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+    const showArchived = getSetting(app, SHOW_ARCHIVED_ACCOUNTS, false);
+    const activeAccounts = showArchived ? app.accounts : app.accounts.filter(a => !a.archived);
+    const archivedCount = app.accounts.filter(a => a.archived).length;
+
     // Apply type filter
     const typeFilter = document.getElementById('accountTypeFilter')?.value || '';
     let displayAccounts = typeFilter
-        ? app.accounts.filter(a => a.type === typeFilter)
-        : app.accounts.slice();
+        ? activeAccounts.filter(a => a.type === typeFilter)
+        : activeAccounts.slice();
 
     // Apply sort
     const sortBy = document.getElementById('accountSortBy')?.value || '';
@@ -196,11 +201,12 @@ export function renderAccountsList(app) {
                 ${typeGroups.map(g => `<button class="acct-link ${escapeHtml(g.cls)} acct-link--nav" data-account-nav-page="${escapeHtml(g.page)}" title="Go to ${escapeHtml(g.label)}">${escapeHtml(g.label)} (${g.count})</button>`).join('')}
             </div>`;
 
-        return `<div class="acct-card">
+        return `<div class="acct-card${a.archived ? ' acct-card--archived' : ''}">
             <div class="acct-card-header">
                 <span class="acct-type-icon">${typeIcon[a.type] || '🗂️'}</span>
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(a.name)} (${escapeHtml(a.type)})</span>
+                    ${a.archived ? `<span class="acct-archived-badge">Archived</span>` : ''}
                     ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${Number(a.interestRate).toFixed(2)}% APY</span>` : ''}
                     ${a.type === 'Retirement' && a.retirementSubtype === 'Pension' ? `<span class="acct-rate-badge">🏛️ Pension · ${formatCurrency(Number(a.pensionAnnualSalary))} salary · ${Number(a.pensionContributionRatePct).toFixed(1)}% contrib.</span>` : ''}
                     ${a.type === 'Retirement' && a.retirementSubtype !== 'Pension' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(a.retirementSubtype)} · ${Number(a.rateOfReturn).toFixed(1)}% est.</span>` : ''}
@@ -218,6 +224,7 @@ export function renderAccountsList(app) {
                 <div class="debt-actions">
                     ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}">History</button>` : ''}
                     <button class="btn-edit" data-account-action="edit" data-account-id="${a.id}">Edit</button>
+                    <button class="btn btn-secondary btn-small" data-account-action="${a.archived ? 'unarchive' : 'archive'}" data-account-id="${a.id}" title="${a.archived ? 'Unarchive account' : 'Archive account'}">${a.archived ? 'Unarchive' : 'Archive'}</button>
                     <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}">Delete</button>
                 </div>
             </div>
@@ -225,7 +232,20 @@ export function renderAccountsList(app) {
         </div>`;
     }).join('');
 
-    container.innerHTML = cards;
+    const archivedToggle = archivedCount > 0
+        ? `<div class="acct-archived-toggle">
+               <button class="btn btn-secondary btn-small" id="acctToggleArchived">
+                   ${showArchived ? 'Hide' : `Show ${archivedCount} archived`}
+               </button>
+           </div>`
+        : '';
+    container.innerHTML = cards + archivedToggle;
+
+    document.getElementById('acctToggleArchived')?.addEventListener('click', () => {
+        setSetting(app, SHOW_ARCHIVED_ACCOUNTS, !showArchived);
+        app.renderAccountsList();
+    });
+
     container.onclick = (event) => {
         const navChip = event.target.closest('[data-account-nav-page]');
         if (navChip) {
@@ -244,6 +264,8 @@ export function renderAccountsList(app) {
         if (action === 'save') app.saveEditAccount(id);
         if (action === 'edit') app.startEditAccount(id);
         if (action === 'delete') app.deleteAccount(id);
+        if (action === 'archive') app.archiveAccount(id);
+        if (action === 'unarchive') app.unarchiveAccount(id);
         if (action === 'history') app.showBalanceHistoryModal({ kind: 'account', id });
     };
     container.onchange = (event) => {
@@ -326,6 +348,26 @@ export async function deleteAccount(app, id) {
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
+}
+
+export function archiveAccount(app, id) {
+    const idx = app.accounts.findIndex(a => a.id === id);
+    if (idx === -1) return;
+    app.accounts[idx] = { ...app.accounts[idx], archived: true };
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${id}`, { archived: true });
+    app.renderAccountsList();
+    app.renderNetWorthWidget();
+}
+
+export function unarchiveAccount(app, id) {
+    const idx = app.accounts.findIndex(a => a.id === id);
+    if (idx === -1) return;
+    app.accounts[idx] = { ...app.accounts[idx], archived: false };
+    app.saveToStorage();
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${id}`, { archived: false });
+    app.renderAccountsList();
+    app.renderNetWorthWidget();
 }
 
 function _reassignLinkedItems(app, fromId, toId) {

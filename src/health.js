@@ -69,6 +69,20 @@ function surplusStatus(surplus) {
     return { cls: 'health-status--red', label: 'Deficit' };
 }
 
+// Returns an arrow span comparing current vs previous value. higherIsBetter
+// controls which direction counts as an improvement. Returns '' when the
+// change is negligible (< 0.05 percentage points) to avoid spurious arrows.
+function trendArrow(curr, prev, higherIsBetter, { suffix = '%', decimals = 1 } = {}) {
+    if (prev === null || prev === undefined || !Number.isFinite(prev) || !Number.isFinite(curr)) return '';
+    const delta = curr - prev;
+    if (Math.abs(delta) < 0.05) return '';
+    const improved = higherIsBetter ? delta > 0 : delta < 0;
+    const dir = delta > 0 ? '▲' : '▼';
+    const cls = improved ? 'health-trend--good' : 'health-trend--bad';
+    const prevFormatted = `${prev.toFixed(decimals)}${suffix}`;
+    return `<span class="health-trend ${cls}" title="Last month: ${prevFormatted}">${dir}</span>`;
+}
+
 // Walk windowTxs in date order and build a running-balance series plus the
 // minimum balance and the date it occurs.
 function computeRunningBalance(startBalance, windowTxs) {
@@ -479,6 +493,14 @@ export function renderHealthDashboard(app) {
     const totalOutflow  = totalBills + totalExpenses + totalDebtMin;
     const net           = monthlyIncome - totalOutflow;
 
+    // ── Prev-month income for trend arrows ────────────────────────────────────
+    const prevYear  = month === 0 ? year - 1 : year;
+    const prevMonth = month === 0 ? 11 : month - 1;
+    const { monthlyTotal: prevMonthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, prevYear, prevMonth);
+    const prevDtiPct      = prevMonthlyIncome > 0 ? (totalDebtMin / prevMonthlyIncome) * 100 : null;
+    const prevSavingsPct  = prevMonthlyIncome > 0 ? (totalSavingsContrib / prevMonthlyIncome) * 100 : null;
+    const prevNet         = prevMonthlyIncome - totalOutflow;
+
     // ── DTI ────────────────────────────────────────────────────────────────────
     const dtiRatio = monthlyIncome > 0 ? totalDebtMin / monthlyIncome : 0;
     const dtiPct   = Math.min(dtiRatio * 100, 100);
@@ -605,10 +627,11 @@ export function renderHealthDashboard(app) {
         <div class="health-metrics-grid">
 
             <!-- Debt-to-Income Ratio -->
-            <div class="health-metric-card">
+            <div class="health-metric-card" data-card-nav="liabilities">
                 <div class="health-card-header">
                     <span class="health-card-title">${t('health.dtiTitle')}</span>
                     <span class="health-badge ${dtiSt.cls}">${dtiSt.label}</span>
+                    ${trendArrow(dtiPct, prevDtiPct, false)}
                 </div>
                 <p class="health-card-desc">${t('health.dtiDesc')}</p>
                 <div class="health-gauge-wrap">
@@ -626,10 +649,11 @@ export function renderHealthDashboard(app) {
             </div>
 
             <!-- Savings Rate -->
-            <div class="health-metric-card">
+            <div class="health-metric-card" data-card-nav="savings">
                 <div class="health-card-header">
                     <span class="health-card-title">${t('health.savingsTitle')}</span>
                     <span class="health-badge ${savingsSt.cls}">${savingsSt.label}</span>
+                    ${trendArrow(savingsPct, prevSavingsPct, true)}
                 </div>
                 <p class="health-card-desc">${t('health.savingsDesc')}</p>
                 <div class="health-gauge-wrap">
@@ -647,7 +671,7 @@ export function renderHealthDashboard(app) {
             </div>
 
             <!-- Emergency Fund Coverage -->
-            <div class="health-metric-card">
+            <div class="health-metric-card" data-card-nav="savings">
                 <div class="health-card-header">
                     <span class="health-card-title">${t('health.efTitle')}</span>
                 </div>
@@ -679,7 +703,7 @@ export function renderHealthDashboard(app) {
             </div>
 
             <!-- Debt Payoff Timeline -->
-            <div class="health-metric-card">
+            <div class="health-metric-card" data-card-nav="strategy">
                 <div class="health-card-header">
                     <span class="health-card-title">${t('health.timelineTitle')}</span>
                     ${hasDebts && debtTimeline ? `<span class="health-badge ${timelineSt.cls}">${timelineSt.label}</span>` : ''}
@@ -715,10 +739,11 @@ export function renderHealthDashboard(app) {
             </div>
 
             <!-- Monthly Cash Flow -->
-            <div class="health-metric-card">
+            <div class="health-metric-card" data-card-nav="income">
                 <div class="health-card-header">
                     <span class="health-card-title">${t('health.cashFlowTitle')}</span>
                     <span class="health-badge ${cashFlowSt.cls}">${cashFlowSt.label}</span>
+                    ${trendArrow(net, prevNet, true, { suffix: '', decimals: 0 })}
                 </div>
                 <p class="health-card-desc">${t('health.cashFlowDesc')}</p>
                 <div class="health-cashflow-hero ${net >= 0 ? 'health-cashflow-hero--positive' : 'health-cashflow-hero--negative'}">
@@ -750,7 +775,7 @@ export function renderHealthDashboard(app) {
             </div>
 
             <!-- Budget Allocation -->
-            <div class="health-metric-card">
+            <div class="health-metric-card" data-card-nav="liabilities">
                 <div class="health-card-header">
                     <span class="health-card-title">${t('health.budgetTitle')}</span>
                 </div>
@@ -780,7 +805,7 @@ export function renderHealthDashboard(app) {
             </div>
 
             <!-- Credit Utilization -->
-            <div class="health-metric-card" id="healthCreditUtilCard">
+            <div class="health-metric-card" id="healthCreditUtilCard" data-card-nav="liabilities">
                 <div class="health-card-header">
                     <span class="health-card-title">Credit Utilization</span>
                     ${hasUtilData ? `<span class="health-badge ${utilSt.cls}">${utilSt.label}</span>` : ''}
@@ -828,7 +853,7 @@ export function renderHealthDashboard(app) {
             </div>
 
             <!-- Surplus Analysis -->
-            <div class="health-metric-card health-surplus-card">
+            <div class="health-metric-card health-surplus-card" data-card-nav="accounts">
                 <div class="health-card-header">
                     <span class="health-card-title">Surplus Analysis</span>
                     <span class="health-badge" id="healthSurplusBadge">&mdash;</span>
@@ -894,6 +919,13 @@ export function renderHealthDashboard(app) {
         link.addEventListener('click', e => {
             e.preventDefault();
             app.switchPage(link.dataset.healthNav);
+        });
+    });
+
+    section.querySelectorAll('[data-card-nav]').forEach(card => {
+        card.addEventListener('click', e => {
+            if (e.target.closest('a, button, input, select')) return;
+            app.switchPage(card.dataset.cardNav);
         });
     });
 
