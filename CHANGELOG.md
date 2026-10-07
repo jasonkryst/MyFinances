@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.13.0] — 2026-10-07
+
+### Fixed
+- **I18N-01 — People nav + 3 Settings strings missing translations** — added `data-i18n="nav.people"` to the People nav button and `data-i18n` attributes to the "Show archived debts", "Show archived recurring templates", and "Send test email" Settings elements; added corresponding `nav.people`, `settings.showArchivedDebts`, `settings.showArchivedRecurring`, `settings.sendTestEmail` keys to `en.js`, `es.js`, and `pl.js` (closes #306).
+- **I18N-02 — Surplus sparkline `renderChartDataTable` caption hardcoded English** — replaced the hardcoded `"Projected balance over ${windowDays} days"` string with `t('health.surplusSparklineCaption', { days: windowDays })`; added the key to all three locale files (closes #311).
+
 ## [6.12.0] — 2026-10-07
 
 ### Added

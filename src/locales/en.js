@@ -26,6 +26,7 @@ export default {
     'nav.ledger': 'Ledger',
     'nav.reconcile': 'Reconcile',
     'nav.retirement': 'Retirement',
+    'nav.people': 'People',
 
     'settings.close': 'Close',
     'settings.title': 'Settings',
@@ -42,6 +43,9 @@ export default {
     'settings.storagePostgres': 'PostgreSQL (self-hosted server)',
     'settings.dataStorageHelp': 'Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.',
     'settings.storagePostgresNote': 'You are using PostgreSQL. Switching back to local or session storage is not supported.',
+    'settings.showArchivedDebts': 'Show archived debts',
+    'settings.showArchivedRecurring': 'Show archived recurring templates',
+    'settings.sendTestEmail': 'Send test email',
     'settings.language': 'Language',
     'settings.languageHelp': 'Translation is still expanding — some pages may remain in English.',
     'settings.done': 'Done',
@@ -125,4 +129,5 @@ export default {
     'health.status.surplus': 'Surplus',
     'health.status.breakEven': 'Break Even',
     'health.status.deficit': 'Deficit',
+    'health.surplusSparklineCaption': 'Projected balance over {days} days',
 };
