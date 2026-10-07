@@ -37,7 +37,7 @@ def test_health_renders_metric_cards(app_page):
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
     cards = page.query_selector_all('.health-metric-card')
-    assert len(cards) == 8, f"Expected 8 metric cards (7 standard + surplus analysis), found {len(cards)}"
+    assert len(cards) == 10, f"Expected 10 metric cards (8 standard + interest burden + debt-to-asset + surplus analysis), found {len(cards)}"
 
 
 # ── DTI card ───────────────────────────────────────────────────────────────────
@@ -1118,3 +1118,193 @@ def test_health_card_click_navigates(app_page):
 
     liabilities_active = page.query_selector('#liabilitiesSection.active')
     assert liabilities_active, "Clicking a data-card-nav='liabilities' card should navigate to Liabilities"
+
+
+# ── Interest Burden Rate card ──────────────────────────────────────────────────
+
+
+def _inject_interest_burden_state(page, balance, interest_rate, monthly_income):
+    """Inject a single debt and income source, then navigate to health."""
+    page.evaluate(f"""() => {{
+        const app = window.app;
+        app.incomes = [{{
+            id: 9001, name: 'Salary', amount: {monthly_income},
+            firstPayDate: '2026-01-01', frequency: 'monthly',
+            accountId: null
+        }}];
+        app.debts = [{{
+            id: 9002, name: 'Loan', debtType: 'creditCard',
+            accountBalance: {balance}, originalBalance: {balance},
+            interestRate: {interest_rate}, minimumPayment: 50, dueDate: 15,
+            creditLimit: null, archived: false
+        }}];
+        app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }}""")
+    page.wait_for_selector('#healthInterestBurdenCard', timeout=5000)
+
+
+@pytest.mark.feature
+def test_health_interest_burden_card_present(app_page):
+    """Interest Burden Rate card (#healthInterestBurdenCard) is always rendered."""
+    page = app_page
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+
+    card = page.query_selector('#healthInterestBurdenCard')
+    assert card, "Interest Burden Rate card not found in health dashboard"
+
+
+@pytest.mark.feature
+def test_health_interest_burden_empty_state_no_debts(app_page):
+    """Interest Burden Rate card shows empty state when no active debts."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = []; app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthInterestBurdenCard', timeout=5000)
+
+    card_text = page.query_selector('#healthInterestBurdenCard').text_content()
+    assert 'No active debts' in card_text, \
+        f"Expected empty-state when no debts, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_interest_burden_low(app_page):
+    """≤5% interest burden shows 'Low' badge."""
+    page = app_page
+    # $10,000 at 6% APR → $50/mo interest; income $5,000/mo → 1% burden
+    _inject_interest_burden_state(page, balance=10000, interest_rate=6, monthly_income=5000)
+
+    card_text = page.query_selector('#healthInterestBurdenCard').text_content()
+    assert 'Low' in card_text, f"Expected 'Low' at ~1% interest burden, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_interest_burden_moderate(app_page):
+    """6–10% interest burden shows 'Moderate' badge."""
+    page = app_page
+    # $10,000 at 10% APR → ~$83/mo interest; income $1,000/mo → ~8.3% burden
+    _inject_interest_burden_state(page, balance=10000, interest_rate=10, monthly_income=1000)
+
+    card_text = page.query_selector('#healthInterestBurdenCard').text_content()
+    assert 'Moderate' in card_text, \
+        f"Expected 'Moderate' at ~8% interest burden, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_interest_burden_high(app_page):
+    """>10% interest burden shows 'High' badge."""
+    page = app_page
+    # $20,000 at 24% APR → $400/mo interest; income $2,000/mo → 20% burden
+    _inject_interest_burden_state(page, balance=20000, interest_rate=24, monthly_income=2000)
+
+    card_text = page.query_selector('#healthInterestBurdenCard').text_content()
+    assert 'High' in card_text, \
+        f"Expected 'High' at 20% interest burden, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_interest_burden_shows_values(app_page):
+    """Interest Burden Rate card shows monthly interest and income amounts."""
+    page = app_page
+    # $12,000 at 12% APR → $120/mo interest; income $2,000/mo
+    _inject_interest_burden_state(page, balance=12000, interest_rate=12, monthly_income=2000)
+
+    card_text = page.query_selector('#healthInterestBurdenCard').text_content()
+    assert 'Interest' in card_text, "Should show 'Interest' label"
+    assert 'Income' in card_text, "Should show 'Income' label"
+    # $120/mo interest — check some fragment of the formatted number
+    assert '120' in card_text, "Monthly interest amount not shown in card"
+
+
+# ── Debt-to-Asset Ratio card ──────────────────────────────────────────────────
+
+
+@pytest.mark.feature
+def test_health_debt_to_asset_card_present(app_page):
+    """Debt-to-Asset Ratio card (#healthDebtToAssetCard) is always rendered."""
+    page = app_page
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+
+    card = page.query_selector('#healthDebtToAssetCard')
+    assert card, "Debt-to-Asset Ratio card not found in health dashboard"
+
+
+@pytest.mark.feature
+def test_health_dta_empty_state_no_accounts(app_page):
+    """Debt-to-Asset Ratio card shows empty state when no accounts (no assets)."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = []; app.debts = []; app.incomes = []; app.bills = [];
+        app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthDebtToAssetCard', timeout=5000)
+
+    card_text = page.query_selector('#healthDebtToAssetCard').text_content()
+    assert 'No asset data' in card_text, \
+        f"Expected empty-state when no assets, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_dta_healthy(app_page):
+    """D/A ratio < 0.5 shows 'Healthy' badge."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        // Account with $10,000 starting balance; debt $4,000 → ratio = 0.4
+        app.accounts = [{
+            id: 7001, name: 'Checking', type: 'checking',
+            startingBalance: 10000, accountId: null
+        }];
+        app.debts = [{
+            id: 7002, name: 'Card', debtType: 'creditCard',
+            accountBalance: 4000, originalBalance: 4000,
+            interestRate: 15, minimumPayment: 80, dueDate: 15,
+            creditLimit: null, archived: false
+        }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthDebtToAssetCard', timeout=5000)
+
+    card_text = page.query_selector('#healthDebtToAssetCard').text_content()
+    assert 'Healthy' in card_text, \
+        f"Expected 'Healthy' badge at D/A ratio 0.4, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_dta_high_risk(app_page):
+    """D/A ratio >= 1.0 shows 'High Risk' badge."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        // Account $5,000; debt $6,000 → ratio = 1.2 (over-leveraged)
+        app.accounts = [{
+            id: 7003, name: 'Savings', type: 'savings',
+            startingBalance: 5000, accountId: null
+        }];
+        app.debts = [{
+            id: 7004, name: 'Loan', debtType: 'creditCard',
+            accountBalance: 6000, originalBalance: 6000,
+            interestRate: 20, minimumPayment: 120, dueDate: 15,
+            creditLimit: null, archived: false
+        }];
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthDebtToAssetCard', timeout=5000)
+
+    card_text = page.query_selector('#healthDebtToAssetCard').text_content()
+    assert 'High Risk' in card_text, \
+        f"Expected 'High Risk' badge when debts exceed assets, got: {card_text[:200]}"

@@ -69,6 +69,18 @@ function surplusStatus(surplus) {
     return { cls: 'health-status--red', label: 'Deficit' };
 }
 
+function interestBurdenStatus(ratio) {
+    if (ratio <= 0.05) return { cls: 'health-status--green',  label: 'Low' };
+    if (ratio <= 0.10) return { cls: 'health-status--yellow', label: 'Moderate' };
+    return { cls: 'health-status--red', label: 'High' };
+}
+
+function debtToAssetStatus(ratio) {
+    if (ratio < 0.5) return { cls: 'health-status--green',  label: t('health.status.healthy') };
+    if (ratio < 1.0) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
+    return { cls: 'health-status--red', label: t('health.status.highRisk') };
+}
+
 // Returns an arrow span comparing current vs previous value. higherIsBetter
 // controls which direction counts as an improvement. Returns '' when the
 // change is negligible (< 0.05 percentage points) to avoid spurious arrows.
@@ -605,6 +617,28 @@ export function renderHealthDashboard(app) {
         return { p, pUtilRaw, pUtilDisp, pUtilSt, pLimit, pBalance, pDtiRaw };
     });
 
+    // ── Interest Burden Rate ───────────────────────────────────────────────────
+    const monthlyInterest = activeDebts.reduce((s, d) => {
+        const bal = d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
+        return s + bal * ((d.interestRate || 0) / 100 / 12);
+    }, 0);
+    const ibRatio = monthlyIncome > 0 ? monthlyInterest / monthlyIncome : 0;
+    const ibPct   = ibRatio * 100;
+    const ibSt    = interestBurdenStatus(ibRatio);
+
+    // ── Debt-to-Asset Ratio ────────────────────────────────────────────────────
+    let dtaAssets = 0;
+    for (const a of app.accounts || []) {
+        const bal = app.computeAccountBalance(a.id, year, month);
+        if (bal > 0) dtaAssets += bal;
+    }
+    const dtaLiabilities = (app.debts || []).reduce((s, d) => {
+        const bal = d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
+        return s + Math.max(0, bal);
+    }, 0);
+    const dtaRatio = dtaAssets > 0 ? dtaLiabilities / dtaAssets : null;
+    const dtaSt    = dtaRatio !== null ? debtToAssetStatus(dtaRatio) : null;
+
     // ── Surplus Analysis ──────────────────────────────────────────────────────
     const accounts = app.accounts || [];
     const surplusAcctId   = getSetting(app, SURPLUS_ACCOUNT_ID, accounts[0]?.id ?? null);
@@ -849,6 +883,54 @@ export function renderHealthDashboard(app) {
                         </div>
                     ` : ''}
                     <a href="#" class="health-link" data-health-nav="liabilities">Manage debts &rarr;</a>
+                `}
+            </div>
+
+            <!-- Interest Burden Rate -->
+            <div class="health-metric-card" id="healthInterestBurdenCard" data-card-nav="liabilities">
+                <div class="health-card-header">
+                    <span class="health-card-title">Interest Burden Rate</span>
+                    ${hasDebts ? `<span class="health-badge ${ibSt.cls}">${ibSt.label}</span>` : ''}
+                </div>
+                <p class="health-card-desc">Monthly interest cost as a % of income. Above 10% signals high-cost debt dragging on your finances.</p>
+                ${!hasDebts ? `
+                    <div class="health-empty-state">
+                        <span class="health-empty-sub">No active debts.</span>
+                    </div>
+                ` : `
+                    <div class="health-timeline-hero">
+                        <span class="health-timeline-value">${ibPct.toFixed(1)}</span>
+                        <span class="health-timeline-unit">%</span>
+                    </div>
+                    <div class="health-metric-detail">
+                        <span>Interest: ${formatCurrency(monthlyInterest)}/mo</span>
+                        <span>Income: ${formatCurrency(monthlyIncome)}/mo</span>
+                    </div>
+                `}
+                <a href="#" class="health-link" data-health-nav="liabilities">Manage debts &rarr;</a>
+            </div>
+
+            <!-- Debt-to-Asset Ratio -->
+            <div class="health-metric-card" id="healthDebtToAssetCard" data-card-nav="accounts">
+                <div class="health-card-header">
+                    <span class="health-card-title">${t('health.dtaTitle')}</span>
+                    ${dtaSt ? `<span class="health-badge ${dtaSt.cls}">${dtaSt.label}</span>` : ''}
+                </div>
+                <p class="health-card-desc">${t('health.dtaDesc')}</p>
+                ${dtaAssets === 0 ? `
+                    <div class="health-empty-state">
+                        <span class="health-empty-sub">${t('health.dtaNoAssets')}</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="accounts">${t('health.dtaAddAccounts')} &rarr;</a>
+                ` : `
+                    <div class="health-timeline-hero">
+                        <span class="health-timeline-value">${dtaRatio.toFixed(2)}</span>
+                    </div>
+                    <div class="health-metric-detail">
+                        <span>${t('health.dtaLiabilities', { amount: formatCurrency(dtaLiabilities) })}</span>
+                        <span>${t('health.dtaAssets', { amount: formatCurrency(dtaAssets) })}</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="accounts">${t('health.dtaViewAccounts')} &rarr;</a>
                 `}
             </div>
 

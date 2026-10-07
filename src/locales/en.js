@@ -130,4 +130,11 @@ export default {
     'health.status.breakEven': 'Break Even',
     'health.status.deficit': 'Deficit',
     'health.surplusSparklineCaption': 'Projected balance over {days} days',
+    'health.dtaTitle': 'Debt-to-Asset Ratio',
+    'health.dtaDesc': 'Total liabilities divided by total assets. Below 0.5 is healthy; above 1.0 means debts exceed assets.',
+    'health.dtaNoAssets': 'No asset data — add accounts to calculate.',
+    'health.dtaAddAccounts': 'Add accounts',
+    'health.dtaLiabilities': '{amount} liabilities',
+    'health.dtaAssets': '{amount} assets',
+    'health.dtaViewAccounts': 'View accounts',
 };

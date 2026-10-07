@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.16.0] — 2026-10-07
+
+### Added
+- **Interest Burden Rate health card** (issue #321) — new card on the Health page showing monthly interest cost as a % of income; green ≤5%, yellow >5–10%, red >10%; shows empty state when no active debts.
+- **Debt-to-Asset Ratio health card** (issue #339) — new card on the Health page showing total liabilities ÷ total assets (using projected account balances); green <0.5, yellow 0.5–1.0, red ≥1.0; shows empty state when no account assets exist; i18n keys added to `src/locales/en.js`.
+
 ## [6.15.1] — 2026-10-07
 
 ### Fixed
