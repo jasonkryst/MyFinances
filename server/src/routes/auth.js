@@ -188,7 +188,15 @@ export function createAuthRouter() {
         }
     });
 
-    authRouter.post('/reset-password', async (req, res, next) => {
+    const resetPasswordLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, try again later' } }
+    });
+
+    authRouter.post('/reset-password', resetPasswordLimiter, async (req, res, next) => {
         try {
             const { token, newPassword } = req.body || {};
             const invalid = () => res.status(400).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired reset link.' } });

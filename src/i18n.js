@@ -98,6 +98,11 @@ export function getIntlLocale() {
 // never throws or renders blank/undefined. `{token}` placeholders in the
 // resolved string are replaced from `vars`; an unmatched placeholder is
 // left as-is rather than silently dropped.
+//
+// CONTRACT: `vars` values are interpolated via String() with no HTML escaping.
+// All call sites must pass only locale-computed values (dates, numbers,
+// translated strings) — never raw user-supplied input. Violating this would
+// create an XSS vector if the result were ever set via innerHTML.
 export function t(key, vars = {}) {
     const dict = DICTIONARIES[currentLocale] || DICTIONARIES[DEFAULT_LOCALE];
     const template = dict[key] ?? DICTIONARIES[DEFAULT_LOCALE][key] ?? key;

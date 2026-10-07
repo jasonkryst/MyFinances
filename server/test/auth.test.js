@@ -151,3 +151,29 @@ test('register still succeeds when SMTP is not configured', async () => {
     const cookies = res.headers.getSetCookie();
     assert.ok(cookies.some(c => c.startsWith('session=')));
 });
+
+test('6th reset-password attempt within 15 minutes is rate limited', async () => {
+    // Isolated app/server: in-memory rate-limit store is per-createApp() call,
+    // so this test's counter cannot bleed into other tests (same pattern as the
+    // login rate-limit test above).
+    const isolatedApp = createApp();
+    const isolatedServer = isolatedApp.listen(0);
+    const isolatedBaseUrl = `http://127.0.0.1:${isolatedServer.address().port}`;
+    try {
+        for (let i = 0; i < 5; i++) {
+            await fetch(`${isolatedBaseUrl}/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: 'badtoken', newPassword: 'irrelevantpassword1' })
+            });
+        }
+        const res = await fetch(`${isolatedBaseUrl}/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: 'badtoken', newPassword: 'irrelevantpassword1' })
+        });
+        assert.equal(res.status, 429);
+    } finally {
+        isolatedServer.close();
+    }
+});
