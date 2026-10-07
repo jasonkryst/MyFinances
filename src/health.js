@@ -493,14 +493,6 @@ export function renderHealthDashboard(app) {
     const totalOutflow  = totalBills + totalExpenses + totalDebtMin;
     const net           = monthlyIncome - totalOutflow;
 
-    // ── Prev-month income for trend arrows ────────────────────────────────────
-    const prevYear  = month === 0 ? year - 1 : year;
-    const prevMonth = month === 0 ? 11 : month - 1;
-    const { monthlyTotal: prevMonthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, prevYear, prevMonth);
-    const prevDtiPct      = prevMonthlyIncome > 0 ? (totalDebtMin / prevMonthlyIncome) * 100 : null;
-    const prevSavingsPct  = prevMonthlyIncome > 0 ? (totalSavingsContrib / prevMonthlyIncome) * 100 : null;
-    const prevNet         = prevMonthlyIncome - totalOutflow;
-
     // ── DTI ────────────────────────────────────────────────────────────────────
     const dtiRatio = monthlyIncome > 0 ? totalDebtMin / monthlyIncome : 0;
     const dtiPct   = Math.min(dtiRatio * 100, 100);
@@ -513,6 +505,14 @@ export function renderHealthDashboard(app) {
     const savingsRatio = monthlyIncome > 0 ? totalSavingsContrib / monthlyIncome : 0;
     const savingsPct   = Math.min(savingsRatio * 100, 100);
     const savingsSt    = savingsStatus(savingsRatio);
+
+    // ── Prev-month income for trend arrows ────────────────────────────────────
+    const prevYear  = month === 0 ? year - 1 : year;
+    const prevMonth = month === 0 ? 11 : month - 1;
+    const { monthlyTotal: prevMonthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, prevYear, prevMonth);
+    const prevDtiPct      = prevMonthlyIncome > 0 ? (totalDebtMin / prevMonthlyIncome) * 100 : null;
+    const prevSavingsPct  = prevMonthlyIncome > 0 ? (totalSavingsContrib / prevMonthlyIncome) * 100 : null;
+    const prevNet         = prevMonthlyIncome - totalOutflow;
 
     // ── Emergency Fund Coverage ────────────────────────────────────────────────
     const emergencyFunds = app.emergencyFunds || [];
