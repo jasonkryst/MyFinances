@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.14.0] — 2026-10-07
+
+### Added
+- **R-01 — "Upcoming this month" summary panel on Recurring page** — a new panel above the recurring template list shows four stats for the current month: occurrences count, total amount, paid count, and overdue count (overdue only shown when > 0). Paused and archived templates are excluded. The panel has `aria-live="polite"` for screen reader support (closes #305).
+- **R-02 — Overdue indicator on recurring cards** — monthly templates with a `dayOfMonth` that have passed for the current month without being marked paid or skipped show a red "Overdue" badge on their card and a red left border. Paused, archived, and non-monthly templates are never marked overdue (closes #309).
+
+### Changed
+- **CSS** — added `.recurring-overdue-badge` (red badge), `.recurring-card--overdue` (red left border), `.recurring-upcoming-panel` and child classes; all with dark-mode variants.
+
 ## [6.13.0] — 2026-10-07
 
 ### Fixed
