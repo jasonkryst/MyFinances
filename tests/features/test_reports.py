@@ -255,3 +255,37 @@ def test_summary_metrics_year_net_worth_change_without_january_snapshot(app_page
     assert metrics['netWorth']['netChange'] == 2500
     assert metrics['netWorth']['assetGrowth'] == 2000
     assert metrics['netWorth']['debtDrop'] == 500
+
+
+# ---------------------------------------------------------------------------
+# Print-friendly CSS (issue #256)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.feature
+def test_print_css_hides_nav(app_page):
+    """Under @media print emulation, navigation is hidden."""
+    page = app_page
+    page.emulate_media(media='print')
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+
+    nav_visible = page.evaluate("""() => {
+        const nav = document.querySelector('nav.top-nav') || document.querySelector('header');
+        if (!nav) return false;
+        return window.getComputedStyle(nav).display !== 'none';
+    }""")
+    assert not nav_visible, "Navigation should be hidden in print media"
+
+
+@pytest.mark.feature
+def test_print_css_shows_active_section(app_page):
+    """Under @media print emulation, the active page section remains visible."""
+    page = app_page
+    page.emulate_media(media='print')
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+
+    section_display = page.evaluate(
+        "() => window.getComputedStyle(document.getElementById('reportsSection')).display"
+    )
+    assert section_display != 'none', "Active section should be visible in print media"

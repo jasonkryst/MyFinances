@@ -55,6 +55,20 @@ export function displayPaymentPlan(app) {
     app.displayPaymentSchedule();
 }
 
+export function suggestMonthlyPayment(app) {
+    const now = new Date();
+    const { monthlyTotal } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
+    const totalDebtMin = (app.debts || []).reduce((s, d) => s + (d.minimumPayment || 0), 0);
+    const totalBills = (app.bills || []).reduce((s, b) => s + (b.amount || 0), 0);
+    const totalExpenses = (app.expenses || []).reduce((s, e) => s + (e.budgetAmount || 0), 0);
+    const suggested = Math.max(0, monthlyTotal - totalBills - totalExpenses - totalDebtMin);
+    const input = document.getElementById('monthlyPayment');
+    if (input) {
+        input.value = suggested > 0 ? suggested.toFixed(2) : '';
+        input.dispatchEvent(new Event('input'));
+    }
+}
+
 export function renderStrategyIncomeWidget(app) {
     const widget = document.getElementById('strategyIncomeWidget');
     if (!widget) return;

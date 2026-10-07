@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.17.0] — 2026-10-07
+
+### Added
+- **Debt notes/memo field** (issue #287) — free-text notes field (up to 500 chars) added to the debt form and inline edit; notes are displayed on the debt card and survive export/import round-trips via `sanitizeDebt()`.
+- **Plan auto-fill suggested payment** (issue #319) — "Suggest" button next to the monthly payment input on the Plan page; computes `max(0, income − bills − expenses − debt minimums)` for the current month and prefills the field.
+- **Print-friendly CSS** (issue #256) — comprehensive `@media print` rules hide interactive chrome (nav, toolbar, modals, buttons, forms) and show only the active page section; cards and tables styled for print with no box-shadows.
+
 ## [6.16.0] — 2026-10-07
 
 ### Added

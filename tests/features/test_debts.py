@@ -900,3 +900,75 @@ def test_credit_limit_not_required_for_debt_save(app_page):
         "() => window.app.debts.find(d => d.name === 'No Limit Debt')?.creditLimit"
     )
     assert saved_limit is None, f"Expected null creditLimit when field left blank, got {saved_limit}"
+
+
+# ---------------------------------------------------------------------------
+# Debt notes field (issue #287)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.feature
+def test_debt_notes_saved_and_displayed(app_page):
+    """Notes entered in the debt form are shown on the debt card."""
+    page = app_page
+
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
+    page.click('#debtFormToggle')
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+
+    page.fill('#debtName', 'Notes Test Debt')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '1000')
+    page.fill('#interestRate', '18')
+    page.fill('#minimumPayment', '50')
+    page.fill('#dueDate', '15')
+    page.fill('#debtNotes', 'Transfer this to 0% card ASAP')
+    page.click('#debtFormSubmit')
+
+    page.wait_for_selector('text=Notes Test Debt', timeout=10000)
+    card_text = page.inner_text('#debtsList')
+    assert 'Transfer this to 0% card ASAP' in card_text, \
+        "Debt notes should be visible on the debt card"
+
+
+@pytest.mark.feature
+def test_debt_notes_survive_sanitizer_roundtrip(app_page):
+    """Notes survive an export/import round-trip (sanitizeDebt preserves the field)."""
+    page = app_page
+
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 9301,
+            name: 'Roundtrip Note Debt',
+            category: '',
+            debtType: 'creditCard',
+            accountBalance: 500,
+            originalBalance: 1000,
+            creditLimit: null,
+            interestRate: 12,
+            minimumPayment: 25,
+            dueDate: 10,
+            fixedAmount: null,
+            fixedStartDate: null,
+            fixedEndDate: null,
+            debtStartDate: null,
+            updatedAt: null,
+            priority: null,
+            accountId: null,
+            archived: false,
+            personIds: [],
+            notes: 'Round-trip note'
+        }];
+        window.app.saveToStorage();
+        window.app.loadFromStorage();
+        window.app.switchPage('liabilities');
+        window.app.updateUI();
+    }""")
+    page.wait_for_selector('text=Roundtrip Note Debt', timeout=5000)
+
+    saved_notes = page.evaluate(
+        "() => window.app.debts.find(d => d.name === 'Roundtrip Note Debt')?.notes"
+    )
+    assert saved_notes == 'Round-trip note', \
+        f"Notes should survive storage round-trip, got: {saved_notes!r}"

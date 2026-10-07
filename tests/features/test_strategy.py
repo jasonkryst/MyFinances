@@ -138,3 +138,57 @@ def test_stimulus_non_numeric_input_falls_back_to_zero(app_page):
     stored_value = page.evaluate("() => window.app.perMonthStimulus[0]")
     assert stored_value == 0, f"Expected non-numeric stimulus input to fall back to 0, got {stored_value!r}"
     assert_no_errors(page)
+
+
+# ---------------------------------------------------------------------------
+# Suggest monthly payment button (issue #319)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.feature
+def test_suggest_payment_btn_exists(app_page):
+    """The Suggest button is present next to the monthly payment input."""
+    page = app_page
+    page.click('button[data-page="strategy"]')
+    page.wait_for_selector('#strategySection.active', timeout=5000)
+    btn = page.query_selector('#suggestPaymentBtn')
+    assert btn is not None, "Suggest payment button should be rendered on the Plan page"
+
+
+@pytest.mark.feature
+def test_suggest_payment_fills_input_with_income_minus_expenses(app_page):
+    """Suggest button computes income - bills - expenses - debt minimums."""
+    page = app_page
+
+    # Seed: $3000 income, $500 bills, $200 expenses, $100 debt min → suggest = $2200
+    page.evaluate("""() => {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        window.app.incomes = [{
+            id: 1, name: 'Salary', amount: 3000, frequency: 'monthly',
+            firstPayDate: `${yyyy}-${mm}-01`, accountId: null, bonusType: null
+        }];
+        window.app.bills = [{
+            id: 1, name: 'Rent', amount: 500, dueDate: 1,
+            category: '', accountId: null, frequency: 'monthly'
+        }];
+        window.app.expenses = [{
+            id: 1, name: 'Groceries', budgetAmount: 200, category: '',
+            accountId: null, frequency: 'monthly'
+        }];
+        window.app.debts = [{
+            id: 1, name: 'Card', debtType: 'creditCard',
+            accountBalance: 1000, originalBalance: 1000, creditLimit: null,
+            interestRate: 18, minimumPayment: 100, dueDate: 15,
+            fixedAmount: null, fixedStartDate: null, fixedEndDate: null,
+            debtStartDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false, personIds: [], notes: ''
+        }];
+        window.app.switchPage('strategy');
+    }""")
+    page.wait_for_selector('#strategySection.active', timeout=5000)
+
+    page.click('#suggestPaymentBtn')
+
+    value = page.evaluate("() => document.getElementById('monthlyPayment').value")
+    assert value == '2200.00', f"Expected suggested payment of 2200.00, got {value!r}"
