@@ -316,5 +316,10 @@ export function renderReportsNetWorth(app) {
                 }
             }
         });
+        renderChartDataTable('rptNetWorthCompositionChart', {
+            caption: 'Asset growth and debt reduction by month',
+            columns: ['Month', 'Asset Growth', 'Debt Reduction'],
+            rows: compLabels.map((label, i) => [label, formatCurrency(growthData[i]), formatCurrency(reductionData[i])])
+        });
     }
 }

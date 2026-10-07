@@ -589,6 +589,7 @@ export function switchTab(app, tabName) {
 
     document.querySelectorAll('.tab-button').forEach(button => {
         button.classList.remove('active');
+        button.setAttribute('aria-selected', 'false');
     });
 
     const activeTabPanel = document.getElementById(`${tabName}-tab`);
@@ -599,6 +600,7 @@ export function switchTab(app, tabName) {
     const activeTabButton = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
     if (activeTabButton) {
         activeTabButton.classList.add('active');
+        activeTabButton.setAttribute('aria-selected', 'true');
     }
 
     if (tabName === 'chart') {

@@ -224,17 +224,22 @@ export function renderReportsIncomeExp(app) {
                     }
                 }
             });
+            renderChartDataTable('rptIncomeChart', {
+                caption: 'Income by source',
+                columns: ['Source', 'Amount'],
+                rows: incomeLabels.map((label, i) => [label, fmt(incomeData[i])])
+            });
         }
     }
 
-    if (outflowData.length > 0) {
-        const cvs = document.getElementById('rptOutflowChart');
-        if (cvs) {
+    const outflowCvs = document.getElementById('rptOutflowChart');
+    if (outflowCvs) {
+        if (outflowData.length > 0) {
             if (app._rptOutflowChart) {
                 app._rptOutflowChart.destroy();
                 app._rptOutflowChart = null;
             }
-            app._rptOutflowChart = new Chart(cvs, {
+            app._rptOutflowChart = new Chart(outflowCvs, {
                 type: 'bar',
                 data: { labels: outflowLabels, datasets: [{ data: outflowData, backgroundColor: outflowColors, borderRadius: 4 }] },
                 options: {
@@ -252,6 +257,11 @@ export function renderReportsIncomeExp(app) {
                 }
             });
         }
+        renderChartDataTable('rptOutflowChart', {
+            caption: 'Outflow by category',
+            columns: ['Category', 'Amount'],
+            rows: outflowLabels.map((label, i) => [label, fmt(outflowData[i])])
+        });
     }
 }
 
@@ -381,6 +391,11 @@ export function renderReportsMoneyFlow(app) {
                 ctx.restore();
             }
         }]
+    });
+    renderChartDataTable('rptMoneyFlowChart', {
+        caption: 'Cumulative money flow by day',
+        columns: ['Day', 'Cumulative Income', 'Cumulative Outflow', 'Net Balance'],
+        rows: labels.map((d, i) => [d, fmt(cumInData[i]), fmt(cumOutData[i]), fmt(netData[i])])
     });
 }
 

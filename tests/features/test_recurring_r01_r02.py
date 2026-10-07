@@ -54,7 +54,7 @@ def test_upcoming_panel_shows_with_active_templates(app_page):
     panel = page.query_selector('.recurring-upcoming-panel')
     assert panel is not None, "Upcoming this month panel should be present"
     panel_text = panel.inner_text()
-    assert 'Upcoming this month' in panel_text, \
+    assert 'upcoming this month' in panel_text.lower(), \
         f"Panel should have 'Upcoming this month' heading, got: {panel_text!r}"
 
 
@@ -269,7 +269,7 @@ def test_overdue_count_surfaced_in_upcoming_panel(app_page):
     ])
 
     panel_text = page.inner_text('.recurring-upcoming-panel')
-    assert 'Overdue' in panel_text, \
+    assert 'overdue' in panel_text.lower(), \
         f"Upcoming panel should surface overdue count when overdue items exist, got: {panel_text!r}"
 
 

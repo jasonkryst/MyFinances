@@ -910,13 +910,13 @@
 
                     <!-- Panel 3 : Schedule (inner sub-tabs) -->
                     <div id="rPanel-schedule" class="results-tab-panel" role="tabpanel">
-                        <div class="tabs">
-                            <button class="tab-button active" data-tab="tabular">Tabular View</button>
-                            <button class="tab-button" data-tab="calendar">Calendar View</button>
-                            <button class="tab-button" data-tab="chart">Chart View</button>
+                        <div class="tabs" role="tablist" aria-label="Schedule view">
+                            <button id="scheduleTab-tabular" class="tab-button active" data-tab="tabular" role="tab" aria-selected="true" aria-controls="tabular-tab">Tabular View</button>
+                            <button id="scheduleTab-calendar" class="tab-button" data-tab="calendar" role="tab" aria-selected="false" aria-controls="calendar-tab">Calendar View</button>
+                            <button id="scheduleTab-chart" class="tab-button" data-tab="chart" role="tab" aria-selected="false" aria-controls="chart-tab">Chart View</button>
                         </div>
 
-                        <div id="tabular-tab" class="tab-content active">
+                        <div id="tabular-tab" class="tab-content active" role="tabpanel" aria-labelledby="scheduleTab-tabular">
                             <div class="table-wrapper">
                                 <table id="paymentTable">
                                     <thead id="paymentTableHead"></thead>
@@ -925,11 +925,11 @@
                             </div>
                         </div>
 
-                        <div id="calendar-tab" class="tab-content">
+                        <div id="calendar-tab" class="tab-content" role="tabpanel" aria-labelledby="scheduleTab-calendar">
                             <div id="calendarView"></div>
                         </div>
 
-                        <div id="chart-tab" class="tab-content">
+                        <div id="chart-tab" class="tab-content" role="tabpanel" aria-labelledby="scheduleTab-chart">
                             <div class="chart-container">
                                 <canvas id="balanceChart"></canvas>
                             </div>
@@ -983,71 +983,71 @@
                     <div class="rpt-tab-group">
                         <span class="rpt-tab-group-label">Activity</span>
                         <div class="rpt-tab-group-tabs">
-                            <button class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" role="tab" aria-selected="true" aria-controls="rptPanel-calendar">📅 Calendar</button>
-                            <button class="rpt-tab-btn" data-rptab="spending" role="tab" aria-selected="false" aria-controls="rptPanel-spending">🏷️ Spending</button>
-                            <button class="rpt-tab-btn" data-rptab="incomeexp" role="tab" aria-selected="false" aria-controls="rptPanel-incomeexp">📊 Income vs Expenses</button>
+                            <button id="rptTab-calendar" class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" role="tab" aria-selected="true" aria-controls="rptPanel-calendar">📅 Calendar</button>
+                            <button id="rptTab-spending" class="rpt-tab-btn" data-rptab="spending" role="tab" aria-selected="false" aria-controls="rptPanel-spending">🏷️ Spending</button>
+                            <button id="rptTab-incomeexp" class="rpt-tab-btn" data-rptab="incomeexp" role="tab" aria-selected="false" aria-controls="rptPanel-incomeexp">📊 Income vs Expenses</button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
                         <span class="rpt-tab-group-label">Trends</span>
                         <div class="rpt-tab-group-tabs">
-                            <button class="rpt-tab-btn" data-rptab="moneyflow" role="tab" aria-selected="false" aria-controls="rptPanel-moneyflow">💰 Money Flow</button>
-                            <button class="rpt-tab-btn" data-rptab="variance" role="tab" aria-selected="false" aria-controls="rptPanel-variance">📈 What Changed</button>
-                            <button class="rpt-tab-btn" data-rptab="networth" role="tab" aria-selected="false" aria-controls="rptPanel-networth">📉 Net Worth</button>
+                            <button id="rptTab-moneyflow" class="rpt-tab-btn" data-rptab="moneyflow" role="tab" aria-selected="false" aria-controls="rptPanel-moneyflow">💰 Money Flow</button>
+                            <button id="rptTab-variance" class="rpt-tab-btn" data-rptab="variance" role="tab" aria-selected="false" aria-controls="rptPanel-variance">📈 What Changed</button>
+                            <button id="rptTab-networth" class="rpt-tab-btn" data-rptab="networth" role="tab" aria-selected="false" aria-controls="rptPanel-networth">📉 Net Worth</button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
                         <span class="rpt-tab-group-label">Planning</span>
                         <div class="rpt-tab-group-tabs">
-                            <button class="rpt-tab-btn" data-rptab="forecast" role="tab" aria-selected="false" aria-controls="rptPanel-forecast">🔮 Forecast</button>
+                            <button id="rptTab-forecast" class="rpt-tab-btn" data-rptab="forecast" role="tab" aria-selected="false" aria-controls="rptPanel-forecast">🔮 Forecast</button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
                         <span class="rpt-tab-group-label">Print</span>
                         <div class="rpt-tab-group-tabs">
-                            <button class="rpt-tab-btn" data-rptab="summary" role="tab" aria-selected="false" aria-controls="rptPanel-summary">🖨️ Summary</button>
+                            <button id="rptTab-summary" class="rpt-tab-btn" data-rptab="summary" role="tab" aria-selected="false" aria-controls="rptPanel-summary">🖨️ Summary</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- ── Calendar panel ───────────────────────────────────── -->
-                <div class="rpt-tab-panel rpt-tab-panel--active" id="rptPanel-calendar">
+                <div class="rpt-tab-panel rpt-tab-panel--active" id="rptPanel-calendar" role="tabpanel" aria-labelledby="rptTab-calendar">
                     <div id="reportsCalendar"></div>
                 </div>
 
                 <!-- ── Income vs Expenses panel ────────────────────────── -->
-                <div class="rpt-tab-panel" id="rptPanel-incomeexp">
+                <div class="rpt-tab-panel" id="rptPanel-incomeexp" role="tabpanel" aria-labelledby="rptTab-incomeexp">
                     <div id="reportsIncomeExp"></div>
                 </div>
 
                 <!-- ── Money Flow panel ────────────────────────────────── -->
-                <div class="rpt-tab-panel" id="rptPanel-moneyflow">
+                <div class="rpt-tab-panel" id="rptPanel-moneyflow" role="tabpanel" aria-labelledby="rptTab-moneyflow">
                     <div id="reportsMoneyFlowSankey"></div>
                     <div id="reportsMoneyFlow"></div>
                     <div id="reportsCashFlowTrend"></div>
                 </div>
 
                 <!-- ── What Changed (Variance) panel ──────────────────── -->
-                <div class="rpt-tab-panel" id="rptPanel-variance">
+                <div class="rpt-tab-panel" id="rptPanel-variance" role="tabpanel" aria-labelledby="rptTab-variance">
                     <div id="reportsVariance"></div>
                 </div>
 
-                <div class="rpt-tab-panel" id="rptPanel-networth">
+                <div class="rpt-tab-panel" id="rptPanel-networth" role="tabpanel" aria-labelledby="rptTab-networth">
                     <div id="reportsNetWorth"></div>
                 </div>
 
-                <div class="rpt-tab-panel" id="rptPanel-forecast">
+                <div class="rpt-tab-panel" id="rptPanel-forecast" role="tabpanel" aria-labelledby="rptTab-forecast">
                     <div id="reportsCashFlowForecast"></div>
                 </div>
 
-                <div class="rpt-tab-panel" id="rptPanel-spending">
+                <div class="rpt-tab-panel" id="rptPanel-spending" role="tabpanel" aria-labelledby="rptTab-spending">
                     <div id="reportsSpending"></div>
                 </div>
 
-                <div class="rpt-tab-panel" id="rptPanel-summary">
+                <div class="rpt-tab-panel" id="rptPanel-summary" role="tabpanel" aria-labelledby="rptTab-summary">
                     <div id="reportsSummary"></div>
                 </div>
             </section>

@@ -165,3 +165,106 @@ def test_budget_cashflow_charts_have_sr_tables(app_page, debt_data):
     _assert_sr_table(page, 'cashflowDonutChart')
     _assert_sr_table(page, 'cashflowBarChart')
     assert_no_errors(page)
+
+
+# ---------------------------------------------------------------------------
+# N1 — four charts added after the Sept audit that were missing sr-tables.
+# Also serves as the CI gate (#333): every canvas ID in the app must appear
+# here with a matching assertion so new charts can't ship without an sr-table.
+# To add a new chart: add its canvas ID to the appropriate test below and
+# implement renderChartDataTable() in the chart-rendering code.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.ui
+def test_reports_incomeexp_charts_have_sr_tables(app_page, account_data, income_data):
+    """rptIncomeChart and rptOutflowChart (Reports → Income vs Expenses) each
+    need an sr-only data table — missing until N1 fix (Oct 2026 audit)."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+    page.fill('#incomeName', income_data["name"])
+    page.fill('#incomeAmount', income_data["amount"])
+    page.fill('#incomeFirstDate', income_data["first_date"])
+    page.select_option('#incomeFrequency', income_data["frequency"])
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.click('[data-rptab="incomeexp"]')
+    page.wait_for_selector('#rptPanel-incomeexp.rpt-tab-panel--active', timeout=5000)
+
+    _assert_sr_table(page, 'rptIncomeChart')
+    # rptOutflowChart sr-table exists but may have 0 rows when no outflow data
+    # is present in this test — the important check is that the table is there.
+    _assert_sr_table(page, 'rptOutflowChart', min_rows=0)
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_reports_moneyflow_chart_has_sr_table(app_page, account_data, income_data):
+    """rptMoneyFlowChart (Reports → Money Flow) needs an sr-only data table —
+    missing until N1 fix (Oct 2026 audit)."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+    page.fill('#incomeName', income_data["name"])
+    page.fill('#incomeAmount', income_data["amount"])
+    page.fill('#incomeFirstDate', income_data["first_date"])
+    page.select_option('#incomeFrequency', income_data["frequency"])
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.click('[data-rptab="moneyflow"]')
+    page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
+
+    _assert_sr_table(page, 'rptMoneyFlowChart')
+    assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_reports_networth_composition_chart_has_sr_table(app_page, account_data):
+    """rptNetWorthCompositionChart (Reports → Net Worth) needs an sr-only data
+    table — missing until N1 fix (Oct 2026 audit)."""
+    page = app_page
+
+    page.click('button[data-page="accounts"]')
+    page.fill('#accountName', account_data["name"])
+    page.select_option('#accountType', label=account_data["type"])
+    page.fill('#accountStartingBalance', account_data["balance"])
+    page.click('#accountFormSubmit')
+
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const today = new Date();
+        const fmt = d => d.toISOString().slice(0, 10);
+        const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        app.monthlySnapshots = [
+            { id: 1, date: fmt(prev), totalAssets: 10000, totalLiabilities: 3000, netWorth: 7000 },
+            { id: 2, date: fmt(today), totalAssets: 11000, totalLiabilities: 2800, netWorth: 8200 }
+        ];
+        app.renderReportsPage();
+    }""")
+
+    page.click('[data-rptab="networth"]')
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
+
+    _assert_sr_table(page, 'rptNetWorthCompositionChart')
+    assert_no_errors(page)

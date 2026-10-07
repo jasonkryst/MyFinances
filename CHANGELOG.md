@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.15.0] — 2026-10-07
+
+### Added
+- **CI-01 — 9 unsharded test files assigned to CI shard jobs** — `test_filter_sort.py`, `test_account_menu.py`, `test_balance_history.py`, `test_people.py`, `test_recurring_archive.py`, `test_recurring_r01_r02.py`, `test_analytics.py`, and `test_retirement.py` are now distributed across shards A–E; `test_performance.py` and `test_calendar_feed.py` go into a new shard-I (closes #297).
+- **A11Y N1 — `renderChartDataTable` added to 4 charts missing sr-table fallbacks** — `rptIncomeChart`, `rptOutflowChart`, `rptMoneyFlowChart` (in `reportsCashFlow.js`), and `rptNetWorthCompositionChart` (in `reportsNetWorth.js`) now each have a paired `.sr-only` data table for screen reader users (closes #302).
+- **A11Y N2 — CI gate test for chart sr-tables** — `tests/ui/test_chart_accessibility.py` extended with 3 new tests covering all 4 newly-fixed canvases; the block comment documents intent as a CI gate so new charts can't ship without sr-tables (closes #333).
+- **A11Y N3 — `role=tabpanel` on 8 Reports tab panels** — all 8 `rpt-tab-panel` divs now carry `role="tabpanel"` + `aria-labelledby`; matching `id` attributes added to all 8 tab buttons (closes #323).
+- **A11Y N4 — Strategy Schedule inner sub-tabs ARIA wiring** — `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, and `id` added to the Tabular/Calendar/Chart sub-tab buttons; `role="tabpanel"` + `aria-labelledby` added to the three content panels; `switchTab()` in `ui.js` now toggles `aria-selected` alongside the `.active` class (closes #328).
+
 ## [6.14.0] — 2026-10-07
 
 ### Added
