@@ -1018,3 +1018,103 @@ def test_surplus_allocation_slider_shown_with_mixed_recs(app_page):
 
     alloc_text = page.query_selector('#healthSurplusResult').text_content()
     assert '50%' in alloc_text, "Allocation label should reflect 50% debt slider position"
+
+
+# ── H-01 Trend arrows ──────────────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_health_trend_arrow_present_when_income_changes(app_page):
+    """Trend arrows appear on DTI / Savings Rate cards when prev-month income differs."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const yr = now.getFullYear();
+        const mo = now.getMonth();
+        // Monthly income running since prev month (1 payday in both months).
+        const prevYear  = mo === 0 ? yr - 1 : yr;
+        const prevMonth = mo === 0 ? 11 : mo - 1;
+        const firstDate = new Date(prevYear, prevMonth, 1);
+        const firstPayDate = firstDate.toISOString().slice(0, 10);
+        // Add a one-time bonus this month to make current-month income != prev-month income.
+        const bonusDate = `${yr}-${String(mo + 1).padStart(2, '0')}-15`;
+        app.incomes = [{
+            id: 1, name: 'Job', amount: 5000, firstPayDate,
+            frequency: 'monthly', accountId: null, personId: null, category: 'Salary'
+        }];
+        app.bonuses = [{ id: 10, name: 'Bonus', amount: 1000, date: bonusDate, accountId: null }];
+        app.debts = [{ id: 2, name: 'Loan', accountBalance: 10000, originalBalance: 10000,
+                       minimumPayment: 500, interestRate: 5, debtType: 'personal',
+                       accountId: null }];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_timeout(500)
+
+    trends = page.query_selector_all('.health-trend')
+    assert len(trends) >= 1, "Expected at least one trend arrow when income and debt exist"
+
+
+@pytest.mark.feature
+def test_health_trend_arrow_absent_when_no_prev_income(app_page):
+    """No trend arrows when there is no previous-month income to compare against."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        // Set firstPayDate to this month so prev month has 0 income
+        const now = new Date();
+        const firstPayDate = new Date(now.getFullYear(), now.getMonth(), 1)
+            .toISOString().slice(0, 10);
+        app.incomes = [{
+            id: 1, name: 'NewJob', amount: 3000, firstPayDate,
+            frequency: 'monthly', accountId: null, personId: null, category: 'Salary'
+        }];
+        app.debts = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_timeout(500)
+
+    trends = page.query_selector_all('.health-trend')
+    assert len(trends) == 0, "No trend arrows expected when prev-month income is zero"
+
+
+# ── H-02 Clickable cards ────────────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_health_cards_have_data_card_nav(app_page):
+    """All clickable health cards carry data-card-nav attribute."""
+    page = app_page
+
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+
+    nav_cards = page.query_selector_all('[data-card-nav]')
+    assert len(nav_cards) >= 6, \
+        f"Expected at least 6 cards with data-card-nav, found {len(nav_cards)}"
+
+
+@pytest.mark.feature
+def test_health_card_click_navigates(app_page):
+    """Clicking a health metric card navigates to the target page."""
+    page = app_page
+
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+
+    # Click the DTI card (data-card-nav="liabilities") away from any link/button
+    page.evaluate("""() => {
+        const card = document.querySelector('[data-card-nav="liabilities"]');
+        if (card) {
+            // click the title span — not a link or button
+            const title = card.querySelector('.health-card-title');
+            if (title) title.click();
+        }
+    }""")
+    page.wait_for_timeout(400)
+
+    liabilities_active = page.query_selector('#liabilitiesSection.active')
+    assert liabilities_active, "Clicking a data-card-nav='liabilities' card should navigate to Liabilities"

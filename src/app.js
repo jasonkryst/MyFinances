@@ -13,7 +13,7 @@
     saveInlineEdit as saveInlineEditDebtFeature
 } from './debts.js';
 import { showAccelerateModal as showAccelerateModalFeature } from './debtBreakEven.js';
-import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature } from './accounts.js';
+import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature, archiveAccount as archiveAccountFeature, unarchiveAccount as unarchiveAccountFeature } from './accounts.js';
 import {
     renderBudgetPage,
     addBill,
@@ -871,6 +871,16 @@ export class DebtTrackerApp {
     /** Delete an account by ID. */
     deleteAccount(id) {
         return deleteAccountFeature(this, id);
+    }
+
+    /** Archive an account (hides it from the list by default). */
+    archiveAccount(id) {
+        return archiveAccountFeature(this, id);
+    }
+
+    /** Unarchive a previously archived account. */
+    unarchiveAccount(id) {
+        return unarchiveAccountFeature(this, id);
     }
 
     /** Enter inline-edit mode for an account card. */

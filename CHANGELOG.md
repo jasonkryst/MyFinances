@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.9] — 2026-10-07
+
+### Added
+- **H-01 — Trend arrows on Health dashboard** — DTI, Savings Rate, and Cash Flow cards now show a ▲/▼ trend arrow (green = improving, red = worsening) comparing the current month to the previous month's income-derived metrics. Arrows appear only when both months have data and the delta exceeds a 0.05% noise threshold. Tooltip shows the prior-month value (closes #270).
+- **H-02 — Clickable Health metric cards** — every metric card on the Health dashboard now navigates to its related page (Liabilities, Savings, Strategy, Income, Accounts) when clicked. Cards gain a pointer cursor and accent-color hover border. Clicks on interactive elements inside the card (links, buttons, selects) continue to work as before (closes #271).
+- **A-01 — Account archive/unarchive** — accounts can now be archived rather than deleted. Archived accounts are hidden by default; an "Show N archived" toggle appears at the bottom of the Accounts list when any exist. Archived accounts still participate in all calculations and storage round-trips. Fully wired for Postgres via new migration `018_add-archived-to-accounts` and the `archived` column on the `/api/accounts` CRUD resource (closes #274 partial — archive feature; A-02 was already implemented).
+- **I-01 — Income categories** — income sources now have a Category field (Salary / Freelance / Rental / Investment / Other, defaulting to Salary). Category is shown as a badge on the income card and in the edit form. Stored in `sanitizeIncome` and wired to Postgres via migration `019_add-category-to-incomes` and `category` column on `/api/incomes` (closes #278).
+
+### Changed
+- **CSS** — added `.health-trend` / `.health-trend--good` / `.health-trend--bad` for trend arrows; `.health-metric-card[data-card-nav]` hover style; `.acct-card--archived` opacity; `.acct-archived-badge`; `.income-category-badge`; `.acct-archived-toggle`.
+
 ## [6.10.8] — 2026-10-06
 
 ### Security

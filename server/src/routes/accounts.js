@@ -19,6 +19,7 @@ export default createCrudResource({
         pensionVestingYears: 'pension_vesting_years',
         pensionEstimatedMonthlyBenefit: 'pension_estimated_monthly_benefit',
         pensionYearsOfService: 'pension_years_of_service',
-        minimumPayment: 'minimum_payment'
+        minimumPayment: 'minimum_payment',
+        archived: 'archived'
     }
 });

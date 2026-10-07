@@ -26,7 +26,8 @@ export function sanitizeAccount(record, idFallback) {
         pensionVestingYears: sanitizeInteger(record?.pensionVestingYears, 0, { min: 0 }),
         pensionEstimatedMonthlyBenefit: sanitizeFiniteNumber(record?.pensionEstimatedMonthlyBenefit, 0, { min: 0 }),
         pensionYearsOfService: sanitizeInteger(record?.pensionYearsOfService, 0, { min: 0 }),
-        minimumPayment: sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 })
+        minimumPayment: sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 }),
+        archived: Boolean(record?.archived ?? false)
     };
 }
 
@@ -64,6 +65,8 @@ export function sanitizeDebt(record, idFallback) {
     };
 }
 
+const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Rental', 'Investment', 'Other'];
+
 export function sanitizeIncome(record, idFallback) {
     const rawFreq = record?.frequency;
     const frequency = ['weekly', 'biweekly', 'bi-weekly', 'twice_monthly', 'monthly'].includes(rawFreq)
@@ -75,6 +78,7 @@ export function sanitizeIncome(record, idFallback) {
         amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
         firstPayDate: sanitizeDateISO(record?.firstPayDate || record?.firstDate),
         frequency,
+        category: INCOME_CATEGORIES.includes(record?.category) ? record.category : 'Salary',
         accountId: sanitizeInteger(record?.accountId, null),
         personId: sanitizeInteger(record?.personId, null)
     };

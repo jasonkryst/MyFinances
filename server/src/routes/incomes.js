@@ -13,6 +13,7 @@ export default createCrudResource({
         firstPayDate: 'first_pay_date',
         frequency: 'frequency',
         accountId: 'account_id',
-        personId: 'person_id'
+        personId: 'person_id',
+        category: 'category'
     }
 });
