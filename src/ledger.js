@@ -234,11 +234,17 @@ export function renderLedgerPage(app) {
             const reconDiffClass = isReconciliation && tx.meta
                 ? (tx.meta.difference > 0 ? 'recon-diff--pos' : tx.meta.difference < 0 ? 'recon-diff--neg' : 'recon-diff--zero')
                 : '';
+            const isVariableIncome = tx.type === 'income' && (() => {
+                const inc = (app.incomes || []).find(i => i.id === tx.sourceId);
+                return inc?.isVariable === true;
+            })();
             const amountCell = isReconciliation
                 ? `<span class="ledger-recon-diff ${reconDiffClass}">${tx.meta ? formatCurrency(tx.meta.difference) : formatCurrency(tx.amount)}</span>`
                 : tx.hasOverride
                     ? `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`
-                    : `<span>${formatCurrency(tx.amount)}</span>`;
+                    : isVariableIncome
+                        ? `<span>${formatCurrency(tx.amount)}</span><span class="ledger-est-badge" title="Estimated — enter actual amount when paycheck arrives">~ Est.</span>`
+                        : `<span>${formatCurrency(tx.amount)}</span>`;
 
             let reconInfoIcon = '';
             if (isReconciliation && tx.meta) {
@@ -263,8 +269,12 @@ export function renderLedgerPage(app) {
             const nameCell = isReconciliation && tx.meta
                 ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
                 : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}`;
+            const overrideBtnLabel = isVariableIncome && !tx.hasOverride ? null
+                : isVariableIncome && tx.hasOverride ? 'Edit actual'
+                : tx.hasOverride ? 'Edit override'
+                : 'Override';
             const overrideActions = canOverride
-                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${tx.hasOverride ? 'Edit override' : 'Override'}</button>${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
+                ? `<div class="ledger-override-actions">${overrideBtnLabel === null ? `<button class="ledger-override-btn ledger-enter-actual-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">Enter actual</button>` : `<button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${overrideBtnLabel}</button>`}${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
                 : '';
             const clearedCell = canOverride
                 ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark cleared">`

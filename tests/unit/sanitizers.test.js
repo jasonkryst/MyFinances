@@ -174,6 +174,20 @@ describe('sanitizeIncome', () => {
     test('clamps a negative amount to 0', () => {
         expect(sanitizeIncome({ amount: -100 }, 1).amount).toBe(0);
     });
+
+    test('defaults isVariable to false when absent', () => {
+        expect(sanitizeIncome({}, 1).isVariable).toBe(false);
+    });
+
+    test('preserves isVariable: true', () => {
+        expect(sanitizeIncome({ isVariable: true }, 1).isVariable).toBe(true);
+    });
+
+    test('coerces truthy string to true and falsy value to false', () => {
+        expect(sanitizeIncome({ isVariable: 'yes' }, 1).isVariable).toBe(true);
+        expect(sanitizeIncome({ isVariable: 0 }, 1).isVariable).toBe(false);
+        expect(sanitizeIncome({ isVariable: null }, 1).isVariable).toBe(false);
+    });
 });
 
 describe('sanitizeBill', () => {

@@ -3734,6 +3734,51 @@ body.dark-mode .income-card-upcoming-label {
 }
 body.dark-mode .income-category-badge { background: #2e1065; color: #c4b5fd; }
 
+.income-variable-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: #fef3c7;
+    color: #92400e;
+    margin-left: 6px;
+    vertical-align: middle;
+    cursor: help;
+}
+body.dark-mode .income-variable-badge { background: #451a03; color: #fcd34d; }
+
+.income-variable-group { margin-top: 4px; }
+.income-variable-edit-group { grid-column: 1 / -1; }
+.income-variable-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.ledger-est-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: #fef3c7;
+    color: #92400e;
+    margin-left: 4px;
+    vertical-align: middle;
+    cursor: help;
+}
+body.dark-mode .ledger-est-badge { background: #451a03; color: #fcd34d; }
+
+.ledger-enter-actual-btn {
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+    border-color: var(--primary-color, #2563eb);
+}
+
 body.dark-mode .income-card-amount {
     color: #34d399;
 }

@@ -863,3 +863,96 @@ def test_income_category_persists_in_edit_form(app_page):
     selected = page.evaluate("() => document.querySelector('[id^=\"ie-category-\"]')?.value")
     assert selected == 'Freelance', \
         f"Edit form should pre-select 'Freelance', got '{selected}'"
+
+
+# ── I-02 Variable income flag ───────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_income_variable_checkbox_present_in_add_form(app_page):
+    """The Add Income form has a 'Variable / hourly amount' checkbox."""
+    page = app_page
+
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    cb = page.query_selector('#incomeIsVariable')
+    assert cb, "Variable-income checkbox (#incomeIsVariable) should exist in the add-income form"
+    assert cb.get_attribute('type') == 'checkbox', "Element should be a checkbox"
+
+
+@pytest.mark.feature
+def test_income_variable_badge_shown_when_flag_set(app_page):
+    """An income with isVariable=true shows the '~ Est.' badge on its card."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{
+            id: 10, name: 'Hourly Job', amount: 1500,
+            firstPayDate: '2026-01-01', frequency: 'biweekly',
+            accountId: null, personId: null,
+            category: 'Salary', isVariable: true
+        }];
+        app.renderIncomeList();
+    }""")
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    badge = page.query_selector('.income-variable-badge')
+    assert badge, "Variable-income badge should appear when isVariable is true"
+    assert 'Est' in (badge.text_content() or ''), "Badge text should contain 'Est'"
+
+
+@pytest.mark.feature
+def test_income_variable_badge_absent_for_fixed_income(app_page):
+    """An income with isVariable=false (the default) shows no variable badge."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{
+            id: 11, name: 'Fixed Salary', amount: 4000,
+            firstPayDate: '2026-01-01', frequency: 'monthly',
+            accountId: null, personId: null,
+            category: 'Salary', isVariable: false
+        }];
+        app.renderIncomeList();
+    }""")
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    badge = page.query_selector('.income-variable-badge')
+    assert badge is None, "No variable badge should appear for a fixed-amount income"
+
+
+@pytest.mark.feature
+def test_income_variable_flag_persists_through_add_and_edit(app_page):
+    """Checking 'Variable' when adding an income persists isVariable=true, and
+    the edit form's checkbox reflects that value."""
+    page = app_page
+    _create_income_account(page, "Variable Flag Account")
+
+    page.fill('#incomeName', 'Hourly Gig')
+    page.fill('#incomeAmount', '1000')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'biweekly')
+    page.select_option('#incomeAccount', index=1)
+
+    cb = page.query_selector('#incomeIsVariable')
+    if not cb.is_checked():
+        cb.check()
+
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('text=Hourly Gig', timeout=10000)
+
+    stored = page.evaluate(
+        "() => window.app.incomes.find(i => i.name === 'Hourly Gig')?.isVariable"
+    )
+    assert stored is True, f"isVariable should persist as true after add, got {stored!r}"
+
+    # Open edit and verify the checkbox is pre-checked
+    page.click('[data-income-action="edit"]')
+    page.wait_for_timeout(300)
+
+    checked = page.evaluate("() => document.querySelector('[id^=\"ie-variable-\"]')?.checked")
+    assert checked is True, "Edit form should show the variable checkbox pre-checked"

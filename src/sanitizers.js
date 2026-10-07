@@ -79,6 +79,7 @@ export function sanitizeIncome(record, idFallback) {
         firstPayDate: sanitizeDateISO(record?.firstPayDate || record?.firstDate),
         frequency,
         category: INCOME_CATEGORIES.includes(record?.category) ? record.category : 'Salary',
+        isVariable: Boolean(record?.isVariable ?? false),
         accountId: sanitizeInteger(record?.accountId, null),
         personId: sanitizeInteger(record?.personId, null)
     };

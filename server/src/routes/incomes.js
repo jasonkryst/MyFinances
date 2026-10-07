@@ -14,6 +14,7 @@ export default createCrudResource({
         frequency: 'frequency',
         accountId: 'account_id',
         personId: 'person_id',
-        category: 'category'
+        category: 'category',
+        isVariable: 'is_variable'
     }
 });
