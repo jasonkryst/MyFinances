@@ -195,6 +195,16 @@ def test_reports_incomeexp_charts_have_sr_tables(app_page, account_data, income_
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
 
+    # Inject an expense so the outflow chart has at least one data point.
+    page.evaluate(f"""() => {{
+        const app = window.app;
+        const today = new Date();
+        const iso = today.toISOString().slice(0, 10);
+        app.expenses = [{{ id: 9901, name: 'Rent', category: 'Housing',
+            budgetAmount: 800, date: iso, accountId: null }}];
+        app.saveToStorage();
+    }}""")
+
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="incomeexp"]')
