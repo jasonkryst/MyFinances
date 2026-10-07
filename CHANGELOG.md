@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.10.8] — 2026-10-06
+
+### Security
+- **Rate-limit `POST /auth/reset-password`** — the reset-password endpoint was missing the same `rateLimit` middleware already applied to `/auth/forgot-password` (5 req / 15 min window). Added `resetPasswordLimiter` (closes #301).
+
+### Changed
+- **Document `t()` vars contract** — added an explicit code comment on `src/i18n.js`'s `t()` function clarifying that `vars` values are not HTML-escaped and must never receive raw user input (closes #342).
+
+### Tests
+- `server/test/auth.test.js` — new: 6th `POST /auth/reset-password` attempt within 15 min returns 429.
+- `tests/postgres/test_password_reset.py` — new: integration test confirming rate-limiter returns 429 on the live stack.
+
 ## [6.10.7] — 2026-10-06
 
 ### Fixed

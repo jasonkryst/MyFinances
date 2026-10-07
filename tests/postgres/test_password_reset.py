@@ -56,6 +56,17 @@ async def test_reset_password_missing_fields_returns_400():
     assert r.status_code == 400
 
 
+async def test_reset_password_rate_limited_after_5_attempts():
+    """6th reset-password attempt within the window returns 429 (SEC-01 fix)."""
+    async with httpx.AsyncClient() as client:
+        for _ in range(5):
+            await client.post(f'{BASE}/auth/reset-password',
+                              json={'token': 'badtoken', 'newPassword': 'irrelevantpassword1'})
+        r = await client.post(f'{BASE}/auth/reset-password',
+                              json={'token': 'badtoken', 'newPassword': 'irrelevantpassword1'})
+    assert r.status_code == 429
+
+
 async def test_forgot_password_ui_shows_link_on_login_gate(pg_page, base_url):
     """Login gate shows a 'Forgot password?' button."""
     await pg_page.goto(base_url)
