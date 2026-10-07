@@ -24,6 +24,7 @@ export default {
     'nav.ledger': 'Rejestr',
     'nav.reconcile': 'Uzgadnianie',
     'nav.retirement': 'Emerytura',
+    'nav.people': 'Osoby',
 
     'settings.close': 'Zamknij',
     'settings.title': 'Ustawienia',
@@ -40,6 +41,9 @@ export default {
     'settings.storagePostgres': 'PostgreSQL (serwer samodzielnie hostowany)',
     'settings.dataStorageHelp': 'Pamięć Lokalna zachowuje Twoje dane na tym urządzeniu między wizytami. Pamięć Sesji przechowuje je tylko podczas gdy ta karta przeglądarki jest otwarta, a następnie automatycznie czyści po jej zamknięciu.',
     'settings.storagePostgresNote': 'Używasz PostgreSQL. Powrót do pamięci lokalnej lub sesji nie jest obsługiwany.',
+    'settings.showArchivedDebts': 'Pokaż zarchiwizowane długi',
+    'settings.showArchivedRecurring': 'Pokaż zarchiwizowane szablony cykliczne',
+    'settings.sendTestEmail': 'Wyślij testowy e-mail',
     'settings.language': 'Język',
     'settings.languageHelp': 'Tłumaczenie jest wciąż rozszerzane — niektóre strony mogą pozostać w języku angielskim.',
     'settings.done': 'Gotowe',
@@ -123,4 +127,5 @@ export default {
     'health.status.surplus': 'Nadwyżka',
     'health.status.breakEven': 'Próg Rentowności',
     'health.status.deficit': 'Deficyt',
+    'health.surplusSparklineCaption': 'Prognozowane saldo przez {days} dni',
 };

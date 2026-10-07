@@ -420,7 +420,7 @@ function renderSurplusSection(app) {
             },
         });
         renderChartDataTable('healthSurplusSparkline', {
-            caption: `Projected balance over ${windowDays} days`,
+            caption: t('health.surplusSparklineCaption', { days: windowDays }),
             columns: ['Date', 'Balance'],
             rows: sparkPoints.map(p => [
                 p.date instanceof Date ? p.date.toLocaleDateString() : String(p.date),

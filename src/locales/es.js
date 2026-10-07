@@ -24,6 +24,7 @@ export default {
     'nav.ledger': 'Libro Mayor',
     'nav.reconcile': 'Conciliar',
     'nav.retirement': 'Jubilación',
+    'nav.people': 'Personas',
 
     'settings.close': 'Cerrar',
     'settings.title': 'Configuración',
@@ -40,6 +41,9 @@ export default {
     'settings.storagePostgres': 'PostgreSQL (servidor autoalojado)',
     'settings.dataStorageHelp': 'El Almacenamiento Local guarda tus datos en este dispositivo entre visitas. El Almacenamiento de Sesión los conserva solo mientras esta pestaña del navegador esté abierta, y los borra automáticamente al cerrarla.',
     'settings.storagePostgresNote': 'Estás usando PostgreSQL. No es posible volver a almacenamiento local o de sesión.',
+    'settings.showArchivedDebts': 'Mostrar deudas archivadas',
+    'settings.showArchivedRecurring': 'Mostrar plantillas recurrentes archivadas',
+    'settings.sendTestEmail': 'Enviar correo de prueba',
     'settings.language': 'Idioma',
     'settings.languageHelp': 'La traducción sigue en expansión: algunas páginas pueden permanecer en inglés.',
     'settings.done': 'Listo',
@@ -123,4 +127,5 @@ export default {
     'health.status.surplus': 'Superávit',
     'health.status.breakEven': 'Punto de Equilibrio',
     'health.status.deficit': 'Déficit',
+    'health.surplusSparklineCaption': 'Saldo proyectado durante {days} días',
 };
