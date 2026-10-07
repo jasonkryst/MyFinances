@@ -116,7 +116,6 @@ jobs:
   # calculation-heavy tests (~20s each in CI vs ~3s for shard-B/C). Kept in
   # their own shard so shard A stays under 20 min.
   # test_balance_history (24 tests) is fast and bin-packed here.
-  # test_people was removed: pre-existing timeout failures when first added to CI.
   test-features-e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -148,6 +147,7 @@ jobs:
             tests/features/test_break_even.py \
             tests/features/test_networth.py \
             tests/features/test_balance_history.py \
+            tests/features/test_people.py \
             -v
 
   # test_accounts (27 tests, multi-modal deletion flows) and test_forecast
@@ -297,8 +297,7 @@ jobs:
             -v
 
   # test_performance may be slow (render-heavy); isolated here so it doesn't
-  # push other shards over budget. test_calendar_feed removed: pre-existing
-  # test_modal_closes_on_escape failure when first added to CI.
+  # push other shards over budget.
   test-features-i:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -326,6 +325,7 @@ jobs:
       - run: |
           pytest \
             tests/features/test_performance.py \
+            tests/features/test_calendar_feed.py \
             -v
 
   # ---------------------------------------------------------------------------

@@ -204,10 +204,12 @@ export function initCalendarFeedModal(app) {
 
     let lastFocused = null;
 
+    const onKeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
+
     const close = () => {
         modal.classList.add('hidden');
         modal.classList.remove('flex-visible');
-        modal.onkeydown = null;
+        document.removeEventListener('keydown', onKeydown);
         if (lastFocused?.focus) lastFocused.focus();
     };
 
@@ -224,7 +226,7 @@ export function initCalendarFeedModal(app) {
         lastFocused = document.activeElement;
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
-        modal.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
+        document.addEventListener('keydown', onKeydown);
 
         const section = document.getElementById('calendarSubscriptionSection');
         if (section) {

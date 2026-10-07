@@ -147,7 +147,7 @@ def test_debt_links_to_person(app_page):
     # select person
     page.select_option('#debtPersons', label='Debtor')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtList >> text=Car Loan', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=Car Loan', timeout=5000)
 
     _nav_people(page)
     card_text = page.inner_text('#peopleList')
@@ -170,7 +170,7 @@ def test_health_credit_util_per_person(app_page):
     page.fill('#minimumPayment', '50')
     page.select_option('#debtPersons', label='UtilPerson')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtList >> text=VISA', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=VISA', timeout=5000)
 
     _nav_health(page)
     page.wait_for_selector('#healthCreditUtilCard', timeout=5000)
@@ -248,7 +248,7 @@ def test_delete_person_with_linked_debts_shows_reassignment_modal(app_page):
     page.fill('#minimumPayment', '100')
     page.select_option('#debtPersons', label='DebtOwner')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtList >> text=Linked Debt', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=Linked Debt', timeout=5000)
 
     _nav_people(page)
     delete_btn = page.query_selector('#peopleList [data-person-action="delete"]')
@@ -289,7 +289,7 @@ def _add_debt_for_person(page, name, balance, person_label):
     page.fill('#minimumPayment', '100')
     page.select_option('#debtPersons', label=person_label)
     page.click('#debtFormSubmit')
-    page.wait_for_selector(f'#debtList >> text={name}', timeout=5000)
+    page.wait_for_selector(f'#debtsList >> text={name}', timeout=5000)
 
 
 @pytest.mark.feature
@@ -315,7 +315,7 @@ def test_debt_card_no_pill_without_person(app_page):
     page.fill('#interestRate', '5')
     page.fill('#minimumPayment', '50')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('#debtList >> text=No Person Debt', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=No Person Debt', timeout=5000)
     card = page.query_selector('#debtsList .debt-card .person-pill')
     assert not card, "person-pill should not appear when no person is linked"
 
