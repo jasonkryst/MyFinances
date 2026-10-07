@@ -1319,9 +1319,15 @@ def test_ledger_enter_actual_opens_override_modal(app_page):
 @pytest.mark.feature
 def test_ledger_enter_actual_becomes_edit_actual_after_override(app_page):
     """After saving an override on a variable-income row, 'Enter actual' changes
-    to 'Edit actual' and the '~ Est.' badge disappears."""
+    to 'Edit actual' and the '~ Est.' badge disappears from that specific row."""
     page = app_page
     _seed_variable_income_for_ledger(page)
+
+    # Capture the transaction ID so we can scope assertions to this row
+    tx_id = page.evaluate(
+        "() => document.querySelector('.ledger-enter-actual-btn')?.getAttribute('data-ledger-override') || ''"
+    )
+    assert tx_id, "Expected a transaction ID on the 'Enter actual' button"
 
     btn = page.query_selector('.ledger-enter-actual-btn')
     assert btn, "Expected 'Enter actual' button"
@@ -1332,13 +1338,18 @@ def test_ledger_enter_actual_becomes_edit_actual_after_override(app_page):
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
 
-    # Badge should be gone now that there is an override
-    badge = page.query_selector('.ledger-est-badge')
-    assert badge is None, "'~ Est.' badge should disappear once an override is set"
+    # The specific row that was overridden should no longer have the ~ Est. badge
+    row_has_badge = page.evaluate("""(txId) => {
+        const btn = document.querySelector(`[data-ledger-override="${txId}"]`);
+        const row = btn?.closest('tr');
+        return row ? !!row.querySelector('.ledger-est-badge') : true;
+    }""", tx_id)
+    assert not row_has_badge, \
+        "'~ Est.' badge should disappear from the overridden row once an override is set"
 
-    # Button label should change
-    btn_text = page.evaluate(
-        "() => document.querySelector('[data-ledger-override]')?.textContent || ''"
-    )
+    # Button label on that row should now read 'Edit actual'
+    btn_text = page.evaluate("""(txId) => {
+        return document.querySelector(`[data-ledger-override="${txId}"]`)?.textContent || ''
+    }""", tx_id)
     assert btn_text == 'Edit actual', \
         f"Button should read 'Edit actual' after override is set on variable income, got: {btn_text!r}"
