@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.11.0] — 2026-10-07
+
+### Added
+- **I-02 — Variable / estimated income flag** — income sources now have a "Variable / hourly amount" checkbox. Checking it marks the income as `isVariable: true` and shows a `~ Est.` amber badge on the income card to signal the amount may differ paycheck to paycheck. Field is sanitized (`sanitizeIncome`), persists through export/import, and is wired to Postgres via migration `020_add-is-variable-to-incomes` and `is_variable` column on `/api/incomes` (closes #356).
+- **L-03 — Quick "Enter actual" for variable-income Ledger rows** — payday rows for variable income sources show an "Enter actual" primary button instead of the normal greyed-out Override link, and a `~ Est.` badge in the amount cell, to surface the task directly on the Ledger. Clicking it opens the existing override modal. Once an override is saved the badge disappears and the button changes to "Edit actual". No new modal UI — reuses `openLedgerOverrideModal` (closes #357).
+
+### Changed
+- **CSS** — added `.income-variable-badge` (amber); `.income-variable-group` / `.income-variable-label` checkbox wrapper; `.ledger-est-badge` (amber inline badge); `.ledger-enter-actual-btn` (primary-colour override button).
+
 ## [6.10.9] — 2026-10-07
 
 ### Added

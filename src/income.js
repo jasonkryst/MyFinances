@@ -78,6 +78,12 @@ export function renderIncomeList(app) {
                                     ${['Salary','Freelance','Rental','Investment','Other'].map(c => `<option value="${c}"${inc.category === c ? ' selected' : ''}>${c}</option>`).join('')}
                                 </select>
                             </div>
+                            <div class="form-group form-no-margin income-variable-edit-group">
+                                <label class="income-variable-label">
+                                    <input type="checkbox" id="ie-variable-${inc.id}"${inc.isVariable ? ' checked' : ''}>
+                                    Variable / hourly amount
+                                </label>
+                            </div>
                         </div>
                         <div class="income-edit-actions">
                             <button class="btn btn-primary btn-small" data-income-action="save" data-income-id="${inc.id}">Save</button>
@@ -105,6 +111,7 @@ export function renderIncomeList(app) {
             <div class="income-card" id="income-card-${inc.id}">
                 <div class="income-card-info">
                     <span class="income-card-name">${escapeHtml(inc.name)}</span>
+                    ${inc.isVariable ? `<span class="income-variable-badge" title="Amount varies — update the actual amount in the Ledger each pay period">~ Est.</span>` : ''}
                     ${inc.category && inc.category !== 'Salary' ? `<span class="income-category-badge">${escapeHtml(inc.category)}</span>` : ''}
                     ${linkedPerson ? `<span class="income-card-detail"><span class="person-pill">${escapeHtml(linkedPerson.name)}</span></span>` : ''}
                     <span class="income-card-amount">${formatCurrency(inc.amount)}</span>
@@ -188,13 +195,14 @@ export async function addIncome(app) {
     const personIdRaw = document.getElementById('incomePerson')?.value;
     const personId = personIdRaw ? parseInt(personIdRaw, 10) : null;
     const category = document.getElementById('incomeCategory')?.value || 'Salary';
+    const isVariable = Boolean(document.getElementById('incomeIsVariable')?.checked);
 
     if (!name) { await showAlertModal('Please enter a name for this income source.'); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
     if (!firstPayDate) { await showAlertModal('Please enter the first pay date.'); return; }
     if (!accountId || isNaN(accountId)) { await showAlertModal('Please select an account for this income source.'); return; }
 
-    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category };
+    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable };
     app.incomes.push(income);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -250,6 +258,7 @@ export async function saveEditIncome(app, incomeId) {
     const accountId   = accountEl?.value ? parseInt(accountEl.value) : null;
     const personId    = personEl?.value ? parseInt(personEl.value, 10) : null;
     const category    = categoryEl?.value || 'Salary';
+    const isVariable  = Boolean(document.getElementById(`ie-variable-${incomeId}`)?.checked);
 
     if (!name)                        { await showAlertModal('Please enter a name.');            return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount.');     return; }
@@ -258,7 +267,7 @@ export async function saveEditIncome(app, incomeId) {
     const idx = app.incomes.findIndex(i => i.id === incomeId);
     if (idx === -1) return;
 
-    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category };
+    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable };
     app.editingIncomeId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);

@@ -1225,3 +1225,120 @@ def test_ledger_columns_preference_persists(app_page):
     hidden_cells = page.query_selector_all('[data-col="account"].ledger-col-hidden')
     assert len(hidden_cells) > 0, \
         "Account column should remain hidden after re-render (preference persisted)"
+
+
+# ── L-03 Variable income quick-entry in the Ledger ─────────────────────────────
+
+def _seed_variable_income_for_ledger(page, name="Hourly Payday", amount=1200):
+    """Create an account + a variable-income source via direct state injection,
+    then navigate to the Ledger with 'all' date range so paydays are visible."""
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.fill('#accountName', 'Ledger Variable Account')
+    page.select_option('#accountType', label='Checking')
+    page.fill('#accountStartingBalance', '1000')
+    page.click('#accountFormSubmit')
+    page.wait_for_selector('text=Ledger Variable Account', timeout=10000)
+
+    # Inject a variable income directly so we don't depend on the checkbox UI here
+    page.evaluate(f"""() => {{
+        const app = window.app;
+        const acct = app.accounts[0];
+        app.incomes.push({{
+            id: 999, name: '{name}', amount: {amount},
+            firstPayDate: '2026-01-01', frequency: 'monthly',
+            accountId: acct.id, personId: null,
+            category: 'Salary', isVariable: true
+        }});
+        app.saveToStorage();
+    }}""")
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.renderLedger(); }")
+    page.wait_for_selector('.ledger-table', timeout=5000)
+
+
+@pytest.mark.feature
+def test_ledger_enter_actual_button_present_for_variable_income(app_page):
+    """An unoverridden variable-income payday row shows an 'Enter actual' button."""
+    page = app_page
+    _seed_variable_income_for_ledger(page)
+
+    btn = page.query_selector('.ledger-enter-actual-btn')
+    assert btn, "Expected 'Enter actual' button for variable-income row with no override"
+    assert 'actual' in (btn.text_content() or '').lower(), \
+        f"Button text should mention 'actual', got: {btn.text_content()!r}"
+
+
+@pytest.mark.feature
+def test_ledger_enter_actual_absent_for_fixed_income(app_page):
+    """A fixed (non-variable) income payday row has no 'Enter actual' button."""
+    page = app_page
+    _seed_income_for_ledger(page, name="Fixed Monthly Pay", amount=3000)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.renderLedger(); }")
+    page.wait_for_selector('.ledger-table', timeout=5000)
+
+    btn = page.query_selector('.ledger-enter-actual-btn')
+    assert btn is None, \
+        "No 'Enter actual' button should appear for a fixed-amount income row"
+
+
+@pytest.mark.feature
+def test_ledger_est_badge_shown_for_unoverridden_variable_income(app_page):
+    """An unoverridden variable-income payday shows the '~ Est.' badge in its amount cell."""
+    page = app_page
+    _seed_variable_income_for_ledger(page)
+
+    badge = page.query_selector('.ledger-est-badge')
+    assert badge, "Expected the '~ Est.' badge on an unoverridden variable-income row"
+    assert 'Est' in (badge.text_content() or ''), \
+        f"Badge text should contain 'Est', got: {badge.text_content()!r}"
+
+
+@pytest.mark.feature
+def test_ledger_enter_actual_opens_override_modal(app_page):
+    """Clicking 'Enter actual' on a variable-income row opens the override modal."""
+    page = app_page
+    _seed_variable_income_for_ledger(page)
+
+    btn = page.query_selector('.ledger-enter-actual-btn')
+    assert btn, "Expected 'Enter actual' button for variable-income row"
+    btn.click()
+
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    modal = page.query_selector('#ledgerOverrideModal')
+    assert modal, "#ledgerOverrideModal should exist"
+    assert 'flex-visible' in (modal.get_attribute('class') or ''), \
+        "Override modal should open when 'Enter actual' is clicked"
+
+
+@pytest.mark.feature
+def test_ledger_enter_actual_becomes_edit_actual_after_override(app_page):
+    """After saving an override on a variable-income row, 'Enter actual' changes
+    to 'Edit actual' and the '~ Est.' badge disappears."""
+    page = app_page
+    _seed_variable_income_for_ledger(page)
+
+    btn = page.query_selector('.ledger-enter-actual-btn')
+    assert btn, "Expected 'Enter actual' button"
+    btn.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+
+    page.fill('#ledgerOverrideAmountInput', '1350.00')
+    page.click('#ledgerOverrideConfirmBtn')
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+
+    # Badge should be gone now that there is an override
+    badge = page.query_selector('.ledger-est-badge')
+    assert badge is None, "'~ Est.' badge should disappear once an override is set"
+
+    # Button label should change
+    btn_text = page.evaluate(
+        "() => document.querySelector('.ledger-enter-actual-btn')?.textContent || ''"
+    )
+    assert 'edit' in btn_text.lower() or 'actual' in btn_text.lower(), \
+        f"Button should read 'Edit actual' after override is set, got: {btn_text!r}"
