@@ -201,6 +201,11 @@ export function initializeEventListeners(app) {
         exportBtn.addEventListener('click', () => app.exportToCSV());
     }
 
+    const exportScheduleBtn = document.getElementById('exportScheduleBtn');
+    if (exportScheduleBtn) {
+        exportScheduleBtn.addEventListener('click', () => app.exportPaymentScheduleCSV());
+    }
+
     const accountForm = document.getElementById('accountForm');
     if (accountForm) {
         accountForm.addEventListener('submit', e => {

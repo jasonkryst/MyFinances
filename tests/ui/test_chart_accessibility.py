@@ -95,6 +95,10 @@ def test_networth_trend_chart_has_sr_table(app_page, account_data):
     page.fill('#accountStartingBalance', account_data["balance"])
     page.click('#accountFormSubmit')
 
+    # Capture a snapshot so the net worth trend chart renders (it only renders
+    # when snapshots exist, so without this the canvas and its SR table are absent).
+    page.evaluate("() => window.app.captureNetWorthSnapshot()")
+
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
     page.click('[data-rptab="networth"]')

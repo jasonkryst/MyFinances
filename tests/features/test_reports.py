@@ -291,3 +291,38 @@ def test_print_css_shows_active_section(app_page):
         "() => window.getComputedStyle(document.getElementById('reportsSection')).display"
     )
     assert section_display != 'none', "Active section should be visible in print media"
+
+
+@pytest.mark.feature
+def test_auto_nw_snapshot_setting_toggle_exists(app_page):
+    """The auto-capture net worth snapshot setting toggle exists in Settings modal."""
+    page = app_page
+
+    # #settingsBtn is a hidden trigger; use evaluate to click it programmatically
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+
+    # Check that the checkbox exists
+    checkbox = page.query_selector('#settingAutoNwSnapshot')
+    assert checkbox is not None, "Auto-capture NW snapshot checkbox should exist in Settings"
+
+
+@pytest.mark.feature
+def test_auto_nw_snapshot_setting_saves(app_page):
+    """The auto-capture net worth snapshot setting can be toggled and saved."""
+    page = app_page
+
+    # #settingsBtn is a hidden trigger; use evaluate to click it programmatically
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('#settingAutoNwSnapshot')
+
+    # Save settings
+    page.click('#settingsModalDoneBtn')
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
+
+    # Verify the setting persists by opening settings again
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    is_checked = page.is_checked('#settingAutoNwSnapshot')
+    assert is_checked, "Auto-capture NW snapshot setting should be saved as checked"

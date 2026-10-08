@@ -191,6 +191,54 @@ export function exportToCSV(app, options = {}) {
     window.URL.revokeObjectURL(url);
 }
 
+// Export the detailed payment schedule (by debt per month) to CSV.
+// Columns: Month, Debt Name, Payment, Principal, Interest, Remaining Balance
+export function exportPaymentScheduleCSV(app) {
+    if (!app.lastPaymentPlan || app.lastPaymentPlan.length === 0) {
+        return;
+    }
+
+    const rows = [];
+    rows.push(['Month', 'Debt Name', 'Payment', 'Principal', 'Interest', 'Remaining Balance']);
+
+    // Keep a running balance map for each debt
+    const debtBalances = {};
+    for (const debt of app.debts) {
+        debtBalances[debt.name] = debt.accountBalance || 0;
+    }
+
+    for (const monthData of app.lastPaymentPlan) {
+        const monthName = DebtCalculator.getMonthName(monthData.month - 1);
+
+        for (const payment of monthData.payments) {
+            const remainingBalance = debtBalances[payment.debtName] || 0;
+            rows.push([
+                monthName,
+                payment.debtName,
+                payment.payment.toFixed(2),
+                payment.principal.toFixed(2),
+                payment.interest.toFixed(2),
+                remainingBalance.toFixed(2)
+            ]);
+            // Update the running balance
+            debtBalances[payment.debtName] = Math.max(0, remainingBalance - payment.principal);
+        }
+    }
+
+    // Build CSV
+    let csv = rows.map(row => row.map(csvField).join(',')).join('\n') + '\n';
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payment-schedule-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
 const LEDGER_EXPORT_COLUMN_LABELS = {
     date: 'Date',
     account: 'Account',

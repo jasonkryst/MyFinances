@@ -639,6 +639,23 @@ export function renderHealthDashboard(app) {
     const dtaRatio = dtaAssets > 0 ? dtaLiabilities / dtaAssets : null;
     const dtaSt    = dtaRatio !== null ? debtToAssetStatus(dtaRatio) : null;
 
+    // ── FIRE Number (Retirement) ──────────────────────────────────────────────
+    const annualExpenses = (totalBills + totalExpenses) * 12;
+    const fireNumber = annualExpenses * 25;
+    const currentNetWorth = dtaAssets - dtaLiabilities;
+    const fireStatus = currentNetWorth >= fireNumber
+        ? { cls: 'health-status--green', label: 'FI Already!' }
+        : net > 0 ?
+            (() => {
+                const monthsToFire = (fireNumber - currentNetWorth) / net;
+                const yearsToFire = monthsToFire / 12;
+                let cls = 'health-status--green';
+                if (yearsToFire > 10) cls = 'health-status--yellow';
+                if (yearsToFire > 25) cls = 'health-status--red';
+                return { cls, label: yearsToFire > 999 ? '999+ years' : `${yearsToFire.toFixed(0)} years`, yearsToFire };
+            })()
+            : { cls: 'health-status--red', label: 'No surplus', yearsToFire: null };
+
     // ── Surplus Analysis ──────────────────────────────────────────────────────
     const accounts = app.accounts || [];
     const surplusAcctId   = getSetting(app, SURPLUS_ACCOUNT_ID, accounts[0]?.id ?? null);
@@ -931,6 +948,46 @@ export function renderHealthDashboard(app) {
                         <span>${t('health.dtaAssets', { amount: formatCurrency(dtaAssets) })}</span>
                     </div>
                     <a href="#" class="health-link" data-health-nav="accounts">${t('health.dtaViewAccounts')} &rarr;</a>
+                `}
+            </div>
+
+            <!-- FIRE Number -->
+            <div class="health-metric-card" id="healthFireCard" data-card-nav="savings">
+                <div class="health-card-header">
+                    <span class="health-card-title">${t('health.fireTitle')}</span>
+                    ${annualExpenses > 0 ? `<span class="health-badge ${fireStatus.cls}">${fireStatus.label}</span>` : ''}
+                </div>
+                <p class="health-card-desc">${t('health.fireDesc')}</p>
+                ${annualExpenses === 0 ? `
+                    <div class="health-empty-state">
+                        <span class="health-empty-sub">${t('health.fireNoExpenses')}</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="income">${t('health.fireViewSavings')} &rarr;</a>
+                ` : currentNetWorth >= fireNumber ? `
+                    <div class="health-timeline-hero health-timeline-hero--highlight">
+                        <span class="health-timeline-value">${t('health.fireAlreadyFi')}</span>
+                    </div>
+                    <div class="health-metric-detail">
+                        <span>FIRE Number: ${formatCurrency(fireNumber)}</span>
+                        <span>Current Net Worth: ${formatCurrency(currentNetWorth)}</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="savings">${t('health.fireViewSavings')} &rarr;</a>
+                ` : net > 0 ? `
+                    <div class="health-timeline-hero">
+                        <span class="health-timeline-value">${fireStatus.yearsToFire > 999 ? '999+' : fireStatus.yearsToFire.toFixed(0)}</span>
+                        <span class="health-timeline-unit">${t('health.fireYearsAway')}</span>
+                    </div>
+                    <div class="health-metric-detail">
+                        <span>FIRE Number: ${formatCurrency(fireNumber)}</span>
+                        <span>Current Net Worth: ${formatCurrency(currentNetWorth)}</span>
+                        <span>Monthly Surplus: ${formatCurrency(net)}</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="savings">${t('health.fireViewSavings')} &rarr;</a>
+                ` : `
+                    <div class="health-empty-state">
+                        <span class="health-empty-sub">No monthly surplus yet</span>
+                    </div>
+                    <a href="#" class="health-link" data-health-nav="income">${t('health.fireViewSavings')} &rarr;</a>
                 `}
             </div>
 

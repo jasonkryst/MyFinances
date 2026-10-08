@@ -108,6 +108,11 @@ def test_summary_report_narrow_tables_have_no_internal_scroll_on_mobile(app_page
     page = app_page
     create_account(page, account_data)
 
+    # Seed a net worth snapshot so the Summary tab renders all 3 compact tables
+    # (cash flow, account balances, net worth). Without a snapshot, the net worth
+    # section renders an empty-state paragraph instead of the compact table.
+    page.evaluate("() => window.app.captureNetWorthSnapshot()")
+
     page.set_viewport_size(MOBILE_VIEWPORT)
     page.evaluate("() => window.app.switchPage('reports')")
     page.wait_for_selector('#reportsSection.active', timeout=5000)

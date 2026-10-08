@@ -192,3 +192,76 @@ def test_suggest_payment_fills_input_with_income_minus_expenses(app_page):
 
     value = page.evaluate("() => document.getElementById('monthlyPayment').value")
     assert value == '2200.00', f"Expected suggested payment of 2200.00, got {value!r}"
+
+
+@pytest.mark.feature
+def test_export_schedule_btn_exists(app_page):
+    """The Export Schedule button is present when a payment plan is calculated."""
+    page = app_page
+
+    # Seed: 1 debt with minimum payment so we can calculate a plan
+    page.evaluate("""() => {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        window.app.incomes = [{
+            id: 1, name: 'Salary', amount: 3000, frequency: 'monthly',
+            firstPayDate: `${yyyy}-${mm}-01`, accountId: null, bonusType: null
+        }];
+        window.app.debts = [{
+            id: 1, name: 'Card', debtType: 'creditCard',
+            accountBalance: 1000, originalBalance: 1000, creditLimit: null,
+            interestRate: 18, minimumPayment: 100, dueDate: 15,
+            fixedAmount: null, fixedStartDate: null, fixedEndDate: null,
+            debtStartDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false, personIds: [], notes: ''
+        }];
+        window.app.switchPage('strategy');
+    }""")
+    page.wait_for_selector('#strategySection.active', timeout=5000)
+
+    # Calculate a plan
+    page.fill('#monthlyPayment', '1000')
+    page.select_option('#paymentStrategy', 'avalanche')
+    page.click('#calculateBtn')
+    page.wait_for_selector('#resultsSection:not(.hidden)', timeout=5000)
+
+    # Check for export button
+    btn = page.query_selector('#exportScheduleBtn')
+    assert btn is not None, "Export Schedule button should be rendered when a plan is calculated"
+
+
+@pytest.mark.feature
+def test_export_payment_schedule_csv(app_page):
+    """exportPaymentScheduleCSV does not throw when given a valid payment plan."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        window.app.incomes = [{
+            id: 1, name: 'Salary', amount: 5000, frequency: 'monthly',
+            firstPayDate: `${yyyy}-${mm}-01`, accountId: null, bonusType: null
+        }];
+        window.app.debts = [{
+            id: 1, name: 'Card1', debtType: 'creditCard',
+            accountBalance: 1000, originalBalance: 1000, creditLimit: null,
+            interestRate: 18, minimumPayment: 100, dueDate: 15,
+            fixedAmount: null, fixedStartDate: null, fixedEndDate: null,
+            debtStartDate: null, updatedAt: null, priority: null,
+            accountId: null, archived: false, personIds: [], notes: ''
+        }];
+        window.app.switchPage('strategy');
+    }""")
+    page.wait_for_selector('#strategySection.active', timeout=5000)
+
+    # Calculate a plan
+    page.fill('#monthlyPayment', '1500')
+    page.select_option('#paymentStrategy', 'avalanche')
+    page.click('#calculateBtn')
+    page.wait_for_selector('#resultsSection:not(.hidden)', timeout=5000)
+
+    # Call the export function and ensure it doesn't throw
+    result = page.evaluate("() => { try { window.app.exportPaymentScheduleCSV(); return 'ok'; } catch(e) { return e.message; } }")
+    assert result == 'ok', f"exportPaymentScheduleCSV should not throw, got: {result}"
