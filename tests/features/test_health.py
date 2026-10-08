@@ -1358,7 +1358,11 @@ def test_health_fire_card_with_expenses(app_page):
         // FIRE number = $8400 * 25 = $210,000
         // Net worth = $0 (no accounts or debts)
         // Months to FI = ($210,000 - $0) / $4300 = ~49 months = ~4 years
-        app.incomes = [{ id: 1, name: 'Salary', amount: 5000, frequency: 'monthly' }];
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        app.incomes = [{ id: 1, name: 'Salary', amount: 5000, frequency: 'monthly',
+                         firstPayDate: `${yyyy}-${mm}-01` }];
         app.bills = [{ id: 1, name: 'Rent', amount: 500, category: 'Housing', dueDate: 1 }];
         app.expenses = [{ id: 1, name: 'Food', budgetAmount: 200, category: 'Food' }];
         app.accounts = [];

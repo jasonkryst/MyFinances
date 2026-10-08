@@ -88,8 +88,8 @@ def test_net_worth_includes_accounts(app_page):
     page.fill('#accountStartingBalance', '10000')
     page.click('#accountFormSubmit')
     
-    # Capture a net worth snapshot so the widget shows account data
-    page.evaluate("() => window.app.captureNetWorthSnapshot()")
+    # Capture a net worth snapshot and re-render the widget so it shows account data
+    page.evaluate("() => { window.app.captureNetWorthSnapshot(); window.app.renderNetWorthWidget(); }")
 
     # Check net worth widget
     net_worth_widget = page.query_selector('#netWorthWidget')

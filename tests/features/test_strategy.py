@@ -224,7 +224,7 @@ def test_export_schedule_btn_exists(app_page):
     page.fill('#monthlyPayment', '1000')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_selector('#rPanel-results.active', timeout=5000)
+    page.wait_for_selector('#resultsSection:not(.hidden)', timeout=5000)
 
     # Check for export button
     btn = page.query_selector('#exportScheduleBtn')
@@ -260,7 +260,7 @@ def test_export_payment_schedule_csv(app_page):
     page.fill('#monthlyPayment', '1500')
     page.select_option('#paymentStrategy', 'avalanche')
     page.click('#calculateBtn')
-    page.wait_for_selector('#rPanel-results.active', timeout=5000)
+    page.wait_for_selector('#resultsSection:not(.hidden)', timeout=5000)
 
     # Call the export function and ensure it doesn't throw
     result = page.evaluate("() => { try { window.app.exportPaymentScheduleCSV(); return 'ok'; } catch(e) { return e.message; } }")
