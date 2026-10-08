@@ -10,6 +10,7 @@ export const SHOW_ARCHIVED_ACCOUNTS = 'showArchivedAccounts';
 export const SURPLUS_ACCOUNT_ID = 'surplusAccountId';
 export const SURPLUS_WINDOW_DAYS = 'surplusWindowDays';
 export const SURPLUS_CUSHION_PCT = 'surplusCushionPct';
+export const AUTO_NW_SNAPSHOT = 'autoNwSnapshot';
 
 export function getSetting(app, key, defaultValue) {
     const entry = (app.settings || []).find(s => s.key === key);

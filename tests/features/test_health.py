@@ -37,7 +37,7 @@ def test_health_renders_metric_cards(app_page):
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
     cards = page.query_selector_all('.health-metric-card')
-    assert len(cards) == 10, f"Expected 10 metric cards (8 standard + interest burden + debt-to-asset + surplus analysis), found {len(cards)}"
+    assert len(cards) == 11, f"Expected 11 metric cards (8 standard + interest burden + debt-to-asset + fire + surplus analysis), found {len(cards)}"
 
 
 # ── DTI card ───────────────────────────────────────────────────────────────────
@@ -1308,3 +1308,68 @@ def test_health_dta_high_risk(app_page):
     card_text = page.query_selector('#healthDebtToAssetCard').text_content()
     assert 'High Risk' in card_text, \
         f"Expected 'High Risk' badge when debts exceed assets, got: {card_text[:200]}"
+
+
+# ── FIRE Number card ───────────────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_health_fire_card_present(app_page):
+    """FIRE Number card is rendered on the Health page."""
+    page = app_page
+
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+
+    card = page.query_selector('#healthFireCard')
+    assert card is not None, "FIRE Number card should be rendered on the Health page"
+
+
+@pytest.mark.feature
+def test_health_fire_card_empty_state(app_page):
+    """FIRE card shows empty state when no expenses are configured."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 3000, frequency: 'monthly' }];
+        app.bills = [];
+        app.expenses = [];
+        app.accounts = [{ id: 1, name: 'Checking', type: 'checking', startingBalance: 5000 }];
+        app.debts = [];
+        app.recurringTemplates = [];
+        app.emergencyFunds = [];
+        app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthFireCard', timeout=5000)
+
+    card_text = page.query_selector('#healthFireCard').text_content()
+    assert 'Add bills or expenses' in card_text, \
+        f"Expected empty state message when no expenses, got: {card_text[:200]}"
+
+
+@pytest.mark.feature
+def test_health_fire_card_with_expenses(app_page):
+    """FIRE card shows FIRE number and years to FI when expenses exist and there's surplus."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        // $5000 income, $500 bills, $200 expenses = $4300 surplus per month
+        // Annual expenses = ($500 + $200) * 12 = $8400
+        // FIRE number = $8400 * 25 = $210,000
+        // Net worth = $0 (no accounts or debts)
+        // Months to FI = ($210,000 - $0) / $4300 = ~49 months = ~4 years
+        app.incomes = [{ id: 1, name: 'Salary', amount: 5000, frequency: 'monthly' }];
+        app.bills = [{ id: 1, name: 'Rent', amount: 500, category: 'Housing', dueDate: 1 }];
+        app.expenses = [{ id: 1, name: 'Food', budgetAmount: 200, category: 'Food' }];
+        app.accounts = [];
+        app.debts = [];
+        app.recurringTemplates = [];
+        app.emergencyFunds = [];
+        app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthFireCard', timeout=5000)
+
+    card_text = page.query_selector('#healthFireCard').text_content()
+    assert 'years away' in card_text or 'Already FI' in card_text, \
+        f"Expected FIRE projection or 'Already FI', got: {card_text[:200]}"

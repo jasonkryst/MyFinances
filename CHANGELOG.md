@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.18.0] — 2026-10-07
+
+### Added
+- **ST-02 — Export payment schedule to CSV** (issue #324) — new "Export Schedule as CSV" button in the payment schedule (tabular view) exports a CSV with columns: Month, Debt Name, Payment, Principal, Interest, Remaining Balance.
+- **X-06 — Auto-capture monthly net worth snapshot** (issue #292) — new "Auto-capture monthly net worth snapshot" toggle in Settings; when enabled, captures a net worth snapshot on the first app load of each calendar month if one doesn't already exist for that month.
+- **NEW-02 — Health FIRE number card** (issue #316) — new card on the Health page showing FIRE Number (25 × annual expenses), estimated years to Financial Independence based on current monthly surplus and net worth, and current net worth progress; green <10 years away, yellow 10–25 years, red >25 years or no surplus; empty state when no expense data.
+
 ## [6.17.0] — 2026-10-07
 
 ### Added

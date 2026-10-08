@@ -37,7 +37,7 @@ import {
 import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, checkPostgresBackendPresent, loadFromPostgres } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgMigrationModal } from './pgMigrationModal.js';
-import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
+import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import { createStorageAdapter, getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import {
     recordBalanceHistory as recordBalanceHistoryFeature,
@@ -134,7 +134,7 @@ import {
     openReconcileModal as openReconcileModalFeature
 } from './reconciliation.js';
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
-import { getSetting as getSettingFeature, setSetting as setSettingFeature } from './settings.js';
+import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { initCalendarFeedModal } from './calendarFeed.js';
@@ -264,7 +264,21 @@ export class DebtTrackerApp {
 
         const versionEl = document.getElementById('appVersion');
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
-        this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
+
+        // Auto-capture monthly net worth snapshot if enabled
+        if (getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
+            const now = new Date();
+            const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const snapshots = Array.isArray(this.monthlySnapshots) ? this.monthlySnapshots : [];
+            const hasCurrentMonth = snapshots.some(s => {
+                const sMonthKey = String(s?.date || '').slice(0, 7);
+                return sMonthKey === monthKey;
+            });
+            if (!hasCurrentMonth) {
+                this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
+            }
+        }
+
         backfillIncomeAccountIds(this);
         await this.seedMissingBalanceHistory();
         initSettingsModalFeature(this);
@@ -391,6 +405,10 @@ export class DebtTrackerApp {
 
     exportLedgerToCSV(columns) {
         return exportLedgerToCSVFeature(this, columns);
+    }
+
+    exportPaymentScheduleCSV() {
+        return exportPaymentScheduleCSVFeature(this);
     }
 
     /**
