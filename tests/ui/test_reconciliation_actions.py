@@ -239,6 +239,9 @@ def test_reconcile_modal_escape_and_enter(app_page):
     )
     assert modal_visible
 
+    # Ensure focus is inside the modal before pressing Escape — the modal focuses
+    # balanceInput via a 30ms setTimeout, so we wait for it rather than racing.
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=2000)
     page.keyboard.press('Escape')
     page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 

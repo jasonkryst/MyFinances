@@ -319,7 +319,7 @@ def test_auto_nw_snapshot_setting_saves(app_page):
 
     # Save settings
     page.click('#settingsModalDoneBtn')
-    page.wait_for_selector('#settingsModal.hidden', timeout=5000)
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     # Verify the setting persists by opening settings again
     page.evaluate("() => document.getElementById('settingsBtn').click()")
