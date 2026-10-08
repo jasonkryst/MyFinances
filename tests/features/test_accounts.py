@@ -88,12 +88,15 @@ def test_net_worth_includes_accounts(app_page):
     page.fill('#accountStartingBalance', '10000')
     page.click('#accountFormSubmit')
     
+    # Capture a net worth snapshot so the widget shows account data
+    page.evaluate("() => window.app.captureNetWorthSnapshot()")
+
     # Check net worth widget
     net_worth_widget = page.query_selector('#netWorthWidget')
     assert net_worth_widget, "Net worth widget not found"
-    
+
     net_worth_text = net_worth_widget.evaluate('(el) => el.textContent')
-    # Net worth should reflect the account balance
+    # Net worth should reflect the account balance after snapshot capture
     assert '10000' in net_worth_text or '10,000' in net_worth_text or '$' in net_worth_text, \
         "Net worth does not include account balance"
 
