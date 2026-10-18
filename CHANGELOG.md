@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.20.0] — 2026-10-18
+
+### Added
+- **CI-01 — Stryker coverage for 7 additional sanitizer functions** (issue #265) — unit tests added to `tests/unit/sanitizers.test.js` for `sanitizeBonus`, `sanitizeEmergencyFund`, `sanitizeSinkingFund`, `sanitizeNetWorthSnapshot`, `sanitizeForecastSettings`, `sanitizeSetting`, and `sanitizePlanHistoryEntry`; `stryker.config.mjs` extended with line ranges `89-99`, `179-245`, and `269-283` covering those functions.
+- **PR-01 — Debounce `saveToStorage()`** (issue #273) — `saveToStorage()` for local/session backends now batches rapid-fire writes with a 300 ms trailing debounce; a `flushStorageSave()` export is wired to `beforeunload` in `app.js` so no edits are lost on tab close. The Postgres backend is unaffected. `switchStorageBackend` bypasses the debounce and calls the internal write directly (required for its synchronous migration result). Unit tests added to `tests/unit/storage.test.js`.
+
 ## [6.19.0] — 2026-10-18
 
 ### Added

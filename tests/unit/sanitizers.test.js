@@ -3,14 +3,21 @@ const {
     sanitizeAccount,
     sanitizeDebt,
     sanitizeIncome,
+    sanitizeBonus,
     sanitizeBill,
     sanitizeExpense,
     sanitizeRecurringTemplate,
     sanitizeLedgerOverrides,
     sanitizeLedgerClearedTransactions,
+    sanitizeEmergencyFund,
+    sanitizeSinkingFund,
+    sanitizeNetWorthSnapshot,
+    sanitizeForecastSettings,
+    sanitizeSetting,
     sanitizeRetirementSnapshot,
     sanitizeBalanceHistoryEntry,
     sanitizeReconciliation,
+    sanitizePlanHistoryEntry,
     sanitizeParsedState,
 } = require('../../src/sanitizers.js');
 
@@ -395,5 +402,270 @@ describe('sanitizeReconciliation statement range (issue #275)', () => {
         const result = sanitizeReconciliation({ ...base, statementStartDate: '2026-10-05', statementEndDate: '2026-09-30' }, 1);
         expect(result.statementStartDate).toBeNull();
         expect(result.statementEndDate).toBe('2026-09-30');
+    });
+});
+
+describe('sanitizeBonus', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizeBonus({ id: 3, name: 'Q4 Bonus', amount: 2500, date: '2026-12-01', category: 'Work', accountId: 7, purpose: 'cashFlow' }, 1);
+        expect(result).toEqual({ id: 3, name: 'Q4 Bonus', amount: 2500, date: '2026-12-01', category: 'Work', accountId: 7, purpose: 'cashFlow' });
+    });
+
+    test('applies idFallback and defaults for an empty record', () => {
+        const result = sanitizeBonus({}, 42);
+        expect(result.id).toBe(42);
+        expect(result.amount).toBe(0);
+        expect(result.category).toBe('Other');
+        expect(result.accountId).toBeNull();
+        expect(result.purpose).toBeNull();
+    });
+
+    test('clamps negative amount to 0', () => {
+        expect(sanitizeBonus({ amount: -500 }, 1).amount).toBe(0);
+    });
+
+    test('passes through savings purpose', () => {
+        expect(sanitizeBonus({ purpose: 'savings' }, 1).purpose).toBe('savings');
+    });
+
+    test('drops unrecognized purpose to null', () => {
+        expect(sanitizeBonus({ purpose: 'bogus' }, 1).purpose).toBeNull();
+        expect(sanitizeBonus({ purpose: null }, 1).purpose).toBeNull();
+    });
+
+    test('returns null date for a malformed date', () => {
+        expect(sanitizeBonus({ date: 'not-a-date' }, 1).date).toBeNull();
+    });
+
+    test('handles null record gracefully', () => {
+        const result = sanitizeBonus(null, 99);
+        expect(result.id).toBe(99);
+        expect(result.purpose).toBeNull();
+    });
+});
+
+describe('sanitizeEmergencyFund', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizeEmergencyFund({ id: 1, accountId: 5, targetAmount: 5000, currentAmount: 1500, monthlyContribution: 250, autoContribute: true, notes: 'Safety net' }, 99);
+        expect(result).toEqual({ id: 1, accountId: 5, targetAmount: 5000, currentAmount: 1500, monthlyContribution: 250, autoContribute: true, notes: 'Safety net' });
+    });
+
+    test('applies defaults for an empty record', () => {
+        const result = sanitizeEmergencyFund({}, 10);
+        expect(result.id).toBe(10);
+        expect(result.accountId).toBeNull();
+        expect(result.targetAmount).toBe(0);
+        expect(result.currentAmount).toBe(0);
+        expect(result.monthlyContribution).toBe(0);
+        expect(result.autoContribute).toBe(false);
+        expect(result.notes).toBe('');
+    });
+
+    test('clamps negative amounts to 0', () => {
+        const result = sanitizeEmergencyFund({ targetAmount: -100, currentAmount: -50, monthlyContribution: -25 }, 1);
+        expect(result.targetAmount).toBe(0);
+        expect(result.currentAmount).toBe(0);
+        expect(result.monthlyContribution).toBe(0);
+    });
+
+    test('coerces truthy/falsy to boolean for autoContribute', () => {
+        expect(sanitizeEmergencyFund({ autoContribute: 1 }, 1).autoContribute).toBe(true);
+        expect(sanitizeEmergencyFund({ autoContribute: 0 }, 1).autoContribute).toBe(false);
+        expect(sanitizeEmergencyFund({ autoContribute: null }, 1).autoContribute).toBe(false);
+    });
+});
+
+describe('sanitizeSinkingFund', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizeSinkingFund({ id: 2, name: 'Vacation', allocationMethod: 'target_date', monthlyAllocation: 100, targetAmount: 1200, currentAmount: 300, autoContribute: true, accountId: 5, notes: 'Summer trip' }, 1);
+        expect(result.allocationMethod).toBe('target_date');
+        expect(result.name).toBe('Vacation');
+        expect(result.monthlyAllocation).toBe(100);
+    });
+
+    test('passes through each valid allocationMethod', () => {
+        expect(sanitizeSinkingFund({ allocationMethod: 'fixed' }, 1).allocationMethod).toBe('fixed');
+        expect(sanitizeSinkingFund({ allocationMethod: 'annual' }, 1).allocationMethod).toBe('annual');
+        expect(sanitizeSinkingFund({ allocationMethod: 'target_date' }, 1).allocationMethod).toBe('target_date');
+    });
+
+    test('falls back to fixed for an unrecognized allocationMethod', () => {
+        expect(sanitizeSinkingFund({ allocationMethod: 'bogus' }, 1).allocationMethod).toBe('fixed');
+        expect(sanitizeSinkingFund({}, 1).allocationMethod).toBe('fixed');
+    });
+
+    test('applies defaults for an empty record', () => {
+        const result = sanitizeSinkingFund({}, 7);
+        expect(result.id).toBe(7);
+        expect(result.monthlyAllocation).toBe(0);
+        expect(result.targetAmount).toBe(0);
+        expect(result.currentAmount).toBe(0);
+        expect(result.accountId).toBeNull();
+        expect(result.autoContribute).toBe(false);
+    });
+
+    test('clamps negative numeric fields to 0', () => {
+        const result = sanitizeSinkingFund({ monthlyAllocation: -50, targetAmount: -200, currentAmount: -10 }, 1);
+        expect(result.monthlyAllocation).toBe(0);
+        expect(result.targetAmount).toBe(0);
+        expect(result.currentAmount).toBe(0);
+    });
+});
+
+describe('sanitizeNetWorthSnapshot', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizeNetWorthSnapshot({ date: '2026-09-30', totalAssets: 50000, totalLiabilities: 20000, netWorth: 30000, debtPaymentMade: 500, incomeReceived: 4000, source: 'auto' });
+        expect(result).toEqual({ date: '2026-09-30', totalAssets: 50000, totalLiabilities: 20000, netWorth: 30000, debtPaymentMade: 500, incomeReceived: 4000, source: 'auto' });
+    });
+
+    test('returns null when date is missing or malformed', () => {
+        expect(sanitizeNetWorthSnapshot({})).toBeNull();
+        expect(sanitizeNetWorthSnapshot({ date: 'not-a-date' })).toBeNull();
+        expect(sanitizeNetWorthSnapshot(null)).toBeNull();
+    });
+
+    test('defaults netWorth to totalAssets - totalLiabilities when missing', () => {
+        const result = sanitizeNetWorthSnapshot({ date: '2026-09-30', totalAssets: 50000, totalLiabilities: 20000 });
+        expect(result.netWorth).toBe(30000);
+    });
+
+    test('passes through manual source and defaults unknown source to auto', () => {
+        expect(sanitizeNetWorthSnapshot({ date: '2026-09-30', source: 'manual' }).source).toBe('manual');
+        expect(sanitizeNetWorthSnapshot({ date: '2026-09-30', source: 'bogus' }).source).toBe('auto');
+        expect(sanitizeNetWorthSnapshot({ date: '2026-09-30' }).source).toBe('auto');
+    });
+
+    test('defaults numeric fields to 0', () => {
+        const result = sanitizeNetWorthSnapshot({ date: '2026-09-30' });
+        expect(result.totalAssets).toBe(0);
+        expect(result.totalLiabilities).toBe(0);
+        expect(result.debtPaymentMade).toBe(0);
+        expect(result.incomeReceived).toBe(0);
+    });
+});
+
+describe('sanitizeForecastSettings', () => {
+    test('passes through a valid record', () => {
+        const result = sanitizeForecastSettings({ rangeMonths: 6, accountId: 'total', notableThresholdPct: 150 });
+        expect(result).toEqual({ rangeMonths: 6, accountId: 'total', notableThresholdPct: 150 });
+    });
+
+    test('passes through each valid rangeMonths value', () => {
+        for (const v of [1, 2, 3, 6, 12]) {
+            expect(sanitizeForecastSettings({ rangeMonths: v }).rangeMonths).toBe(v);
+        }
+    });
+
+    test('falls back to 1 for an invalid rangeMonths value', () => {
+        expect(sanitizeForecastSettings({ rangeMonths: 4 }).rangeMonths).toBe(1);
+        expect(sanitizeForecastSettings({ rangeMonths: 0 }).rangeMonths).toBe(1);
+        expect(sanitizeForecastSettings({}).rangeMonths).toBe(1);
+    });
+
+    test('defaults accountId to total when missing or empty', () => {
+        expect(sanitizeForecastSettings({}).accountId).toBe('total');
+        expect(sanitizeForecastSettings({ accountId: '' }).accountId).toBe('total');
+        expect(sanitizeForecastSettings({ accountId: 'total' }).accountId).toBe('total');
+    });
+
+    test('clamps notableThresholdPct to [100, 500] and defaults to 130', () => {
+        expect(sanitizeForecastSettings({ notableThresholdPct: 50 }).notableThresholdPct).toBe(100);
+        expect(sanitizeForecastSettings({ notableThresholdPct: 600 }).notableThresholdPct).toBe(500);
+        expect(sanitizeForecastSettings({}).notableThresholdPct).toBe(130);
+    });
+
+    test('defaults all fields for a null/empty record', () => {
+        const result = sanitizeForecastSettings(null);
+        expect(result.rangeMonths).toBe(1);
+        expect(result.accountId).toBe('total');
+        expect(result.notableThresholdPct).toBe(130);
+    });
+});
+
+describe('sanitizeSetting', () => {
+    test('passes through a valid boolean value', () => {
+        expect(sanitizeSetting({ key: 'showArchived', value: true })).toEqual({ key: 'showArchived', value: true });
+        expect(sanitizeSetting({ key: 'showArchived', value: false })).toEqual({ key: 'showArchived', value: false });
+    });
+
+    test('passes through a valid number value', () => {
+        expect(sanitizeSetting({ key: 'pageSize', value: 25 })).toEqual({ key: 'pageSize', value: 25 });
+    });
+
+    test('passes through a valid string value (normalized)', () => {
+        expect(sanitizeSetting({ key: 'theme', value: 'dark' })).toEqual({ key: 'theme', value: 'dark' });
+    });
+
+    test('returns null when key is missing or empty', () => {
+        expect(sanitizeSetting({ value: true })).toBeNull();
+        expect(sanitizeSetting({ key: '', value: true })).toBeNull();
+        expect(sanitizeSetting({})).toBeNull();
+    });
+
+    test('returns null for array, object, null, or undefined value', () => {
+        expect(sanitizeSetting({ key: 'x', value: [] })).toBeNull();
+        expect(sanitizeSetting({ key: 'x', value: {} })).toBeNull();
+        expect(sanitizeSetting({ key: 'x', value: null })).toBeNull();
+        expect(sanitizeSetting({ key: 'x', value: undefined })).toBeNull();
+    });
+
+    test('strips HTML markup from key', () => {
+        const result = sanitizeSetting({ key: '<script>evil</script>', value: 'x' });
+        expect(result.key).not.toContain('<');
+    });
+
+    test('handles null record gracefully', () => {
+        expect(sanitizeSetting(null)).toBeNull();
+    });
+});
+
+describe('sanitizePlanHistoryEntry', () => {
+    test('passes through a well-formed record', () => {
+        const result = sanitizePlanHistoryEntry({ id: 1, monthlyPayment: 300, strategy: 'avalanche', totalInterest: 1500, monthsToPayOff: 24, payoffDate: '2028-10-01', totalDebt: 7200, createdAt: '2026-10-01T12:00:00.000Z' }, 99);
+        expect(result).toEqual({ id: 1, monthlyPayment: 300, strategy: 'avalanche', totalInterest: 1500, monthsToPayOff: 24, payoffDate: '2028-10-01', totalDebt: 7200, createdAt: '2026-10-01T12:00:00.000Z' });
+    });
+
+    test('applies defaults for an empty record', () => {
+        const result = sanitizePlanHistoryEntry({}, 5);
+        expect(result.id).toBe(5);
+        expect(result.monthlyPayment).toBe(0);
+        expect(result.strategy).toBeNull();
+        expect(result.totalInterest).toBe(0);
+        expect(result.monthsToPayOff).toBe(0);
+        expect(result.payoffDate).toBeNull();
+        expect(result.totalDebt).toBe(0);
+        expect(typeof result.createdAt).toBe('string');
+    });
+
+    test('returns null strategy when missing or empty', () => {
+        expect(sanitizePlanHistoryEntry({ strategy: '' }, 1).strategy).toBeNull();
+        expect(sanitizePlanHistoryEntry({}, 1).strategy).toBeNull();
+    });
+
+    test('clamps negative numeric fields to 0', () => {
+        const result = sanitizePlanHistoryEntry({ monthlyPayment: -100, totalInterest: -50, monthsToPayOff: -5, totalDebt: -200 }, 1);
+        expect(result.monthlyPayment).toBe(0);
+        expect(result.totalInterest).toBe(0);
+        expect(result.monthsToPayOff).toBe(0);
+        expect(result.totalDebt).toBe(0);
+    });
+
+    test('defaults createdAt to current ISO timestamp when missing', () => {
+        const before = Date.now();
+        const result = sanitizePlanHistoryEntry({}, 1);
+        const after = Date.now();
+        const ts = new Date(result.createdAt).getTime();
+        expect(ts).toBeGreaterThanOrEqual(before);
+        expect(ts).toBeLessThanOrEqual(after);
+    });
+
+    test('defaults createdAt when the value is not a parseable date string', () => {
+        const result = sanitizePlanHistoryEntry({ createdAt: 'garbage' }, 1);
+        expect(new Date(result.createdAt).getTime()).not.toBeNaN();
+    });
+
+    test('sanitizes payoffDate to YYYY-MM-DD or null', () => {
+        expect(sanitizePlanHistoryEntry({ payoffDate: '2028-06-15' }, 1).payoffDate).toBe('2028-06-15');
+        expect(sanitizePlanHistoryEntry({ payoffDate: 'bad' }, 1).payoffDate).toBeNull();
     });
 });

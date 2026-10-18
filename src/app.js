@@ -34,7 +34,7 @@ import {
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, checkPostgresBackendPresent, loadFromPostgres } from './storage.js';
+import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, checkPostgresBackendPresent, loadFromPostgres, flushStorageSave } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgMigrationModal } from './pgMigrationModal.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
@@ -1057,6 +1057,8 @@ export class DebtTrackerApp {
 document.addEventListener('DOMContentLoaded', async () => {
     window.app = new DebtTrackerApp();
     await window.app.init();
+    window.flushStorageSave = flushStorageSave;
+    window.addEventListener('beforeunload', () => flushStorageSave());
     const pageParam = new URLSearchParams(window.location.search).get('page');
     if (pageParam) window.app.switchPage(pageParam);
     registerServiceWorker(window.app);

@@ -84,6 +84,7 @@ def test_usage_drops_below_threshold_resets_warned_flag(app_page):
         window.app.ledgerAmountOverrides = {};
         window.app.saveToStorage();
     }""")
+    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
     assert not page.is_visible('#storageQuotaBanner')
 
     # Cross the threshold again — should warn a second time.
