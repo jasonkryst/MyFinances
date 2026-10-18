@@ -167,6 +167,7 @@ def test_ledger_override_persists_after_reload(app_page):
     page.fill('#ledgerOverrideAmountInput', '777.77')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     # Confirm it actually landed in localStorage before reloading.
     stored_overrides = page.evaluate(
@@ -234,6 +235,7 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     page.fill('#ledgerOverrideAmountInput', '222.22')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     stored_overrides = page.evaluate(
         """() => {
@@ -300,6 +302,7 @@ def test_ledger_cleared_persists_after_reload(app_page):
     checkbox = page.query_selector('[data-ledger-cleared]')
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     checkbox.click()
+    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     stored = page.evaluate(
         """() => {

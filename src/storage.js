@@ -259,6 +259,16 @@ export function flushStorageSave() {
     }
 }
 
+// Cancel any pending debounced write without writing — called by clearAllData
+// so a trailing write queued before the clear cannot put stale data back.
+export function cancelStorageSave() {
+    if (_saveTimer !== null) {
+        clearTimeout(_saveTimer);
+        _saveTimer = null;
+        _pendingApp = null;
+    }
+}
+
 // Restore state from localStorage
 export function loadFromStorage(app) {
     try {
@@ -366,6 +376,7 @@ export function switchStorageBackend(app, kind) {
 
 // Wipe all user data and reset the visible UI state.
 export function clearAllData(app, options = {}) {
+    cancelStorageSave();
     const wasPostgres = app._storageBackendKind === 'postgres';
     const { onCleared } = options;
 
