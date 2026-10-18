@@ -114,40 +114,15 @@ export function getStorageUsageInfo(serializedJson) {
     };
 }
 
-// Persist current state. For local/session backends this is synchronous and
-// returns true/false directly (switchStorageBackend relies on this). For
-// the postgres backend it returns a Promise — callers that don't await it
-// get a truthy Promise, which is fine since Postgres has no rollback path.
-export function saveToStorage(app) {
-    if (app._storageBackendKind === 'postgres') {
-        return fetch('/api/plan-settings', {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': getCsrfCookie()
-            },
-            body: JSON.stringify({
-                monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
-                strategy: document.getElementById('paymentStrategy')?.value || null,
-                ledgerSettings: {
-                    accountFilter: app._ledgerAccountFilter || 'all',
-                    dateRange: app._ledgerDateRange || 'around7',
-                    sortKey: app._ledgerSortKey || 'date',
-                    sortDir: app._ledgerSortDir || 'desc',
-                    clearedFilter: app._ledgerClearedFilter || 'all'
-                },
-                forecastSettings: {
-                    rangeMonths: app._forecastRangeMonths || 1,
-                    accountId: app._forecastAccountId || 'total',
-                    notableThresholdPct: app._forecastNotableThresholdPct || 130
-                },
-                retirementTargetDate: app.retirementTargetDate || null
-            })
-        }).then(() => true).catch(err => {
-            console.error('Error saving plan settings to Postgres:', err);
-            return false;
-        });
-    }
+// Module-level debounce state for local/session backends.
+let _saveTimer = null;
+let _pendingApp = null;
+const STORAGE_DEBOUNCE_MS = 300;
+
+// Synchronous write for local/session backends. Used directly by
+// switchStorageBackend (which needs a true/false result without the debounce)
+// and fired by the debounce timer and flushStorageSave.
+function _writeNow(app) {
     try {
         const data = {
             persons: app.persons || [],
@@ -206,6 +181,65 @@ export function saveToStorage(app) {
             app.showStorageQuotaWarning({ bytes: null, limitBytes: STORAGE_ESTIMATED_QUOTA_BYTES, pct: 1, nearLimit: true, writeFailed: true });
         }
         return false;
+    }
+}
+
+// Persist current state. For local/session backends the write is debounced
+// (300 ms trailing edge) so rapid-fire mutations (e.g. typing in a form
+// field) produce a single localStorage.setItem after the user pauses.
+// The beforeunload handler in app.js calls flushStorageSave() to guarantee
+// no writes are lost when the tab closes mid-edit.
+// For the Postgres backend the path is not debounced — each PATCH targets a
+// lightweight plan-settings record, not the full serialized state.
+export function saveToStorage(app) {
+    if (app._storageBackendKind === 'postgres') {
+        return fetch('/api/plan-settings', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfCookie()
+            },
+            body: JSON.stringify({
+                monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
+                strategy: document.getElementById('paymentStrategy')?.value || null,
+                ledgerSettings: {
+                    accountFilter: app._ledgerAccountFilter || 'all',
+                    dateRange: app._ledgerDateRange || 'around7',
+                    sortKey: app._ledgerSortKey || 'date',
+                    sortDir: app._ledgerSortDir || 'desc',
+                    clearedFilter: app._ledgerClearedFilter || 'all'
+                },
+                forecastSettings: {
+                    rangeMonths: app._forecastRangeMonths || 1,
+                    accountId: app._forecastAccountId || 'total',
+                    notableThresholdPct: app._forecastNotableThresholdPct || 130
+                },
+                retirementTargetDate: app.retirementTargetDate || null
+            })
+        }).then(() => true).catch(err => {
+            console.error('Error saving plan settings to Postgres:', err);
+            return false;
+        });
+    }
+    _pendingApp = app;
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+        _saveTimer = null;
+        const pending = _pendingApp;
+        _pendingApp = null;
+        _writeNow(pending);
+    }, STORAGE_DEBOUNCE_MS);
+}
+
+// Cancel any pending debounced write and execute it immediately. Called from
+// the app's beforeunload handler so no in-flight edits are lost on tab close.
+export function flushStorageSave() {
+    if (_saveTimer !== null) {
+        clearTimeout(_saveTimer);
+        _saveTimer = null;
+        const pending = _pendingApp;
+        _pendingApp = null;
+        if (pending) _writeNow(pending);
     }
 }
 
@@ -298,7 +332,7 @@ export function switchStorageBackend(app, kind) {
     const oldKind = app._storageBackendKind;
     app.storageAdapter = createStorageAdapter(normalized);
     app._storageBackendKind = normalized;
-    const saved = app.saveToStorage();
+    const saved = _writeNow(app);
     if (!saved) {
         // Migration write failed (e.g. quota exceeded, storage blocked) —
         // revert to the old backend so nothing is lost or flipped. The old
