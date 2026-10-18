@@ -10,6 +10,8 @@ export default createCrudResource({
         id: 'id',
         accountId: 'account_id',
         date: 'date',
+        statementStartDate: 'statement_start_date',
+        statementEndDate: 'statement_end_date',
         previousBalance: 'previous_balance',
         statementBalance: 'statement_balance',
         difference: 'difference',

@@ -70,8 +70,8 @@ def test_reconcile_card_shows_current_balance_and_live_diff(app_page):
 
 
 @pytest.mark.ui
-def test_statement_date_defaults_to_today_and_is_editable(app_page):
-    """Statement date input defaults to today and can be changed to a past date."""
+def test_statement_end_date_defaults_to_today_and_is_editable(app_page):
+    """Statement end date defaults to today, start to the 1st of the month; both are editable."""
     page = app_page
     _seed_reconciliation_account(page)
 
@@ -80,11 +80,13 @@ def test_statement_date_defaults_to_today_and_is_editable(app_page):
         return mod.todayISO();
     }""")
 
-    date_value = page.input_value('#recon-date-8001')
-    assert date_value == today
+    assert page.input_value('#recon-end-8001') == today
+    assert page.input_value('#recon-start-8001') == today[:8] + '01'
 
-    page.fill('#recon-date-8001', '2026-01-15')
-    assert page.input_value('#recon-date-8001') == '2026-01-15'
+    page.fill('#recon-start-8001', '2026-01-01')
+    page.fill('#recon-end-8001', '2026-01-15')
+    assert page.input_value('#recon-start-8001') == '2026-01-01'
+    assert page.input_value('#recon-end-8001') == '2026-01-15'
 
 
 @pytest.mark.ui
@@ -155,7 +157,7 @@ def test_history_filter_and_delete(app_page):
 
 @pytest.mark.ui
 def test_expected_transactions_details(app_page):
-    """The 'Expected transactions since {date}' details show matching bills, with an empty state otherwise."""
+    """The 'Expected transactions {start} – {end}' details show matching bills, with an empty state otherwise."""
     page = app_page
 
     # No bills: empty state

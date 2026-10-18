@@ -20,7 +20,8 @@ export default {
         'src/sanitizers.js:78-99', // sanitizeBill, sanitizeExpense
         'src/sanitizers.js:101-131', // sanitizeLedgerOverrides, sanitizeLedgerClearedTransactions
         'src/sanitizers.js:132-153', // sanitizeRecurringTemplate
-        'src/sanitizers.js:286-300', // sanitizeBalanceHistoryEntry
+        'src/sanitizers.js:247-267', // sanitizeReconciliation
+        'src/sanitizers.js:299-313', // sanitizeBalanceHistoryEntry
         'src/retirementCalculator.js:3-12', // computeRetirementProjection
         'src/retirementCalculator.js:14-23', // splitGrowthFromContribution
         'src/balanceHistoryCore.js', // balance history pure helpers

@@ -10,6 +10,7 @@ const {
     sanitizeLedgerClearedTransactions,
     sanitizeRetirementSnapshot,
     sanitizeBalanceHistoryEntry,
+    sanitizeReconciliation,
     sanitizeParsedState,
 } = require('../../src/sanitizers.js');
 
@@ -360,5 +361,39 @@ describe('sanitizeParsedState balanceHistory', () => {
     });
     test('missing balanceHistory yields empty array', () => {
         expect(sanitizeParsedState({}).balanceHistory).toEqual([]);
+    });
+});
+
+describe('sanitizeReconciliation statement range (issue #275)', () => {
+    const base = { id: 9, accountId: 7, date: '2026-09-30', previousBalance: 100, statementBalance: 120, difference: 20, note: '' };
+
+    test('preserves valid statementStartDate/statementEndDate', () => {
+        const result = sanitizeReconciliation({ ...base, statementStartDate: '2026-09-01', statementEndDate: '2026-09-30' }, 1);
+        expect(result.statementStartDate).toBe('2026-09-01');
+        expect(result.statementEndDate).toBe('2026-09-30');
+    });
+
+    test('legacy records without range fields get null (not today)', () => {
+        const result = sanitizeReconciliation(base, 1);
+        expect(result.statementStartDate).toBeNull();
+        expect(result.statementEndDate).toBeNull();
+    });
+
+    test('malformed range dates are dropped to null', () => {
+        const result = sanitizeReconciliation({ ...base, statementStartDate: '<script>', statementEndDate: '2026-13-45' }, 1);
+        expect(result.statementStartDate).toBeNull();
+        expect(result.statementEndDate).toBeNull();
+    });
+
+    test('heals full ISO timestamps to YYYY-MM-DD', () => {
+        const result = sanitizeReconciliation({ ...base, statementStartDate: '2026-09-01T05:00:00.000Z', statementEndDate: '2026-09-30T05:00:00.000Z' }, 1);
+        expect(result.statementStartDate).toBe('2026-09-01');
+        expect(result.statementEndDate).toBe('2026-09-30');
+    });
+
+    test('an end date before the start date drops the start date', () => {
+        const result = sanitizeReconciliation({ ...base, statementStartDate: '2026-10-05', statementEndDate: '2026-09-30' }, 1);
+        expect(result.statementStartDate).toBeNull();
+        expect(result.statementEndDate).toBe('2026-09-30');
     });
 });

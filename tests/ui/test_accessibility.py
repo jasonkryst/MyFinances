@@ -148,7 +148,7 @@ def test_aria_attributes(app_page):
 
 @pytest.mark.ui
 def test_reconcile_inputs_have_labels(app_page):
-    """Reconcile card inputs (date, balance, note) have associated <label> elements."""
+    """Reconcile card inputs (statement start/end dates, balance, note) have associated <label> elements."""
     page = app_page
 
     page.evaluate("""() => {
@@ -161,7 +161,7 @@ def test_reconcile_inputs_have_labels(app_page):
         app.switchPage('reconcile');
     }""")
 
-    for field in ('date', 'balance', 'note'):
+    for field in ('start', 'end', 'balance', 'note'):
         label = page.query_selector(f'label[for="recon-{field}-8501"]')
         assert label, f"Expected a <label> for recon-{field}-8501"
 

@@ -133,6 +133,7 @@ import {
     getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
     openReconcileModal as openReconcileModalFeature
 } from './reconciliation.js';
+import { openKeyboardShortcutsModal as openKeyboardShortcutsModalFeature } from './keyboardShortcuts.js';
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
@@ -1012,7 +1013,7 @@ export class DebtTrackerApp {
     renderHealthDashboard() { return renderHealthDashboardFeature(this); }
 
     renderReconciliationPage() { return renderReconciliationPageFeature(this); }
-    applyReconciliation(accountId, statementBalance, note, date) { return applyReconciliationFeature(this, accountId, statementBalance, note, date); }
+    applyReconciliation(accountId, statementBalance, note, dates) { return applyReconciliationFeature(this, accountId, statementBalance, note, dates); }
     reconcileAccount(accountId) { return reconcileAccountFeature(this, accountId); }
     deleteReconciliationEntry(id) { return deleteReconciliationEntryFeature(this, id); }
 
@@ -1042,6 +1043,7 @@ export class DebtTrackerApp {
 
     getExpectedTransactionsInRange(accountId, startDate, endDate) { return getExpectedTransactionsInRangeFeature(this, accountId, startDate, endDate); }
     openReconcileModal(accountId) { return openReconcileModalFeature(this, accountId); }
+    openKeyboardShortcuts() { return openKeyboardShortcutsModalFeature(this); }
 
     getSetting(key, defaultValue) { return getSettingFeature(this, key, defaultValue); }
     setSetting(key, value) { return setSettingFeature(this, key, value); }

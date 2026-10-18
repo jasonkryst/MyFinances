@@ -170,7 +170,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ---
 
 ### Account Reconciliation
-- **Reconcile page** — per-account statement balance entry with a live colour-coded difference vs. tracked balance; "Expected transactions since {date}" listing helps identify discrepancies
+- **Reconcile page** — per-account statement balance entry with a live colour-coded difference vs. tracked balance; explicit statement start/end dates (defaulting to the day after the last reconciliation → today, validated so the end can't precede the start) drive an "Expected transactions" listing that helps identify discrepancies; history rows show the statement period
 - **Two modes** — **Adjust Balance** (reconciliation updates `startingBalance` going forward) or **Visible Only** (recorded and shown on Ledger but does not mutate the tracked balance); changeable any time via the Settings modal (⚙ gear icon or command palette)
 - **Ledger integration** — every reconciliation appears as a marker row on the unified Ledger with previous → statement balance and difference; an inline ℹ icon shows whether the current mode is active (blue) or informational (muted)
 - **History log** — each reconciliation records previous balance, statement balance, difference, and an optional note; per-entry delete does not revert the balance
@@ -322,6 +322,7 @@ src/
   ├─ app.js                — Main app controller & state (DebtTrackerApp)
   ├─ ui.js                 — Event listeners, page navigation, mobile menu
   ├─ commandPalette.js     — Ctrl+K command palette
+  ├─ keyboardShortcuts.js  — Keyboard Shortcuts help panel (KEYBOARD_SHORTCUTS single source of truth)
   ├─ settings.js           — App settings (reconciliation mode, storage backend, etc.)
   ├─ setupWizard.js        — First-run setup wizard + storage backend switcher
   ├─ loginGate.js          — Full-page login gate overlay (PostgreSQL backend only)
@@ -557,6 +558,7 @@ form-action 'self'
 - **Chart Accessibility** — `.sr-only` data-table fallback present for health, spending, forecast, net-worth, strategy, and budget cash-flow charts
 - **Reduced Motion** — CSS transition-duration collapse and `Chart.defaults.animation` disabled under `prefers-reduced-motion`
 - **Command Palette** — Ctrl+K / toolbar open, filtering, empty-state, arrow-key navigation, Enter-to-navigate, Escape/backdrop close
+- **Keyboard Shortcuts Panel** — palette command + account-menu entry points, rows match `KEYBOARD_SHORTCUTS`, focus trap, Escape/backdrop close with focus restore, CSP-safe rendering
 - **Setup Wizard** — First-run modal, setting persistence, skip flow
 - **Print Buttons** — Present on Overview pages (Health/Accounts/Income) and all remaining pages; `@media print` stylesheet hides forms
 - **Table Mobile Scroll** — Ledger, reconciliation expected, and report tables scroll within `.table-wrapper` on narrow viewports

@@ -259,7 +259,8 @@ async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     await pg_page.click('[data-page="reconcile"]')
     await pg_page.wait_for_selector(f'#recon-balance-{account["id"]}', state='visible', timeout=5000)
     await pg_page.fill(f'#recon-balance-{account["id"]}', '1050')
-    await pg_page.fill(f'#recon-date-{account["id"]}', '2026-01-31')
+    await pg_page.fill(f'#recon-start-{account["id"]}', '2026-01-01')
+    await pg_page.fill(f'#recon-end-{account["id"]}', '2026-01-31')
     # Reconcile button uses data attributes, not a simple id
     await pg_page.click(f'[data-recon-action="reconcile"][data-recon-id="{account["id"]}"]')
     await pg_page.wait_for_timeout(800)
@@ -267,6 +268,9 @@ async def test_reconciliation_add_persists(pg_page, base_url, credentials):
     await _wait_for_app_ready(pg_page)
     recons = await (await _api_get(pg_page, base_url, '/api/reconciliations')).json()
     assert len(recons) > 0, f'Reconciliation not persisted. Console: {logs}'
+    latest = max(recons, key=lambda r: r['id'])
+    assert latest['statementStartDate'] == '2026-01-01', f'statementStartDate not persisted: {latest}'
+    assert latest['statementEndDate'] == '2026-01-31', f'statementEndDate not persisted: {latest}'
 
 
 async def test_retirement_snapshot_add_persists(pg_page, base_url, credentials):

@@ -554,6 +554,7 @@ export function initAccountMenu(app) {
     const calendarFeedItem = document.getElementById('accountMenuCalendarFeedBtn');
     const backupItem = document.getElementById('accountMenuBackupBtn');
     const settingsItem = document.getElementById('accountMenuSettingsBtn');
+    const shortcutsItem = document.getElementById('accountMenuShortcutsBtn');
     const logoutItem = document.getElementById('accountMenuLogoutBtn');
 
     updateAccountMenuEmail(app);
@@ -574,6 +575,8 @@ export function initAccountMenu(app) {
     if (calendarFeedItem) calendarFeedItem.addEventListener('click', () => { close(); document.getElementById('calendarFeedBtn')?.click(); });
     if (backupItem) backupItem.addEventListener('click', () => { close(); document.getElementById('dataTransferBtn')?.click(); });
     if (settingsItem) settingsItem.addEventListener('click', () => { close(); document.getElementById('settingsBtn')?.click(); });
+    // Focus the (still visible) menu trigger first so closing the panel returns focus there.
+    if (shortcutsItem) shortcutsItem.addEventListener('click', () => { close(); btn.focus(); app.openKeyboardShortcuts(); });
     if (logoutItem) {
         logoutItem.addEventListener('click', async () => {
             close();
