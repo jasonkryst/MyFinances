@@ -101,6 +101,7 @@ tests/
 │   ├── test_savings.py         # Emergency fund & sinking funds, persistence
 │   ├── test_forecast.py        # Cash Flow Forecast (horizon, dip detection, drivers)
 │   ├── test_reconciliation.py  # Account reconciliation, expected transactions, import/export
+│   ├── test_reconciliation_statement_range.py # Statement start/end dates: validation, defaults, card + modal UI, persistence
 │   ├── test_spending_analysis.py # Spending category breakdowns, month-over-month trends
 │   ├── test_storage_import.py  # Sanitizer unit tests + adversarial import tests
 │   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
@@ -132,6 +133,7 @@ tests/
 │   ├── test_guide_nav.py       # guide.html sticky nav, back-link, mobile behavior
 │   ├── test_reduced_motion.py  # CSS transitions collapse + Chart.defaults.animation disabled
 │   ├── test_command_palette.py # Ctrl+K open/filter/navigate/close; action commands
+│   ├── test_keyboard_shortcuts.py # Keyboard Shortcuts panel: entry points, content, focus trap, Escape, CSP
 │   ├── test_setup_wizard.py    # First-run modal, setting persistence, skip flow
 │   ├── test_overview_print.py  # Print button on Health, Accounts, Income pages
 │   ├── test_remaining_pages_print.py # Print button on Liabilities, Recurring, Plan, Savings, Ledger, Reconcile

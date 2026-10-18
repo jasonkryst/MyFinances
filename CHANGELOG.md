@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.19.0] — 2026-10-18
+
+### Added
+- **X-01 — Keyboard shortcuts help panel** (issue #283) — new "Keyboard Shortcuts" modal listing every active shortcut (Ctrl/⌘+K, Esc, palette arrow/Enter navigation, dialog Tab/Enter, Reports-calendar Enter/Space), opened from a new "Keyboard shortcuts" command-palette command or the account menu's new "Keyboard Shortcuts" item. Content is generated from the single `KEYBOARD_SHORTCUTS` constant in the new `src/keyboardShortcuts.js` (DOM built via `textContent`, CSP-safe); the panel is a focus-trapped `role="dialog"` that closes on Escape, backdrop click, or ×/Done, restoring focus to its opener.
+- **RC-02 — Reconciliation statement start/end dates** (issue #275) — the Reconcile page cards and the Ledger quick-reconcile modal replace the single "Statement Date" with "Statement Start Date" / "Statement End Date". The start defaults to the day after the account's most recent reconciliation (1st of the month if none), the end to today. The expected-transactions list (now also shown in the modal) is recomputed from the explicit range as you edit it. An inverted or missing range shows an inline `role="alert"` error and disables Reconcile; `applyReconciliation` re-validates. Entries now store `statementStartDate`/`statementEndDate` (sanitized in `sanitizeReconciliation`, nullable for legacy records, inverted start dropped) and the History table shows the statement period. `applyReconciliation`'s 5th argument accepts `{ statementStartDate, statementEndDate }`; a plain date string is still accepted as the end date. Postgres: migration `1755600000021` adds nullable `statement_start_date`/`statement_end_date` columns to `reconciliations`.
+
+### Changed
+- Reconcile modal: Enter now confirms only from a form field. Pressing Enter on Cancel/× or on the new "Expected transactions" disclosure keeps its native behavior instead of submitting the reconciliation.
+- `stryker.config.mjs` — added `sanitizeReconciliation` to the mutation scope and corrected the stale `sanitizeBalanceHistoryEntry` line range.
+
 ## [6.18.0] — 2026-10-07
 
 ### Added

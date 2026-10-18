@@ -79,6 +79,7 @@
                     <li>The Theme selector in Settings (⚙️ gear icon) switches between <strong>Light</strong>, <strong>Dark</strong>, and <strong>High Contrast</strong> — your choice is saved and applied automatically on your next visit, including in this guide</li>
                     <li>High Contrast uses a pure black background with white text and bold accent colors, meeting WCAG AA (and mostly AAA) contrast requirements, with a bold focus outline on every interactive element</li>
                     <li>The command palette (Ctrl/Cmd+K) includes a "Cycle theme" action that steps through all three themes</li>
+                    <li>See every keyboard shortcut in the <strong>Keyboard Shortcuts</strong> panel. Open it from the account menu (person icon) or by searching "Keyboard shortcuts" in the command palette</li>
                     <li>The app respects your OS's reduced-motion setting and includes a skip-to-content link for keyboard/screen-reader users</li>
                 </ul>
             </section>
@@ -644,11 +645,12 @@
                 <ol>
                     <li>Go to the Reconcile tab and choose the account you want to reconcile</li>
                     <li>Review the list of expected transactions for the statement period — these are derived from your ledger (income, debts, bills, expenses, and recurring templates)</li>
-                    <li>Enter the statement balance from your bank or card, an optional date, and an optional note</li>
+                    <li>Set the <strong>Statement Start Date</strong> and <strong>Statement End Date</strong> to match your statement. The start date defaults to the day after your last reconciliation for that account, and the end date defaults to today. The end date can't be before the start date</li>
+                    <li>Enter the statement balance from your bank or card and an optional note</li>
                     <li>Submit to log the reconciliation — the difference is recorded, and whether the account's tracked balance updates depends on your Reconciliation Mode setting (see below)</li>
                 </ol>
 
-                <div class="guide-note">Each reconciliation entry records the previous balance, the statement balance, the difference between them, and your note, so you have a running history of adjustments per account. This history is included in your JSON export/import.</div>
+                <div class="guide-note">Each reconciliation entry records the statement period, the previous balance, the statement balance, the difference between them, and your note, so you have a running history of adjustments per account. This history is included in your JSON export/import.</div>
 
                 <h3>Reconciliation Mode</h3>
                 <p>A global setting controls what a reconciliation does to the account's tracked balance:</p>

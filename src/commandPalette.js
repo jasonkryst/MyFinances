@@ -81,6 +81,12 @@ function buildCommands(app) {
             hint: 'Action',
             icon: '⚙️',
             run: () => document.getElementById('settingsBtn')?.click()
+        },
+        {
+            label: 'Keyboard shortcuts',
+            hint: 'Action',
+            icon: '⌨️',
+            run: () => app.openKeyboardShortcuts()
         }
     ];
 }

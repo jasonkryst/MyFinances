@@ -248,10 +248,16 @@ export function sanitizeReconciliation(record, idFallback) {
     const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
         ? record.createdAt
         : new Date().toISOString();
+    // Statement range (issue #275) is null on legacy records; an inverted range drops the start.
+    const statementEndDate = sanitizeDateISO(record?.statementEndDate);
+    const rawStart = sanitizeDateISO(record?.statementStartDate);
+    const statementStartDate = rawStart && statementEndDate && rawStart > statementEndDate ? null : rawStart;
     return {
         id: sanitizeInteger(record?.id, idFallback),
         accountId: sanitizeInteger(record?.accountId, null),
         date: sanitizeDateISO(record?.date) || todayISO(),
+        statementStartDate,
+        statementEndDate,
         previousBalance: sanitizeFiniteNumber(record?.previousBalance, 0),
         statementBalance: sanitizeFiniteNumber(record?.statementBalance, NaN),
         difference: sanitizeFiniteNumber(record?.difference, 0),
