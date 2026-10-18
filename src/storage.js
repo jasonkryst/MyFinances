@@ -115,13 +115,20 @@ export function getStorageUsageInfo(serializedJson) {
 }
 
 // Module-level debounce state for local/session backends.
+// Debounce strategy: LEADING + TRAILING.
+//   - First call in a quiet period writes immediately (leading edge) —
+//     this preserves the existing "data is persisted right away" contract
+//     that tests and switchStorageBackend rely on.
+//   - Subsequent calls within STORAGE_DEBOUNCE_MS reset a trailing timer
+//     so rapid-fire mutations (e.g. every keystroke) collapse to one final
+//     write when the user pauses, rather than one write per character.
 let _saveTimer = null;
 let _pendingApp = null;
 const STORAGE_DEBOUNCE_MS = 300;
 
 // Synchronous write for local/session backends. Used directly by
 // switchStorageBackend (which needs a true/false result without the debounce)
-// and fired by the debounce timer and flushStorageSave.
+// and fired by the leading path, the debounce timer, and flushStorageSave.
 function _writeNow(app) {
     try {
         const data = {
@@ -221,18 +228,27 @@ export function saveToStorage(app) {
             return false;
         });
     }
-    _pendingApp = app;
-    clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(() => {
-        _saveTimer = null;
-        const pending = _pendingApp;
-        _pendingApp = null;
-        _writeNow(pending);
-    }, STORAGE_DEBOUNCE_MS);
+    if (_saveTimer === null) {
+        // Leading edge: no active debounce window — write immediately and
+        // open a cooldown window to catch any rapid follow-on calls.
+        _writeNow(app);
+        _saveTimer = setTimeout(() => { _saveTimer = null; }, STORAGE_DEBOUNCE_MS);
+    } else {
+        // Within the debounce window: hold latest state for a trailing write
+        // so the final mutation is not lost when the burst settles.
+        _pendingApp = app;
+        clearTimeout(_saveTimer);
+        _saveTimer = setTimeout(() => {
+            _saveTimer = null;
+            const pending = _pendingApp;
+            _pendingApp = null;
+            if (pending) _writeNow(pending);
+        }, STORAGE_DEBOUNCE_MS);
+    }
 }
 
-// Cancel any pending debounced write and execute it immediately. Called from
-// the app's beforeunload handler so no in-flight edits are lost on tab close.
+// Flush any pending trailing write immediately — called from the app's
+// beforeunload handler so in-flight edits are not lost when the tab closes.
 export function flushStorageSave() {
     if (_saveTimer !== null) {
         clearTimeout(_saveTimer);
