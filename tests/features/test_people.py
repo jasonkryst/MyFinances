@@ -439,3 +439,219 @@ def test_people_page_linked_income_navigates_to_income_page(app_page):
     inc_btn.click()
     page.wait_for_selector('#incomeSection.active', timeout=5000)
     assert page.query_selector('#incomeSection.active'), "Did not navigate to Income page"
+
+
+# ── Person summary card KPI tile tests (issue #284) ───────────────────────────
+
+@pytest.mark.feature
+def test_person_card_has_summary_card(app_page):
+    """A person card on the People page renders the .person-summary-card KPI tile container."""
+    page = app_page
+    _add_person(page, 'KPIPerson')
+    assert page.query_selector('#peopleList .person-summary-card'), \
+        ".person-summary-card not found on person card"
+
+
+@pytest.mark.feature
+def test_person_card_kpi_tiles_present(app_page):
+    """Each person card has 4 KPI tiles for Annual Income, Total Debt, Monthly Net, Credit Util."""
+    page = app_page
+    _add_person(page, 'TilePerson')
+
+    tiles = page.query_selector_all('#peopleList .person-kpi-tile')
+    assert len(tiles) == 4, f"Expected 4 KPI tiles, got {len(tiles)}"
+
+    labels = [t.inner_text() for t in tiles]
+    joined = ' '.join(labels)
+    assert 'Annual Income' in joined, "Annual Income tile not found"
+    assert 'Total Debt' in joined, "Total Debt tile not found"
+    assert 'Monthly Net' in joined, "Monthly Net tile not found"
+    assert 'Credit Util' in joined, "Credit Util tile not found"
+
+
+@pytest.mark.feature
+def test_person_card_annual_income_reflects_linked_income(app_page):
+    """The Annual Income KPI tile shows the correct annual figure for a linked income."""
+    page = app_page
+    _add_person(page, 'AnnualPerson')
+    _add_income_for_person(page, 'Monthly Pay', 6000, 'AnnualPerson')
+
+    _nav_people(page)
+    # $6,000/month × 12 = $72,000
+    card_html = page.inner_html('#peopleList')
+    assert '72,000' in card_html or '72000' in card_html, \
+        "Annual income tile should reflect $72,000 for $6k/month income"
+
+
+@pytest.mark.feature
+def test_person_card_monthly_net_positive_color(app_page):
+    """Monthly Net tile uses the positive color class when income > debt minimums."""
+    page = app_page
+    _add_person(page, 'NetPosPerson')
+    _add_income_for_person(page, 'High Salary', 10000, 'NetPosPerson')
+    # No debts — net is positive
+    _nav_people(page)
+
+    positive_el = page.query_selector('#peopleList .person-kpi--positive')
+    assert positive_el, "Monthly Net should have positive color class when income > debt minimums"
+
+
+@pytest.mark.feature
+def test_person_card_monthly_net_negative_color(app_page):
+    """Monthly Net tile uses the negative color class when debt minimums > income."""
+    page = app_page
+    _add_person(page, 'NetNegPerson')
+    # No income linked, but add a large-minimum debt
+    _add_debt_for_person(page, 'Big Debt', 50000, 'NetNegPerson')
+
+    _nav_people(page)
+    negative_el = page.query_selector('#peopleList .person-kpi--negative')
+    assert negative_el, "Monthly Net should have negative color class when debt minimums > income"
+
+
+@pytest.mark.feature
+def test_person_card_credit_util_tile_na_without_cc_debts(app_page):
+    """Credit Util tile shows N/A when the person has no CC debts with limits set."""
+    page = app_page
+    _add_person(page, 'NoUtilPerson')
+    _nav_people(page)
+
+    card_text = page.inner_text('#peopleList')
+    assert 'N/A' in card_text, "Credit Util tile should show N/A when no CC debts exist"
+
+
+@pytest.mark.feature
+def test_person_card_credit_util_tile_shows_pct_with_cc_debt(app_page):
+    """Credit Util tile shows a utilization percentage when a CC debt exists."""
+    page = app_page
+    _add_person(page, 'UtilTilePerson')
+    _nav_debts(page)
+    _open_debt_form(page)
+    page.fill('#debtName', 'CC Test')
+    page.select_option('#debtType', value='creditCard')
+    page.fill('#accountBalance', '5000')
+    page.fill('#creditLimit', '10000')
+    page.fill('#interestRate', '20')
+    page.fill('#minimumPayment', '100')
+    page.fill('#dueDate', '15')
+    page.select_option('#debtPersons', label='UtilTilePerson')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('#debtsList >> text=CC Test', timeout=10000)
+
+    _nav_people(page)
+    card_text = page.inner_text('#peopleList')
+    # 5000/10000 = 50%
+    assert '50%' in card_text, "Credit Util tile should show 50% utilization"
+    # Should NOT show N/A when CC debts exist
+    assert 'N/A' not in card_text, "Credit Util tile should not show N/A when CC debts exist"
+
+
+@pytest.mark.feature
+def test_person_card_credit_util_health_badge(app_page):
+    """Credit Util tile value is wrapped in a health-badge with a status class."""
+    page = app_page
+    _add_person(page, 'BadgePerson')
+    _nav_debts(page)
+    _open_debt_form(page)
+    page.fill('#debtName', 'Badge CC')
+    page.select_option('#debtType', value='creditCard')
+    page.fill('#accountBalance', '500')
+    page.fill('#creditLimit', '10000')
+    page.fill('#interestRate', '18')
+    page.fill('#minimumPayment', '25')
+    page.fill('#dueDate', '15')
+    page.select_option('#debtPersons', label='BadgePerson')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('#debtsList >> text=Badge CC', timeout=10000)
+
+    _nav_people(page)
+    # 5% utilization → health-status--green
+    badge = page.query_selector('#peopleList .person-kpi-tile .health-badge')
+    assert badge, "No health-badge found in Credit Util tile"
+    badge_classes = badge.get_attribute('class') or ''
+    assert 'health-status--' in badge_classes, \
+        f"health-badge should have a health-status class, got: {badge_classes!r}"
+
+
+@pytest.mark.feature
+def test_person_card_dti_badge_shown_when_income_linked(app_page):
+    """A DTI badge appears in the person card header when income is linked."""
+    page = app_page
+    _add_person(page, 'DTIBadgePerson')
+    _add_income_for_person(page, 'DTI Income', 5000, 'DTIBadgePerson')
+    _nav_people(page)
+
+    dti_badge = page.query_selector('#peopleList .person-card-header .health-badge')
+    assert dti_badge, "DTI badge not found in person card header"
+    badge_text = dti_badge.inner_text()
+    assert 'DTI' in badge_text, f"Expected 'DTI' in badge text, got: {badge_text!r}"
+
+
+@pytest.mark.feature
+def test_person_card_no_dti_badge_without_income(app_page):
+    """No DTI badge appears when the person has no linked income (dtiPct is null)."""
+    page = app_page
+    _add_person(page, 'NoDTIPerson')
+    _nav_people(page)
+
+    dti_badge = page.query_selector('#peopleList .person-card-header .health-badge')
+    assert not dti_badge, "DTI badge should not appear when no income is linked"
+
+
+@pytest.mark.feature
+def test_person_card_aria_labels(app_page):
+    """KPI tiles have aria-label attributes for screen-reader accessibility."""
+    page = app_page
+    _add_person(page, 'AriaLabelPerson')
+    _nav_people(page)
+
+    tiles = page.query_selector_all('#peopleList .person-kpi-tile')
+    for tile in tiles:
+        aria = tile.get_attribute('aria-label')
+        assert aria, f"KPI tile is missing aria-label: {tile.inner_text()!r}"
+        assert 'AriaLabelPerson' in aria, \
+            f"aria-label should include the person name, got: {aria!r}"
+
+
+@pytest.mark.feature
+def test_person_card_kpi_tiles_persist_after_reload(app_page):
+    """KPI tiles are still present after a page reload (data persisted)."""
+    page = app_page
+    _add_person(page, 'ReloadKPIPerson')
+    page.reload()
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+    _nav_people(page)
+    tiles = page.query_selector_all('#peopleList .person-kpi-tile')
+    assert len(tiles) == 4, f"KPI tiles should reappear after reload, got {len(tiles)}"
+
+
+# ── Negative tests for summary card ──────────────────────────────────────────
+
+@pytest.mark.feature
+def test_person_card_no_summary_in_edit_mode(app_page):
+    """When a person card is in edit mode, the KPI summary card is NOT shown."""
+    page = app_page
+    _add_person(page, 'EditModePerson')
+    edit_btn = page.query_selector('#peopleList .btn-edit')
+    edit_btn.click()
+    page.wait_for_selector('[data-person-action="save"]', timeout=3000)
+
+    # In edit mode, the card is replaced with an edit form — no summary card
+    summary = page.query_selector('#peopleList .person-summary-card')
+    assert not summary, "Summary card should not render while the card is in edit mode"
+
+
+@pytest.mark.feature
+def test_person_card_summary_xss_safe(app_page):
+    """Person names with special characters are escaped in KPI tile aria-labels."""
+    page = app_page
+    xss_name = 'A"B<script>alert(1)</script>'
+    _nav_people(page)
+    page.fill('#personName', xss_name)
+    page.click('#personFormSubmit')
+    page.wait_for_timeout(500)
+
+    # If XSS executed, the page title would change or an alert would fire.
+    # Verify no raw <script> appears in the people list HTML.
+    html = page.inner_html('#peopleList')
+    assert '<script>' not in html, "XSS payload should be escaped in the people list HTML"

@@ -1573,3 +1573,231 @@ def test_ledger_override_memo_empty_when_not_entered(app_page):
     assert stored, "Override should be persisted"
     assert stored.get('memo') == '' or stored.get('memo') is None, \
         f"Memo should be empty when not entered, got: {stored.get('memo')!r}"
+
+
+# ── Bulk clear / unclear tests (issue #266) ───────────────────────────────────
+
+@pytest.mark.feature
+def test_ledger_bulk_bar_hidden_by_default(app_page):
+    """The bulk action bar is hidden when no rows are selected."""
+    page = app_page
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-select]', timeout=10000)
+
+    # Bar should not be visible initially (no rows checked)
+    bar_visible = page.evaluate(
+        "() => document.querySelector('#ledgerBulkBar')?.classList.contains('ledger-bulk-bar--visible') || false"
+    )
+    assert bar_visible is False, "Bulk bar should be hidden when no rows are selected"
+
+
+@pytest.mark.feature
+def test_ledger_bulk_bar_appears_when_row_selected(app_page):
+    """Checking a row selection checkbox makes the bulk action bar visible."""
+    page = app_page
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-select]', timeout=10000)
+
+    select_cb = page.query_selector('[data-ledger-select]')
+    assert select_cb, "Expected at least one row-select checkbox"
+    select_cb.click()
+
+    bar_visible = page.evaluate(
+        "() => document.querySelector('#ledgerBulkBar')?.classList.contains('ledger-bulk-bar--visible') || false"
+    )
+    assert bar_visible is True, "Bulk bar should appear when a row is selected"
+
+    count_text = page.evaluate(
+        "() => document.querySelector('#ledgerBulkCount')?.textContent || ''"
+    )
+    assert '1' in count_text, f"Bulk count should show 1 selected row, got: {count_text!r}"
+
+
+@pytest.mark.feature
+def test_ledger_bulk_select_all(app_page):
+    """The select-all header checkbox selects all row checkboxes on the current page."""
+    page = app_page
+    _seed_income_for_ledger(page, name='Bulk A', amount=2000)
+    _seed_income_for_ledger(page, name='Bulk B', amount=2500)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-select]', timeout=10000)
+
+    total = page.evaluate("() => document.querySelectorAll('[data-ledger-select]').length")
+    assert total >= 2, "Need at least two selectable rows for this test"
+
+    select_all = page.query_selector('#ledgerSelectAll')
+    assert select_all, "Select-all header checkbox not found"
+    select_all.click()
+
+    checked_count = page.evaluate(
+        "() => document.querySelectorAll('[data-ledger-select]:checked').length"
+    )
+    assert checked_count == total, f"Select-all should check all {total} rows; got {checked_count}"
+
+
+@pytest.mark.feature
+def test_ledger_bulk_clear_marks_selected_rows(app_page):
+    """Clicking 'Mark Cleared' on the bulk bar clears all selected rows."""
+    page = app_page
+    _seed_income_for_ledger(page, name='BulkClr A', amount=3000)
+    _seed_income_for_ledger(page, name='BulkClr B', amount=3500)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-select]', timeout=10000)
+
+    # Select all rows
+    page.click('#ledgerSelectAll')
+    page.wait_for_selector('.ledger-bulk-bar--visible', timeout=3000)
+
+    tx_ids = page.evaluate(
+        "() => Array.from(document.querySelectorAll('[data-ledger-select]')).map(c => c.getAttribute('data-ledger-select'))"
+    )
+
+    page.click('#ledgerBulkClearBtn')
+    # Page re-renders; wait for select checkboxes to reappear
+    page.wait_for_selector('[data-ledger-cleared]', timeout=5000)
+
+    # All selected rows should now be marked cleared
+    for tx_id in tx_ids:
+        state = page.evaluate(
+            "(txId) => document.querySelector(`[data-ledger-cleared=\"${txId}\"]`)?.checked || false",
+            tx_id
+        )
+        assert state is True, f"Row {tx_id} should be cleared after bulk clear"
+
+
+@pytest.mark.feature
+def test_ledger_bulk_unclear_unmarks_selected_rows(app_page):
+    """Clicking 'Mark Unclear' on the bulk bar unclears all selected rows."""
+    page = app_page
+    _seed_income_for_ledger(page, name='BulkUnclr', amount=4000)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-cleared]', timeout=10000)
+
+    # First clear the row individually
+    cleared_cb = page.query_selector('[data-ledger-cleared]')
+    tx_id = cleared_cb.get_attribute('data-ledger-cleared')
+    cleared_cb.click()
+    page.wait_for_selector(f'[data-ledger-cleared="{tx_id}"][checked], [data-ledger-cleared="{tx_id}"]:checked',
+                           timeout=5000)
+
+    # Now select and bulk-unclear
+    select_cb = page.query_selector(f'[data-ledger-select="{tx_id}"]')
+    assert select_cb, "Row-select checkbox not found for the cleared row"
+    select_cb.click()
+    page.wait_for_selector('.ledger-bulk-bar--visible', timeout=3000)
+    page.click('#ledgerBulkUnclearBtn')
+    page.wait_for_selector('[data-ledger-cleared]', timeout=5000)
+
+    state = page.evaluate(
+        "(txId) => document.querySelector(`[data-ledger-cleared=\"${txId}\"]`)?.checked || false",
+        tx_id
+    )
+    assert state is False, "Row should be uncleared after bulk unclear"
+
+
+@pytest.mark.feature
+def test_ledger_bulk_selection_resets_after_action(app_page):
+    """After a bulk action completes, the bulk bar is hidden (selection cleared by re-render)."""
+    page = app_page
+    _seed_income_for_ledger(page, name='BulkReset', amount=5000)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-select]', timeout=10000)
+
+    page.click('[data-ledger-select]')
+    page.wait_for_selector('.ledger-bulk-bar--visible', timeout=3000)
+    page.click('#ledgerBulkClearBtn')
+    page.wait_for_selector('[data-ledger-cleared]', timeout=5000)
+
+    # After re-render the bar should be gone (selection reset)
+    bar_visible = page.evaluate(
+        "() => document.querySelector('#ledgerBulkBar')?.classList.contains('ledger-bulk-bar--visible') || false"
+    )
+    assert bar_visible is False, "Bulk bar should be hidden after action completes (selection reset)"
+
+
+@pytest.mark.feature
+def test_ledger_bulk_clear_persists_after_reload(app_page):
+    """Bulk-cleared rows survive a page reload (written to localStorage)."""
+    page = app_page
+    _seed_income_for_ledger(page, name='PersistBulk', amount=3000)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-select]', timeout=10000)
+
+    tx_ids = page.evaluate(
+        "() => Array.from(document.querySelectorAll('[data-ledger-select]')).map(c => c.getAttribute('data-ledger-select'))"
+    )
+    assert tx_ids, "Need at least one selectable row"
+
+    page.click('#ledgerSelectAll')
+    page.click('#ledgerBulkClearBtn')
+    page.wait_for_selector('[data-ledger-cleared]', timeout=5000)
+    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
+
+    page.reload()
+    page.wait_for_selector('#app, body', timeout=10000)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    for tx_id in tx_ids:
+        state = page.evaluate(
+            "(txId) => document.querySelector(`[data-ledger-cleared=\"${txId}\"]`)?.checked || false",
+            tx_id
+        )
+        assert state is True, f"Bulk-cleared row {tx_id} should still be cleared after reload"
+
+
+# ── Negative tests for bulk clear ────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_ledger_bulk_bar_hidden_with_no_overridable_rows(app_page):
+    """When the ledger has only rollover/reconciliation rows (no overridable rows),
+    there should be no row-select checkboxes and the bulk bar should not appear."""
+    page = app_page
+    # Navigate to ledger with no data — only empty state row
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    select_cbs = page.query_selector_all('[data-ledger-select]')
+    assert len(select_cbs) == 0, "Empty ledger should have no row-select checkboxes"
+
+    bar_visible = page.evaluate(
+        "() => document.querySelector('#ledgerBulkBar')?.classList.contains('ledger-bulk-bar--visible') || false"
+    )
+    assert bar_visible is False, "Bulk bar should not be visible when no selectable rows exist"
+
+
+@pytest.mark.feature
+def test_ledger_select_all_then_deselect_hides_bar(app_page):
+    """Selecting all rows then unchecking select-all hides the bulk bar."""
+    page = app_page
+    _seed_income_for_ledger(page, name='DeselectTest', amount=3000)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('[data-ledger-select]', timeout=10000)
+
+    # Select all, then deselect all
+    page.click('#ledgerSelectAll')
+    page.wait_for_selector('.ledger-bulk-bar--visible', timeout=3000)
+    page.click('#ledgerSelectAll')
+
+    bar_visible = page.evaluate(
+        "() => document.querySelector('#ledgerBulkBar')?.classList.contains('ledger-bulk-bar--visible') || false"
+    )
+    assert bar_visible is False, "Bulk bar should hide when all rows are deselected"

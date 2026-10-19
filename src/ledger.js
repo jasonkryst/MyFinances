@@ -213,8 +213,14 @@ export function renderLedgerPage(app) {
     const ch = col => hiddenCols.has(col) ? ' class="ledger-col-hidden"' : '';
 
     let html = filterHtml;
+    html += `<div id="ledgerBulkBar" class="ledger-bulk-bar">
+        <span id="ledgerBulkCount" class="ledger-bulk-count" aria-live="polite"></span>
+        <button id="ledgerBulkClearBtn" class="btn btn-secondary btn-small" type="button">✓ Mark Cleared</button>
+        <button id="ledgerBulkUnclearBtn" class="btn btn-secondary btn-small" type="button">✕ Mark Unclear</button>
+    </div>`;
     html += `<div class="table-wrapper"><table class="ledger-table">
         <thead><tr>
+            <th data-col="select" class="ledger-select-col${hiddenCols.has('cleared') ? ' ledger-col-hidden' : ''}"><input type="checkbox" id="ledgerSelectAll" aria-label="Select all rows"></th>
             <th data-key="date" data-col="date"${ch('date')}>Date ${sortIcon('date')}</th>
             <th data-key="account" data-col="account"${ch('account')}>Account ${sortIcon('account')}</th>
             <th data-key="name" data-col="name"${ch('name')}>Transaction ${sortIcon('name')}</th>
@@ -223,7 +229,7 @@ export function renderLedgerPage(app) {
             <th data-col="cleared"${ch('cleared')}>Cleared</th>
         </tr></thead>
         <tbody>`;
-    const visibleColCount = LEDGER_ALL_COLS.length - hiddenCols.size;
+    const visibleColCount = LEDGER_ALL_COLS.length - hiddenCols.size + (hiddenCols.has('cleared') ? 0 : 1);
     if (pagedTransactions.length === 0) {
         html += `<tr><td colspan="${visibleColCount}" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
     } else {
@@ -288,7 +294,11 @@ export function renderLedgerPage(app) {
             const clearedCell = canOverride
                 ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark cleared">`
                 : '';
+            const selectCell = canOverride
+                ? `<input type="checkbox" class="ledger-row-select" data-ledger-select="${escapeHtml(tx.transactionId)}" aria-label="Select row">`
+                : '';
             html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
+                <td data-col="select" class="ledger-select-col${hiddenCols.has('cleared') ? ' ledger-col-hidden' : ''}">${selectCell}</td>
                 <td data-col="date"${ch('date')}>${tx.date ? formatShortDate(tx.date) : ''}</td>
                 <td data-col="account"${ch('account')}>${escapeHtml(tx.account || '')}</td>
                 <td data-col="name"${ch('name')}>${nameCell}</td>
@@ -432,6 +442,56 @@ export function renderLedgerPage(app) {
         };
     });
 
+    // Bulk selection
+    const bulkBar = container.querySelector('#ledgerBulkBar');
+    const bulkCount = container.querySelector('#ledgerBulkCount');
+    const selectAll = container.querySelector('#ledgerSelectAll');
+
+    function _updateBulkBar() {
+        const checked = container.querySelectorAll('.ledger-row-select:checked');
+        const n = checked.length;
+        if (bulkBar) bulkBar.classList.toggle('ledger-bulk-bar--visible', n > 0);
+        if (bulkCount) bulkCount.textContent = n > 0 ? `${n} row${n !== 1 ? 's' : ''} selected` : '';
+        if (selectAll) {
+            const all = container.querySelectorAll('.ledger-row-select');
+            selectAll.indeterminate = n > 0 && n < all.length;
+            selectAll.checked = all.length > 0 && n === all.length;
+        }
+    }
+
+    if (selectAll) {
+        selectAll.onchange = () => {
+            container.querySelectorAll('.ledger-row-select').forEach(cb => { cb.checked = selectAll.checked; });
+            _updateBulkBar();
+        };
+    }
+
+    container.querySelectorAll('.ledger-row-select').forEach(cb => {
+        cb.onchange = _updateBulkBar;
+    });
+
+    const bulkClearBtn = container.querySelector('#ledgerBulkClearBtn');
+    if (bulkClearBtn) {
+        bulkClearBtn.onclick = () => {
+            container.querySelectorAll('.ledger-row-select:checked').forEach(cb => {
+                setLedgerCleared(app, cb.getAttribute('data-ledger-select'), true);
+            });
+            app.saveToStorage();
+            renderLedgerPage(app);
+        };
+    }
+
+    const bulkUnclearBtn = container.querySelector('#ledgerBulkUnclearBtn');
+    if (bulkUnclearBtn) {
+        bulkUnclearBtn.onclick = () => {
+            container.querySelectorAll('.ledger-row-select:checked').forEach(cb => {
+                setLedgerCleared(app, cb.getAttribute('data-ledger-select'), false);
+            });
+            app.saveToStorage();
+            renderLedgerPage(app);
+        };
+    }
+
     const reconcileBtn = container.querySelector('#reconcileFromLedgerBtn');
     if (reconcileBtn) {
         reconcileBtn.onclick = () => {
@@ -466,6 +526,12 @@ export function renderLedgerPage(app) {
                     el.classList.toggle('ledger-col-hidden', newHidden.has(col));
                 });
             });
+            // Select column mirrors the cleared column's visibility
+            const selectColHidden = newHidden.has('cleared');
+            container.querySelectorAll('[data-col="select"]').forEach(el => {
+                el.classList.toggle('ledger-col-hidden', selectColHidden);
+            });
+            if (bulkBar) bulkBar.classList.toggle('ledger-bulk-bar--hidden', selectColHidden);
         };
     }
     // --- End: renderLedgerPage logic ---
