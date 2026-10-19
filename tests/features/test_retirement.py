@@ -439,3 +439,148 @@ def test_pension_and_investment_coexist_on_retirement_page(app_page):
     sr_rows = page.evaluate("() => document.querySelectorAll('#retireBalanceChart-sr-table tbody tr').length")
     assert sr_rows > 0, "Investment account data should appear in balance chart"
     assert_no_errors(page)
+
+
+# ── Contribution limit tracker tests (#280) ────────────────────────────────────
+
+@pytest.mark.feature
+def test_contribution_limit_bar_shows_on_401k_card(app_page):
+    """A 401k account card on the Retirement page shows the IRS contribution limit section."""
+    page = app_page
+    _add_retirement_account(page, name="My 401k", subtype="401k")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    assert page.is_visible('.retire-limit-section'), "Limit section should be visible for a 401k"
+    assert page.is_visible('.retire-limit-title'), "Limit title should be visible"
+    limit_label = page.text_content('.retire-limit-label')
+    assert 'of' in limit_label, "Limit label should show 'YTD of limit' format"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_contribution_limit_ytd_sums_current_year_snapshots(app_page):
+    """YTD contributions sum only snapshots in the current calendar year."""
+    import datetime
+    page = app_page
+    _add_retirement_account(page)
+    account_id = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').id")
+    current_year = datetime.date.today().year
+    prior_year = current_year - 1
+    # Add one snapshot this year and one last year.
+    page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '{current_year}-03-01', 10000, 3000)")
+    page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '{current_year}-06-01', 12000, 2000)")
+    page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '{prior_year}-12-01', 9000, 999)")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    # YTD should be $5,000 (3000 + 2000), not $5,999.
+    limit_label = page.text_content('.retire-limit-label')
+    assert '5,000' in limit_label, f"YTD should be $5,000, got: {limit_label}"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_near_limit_badge_appears_when_within_20_pct(app_page):
+    """'Near limit' badge appears when YTD is between 80% and 100% of the IRS limit."""
+    import datetime
+    page = app_page
+    _add_retirement_account(page, name="IRA Test", subtype="Traditional IRA")
+    account_id = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').id")
+    current_year = datetime.date.today().year
+    # IRA limit is $7,000; 90% = $6,300.
+    page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '{current_year}-06-01', 20000, 6300)")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    badge = page.query_selector('.retire-limit-badge--near')
+    assert badge is not None, "Near-limit badge should appear at 90% of limit"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_over_limit_badge_appears_when_exceeded(app_page):
+    """'Over limit' badge appears when YTD contributions exceed the IRS limit."""
+    import datetime
+    page = app_page
+    _add_retirement_account(page, name="Over 401k", subtype="401k")
+    account_id = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').id")
+    current_year = datetime.date.today().year
+    # Exceed the $23,500 limit (2025/2026 limit).
+    page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '{current_year}-12-01', 50000, 25000)")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    badge = page.query_selector('.retire-limit-badge--over')
+    assert badge is not None, "Over-limit badge should appear when YTD exceeds IRS limit"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_catch_up_toggle_increases_displayed_limit(app_page):
+    """Checking 'Catch-up (50+)' switches the limit to the catch-up amount."""
+    import datetime
+    page = app_page
+    _add_retirement_account(page, name="CatchUp 401k", subtype="401k")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    # Base limit before toggle.
+    before = page.text_content('.retire-limit-label')
+    # Toggle catch-up checkbox.
+    page.check('input[data-retire-action="toggle-catchup"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    after = page.text_content('.retire-limit-label')
+    assert before != after, "Displayed limit should change after toggling catch-up"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_hsa_family_selector_changes_limit(app_page):
+    """Switching HSA coverage to 'Family' shows the higher family limit."""
+    import datetime
+    page = app_page
+    _add_retirement_account(page, name="HSA Test", subtype="HSA")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    before = page.text_content('.retire-limit-label')
+    page.select_option('select[data-retire-action="set-hsa-coverage"]', 'family')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    after = page.text_content('.retire-limit-label')
+    assert before != after, "Displayed limit should change after switching to family coverage"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_pension_card_has_no_limit_section(app_page):
+    """Pension account cards do not show a contribution limit section (no statutory limit)."""
+    page = app_page
+    # Inject a Pension account directly (UI helper fills rate/match fields hidden for Pension).
+    page.evaluate("""() => {
+        window.app.accounts.push({
+            id: 9901, name: 'My Pension', type: 'Retirement', retirementSubtype: 'Pension',
+            startingBalance: 0, interestRate: 0, rateOfReturn: 0, employerMatchPercent: 0,
+            pensionAnnualSalary: 60000, pensionContributionRatePct: 5,
+            pensionVestingYears: 5, pensionEstimatedMonthlyBenefit: 2000,
+            pensionYearsOfService: 10, minimumPayment: 0,
+            catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false
+        });
+        window.app.saveToStorage();
+    }""")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    assert not page.is_visible('.retire-limit-section'), "Pension cards should not show limit section"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_catchup_eligible_persists_after_reload(app_page):
+    """Setting catch-up eligible on an account persists through a page reload."""
+    page = app_page
+    _add_retirement_account(page)
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    page.check('input[data-retire-action="toggle-catchup"]')
+    page.wait_for_selector('.retire-limit-section', timeout=5000)
+    # Verify the flag is saved.
+    catch_up = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').catchUpEligible")
+    assert catch_up is True
+    page.reload(wait_until="networkidle")
+    catch_up_after = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').catchUpEligible")
+    assert catch_up_after is True, "catchUpEligible should persist after reload"
+    assert_no_errors(page)

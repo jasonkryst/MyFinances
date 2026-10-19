@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.22.0] — 2026-10-19
+
+### Added
+- **RT-01 — Retirement contribution limit tracker** (issue #280) — each retirement account card now shows a year-to-date contribution progress bar against the IRS annual limit for that account subtype (401k, Traditional IRA, Roth IRA, HSA). The bar is green under 80%, amber at 80–99%, and red at or over 100%, with a "Near limit" / "Over limit" badge. A per-account "Catch-up (50+)" checkbox switches to the higher IRS catch-up limit; HSA accounts also get a Self-only / Family selector. Limits are stored as a year-keyed constant in `src/retirementCalculator.js` (covering 2024–2026) with a year-fallback for future years; `getContributionLimit()` and `computeYtdContributions()` are new pure exports covered by unit tests. Pension and Other accounts have no statutory limit and show no bar.
+
 ## [6.21.0] — 2026-10-19
 
 ### Added
