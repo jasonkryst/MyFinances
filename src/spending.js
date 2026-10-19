@@ -6,7 +6,7 @@ export const PALETTE = [
     '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#64748b'
 ];
 
-const PINNED_COLORS = { 'Debt Payments': '#ef4444', 'Savings': '#10b981' };
+export const PINNED_COLORS = { 'Debt Payments': '#ef4444', 'Savings': '#10b981' };
 
 export function categoryColor(name) {
     name = String(name || 'Other');

@@ -87,6 +87,13 @@ function buildCommands(app) {
             hint: 'Action',
             icon: '⌨️',
             run: () => app.openKeyboardShortcuts()
+        },
+        {
+            label: 'Open Bonus Advisor',
+            hint: 'Action',
+            icon: '🎯',
+            keywords: 'bonus windfall lump sum one-time payment',
+            run: () => { app.switchPage('income'); app.showBonusAdvice(); }
         }
     ];
 }
@@ -146,7 +153,10 @@ export function initCommandPalette(app) {
 
     input.addEventListener('input', () => {
         const q = input.value.trim().toLowerCase();
-        filtered = q ? commands.filter(cmd => cmd.label.toLowerCase().includes(q)) : commands;
+        filtered = q ? commands.filter(cmd =>
+            cmd.label.toLowerCase().includes(q) ||
+            (cmd.keywords && cmd.keywords.toLowerCase().includes(q))
+        ) : commands;
         activeIndex = 0;
         render();
     });

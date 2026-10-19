@@ -361,7 +361,14 @@ function renderSurplusSection(app) {
         ` : `
             <div class="health-surplus-deficit-note">Reduce expenses or increase income over the next ${windowDays} days to free up cash.</div>
         `}
+        ${surplus > 0 ? `<div class="health-bonus-cta"><a href="#" id="healthBonusAdvisorLink" class="health-bonus-cta-link">Got a bonus or windfall? Use the Bonus Advisor →</a></div>` : ''}
     `;
+
+    document.getElementById('healthBonusAdvisorLink')?.addEventListener('click', e => {
+        e.preventDefault();
+        app.switchPage('income');
+        app.showBonusAdvice();
+    });
 
     // ── Sparkline chart ───────────────────────────────────────────────────────
     const sparkCanvas = document.getElementById('healthSurplusSparkline');

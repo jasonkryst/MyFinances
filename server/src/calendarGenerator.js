@@ -185,9 +185,18 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
 
         for (const debt of debtsRes.rows) {
             if (debt.archived && !showArchived) continue;
-            if (!debt.due_date) continue;
-            const d = Math.min(debt.due_date, daysInMo);
-            const dateStr = isoDateStr(y, mo, d);
+            if (!debt.due_date && !debt.next_payment_due) continue;
+            let dateStr;
+            if (debt.next_payment_due && debt.next_payment_due.startsWith(`${y}-${String(mo).padStart(2, '0')}`)) {
+                dateStr = typeof debt.next_payment_due === 'string'
+                    ? debt.next_payment_due.slice(0, 10)
+                    : debt.next_payment_due.toISOString().slice(0, 10);
+            } else if (debt.due_date) {
+                const d = Math.min(debt.due_date, daysInMo);
+                dateStr = isoDateStr(y, mo, d);
+            } else {
+                continue;
+            }
             events.push(vevent(
                 `debt-${debt.id}-${dateStr}@myfinances`,
                 `${debt.archived ? 'Debt (Archived)' : 'Debt'} - ${debt.name}`,

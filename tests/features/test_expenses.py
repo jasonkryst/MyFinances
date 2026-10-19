@@ -28,7 +28,7 @@ def _fill_expense_form(page, name=None, amount=None, date=None, category=None):
     if date is not None:
         page.fill('#expenseDate', date)
     if category is not None:
-        page.select_option('#expenseCategory', category)
+        page.fill('#expenseCategory', category)
 
 
 def _add_expense(page, expense_data):

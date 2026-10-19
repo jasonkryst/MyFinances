@@ -4,6 +4,14 @@ import { formatCurrency, escapeHtml } from './utils.js';
 import { showAlertModal } from './ui.js';
 import { pgPost, pgDelete } from './postgresSync.js';
 
+function computeDebtFingerprint(debts) {
+    return (debts || [])
+        .filter(d => !d.archived)
+        .sort((a, b) => a.id - b.id)
+        .map(d => `${d.id}|${d.accountBalance}|${d.interestRate}|${d.minimumPayment}`)
+        .join(',');
+}
+
 // Plan History keeps only the most recent submissions -- older entries are
 // trimmed (and, on the Postgres backend, deleted server-side) past this cap.
 export const PLAN_HISTORY_CAP = 20;
@@ -78,6 +86,7 @@ export function recalculatePaymentPlan(app, { monthlyPayment, strategy, stimulus
         const result = DebtCalculator.calculatePaymentPlan(activeDebts, monthlyPayment, strategy, stimulus);
         app.lastPaymentPlan = result.paymentPlan;
         app.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
+        app._planFingerprint = computeDebtFingerprint(app.debts);
         if (onSuccess) onSuccess();
     } catch (err) {
         if (onError) onError(err);
@@ -155,6 +164,7 @@ export function calculateRequiredPayment(app) {
             // Store for the full plan display
             app.lastPaymentPlan = r.paymentPlan;
             app.lastSummary = summary;
+            app._planFingerprint = computeDebtFingerprint(app.debts);
 
             const actualMonths = r.paymentPlan.length;
             const payoffDateStr = summary ? DebtCalculator.formatDate(summary.payOffDate) : '—';

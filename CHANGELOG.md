@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.25.0] — 2026-10-19
+
+### Added
+- **CP-01 — Bonus Advisor command palette + Health CTA** (issue #267) — the command palette now indexes a `keywords` field per command; a new "Open Bonus Advisor" command includes keywords `bonus windfall lump sum one-time payment` so searching any of those terms finds it. The Health page surplus section shows a "Got a bonus or windfall? Use the Bonus Advisor →" link when surplus > 0; clicking it navigates to the Income page and opens the Bonus Advisor modal.
+- **LI-01 — Liabilities next payment due date** (issue #277) — a "Next Payment Due" date field is added to the Add Debt form, the inline edit form, and the sanitizer (`sanitizeDebt`). When set, the date is displayed on the debt card below Due Date. Both the client-side calendar feed (`src/calendarFeed.js`) and server-side calendar generator (`server/src/calendarGenerator.js`) use this date as an event override for the matching calendar month, falling back to the day-of-month `dueDate` otherwise.
+- **RC-01 — Category datalist for Recurring & Expenses** (issue #298) — the `#recurringCategory` and `#expenseCategory` fields are converted from `<select>` dropdowns to `<input type="text" list="categoryOptions">` autocomplete inputs, backed by a shared `<datalist id="categoryOptions">` populated with 20 default categories, keys from `PINNED_COLORS` in `spending.js`, and any categories already used in the app state. The datalist is refreshed on every render of the Recurring page and the Income/Expenses page.
+- **SP-01 — Strategy plan stale warning** (issue #325) — a `_planFingerprint` (sorted `id|balance|apr|minPayment` hash of all debts) is recorded in `app` whenever a payment plan is calculated. On the Strategy page a warning banner (`#planStaleWarning`) is shown when the current debt data no longer matches the fingerprint; a Recalculate button in the banner re-runs the plan and clears the warning.
+- **I18N-01 — Retirement page full i18n** (issue #336) — all visible UI strings in `src/retirement.js` are now routed through `t()` from `src/i18n.js`. Forty-plus `retirement.*` keys are added to `src/locales/en.js` (canonical) and as English stubs to `src/locales/es.js` and `src/locales/pl.js`.
+- **LF-01 — Ledger filter persistence** (issue #338) — account, date-range, cleared, and page-size filter selections on the Ledger page are saved to `localStorage` under `debtTrackerLedgerFilters` (a device UI preference, not part of `debtTrackerData`). They are restored automatically on the first render of the Ledger page per session. The "Clear filters" button also removes the stored preferences.
+- **CI-01 — Circular import audit for people.js** (issue #340) — `src/people.js` was confirmed to form a `ui.js → people.js → postgresSync.js → ui.js` cycle. A comment at the top of `people.js` documents the cycle and confirms it is safe because all eight module exports are hoisted `function` declarations. CLAUDE.md updated accordingly.
+
 ## [6.24.0] — 2026-10-19
 
 ### Added

@@ -2,6 +2,7 @@
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
+import { refreshCategoryDatalist } from './recurring.js';
 import { APP_VERSION, escapeHtml } from './utils.js';
 import { initCommandPalette } from './commandPalette.js';
 
@@ -766,7 +767,7 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
         // Default to debts subtab
         if (resetToDefaults) app.switchLiabilitiesSubTab('debts');
     }
-    if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); refreshPersonSelectors(app); }
+    if (pageName === 'income') { app.renderIncomeList(); app.renderBonusList(); refreshAccountSelectors(app); refreshPersonSelectors(app); refreshCategoryDatalist(app); }
     if (pageName === 'savings') {
         app.renderSavingsPage();
         app.attachSavingsEventListeners();

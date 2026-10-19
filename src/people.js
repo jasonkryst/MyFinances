@@ -3,6 +3,8 @@ import { normalizeText, escapeHtml, formatCurrency } from './utils.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
 
+// Cycle member: ui.js → people.js → postgresSync.js → ui.js (safe: all exports are hoisted function declarations)
+
 function _dtiStatus(dtiPct) {
     if (dtiPct < 28) return { cls: 'health-status--green', label: 'Healthy' };
     if (dtiPct < 40) return { cls: 'health-status--yellow', label: 'Moderate' };

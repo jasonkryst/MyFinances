@@ -64,7 +64,8 @@ export function sanitizeDebt(record, idFallback) {
         personIds: Array.isArray(record?.personIds)
             ? record.personIds.map(id => sanitizeInteger(id, null)).filter(id => id !== null)
             : [],
-        notes: normalizeText(record?.notes ?? '', 500)
+        notes: normalizeText(record?.notes ?? '', 500),
+        nextPaymentDue: sanitizeDateISO(record?.nextPaymentDue)
     };
 }
 

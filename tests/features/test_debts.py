@@ -972,3 +972,138 @@ def test_debt_notes_survive_sanitizer_roundtrip(app_page):
     )
     assert saved_notes == 'Round-trip note', \
         f"Notes should survive storage round-trip, got: {saved_notes!r}"
+
+
+# ── Next Payment Due field (issue #277) ───────────────────────────────────────
+
+@pytest.mark.feature
+def test_next_payment_due_field_exists_in_debt_form(app_page):
+    """The Next Payment Due date input is present in the Add Debt form."""
+    page = app_page
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    field = page.query_selector('#debtNextPaymentDue')
+    assert field, "#debtNextPaymentDue input not found in debt form"
+    assert field.get_attribute('type') == 'date', "Expected type='date'"
+
+
+@pytest.mark.feature
+def test_next_payment_due_saved_on_add(app_page):
+    """nextPaymentDue is persisted when adding a new debt."""
+    page = app_page
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    page.fill('#debtName', 'NPD Add Test')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '2000')
+    page.fill('#interestRate', '15')
+    page.fill('#minimumPayment', '50')
+    page.fill('#dueDate', '15')
+    page.fill('#debtNextPaymentDue', '2026-11-15')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=NPD Add Test', timeout=5000)
+
+    saved = page.evaluate(
+        "() => window.app.debts.find(d => d.name === 'NPD Add Test')?.nextPaymentDue"
+    )
+    assert saved == '2026-11-15', f"Expected '2026-11-15', got '{saved}'"
+
+
+@pytest.mark.feature
+def test_next_payment_due_displayed_on_debt_card(app_page):
+    """When nextPaymentDue is set, the date is shown on the debt card."""
+    page = app_page
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    page.fill('#debtName', 'NPD Display Test')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '1000')
+    page.fill('#interestRate', '10')
+    page.fill('#minimumPayment', '30')
+    page.fill('#dueDate', '10')
+    page.fill('#debtNextPaymentDue', '2026-12-01')
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=NPD Display Test', timeout=5000)
+
+    section = page.query_selector('#debtsList')
+    text = section.text_content()
+    # The card should contain the next payment due date somewhere
+    assert '2026-12-01' in text or 'Dec' in text or 'Next Payment' in text.replace('\n', ''), (
+        f"Expected next payment due date visible on card, got snippet: {text[:300]}"
+    )
+
+
+@pytest.mark.feature
+def test_next_payment_due_optional_empty_is_null(app_page):
+    """When nextPaymentDue is left blank, it is stored as null."""
+    page = app_page
+    page.click('button[data-page="liabilities"]')
+    page.click('[data-liabilities-subtab="debts"]')
+    page.click('#debtFormToggle')
+    page.fill('#debtName', 'NPD Empty Test')
+    page.select_option('#debtType', 'creditCard')
+    page.fill('#accountBalance', '500')
+    page.fill('#interestRate', '8')
+    page.fill('#minimumPayment', '20')
+    page.fill('#dueDate', '5')
+    # leave #debtNextPaymentDue empty
+    page.click('#debtFormSubmit')
+    page.wait_for_selector('text=NPD Empty Test', timeout=5000)
+
+    saved = page.evaluate(
+        "() => window.app.debts.find(d => d.name === 'NPD Empty Test')?.nextPaymentDue"
+    )
+    assert saved is None or saved == '', f"Expected null/empty nextPaymentDue, got '{saved}'"
+
+
+@pytest.mark.feature
+def test_next_payment_due_survives_sanitizer_roundtrip(app_page):
+    """nextPaymentDue survives export/import sanitizer round-trip."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 8800, name: 'NPD Roundtrip', debtType: 'creditCard',
+            accountBalance: 1200, interestRate: 14, minimumPayment: 40,
+            dueDate: 20, nextPaymentDue: '2026-11-20',
+            creditLimit: null, fixedAmount: null, fixedStartDate: null,
+            fixedEndDate: null, debtStartDate: null, updatedAt: null,
+            priority: null, accountId: null, archived: false, personIds: [], notes: ''
+        }];
+        window.app.saveToStorage();
+        window.app.loadFromStorage();
+    }""")
+    page.wait_for_timeout(300)
+
+    saved = page.evaluate(
+        "() => window.app.debts.find(d => d.name === 'NPD Roundtrip')?.nextPaymentDue"
+    )
+    assert saved == '2026-11-20', f"Expected '2026-11-20' after round-trip, got '{saved}'"
+
+
+@pytest.mark.feature
+def test_next_payment_due_invalid_date_stored_as_null(app_page):
+    """An invalid nextPaymentDue value is sanitized to null."""
+    page = app_page
+    page.evaluate("""() => {
+        window.app.debts = [{
+            id: 8801, name: 'NPD Invalid', debtType: 'creditCard',
+            accountBalance: 500, interestRate: 10, minimumPayment: 20,
+            dueDate: 1, nextPaymentDue: 'not-a-date',
+            creditLimit: null, fixedAmount: null, fixedStartDate: null,
+            fixedEndDate: null, debtStartDate: null, updatedAt: null,
+            priority: null, accountId: null, archived: false, personIds: [], notes: ''
+        }];
+        window.app.saveToStorage();
+        window.app.loadFromStorage();
+    }""")
+    page.wait_for_timeout(300)
+
+    saved = page.evaluate(
+        "() => window.app.debts.find(d => d.name === 'NPD Invalid')?.nextPaymentDue"
+    )
+    assert saved is None or saved == '', (
+        f"Expected invalid date sanitized to null, got '{saved}'"
+    )

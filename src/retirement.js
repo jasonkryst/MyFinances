@@ -3,6 +3,7 @@
 import { computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution, getContributionLimit, computeYtdContributions } from './retirementCalculator.js';
 import { pgPost, pgDelete, pgPatch } from './postgresSync.js';
 import { formatCurrency, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
+import { t } from './i18n.js';
 
 export function getRetirementAccounts(app) {
     return (app.accounts || []).filter(a => a.type === 'Retirement');
@@ -84,7 +85,7 @@ export function openRetirementSnapshotModal(app, accountId) {
     const closeBtn = document.getElementById('retirementSnapshotModalCloseBtn');
     if (!dateInput || !balanceInput || !contributionInput || !salaryInput || !confirmBtn || !cancelBtn || !closeBtn) return;
 
-    if (titleEl) titleEl.textContent = isPension ? 'Log Salary Review' : 'Log Balance';
+    if (titleEl) titleEl.textContent = isPension ? t('retirement.modalLogSalary') : t('retirement.modalLogBalance');
     balanceGroup?.classList.toggle('hidden', isPension);
     contributionGroup?.classList.toggle('hidden', isPension);
     salaryGroup?.classList.toggle('hidden', !isPension);
@@ -159,33 +160,33 @@ function renderContributionLimitSection(app, account) {
     const pctClamped = Math.min(pctRaw, 100);
     const state = pctRaw >= 100 ? 'over' : pctRaw >= 80 ? 'near' : 'ok';
     const badgeHtml = state !== 'ok'
-        ? `<span class="retire-limit-badge retire-limit-badge--${state}" role="status">${state === 'over' ? 'Over limit' : 'Near limit'}</span>`
+        ? `<span class="retire-limit-badge retire-limit-badge--${state}" role="status">${state === 'over' ? t('retirement.overLimit') : t('retirement.nearLimit')}</span>`
         : '';
 
     const catchUpToggle = `
         <label class="retire-limit-toggle">
             <input type="checkbox" data-retire-action="toggle-catchup" data-retire-account-id="${account.id}"${account.catchUpEligible ? ' checked' : ''}>
-            Catch-up (50+)
+            ${t('retirement.catchUpToggle')}
         </label>`;
 
     const hsaToggle = subtype === 'HSA' ? `
         <label class="retire-limit-toggle">
-            Coverage:
+            ${t('retirement.coverageLabel')}
             <select data-retire-action="set-hsa-coverage" data-retire-account-id="${account.id}">
-                <option value="selfOnly"${account.hsaCoverageType !== 'family' ? ' selected' : ''}>Self-only</option>
-                <option value="family"${account.hsaCoverageType === 'family' ? ' selected' : ''}>Family</option>
+                <option value="selfOnly"${account.hsaCoverageType !== 'family' ? ' selected' : ''}>${t('retirement.selfOnly')}</option>
+                <option value="family"${account.hsaCoverageType === 'family' ? ' selected' : ''}>${t('retirement.family')}</option>
             </select>
         </label>` : '';
 
     return `
         <div class="retire-limit-section">
             <div class="retire-limit-header">
-                <span class="retire-limit-title">${year} IRS Contribution Limit</span>
+                <span class="retire-limit-title">${t('retirement.irsLimitTitle', { year })}</span>
                 ${badgeHtml}
                 <span class="retire-limit-controls">${catchUpToggle}${hsaToggle}</span>
             </div>
             <div class="retire-limit-bar-row">
-                <div class="retire-limit-bar" role="progressbar" aria-valuenow="${Math.round(pctRaw)}" aria-valuemin="0" aria-valuemax="100" aria-label="Year-to-date contributions">
+                <div class="retire-limit-bar" role="progressbar" aria-valuenow="${Math.round(pctRaw)}" aria-valuemin="0" aria-valuemax="100" aria-label="${t('retirement.ytdContribAriaLabel')}">
                     <div class="retire-limit-fill retire-limit-fill--${state}" data-progress-width="${pctClamped}"></div>
                 </div>
                 <span class="retire-limit-label">${formatCurrency(ytd)} of ${formatCurrency(limit)}</span>
@@ -202,36 +203,36 @@ function renderAccountCard(app, account) {
         const currentSalary = latest?.annualSalary != null ? latest.annualSalary : (Number(account.pensionAnnualSalary) || 0);
         const monthlyContrib = currentSalary * (Number(account.pensionContributionRatePct) || 0) / 1200;
         const rows = snapshots.length === 0
-            ? `<tr><td colspan="4" class="retire-empty-msg">No salary reviews logged yet.</td></tr>`
+            ? `<tr><td colspan="4" class="retire-empty-msg">${t('retirement.noSalaryReviewsMsg')}</td></tr>`
             : [...snapshots].reverse().map(s => `
                 <tr>
                     <td>${escapeHtml(s.date)}</td>
                     <td>${formatCurrency(s.annualSalary != null ? s.annualSalary : 0)}</td>
                     <td>${formatCurrency(s.contribution)}</td>
-                    <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}">Delete</button></td>
+                    <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}">${t('retirement.deleteBtn')}</button></td>
                 </tr>`).join('');
         return `
             <div class="retire-card">
                 <div class="retire-card-header">
                     <span class="acct-type-icon">🏛️</span>
                     <div class="acct-card-info">
-                        <span class="acct-card-name">${escapeHtml(account.name)} (Pension)</span>
-                        <span class="acct-rate-badge">💼 ${formatCurrency(currentSalary)}/yr · ${Number(account.pensionContributionRatePct).toFixed(1)}% contrib.${Number(account.pensionVestingYears) > 0 ? ` · vests in ${account.pensionVestingYears} yr` : ''}</span>
+                        <span class="acct-card-name">${escapeHtml(account.name)} ${t('retirement.pensionTypeLabel')}</span>
+                        <span class="acct-rate-badge">💼 ${t('retirement.pensionSalaryBadge', { salary: formatCurrency(currentSalary), rate: Number(account.pensionContributionRatePct).toFixed(1) })}${Number(account.pensionVestingYears) > 0 ? ` · ${t('retirement.pensionVestsBadge', { years: account.pensionVestingYears })}` : ''}</span>
                     </div>
                     <div class="retire-stat">
-                        <span class="acct-balance-label">Monthly Contribution</span>
+                        <span class="acct-balance-label">${t('retirement.monthlyContribLabel')}</span>
                         <span class="acct-balance-value">${formatCurrency(monthlyContrib)}</span>
                     </div>
-                    <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}">+ Log Salary Review</button>
+                    <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}">${t('retirement.logSalaryReviewBtn')}</button>
                 </div>
                 ${Number(account.pensionEstimatedMonthlyBenefit) > 0 || Number(account.pensionYearsOfService) > 0 ? `
                 <div class="retire-pension-meta">
-                    ${Number(account.pensionYearsOfService) > 0 ? `<span>Years of service: <strong>${account.pensionYearsOfService}</strong></span>` : ''}
-                    ${Number(account.pensionEstimatedMonthlyBenefit) > 0 ? `<span>Est. monthly benefit: <strong>${formatCurrency(account.pensionEstimatedMonthlyBenefit)}</strong></span>` : ''}
+                    ${Number(account.pensionYearsOfService) > 0 ? `<span>${t('retirement.yearsOfService')} <strong>${account.pensionYearsOfService}</strong></span>` : ''}
+                    ${Number(account.pensionEstimatedMonthlyBenefit) > 0 ? `<span>${t('retirement.estMonthlyBenefit')} <strong>${formatCurrency(account.pensionEstimatedMonthlyBenefit)}</strong></span>` : ''}
                 </div>` : ''}
                 <div class="table-wrapper">
                     <table class="retire-snapshot-table">
-                        <thead><tr><th scope="col">Date</th><th scope="col">Annual Salary</th><th scope="col">Monthly Contribution</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                        <thead><tr><th scope="col">${t('retirement.colDate')}</th><th scope="col">${t('retirement.colAnnualSalary')}</th><th scope="col">${t('retirement.colMonthlyContrib')}</th><th scope="col"><span class="sr-only">${t('retirement.colActions')}</span></th></tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
                 </div>
@@ -240,13 +241,13 @@ function renderAccountCard(app, account) {
 
     const currentBalance = latest ? latest.balance : (Number(account.startingBalance) || 0);
     const rows = snapshots.length === 0
-        ? `<tr><td colspan="4" class="retire-empty-msg">No balances logged yet.</td></tr>`
+        ? `<tr><td colspan="4" class="retire-empty-msg">${t('retirement.noBalancesMsg')}</td></tr>`
         : [...snapshots].reverse().map(s => `
             <tr>
                 <td>${escapeHtml(s.date)}</td>
                 <td>${formatCurrency(s.balance)}</td>
                 <td>${formatCurrency(s.contribution)}</td>
-                <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}">Delete</button></td>
+                <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}">${t('retirement.deleteBtn')}</button></td>
             </tr>`).join('');
 
     return `
@@ -255,17 +256,17 @@ function renderAccountCard(app, account) {
                 <span class="acct-type-icon">🏛️</span>
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(account.name)} (${escapeHtml(account.retirementSubtype)})</span>
-                    <span class="acct-rate-badge">📈 ${Number(account.rateOfReturn).toFixed(1)}% est. return${Number(account.employerMatchPercent) > 0 ? ` · ${Number(account.employerMatchPercent).toFixed(0)}% match` : ''}</span>
+                    <span class="acct-rate-badge">📈 ${t('retirement.estReturnBadge', { rate: Number(account.rateOfReturn).toFixed(1) })}${Number(account.employerMatchPercent) > 0 ? ` · ${t('retirement.matchBadge', { pct: Number(account.employerMatchPercent).toFixed(0) })}` : ''}</span>
                 </div>
                 <div class="retire-stat">
-                    <span class="acct-balance-label">Current Balance</span>
+                    <span class="acct-balance-label">${t('retirement.currentBalanceLabel')}</span>
                     <span class="acct-balance-value">${formatCurrency(currentBalance)}</span>
                 </div>
-                <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}">+ Add Snapshot</button>
+                <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}">${t('retirement.addSnapshotBtn')}</button>
             </div>
             <div class="table-wrapper">
                 <table class="retire-snapshot-table">
-                    <thead><tr><th scope="col">Date</th><th scope="col">Balance</th><th scope="col">Contribution</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                    <thead><tr><th scope="col">${t('retirement.colDate')}</th><th scope="col">${t('retirement.colBalance')}</th><th scope="col">${t('retirement.colContribution')}</th><th scope="col"><span class="sr-only">${t('retirement.colActions')}</span></th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
             </div>
@@ -320,8 +321,8 @@ function renderBalanceChart(app, accounts) {
     });
 
     renderChartDataTable('retireBalanceChart', {
-        caption: 'Retirement account balances over time',
-        columns: ['Date', ...accounts.map(a => a.name)],
+        caption: t('retirement.a11yBalanceCaption'),
+        columns: [t('retirement.colDate'), ...accounts.map(a => a.name)],
         rows: allDates.map((d, i) => [d, ...datasets.map(ds => ds.data[i] != null ? formatCurrency(ds.data[i]) : '—')])
     });
 }
@@ -355,8 +356,8 @@ function renderContributionChart(app, accounts) {
         data: {
             labels: dates,
             datasets: [
-                { label: 'Contribution', data: contributionData, backgroundColor: '#2563eb', stack: 's', borderRadius: 4 },
-                { label: 'Growth', data: growthData, backgroundColor: '#10b981', stack: 's', borderRadius: 4 }
+                { label: t('retirement.colContribution'), data: contributionData, backgroundColor: '#2563eb', stack: 's', borderRadius: 4 },
+                { label: t('retirement.a11yGrowthCol'), data: growthData, backgroundColor: '#10b981', stack: 's', borderRadius: 4 }
             ]
         },
         options: {
@@ -367,8 +368,8 @@ function renderContributionChart(app, accounts) {
     });
 
     renderChartDataTable('retireContributionChart', {
-        caption: 'Contribution vs. growth per period, summed across retirement accounts',
-        columns: ['Date', 'Contribution', 'Growth'],
+        caption: t('retirement.a11yContribCaption'),
+        columns: [t('retirement.colDate'), t('retirement.colContribution'), t('retirement.a11yGrowthCol')],
         rows: dates.map((d, i) => [d, formatCurrency(contributionData[i]), formatCurrency(growthData[i])])
     });
 }
@@ -397,8 +398,8 @@ function renderBreakdownChart(app, accounts) {
     });
 
     renderChartDataTable('retireBreakdownChart', {
-        caption: 'Current retirement balance by account',
-        columns: ['Account', 'Balance'],
+        caption: t('retirement.a11yBreakdownCaption'),
+        columns: [t('retirement.a11yAccountCol'), t('retirement.colBalance')],
         rows: accounts.map((a, i) => [a.name, formatCurrency(balances[i])])
     });
 }
@@ -408,24 +409,24 @@ function renderProjectionPanel(app, accounts) {
     if (!panel) return;
 
     if (!app.retirementTargetDate) {
-        panel.innerHTML = `<p class="retire-empty-msg">Set a target retirement date above to see a projected future value.</p>`;
+        panel.innerHTML = `<p class="retire-empty-msg">${t('retirement.noTargetDateMsg')}</p>`;
         return;
     }
 
     const rows = accounts.map(a => {
         const projected = app.computeAccountProjection(a.id);
         const label = a.retirementSubtype === 'Pension'
-            ? `${escapeHtml(a.name)} (total contributions)`
+            ? `${escapeHtml(a.name)} ${t('retirement.pensionTotalContribLabel')}`
             : escapeHtml(a.name);
         return `<div class="acct-balance-item"><span class="acct-balance-label">${label}</span><span class="acct-balance-value">${formatCurrency(projected)}</span></div>`;
     });
     const total = accounts.reduce((sum, a) => sum + (app.computeAccountProjection(a.id) || 0), 0);
 
     panel.innerHTML = `
-        <h4 class="rpt-chart-title">Projected Value at ${escapeHtml(app.retirementTargetDate)}</h4>
-        <p class="rpt-chart-sub">Investment accounts: balance compounds monthly at the account's rate of return (plus employer match). Pension accounts: total employee contributions accumulated by that date.</p>
+        <h4 class="rpt-chart-title">${t('retirement.projectionTitle', { date: escapeHtml(app.retirementTargetDate) })}</h4>
+        <p class="rpt-chart-sub">${t('retirement.projectionSub')}</p>
         <div class="acct-balances">${rows.join('')}</div>
-        <div class="acct-balance-item"><span class="acct-balance-label">Combined Total</span><span class="acct-balance-value">${formatCurrency(total)}</span></div>
+        <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.combinedTotal')}</span><span class="acct-balance-value">${formatCurrency(total)}</span></div>
     `;
 }
 
@@ -437,8 +438,8 @@ export function renderRetirementPage(app) {
 
     if (accounts.length === 0) {
         container.innerHTML = `
-            <div class="page-header-row"><h2>🏛️ Retirement</h2></div>
-            <p class="retire-empty-msg">No retirement accounts yet. Add one from the <button class="btn-link" data-retire-action="goto-accounts">Accounts page</button> (choose type "Retirement") to start tracking it here.</p>`;
+            <div class="page-header-row"><h2>🏛️ ${t('retirement.pageTitle')}</h2></div>
+            <p class="retire-empty-msg">${t('retirement.emptyMsgBefore')} <button class="btn-link" data-retire-action="goto-accounts">${t('retirement.accountsPageBtn')}</button> ${t('retirement.emptyMsgAfter')}</p>`;
         container.onclick = (event) => {
             if (event.target.closest('[data-retire-action="goto-accounts"]')) app.switchPage('accounts');
         };
@@ -446,26 +447,26 @@ export function renderRetirementPage(app) {
     }
 
     container.innerHTML = `
-        <div class="page-header-row"><h2>🏛️ Retirement</h2></div>
+        <div class="page-header-row"><h2>🏛️ ${t('retirement.pageTitle')}</h2></div>
         <div class="retire-target-date-row form-group">
-            <label for="retirementTargetDateInput">Target Retirement Date</label>
+            <label for="retirementTargetDateInput">${t('retirement.targetDateLabel')}</label>
             <input type="date" id="retirementTargetDateInput" value="${escapeHtml(app.retirementTargetDate || '')}">
         </div>
         <div class="retire-cards">${accounts.map(a => renderAccountCard(app, a)).join('')}</div>
         <div class="rpt-charts-row">
             <div class="rpt-chart-card">
-                <h4 class="rpt-chart-title">Balance Over Time</h4>
-                <p class="rpt-chart-sub">Logged balance per retirement account</p>
+                <h4 class="rpt-chart-title">${t('retirement.balanceChartTitle')}</h4>
+                <p class="rpt-chart-sub">${t('retirement.balanceChartSub')}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="retireBalanceChart"></canvas></div>
             </div>
             <div class="rpt-chart-card">
-                <h4 class="rpt-chart-title">Contribution vs. Growth</h4>
-                <p class="rpt-chart-sub">Per period, summed across all retirement accounts (growth includes any employer match, since match amounts aren't logged separately)</p>
+                <h4 class="rpt-chart-title">${t('retirement.contribChartTitle')}</h4>
+                <p class="rpt-chart-sub">${t('retirement.contribChartSub')}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="retireContributionChart"></canvas></div>
             </div>
             <div class="rpt-chart-card">
-                <h4 class="rpt-chart-title">Current Balance by Account</h4>
-                <p class="rpt-chart-sub">Share of total retirement balance</p>
+                <h4 class="rpt-chart-title">${t('retirement.breakdownChartTitle')}</h4>
+                <p class="rpt-chart-sub">${t('retirement.breakdownChartSub')}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="retireBreakdownChart"></canvas></div>
             </div>
         </div>

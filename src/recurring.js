@@ -12,6 +12,7 @@ import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
+import { PINNED_COLORS } from './spending.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -187,12 +188,38 @@ function renderUpcomingThisMonthPanel(app) {
         </div>`;
 }
 
+// ─── Category datalist helpers ────────────────────────────────────────────────
+
+const DEFAULT_CATEGORIES = [
+    'Childcare', 'Clothing', 'Debt Payments', 'Dining', 'Education',
+    'Entertainment', 'Food', 'Gifts', 'Groceries', 'Health',
+    'Housing', 'Insurance', 'Other', 'Personal', 'Pets',
+    'Savings', 'Subscriptions', 'Transportation', 'Travel', 'Utilities',
+    ...Object.keys(PINNED_COLORS)
+];
+
+function getKnownCategories(app) {
+    const used = [
+        ...(app.recurringTemplates || []).map(t => t.category),
+        ...(app.bills || []).map(b => b.category),
+        ...(app.expenses || []).map(e => e.category),
+    ].filter(Boolean);
+    return [...new Set([...DEFAULT_CATEGORIES, ...used])].sort();
+}
+
+export function refreshCategoryDatalist(app) {
+    const dl = document.getElementById('categoryOptions');
+    if (!dl) return;
+    dl.innerHTML = getKnownCategories(app).map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+}
+
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
 export function renderRecurringPage(app) {
     const container = document.getElementById('recurringList');
     if (!container) return;
 
+    refreshCategoryDatalist(app);
     renderUpcomingThisMonthPanel(app);
 
     const allTemplates = app.recurringTemplates || [];
@@ -472,7 +499,7 @@ function _buildEditCard(app, t) {
             </div>
             <div class="form-group recurring-edit-field">
                 <label>Category</label>
-                <select id="re-cat-${t.id}">${catOpts}</select>
+                <input type="text" id="re-cat-${t.id}" list="categoryOptions" value="${escapeHtml(t.category || 'Other')}" autocomplete="off">
             </div>
             <div class="form-group recurring-edit-field">
                 <label>Account</label>
