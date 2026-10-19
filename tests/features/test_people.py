@@ -231,11 +231,11 @@ def test_add_person_name_too_long(app_page):
     page.fill('#personName', long_name)
     page.click('#personFormSubmit')
     page.wait_for_selector('#peopleList .income-card', timeout=5000)
-    # Should be stored as truncated (80 chars)
-    card_text = page.inner_text('#peopleList')
-    # The stored name is max 80 'A's — the card renders something starting with 'A'
-    assert 'A' in card_text, "Truncated name not shown"
-    assert len([c for c in card_text if c == 'A']) <= 80, "Name not truncated to 80 chars"
+    # Check only the name element — KPI labels (e.g. "ANNUAL INCOME") also contain 'A',
+    # so counting across the whole card text would exceed 80.
+    name_text = page.inner_text('#peopleList .income-card-name')
+    assert 'A' in name_text, "Truncated name not shown"
+    assert len(name_text.strip()) <= 80, "Name not truncated to 80 chars"
 
 
 @pytest.mark.feature
@@ -462,11 +462,11 @@ def test_person_card_kpi_tiles_present(app_page):
     assert len(tiles) == 4, f"Expected 4 KPI tiles, got {len(tiles)}"
 
     labels = [t.inner_text() for t in tiles]
-    joined = ' '.join(labels)
-    assert 'Annual Income' in joined, "Annual Income tile not found"
-    assert 'Total Debt' in joined, "Total Debt tile not found"
-    assert 'Monthly Net' in joined, "Monthly Net tile not found"
-    assert 'Credit Util' in joined, "Credit Util tile not found"
+    joined = ' '.join(labels).lower()  # CSS text-transform:uppercase affects inner_text
+    assert 'annual income' in joined, "Annual Income tile not found"
+    assert 'total debt' in joined, "Total Debt tile not found"
+    assert 'monthly net' in joined, "Monthly Net tile not found"
+    assert 'credit util' in joined, "Credit Util tile not found"
 
 
 @pytest.mark.feature
