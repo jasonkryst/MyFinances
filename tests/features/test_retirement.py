@@ -550,12 +550,20 @@ def test_hsa_family_selector_changes_limit(app_page):
 def test_pension_card_has_no_limit_section(app_page):
     """Pension account cards do not show a contribution limit section (no statutory limit)."""
     page = app_page
-    _add_retirement_account(page, name="Pension", subtype="Pension")
-    account_id = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === 'Pension').id")
-    # Pension cards in renderAccountCard return early — no limit section HTML.
+    # Inject a Pension account directly (UI helper fills rate/match fields hidden for Pension).
+    page.evaluate("""() => {
+        window.app.accounts.push({
+            id: 9901, name: 'My Pension', type: 'Retirement', retirementSubtype: 'Pension',
+            startingBalance: 0, interestRate: 0, rateOfReturn: 0, employerMatchPercent: 0,
+            pensionAnnualSalary: 60000, pensionContributionRatePct: 5,
+            pensionVestingYears: 5, pensionEstimatedMonthlyBenefit: 2000,
+            pensionYearsOfService: 10, minimumPayment: 0,
+            catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false
+        });
+        window.app.saveToStorage();
+    }""")
     page.click('button[data-page="retirement"]')
     page.wait_for_selector('#retirementSection.active', timeout=5000)
-    # No limit section should be present at all.
     assert not page.is_visible('.retire-limit-section'), "Pension cards should not show limit section"
     assert_no_errors(page)
 
