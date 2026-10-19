@@ -27,6 +27,8 @@ export function sanitizeAccount(record, idFallback) {
         pensionEstimatedMonthlyBenefit: sanitizeFiniteNumber(record?.pensionEstimatedMonthlyBenefit, 0, { min: 0 }),
         pensionYearsOfService: sanitizeInteger(record?.pensionYearsOfService, 0, { min: 0 }),
         minimumPayment: sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 }),
+        catchUpEligible: Boolean(record?.catchUpEligible ?? false),
+        hsaCoverageType: ['selfOnly', 'family'].includes(record?.hsaCoverageType) ? record.hsaCoverageType : 'selfOnly',
         archived: Boolean(record?.archived ?? false)
     };
 }

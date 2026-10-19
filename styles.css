@@ -5817,6 +5817,25 @@ body.dark-mode .acct-archived-badge { background: #374151; color: #9ca3af; }
 .retire-snapshot-table th, .retire-snapshot-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
 .retire-empty-msg { text-align: center; color: var(--text-muted); padding: 24px 0; }
 .retire-pension-meta { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
+/* Contribution limit section */
+.retire-limit-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+.retire-limit-header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.retire-limit-title { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+.retire-limit-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.retire-limit-badge--near { background: #fef3c7; color: #92400e; }
+.retire-limit-badge--over { background: #fee2e2; color: #991b1b; }
+body.dark-mode .retire-limit-badge--near { background: #451a03; color: #fcd34d; }
+body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; }
+.retire-limit-controls { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.retire-limit-toggle { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+.retire-limit-toggle select { font-size: 0.78rem; padding: 1px 4px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); }
+.retire-limit-bar-row { display: flex; align-items: center; gap: 10px; }
+.retire-limit-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--border-color); overflow: hidden; }
+.retire-limit-fill { height: 100%; border-radius: 4px; width: var(--progress-width, 0%); transition: width 0.4s ease; }
+.retire-limit-fill--ok   { background: #059669; }
+.retire-limit-fill--near { background: #d97706; }
+.retire-limit-fill--over { background: #dc2626; }
+.retire-limit-label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
 
 .acct-balances {
     display: flex;

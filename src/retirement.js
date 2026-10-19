@@ -1,7 +1,7 @@
 // Retirement accounts: history log, projection, and page rendering.
 
-import { computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution } from './retirementCalculator.js';
-import { pgPost, pgDelete } from './postgresSync.js';
+import { computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution, getContributionLimit, computeYtdContributions } from './retirementCalculator.js';
+import { pgPost, pgDelete, pgPatch } from './postgresSync.js';
 import { formatCurrency, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
 
 export function getRetirementAccounts(app) {
@@ -145,6 +145,54 @@ export function openRetirementSnapshotModal(app, accountId) {
     setTimeout(() => balanceInput.focus(), 30);
 }
 
+function renderContributionLimitSection(app, account) {
+    const subtype = account.retirementSubtype;
+    const year = new Date().getFullYear();
+    const limit = getContributionLimit(subtype, year, {
+        catchUp: account.catchUpEligible,
+        hsaFamily: account.hsaCoverageType === 'family',
+    });
+    if (limit === null) return ''; // Pension / Other — no statutory limit
+
+    const ytd = computeYtdContributions(app.retirementSnapshots, account.id, year);
+    const pctRaw = (ytd / limit) * 100;
+    const pctClamped = Math.min(pctRaw, 100);
+    const state = pctRaw >= 100 ? 'over' : pctRaw >= 80 ? 'near' : 'ok';
+    const badgeHtml = state !== 'ok'
+        ? `<span class="retire-limit-badge retire-limit-badge--${state}" role="status">${state === 'over' ? 'Over limit' : 'Near limit'}</span>`
+        : '';
+
+    const catchUpToggle = `
+        <label class="retire-limit-toggle">
+            <input type="checkbox" data-retire-action="toggle-catchup" data-retire-account-id="${account.id}"${account.catchUpEligible ? ' checked' : ''}>
+            Catch-up (50+)
+        </label>`;
+
+    const hsaToggle = subtype === 'HSA' ? `
+        <label class="retire-limit-toggle">
+            Coverage:
+            <select data-retire-action="set-hsa-coverage" data-retire-account-id="${account.id}">
+                <option value="selfOnly"${account.hsaCoverageType !== 'family' ? ' selected' : ''}>Self-only</option>
+                <option value="family"${account.hsaCoverageType === 'family' ? ' selected' : ''}>Family</option>
+            </select>
+        </label>` : '';
+
+    return `
+        <div class="retire-limit-section">
+            <div class="retire-limit-header">
+                <span class="retire-limit-title">${year} IRS Contribution Limit</span>
+                ${badgeHtml}
+                <span class="retire-limit-controls">${catchUpToggle}${hsaToggle}</span>
+            </div>
+            <div class="retire-limit-bar-row">
+                <div class="retire-limit-bar" role="progressbar" aria-valuenow="${Math.round(pctRaw)}" aria-valuemin="0" aria-valuemax="100" aria-label="Year-to-date contributions">
+                    <div class="retire-limit-fill retire-limit-fill--${state}" data-progress-width="${pctClamped}"></div>
+                </div>
+                <span class="retire-limit-label">${formatCurrency(ytd)} of ${formatCurrency(limit)}</span>
+            </div>
+        </div>`;
+}
+
 function renderAccountCard(app, account) {
     const isPension = account.retirementSubtype === 'Pension';
     const snapshots = getSnapshotsForAccount(app, account.id);
@@ -221,6 +269,7 @@ function renderAccountCard(app, account) {
                     <tbody>${rows}</tbody>
                 </table>
             </div>
+            ${renderContributionLimitSection(app, account)}
         </div>`;
 }
 
@@ -443,6 +492,32 @@ export function renderRetirementPage(app) {
             app.switchPage('accounts');
         }
     };
+
+    container.onchange = (event) => {
+        const actionEl = event.target.closest('[data-retire-action]');
+        if (!actionEl) return;
+        const action = actionEl.getAttribute('data-retire-action');
+        const accountId = parseInt(actionEl.getAttribute('data-retire-account-id'), 10);
+        const idx = app.accounts.findIndex(a => a.id === accountId);
+        if (idx === -1) return;
+
+        if (action === 'toggle-catchup') {
+            app.accounts[idx] = { ...app.accounts[idx], catchUpEligible: event.target.checked };
+            if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
+            app.saveToStorage();
+            app.renderRetirementPage();
+        }
+        if (action === 'set-hsa-coverage') {
+            const val = event.target.value === 'family' ? 'family' : 'selfOnly';
+            app.accounts[idx] = { ...app.accounts[idx], hsaCoverageType: val };
+            if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
+            app.saveToStorage();
+            app.renderRetirementPage();
+        }
+    };
+
+    container.querySelectorAll('[data-progress-width]').forEach(el =>
+        el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
 
     renderBalanceChart(app, accounts);
     renderContributionChart(app, accounts);
