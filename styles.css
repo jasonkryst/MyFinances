@@ -1653,14 +1653,9 @@ section h3 {
 }
 .plan-stale-warning-icon { font-size: 1rem; flex-shrink: 0; color: #92400e; }
 .plan-stale-warning-msg { flex: 1; color: #92400e; }
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) .plan-stale-warning { background: #2d1f06; border-color: #78350f; }
-    :root:not([data-theme='light']) .plan-stale-warning-icon { color: #fde68a; }
-    :root:not([data-theme='light']) .plan-stale-warning-msg { color: #fde68a; }
-}
-:root[data-theme='dark'] .plan-stale-warning { background: #2d1f06; border-color: #78350f; }
-:root[data-theme='dark'] .plan-stale-warning-icon { color: #fde68a; }
-:root[data-theme='dark'] .plan-stale-warning-msg { color: #fde68a; }
+body.dark-mode .plan-stale-warning { background: #2d1f06; border-color: #78350f; }
+body.dark-mode .plan-stale-warning-icon { color: #fde68a; }
+body.dark-mode .plan-stale-warning-msg { color: #fde68a; }
 
 /* ── Results page — outer tab bar ────────────────────────────────────────── */
 .results-tab-bar {
@@ -6836,10 +6831,7 @@ body.dark-mode .health-surplus-rec-amount { color: #4ade80; }
 .health-bonus-cta { margin-top: 0.6rem; font-size: 0.8rem; text-align: center; }
 .health-bonus-cta-link { color: #4338ca; text-decoration: none; }
 .health-bonus-cta-link:hover { text-decoration: underline; }
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) .health-bonus-cta-link { color: #a5b4fc; }
-}
-:root[data-theme='dark'] .health-bonus-cta-link { color: #a5b4fc; }
+body.dark-mode .health-bonus-cta-link { color: #a5b4fc; }
 .health-surplus-dip-warning {
     display: flex; align-items: flex-start; gap: 0.4rem;
     padding: 0.45rem 0.7rem; margin-bottom: 0.5rem;
