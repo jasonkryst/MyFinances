@@ -470,8 +470,8 @@ describe('sanitizeBonus', () => {
 
 describe('sanitizeEmergencyFund', () => {
     test('passes through a well-formed record', () => {
-        const result = sanitizeEmergencyFund({ id: 1, accountId: 5, targetAmount: 5000, currentAmount: 1500, monthlyContribution: 250, autoContribute: true, notes: 'Safety net' }, 99);
-        expect(result).toEqual({ id: 1, accountId: 5, targetAmount: 5000, currentAmount: 1500, monthlyContribution: 250, autoContribute: true, notes: 'Safety net' });
+        const result = sanitizeEmergencyFund({ id: 1, accountId: 5, targetAmount: 5000, currentAmount: 1500, monthlyContribution: 250, autoContribute: true, autoSyncBalance: true, notes: 'Safety net' }, 99);
+        expect(result).toEqual({ id: 1, accountId: 5, targetAmount: 5000, currentAmount: 1500, monthlyContribution: 250, autoContribute: true, autoSyncBalance: true, notes: 'Safety net' });
     });
 
     test('applies defaults for an empty record', () => {

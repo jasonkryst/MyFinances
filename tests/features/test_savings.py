@@ -162,6 +162,15 @@ def _open_ef_form(page):
         page.wait_for_selector('#emergencyFormBody.visible', timeout=3000)
 
 
+def _select_ef_account(page, name):
+    """Select an EF account by name using app.accounts (robust to label format changes)."""
+    acct_id = page.evaluate(
+        f'() => {{ const a = (window.app?.accounts || []).find(a => a.name === "{name}"); return a ? String(a.id) : ""; }}'
+    )
+    assert acct_id, f"Account '{name}' not found in app.accounts"
+    page.select_option('#emergencyAccount', value=acct_id)
+
+
 @pytest.mark.feature
 def test_ef_auto_sync_checkbox_present(app_page):
     """The #emergencyAutoSync checkbox is present in the EF form."""
@@ -200,8 +209,7 @@ def test_ef_add_with_auto_sync_stores_flag(app_page):
     _add_account_for_ef(page, 'EF AutoSync Acct')
     _open_ef_form(page)
 
-    # Select the account we just created
-    page.select_option('#emergencyAccount', label='EF AutoSync Acct')
+    _select_ef_account(page, 'EF AutoSync Acct')
     page.fill('#emergencyTarget', '10000')
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '500')
@@ -224,7 +232,7 @@ def test_ef_add_without_auto_sync_stores_false(app_page):
     _add_account_for_ef(page, 'EF Manual Acct')
     _open_ef_form(page)
 
-    page.select_option('#emergencyAccount', label='EF Manual Acct')
+    _select_ef_account(page, 'EF Manual Acct')
     page.fill('#emergencyTarget', '5000')
     page.fill('#emergencyCurrent', '1000')
     page.fill('#emergencyContribution', '300')
@@ -248,7 +256,7 @@ def test_ef_sync_badge_visible_when_auto_sync_on(app_page):
     _add_account_for_ef(page, 'EF SyncBadge Acct')
     _open_ef_form(page)
 
-    page.select_option('#emergencyAccount', label='EF SyncBadge Acct')
+    _select_ef_account(page, 'EF SyncBadge Acct')
     page.fill('#emergencyTarget', '8000')
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '400')
@@ -269,7 +277,7 @@ def test_ef_auto_sync_hides_contribute_button(app_page):
     _add_account_for_ef(page, 'EF NoContrib Acct')
     _open_ef_form(page)
 
-    page.select_option('#emergencyAccount', label='EF NoContrib Acct')
+    _select_ef_account(page, 'EF NoContrib Acct')
     page.fill('#emergencyTarget', '6000')
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '350')
@@ -290,7 +298,7 @@ def test_ef_auto_sync_off_shows_contribute_button(app_page):
     _add_account_for_ef(page, 'EF YesContrib Acct')
     _open_ef_form(page)
 
-    page.select_option('#emergencyAccount', label='EF YesContrib Acct')
+    _select_ef_account(page, 'EF YesContrib Acct')
     page.fill('#emergencyTarget', '4000')
     page.fill('#emergencyCurrent', '500')
     page.fill('#emergencyContribution', '200')
@@ -311,7 +319,7 @@ def test_ef_edit_populates_auto_sync_checkbox(app_page):
     _add_account_for_ef(page, 'EF EditSync Acct')
     _open_ef_form(page)
 
-    page.select_option('#emergencyAccount', label='EF EditSync Acct')
+    _select_ef_account(page, 'EF EditSync Acct')
     page.fill('#emergencyTarget', '7000')
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '300')
@@ -342,7 +350,7 @@ def test_ef_id_is_numeric_not_string(app_page):
     _add_account_for_ef(page, 'EF NumericId Acct')
     _open_ef_form(page)
 
-    page.select_option('#emergencyAccount', label='EF NumericId Acct')
+    _select_ef_account(page, 'EF NumericId Acct')
     page.fill('#emergencyTarget', '3000')
     page.fill('#emergencyCurrent', '500')
     page.fill('#emergencyContribution', '150')
@@ -366,7 +374,7 @@ def test_ef_account_name_displayed_correctly(app_page):
     _add_account_for_ef(page, 'EF AccountName Acct')
     _open_ef_form(page)
 
-    page.select_option('#emergencyAccount', label='EF AccountName Acct')
+    _select_ef_account(page, 'EF AccountName Acct')
     page.fill('#emergencyTarget', '5000')
     page.fill('#emergencyCurrent', '1200')
     page.fill('#emergencyContribution', '250')
