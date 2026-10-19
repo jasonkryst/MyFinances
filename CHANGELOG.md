@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.24.0] — 2026-10-19
+
+### Added
+- **S-01 — Emergency fund auto-sync balance** (issue #313) — emergency fund records can now auto-sync their current amount from the linked account's projected balance. A new "Auto-sync balance from linked account" checkbox on the form enables this: when checked, the current-amount field is disabled (the balance derives from `computeAccountBalance`), and the card shows a ⟳ synced indicator. The manual + Contribute button is hidden when auto-sync is active. The `autoSyncBalance` field is added to `sanitizeEmergencyFund` so it survives export/import round-trips. Also fixes pre-existing bugs: EF ids are now plain numbers (not `ef-…` strings that mutated on each reload), and accountId is parsed as an integer on form submit (fixing duplicate-check false negatives and "Unknown Account" card display within the same session).
+- **U-01 — What's New in-app notification** (issue #289) — after each version upgrade, a red notification dot appears on the account menu button. Clicking "What's New" in the account dropdown opens a modal with a summary of the current and previous releases. Dismissing the panel saves the current version to `debtTrackerLastSeenVersion` in localStorage and clears the dot. New installs silently set the current version and show no notification.
+
 ## [6.23.0] — 2026-10-19
 
 ### Added

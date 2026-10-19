@@ -1433,6 +1433,42 @@ body.dark-mode .account-menu-item--logout:hover {
     background: #2d1515;
 }
 
+/* Notification dot on account menu button */
+.account-menu-notif-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 2px solid var(--header-bg, #fff);
+    display: none;
+    pointer-events: none;
+}
+.account-menu-notif-dot--visible { display: block; }
+.account-menu-notif-dot--inline {
+    position: static;
+    display: none;
+    width: 7px;
+    height: 7px;
+    border: none;
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+#accountMenuBtn { position: relative; }
+
+/* What's New modal */
+.whats-new-modal-content { max-height: 80vh; overflow-y: auto; }
+.wn-version { font-size: 0.78rem; color: #9ca3af; margin-bottom: 14px; font-weight: 500; }
+body.dark-mode .wn-version { color: #64748b; }
+.wn-section { margin-bottom: 20px; }
+.wn-version-heading { font-size: 0.9rem; font-weight: 700; color: #374151; margin: 0 0 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+body.dark-mode .wn-version-heading { color: #e2e8f0; border-bottom-color: #334155; }
+.wn-list { margin: 0; padding-left: 18px; }
+.wn-list li { font-size: 0.9rem; color: #4b5563; line-height: 1.5; margin-bottom: 6px; }
+body.dark-mode .wn-list li { color: #cbd5e1; }
+
 body.dark-mode .top-nav {
     background: rgba(0,0,0,0.30);
     border-top-color: rgba(255,255,255,0.08);
@@ -6509,6 +6545,12 @@ body.dark-mode .progress-bar { background: #334155; }
 .detail-row { display: flex; justify-content: space-between; font-size: 0.88rem; padding: 4px 0; color: #4b5563; }
 body.dark-mode .detail-row { color: #cbd5e1; }
 .emergency-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.ef-auto-sync-row { grid-column: 1 / -1; }
+.ef-auto-sync-label { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.ef-auto-sync-hint { display: block; margin-top: 4px; font-size: 0.82rem; color: #6b7280; }
+body.dark-mode .ef-auto-sync-hint { color: #94a3b8; }
+.ef-sync-badge { display: inline-block; font-size: 0.75rem; font-weight: 600; color: #0369a1; background: #e0f2fe; border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; }
+body.dark-mode .ef-sync-badge { color: #7dd3fc; background: #082f49; }
 
 /* Sinking Funds Form & Card */
 .sinking-form-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; margin-bottom: 24px; overflow: hidden; }

@@ -1,5 +1,5 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml } from './utils.js';
-import { buildAccountOptionsHtml } from './accounts.js';
+import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 
@@ -67,6 +67,13 @@ function renderEmergencyFundContent(app) {
                 <label for="emergencyCurrent">Current Amount ($)</label>
                 <input type="number" id="emergencyCurrent" min="0" step="0.01" placeholder="0" required />
               </div>
+              <div class="form-group ef-auto-sync-row">
+                <label class="ef-auto-sync-label">
+                  <input type="checkbox" id="emergencyAutoSync" />
+                  Auto-sync balance from linked account
+                </label>
+                <span class="ef-auto-sync-hint">When enabled, the current amount reflects the linked account's projected balance.</span>
+              </div>
               <div class="form-group">
                 <label for="emergencyContribution">Monthly Contribution ($)</label>
                 <input type="number" id="emergencyContribution" min="0" step="0.01" placeholder="250" required />
@@ -106,8 +113,11 @@ function renderEmergencyFundContent(app) {
     sortedFunds.forEach(fund => {
       const account = app.accounts.find(ac => ac.id === fund.accountId);
       const accountName = account?.name || 'Unknown Account';
-      const progressPercent = fund.targetAmount > 0 ? Math.round((fund.currentAmount / fund.targetAmount) * 100) : 0;
-      const remaining = Math.max(0, fund.targetAmount - fund.currentAmount);
+      const displayAmount = fund.autoSyncBalance && fund.accountId
+        ? computeAccountBalance(app, fund.accountId)
+        : fund.currentAmount;
+      const progressPercent = fund.targetAmount > 0 ? Math.round((displayAmount / fund.targetAmount) * 100) : 0;
+      const remaining = Math.max(0, fund.targetAmount - displayAmount);
       const monthsToComplete = fund.monthlyContribution > 0 ? Math.ceil(remaining / fund.monthlyContribution) : 999;
       const projectedDate = new Date();
       projectedDate.setMonth(projectedDate.getMonth() + monthsToComplete);
@@ -119,7 +129,7 @@ function renderEmergencyFundContent(app) {
           <div class="emergency-card-header">
             <div>
               <div class="emergency-account">${escapeHtml(accountName)}</div>
-              <div class="emergency-target">${formatCurrency(fund.currentAmount)} / ${formatCurrency(fund.targetAmount)}</div>
+              <div class="emergency-target">${formatCurrency(displayAmount)} / ${formatCurrency(fund.targetAmount)}${fund.autoSyncBalance ? ' <span class="ef-sync-badge" title="Balance is auto-synced from linked account">⟳ synced</span>' : ''}</div>
             </div>
             <div class="emergency-badge ${badgeClass}">${progressPercent}%</div>
           </div>
@@ -142,9 +152,9 @@ function renderEmergencyFundContent(app) {
             ${fund.notes ? `<div class="detail-row"><span>Notes:</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
           </div>
           <div class="emergency-card-actions">
-            <button class="btn btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(fund.id)}">Edit</button>
-            <button class="btn btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(fund.id)}">+ Contribute</button>
-            <button class="btn btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(fund.id)}">Delete</button>
+            <button class="btn btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(String(fund.id))}">Edit</button>
+            ${fund.autoSyncBalance ? '' : `<button class="btn btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(String(fund.id))}">+ Contribute</button>`}
+            <button class="btn btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(String(fund.id))}">Delete</button>
           </div>
         </div>
       `;
@@ -323,6 +333,16 @@ export function attachSavingsEventListeners(app) {
     });
   }
 
+  // Toggle current-amount field disabled state when auto-sync checkbox changes
+  const emergencyAutoSync = document.getElementById('emergencyAutoSync');
+  const emergencyCurrentEl = document.getElementById('emergencyCurrent');
+  if (emergencyAutoSync && emergencyCurrentEl) {
+    emergencyAutoSync.addEventListener('change', () => {
+      emergencyCurrentEl.disabled = emergencyAutoSync.checked;
+      if (emergencyAutoSync.checked) emergencyCurrentEl.value = '';
+    });
+  }
+
   // Sinking Fund form toggle
   const sinkingFormToggle = document.getElementById('sinkingFormToggle');
   const sinkingFormBody = document.getElementById('sinkingFormBody');
@@ -408,9 +428,11 @@ export function attachSavingsEventListeners(app) {
  * Add Emergency Fund
  */
 async function addEmergencyFund(app) {
-  const accountId = document.getElementById('emergencyAccount').value;
+  const accountIdRaw = document.getElementById('emergencyAccount').value;
+  const accountId = sanitizeInteger(accountIdRaw, null);
   const targetAmount = sanitizeFiniteNumber(document.getElementById('emergencyTarget').value);
-  const currentAmount = sanitizeFiniteNumber(document.getElementById('emergencyCurrent').value);
+  const autoSyncBalance = document.getElementById('emergencyAutoSync').checked;
+  const currentAmount = autoSyncBalance ? 0 : sanitizeFiniteNumber(document.getElementById('emergencyCurrent').value);
   const monthlyContribution = sanitizeFiniteNumber(document.getElementById('emergencyContribution').value);
   const autoContribute = document.getElementById('emergencyAuto').checked;
   const notes = normalizeText(document.getElementById('emergencyNotes').value);
@@ -422,11 +444,11 @@ async function addEmergencyFund(app) {
 
   const existingFund = app.emergencyFunds.find(f => f.accountId === accountId);
   if (existingFund) {
-    Object.assign(existingFund, { targetAmount, currentAmount, monthlyContribution, autoContribute, notes });
+    Object.assign(existingFund, { targetAmount, currentAmount, monthlyContribution, autoContribute, autoSyncBalance, notes });
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/emergency-funds/${existingFund.id}`, existingFund);
   } else {
-    const fund = { id: `ef-${Date.now()}`, accountId, targetAmount, currentAmount, monthlyContribution, autoContribute, notes };
+    const fund = { id: Date.now(), accountId, targetAmount, currentAmount, monthlyContribution, autoContribute, autoSyncBalance, notes };
     app.emergencyFunds.push(fund);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -444,9 +466,11 @@ async function addEmergencyFund(app) {
  */
 async function deleteEmergencyFund(app, fundId) {
   if (!await showDeleteConfirmModal('Delete this emergency fund?')) return;
-  app.emergencyFunds = app.emergencyFunds.filter(f => f.id !== fundId);
+  const fund = app.emergencyFunds.find(f => String(f.id) === String(fundId));
+  const numericId = fund?.id ?? fundId;
+  app.emergencyFunds = app.emergencyFunds.filter(f => String(f.id) !== String(fundId));
   app.saveToStorage();
-  if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/emergency-funds/${fundId}`);
+  if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/emergency-funds/${numericId}`);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
 }
@@ -463,11 +487,11 @@ async function openContributeEmergency(app, fundId) {
     return;
   }
 
-  const fund = app.emergencyFunds.find(f => f.id === fundId);
+  const fund = app.emergencyFunds.find(f => String(f.id) === String(fundId));
   if (fund) {
     fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/emergency-funds/${fundId}`, fund);
+    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/emergency-funds/${fund.id}`, fund);
     renderSavingsPage(app);
     attachSavingsEventListeners(app);
   }
@@ -477,12 +501,15 @@ async function openContributeEmergency(app, fundId) {
  * Start editing Emergency Fund
  */
 function startEditEmergencyFund(app, fundId) {
-  const fund = app.emergencyFunds.find(f => f.id === fundId);
+  const fund = app.emergencyFunds.find(f => String(f.id) === String(fundId));
   if (!fund) return;
 
   document.getElementById('emergencyAccount').value = fund.accountId;
   document.getElementById('emergencyTarget').value = fund.targetAmount;
-  document.getElementById('emergencyCurrent').value = fund.currentAmount;
+  const currentEl = document.getElementById('emergencyCurrent');
+  currentEl.value = fund.currentAmount;
+  currentEl.disabled = !!fund.autoSyncBalance;
+  document.getElementById('emergencyAutoSync').checked = !!fund.autoSyncBalance;
   document.getElementById('emergencyContribution').value = fund.monthlyContribution;
   document.getElementById('emergencyAuto').checked = fund.autoContribute;
   document.getElementById('emergencyNotes').value = fund.notes || '';
