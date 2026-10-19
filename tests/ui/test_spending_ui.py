@@ -117,6 +117,123 @@ def test_spending_modal_close_button_dismisses(app_page):
 
 
 @pytest.mark.ui
+def test_spending_ranked_row_has_accessible_affordance(app_page):
+    """Each ranked row has role=button, tabindex=0, aria-label mentioning 'transactions',
+    and a visible chevron affordance element."""
+    page = app_page
+    _seed_and_navigate(page)
+
+    row = page.query_selector('[data-spending-cat="Housing"]')
+    assert row, "Expected a ranked row for Housing"
+    assert row.get_attribute('role') == 'button', "Row should have role=button"
+    assert row.get_attribute('tabindex') == '0', "Row should be keyboard-focusable"
+    aria = row.get_attribute('aria-label') or ''
+    assert 'transactions' in aria.lower(), f"aria-label should mention 'transactions', got: {aria}"
+
+    chevron = row.query_selector('.spending-ranked-chevron')
+    assert chevron, "Expected .spending-ranked-chevron inside the ranked row"
+
+
+@pytest.mark.ui
+def test_spending_ranked_row_keyboard_enter_opens_modal(app_page):
+    """Pressing Enter on a focused ranked row opens the drill-down modal."""
+    page = app_page
+    _seed_and_navigate(page)
+
+    row = page.query_selector('[data-spending-cat="Housing"]')
+    assert row, "Expected a ranked row for Housing"
+    row.focus()
+    page.keyboard.press('Enter')
+
+    assert page.is_visible('#spendingDrilldownModal'), "Modal should open on Enter keypress"
+    title = page.evaluate('() => document.getElementById("spendingDrilldownTitle")?.textContent || ""')
+    assert 'Housing' in title
+
+
+@pytest.mark.ui
+def test_spending_ranked_row_keyboard_space_opens_modal(app_page):
+    """Pressing Space on a focused ranked row opens the drill-down modal."""
+    page = app_page
+    _seed_and_navigate(page)
+
+    row = page.query_selector('[data-spending-cat="Food"]')
+    assert row, "Expected a ranked row for Food"
+    row.focus()
+    page.keyboard.press(' ')
+
+    assert page.is_visible('#spendingDrilldownModal'), "Modal should open on Space keypress"
+
+
+@pytest.mark.ui
+def test_spending_modal_close_button_has_aria_label(app_page):
+    """The drill-down modal close button has aria-label='Close drill-down'."""
+    page = app_page
+    _seed_and_navigate(page)
+
+    page.click('[data-spending-cat="Housing"]')
+    assert page.is_visible('#spendingDrilldownModal')
+
+    close_btn = page.query_selector('#spendingDrilldownClose')
+    assert close_btn, "Expected #spendingDrilldownClose button"
+    label = close_btn.get_attribute('aria-label') or ''
+    assert 'close' in label.lower(), f"Close button should have aria-label containing 'close', got: {label}"
+
+
+@pytest.mark.ui
+def test_spending_modal_focus_on_open(app_page):
+    """Focus moves into the drill-down modal when it opens."""
+    page = app_page
+    _seed_and_navigate(page)
+
+    page.click('[data-spending-cat="Housing"]')
+    assert page.is_visible('#spendingDrilldownModal')
+
+    focused_id = page.evaluate("""() => {
+        const el = document.activeElement;
+        return el ? (el.id || el.className || el.tagName) : 'none';
+    }""")
+    modal_contains_focus = page.evaluate("""() => {
+        const modal = document.getElementById('spendingDrilldownModal');
+        return modal ? modal.contains(document.activeElement) : false;
+    }""")
+    assert modal_contains_focus, f"Focus should be inside the modal, got active element: {focused_id}"
+
+
+@pytest.mark.ui
+def test_spending_modal_escape_closes(app_page):
+    """Pressing Escape while the drill-down modal is open closes it."""
+    page = app_page
+    _seed_and_navigate(page)
+
+    page.click('[data-spending-cat="Housing"]')
+    assert page.is_visible('#spendingDrilldownModal')
+
+    page.keyboard.press('Escape')
+    assert not page.is_visible('#spendingDrilldownModal'), "Escape should dismiss the modal"
+
+
+@pytest.mark.ui
+def test_spending_modal_focus_returns_to_trigger_on_close(app_page):
+    """After closing the drill-down modal, focus returns to the row that triggered it."""
+    page = app_page
+    _seed_and_navigate(page)
+
+    row = page.query_selector('[data-spending-cat="Housing"]')
+    row.focus()
+    page.keyboard.press('Enter')
+    assert page.is_visible('#spendingDrilldownModal')
+
+    page.click('#spendingDrilldownClose')
+    assert not page.is_visible('#spendingDrilldownModal')
+
+    trigger_is_focused = page.evaluate("""() => {
+        const row = document.querySelector('[data-spending-cat="Housing"]');
+        return row === document.activeElement;
+    }""")
+    assert trigger_is_focused, "Focus should return to the triggering ranked row after modal closes"
+
+
+@pytest.mark.ui
 def test_spending_empty_state_message(app_page):
     """When there is no spending data, an informational message is shown instead of charts."""
     page = app_page
