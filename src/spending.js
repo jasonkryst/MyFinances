@@ -103,7 +103,7 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
         modal.classList.add('hidden');
         modal.removeEventListener('keydown', handleKeydown);
         modal.onclick = null;
-        if (triggerEl) setTimeout(() => triggerEl.focus(), 0);
+        if (triggerEl) triggerEl.focus();
     };
 
     const handleKeydown = (e) => {
