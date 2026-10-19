@@ -3,6 +3,19 @@ import { normalizeText, escapeHtml, formatCurrency } from './utils.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
 
+function _dtiStatus(dtiPct) {
+    if (dtiPct < 28) return { cls: 'health-status--green', label: 'Healthy' };
+    if (dtiPct < 40) return { cls: 'health-status--yellow', label: 'Moderate' };
+    return { cls: 'health-status--red', label: 'High Risk' };
+}
+
+function _utilStatus(utilPct) {
+    if (utilPct <= 10) return { cls: 'health-status--green', label: 'Good' };
+    if (utilPct <= 30) return { cls: 'health-status--yellow', label: 'Fair' };
+    if (utilPct <= 50) return { cls: 'health-status--orange', label: 'High' };
+    return { cls: 'health-status--red', label: utilPct >= 100 ? 'Maxed' : 'Critical' };
+}
+
 export function buildPersonOptionsHtml(persons, selectedId, { emptyLabel } = {}) {
     const empty = emptyLabel ? `<option value="">${emptyLabel}</option>` : '';
     const options = (persons || []).map(p =>
@@ -81,18 +94,48 @@ export function renderPeopleList(app) {
         const totalMinPayment = linkedDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
         const dtiPct = monthlyIncome > 0 ? Math.round((totalMinPayment / monthlyIncome) * 100) : null;
 
+        const monthlyNet = monthlyIncome - totalMinPayment;
+        const dtiSt = dtiPct !== null ? _dtiStatus(dtiPct) : null;
+        const utilSt = totalLimit > 0 ? _utilStatus(utilPct) : null;
+
         const hasLinked = linkedIncomes.length > 0 || linkedDebts.length > 0;
         const linkedSummary = [
             linkedIncomes.length ? `${linkedIncomes.length} income` : '',
             linkedDebts.length ? `${linkedDebts.length} debt${linkedDebts.length !== 1 ? 's' : ''}` : '',
         ].filter(Boolean).join(' · ');
 
+        const utilTile = utilSt
+            ? `<div class="person-kpi-tile" role="group" aria-label="Credit utilization for ${escapeHtml(p.name)}: ${utilPct}%">
+                    <span class="person-kpi-label">Credit Util</span>
+                    <span class="person-kpi-value health-badge ${utilSt.cls}">${utilPct}% <span class="person-kpi-status-label">${utilSt.label}</span></span>
+               </div>`
+            : `<div class="person-kpi-tile" role="group" aria-label="Credit utilization for ${escapeHtml(p.name)}: N/A">
+                    <span class="person-kpi-label">Credit Util</span>
+                    <span class="person-kpi-value person-kpi--na">N/A</span>
+               </div>`;
+
         return `
             <div class="income-card">
                 <div class="income-card-info">
-                    <span class="income-card-name">${escapeHtml(p.name)}</span>
-                    <span class="income-card-detail">Est. ${formatCurrency(annualIncome)}/yr &mdash; Balance: ${formatCurrency(totalDebt)}</span>
-                    <span class="income-card-freq">Credit Util: ${utilPct}%${dtiPct !== null ? ` &nbsp;&bull;&nbsp; DTI: ${dtiPct}%` : ''}</span>
+                    <div class="person-card-header">
+                        <span class="income-card-name">${escapeHtml(p.name)}</span>
+                        ${dtiSt ? `<span class="health-badge health-badge--sm ${dtiSt.cls}" aria-label="Debt-to-income ratio for ${escapeHtml(p.name)}: ${dtiPct}%, ${dtiSt.label}">DTI ${dtiPct}%</span>` : ''}
+                    </div>
+                    <div class="person-summary-card">
+                        <div class="person-kpi-tile" role="group" aria-label="Total annual income for ${escapeHtml(p.name)}: ${formatCurrency(annualIncome)}">
+                            <span class="person-kpi-label">Annual Income</span>
+                            <span class="person-kpi-value">${formatCurrency(annualIncome)}</span>
+                        </div>
+                        <div class="person-kpi-tile" role="group" aria-label="Total linked debt for ${escapeHtml(p.name)}: ${formatCurrency(totalDebt)}">
+                            <span class="person-kpi-label">Total Debt</span>
+                            <span class="person-kpi-value">${formatCurrency(totalDebt)}</span>
+                        </div>
+                        <div class="person-kpi-tile" role="group" aria-label="Monthly net for ${escapeHtml(p.name)}: ${formatCurrency(monthlyNet)}">
+                            <span class="person-kpi-label">Monthly Net</span>
+                            <span class="person-kpi-value ${monthlyNet >= 0 ? 'person-kpi--positive' : 'person-kpi--negative'}">${formatCurrency(monthlyNet)}</span>
+                        </div>
+                        ${utilTile}
+                    </div>
                     ${hasLinked ? `
                     <details class="person-linked-details">
                         <summary>${linkedSummary}</summary>

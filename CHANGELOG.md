@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.23.0] — 2026-10-19
+
+### Added
+- **L-02 — Ledger bulk clear/unclear** (issue #266) — the ledger table now has a row-selection checkbox column (hidden when the Cleared column is hidden). A select-all checkbox in the header selects all overridable rows on the current page. When one or more rows are selected, a "Bulk Actions" bar appears above the table showing the selection count and two buttons: "Mark Cleared" and "Mark Unclear". Each bulk action calls `setLedgerCleared` for every selected transaction, saves, and re-renders; selection resets automatically. The existing "Mark All Cleared" modal is preserved unchanged.
+- **P-01 — Per-person financial summary card** (issue #284) — the People page person cards now show a four-tile KPI summary: Total Annual Income, Total Debt, Monthly Net (income minus debt minimums), and Credit Utilization % (with a color-coded `health-badge` using the same green/yellow/orange/red thresholds as the Health page). A DTI % badge appears in the card header when income is linked. Credit Utilization shows "N/A" when no CC debts with limits exist. The existing collapsible linked-items section is preserved below the KPI tiles. Cards are responsive below 480 px (single-column stacking). All KPI tiles carry `aria-label` attributes.
+
 ## [6.22.0] — 2026-10-19
 
 ### Added
