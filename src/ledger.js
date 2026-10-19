@@ -114,6 +114,18 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
     setTimeout(() => closeBtn.focus(), 30);
 }
 
+function saveLedgerFilters(accountFilter, dateRange, clearedFilter, pageSize) {
+    try {
+        localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({ accountFilter, dateRange, clearedFilter, pageSize }));
+    } catch (_) {}
+}
+
+function loadLedgerFilters() {
+    try {
+        return JSON.parse(localStorage.getItem('debtTrackerLedgerFilters') || 'null');
+    } catch (_) { return null; }
+}
+
 // Render the Ledger page
 export function renderLedgerPage(app) {
     // --- Begin: renderLedgerPage logic from app.js ---
@@ -126,6 +138,21 @@ export function renderLedgerPage(app) {
     let selectedPageSize = parseInt(app._ledgerPageSize, 10);
     if (![10, 25, 50, 100].includes(selectedPageSize)) {
         selectedPageSize = 25;
+    }
+    if (!app._ledgerFiltersRestored) {
+        const saved = loadLedgerFilters();
+        if (saved) {
+            app._ledgerAccountFilter = saved.accountFilter ?? app._ledgerAccountFilter;
+            app._ledgerDateRange = saved.dateRange ?? app._ledgerDateRange;
+            app._ledgerClearedFilter = saved.clearedFilter ?? app._ledgerClearedFilter;
+            app._ledgerPageSize = saved.pageSize ?? app._ledgerPageSize;
+        }
+        app._ledgerFiltersRestored = true;
+        selectedAccount = app._ledgerAccountFilter || 'all';
+        selectedDateRange = app._ledgerDateRange || 'around7';
+        selectedClearedFilter = app._ledgerClearedFilter || 'all';
+        selectedPageSize = parseInt(app._ledgerPageSize, 10);
+        if (![10, 25, 50, 100].includes(selectedPageSize)) selectedPageSize = 25;
     }
     let currentPage = parseInt(app._ledgerPage, 10);
     if (isNaN(currentPage) || currentPage < 1) {
@@ -340,6 +367,7 @@ export function renderLedgerPage(app) {
         acctFilter.onchange = (e) => {
             app._ledgerAccountFilter = e.target.value;
             app._ledgerPage = 1;
+            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
             renderLedgerPage(app);
         };
     }
@@ -348,6 +376,7 @@ export function renderLedgerPage(app) {
         dateRangeFilter.onchange = (e) => {
             app._ledgerDateRange = e.target.value;
             app._ledgerPage = 1;
+            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
             renderLedgerPage(app);
         };
     }
@@ -357,6 +386,7 @@ export function renderLedgerPage(app) {
             const pageSize = parseInt(e.target.value, 10);
             app._ledgerPageSize = [10, 25, 50, 100].includes(pageSize) ? pageSize : 25;
             app._ledgerPage = 1;
+            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
             renderLedgerPage(app);
         };
     }
@@ -365,6 +395,7 @@ export function renderLedgerPage(app) {
         clearedFilterEl.onchange = (e) => {
             app._ledgerClearedFilter = e.target.value;
             app._ledgerPage = 1;
+            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
             renderLedgerPage(app);
         };
     }
@@ -375,6 +406,8 @@ export function renderLedgerPage(app) {
             app._ledgerDateRange = 'around7';
             app._ledgerClearedFilter = 'all';
             app._ledgerPage = 1;
+            localStorage.removeItem('debtTrackerLedgerFilters');
+            app._ledgerFiltersRestored = false;
             renderLedgerPage(app);
         };
     }

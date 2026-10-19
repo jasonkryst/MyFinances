@@ -399,6 +399,14 @@
                                     </div>
                                 </div>
 
+                                <div class="form-group">
+                                    <label for="debtNextPaymentDue">Next Payment Due Date
+                                        <span class="help-icon" tabindex="0" aria-label="Optional: the specific date your next payment is due.">?</span>
+                                    </label>
+                                    <input type="date" id="debtNextPaymentDue" name="debtNextPaymentDue">
+                                    <small class="form-hint">Optional — the specific date of your next payment</small>
+                                </div>
+
                                 <div class="form-group credit-card-field-container">
                                     <label for="creditLimit">Credit Limit (optional)
                                         <span class="help-icon" tabindex="0" aria-label="Enter the total credit limit for this card. Used to calculate utilization percentage.">?</span>
@@ -564,21 +572,7 @@
                                             </div>
                                             <div class="form-group">
                                                 <label for="expenseCategory">Category</label>
-                                                <select id="expenseCategory">
-                                                    <option value="Subscription">Subscription</option>
-                                                    <option value="Insurance">Insurance</option>
-                                                    <option value="Rent / Mortgage">Rent / Mortgage</option>
-                                                    <option value="Utilities">Utilities</option>
-                                                    <option value="Transport">Transport</option>
-                                                    <option value="Food">Food</option>
-                                                    <option value="Entertainment">Entertainment</option>
-                                                    <option value="Health">Health</option>
-                                                    <option value="Education">Education</option>
-                                                    <option value="Savings">Savings</option>
-                                                    <option value="Transfer">Transfer</option>
-                                                    <option value="Reimbursement">Reimbursement</option>
-                                                    <option value="Other">Other</option>
-                                                </select>
+                                                <input type="text" id="expenseCategory" list="categoryOptions" placeholder="e.g. Utilities, Food…" autocomplete="off">
                                             </div>
                                             <div class="form-group">
                                                 <label for="expenseAccount">Pay from Account</label>
@@ -867,6 +861,13 @@
                     </div>
                 </div>
 
+                <!-- ── Plan stale warning ──────────────────────────────────── -->
+                <div id="planStaleWarning" class="plan-stale-warning" hidden>
+                    <span class="plan-stale-warning-icon" aria-hidden="true">⚠️</span>
+                    <span class="plan-stale-warning-msg">Your debt data has changed since this plan was calculated.</span>
+                    <button type="button" class="btn btn-warning btn-small" id="planStaleRecalcBtn">Recalculate</button>
+                </div>
+
                 <!-- ── Results (hidden until Calculate is clicked) ────────── -->
                 <div id="resultsSection" class="hidden">
                     <hr class="plan-divider">
@@ -1125,21 +1126,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="recurringCategory">Category</label>
-                                    <select id="recurringCategory">
-                                        <option value="Subscription">Subscription</option>
-                                        <option value="Insurance">Insurance</option>
-                                        <option value="Rent / Mortgage">Rent / Mortgage</option>
-                                        <option value="Utilities">Utilities</option>
-                                        <option value="Transport">Transport</option>
-                                        <option value="Food">Food</option>
-                                        <option value="Entertainment">Entertainment</option>
-                                        <option value="Health">Health</option>
-                                        <option value="Education">Education</option>
-                                        <option value="Savings">Savings</option>
-                                        <option value="Transfer">Transfer</option>
-                                        <option value="Reimbursement">Reimbursement</option>
-                                        <option value="Other">Other</option>
-                                    </select>
+                                    <input type="text" id="recurringCategory" list="categoryOptions" placeholder="e.g. Utilities, Food…" autocomplete="off">
                                 </div>
                                 <div class="form-group">
                                     <label for="recurringAccount">Account *</label>
@@ -1820,6 +1807,7 @@
             <div id="whatsNewModalBody" class="whats-new-modal-body"></div>
         </div>
     </div>
+    <datalist id="categoryOptions"></datalist>
     <script type="module" src="src/app.js"></script>
 </body>
 </html>

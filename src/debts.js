@@ -45,6 +45,7 @@ export async function addDebt(app) {
         : [];
 
     const notes = normalizeText(document.getElementById('debtNotes')?.value ?? '', 500);
+    const nextPaymentDue = sanitizeDateISO(document.getElementById('debtNextPaymentDue')?.value);
 
     const debt = {
         id: Date.now(),
@@ -55,6 +56,7 @@ export async function addDebt(app) {
         accountId,
         personIds,
         notes,
+        nextPaymentDue,
         updatedAt: todayISO()
     };
 
@@ -265,6 +267,7 @@ export async function saveEdit(app) {
         : app.debts[idx].personIds || [];
 
     const notes = normalizeText(document.getElementById('debtNotes')?.value ?? '', 500);
+    const nextPaymentDue = sanitizeDateISO(document.getElementById('debtNextPaymentDue')?.value);
 
     app.debts[idx] = {
         ...app.debts[idx],
@@ -276,7 +279,8 @@ export async function saveEdit(app) {
         dueDate,
         creditLimit,
         personIds,
-        notes
+        notes,
+        nextPaymentDue
     };
 
     app.saveToStorage();
@@ -575,6 +579,7 @@ export function renderDebtsList(app) {
                         <div class="debt-detail debt-detail--notes"><strong>Notes:</strong>
                             <textarea id="inline-notes-${debt.id}" rows="2" maxlength="500" placeholder="Optional notes…">${escapeHtml(debt.notes || '')}</textarea>
                         </div>
+                        <div class="debt-detail"><strong>Next Payment Due:</strong> <input id="inline-next-due-${debt.id}" type="date" value="${debt.nextPaymentDue || ''}"></div>
                     </div>
                 </div>
                 <div class="debt-actions">
@@ -647,6 +652,10 @@ export function renderDebtsList(app) {
                         <div class="debt-detail">
                             <strong>Due Date:</strong> ${getDayOrdinal(debt.dueDate)} of month
                         </div>
+                        ${debt.nextPaymentDue ? `
+                        <div class="debt-detail">
+                            <strong>Next Payment Due:</strong> ${formatShortDate(debt.nextPaymentDue)}
+                        </div>` : ''}
                         ${debt.debtStartDate ? `
                         <div class="debt-detail">
                             <strong>Opened:</strong> ${formatShortDate(debt.debtStartDate)}
@@ -866,6 +875,9 @@ export async function saveInlineEdit(app, debtId) {
 
         const notesEl = document.getElementById(`inline-notes-${debtId}`);
         if (notesEl) debt.notes = normalizeText(notesEl.value, 500);
+
+        const nextDueEl = document.getElementById(`inline-next-due-${debtId}`);
+        if (nextDueEl) debt.nextPaymentDue = sanitizeDateISO(nextDueEl.value);
 
         if (!debt.name) {
             await showAlertModal('Please enter a name for the debt.');

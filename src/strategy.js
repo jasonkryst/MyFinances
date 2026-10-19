@@ -8,6 +8,30 @@ import {
     computeMonthlyBonusesForMonth
 } from './utils.js';
 
+function computeDebtFingerprint(debts) {
+    return (debts || [])
+        .filter(d => !d.archived)
+        .sort((a, b) => a.id - b.id)
+        .map(d => `${d.id}|${d.accountBalance}|${d.interestRate}|${d.minimumPayment}`)
+        .join(',');
+}
+
+function isPlanStale(app) {
+    if (!app.lastPaymentPlan || !app._planFingerprint) return false;
+    return computeDebtFingerprint(app.debts) !== app._planFingerprint;
+}
+
+function wirePlanStaleBanner(app) {
+    const staleWarning = document.getElementById('planStaleWarning');
+    if (!staleWarning) return;
+    staleWarning.hidden = !isPlanStale(app);
+    const staleBtn = document.getElementById('planStaleRecalcBtn');
+    if (staleBtn && !staleBtn._wired) {
+        staleBtn._wired = true;
+        staleBtn.addEventListener('click', () => app.calculatePaymentPlanFromInputs());
+    }
+}
+
 const PLAN_STRATEGY_LABELS = {
     avalanche: 'Avalanche',
     snowball: 'Snowball',
@@ -23,6 +47,7 @@ export function displayPaymentPlan(app) {
         console.error('displayPaymentPlan: missing data!');
         return;
     }
+    wirePlanStaleBanner(app);
 
     // Update summary
     document.getElementById('totalDebtValue').textContent =
@@ -70,6 +95,7 @@ export function suggestMonthlyPayment(app) {
 }
 
 export function renderStrategyIncomeWidget(app) {
+    wirePlanStaleBanner(app);
     const widget = document.getElementById('strategyIncomeWidget');
     if (!widget) return;
     if (app.incomes.length === 0) { widget.classList.add('hidden'); widget.classList.remove('visible'); return; }

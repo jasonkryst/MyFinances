@@ -99,9 +99,16 @@ export function generateIcs(app) {
 
         for (const debt of app.debts || []) {
             if (debt.archived && !showArchived) continue;
-            if (!debt.dueDate) continue;
-            const d = Math.min(debt.dueDate, daysInMo);
-            const dateStr = isoDateStr(y, mo, d);
+            if (!debt.dueDate && !debt.nextPaymentDue) continue;
+            let dateStr;
+            if (debt.nextPaymentDue && debt.nextPaymentDue.startsWith(`${y}-${String(mo).padStart(2, '0')}`)) {
+                dateStr = debt.nextPaymentDue;
+            } else if (debt.dueDate) {
+                const d = Math.min(debt.dueDate, daysInMo);
+                dateStr = isoDateStr(y, mo, d);
+            } else {
+                continue;
+            }
             events.push(vevent(
                 `debt-${debt.id}-${dateStr}@myfinances`,
                 `${debt.archived ? 'Debt (Archived)' : 'Debt'} - ${debt.name}`,

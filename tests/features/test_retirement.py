@@ -584,3 +584,117 @@ def test_catchup_eligible_persists_after_reload(app_page):
     catch_up_after = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').catchUpEligible")
     assert catch_up_after is True, "catchUpEligible should persist after reload"
     assert_no_errors(page)
+
+
+# ── i18n coverage tests (issue #336) ─────────────────────────────────────────
+
+@pytest.mark.feature
+def test_retirement_page_no_raw_i18n_keys_rendered(app_page):
+    """No raw retirement.* i18n key names appear in the rendered page."""
+    page = app_page
+    _add_retirement_account(page)
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    page.wait_for_timeout(400)
+
+    text = page.text_content('#retirementSection')
+    import re
+    raw_keys = re.findall(r'retirement\.\w+', text)
+    assert not raw_keys, f"Raw i18n keys found in rendered retirement page: {raw_keys}"
+
+
+@pytest.mark.feature
+def test_retirement_page_title_rendered(app_page):
+    """The retirement page heading contains the translated 'Retirement' text."""
+    page = app_page
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    page.wait_for_timeout(400)
+
+    heading = page.query_selector('#retirementSection h2')
+    assert heading, "Expected an h2 heading on the retirement page"
+    text = heading.text_content()
+    assert 'Retirement' in text, f"Expected 'Retirement' in heading, got: '{text}'"
+
+
+@pytest.mark.feature
+def test_retirement_target_date_label_rendered(app_page):
+    """The 'Target Retirement Date' label is visible (not a raw key)."""
+    page = app_page
+    _add_retirement_account(page)
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    page.wait_for_timeout(400)
+
+    label = page.query_selector('label[for="retirementTargetDateInput"]')
+    assert label, "Expected label for #retirementTargetDateInput"
+    text = label.text_content()
+    assert 'retirement.' not in text.lower(), f"Raw key in label: '{text}'"
+    assert len(text.strip()) > 3, f"Label text seems too short: '{text}'"
+
+
+@pytest.mark.feature
+def test_retirement_balance_chart_title_rendered(app_page):
+    """'Balance Over Time' chart title text is rendered (not a raw key)."""
+    page = app_page
+    _add_retirement_account(page)
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    page.wait_for_timeout(400)
+
+    text = page.text_content('#retirementSection')
+    assert 'Balance Over Time' in text, (
+        f"Expected 'Balance Over Time' in retirement section, got snippet: {text[:300]}"
+    )
+    assert 'retirement.balanceChartTitle' not in text
+
+
+@pytest.mark.feature
+def test_retirement_add_snapshot_button_text_rendered(app_page):
+    """The '+ Add Snapshot' button shows translated text, not a raw key."""
+    page = app_page
+    _add_retirement_account(page)
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    page.wait_for_timeout(400)
+
+    btn = page.query_selector('button[data-retire-action="add-snapshot"]')
+    assert btn, "Expected add-snapshot button"
+    text = btn.text_content()
+    assert 'retirement.' not in text, f"Raw i18n key in button: '{text}'"
+    assert 'Snapshot' in text or 'snapshot' in text.lower(), (
+        f"Expected 'Snapshot' text in button, got: '{text}'"
+    )
+
+
+@pytest.mark.feature
+def test_retirement_projection_text_not_raw_key(app_page):
+    """No-target-date message is a real sentence, not the raw key."""
+    page = app_page
+    _add_retirement_account(page)
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    page.wait_for_timeout(400)
+
+    panel = page.query_selector('#retireProjectionPanel')
+    assert panel, "Expected #retireProjectionPanel"
+    text = panel.text_content()
+    assert 'retirement.noTargetDateMsg' not in text, f"Raw i18n key in projection panel: '{text}'"
+    assert len(text.strip()) > 0, "Projection panel should not be empty"
+
+
+@pytest.mark.feature
+def test_retirement_empty_state_no_raw_keys(app_page):
+    """Empty-state message (no retirement accounts) uses translated text."""
+    page = app_page
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retirementSection.active', timeout=5000)
+    page.wait_for_timeout(400)
+
+    text = page.text_content('#retirementSection')
+    import re
+    raw_keys = re.findall(r'retirement\.\w+', text)
+    assert not raw_keys, f"Raw keys in empty-state retirement page: {raw_keys}"
+    assert 'No retirement accounts' in text or 'retirement' in text.lower(), (
+        "Expected meaningful empty-state text"
+    )
