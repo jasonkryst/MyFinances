@@ -2,8 +2,10 @@
 import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
-import { escapeHtml } from './utils.js';
+import { APP_VERSION, escapeHtml } from './utils.js';
 import { initCommandPalette } from './commandPalette.js';
+
+const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
 // Order matters for cycleTheme() (commandPalette.js), which steps through
 // this list by index.
@@ -551,6 +553,7 @@ export function initAccountMenu(app) {
     const dropdown = document.getElementById('accountMenuDropdown');
     if (!wrap || !btn || !dropdown) return;
 
+    const whatsNewItem = document.getElementById('accountMenuWhatsNewBtn');
     const calendarFeedItem = document.getElementById('accountMenuCalendarFeedBtn');
     const backupItem = document.getElementById('accountMenuBackupBtn');
     const settingsItem = document.getElementById('accountMenuSettingsBtn');
@@ -570,6 +573,8 @@ export function initAccountMenu(app) {
     const toggle = () => dropdown.classList.contains('hidden') ? open() : close();
 
     btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+
+    if (whatsNewItem) whatsNewItem.addEventListener('click', () => { close(); openWhatsNewModal(); });
 
     // Proxy menu items to the hidden legacy buttons
     if (calendarFeedItem) calendarFeedItem.addEventListener('click', () => { close(); document.getElementById('calendarFeedBtn')?.click(); });
@@ -901,6 +906,72 @@ export function showUpdateAvailableBanner(waitingWorker) {
     banner.appendChild(closeBtn);
     document.body.appendChild(banner);
 }
+
+export function checkWhatsNew(isFirstRun) {
+    let seen;
+    try { seen = localStorage.getItem(LAST_SEEN_VERSION_KEY); } catch (_) { return; }
+    if (isFirstRun) {
+        // New install — set the current version silently, no notification
+        try { localStorage.setItem(LAST_SEEN_VERSION_KEY, APP_VERSION); } catch (_) {}
+        return;
+    }
+    const hasNew = seen !== APP_VERSION;
+    _setWhatsNewDots(hasNew);
+}
+
+export function openWhatsNewModal() {
+    try { localStorage.setItem(LAST_SEEN_VERSION_KEY, APP_VERSION); } catch (_) {}
+    _setWhatsNewDots(false);
+    const modal = document.getElementById('whatsNewModal');
+    if (!modal) return;
+    const body = document.getElementById('whatsNewModalBody');
+    if (body) body.innerHTML = _buildWhatsNewHtml();
+    modal.classList.remove('hidden');
+    modal.focus();
+    const closeBtn = document.getElementById('whatsNewModalCloseBtn');
+    const closeHandler = () => {
+        modal.classList.add('hidden');
+        closeBtn?.removeEventListener('click', closeHandler);
+        modal.removeEventListener('click', overlayHandler);
+    };
+    const overlayHandler = (e) => { if (e.target === modal) closeHandler(); };
+    closeBtn?.addEventListener('click', closeHandler);
+    modal.addEventListener('click', overlayHandler);
+}
+
+function _setWhatsNewDots(visible) {
+    document.getElementById('accountMenuNotifDot')?.classList.toggle('account-menu-notif-dot--visible', visible);
+    document.getElementById('whatsNewMenuDot')?.classList.toggle('account-menu-notif-dot--visible', visible);
+}
+
+function _buildWhatsNewHtml() {
+    return `<div class="wn-version">v${escapeHtml(APP_VERSION)}</div>` + WHATS_NEW_ENTRIES.map(entry => `
+        <div class="wn-section">
+            <h4 class="wn-version-heading">${escapeHtml(entry.version)}</h4>
+            <ul class="wn-list">
+                ${entry.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>`).join('');
+}
+
+// Statically embed the last few versions' highlights.
+// Update this list every version bump alongside CHANGELOG.md.
+const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.24.0 — 2026-10-19',
+        items: [
+            '<strong>S-01 — Emergency fund auto-sync</strong> (issue #313) — Emergency fund records can now link to an account and automatically reflect the account\'s projected balance. Enable "Auto-sync balance from linked account" on any emergency fund. The current-amount field disables when auto-sync is on, and the card shows a ⟳ synced indicator. The manual + Contribute button is hidden when auto-sync is active.',
+            '<strong>U-01 — What\'s New notification</strong> (issue #289) — A notification dot on the account menu button now appears after each version upgrade. Clicking "What\'s New" in the account menu opens this panel showing recent changes. The dot is cleared when you dismiss the panel. New installs skip the notification.'
+        ]
+    },
+    {
+        version: '6.23.0 — 2026-10-19',
+        items: [
+            '<strong>L-02 — Ledger bulk clear/unclear</strong> (issue #266) — Select one or more ledger rows via checkboxes and use the Bulk Actions bar to mark them cleared or unclear in one click.',
+            '<strong>P-01 — Per-person financial summary card</strong> (issue #284) — People page cards now show Annual Income, Total Debt, Monthly Net, and Credit Utilization KPI tiles with color-coded health badges.'
+        ]
+    }
+];
 
 export function showNetWorthMilestone(message) {
     const host = document.createElement('div');

@@ -187,6 +187,7 @@ export function sanitizeEmergencyFund(record, idFallback) {
         currentAmount: sanitizeFiniteNumber(record?.currentAmount, 0, { min: 0 }),
         monthlyContribution: sanitizeFiniteNumber(record?.monthlyContribution, 0, { min: 0 }),
         autoContribute: Boolean(record?.autoContribute),
+        autoSyncBalance: Boolean(record?.autoSyncBalance),
         notes: normalizeText(record?.notes, 200)
     };
 }

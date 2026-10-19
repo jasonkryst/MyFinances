@@ -102,7 +102,7 @@ import {
 import {
     computeMoneyFlowSankeyData as computeMoneyFlowSankeyDataFeature
 } from './reportsMoneyFlowSankey.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, showAlertModal } from './ui.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, checkWhatsNew as checkWhatsNewFeature, openWhatsNewModal as openWhatsNewModalFeature, showAlertModal } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION } from './utils.js';
 import {
@@ -265,6 +265,8 @@ export class DebtTrackerApp {
 
         const versionEl = document.getElementById('appVersion');
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
+
+        checkWhatsNewFeature(this._isFirstRun);
 
         // Auto-capture monthly net worth snapshot if enabled
         if (getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
@@ -669,6 +671,9 @@ export class DebtTrackerApp {
     showUpdateAvailableBanner(waitingWorker) {
         return showUpdateAvailableBannerFeature(waitingWorker);
     }
+
+    checkWhatsNew(isFirstRun) { return checkWhatsNewFeature(isFirstRun); }
+    openWhatsNewModal() { return openWhatsNewModalFeature(); }
 
     /**
      * Persist current state to localStorage under `this.storageKey`.
