@@ -1452,3 +1452,124 @@ def test_ledger_override_icon_click_opens_override_modal(app_page):
     modal = page.query_selector('#ledgerOverrideModal')
     assert 'flex-visible' in (modal.get_attribute('class') or ''), \
         "Override modal should open when pencil icon is clicked"
+
+
+@pytest.mark.feature
+def test_ledger_override_modal_has_memo_field(app_page):
+    """The override modal contains a memo/notes textarea."""
+    page = app_page
+    _seed_income_for_ledger(page)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('[data-ledger-override]', timeout=10000)
+
+    page.click('[data-ledger-override]')
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+
+    memo_input = page.query_selector('#ledgerOverrideMemoInput')
+    assert memo_input, "Expected #ledgerOverrideMemoInput textarea in the override modal"
+    assert memo_input.get_attribute('maxlength') == '500', \
+        "Memo field should have maxlength=500"
+
+
+@pytest.mark.feature
+def test_ledger_override_memo_saves_and_shows_tooltip(app_page):
+    """A memo entered in the override modal is stored and surfaced as a title tooltip
+    on the override icon in the ledger row."""
+    page = app_page
+    _seed_income_for_ledger(page)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('[data-ledger-override]', timeout=10000)
+
+    override_btn = page.query_selector('[data-ledger-override]')
+    tx_id = override_btn.get_attribute('data-ledger-override')
+
+    override_btn.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    page.fill('#ledgerOverrideAmountInput', '999.00')
+    page.fill('#ledgerOverrideMemoInput', 'vet bill split with roommate')
+    page.click('#ledgerOverrideConfirmBtn')
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+
+    # The override icon's title attribute should include the memo.
+    icon_title = page.evaluate(
+        """(txId) => {
+            const icon = document.querySelector(`[data-ledger-edit-icon="${txId}"]`);
+            return icon ? icon.getAttribute('title') : null;
+        }""",
+        tx_id
+    )
+    assert icon_title, "Expected override icon to have a title attribute"
+    assert 'vet bill split with roommate' in icon_title, \
+        f"Override icon title should contain memo text, got: {icon_title}"
+
+
+@pytest.mark.feature
+def test_ledger_override_memo_persists_after_storage_reload(app_page):
+    """An override memo saved via the modal survives a localStorage round-trip."""
+    page = app_page
+    _seed_income_for_ledger(page)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('[data-ledger-override]', timeout=10000)
+
+    override_btn = page.query_selector('[data-ledger-override]')
+    tx_id = override_btn.get_attribute('data-ledger-override')
+
+    override_btn.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    page.fill('#ledgerOverrideAmountInput', '500.00')
+    page.fill('#ledgerOverrideMemoInput', 'refund received')
+    page.click('#ledgerOverrideConfirmBtn')
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
+
+    stored = page.evaluate(
+        """(txId) => {
+            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
+            const parsed = JSON.parse(raw);
+            return (parsed.ledgerAmountOverrides || {})[txId] || null;
+        }""",
+        tx_id
+    )
+    assert stored, "Override should be persisted to localStorage"
+    assert stored.get('memo') == 'refund received', \
+        f"Memo should survive localStorage round-trip, got: {stored.get('memo')}"
+
+
+@pytest.mark.feature
+def test_ledger_override_memo_empty_when_not_entered(app_page):
+    """An override saved without a memo stores memo as empty string."""
+    page = app_page
+    _seed_income_for_ledger(page)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.refreshCurrentPageData(); }")
+    page.wait_for_selector('[data-ledger-override]', timeout=10000)
+
+    override_btn = page.query_selector('[data-ledger-override]')
+    tx_id = override_btn.get_attribute('data-ledger-override')
+
+    override_btn.click()
+    page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    page.fill('#ledgerOverrideAmountInput', '200.00')
+    # Leave memo blank
+    page.click('#ledgerOverrideConfirmBtn')
+    page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
+    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
+
+    stored = page.evaluate(
+        """(txId) => {
+            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
+            const parsed = JSON.parse(raw);
+            return (parsed.ledgerAmountOverrides || {})[txId] || null;
+        }""",
+        tx_id
+    )
+    assert stored, "Override should be persisted"
+    assert stored.get('memo') == '' or stored.get('memo') is None, \
+        f"Memo should be empty when not entered, got: {stored.get('memo')!r}"

@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.21.0] — 2026-10-19
+
+### Added
+- **RP-01 — Spending category drill-down UX** (issue #327) — ranked list rows and pie chart segments were already wired to `_openSpendingDrilldown`; this release adds keyboard activation (Enter/Space), a visible chevron affordance, focus management (focus moves to modal on open, is trapped inside, returns to the triggering element on close), and `aria-label="Close drill-down"` on the close button.
+- **LD-01 — Ledger override memo field** (issue #341) — the ledger amount override modal now includes an optional memo/notes textarea (max 500 chars). The memo is stored in `app.ledgerAmountOverrides[key].memo` alongside the override amount, sanitized via `normalizeText` in `sanitizeLedgerOverrides`, shown as a title tooltip on the override icon, and survives JSON export/import round-trips. The Postgres PATCH payload includes it automatically via the existing `{ ...entry }` spread.
+
 ## [6.20.0] — 2026-10-18
 
 ### Added

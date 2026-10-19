@@ -62,7 +62,7 @@ function _changeBadgeHTML(change, prevLabel, cls) {
     return `<span class="spending-change-badge ${cls}">${dir} ${pct}% vs ${escapeHtml(prevLabel)}</span>`;
 }
 
-function _openSpendingDrilldown(app, catData, year, month) {
+function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     const modal = document.getElementById('spendingDrilldownModal');
     const content = document.getElementById('spendingDrilldownContent');
     if (!modal || !content) return;
@@ -95,11 +95,37 @@ function _openSpendingDrilldown(app, catData, year, month) {
         </div>
         <div class="spending-modal-tx-list">${txRows || '<p class="spending-empty-detail">No transactions.</p>'}</div>
         <div class="spending-modal-footer">
-            <button class="btn btn-secondary" id="spendingDrilldownClose">Close</button>
+            <button class="btn btn-secondary" id="spendingDrilldownClose" aria-label="Close drill-down">Close</button>
         </div>`;
     modal.classList.remove('hidden');
-    document.getElementById('spendingDrilldownClose').onclick = () => modal.classList.add('hidden');
-    modal.onclick = e => { if (e.target === modal) modal.classList.add('hidden'); };
+
+    const close = () => {
+        modal.classList.add('hidden');
+        modal.removeEventListener('keydown', handleKeydown);
+        modal.onclick = null;
+        if (triggerEl) setTimeout(() => triggerEl.focus(), 0);
+    };
+
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+        if (e.key === 'Tab') {
+            const focusable = Array.from(modal.querySelectorAll(
+                'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            ));
+            if (focusable.length === 0) { e.preventDefault(); return; }
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (e.shiftKey && (document.activeElement === first || document.activeElement === modal)) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
+        }
+    };
+
+    document.getElementById('spendingDrilldownClose').onclick = close;
+    modal.onclick = e => { if (e.target === modal) close(); };
+    modal.addEventListener('keydown', handleKeydown);
+    modal.focus();
 }
 
 function _hexToRgba(hex, alpha) {
@@ -139,11 +165,12 @@ export function renderReportsSpending(app) {
     const rankedRows = categories.map((cat, i) => {
         const changeHTML = _changeBadgeHTML(cat.changeVsLastMonth, prevLabel,
             cat.changeVsLastMonth !== null && cat.changeVsLastMonth >= 0 ? 'spending-ranked-change--up' : 'spending-ranked-change--down');
-        return `<div class="spending-ranked-row" data-spending-cat="${escapeHtml(cat.category)}" role="button" tabindex="0" aria-label="View ${escapeHtml(cat.category)} details">
+        return `<div class="spending-ranked-row" data-spending-cat="${escapeHtml(cat.category)}" role="button" tabindex="0" aria-label="View ${escapeHtml(cat.category)} transactions">
             <span class="spending-ranked-rank">${i + 1}.</span>
             <span class="spending-ranked-name">${escapeHtml(cat.category)}</span>
             <span class="spending-ranked-total">${formatCurrency(cat.total)}</span>
             ${changeHTML}
+            <span class="spending-ranked-chevron" aria-hidden="true">›</span>
         </div>`;
     }).join('');
 
@@ -167,7 +194,15 @@ export function renderReportsSpending(app) {
             const row = e.target.closest('[data-spending-cat]');
             if (!row) return;
             const cat = categories.find(c => c.category === row.getAttribute('data-spending-cat'));
-            if (cat) _openSpendingDrilldown(app, cat, year, month);
+            if (cat) _openSpendingDrilldown(app, cat, year, month, row);
+        });
+        rankedList.addEventListener('keydown', e => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const row = e.target.closest('[data-spending-cat]');
+            if (!row) return;
+            e.preventDefault();
+            const cat = categories.find(c => c.category === row.getAttribute('data-spending-cat'));
+            if (cat) _openSpendingDrilldown(app, cat, year, month, row);
         });
     }
 
@@ -191,7 +226,7 @@ export function renderReportsSpending(app) {
                 onClick: (event, elements) => {
                     if (!elements.length) return;
                     const cat = categories[elements[0].index];
-                    _openSpendingDrilldown(app, cat, year, month);
+                    _openSpendingDrilldown(app, cat, year, month, pieCvs);
                 },
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },

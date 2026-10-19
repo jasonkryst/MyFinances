@@ -250,8 +250,32 @@ describe('sanitizeLedgerOverrides', () => {
             'bill|1|2|2026-08-01': { amount: 120.5, originalAmount: 100, transactionName: 'Electric', accountId: 2, date: '2026-08-01', updatedAt: '2026-08-01T05:00:00.000Z' },
         });
         expect(result['bill|1|2|2026-08-01']).toEqual({
-            amount: 120.5, originalAmount: 100, transactionName: 'Electric', accountId: 2, date: '2026-08-01', updatedAt: '2026-08-01T05:00:00.000Z',
+            amount: 120.5, originalAmount: 100, transactionName: 'Electric', accountId: 2, date: '2026-08-01', updatedAt: '2026-08-01T05:00:00.000Z', memo: '',
         });
+    });
+
+    test('preserves a memo string present in the entry', () => {
+        const result = sanitizeLedgerOverrides({
+            'expense|5|3|2026-09-01': { amount: 42, memo: 'split with roommate', updatedAt: '2026-09-01T00:00:00.000Z' },
+        });
+        expect(result['expense|5|3|2026-09-01'].memo).toBe('split with roommate');
+    });
+
+    test('defaults memo to empty string when absent', () => {
+        const result = sanitizeLedgerOverrides({ a: { amount: 50, updatedAt: '2026-08-01T05:00:00.000Z' } });
+        expect(result.a.memo).toBe('');
+    });
+
+    test('truncates memo longer than 500 characters', () => {
+        const longMemo = 'x'.repeat(600);
+        const result = sanitizeLedgerOverrides({ a: { amount: 50, memo: longMemo, updatedAt: '2026-08-01T05:00:00.000Z' } });
+        expect(result.a.memo.length).toBe(500);
+        expect(result.a.memo).toBe('x'.repeat(500));
+    });
+
+    test('strips HTML-like characters from memo via normalizeText', () => {
+        const result = sanitizeLedgerOverrides({ a: { amount: 50, memo: '<script>alert(1)</script>', updatedAt: '2026-08-01T05:00:00.000Z' } });
+        expect(result.a.memo).not.toMatch(/[<>]/);
     });
 
     test('drops an entry whose amount is missing or non-finite', () => {

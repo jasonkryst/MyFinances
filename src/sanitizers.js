@@ -134,7 +134,8 @@ export function sanitizeLedgerOverrides(overrides) {
             transactionName: normalizeText(value?.transactionName, 120) || null,
             accountId: sanitizeInteger(value?.accountId, null),
             date: sanitizeDateISO(value?.date),
-            updatedAt: sanitizeTimestampISO(value?.updatedAt) || new Date().toISOString()
+            updatedAt: sanitizeTimestampISO(value?.updatedAt) || new Date().toISOString(),
+            memo: normalizeText(value?.memo, 500) || ''
         };
     }
     return out;

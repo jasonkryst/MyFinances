@@ -29,7 +29,8 @@ export function setLedgerAmountOverride(app, transactionId, amount, metadata = {
         transactionName: metadata.transactionName || null,
         accountId: metadata.accountId || null,
         date: metadata.date || null,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        memo: metadata.memo || ''
     };
     app.ledgerAmountOverrides[transactionId] = entry;
     if (app._storageBackendKind === 'postgres') {
@@ -52,6 +53,7 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
     const dateEl = document.getElementById('ledgerOverrideDate');
     const originalEl = document.getElementById('ledgerOverrideOriginal');
     const input = document.getElementById('ledgerOverrideAmountInput');
+    const memoInput = document.getElementById('ledgerOverrideMemoInput');
     const confirmBtn = document.getElementById('ledgerOverrideConfirmBtn');
     const cancelBtn = document.getElementById('ledgerOverrideCancelBtn');
     const closeBtn = document.getElementById('ledgerOverrideCloseBtn');
@@ -65,6 +67,10 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
     dateEl.textContent = tx.date ? formatShortDate(tx.date) : '';
     originalEl.textContent = formatCurrency(tx.originalAmount);
     input.value = Number(tx.amount || 0).toFixed(2);
+    if (memoInput) {
+        const existingMemo = (tx.transactionId && (app.ledgerAmountOverrides || {})[tx.transactionId]?.memo) || '';
+        memoInput.value = existingMemo;
+    }
 
     const close = () => {
         modal.classList.add('hidden'); modal.classList.remove('flex-visible');
@@ -81,7 +87,8 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
             originalAmount: tx.originalAmount,
             transactionName: tx.name,
             accountId: tx.accountId,
-            date: tx.date
+            date: tx.date,
+            memo: memoInput ? memoInput.value : ''
         });
         app.saveToStorage();
         close();
