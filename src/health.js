@@ -499,6 +499,20 @@ export function renderHealthDashboard(app) {
     if (app._healthSavingsChart)    { app._healthSavingsChart.destroy();    app._healthSavingsChart = null; }
     if (app._healthSurplusSparkline){ app._healthSurplusSparkline.destroy(); app._healthSurplusSparkline = null; }
 
+    const hasAnyData = (app.incomes?.length || app.debts?.length || app.accounts?.length || app.emergencyFunds?.length);
+    if (!hasAnyData) {
+        section.innerHTML = `<div class="empty-state health-empty-setup">
+            <div class="empty-state__icon">❤️</div>
+            <h3 class="empty-state__heading">Your financial health dashboard is empty</h3>
+            <p class="empty-state__body">Add accounts, income, and debts to see your DTI, savings rate, cash flow, and payoff timeline here.</p>
+            <button class="btn btn-primary empty-state__cta" id="healthEmptyStateCta">Set Up My Finances</button>
+        </div>`;
+        document.getElementById('healthEmptyStateCta')?.addEventListener('click', () => {
+            app.switchPage('accounts');
+        });
+        return;
+    }
+
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();

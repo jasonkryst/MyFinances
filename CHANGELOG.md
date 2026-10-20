@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.26.0] — 2026-10-20
+
+### Added
+- **A11Y-01 — Focus-trap on 3 modals** (issue #310) — keyboard Tab cycling is now fully trapped inside the Ledger Export CSV modal, Ledger Mark All Cleared modal, and the Reports Calendar day-detail modal. Each modal restores focus to the previously focused element on close.
+- **SV-01 — Sinking fund priority ordering** (issue #304) — sinking funds now have a numeric `order` field (1–99, 0 = unset). The savings page renders funds sorted by `order` ascending, with unordered funds last. An "Order" input appears on the add form and inline edit; an order tag is shown on each card when set.
+- **SV-02 — Sinking fund completion flow** (issue #308) — a "Complete this goal" button appears on fully funded sinking fund cards, opening a modal with Archive / Delete / Keep Active options. Archived funds gain a `completedDate` and are hidden by default behind an "archived" toggle. An empty state CTA appears when no active sinking funds exist.
+- **ES-01 — Empty state CTAs across pages** (issue #276) — all major list pages now show a richly styled empty state with icon, heading, body, and a CTA button when no items exist: Debts (→ open add form), Accounts (→ scroll to form), Income (→ scroll to form), Health (→ navigate to Accounts), Ledger (contextual — distinguishes no accounts vs. no linked data vs. filtered). The Accounts and Debts pages also show a "no match" state when filters yield zero results.
+- **RC-02 — Recurring actual-amount override** (issue #293) — clicking "Mark as paid" on a recurring template now opens a compact modal pre-filled with the budgeted amount; the user can edit to enter the actual amount paid this month. The actual amount is stored in a new `paidAmounts` map (`{ [YYYY-MM]: number }`) on the template record and shown on the paid badge when it differs from the budgeted amount.
+- **LD-01 — Ledger cross-navigation** (issue #285) — debt payment, income, and recurring rows in the Ledger now each show a small `↗` button. Clicking it switches to the matching page (Liabilities / Income / Recurring) and scrolls to + briefly highlights the corresponding card.
+- **LD-02 — Minimum payment trap warning** (issue #259) — each revolving debt card now computes the payoff timeline at only the minimum payment. When the result exceeds 36 months, a yellow "Min. payment trap" warning badge is shown with the years-to-payoff and estimated total interest cost, nudging users to pay more than the minimum.
+- **LD-03 — Bulk debt actions** (issue #282) — each non-editing debt card now has a multi-select checkbox. Selecting one or more cards reveals a bulk action bar with Archive, Export CSV, and Delete buttons; archive and delete prompt for confirmation first. Export writes a CSV with Name, Type, Balance, Rate, MinPayment, DueDate, and Category columns.
+
 ## [6.25.0] — 2026-10-19
 
 ### Added

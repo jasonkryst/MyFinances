@@ -3103,10 +3103,47 @@ body.dark-mode .stimulus-amount {
 /* Empty State */
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 48px 20px;
     color: var(--text-secondary);
     font-size: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
+.empty-state__icon { font-size: 2.5rem; line-height: 1; }
+.empty-state__heading { font-size: 1.1rem; font-weight: 700; color: var(--text-primary, #1e293b); margin: 0; }
+body.dark-mode .empty-state__heading { color: #f1f5f9; }
+.empty-state__body { font-size: 0.88rem; color: var(--text-secondary); max-width: 360px; margin: 0; line-height: 1.5; }
+.empty-state__cta { margin-top: 4px; }
+.empty-state--compact { padding: 32px 16px; }
+.empty-state--compact .empty-state__icon { font-size: 1.8rem; }
+.empty-state--compact .empty-state__heading { font-size: 0.95rem; }
+.empty-state--compact .empty-state__body { font-size: 0.82rem; }
+.ledger-empty-cell { padding: 0 !important; }
+.ledger-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    background: transparent;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    vertical-align: middle;
+    opacity: 0.7;
+}
+.ledger-nav-btn:hover { opacity: 1; background: var(--bg-hover, #f1f5f9); }
+body.dark-mode .ledger-nav-btn:hover { background: #334155; }
+@keyframes ledger-nav-flash {
+    0%   { outline: 2px solid #3b82f6; outline-offset: 2px; background: rgba(59,130,246,0.08); }
+    80%  { outline: 2px solid #3b82f6; outline-offset: 2px; background: rgba(59,130,246,0.08); }
+    100% { outline: none; background: transparent; }
+}
+.ledger-nav-highlight { animation: ledger-nav-flash 2s ease-out forwards; }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -3349,6 +3386,45 @@ body.dark-mode .neg-amort-badge {
     color: #fcd34d;
     border-color: #78350f;
 }
+.debt-min-trap-warn {
+    background: #fef9c3;
+    border: 1px solid #fde047;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    color: #713f12;
+    margin-top: 4px;
+}
+body.dark-mode .debt-min-trap-warn { background: #422006; color: #fde68a; border-color: #78350f; }
+.debt-min-trap-badge {
+    display: inline-block;
+    font-weight: 700;
+    margin-right: 4px;
+}
+.debt-bulk-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-secondary, #f8fafc);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.debt-bulk-bar--visible { display: flex; }
+.debt-bulk-count { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); flex: 1; }
+body.dark-mode .debt-bulk-bar { background: #1e293b; border-color: #334155; }
+body.dark-mode .debt-bulk-count { color: #f1f5f9; }
+.debt-select-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+    line-height: 1;
+}
+.debt-card { position: relative; }
+.debt-select-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #3b82f6; }
 
 /* ---- Strategy comparison panel ---- */
 .interest-comparison {
@@ -6586,6 +6662,16 @@ body.dark-mode .sinking-account { color: #cbd5e1; }
 .sinking-badge { padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; }
 .sinking-card-details { margin: 12px 0; }
 .sinking-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.sinking-card--funded { border-color: #059669; }
+body.dark-mode .sinking-card--funded { border-color: #34d399; }
+.sinking-card--archived { opacity: 0.65; }
+.sinking-order-tag { display: inline-block; font-size: 0.72rem; font-weight: 600; color: #6b7280; background: #f3f4f6; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+body.dark-mode .sinking-order-tag { background: #334155; color: #94a3b8; }
+.sinking-complete-btn { background: #059669; color: #fff; border-color: #059669; }
+.sinking-complete-btn:hover { background: #047857; border-color: #047857; }
+.progress-fill--funded { background: linear-gradient(90deg, #059669, #10b981); }
+body.dark-mode .progress-fill--funded { background: linear-gradient(90deg, #34d399, #6ee7b7); }
+.savings-archived-row { margin: 8px 0 4px; }
 .empty-message { color: #9ca3af; font-style: italic; text-align: center; padding: 24px 0; font-size: 0.9rem; }
 
 @media (max-width: 768px) {

@@ -73,7 +73,16 @@ export function renderAccountsList(app) {
     if (!container) return;
 
     if (!app.accounts || app.accounts.length === 0) {
-        container.innerHTML = `<p class="acct-empty-msg">No accounts yet. Add your first account above to start tracking cash flow per account.</p>`;
+        container.innerHTML = `<div class="empty-state">
+            <div class="empty-state__icon">🏦</div>
+            <h3 class="empty-state__heading">No accounts yet</h3>
+            <p class="empty-state__body">Add a checking, savings, or investment account to start tracking your cash flow and net worth.</p>
+            <button class="btn btn-primary empty-state__cta" id="acctEmptyStateCta">Add Your First Account</button>
+        </div>`;
+        document.getElementById('acctEmptyStateCta')?.addEventListener('click', () => {
+            document.getElementById('accountForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => document.getElementById('accountName')?.focus(), 300);
+        });
         return;
     }
 
@@ -239,6 +248,23 @@ export function renderAccountsList(app) {
                </button>
            </div>`
         : '';
+    if (displayAccounts.length === 0) {
+        const filterMsg = typeFilter
+            ? `No <strong>${escapeHtml(typeFilter)}</strong> accounts found. Try a different type filter.`
+            : `No active accounts to display. ${archivedCount > 0 ? 'Toggle "Show archived" to see archived accounts.' : ''}`;
+        container.innerHTML = `<div class="empty-state">
+            <div class="empty-state__icon">🔍</div>
+            <h3 class="empty-state__heading">No accounts match</h3>
+            <p class="empty-state__body">${filterMsg}</p>
+        </div>${archivedToggle}`;
+        document.getElementById('acctToggleArchived')?.addEventListener('click', () => {
+            setSetting(app, SHOW_ARCHIVED_ACCOUNTS, !showArchived);
+            app.renderAccountsList();
+        });
+        container.onclick = null;
+        return;
+    }
+
     container.innerHTML = cards + archivedToggle;
 
     document.getElementById('acctToggleArchived')?.addEventListener('click', () => {
