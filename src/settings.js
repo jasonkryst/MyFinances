@@ -7,6 +7,7 @@ export const RECONCILIATION_ADJUSTS_BALANCE = 'reconciliationAdjustsBalance';
 export const SHOW_ARCHIVED_DEBTS = 'showArchivedDebts';
 export const SHOW_ARCHIVED_RECURRING = 'showArchivedRecurring';
 export const SHOW_ARCHIVED_ACCOUNTS = 'showArchivedAccounts';
+export const SHOW_ARCHIVED_SINKING_FUNDS = 'showArchivedSinkingFunds';
 export const SURPLUS_ACCOUNT_ID = 'surplusAccountId';
 export const SURPLUS_WINDOW_DAYS = 'surplusWindowDays';
 export const SURPLUS_CUSHION_PCT = 'surplusCushionPct';

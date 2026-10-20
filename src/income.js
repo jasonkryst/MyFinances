@@ -28,7 +28,16 @@ export function renderIncomeList(app) {
     if (!container) return;
 
     if (app.incomes.length === 0) {
-        container.innerHTML = `<p class="empty-income-msg text-muted-secondary">No income sources added yet.</p>`;
+        container.innerHTML = `<div class="empty-state">
+            <div class="empty-state__icon">💰</div>
+            <h3 class="empty-state__heading">No income sources yet</h3>
+            <p class="empty-state__body">Add a salary, freelance income, or any regular paycheck to see payday forecasts and cash flow projections.</p>
+            <button class="btn btn-primary empty-state__cta" id="incomeEmptyStateCta">Add Your First Income</button>
+        </div>`;
+        document.getElementById('incomeEmptyStateCta')?.addEventListener('click', () => {
+            document.getElementById('incomeForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => document.getElementById('incomeName')?.focus(), 300);
+        });
         if (summaryEl) { summaryEl.classList.add('hidden'); summaryEl.classList.remove('visible'); }
         return;
     }

@@ -159,6 +159,15 @@ export function sanitizeLedgerClearedTransactions(entries) {
 export function sanitizeRecurringTemplate(record, idFallback) {
     const skippedMonths = Array.isArray(record?.skippedMonths) ? record.skippedMonths.filter(m => /^\d{4}-\d{2}$/.test(m)) : [];
     const paidMonths = Array.isArray(record?.paidMonths) ? record.paidMonths.filter(m => /^\d{4}-\d{2}$/.test(m)) : [];
+    const paidAmounts = {};
+    if (record?.paidAmounts && typeof record.paidAmounts === 'object' && !Array.isArray(record.paidAmounts)) {
+        for (const [k, v] of Object.entries(record.paidAmounts)) {
+            if (/^\d{4}-\d{2}$/.test(k)) {
+                const amt = sanitizeFiniteNumber(v, null, { min: 0 });
+                if (amt !== null && !isNaN(amt)) paidAmounts[k] = amt;
+            }
+        }
+    }
     const frequency = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'].includes(record?.frequency) ? record.frequency : 'monthly';
     const type = ['subscription', 'reimbursement', 'transfer'].includes(record?.type) ? record.type : 'subscription';
     return {
@@ -176,7 +185,8 @@ export function sanitizeRecurringTemplate(record, idFallback) {
         paused: Boolean(record?.paused),
         archived: Boolean(record?.archived),
         skippedMonths,
-        paidMonths
+        paidMonths,
+        paidAmounts
     };
 }
 
@@ -204,7 +214,10 @@ export function sanitizeSinkingFund(record, idFallback) {
         currentAmount: sanitizeFiniteNumber(record?.currentAmount, 0, { min: 0 }),
         autoContribute: Boolean(record?.autoContribute),
         accountId: sanitizeInteger(record?.accountId, null),
-        notes: normalizeText(record?.notes, 200)
+        notes: normalizeText(record?.notes, 200),
+        order: sanitizeInteger(record?.order, 0),
+        archived: Boolean(record?.archived),
+        completedDate: sanitizeDateISO(record?.completedDate)
     };
 }
 

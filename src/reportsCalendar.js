@@ -191,21 +191,28 @@ export function openCalendarDayModal(app, day) {
     bodyEl.querySelectorAll('[data-debt-color]').forEach(el =>
         el.style.setProperty('--debt-color', el.dataset.debtColor));
 
+    const lastFocused = document.activeElement;
     const close = () => {
         modal.classList.add('hidden'); modal.classList.remove('flex-visible');
         modal.onkeydown = null;
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
     closeBtn.onclick = close;
     modal.onclick = (event) => {
         if (event.target === modal) close();
     };
     modal.onkeydown = (event) => {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            close();
+        if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+        if (event.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
     };
 
     modal.classList.add('flex-visible'); modal.classList.remove('hidden');
+    modal.focus();
     setTimeout(() => closeBtn.focus(), 30);
 }

@@ -50,9 +50,11 @@ function openLedgerExportModal(app) {
     warning.hidden = hasRows;
     confirmBtn.disabled = !hasRows;
 
+    const lastFocused = document.activeElement;
     const close = () => {
         modal.classList.add('hidden'); modal.classList.remove('flex-visible');
         modal.onkeydown = null;
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
     confirmBtn.onclick = () => {
@@ -66,13 +68,18 @@ function openLedgerExportModal(app) {
     closeBtn.onclick = close;
     modal.onclick = (event) => { if (event.target === modal) close(); };
     modal.onkeydown = (event) => {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            close();
+        if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+        if (event.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
     };
 
     modal.classList.add('flex-visible'); modal.classList.remove('hidden');
+    modal.focus();
     setTimeout(() => closeBtn.focus(), 30);
 }
 
@@ -88,10 +95,12 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
     const count = clearableTxs.length;
     desc.textContent = `Mark ${count} transaction${count !== 1 ? 's' : ''} as cleared? This will apply to all uncleared transactions matching the current filters.`;
 
+    const lastFocused = document.activeElement;
     const close = () => {
         modal.classList.add('hidden');
         modal.classList.remove('flex-visible');
         modal.onkeydown = null;
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
     confirmBtn.onclick = () => {
@@ -106,11 +115,19 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
     closeBtn.onclick = close;
     modal.onclick = (event) => { if (event.target === modal) close(); };
     modal.onkeydown = (event) => {
-        if (event.key === 'Escape') { event.preventDefault(); close(); }
+        if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+        if (event.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
     };
 
     modal.classList.add('flex-visible');
     modal.classList.remove('hidden');
+    modal.focus();
     setTimeout(() => closeBtn.focus(), 30);
 }
 
@@ -258,7 +275,24 @@ export function renderLedgerPage(app) {
         <tbody>`;
     const visibleColCount = LEDGER_ALL_COLS.length - hiddenCols.size + (hiddenCols.has('cleared') ? 0 : 1);
     if (pagedTransactions.length === 0) {
-        html += `<tr><td colspan="${visibleColCount}" class="text-center text-muted-secondary p-32">No transactions yet.</td></tr>`;
+        let emptyIcon, emptyHeading, emptyBody;
+        if (activeFilterCount > 0) {
+            emptyIcon = '🔍'; emptyHeading = 'No transactions match your filters';
+            emptyBody = 'Try adjusting the date range, account, or status filters above.';
+        } else if ((app.accounts || []).length === 0) {
+            emptyIcon = '🏦'; emptyHeading = 'No accounts yet';
+            emptyBody = 'Add a checking or savings account and link it to income or expenses to see transactions here.';
+        } else {
+            emptyIcon = '📋'; emptyHeading = 'No transactions yet';
+            emptyBody = 'Link income, debts, or expenses to an account — they will appear here as scheduled transactions.';
+        }
+        html += `<tr><td colspan="${visibleColCount}" class="ledger-empty-cell">
+            <div class="empty-state empty-state--compact">
+                <div class="empty-state__icon">${emptyIcon}</div>
+                <h3 class="empty-state__heading">${emptyHeading}</h3>
+                <p class="empty-state__body">${emptyBody}</p>
+            </div>
+        </td></tr>`;
     } else {
         for (const tx of pagedTransactions) {
             const isReconciliation = tx.type === 'reconciliation';
@@ -308,9 +342,13 @@ export function renderLedgerPage(app) {
                     if (pills) txPersonPill = `<span class="person-pills">${pills}</span>`;
                 }
             }
+            const navableTypes = ['debt', 'income', 'recurring'];
+            const navIcon = (!isReconciliation && navableTypes.includes(tx.type) && tx.sourceId)
+                ? `<button class="ledger-nav-btn" data-ledger-nav-type="${tx.type}" data-ledger-nav-id="${tx.sourceId}" title="Go to ${tx.type}" aria-label="Go to ${escapeHtml(tx.name || '')} in ${tx.type} page">↗</button>`
+                : '';
             const nameCell = isReconciliation && tx.meta
                 ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
-                : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}`;
+                : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
             const overrideBtnLabel = isVariableIncome && !tx.hasOverride ? null
                 : isVariableIncome && tx.hasOverride ? 'Edit actual'
                 : tx.hasOverride ? 'Edit override'
@@ -463,6 +501,25 @@ export function renderLedgerPage(app) {
             renderLedgerPage(app);
             if (typeof app.renderReportsPage === 'function') app.renderReportsPage();
             if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
+        };
+    });
+
+    container.querySelectorAll('[data-ledger-nav-type]').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const type = btn.dataset.ledgerNavType;
+            const sourceId = parseInt(btn.dataset.ledgerNavId, 10);
+            const pageMap = { debt: 'liabilities', income: 'income', recurring: 'recurring' };
+            const cardIdMap = { debt: `debt-card-${sourceId}`, income: `income-card-${sourceId}`, recurring: `recurring-card-${sourceId}` };
+            if (!pageMap[type]) return;
+            app.switchPage(pageMap[type]);
+            setTimeout(() => {
+                const el = document.getElementById(cardIdMap[type]);
+                if (!el) return;
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ledger-nav-highlight');
+                setTimeout(() => el.classList.remove('ledger-nav-highlight'), 2000);
+            }, 150);
         };
     });
 

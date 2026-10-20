@@ -529,6 +529,17 @@ export function renderDebtsList(app) {
         });
     }
 
+    if (filteredDebts.length > 0) {
+        const bulkBar = document.createElement('div');
+        bulkBar.id = 'debtBulkBar';
+        bulkBar.className = 'debt-bulk-bar';
+        bulkBar.innerHTML = `<span id="debtBulkCount" class="debt-bulk-count" aria-live="polite"></span>
+            <button id="debtBulkArchiveBtn" class="btn btn-secondary btn-small">📦 Archive</button>
+            <button id="debtBulkExportBtn" class="btn btn-secondary btn-small">⬇️ Export CSV</button>
+            <button id="debtBulkDeleteBtn" class="btn btn-danger btn-small">🗑️ Delete</button>`;
+        debtsList.appendChild(bulkBar);
+    }
+
     for (const debt of filteredDebts) {
         const card = document.createElement('div');
         card.className = 'debt-card';
@@ -589,7 +600,7 @@ export function renderDebtsList(app) {
             `;
             card.innerHTML = editHTML;
         } else {
-            let cardHTML = `
+            let cardHTML = `<label class="debt-select-label"><input type="checkbox" class="debt-row-select" data-debt-select="${debt.id}" aria-label="Select ${escapeHtml(debt.name)}"></label>
                 <div class="debt-info">
                     <div class="debt-name">${escapeHtml(debt.name)}`;
             if (debt.debtType === 'fixedAmount') {
@@ -630,6 +641,19 @@ export function renderDebtsList(app) {
                 const monthlyInterest = dailyCompoundInterest(debt.accountBalance, debt.interestRate, 30);
                 const negAmortRisk = debt.minimumPayment <= monthlyInterest && debt.minimumPayment > 0;
                 const origBal = debt.originalBalance || debt.accountBalance;
+
+                const minPayMonths = (() => {
+                    const P = debt.accountBalance, r = debt.interestRate / 100 / 12, M = debt.minimumPayment;
+                    if (!P || !r || !M || M <= P * r) return null;
+                    return Math.ceil(-Math.log(1 - (r * P) / M) / Math.log(1 + r));
+                })();
+                const minPayTrapMonths = (minPayMonths !== null && minPayMonths > 36) ? minPayMonths : null;
+                const minPayTrapInterest = minPayTrapMonths
+                    ? (() => {
+                        const totalPaid = debt.minimumPayment * minPayTrapMonths;
+                        return Math.max(0, totalPaid - debt.accountBalance);
+                    })()
+                    : null;
                 const progressPct = origBal > 0 ? Math.min(100, Math.round((origBal - debt.accountBalance) / origBal * 100)) : 0;
                 const iptd = computeInterestPaidToDate(debt);
 
@@ -667,6 +691,12 @@ export function renderDebtsList(app) {
                             <span class="iptd-sub">over ${iptd.days} days since ${formatMonthYear(iptd.start)}</span>
                         </div>` : ''}
                         ${payoffDetailHTML}
+                        ${minPayTrapMonths ? `
+                        <div class="debt-detail debt-min-trap-warn">
+                            <span class="debt-min-trap-badge">⚠️ Min. payment trap</span>
+                            At this rate: <strong>${(minPayTrapMonths / 12).toFixed(1)} years</strong> to pay off
+                            ${minPayTrapInterest !== null ? `— costing <strong>${formatCurrency(minPayTrapInterest)}</strong> in interest` : ''}
+                        </div>` : ''}
                         ${debt.priority ? `
                             <div class="debt-detail">
                                 <strong>Priority:</strong> ${debt.priority}/100
@@ -742,6 +772,81 @@ export function renderDebtsList(app) {
             renderBreakEvenBadge(app, debt, card);
         }
     }
+
+    if (filteredDebts.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-state';
+        if (app.debts.length === 0) {
+            emptyDiv.innerHTML = `<div class="empty-state__icon">💳</div>
+                <h3 class="empty-state__heading">No debts tracked yet</h3>
+                <p class="empty-state__body">Add a debt to start calculating your payoff plan and see how quickly you can become debt-free.</p>
+                <button class="btn btn-primary empty-state__cta" id="debtEmptyStateCta">Add Your First Debt</button>`;
+        } else {
+            emptyDiv.innerHTML = `<div class="empty-state__icon">🔍</div>
+                <h3 class="empty-state__heading">No debts match your filters</h3>
+                <p class="empty-state__body">Try adjusting the filters above to see more debts.</p>`;
+        }
+        debtsList.appendChild(emptyDiv);
+        document.getElementById('debtEmptyStateCta')?.addEventListener('click', () => {
+            const toggle = document.getElementById('debtFormToggle');
+            if (toggle) toggle.click();
+        });
+    }
+
+    function _updateDebtBulkBar() {
+        const checked = debtsList.querySelectorAll('.debt-row-select:checked');
+        const n = checked.length;
+        const bar = document.getElementById('debtBulkBar');
+        if (bar) bar.classList.toggle('debt-bulk-bar--visible', n > 0);
+        const countEl = document.getElementById('debtBulkCount');
+        if (countEl) countEl.textContent = n > 0 ? `${n} debt${n !== 1 ? 's' : ''} selected` : '';
+    }
+    debtsList.querySelectorAll('.debt-row-select').forEach(cb => { cb.onchange = _updateDebtBulkBar; });
+
+    document.getElementById('debtBulkArchiveBtn')?.addEventListener('click', async () => {
+        const ids = Array.from(debtsList.querySelectorAll('.debt-row-select:checked'))
+            .map(cb => parseInt(cb.dataset.debtSelect, 10));
+        if (!ids.length) return;
+        const ok = await showDeleteConfirmModal(`Archive ${ids.length} debt${ids.length !== 1 ? 's' : ''}?`);
+        if (!ok) return;
+        for (const id of ids) {
+            const d = app.debts.find(x => x.id === id);
+            if (d) { d.archived = true; if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${id}`, d); }
+        }
+        app.saveToStorage();
+        renderDebtsList(app);
+    });
+
+    document.getElementById('debtBulkExportBtn')?.addEventListener('click', () => {
+        const ids = Array.from(debtsList.querySelectorAll('.debt-row-select:checked'))
+            .map(cb => parseInt(cb.dataset.debtSelect, 10));
+        if (!ids.length) return;
+        const rows = app.debts.filter(d => ids.includes(d.id)).map(d => [
+            JSON.stringify(d.name || ''), JSON.stringify(d.debtType || ''),
+            d.accountBalance ?? d.fixedAmount ?? 0, d.interestRate ?? 0,
+            d.minimumPayment ?? 0, d.dueDate ?? '', JSON.stringify(d.category || '')
+        ].join(','));
+        const csv = ['Name,Type,Balance,Rate,MinPayment,DueDate,Category', ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `debts-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
+    document.getElementById('debtBulkDeleteBtn')?.addEventListener('click', async () => {
+        const ids = Array.from(debtsList.querySelectorAll('.debt-row-select:checked'))
+            .map(cb => parseInt(cb.dataset.debtSelect, 10));
+        if (!ids.length) return;
+        const ok = await showDeleteConfirmModal(`Delete ${ids.length} debt${ids.length !== 1 ? 's' : ''}? This cannot be undone.`);
+        if (!ok) return;
+        if (app._storageBackendKind === 'postgres') for (const id of ids) pgDelete(app, `/api/debts/${id}`);
+        app.debts = app.debts.filter(d => !ids.includes(d.id));
+        app.saveToStorage();
+        renderDebtsList(app);
+        app.refreshCurrentPageData?.();
+    });
 
     debtsList.onclick = (event) => {
         // D-03: Break-even shortcut button in the debt actions row

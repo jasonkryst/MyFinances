@@ -110,6 +110,12 @@ def test_recurring_mark_and_unmark_paid(app_page):
     assert mark_btn, "Expected a Mark as paid button"
     mark_btn.click()
 
+    # #293: mark-paid now opens an actual-amount modal; confirm with default amount
+    confirm_btn = page.query_selector('#recurringMarkPaidConfirmBtn')
+    if confirm_btn:
+        confirm_btn.click()
+        page.wait_for_timeout(300)
+
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paid this month' in badge_text, "Template should show a Paid this month badge after marking as paid"
 

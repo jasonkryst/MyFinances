@@ -114,6 +114,7 @@ import {
     unarchiveRecurringTemplate as unarchiveRecurringTemplateFeature,
     skipRecurringOccurrence as skipRecurringOccurrenceFeature,
     markRecurringPaid as markRecurringPaidFeature,
+    openRecurringMarkPaidModal as openRecurringMarkPaidModalFeature,
     startEditRecurring as startEditRecurringFeature,
     cancelEditRecurring as cancelEditRecurringFeature,
     saveEditRecurring as saveEditRecurringFeature,
@@ -1002,7 +1003,8 @@ export class DebtTrackerApp {
     archiveRecurringTemplate(id) { return archiveRecurringTemplateFeature(this, id); }
     unarchiveRecurringTemplate(id) { return unarchiveRecurringTemplateFeature(this, id); }
     skipRecurringOccurrence(id, monthKey, unskip) { return skipRecurringOccurrenceFeature(this, id, monthKey, unskip); }
-    markRecurringPaid(id, monthKey, unmark) { return markRecurringPaidFeature(this, id, monthKey, unmark); }
+    markRecurringPaid(id, monthKey, unmark, actualAmount) { return markRecurringPaidFeature(this, id, monthKey, unmark, actualAmount); }
+    openRecurringMarkPaidModal(id, monthKey) { return openRecurringMarkPaidModalFeature(this, id, monthKey); }
     startEditRecurring(id) { return startEditRecurringFeature(this, id); }
     cancelEditRecurring() { return cancelEditRecurringFeature(this); }
     saveEditRecurring(id) { return saveEditRecurringFeature(this, id); }
