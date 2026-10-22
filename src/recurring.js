@@ -130,6 +130,33 @@ function isOverdue(template, now) {
     return now.getDate() > dueDay;
 }
 
+// ─── #382: Upcoming-due urgency badge ────────────────────────────────────────
+
+function daysBetweenCalendarDates(a, b) {
+    const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((utc2 - utc1) / (24 * 60 * 60 * 1000));
+}
+
+function getUrgencyBadge(occurrences, now) {
+    if (!occurrences || occurrences.length === 0) return '';
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const upcoming = occurrences
+        .filter(d => d >= todayStart)
+        .sort((a, b) => a - b)[0];
+    if (!upcoming) return '';
+
+    const daysUntil = daysBetweenCalendarDates(now, upcoming);
+    if (daysUntil < 3) {
+        const label = daysUntil <= 0 ? 'Due today' : `Due in ${daysUntil}d`;
+        return `<span class="recurring-urgency-badge recurring-urgency-badge--red" role="status">${label}</span>`;
+    }
+    if (daysUntil < 7) {
+        return `<span class="recurring-urgency-badge recurring-urgency-badge--yellow" role="status">Due in ${daysUntil}d</span>`;
+    }
+    return '';
+}
+
 // ─── R-01: Upcoming this month panel ─────────────────────────────────────────
 
 function renderUpcomingThisMonthPanel(app) {
@@ -416,6 +443,9 @@ function _buildReadCard(app, t, year, month, monthKey) {
     const overdueBadge = isOverdue(t, now)
         ? `<span class="recurring-overdue-badge" role="status" aria-label="Overdue">Overdue</span>`
         : '';
+    const urgencyBadge = (!t.paused && !t.archived && !isSkippedThisMonth && !isPaidThisMonth && !isOverdue(t, now))
+        ? getUrgencyBadge(occurrences, now)
+        : '';
 
     return `<div id="recurring-card-${t.id}" class="recurring-card${t.paused ? ' recurring-card--paused' : ''}${t.archived ? ' recurring-card--archived' : ''}${isOverdue(t, now) ? ' recurring-card--overdue' : ''}">
         <div class="recurring-card-header">
@@ -438,6 +468,7 @@ function _buildReadCard(app, t, year, month, monthKey) {
         <div class="recurring-card-status">
             ${archivedBadge}
             ${t.archived ? '' : overdueBadge}
+            ${t.archived ? '' : urgencyBadge}
             ${t.archived ? '' : statusBadge}
             ${t.archived ? '' : thisMonthLine}
         </div>

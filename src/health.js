@@ -6,6 +6,25 @@ import { getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLU
 // Persists allocation slider position across renderSurplusSection re-renders (0–100 = % to debt).
 let _surplusDebtPct = 100;
 
+const STALE_PLAN_DAYS = 30;
+
+/**
+ * #383: Returns { daysSince } if the most recently-touched active debt/income
+ * record is STALE_PLAN_DAYS+ old, or null if there's no timestamp data yet
+ * (legacy records never edited since updatedAt tracking shipped) or nothing is stale.
+ */
+function getDataStaleness(app) {
+    const timestamps = [
+        ...(app.debts || []).filter(d => !d.archived).map(d => d.updatedAt),
+        ...(app.incomes || []).map(i => i.updatedAt)
+    ].filter(Boolean);
+    if (timestamps.length === 0) return null;
+
+    const mostRecent = timestamps.reduce((latest, ts) => (ts > latest ? ts : latest));
+    const daysSince = Math.floor((Date.now() - new Date(`${mostRecent}T00:00:00`).getTime()) / (24 * 60 * 60 * 1000));
+    return daysSince >= STALE_PLAN_DAYS ? { daysSince } : null;
+}
+
 function dtiStatus(ratio) {
     if (ratio < 0.28) return { cls: 'health-status--green', label: t('health.status.healthy') };
     if (ratio < 0.40) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
@@ -500,6 +519,7 @@ export function renderHealthDashboard(app) {
     if (app._healthSurplusSparkline){ app._healthSurplusSparkline.destroy(); app._healthSurplusSparkline = null; }
 
     const hasAnyData = (app.incomes?.length || app.debts?.length || app.accounts?.length || app.emergencyFunds?.length);
+    const staleness = hasAnyData ? getDataStaleness(app) : null;
 
     const now = new Date();
     const year = now.getFullYear();
@@ -682,6 +702,10 @@ export function renderHealthDashboard(app) {
             <h3 class="empty-state__heading">Your financial health dashboard is empty</h3>
             <p class="empty-state__body">Add accounts, income, and debts to see your DTI, savings rate, cash flow, and payoff timeline here.</p>
             <button class="btn btn-primary empty-state__cta" id="healthEmptyStateCta">Set Up My Finances</button>
+        </div>` : ''}
+        ${(hasAnyData && staleness) ? `<div class="health-stale-banner" role="status">
+            <span class="health-stale-banner-icon">📅</span>
+            <span class="health-stale-banner-msg">You haven't updated your debts or income in ${staleness.daysSince} days — review your numbers to keep these insights accurate.</span>
         </div>` : ''}
         <div class="health-header">
             <div class="page-header-row">

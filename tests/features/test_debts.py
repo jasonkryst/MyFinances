@@ -444,28 +444,30 @@ def _seed_paid_off_debt(page, name='Paid Off Card', balance=0):
 
 
 @pytest.mark.feature
-def test_archive_button_shown_on_paid_off_debt(app_page):
-    """Archive button is present when debt balance is 0."""
+def test_celebrate_button_shown_on_paid_off_debt(app_page):
+    """#294 — 'Debt Paid Off!' celebration button is present when debt balance is 0."""
     page = app_page
     _seed_paid_off_debt(page, balance=0)
-    assert page.query_selector('[data-debt-action="archive"]') is not None
+    assert page.query_selector('[data-debt-action="celebrate"]') is not None
 
 
 @pytest.mark.feature
-def test_archive_button_not_shown_on_active_debt(app_page):
-    """Archive button is absent when debt still has a positive balance."""
+def test_celebrate_button_not_shown_on_active_debt(app_page):
+    """#294 — Celebration button is absent when debt still has a positive balance."""
     page = app_page
     _seed_paid_off_debt(page, name='Active Debt', balance=500)
-    assert page.query_selector('[data-debt-action="archive"]') is None
+    assert page.query_selector('[data-debt-action="celebrate"]') is None
 
 
 @pytest.mark.feature
-def test_archive_paid_off_debt_hides_from_list(app_page):
-    """Clicking Archive → confirming removes the card from the list."""
+def test_celebrate_modal_archive_hides_from_list(app_page):
+    """#294 — Celebration modal → Archive Debt → confirming removes the card from the list."""
     page = app_page
     _seed_paid_off_debt(page)
 
-    page.click('[data-debt-action="archive"][data-debt-id="9001"]')
+    page.click('[data-debt-action="celebrate"][data-debt-id="9001"]')
+    page.wait_for_selector('#debtPaidOffTitle', timeout=5000)
+    page.click('#dpoArchiveBtn')
     page.wait_for_selector('#archiveConfirmModal.flex-visible', timeout=5000)
     page.click('#archiveConfirmBtn')
     page.wait_for_selector('#archiveConfirmModal', state='hidden', timeout=5000)
@@ -475,12 +477,28 @@ def test_archive_paid_off_debt_hides_from_list(app_page):
 
 
 @pytest.mark.feature
-def test_archive_confirm_cancel_keeps_debt_visible(app_page):
-    """Cancelling the archive modal leaves the debt card in place."""
+def test_celebrate_modal_keep_active_keeps_debt_visible(app_page):
+    """#294 — Clicking 'Keep Active' in the celebration modal leaves the debt card in place."""
     page = app_page
     _seed_paid_off_debt(page)
 
-    page.click('[data-debt-action="archive"][data-debt-id="9001"]')
+    page.click('[data-debt-action="celebrate"][data-debt-id="9001"]')
+    page.wait_for_selector('#debtPaidOffTitle', timeout=5000)
+    page.click('#dpoKeepBtn')
+    page.wait_for_selector('#debtPaidOffTitle', state='hidden', timeout=5000)
+
+    assert page.query_selector('text=Paid Off Card') is not None
+
+
+@pytest.mark.feature
+def test_celebrate_modal_archive_confirm_cancel_keeps_debt_visible(app_page):
+    """#294 — Cancelling the archive-confirm step (after opening the celebration modal) leaves the debt card in place."""
+    page = app_page
+    _seed_paid_off_debt(page)
+
+    page.click('[data-debt-action="celebrate"][data-debt-id="9001"]')
+    page.wait_for_selector('#debtPaidOffTitle', timeout=5000)
+    page.click('#dpoArchiveBtn')
     page.wait_for_selector('#archiveConfirmModal.flex-visible', timeout=5000)
     page.click('#archiveConfirmCancelBtn')
     page.wait_for_selector('#archiveConfirmModal', state='hidden', timeout=5000)
@@ -597,7 +615,7 @@ def test_unarchive_restores_debt_to_active(app_page):
     page.wait_for_selector('[data-debt-action="unarchive"]', timeout=5000)
 
     page.click('[data-debt-action="unarchive"][data-debt-id="9004"]')
-    page.wait_for_selector('[data-debt-action="archive"]', timeout=5000)
+    page.wait_for_selector('[data-debt-action="celebrate"]', timeout=5000)
 
     archived = page.evaluate("() => window.app.debts.find(d => d.id === 9004)?.archived")
     assert archived is False

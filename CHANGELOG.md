@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.27.0] — 2026-10-22
+
+### Added
+- **Debt payoff celebration flow** (issue #294) — the "Archive" button shown on a paid-off debt card is replaced with a "🎉 Debt Paid Off!" button that opens a celebration modal (mirroring the #308 sinking-fund completion flow), congratulating the user and offering Archive Debt / Keep Active. Archiving from the modal goes through the existing archive-confirm step unchanged.
+- **Upcoming-due urgency badge on recurring cards** (issue #382) — recurring template cards now show a small badge when the next occurrence this month is due soon: red for due in under 3 days (or today), yellow for under 7 days. Suppressed when paused, archived, skipped, already paid this month, or already shown as Overdue.
+- **Health page stale-plan nudge** (issue #383) — a subtle banner appears on the Health page when the user has data but hasn't edited any debt or income record in 30+ days, nudging them to review their numbers. Income records now also track an `updatedAt` timestamp (mirroring the existing field on debts) to support this.
+
 ## [6.26.0] — 2026-10-20
 
 ### Added
