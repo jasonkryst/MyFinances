@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.28.0] — 2026-10-22
+
+### Added
+- **Health "Top recommendations" panel** (issue #254) — the Health page now renders a panel below the metric cards surfacing up to 3 ranked recommendations (red status beats yellow/orange, then insertion priority) drawn from the existing DTI, savings rate, emergency fund, debt payoff timeline, cash flow, and credit utilization status functions — no new calculation logic. Each recommendation names the flagged metric, its current value, a one-sentence explanation (e.g. naming the highest-APR debt for a high DTI), and a navigable action link reusing the dashboard's existing in-app navigation. Shows an "All metrics healthy" message when every metric is green; hidden entirely on a brand-new empty dashboard.
+- **Liabilities "Group by" (Person / Institution)** (issue #288) — a new Group by control on the Debts filter bar groups the debt list under person-name headers (a debt shared across multiple people appears under each) or institution headers (derived heuristically from the text before the first separator in the debt name, e.g. "Chase - Freedom" and "Chase - Sapphire" both group under "Chase"). Each group header shows a count, total balance, and total minimum payment. Sorting continues to apply within each group. The selection is a live UI control and does not persist across reload.
+
 ## [6.27.0] — 2026-10-22
 
 ### Added

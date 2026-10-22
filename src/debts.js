@@ -14,6 +14,56 @@ function utilizationStatus(pct) {
     return { cls: 'health-status--red', label: pct >= 100 ? 'Maxed' : 'Critical' };
 }
 
+function debtBalance(d) {
+    return d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
+}
+
+/**
+ * #288: One group per person who appears in any debt's personIds, plus an
+ * "Unassigned" group for debts with no linked person. A debt shared across
+ * multiple people (personIds.length > 1) appears in each of their groups —
+ * there's no single "owner" to pick for a shared debt.
+ */
+export function groupByPerson(debts, app) {
+    const groups = new Map();
+    const unassigned = [];
+    for (const d of debts) {
+        const personIds = d.personIds || [];
+        if (personIds.length === 0) {
+            unassigned.push(d);
+            continue;
+        }
+        for (const personId of personIds) {
+            if (!groups.has(personId)) {
+                const person = (app.persons || []).find(p => p.id === personId);
+                groups.set(personId, { key: `person-${personId}`, name: person ? person.name : 'Unknown Person', debts: [] });
+            }
+            groups.get(personId).debts.push(d);
+        }
+    }
+    const sections = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+    if (unassigned.length > 0) sections.push({ key: 'unassigned', name: 'Unassigned', debts: unassigned });
+    return sections;
+}
+
+/**
+ * #288: No dedicated "institution" field exists on debts, so the group key is
+ * derived heuristically from the debt name — everything before the first
+ * separator (-, –, —, comma, or open-paren), e.g. "Chase - Freedom" and
+ * "Chase - Sapphire" both group under "Chase". Falls back to the full name
+ * when no separator is present.
+ */
+export function groupByInstitution(debts) {
+    const groups = new Map();
+    for (const d of debts) {
+        const name = (d.name || '').trim();
+        const key = name ? (name.split(/[-–—,(]/)[0].trim() || name) : 'Other';
+        if (!groups.has(key)) groups.set(key, { key, name: key, debts: [] });
+        groups.get(key).debts.push(d);
+    }
+    return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function recalculateIfConfigured(app) {
     const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
     const strategy = document.getElementById('paymentStrategy').value;
@@ -575,6 +625,16 @@ export function renderDebtsList(app) {
         });
     }
 
+    const groupBy = document.getElementById('debtGroupBy')?.value || '';
+    let sections;
+    if (groupBy === 'person') {
+        sections = groupByPerson(filteredDebts, app);
+    } else if (groupBy === 'institution') {
+        sections = groupByInstitution(filteredDebts);
+    } else {
+        sections = [{ key: null, name: null, debts: filteredDebts }];
+    }
+
     if (filteredDebts.length > 0) {
         const bulkBar = document.createElement('div');
         bulkBar.id = 'debtBulkBar';
@@ -586,10 +646,33 @@ export function renderDebtsList(app) {
         debtsList.appendChild(bulkBar);
     }
 
-    for (const debt of filteredDebts) {
+    const _cardIdCounts = new Map();
+    for (const section of sections) {
+        if (section.name) {
+            const groupTotal = section.debts.reduce((s, d) => s + debtBalance(d), 0);
+            const groupMin = section.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+            const header = document.createElement('div');
+            header.className = 'debt-group-header';
+            header.innerHTML = `
+                <span class="debt-group-header-name">${escapeHtml(section.name)}</span>
+                <span class="debt-group-header-summary">
+                    ${section.debts.length} debt${section.debts.length !== 1 ? 's' : ''} &middot;
+                    ${formatCurrency(groupTotal)} balance &middot;
+                    ${formatCurrency(groupMin)}/mo min
+                </span>`;
+            debtsList.appendChild(header);
+        }
+
+        for (const debt of section.debts) {
         const card = document.createElement('div');
         card.className = 'debt-card';
-        card.id = `debt-card-${debt.id}`;
+        // A debt shared across multiple people (personIds.length > 1) renders once per
+        // group under Person grouping — keep DOM ids unique so #debt-card-<id> lookups
+        // (ledger/people-page "jump to debt" links) still resolve to a real element.
+        const baseCardId = `debt-card-${debt.id}`;
+        const seenCount = _cardIdCounts.get(baseCardId) || 0;
+        card.id = seenCount === 0 ? baseCardId : `${baseCardId}-dup${seenCount}`;
+        _cardIdCounts.set(baseCardId, seenCount + 1);
 
         const summaryRow = app._debtSummaryRows?.find(r => r.name === debt.name);
         const payoffDetailHTML = (summaryRow && summaryRow.payoffDate)
@@ -816,6 +899,7 @@ export function renderDebtsList(app) {
         // Render break-even badge for credit-card debts
         if (debt.debtType !== 'fixedAmount' && app.editingDebtId !== debt.id) {
             renderBreakEvenBadge(app, debt, card);
+        }
         }
     }
 

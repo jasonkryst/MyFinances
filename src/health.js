@@ -100,6 +100,138 @@ function debtToAssetStatus(ratio) {
     return { cls: 'health-status--red', label: t('health.status.highRisk') };
 }
 
+function severityScore(cls) {
+    if (cls === 'health-status--red') return 2;
+    if (cls === 'health-status--orange') return 1.5;
+    if (cls === 'health-status--yellow') return 1;
+    return 0;
+}
+
+/**
+ * #254: Builds up to 3 ranked recommendations (red > orange > yellow, then
+ * insertion order) from the metric statuses already computed for the metric
+ * cards. Purely declarative — no new calculation logic, just a lookup/format
+ * over existing status results.
+ */
+function buildRecommendations(data) {
+    const {
+        dtiSt, dtiPct, highestAprDebt,
+        savingsSt, savingsPct,
+        efWorst,
+        hasDebts, debtTimeline, timelineSt, timelineMonths,
+        cashFlowSt, net,
+        hasUtilData, utilSt, rawUtilPct
+    } = data;
+
+    const candidates = [];
+
+    if (dtiSt.cls !== 'health-status--green') {
+        candidates.push({
+            metric: 'Debt-to-Income Ratio',
+            value: `${dtiPct.toFixed(1)}%`,
+            text: highestAprDebt
+                ? `Your DTI is ${dtiPct.toFixed(1)}% — paying off ${highestAprDebt.name} (${highestAprDebt.interestRate.toFixed(1)}% APR) first would cut your highest-cost debt payments fastest.`
+                : `Your DTI is ${dtiPct.toFixed(1)}% — reducing monthly debt payments relative to income would bring this down.`,
+            actionLabel: 'Go to Plan page',
+            actionPage: 'strategy',
+            severity: severityScore(dtiSt.cls)
+        });
+    }
+
+    if (savingsSt.cls !== 'health-status--green') {
+        candidates.push({
+            metric: 'Savings Rate',
+            value: `${savingsPct.toFixed(1)}%`,
+            text: `You're saving ${savingsPct.toFixed(1)}% of your income — aim for at least 20% to build a healthy cushion.`,
+            actionLabel: 'Add to Savings',
+            actionPage: 'savings',
+            severity: severityScore(savingsSt.cls)
+        });
+    }
+
+    if (efWorst && efWorst.cls !== 'health-status--green') {
+        candidates.push({
+            metric: 'Emergency Fund Coverage',
+            value: `${efWorst.months.toFixed(1)} mo`,
+            text: `${efWorst.fundName ? efWorst.fundName : 'Your emergency fund'} covers only ${efWorst.months.toFixed(1)} months of expenses — aim for 3-6 months of coverage.`,
+            actionLabel: 'Add to Emergency Fund',
+            actionPage: 'savings',
+            severity: severityScore(efWorst.cls)
+        });
+    }
+
+    if (hasDebts && debtTimeline && timelineSt.cls !== 'health-status--green') {
+        candidates.push({
+            metric: 'Debt Payoff Timeline',
+            value: `${timelineMonths} mo`,
+            text: `At your current pace, your debts won't be paid off for ${timelineMonths} months — increasing your monthly payment would shorten this.`,
+            actionLabel: 'Go to Plan page',
+            actionPage: 'strategy',
+            severity: severityScore(timelineSt.cls)
+        });
+    }
+
+    if (cashFlowSt.cls !== 'health-status--green') {
+        candidates.push({
+            metric: 'Monthly Cash Flow',
+            value: formatCurrency(net),
+            text: net < 0
+                ? `You're spending more than you earn (${formatCurrency(net)}/mo) — review your budget to close the gap.`
+                : `You're breaking even each month — review your budget to build in a surplus.`,
+            actionLabel: 'Review Budget',
+            actionPage: 'liabilities',
+            severity: severityScore(cashFlowSt.cls)
+        });
+    }
+
+    if (hasUtilData && utilSt.cls !== 'health-status--green') {
+        candidates.push({
+            metric: 'Credit Utilization',
+            value: `${rawUtilPct}%`,
+            text: `Your credit utilization is ${rawUtilPct}% — paying down card balances below 30% will help your credit health.`,
+            actionLabel: 'Manage Debts',
+            actionPage: 'liabilities',
+            severity: severityScore(utilSt.cls)
+        });
+    }
+
+    return candidates
+        .sort((a, b) => b.severity - a.severity)
+        .slice(0, 3);
+}
+
+function recommendationSeverityCls(severity) {
+    if (severity >= 2) return 'health-recommendation-item--red';
+    if (severity >= 1.5) return 'health-recommendation-item--orange';
+    return 'health-recommendation-item--yellow';
+}
+
+function renderRecommendationsPanel(recommendations) {
+    if (recommendations.length === 0) {
+        return `
+        <div class="health-recommendations-panel health-recommendations-panel--healthy" id="healthRecommendationsPanel">
+            <h3 class="health-recommendations-heading">Recommendations</h3>
+            <p class="health-recommendations-healthy-msg">✅ All metrics healthy — keep up the great work!</p>
+        </div>`;
+    }
+
+    return `
+    <div class="health-recommendations-panel" id="healthRecommendationsPanel">
+        <h3 class="health-recommendations-heading">Top Recommendations</h3>
+        <ol class="health-recommendations-list">
+            ${recommendations.map(r => `
+                <li class="health-recommendation-item ${recommendationSeverityCls(r.severity)}">
+                    <div class="health-recommendation-hd">
+                        <span class="health-recommendation-metric">${escapeHtml(r.metric)}</span>
+                        <span class="health-recommendation-value">${escapeHtml(r.value)}</span>
+                    </div>
+                    <p class="health-recommendation-text">${escapeHtml(r.text)}</p>
+                    <a href="#" class="health-link" data-health-nav="${escapeHtml(r.actionPage)}">${escapeHtml(r.actionLabel)} &rarr;</a>
+                </li>`).join('')}
+        </ol>
+    </div>`;
+}
+
 // Returns an arrow span comparing current vs previous value. higherIsBetter
 // controls which direction counts as an improvement. Returns '' when the
 // change is negligible (< 0.05 percentage points) to avoid spurious arrows.
@@ -685,6 +817,29 @@ export function renderHealthDashboard(app) {
             })()
             : { cls: 'health-status--red', label: 'No surplus', yearsToFire: null };
 
+    // ── Recommendations (#254) ────────────────────────────────────────────────
+    const highestAprDebt = activeDebts
+        .filter(d => d.debtType !== 'fixedAmount' && (d.interestRate || 0) > 0)
+        .sort((a, b) => b.interestRate - a.interestRate)[0] || null;
+
+    let efWorst = null;
+    for (const fund of emergencyFunds) {
+        const months = totalOutflow > 0 ? fund.currentAmount / totalOutflow : 0;
+        const st = emergencyStatus(months);
+        if (!efWorst || severityScore(st.cls) > severityScore(efWorst.cls)) {
+            efWorst = { months, cls: st.cls, fundName: fund.name };
+        }
+    }
+
+    const recommendations = buildRecommendations({
+        dtiSt, dtiPct, highestAprDebt,
+        savingsSt, savingsPct,
+        efWorst,
+        hasDebts, debtTimeline, timelineSt, timelineMonths,
+        cashFlowSt, net,
+        hasUtilData, utilSt, rawUtilPct
+    });
+
     // ── Surplus Analysis ──────────────────────────────────────────────────────
     const accounts = app.accounts || [];
     const surplusAcctId   = getSetting(app, SURPLUS_ACCOUNT_ID, accounts[0]?.id ?? null);
@@ -1066,6 +1221,7 @@ export function renderHealthDashboard(app) {
             </div>
 
         </div>
+        ${hasAnyData ? renderRecommendationsPanel(recommendations) : ''}
     `;
 
     document.getElementById('healthEmptyStateCta')?.addEventListener('click', () => {
