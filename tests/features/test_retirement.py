@@ -179,6 +179,97 @@ def test_projection_panel_requires_target_date(app_page):
     assert_no_errors(page)
 
 
+# ── #345 Withdrawal rate / monthly income in retirement ──────────────────────
+
+def _add_account_with_target_date(page, balance=1000000, rate='7', target_date='2050-01-01'):
+    """A single retirement account with a logged balance and a target date,
+    so the projection panel (and withdrawal-rate slider within it) renders."""
+    _add_retirement_account(page, rate=rate)
+    account_id = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').id")
+    page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', {balance}, 0)")
+    page.evaluate(f"""() => {{
+        window.app.retirementTargetDate = '{target_date}';
+        window.app.saveToStorage();
+        window.app.renderRetirementPage();
+    }}""")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retireWithdrawalRateSlider', timeout=5000)
+    return account_id
+
+
+@pytest.mark.feature
+def test_withdrawal_rate_defaults_to_4_percent_and_shows_monthly_income(app_page):
+    """The slider defaults to 4% and the monthly-income estimate matches
+    projectedBalance * 4% / 12."""
+    page = app_page
+    _add_account_with_target_date(page)
+
+    slider_val = page.eval_on_selector('#retireWithdrawalRateSlider', 'el => el.value')
+    assert float(slider_val) == 4.0
+
+    projected = page.evaluate("() => window.app.computeAccountProjection(window.app.accounts.find(a => a.type === 'Retirement').id)")
+    expected_monthly = projected * 0.04 / 12
+    shown = page.inner_text('#retireMonthlyWithdrawalVal')
+    # formatCurrency rounds to 2 decimals; compare the numeric part loosely.
+    shown_num = float(shown.replace('$', '').replace(',', ''))
+    assert abs(shown_num - expected_monthly) < 1.0
+
+
+@pytest.mark.feature
+def test_withdrawal_rate_slider_updates_label_and_income_live(app_page):
+    """Dragging the slider updates both the displayed percentage and the
+    monthly-income figure immediately (no reload/recompute needed)."""
+    page = app_page
+    _add_account_with_target_date(page)
+
+    page.eval_on_selector(
+        '#retireWithdrawalRateSlider',
+        "(el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }",
+        6,
+    )
+    rate_label = page.inner_text('#retireWithdrawalRateVal')
+    assert '6' in rate_label
+
+    projected = page.evaluate("() => window.app.computeAccountProjection(window.app.accounts.find(a => a.type === 'Retirement').id)")
+    expected_monthly = projected * 0.06 / 12
+    shown_num = float(page.inner_text('#retireMonthlyWithdrawalVal').replace('$', '').replace(',', ''))
+    assert abs(shown_num - expected_monthly) < 1.0
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_withdrawal_rate_persists_after_reload(app_page):
+    """Moving the slider and firing 'change' persists the rate via
+    getSetting/setSetting; it survives a page reload."""
+    page = app_page
+    _add_account_with_target_date(page)
+
+    page.eval_on_selector(
+        '#retireWithdrawalRateSlider',
+        "(el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }",
+        5.5,
+    )
+
+    page.reload(wait_until="networkidle")
+    page.click('button[data-page="retirement"]')
+    page.wait_for_selector('#retireWithdrawalRateSlider', timeout=10000)
+    slider_val = page.eval_on_selector('#retireWithdrawalRateSlider', 'el => el.value')
+    assert float(slider_val) == 5.5
+
+
+@pytest.mark.feature
+def test_withdrawal_rate_help_icon_has_accessible_explanation(app_page):
+    """A help icon explains the safe withdrawal rate concept for screen readers."""
+    page = app_page
+    _add_account_with_target_date(page)
+
+    help_icon = page.query_selector('.retire-withdrawal-row .help-icon')
+    assert help_icon, "Expected a help icon next to the withdrawal rate slider"
+    aria_label = help_icon.get_attribute('aria-label')
+    assert aria_label and len(aria_label) > 10
+    assert '4%' in aria_label
+
+
 @pytest.mark.feature
 def test_reload_persists_retirement_data(app_page):
     """Retirement account, snapshot, and target date survive a page reload (localStorage)."""

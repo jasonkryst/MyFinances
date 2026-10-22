@@ -12,6 +12,7 @@ export const SURPLUS_ACCOUNT_ID = 'surplusAccountId';
 export const SURPLUS_WINDOW_DAYS = 'surplusWindowDays';
 export const SURPLUS_CUSHION_PCT = 'surplusCushionPct';
 export const AUTO_NW_SNAPSHOT = 'autoNwSnapshot';
+export const RETIREMENT_WITHDRAWAL_RATE = 'retirementWithdrawalRate';
 
 export function getSetting(app, key, defaultValue) {
     const entry = (app.settings || []).find(s => s.key === key);
