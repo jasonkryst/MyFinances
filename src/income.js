@@ -10,7 +10,8 @@ import {
     sanitizeDateISO,
     escapeHtml,
     formatShortDate,
-    buildPersonPillsHtml
+    buildPersonPillsHtml,
+    todayISO
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
@@ -211,7 +212,7 @@ export async function addIncome(app) {
     if (!firstPayDate) { await showAlertModal('Please enter the first pay date.'); return; }
     if (!accountId || isNaN(accountId)) { await showAlertModal('Please select an account for this income source.'); return; }
 
-    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable };
+    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, updatedAt: todayISO() };
     app.incomes.push(income);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -276,7 +277,7 @@ export async function saveEditIncome(app, incomeId) {
     const idx = app.incomes.findIndex(i => i.id === incomeId);
     if (idx === -1) return;
 
-    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable };
+    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, updatedAt: todayISO() };
     app.editingIncomeId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);

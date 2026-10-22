@@ -133,6 +133,52 @@ export function isDebtPaidOff(debt) {
     return (debt.accountBalance || 0) <= 0;
 }
 
+/**
+ * Open celebration modal for a debt whose balance just reached zero (#294).
+ * Mirrors openSinkingCompleteModal's structure/focus-trap in savings.js.
+ */
+async function openDebtPaidOffModal(app, debtId) {
+    const debt = app.debts.find(d => d.id === debtId);
+    if (!debt) return;
+    const lastFocused = document.activeElement;
+    const modal = document.createElement('div');
+    modal.className = 'modal flex-visible';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'debtPaidOffTitle');
+    modal.innerHTML = `
+      <div class="modal-card">
+        <h3 class="modal-title" id="debtPaidOffTitle">🎉 Debt paid off!</h3>
+        <p class="modal-message"><strong>${escapeHtml(debt.name)}</strong> is paid off. Congratulations!</p>
+        <p class="modal-message">What would you like to do with it?</p>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="dpoArchiveBtn">Archive Debt</button>
+          <button class="btn btn-secondary" id="dpoKeepBtn">Keep Active</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const close = () => {
+        modal.remove();
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    };
+    modal.onkeydown = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+        if (e.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button:not([disabled])');
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    };
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+    modal.querySelector('#dpoArchiveBtn').onclick = () => { close(); app.archiveDebt(debtId); };
+    modal.querySelector('#dpoKeepBtn').onclick = close;
+    modal.focus();
+    setTimeout(() => modal.querySelector('#dpoArchiveBtn').focus(), 30);
+}
+
 export async function archiveDebt(app, debtId) {
     const debt = app.debts.find(d => d.id === debtId);
     if (!debt) return;
@@ -755,7 +801,7 @@ export function renderDebtsList(app) {
                            ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}">Update Balance</button>` : ''}
                            <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}">History</button>
                            ${debt.debtType !== 'fixedAmount' && debt.accountBalance > 0 && debt.interestRate > 0 ? `<button class="btn btn-secondary btn-small debt-breakeven-btn" data-be-shortcut="${debt.id}" aria-label="Run break-even analysis for ${escapeHtml(debt.name)}">Break-even</button>` : ''}
-                           ${isDebtPaidOff(debt) ? `<button class="btn btn-secondary btn-small" data-debt-action="archive" data-debt-id="${debt.id}">Archive</button>` : ''}
+                           ${isDebtPaidOff(debt) ? `<button class="btn btn-primary btn-small debt-paid-off-btn" data-debt-action="celebrate" data-debt-id="${debt.id}">🎉 Debt Paid Off!</button>` : ''}
                            <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}">Delete</button>`
                     }
                 </div>
@@ -909,6 +955,7 @@ export function renderDebtsList(app) {
         if (action === 'delete') app.deleteDebt(id);
         if (action === 'archive') app.archiveDebt(id);
         if (action === 'unarchive') app.unarchiveDebt(id);
+        if (action === 'celebrate') openDebtPaidOffModal(app, id);
     };
 
     debtsList.onchange = (event) => {

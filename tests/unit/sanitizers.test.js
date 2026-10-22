@@ -196,6 +196,15 @@ describe('sanitizeIncome', () => {
         expect(sanitizeIncome({ isVariable: 0 }, 1).isVariable).toBe(false);
         expect(sanitizeIncome({ isVariable: null }, 1).isVariable).toBe(false);
     });
+
+    test('passes through a valid updatedAt (#383)', () => {
+        expect(sanitizeIncome({ updatedAt: '2026-08-01' }, 1).updatedAt).toBe('2026-08-01');
+    });
+
+    test('returns null updatedAt when missing or malformed (#383)', () => {
+        expect(sanitizeIncome({}, 1).updatedAt).toBeNull();
+        expect(sanitizeIncome({ updatedAt: 'not-a-date' }, 1).updatedAt).toBeNull();
+    });
 });
 
 describe('sanitizeBill', () => {

@@ -85,7 +85,8 @@ export function sanitizeIncome(record, idFallback) {
         category: INCOME_CATEGORIES.includes(record?.category) ? record.category : 'Salary',
         isVariable: Boolean(record?.isVariable ?? false),
         accountId: sanitizeInteger(record?.accountId, null),
-        personId: sanitizeInteger(record?.personId, null)
+        personId: sanitizeInteger(record?.personId, null),
+        updatedAt: sanitizeDateISO(record?.updatedAt)
     };
 }
 
