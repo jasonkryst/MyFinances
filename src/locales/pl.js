@@ -181,4 +181,7 @@ export default {
     'retirement.a11yBreakdownCaption': 'Current retirement balance by account',
     'retirement.a11yGrowthCol': 'Growth',
     'retirement.a11yAccountCol': 'Account',
+    'retirement.withdrawalRateLabel': 'Withdrawal rate',
+    'retirement.withdrawalRateHelp': 'The 4% rule assumes a 30-year retirement with inflation-adjusted withdrawals. Adjust to model a more conservative or aggressive withdrawal rate.',
+    'retirement.monthlyIncomeLabel': 'Monthly income in retirement',
 };

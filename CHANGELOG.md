@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.30.0] — 2026-10-22
+
+### Added
+- **Retirement: monthly income in retirement** (issue #345) — the Retirement page's projection panel now shows a "Monthly income in retirement" estimate derived from the combined projected balance using a configurable safe withdrawal rate (slider, 2%–8%, default 4%). `computeMonthlyWithdrawal(projectedBalance, withdrawalRatePct)` (`src/retirementCalculator.js`) is a pure arithmetic derivation of the existing projection — no new compounding logic. The rate updates the displayed estimate live as the slider moves and persists via `getSetting`/`setSetting` under `retirementWithdrawalRate` once released. A help icon explains the 4% rule for screen reader users.
+
+### Notes
+- Issue #346 (Coast FIRE calculation) was investigated but deferred — the suggested "infer target from the projection" approach is mathematically degenerate (growth-only compounding of today's balance can never catch up to a target that already assumes continued contributions over the same window), so it would almost always report "contributions required through retirement" regardless of actual progress. Needs a genuinely independent target-balance input before it can be implemented meaningfully; see the comment on #346.
+
 ## [6.29.0] — 2026-10-22
 
 ### Added

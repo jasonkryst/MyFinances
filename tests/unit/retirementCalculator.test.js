@@ -1,4 +1,4 @@
-const { computeRetirementProjection, splitGrowthFromContribution, IRS_CONTRIBUTION_LIMITS, getContributionLimit, computeYtdContributions } = require('../../src/retirementCalculator.js');
+const { computeRetirementProjection, splitGrowthFromContribution, IRS_CONTRIBUTION_LIMITS, getContributionLimit, computeYtdContributions, computeMonthlyWithdrawal } = require('../../src/retirementCalculator.js');
 
 describe('computeRetirementProjection', () => {
     test('returns currentBalance unchanged when monthsUntilTarget is zero or negative', () => {
@@ -145,5 +145,38 @@ describe('computeYtdContributions', () => {
     test('returns 0 for null/undefined snapshots array', () => {
         expect(computeYtdContributions(null, 1, 2025)).toBe(0);
         expect(computeYtdContributions(undefined, 1, 2025)).toBe(0);
+    });
+});
+
+describe('computeMonthlyWithdrawal', () => {
+    test('derives monthly income from a projected balance at the 4% safe withdrawal rate', () => {
+        expect(computeMonthlyWithdrawal(1000000, 4)).toBeCloseTo(3333.33, 2);
+    });
+
+    test('scales linearly with the withdrawal rate', () => {
+        expect(computeMonthlyWithdrawal(1000000, 8)).toBeCloseTo(6666.67, 2);
+        expect(computeMonthlyWithdrawal(1000000, 2)).toBeCloseTo(1666.67, 2);
+    });
+
+    test('scales linearly with the projected balance', () => {
+        expect(computeMonthlyWithdrawal(500000, 4)).toBeCloseTo(1666.67, 2);
+    });
+
+    test('returns 0 for a zero balance', () => {
+        expect(computeMonthlyWithdrawal(0, 4)).toBe(0);
+    });
+
+    test('returns 0 for a zero withdrawal rate', () => {
+        expect(computeMonthlyWithdrawal(1000000, 0)).toBe(0);
+    });
+
+    test('treats a non-numeric balance or rate as 0', () => {
+        expect(computeMonthlyWithdrawal('foo', 4)).toBe(0);
+        expect(computeMonthlyWithdrawal(1000000, 'bar')).toBe(0);
+        expect(computeMonthlyWithdrawal(null, undefined)).toBe(0);
+    });
+
+    test('handles a negative balance proportionally (no clamping — a projection should never actually be negative)', () => {
+        expect(computeMonthlyWithdrawal(-120000, 4)).toBeCloseTo(-400, 2);
     });
 });

@@ -76,6 +76,15 @@ export function computePensionContributionProjection(annualSalary, contributionR
     return monthly * monthsUntilTarget;
 }
 
+// Monthly income a projected balance supports under a safe withdrawal rate
+// (e.g. the 4% rule: $1M * 4% / 12 = $3,333/mo). Pure arithmetic derivation
+// of an already-computed projection — no new compounding logic.
+export function computeMonthlyWithdrawal(projectedBalance, withdrawalRatePct) {
+    const balance = Number(projectedBalance) || 0;
+    const rate = Number(withdrawalRatePct) || 0;
+    return balance * (rate / 100) / 12;
+}
+
 export function splitGrowthFromContribution(snapshotsForOneAccount) {
     const sorted = [...(snapshotsForOneAccount || [])].sort((a, b) => a.date.localeCompare(b.date));
     return sorted.map((snap, i) => {

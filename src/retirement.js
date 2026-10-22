@@ -1,8 +1,9 @@
 // Retirement accounts: history log, projection, and page rendering.
 
-import { computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution, getContributionLimit, computeYtdContributions } from './retirementCalculator.js';
+import { computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution, getContributionLimit, computeYtdContributions, computeMonthlyWithdrawal } from './retirementCalculator.js';
 import { pgPost, pgDelete, pgPatch } from './postgresSync.js';
 import { formatCurrency, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
+import { getSetting, setSetting, RETIREMENT_WITHDRAWAL_RATE } from './settings.js';
 import { t } from './i18n.js';
 
 export function getRetirementAccounts(app) {
@@ -422,12 +423,32 @@ function renderProjectionPanel(app, accounts) {
     });
     const total = accounts.reduce((sum, a) => sum + (app.computeAccountProjection(a.id) || 0), 0);
 
+    const withdrawalRate = Number(getSetting(app, RETIREMENT_WITHDRAWAL_RATE, 4)) || 4;
+
     panel.innerHTML = `
         <h4 class="rpt-chart-title">${t('retirement.projectionTitle', { date: escapeHtml(app.retirementTargetDate) })}</h4>
         <p class="rpt-chart-sub">${t('retirement.projectionSub')}</p>
         <div class="acct-balances">${rows.join('')}</div>
         <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.combinedTotal')}</span><span class="acct-balance-value">${formatCurrency(total)}</span></div>
+        <div class="retire-withdrawal-row">
+            <label for="retireWithdrawalRateSlider">${t('retirement.withdrawalRateLabel')}: <strong id="retireWithdrawalRateVal">${withdrawalRate}%</strong></label>
+            <span class="help-icon" tabindex="0" aria-label="${t('retirement.withdrawalRateHelp')}">?</span>
+            <input type="range" id="retireWithdrawalRateSlider" min="2" max="8" step="0.5" value="${withdrawalRate}" aria-label="${t('retirement.withdrawalRateLabel')}">
+        </div>
+        <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.monthlyIncomeLabel')}</span><span class="acct-balance-value" id="retireMonthlyWithdrawalVal">${formatCurrency(computeMonthlyWithdrawal(total, withdrawalRate))}</span></div>
     `;
+
+    const slider = document.getElementById('retireWithdrawalRateSlider');
+    const rateValEl = document.getElementById('retireWithdrawalRateVal');
+    const monthlyValEl = document.getElementById('retireMonthlyWithdrawalVal');
+    slider.oninput = () => {
+        const rate = Number(slider.value);
+        rateValEl.textContent = `${rate}%`;
+        monthlyValEl.textContent = formatCurrency(computeMonthlyWithdrawal(total, rate));
+    };
+    slider.onchange = () => {
+        setSetting(app, RETIREMENT_WITHDRAWAL_RATE, Number(slider.value));
+    };
 }
 
 export function renderRetirementPage(app) {

@@ -6160,6 +6160,11 @@ body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; 
 .retire-limit-fill--over { background: #dc2626; }
 .retire-limit-label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
 
+/* Withdrawal rate slider (issue #345) */
+.retire-withdrawal-row { display: flex; align-items: center; gap: 8px; margin: 16px 0 8px; flex-wrap: wrap; }
+.retire-withdrawal-row label { font-size: 0.85rem; color: var(--text-color); }
+.retire-withdrawal-row input[type="range"] { flex: 1; min-width: 160px; }
+
 .acct-balances {
     display: flex;
     gap: 20px;
