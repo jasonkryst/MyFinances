@@ -224,7 +224,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ### Data Management
 - **Persistent storage** — all data auto-saved to `localStorage`; key `debtTrackerData`, format `"4.0.0"`. Optional: switch to a self-hosted PostgreSQL backend for multi-device sync
 - **JSON export** — one-click full backup including accounts, debts, income, bills, expenses, recurring templates, snapshots, overrides, reconciliations, and settings
-- **JSON import** — Replace (full restore) or Merge (append debts; restore income, bills, expenses, overrides); legacy v1.0 files accepted; 2 MB max; full re-sanitization after import
+- **JSON import** — Replace (full restore) or Merge (append debts; restore income, bills, expenses, overrides); legacy v1.0 files accepted; 2 MB max; full re-sanitization after import; a collapsible warning list reports any coerced fields or rejected records, and a malformed file shows the parse error in a modal
 - **CSV export** — debt payment schedule + per-debt summary; Ledger CSV with custom column picker
 - **Clear All Data** — wipe everything and start fresh
 
@@ -483,8 +483,9 @@ for 60 iterations:
 
 #### Import Safety
 - Maximum file size: 2 MB
-- JSON validation with try-catch
+- JSON validation with try-catch — a malformed file surfaces the native parse error (position/line/column when the browser provides it) in a modal
 - Complete re-sanitization on every import (all `sanitize*` functions run again)
+- Per-field coercion/rejection warnings — a collapsible "Import succeeded — N issues found" list names every field that was coerced to a default and every record dropped for missing/invalid required fields, across all importable collections
 - Duplicate detection and filtering
 - Type checking on all fields
 

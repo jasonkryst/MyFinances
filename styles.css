@@ -5271,6 +5271,32 @@ body.dark-mode .dt-tab-btn:hover {
 .dt-import-choice .btn {
     margin-right: 8px;
 }
+.import-warnings-list {
+    margin-top: 10px;
+}
+.import-warnings-details {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+}
+.import-warnings-details summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.import-warnings-ul {
+    margin: 10px 0 2px;
+    padding-left: 20px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    max-height: 220px;
+    overflow-y: auto;
+}
+.import-warnings-ul li {
+    margin-bottom: 6px;
+}
 
 /* ── Stats strip ───────────────────────────────────────────────────────── */
 .rpt-stats-strip {

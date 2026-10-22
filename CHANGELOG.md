@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.29.0] — 2026-10-22
+
+### Added
+- **JSON import error surface** (issue #291) — importing a backup JSON file now reports what happened to every record, not just a generic success/failure toast. `sanitizeParsedState()` (`src/sanitizers.js`) optionally collects a `warnings` array alongside its normal sanitized output: one entry per field that was coerced to a default (record type, name, field, original value, new value) and one per record dropped entirely (missing/invalid required fields, or — for balance history — an orphaned reference to a debt/account that didn't survive the import). This covers every importable collection, including the ledger override/cleared-flag maps and the plan-history import cap. Soft warnings render as a collapsible "Import succeeded — N issues found (expand to see)" list inside the Backup & Restore modal's result banner (built with `createElement`/`textContent`, no `innerHTML` of untrusted content). A hard failure — the file isn't valid JSON at all — now opens the alert modal titled "Import Failed" with the native parse error (which already includes a position and often a line/column), instead of only the old generic inline message; the existing "file too large" and "no data found" messaging is unchanged.
+- **Focus-trap + restore on the Spending drill-down modal** (issue #310, N2 from the Oct 2026 a11y audit) — confirmed already implemented and extended test coverage for the three other flagged modals (Ledger Export, Ledger Mark-All-Cleared, Reports Calendar day detail): all four now have Playwright tests asserting that closing the modal restores focus to the control that opened it, in addition to the existing Tab-cycling/Escape coverage.
+
 ## [6.28.0] — 2026-10-22
 
 ### Added

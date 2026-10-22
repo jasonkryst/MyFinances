@@ -607,6 +607,171 @@ def test_import_drops_ledger_override_with_non_finite_amount(app_page):
 
 
 # ---------------------------------------------------------------------------
+# Import warning surface (issue #291) — per-field coercion/rejection reporting
+# ---------------------------------------------------------------------------
+
+@pytest.mark.feature
+def test_import_warnings_report_coerced_field(app_page):
+    """onImported receives a warnings array describing a coerced field, with
+    the record type/name, field, original value, and new value."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/dataExport.js');
+        const payload = { debts: [{ name: 'Visa', minimumPayment: 'foo' }] };
+        const file = new File([JSON.stringify(payload)], 'coerced.json', { type: 'application/json' });
+        return new Promise(resolve => {
+            let captured = null;
+            mod.importAllJSON(app, file, {
+                requestImportMode: () => true,
+                onImported: (parts, warnings) => { captured = warnings; }
+            });
+            setTimeout(() => resolve(captured), 300);
+        });
+    }""")
+
+    assert result is not None, "Expected onImported to be called with a warnings array"
+    warning = next((w for w in result if w.get('recordType') == 'Debt' and w.get('field') == 'minimumPayment'), None)
+    assert warning, f"Expected a coerced minimumPayment warning, got: {result}"
+    assert warning['recordName'] == 'Visa'
+    assert warning['kind'] == 'coerced'
+    assert warning['from'] == 'foo'
+    assert warning['to'] == 0
+
+
+@pytest.mark.feature
+def test_import_warnings_report_rejected_record(app_page):
+    """A record missing its required name field is reported as rejected,
+    distinct from a soft coercion."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/dataExport.js');
+        const payload = {
+            debts: [{ name: 'Valid Card', minimumPayment: 10 }],
+            bills: [{ amount: 50 }]
+        };
+        const file = new File([JSON.stringify(payload)], 'rejected.json', { type: 'application/json' });
+        return new Promise(resolve => {
+            let captured = null;
+            mod.importAllJSON(app, file, {
+                requestImportMode: () => true,
+                onImported: (parts, warnings) => { captured = warnings; }
+            });
+            setTimeout(() => resolve(captured), 300);
+        });
+    }""")
+
+    assert result is not None
+    warning = next((w for w in result if w.get('recordType') == 'Bill' and w.get('kind') == 'rejected'), None)
+    assert warning, f"Expected a rejected Bill warning, got: {result}"
+    assert 'not imported' in warning['reason'].lower()
+
+
+@pytest.mark.feature
+def test_import_invalid_json_callback_includes_parse_error_detail(app_page):
+    """Malformed JSON's onInvalidJSON callback now receives the native parse
+    error message (position/line/column), not just a boolean trigger."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/dataExport.js');
+        const file = new File(['{ this is not valid json'], 'bad.json', { type: 'application/json' });
+        return new Promise(resolve => {
+            let message = null;
+            mod.importAllJSON(app, file, { onInvalidJSON: (msg) => { message = msg; } });
+            setTimeout(() => resolve(message), 300);
+        });
+    }""")
+
+    assert result, "Expected onInvalidJSON to receive a parse error message"
+    assert isinstance(result, str) and len(result) > 0
+    assert 'position' in result.lower() or 'json' in result.lower(), \
+        f"Expected the native JSON parse error text, got: {result!r}"
+
+
+@pytest.mark.feature
+def test_import_ui_shows_collapsible_warnings_on_soft_coercion(app_page):
+    """End-to-end through the real Backup & Restore modal: importing a file
+    with a bad field value produces a visible, collapsible soft warning
+    inside the import success confirmation banner."""
+    import json
+    import os
+    import tempfile
+
+    from tests.conftest import open_data_transfer
+
+    page = app_page
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
+
+    payload = {"debts": [{"name": "Visa", "minimumPayment": "foo"}]}
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(payload, f)
+        temp_file = f.name
+
+    try:
+        page.click('#importJsonBtn')
+        page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
+        file_input = page.query_selector('#importJsonInput')
+        file_input.set_input_files(temp_file)
+
+        page.wait_for_selector('#importModeChoice:not(.hidden), #importResultBanner:not(.hidden)', timeout=5000)
+        if page.is_visible('#importModeChoice'):
+            page.click('#importModeReplaceBtn')
+
+        page.wait_for_selector('#importWarningsList:not(.hidden)', timeout=5000)
+        summary_text = page.inner_text('#importWarningsList summary')
+        assert 'issue' in summary_text.lower(), f"Expected an issue-count summary, got: {summary_text!r}"
+
+        # The warning list lives inside a collapsed <details> — expand it
+        # before reading, the same way a user would.
+        page.click('#importWarningsList summary')
+        items = page.query_selector_all('#importWarningsList li')
+        assert len(items) >= 1, "Expected at least one warning list item"
+        joined = ' '.join(item.inner_text() for item in items)
+        assert 'minimumPayment' in joined
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.feature
+def test_import_ui_shows_modal_on_hard_parse_failure(app_page):
+    """End-to-end: importing a file that isn't valid JSON through the real
+    Backup & Restore modal shows a modal (not just the inline banner) with
+    the specific parse error."""
+    import os
+    import tempfile
+
+    from tests.conftest import open_data_transfer
+
+    page = app_page
+    open_data_transfer(page)
+    page.click('[data-dt-tab="import"]')
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        f.write('{ this is not valid json')
+        temp_file = f.name
+
+    try:
+        page.click('#importJsonBtn')
+        page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
+        file_input = page.query_selector('#importJsonInput')
+        file_input.set_input_files(temp_file)
+
+        page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+        title = page.inner_text('#alertModalTitle')
+        message = page.inner_text('#alertModalMessage')
+        assert title == 'Import Failed'
+        assert len(message) > 0
+    finally:
+        os.unlink(temp_file)
+
+
+# ---------------------------------------------------------------------------
 # Legacy v1.0 (debts-only) import format
 # ---------------------------------------------------------------------------
 
