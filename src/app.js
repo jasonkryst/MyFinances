@@ -628,12 +628,17 @@ export class DebtTrackerApp {
      */
     importAllJSON(file) {
         return importAllJSONFeature(this, file, {
-            onInvalidJSON: () => showImportResult('error', 'Invalid JSON file. Please select a valid backup file.'),
+            // Hard failure (#291): the file isn't parseable JSON at all. Stays
+            // inline (not a popup modal) per the established Backup & Restore
+            // pattern of never using alert()/confirm()-style interruptions for
+            // import validation — but now includes the native parse error,
+            // which already carries a position and often a line/column.
+            onInvalidJSON: (parseErrorMessage) => showImportResult('error', `Invalid JSON file: ${parseErrorMessage}`),
             onNoData: () => showImportResult('error', 'No recognisable data found in the selected file.'),
             requestImportMode: (parts) => requestImportModeChoice(parts),
-            onImported: (parts) => showImportResult('success', `Imported: ${parts.join(', ')}.`),
-            onMergeDuplicates: (addedCount, skippedCount) => {
-                showImportResult('success', `Merged ${addedCount} debt(s). Skipped ${skippedCount} duplicate name(s).`);
+            onImported: (parts, warnings) => showImportResult('success', `Imported: ${parts.join(', ')}.`, warnings),
+            onMergeDuplicates: (addedCount, skippedCount, warnings) => {
+                showImportResult('success', `Merged ${addedCount} debt(s). Skipped ${skippedCount} duplicate name(s).`, warnings);
             },
             onTooLarge: (maxBytes) => {
                 showImportResult('error', `Import file is too large. Maximum supported size is ${Math.round(maxBytes / 1024)} KB.`);

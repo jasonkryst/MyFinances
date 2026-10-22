@@ -4,6 +4,81 @@ import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, 
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
+// --- Import warning collection (issue #291) -------------------------------
+// sanitizeParsedState's warnings param is opt-in and defaults to undefined so
+// the normal load/import path (and every individual sanitizeX export above)
+// stays exactly as pure/side-effect-free as before when a caller doesn't ask
+// for warnings. These helpers live here (not scattered through dataExport.js)
+// because only the per-collection map/filter call sites know *why* a record
+// was dropped; that information doesn't survive the filter.
+function _valuesDiffer(a, b) {
+    if (a === b) return false;
+    try { return JSON.stringify(a) !== JSON.stringify(b); } catch { return true; }
+}
+
+// Diffs every key present on the raw input against the sanitized output,
+// pushing one 'coerced' warning per differing field. Keys absent from `raw`
+// are never visited, so fields that were merely defaulted (not supplied at
+// all) never produce a false-positive warning.
+function _diffFields(warnings, recordType, recordName, raw, sanitized, skip = ['id']) {
+    if (!warnings || !raw || typeof raw !== 'object' || !sanitized || typeof sanitized !== 'object') return;
+    for (const field of Object.keys(raw)) {
+        if (skip.includes(field) || !(field in sanitized)) continue;
+        const from = raw[field], to = sanitized[field];
+        if (_valuesDiffer(from, to)) {
+            warnings.push({ recordType, recordName, kind: 'coerced', field, from, to });
+        }
+    }
+}
+
+function _warnLabel(raw, i, nameFieldOrFn) {
+    if (typeof nameFieldOrFn === 'function') return nameFieldOrFn(raw, i);
+    const value = raw && typeof raw === 'object' ? raw[nameFieldOrFn] : null;
+    return value ? String(value) : `Record #${i + 1}`;
+}
+
+// Shared by every id-bearing record array (debts, accounts, incomes, ...).
+// `sanitizeFn` takes (record, idFallback); `keepFn` mirrors the original
+// post-map .filter() predicate so behavior is unchanged when warnings is
+// omitted.
+function _sanitizeRecordArray(rawList, sanitizeFn, idBase, keepFn, recordType, nameFieldOrFn, warnings, skip) {
+    const rawArr = Array.isArray(rawList) ? rawList : [];
+    const out = [];
+    rawArr.forEach((raw, i) => {
+        const sanitized = sanitizeFn(raw, idBase + i);
+        const label = _warnLabel(raw, i, nameFieldOrFn);
+        if (sanitized && keepFn(sanitized)) {
+            out.push(sanitized);
+            _diffFields(warnings, recordType, label, raw, sanitized, skip);
+        } else if (warnings) {
+            warnings.push({ recordType, recordName: label, kind: 'rejected', reason: 'Missing or invalid required field(s) — record was not imported.' });
+        }
+    });
+    return out;
+}
+
+// Shared by value-only arrays with no idFallback (settings, snapshots,
+// milestones, per-month stimulus). `sanitizeFn` takes (record) only.
+function _sanitizeValueArray(rawList, sanitizeFn, keepFn, recordType, labelFn, warnings, skip) {
+    const rawArr = Array.isArray(rawList) ? rawList : [];
+    const out = [];
+    rawArr.forEach((raw, i) => {
+        const sanitized = sanitizeFn(raw);
+        const label = labelFn(raw, i);
+        if (keepFn(sanitized)) {
+            out.push(sanitized);
+            if (sanitized !== null && typeof sanitized === 'object') {
+                _diffFields(warnings, recordType, label, raw, sanitized, skip);
+            } else if (warnings && _valuesDiffer(raw, sanitized)) {
+                warnings.push({ recordType, recordName: label, kind: 'coerced', field: 'value', from: raw, to: sanitized });
+            }
+        } else if (warnings) {
+            warnings.push({ recordType, recordName: label, kind: 'rejected', reason: 'Invalid value — not imported.' });
+        }
+    });
+    return out;
+}
+
 export function sanitizePerson(record, idFallback) {
     return {
         id: sanitizeInteger(record?.id, idFallback),
@@ -125,14 +200,17 @@ export function sanitizeExpense(record, idFallback) {
     };
 }
 
-export function sanitizeLedgerOverrides(overrides) {
+export function sanitizeLedgerOverrides(overrides, warnings) {
     const out = {};
     if (!overrides || typeof overrides !== 'object') return out;
     for (const [key, value] of Object.entries(overrides)) {
         if (!key || typeof key !== 'string') continue;
         const amount = sanitizeFiniteNumber(value?.amount, NaN);
-        if (!Number.isFinite(amount)) continue;
-        out[key] = {
+        if (!Number.isFinite(amount)) {
+            if (warnings) warnings.push({ recordType: 'Ledger Override', recordName: key, kind: 'rejected', reason: 'Missing or invalid amount — override was not imported.' });
+            continue;
+        }
+        const sanitized = {
             amount,
             originalAmount: sanitizeFiniteNumber(value?.originalAmount, null),
             transactionName: normalizeText(value?.transactionName, 120) || null,
@@ -141,17 +219,23 @@ export function sanitizeLedgerOverrides(overrides) {
             updatedAt: sanitizeTimestampISO(value?.updatedAt) || new Date().toISOString(),
             memo: normalizeText(value?.memo, 500) || ''
         };
+        out[key] = sanitized;
+        // updatedAt is always reformatted/regenerated, not a user-fixable coercion — excluded from diffing.
+        _diffFields(warnings, 'Ledger Override', key, value, sanitized, ['updatedAt']);
     }
     return out;
 }
 
-export function sanitizeLedgerClearedTransactions(entries) {
+export function sanitizeLedgerClearedTransactions(entries, warnings) {
     const out = {};
     if (!entries || typeof entries !== 'object') return out;
     for (const [key, value] of Object.entries(entries)) {
         if (!key || typeof key !== 'string') continue;
         const clearedAt = sanitizeTimestampISO(value?.clearedAt);
-        if (!clearedAt) continue;
+        if (!clearedAt) {
+            if (warnings) warnings.push({ recordType: 'Ledger Cleared Flag', recordName: key, kind: 'rejected', reason: 'Missing or invalid clearedAt — flag was not imported.' });
+            continue;
+        }
         out[key] = { clearedAt };
     }
     return out;
@@ -331,24 +415,36 @@ export function sanitizeBalanceHistoryEntry(record, idFallback) {
     };
 }
 
-export function sanitizeParsedState(parsed = {}) {
+// `warnings`, if passed, is an array that gets {recordType, recordName,
+// kind: 'coerced'|'rejected', ...} entries pushed into it for every field
+// that was coerced to a default and every record dropped entirely (issue
+// #291). Omitting it (the normal load-from-storage/migration path) costs
+// nothing extra and behaves exactly as before.
+export function sanitizeParsedState(parsed = {}, warnings) {
     const now = Date.now();
     const state = {
-        persons: (Array.isArray(parsed.persons) ? parsed.persons : []).map((p, i) => sanitizePerson(p, now + 7000 + i)).filter(p => !!p.name),
-        debts: (Array.isArray(parsed.debts) ? parsed.debts : []).map((d, i) => sanitizeDebt(d, now + i)).filter(d => !!d.name),
-        accounts: (Array.isArray(parsed.accounts) ? parsed.accounts : []).map((a, i) => sanitizeAccount(a, now + 500 + i)).filter(a => !!a.name),
-        incomes: (Array.isArray(parsed.incomes) ? parsed.incomes : []).map((inc, i) => sanitizeIncome(inc, now + 1000 + i)).filter(i => !!i.name && !!i.firstPayDate),
-        bonuses: (Array.isArray(parsed.bonuses) ? parsed.bonuses : []).map((b, i) => sanitizeBonus(b, now + 1500 + i)).filter(b => !!b.name && !!b.date),
-        bills: (Array.isArray(parsed.bills) ? parsed.bills : []).map((b, i) => sanitizeBill(b, now + 2000 + i)).filter(b => !!b.name),
-        expenses: (Array.isArray(parsed.expenses) ? parsed.expenses : []).map((e, i) => sanitizeExpense(e, now + 3000 + i)).filter(e => !!e.name && !!e.date),
-        ledgerAmountOverrides: sanitizeLedgerOverrides(parsed.ledgerAmountOverrides || {}),
-        ledgerClearedTransactions: sanitizeLedgerClearedTransactions(parsed.ledgerClearedTransactions || {}),
-        recurringTemplates: (Array.isArray(parsed.recurringTemplates) ? parsed.recurringTemplates : []).map((r, i) => sanitizeRecurringTemplate(r, now + 4000 + i)).filter(r => !!r.name),
-        emergencyFunds: (Array.isArray(parsed.emergencyFunds) ? parsed.emergencyFunds : []).map((e, i) => sanitizeEmergencyFund(e, now + 4500 + i)).filter(e => !!e.accountId),
-        sinkingFunds: (Array.isArray(parsed.sinkingFunds) ? parsed.sinkingFunds : []).map((s, i) => sanitizeSinkingFund(s, now + 5000 + i)).filter(s => !!s.name && !!s.accountId),
-        monthlySnapshots: (Array.isArray(parsed.monthlySnapshots) ? parsed.monthlySnapshots : []).map(sanitizeNetWorthSnapshot).filter(Boolean),
-        netWorthMilestonesAwarded: (Array.isArray(parsed.netWorthMilestonesAwarded) ? parsed.netWorthMilestonesAwarded : []).map(v => sanitizeInteger(v, null, { min: 5000 })).filter(v => Number.isFinite(v)),
-        perMonthStimulus: (Array.isArray(parsed.perMonthStimulus) ? parsed.perMonthStimulus : []).map(v => sanitizeFiniteNumber(v, 0, { min: 0 })),
+        persons: _sanitizeRecordArray(parsed.persons, sanitizePerson, now + 7000, p => !!p.name, 'Person', 'name', warnings),
+        debts: _sanitizeRecordArray(parsed.debts, sanitizeDebt, now, d => !!d.name, 'Debt', 'name', warnings),
+        accounts: _sanitizeRecordArray(parsed.accounts, sanitizeAccount, now + 500, a => !!a.name, 'Account', 'name', warnings),
+        incomes: _sanitizeRecordArray(parsed.incomes, sanitizeIncome, now + 1000, i => !!i.name && !!i.firstPayDate, 'Income', 'name', warnings),
+        bonuses: _sanitizeRecordArray(parsed.bonuses, sanitizeBonus, now + 1500, b => !!b.name && !!b.date, 'Bonus', 'name', warnings),
+        bills: _sanitizeRecordArray(parsed.bills, sanitizeBill, now + 2000, b => !!b.name, 'Bill', 'name', warnings),
+        // 'date' is excluded from diffing: sanitizeExpense rewraps a valid ISO
+        // string into a Date object, which would always "differ" from the raw
+        // string and falsely read as a coercion on every successful import.
+        expenses: _sanitizeRecordArray(parsed.expenses, sanitizeExpense, now + 3000, e => !!e.name && !!e.date, 'Expense', 'name', warnings, ['id', 'date']),
+        ledgerAmountOverrides: sanitizeLedgerOverrides(parsed.ledgerAmountOverrides || {}, warnings),
+        ledgerClearedTransactions: sanitizeLedgerClearedTransactions(parsed.ledgerClearedTransactions || {}, warnings),
+        recurringTemplates: _sanitizeRecordArray(parsed.recurringTemplates, sanitizeRecurringTemplate, now + 4000, r => !!r.name, 'Recurring Template', 'name', warnings),
+        emergencyFunds: _sanitizeRecordArray(parsed.emergencyFunds, sanitizeEmergencyFund, now + 4500, e => !!e.accountId, 'Emergency Fund',
+            (raw, i) => raw?.accountId != null ? `Emergency Fund (account ${raw.accountId})` : `Emergency Fund #${i + 1}`, warnings),
+        sinkingFunds: _sanitizeRecordArray(parsed.sinkingFunds, sanitizeSinkingFund, now + 5000, s => !!s.name && !!s.accountId, 'Sinking Fund', 'name', warnings),
+        monthlySnapshots: _sanitizeValueArray(parsed.monthlySnapshots, sanitizeNetWorthSnapshot, Boolean, 'Net Worth Snapshot',
+            (raw, i) => raw?.date ? `Net Worth Snapshot ${raw.date}` : `Net Worth Snapshot #${i + 1}`, warnings),
+        netWorthMilestonesAwarded: _sanitizeValueArray(parsed.netWorthMilestonesAwarded, v => sanitizeInteger(v, null, { min: 5000 }), Number.isFinite,
+            'Net Worth Milestone', (raw, i) => `Milestone #${i + 1}`, warnings),
+        perMonthStimulus: _sanitizeValueArray(parsed.perMonthStimulus, v => sanitizeFiniteNumber(v, 0, { min: 0 }), () => true,
+            'Per-Month Stimulus', (raw, i) => `Month ${i + 1}`, warnings),
         monthlyPayment: sanitizeFiniteNumber(parsed.monthlyPayment, null, { min: 0 }),
         strategy: normalizeText(parsed.strategy, 30) || null,
         ledgerSettings: {
@@ -359,16 +455,33 @@ export function sanitizeParsedState(parsed = {}) {
             clearedFilter: ['all', 'uncleared', 'cleared'].includes(parsed?.ledgerSettings?.clearedFilter) ? parsed.ledgerSettings.clearedFilter : 'all'
         },
         forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
-        reconciliations: (Array.isArray(parsed.reconciliations) ? parsed.reconciliations : []).map((r, i) => sanitizeReconciliation(r, now + 5500 + i)).filter(r => r.accountId !== null && Number.isFinite(r.statementBalance)),
-        planHistory: (Array.isArray(parsed.planHistory) ? parsed.planHistory : []).map((h, i) => sanitizePlanHistoryEntry(h, now + 6000 + i)).filter(h => h.monthlyPayment > 0 && !!h.strategy),
-        retirementSnapshots: (Array.isArray(parsed.retirementSnapshots) ? parsed.retirementSnapshots : []).map((s, i) => sanitizeRetirementSnapshot(s, now + 6500 + i)).filter(s => s.accountId !== null),
+        reconciliations: _sanitizeRecordArray(parsed.reconciliations, sanitizeReconciliation, now + 5500, r => r.accountId !== null && Number.isFinite(r.statementBalance),
+            'Reconciliation', (raw, i) => raw?.date ? `Reconciliation ${raw.date}` : `Reconciliation #${i + 1}`, warnings),
+        planHistory: _sanitizeRecordArray(parsed.planHistory, sanitizePlanHistoryEntry, now + 6000, h => h.monthlyPayment > 0 && !!h.strategy,
+            'Plan History', (raw, i) => raw?.strategy ? `Plan (${raw.strategy})` : `Plan History #${i + 1}`, warnings),
+        retirementSnapshots: _sanitizeRecordArray(parsed.retirementSnapshots, sanitizeRetirementSnapshot, now + 6500, s => s.accountId !== null,
+            'Retirement Snapshot', (raw, i) => raw?.date ? `Retirement Snapshot ${raw.date}` : `Retirement Snapshot #${i + 1}`, warnings),
         retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
-        settings: (Array.isArray(parsed.settings) ? parsed.settings : []).map(sanitizeSetting).filter(Boolean),
-        balanceHistory: (Array.isArray(parsed.balanceHistory) ? parsed.balanceHistory : []).map((h, i) => sanitizeBalanceHistoryEntry(h, now + 8000 + i)).filter(Boolean)
+        settings: _sanitizeValueArray(parsed.settings, sanitizeSetting, Boolean, 'Setting', (raw, i) => raw?.key ? String(raw.key) : `Setting #${i + 1}`, warnings),
+        balanceHistory: _sanitizeRecordArray(parsed.balanceHistory, sanitizeBalanceHistoryEntry, now + 8000, Boolean,
+            'Balance History', (raw, i) => raw?.date ? `Balance History ${raw.date}` : `Balance History #${i + 1}`, warnings)
     };
+    if (warnings && parsed.retirementTargetDate && !state.retirementTargetDate) {
+        warnings.push({ recordType: 'Settings', recordName: 'retirementTargetDate', kind: 'coerced', field: 'retirementTargetDate', from: parsed.retirementTargetDate, to: null });
+    }
     const debtIds = new Set(state.debts.map(d => d.id));
     const accountIds = new Set(state.accounts.map(a => a.id));
-    state.balanceHistory = state.balanceHistory.filter(h =>
-        h.debtId !== null ? debtIds.has(h.debtId) : accountIds.has(h.accountId));
+    state.balanceHistory = state.balanceHistory.filter((h, idx) => {
+        const keep = h.debtId !== null ? debtIds.has(h.debtId) : accountIds.has(h.accountId);
+        if (!keep && warnings) {
+            warnings.push({
+                recordType: 'Balance History',
+                recordName: h.date ? `Balance History ${h.date}` : `Balance History #${idx + 1}`,
+                kind: 'rejected',
+                reason: 'References a debt/account that no longer exists after import — not imported.'
+            });
+        }
+        return keep;
+    });
     return state;
 }

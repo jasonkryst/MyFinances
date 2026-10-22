@@ -404,6 +404,82 @@ describe('sanitizeParsedState balanceHistory', () => {
     });
 });
 
+describe('sanitizeParsedState warnings collection (issue #291)', () => {
+    test('omitting warnings param leaves output and behavior unchanged', () => {
+        const withoutWarnings = sanitizeParsedState({ debts: [{ name: 'Visa', minimumPayment: 'not-a-number' }] });
+        expect(withoutWarnings.debts).toHaveLength(1);
+        expect(withoutWarnings.debts[0].minimumPayment).toBe(0);
+    });
+
+    test('reports a coerced field with its original and new value', () => {
+        const warnings = [];
+        sanitizeParsedState({ debts: [{ name: 'Visa', minimumPayment: 'foo' }] }, warnings);
+        const w = warnings.find(x => x.recordType === 'Debt' && x.field === 'minimumPayment');
+        expect(w).toMatchObject({ recordName: 'Visa', kind: 'coerced', field: 'minimumPayment', from: 'foo', to: 0 });
+    });
+
+    test('does not warn when an optional field is simply omitted (not a coercion)', () => {
+        const warnings = [];
+        sanitizeParsedState({ debts: [{ name: 'Visa', accountBalance: 500 }] }, warnings);
+        expect(warnings.find(x => x.field === 'originalBalance')).toBeUndefined();
+    });
+
+    test('reports a rejected record that is missing its required name field', () => {
+        const warnings = [];
+        sanitizeParsedState({ debts: [{ minimumPayment: 50 }] }, warnings);
+        const w = warnings.find(x => x.recordType === 'Debt' && x.kind === 'rejected');
+        expect(w).toBeTruthy();
+        expect(w.reason).toMatch(/not imported/i);
+    });
+
+    test('labels a rejected record by position when no name is available', () => {
+        const warnings = [];
+        sanitizeParsedState({ debts: [{ minimumPayment: 50 }] }, warnings);
+        const w = warnings.find(x => x.recordType === 'Debt' && x.kind === 'rejected');
+        expect(w.recordName).toBe('Record #1');
+    });
+
+    test('does not falsely flag expenses.date as coerced when the raw date is valid', () => {
+        const warnings = [];
+        sanitizeParsedState({ expenses: [{ name: 'Groceries', date: '2026-05-01', budgetAmount: 100 }] }, warnings);
+        expect(warnings.find(x => x.recordType === 'Expense' && x.field === 'date')).toBeUndefined();
+    });
+
+    test('reports coercion for a record type without a name field, labeled by a fallback identifier', () => {
+        const warnings = [];
+        sanitizeParsedState({
+            accounts: [{ id: 1, name: 'Checking' }],
+            emergencyFunds: [{ accountId: 1, targetAmount: 'lots' }]
+        }, warnings);
+        const w = warnings.find(x => x.recordType === 'Emergency Fund' && x.field === 'targetAmount');
+        expect(w).toMatchObject({ recordName: 'Emergency Fund (account 1)', kind: 'coerced', from: 'lots', to: 0 });
+    });
+
+    test('reports a rejected balance history entry orphaned after debts/accounts are finalized', () => {
+        const warnings = [];
+        sanitizeParsedState({ balanceHistory: [{ debtId: 404, date: '2026-09-01', balance: 10 }] }, warnings);
+        const w = warnings.find(x => x.recordType === 'Balance History' && x.kind === 'rejected');
+        expect(w).toBeTruthy();
+        expect(w.reason).toMatch(/no longer exists/i);
+    });
+
+    test('reports a rejected ledger override missing its amount', () => {
+        const warnings = [];
+        sanitizeParsedState({ ledgerAmountOverrides: { 'debt|1|2|2026-01-01': { memo: 'oops' } } }, warnings);
+        const w = warnings.find(x => x.recordType === 'Ledger Override' && x.kind === 'rejected');
+        expect(w).toBeTruthy();
+    });
+
+    test('reports plan history entries dropped by the cap is handled by dataExport.js, not here', () => {
+        // sanitizeParsedState itself has no cap; dataExport.js applies PLAN_HISTORY_CAP
+        // after calling it and reports its own warning there (see test_data_export.py).
+        const warnings = [];
+        const state = sanitizeParsedState({ planHistory: [] }, warnings);
+        expect(state.planHistory).toEqual([]);
+        expect(warnings).toEqual([]);
+    });
+});
+
 describe('sanitizeReconciliation statement range (issue #275)', () => {
     const base = { id: 9, accountId: 7, date: '2026-09-30', previousBalance: 100, statementBalance: 120, difference: 20, note: '' };
 

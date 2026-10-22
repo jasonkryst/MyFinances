@@ -18,6 +18,8 @@ export function initDataTransferModal(app) {
         modal.onkeydown = null;
         const banner = document.getElementById('importResultBanner');
         if (banner) { banner.textContent = ''; banner.className = 'target-result hidden'; }
+        const warningsList = document.getElementById('importWarningsList');
+        if (warningsList) { warningsList.innerHTML = ''; warningsList.classList.add('hidden'); }
         const choice = document.getElementById('importModeChoice');
         if (choice) choice.classList.add('hidden');
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
@@ -79,12 +81,52 @@ export function initDataTransferModal(app) {
     }
 }
 
-export function showImportResult(kind, message) {
+// `warnings`, if non-empty, renders a collapsible <details> list of
+// per-field coercions and rejected records below the result banner (#291).
+// Built entirely with createElement/textContent (no innerHTML of untrusted
+// content) so no escapeHtml() call is needed to stay CSP-safe.
+export function showImportResult(kind, message, warnings = []) {
     const banner = document.getElementById('importResultBanner');
-    if (!banner) return;
-    banner.textContent = message;
-    const modifier = kind === 'success' ? '' : ` target-result--${kind}`;
-    banner.className = `target-result${modifier}`;
+    if (banner) {
+        banner.textContent = message;
+        const modifier = kind === 'success' ? '' : ` target-result--${kind}`;
+        banner.className = `target-result${modifier}`;
+    }
+
+    const list = document.getElementById('importWarningsList');
+    if (!list) return;
+    list.innerHTML = '';
+    list.classList.add('hidden');
+    if (!Array.isArray(warnings) || warnings.length === 0) return;
+
+    const details = document.createElement('details');
+    details.className = 'import-warnings-details';
+    const summary = document.createElement('summary');
+    summary.textContent = kind === 'success'
+        ? `Import succeeded — ${warnings.length} issue${warnings.length === 1 ? '' : 's'} found (expand to see)`
+        : `${warnings.length} issue${warnings.length === 1 ? '' : 's'} found (expand to see)`;
+    details.appendChild(summary);
+
+    const ul = document.createElement('ul');
+    ul.className = 'import-warnings-ul';
+    for (const w of warnings) {
+        const li = document.createElement('li');
+        li.textContent = w.kind === 'rejected'
+            ? `${w.recordType} "${w.recordName}": ${w.reason}`
+            : `${w.recordType} "${w.recordName}": ${w.field} — ${_formatWarningValue(w.from)} → ${_formatWarningValue(w.to)}`;
+        ul.appendChild(li);
+    }
+    details.appendChild(ul);
+    list.appendChild(details);
+    list.classList.remove('hidden');
+}
+
+function _formatWarningValue(value) {
+    if (value === null || value === undefined || value === '') return '(empty)';
+    if (typeof value === 'object') {
+        try { return JSON.stringify(value); } catch { return String(value); }
+    }
+    return String(value);
 }
 
 export function requestImportModeChoice(parts) {

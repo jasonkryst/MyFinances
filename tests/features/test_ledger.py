@@ -1139,6 +1139,56 @@ def test_ledger_mark_all_cleared_confirm_clears_all_visible_rows(app_page):
     assert mark_btn is None, "Mark-all button should disappear after all rows are cleared"
 
 
+# ── #310 a11y: focus-trap + restore on the Mark-All-Cleared modal ────────────
+
+@pytest.mark.feature
+def test_ledger_mark_all_cleared_modal_focus_restore_on_cancel(app_page):
+    """Closing the Mark-All-Cleared modal (via Cancel) restores focus to the
+    button that opened it (N2 from the Oct 2026 a11y audit, issue #310)."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerMarkAllClearedBtn', timeout=10000)
+
+    page.click('#ledgerMarkAllClearedBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal.flex-visible', timeout=5000)
+    page.click('#ledgerMarkAllClearedCancelBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal', state='hidden', timeout=5000)
+
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'ledgerMarkAllClearedBtn', \
+        f"Focus should return to the triggering button, got: {focused_id!r}"
+
+
+@pytest.mark.feature
+def test_ledger_mark_all_cleared_modal_tab_trap_cycles_focus(app_page):
+    """Tab from the last focusable element in the Mark-All-Cleared modal
+    wraps back to the first, rather than escaping to the page behind it."""
+    page = app_page
+
+    _seed_income_for_ledger(page)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerMarkAllClearedBtn', timeout=10000)
+
+    page.click('#ledgerMarkAllClearedBtn')
+    page.wait_for_selector('#ledgerMarkAllClearedModal.flex-visible', timeout=5000)
+
+    page.evaluate("() => document.getElementById('ledgerMarkAllClearedConfirmBtn').focus()")
+    page.keyboard.press('Tab')
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id in ('ledgerMarkAllClearedCancelBtn', 'ledgerMarkAllClearedCloseBtn'), \
+        f"Expected Tab to move within the modal, got: {focused_id!r}"
+
+    # Escape closes cleanly either way — confirms the handler didn't wedge focus.
+    page.keyboard.press('Escape')
+    page.wait_for_selector('#ledgerMarkAllClearedModal', state='hidden', timeout=5000)
+
+
 # ── Ledger column visibility (issue UI polish) ────────────────────────────────
 
 

@@ -660,6 +660,59 @@ def test_ledger_export_modal_close_btn(app_page):
 
 
 @pytest.mark.feature
+def test_ledger_export_modal_focus_restore_on_close(app_page):
+    """#310 — closing the Ledger Export modal restores focus to the button
+    that opened it (N2 from the Oct 2026 a11y audit). The Export CSV button
+    is part of the filter bar and renders with no seeded data, so this test
+    doesn't need an account/income fixture."""
+    page = app_page
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerExportCsvBtn', timeout=5000)
+    page.click('#ledgerExportCsvBtn')
+    page.wait_for_selector('#ledgerExportModal.flex-visible', timeout=5000)
+
+    page.keyboard.press('Escape')
+    page.wait_for_selector('#ledgerExportModal', state='hidden', timeout=5000)
+
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'ledgerExportCsvBtn', \
+        f"Focus should return to the triggering button, got: {focused_id!r}"
+
+
+@pytest.mark.feature
+def test_ledger_export_modal_tab_trap_cycles_focus(app_page):
+    """#310 — Tab from the last focusable element in the Ledger Export modal
+    wraps back to the first, rather than escaping to the page behind it."""
+    page = app_page
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerExportCsvBtn', timeout=5000)
+    page.click('#ledgerExportCsvBtn')
+    page.wait_for_selector('#ledgerExportModal.flex-visible', timeout=5000)
+
+    # openLedgerExportModal auto-focuses the close button 30ms after opening
+    # (see src/ledger.js); wait for that to settle before moving focus
+    # ourselves, or the two races and the close button steals it back.
+    page.wait_for_selector('#ledgerExportCloseBtn:focus', timeout=2000)
+
+    first_focusable = page.evaluate("""() => {
+        const modal = document.getElementById('ledgerExportModal');
+        const focusable = modal.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+        return focusable[0]?.id || null;
+    }""")
+    assert first_focusable, "Expected at least one focusable element in the modal"
+
+    page.evaluate("() => document.getElementById('ledgerExportCancelBtn').focus()")
+    page.keyboard.press('Tab')
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == first_focusable, \
+        f"Tab from the last element should wrap to the first ({first_focusable!r}), got: {focused_id!r}"
+
+
+@pytest.mark.feature
 def test_versioning_6_26_0(app_page):
     """Version bump — app footer shows 6.26.0 matching CHANGELOG."""
     page = app_page

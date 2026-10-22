@@ -480,6 +480,15 @@ def test_calendar_day_modal_has_dialog_role_and_focus_management(app_page):
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'calendarDayModalCloseBtn'
 
+    # #310 — closing the modal restores focus to the day cell that opened it.
+    page.keyboard.press('Escape')
+    page.wait_for_selector('#calendarDayModal', state='hidden', timeout=5000)
+    restored_is_cal_cell = page.evaluate("""() => {
+        const el = document.activeElement;
+        return !!el && el.classList.contains('rpt-cal-cell');
+    }""")
+    assert restored_is_cal_cell, "Focus should return to the triggering calendar day cell after close"
+
 
 @pytest.mark.ui
 def test_help_link_opens_guide(app_page):

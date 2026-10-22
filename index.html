@@ -1733,7 +1733,8 @@
                 <p class="modal-description" data-i18n="dataTransfer.importDescription">Restore from a previously exported JSON backup.</p>
                 <button id="importJsonBtn" class="btn" data-i18n="dataTransfer.importButton">Choose File…</button>
                 <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
-                <div id="importResultBanner" class="target-result hidden" role="status"></div>
+                <div id="importResultBanner" class="target-result hidden" role="status" aria-live="polite"></div>
+                <div id="importWarningsList" class="import-warnings-list hidden"></div>
                 <div id="importModeChoice" class="dt-import-choice hidden">
                     <p id="importModeSummary"></p>
                     <button id="importModeReplaceBtn" class="btn btn-primary" data-i18n="dataTransfer.replaceButton">Replace</button>

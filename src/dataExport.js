@@ -315,19 +315,29 @@ export function importAllJSON(app, file, options = {}) {
         let parsed;
         try {
             parsed = JSON.parse(e.target.result);
-        } catch {
+        } catch (err) {
+            // Modern V8 (Chromium/Node) JSON.parse errors already include a
+            // position, and often a line/column, e.g. "Unexpected token u in
+            // JSON at position 4" or "... at position 1 (line 1 column 2)" —
+            // pass it straight through rather than re-deriving line/col.
             if (typeof onInvalidJSON === 'function') {
-                onInvalidJSON();
+                onInvalidJSON(err?.message || 'The file is not valid JSON.');
             }
             return;
         }
 
         const payload = Array.isArray(parsed) ? { debts: parsed } : parsed;
-        const clean = sanitizeParsedState(payload);
+        const warnings = [];
+        const clean = sanitizeParsedState(payload, warnings);
         // Cap a pathologically large import file at the same limit new plan
         // submissions are trimmed to (issue #162) -- merge mode may still push
         // the combined total slightly over this until the next Calculate run.
         if (clean.planHistory.length > PLAN_HISTORY_CAP) {
+            const droppedCount = clean.planHistory.length - PLAN_HISTORY_CAP;
+            warnings.push({
+                recordType: 'Plan History', recordName: `${droppedCount} oldest entr${droppedCount === 1 ? 'y' : 'ies'}`,
+                kind: 'rejected', reason: `File exceeded the ${PLAN_HISTORY_CAP}-entry plan history cap — oldest entries were dropped.`
+            });
             clean.planHistory = clean.planHistory.slice(-PLAN_HISTORY_CAP);
         }
         const incomingPersons = clean.persons || [];
@@ -409,7 +419,7 @@ export function importAllJSON(app, file, options = {}) {
             app.updateUI();
             app.refreshCurrentPageData();
             if (!mergeDuplicatesReported && typeof onImported === 'function') {
-                onImported(parts);
+                onImported(parts, warnings);
             }
             return;
         }
@@ -469,7 +479,7 @@ export function importAllJSON(app, file, options = {}) {
             }
             app.debts = [...app.debts, ...toAdd];
             if (skipped > 0 && typeof onMergeDuplicates === 'function') {
-                onMergeDuplicates(toAdd.length, skipped);
+                onMergeDuplicates(toAdd.length, skipped, warnings);
                 mergeDuplicatesReported = true;
             }
             app.persons = _mergeByName(app.persons || [], incomingPersons, 7000);
@@ -530,7 +540,7 @@ export function importAllJSON(app, file, options = {}) {
         app.updateUI();
         app.refreshCurrentPageData();
         if (!mergeDuplicatesReported && typeof onImported === 'function') {
-            onImported(parts);
+            onImported(parts, warnings);
         }
     };
 
