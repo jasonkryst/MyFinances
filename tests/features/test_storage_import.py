@@ -739,10 +739,12 @@ def test_import_ui_shows_collapsible_warnings_on_soft_coercion(app_page):
 
 
 @pytest.mark.feature
-def test_import_ui_shows_modal_on_hard_parse_failure(app_page):
+def test_import_ui_shows_specific_parse_error_inline_not_a_modal(app_page):
     """End-to-end: importing a file that isn't valid JSON through the real
-    Backup & Restore modal shows a modal (not just the inline banner) with
-    the specific parse error."""
+    Backup & Restore modal shows the native parse error inline in the
+    result banner — hard failures stay inline, same as before #291, per the
+    established no-alert()/no-popup-modal pattern for import validation
+    (see tests/ui/test_data_transfer_modal.py)."""
     import os
     import tempfile
 
@@ -762,11 +764,11 @@ def test_import_ui_shows_modal_on_hard_parse_failure(app_page):
         file_input = page.query_selector('#importJsonInput')
         file_input.set_input_files(temp_file)
 
-        page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
-        title = page.inner_text('#alertModalTitle')
-        message = page.inner_text('#alertModalMessage')
-        assert title == 'Import Failed'
-        assert len(message) > 0
+        page.wait_for_selector('#importResultBanner.target-result--error', timeout=5000)
+        banner_text = page.inner_text('#importResultBanner')
+        assert 'Invalid JSON' in banner_text
+        assert 'position' in banner_text.lower() or 'json' in banner_text.lower()
+        assert page.is_hidden('#alertModal'), "Hard failures must not open a popup modal"
     finally:
         os.unlink(temp_file)
 
