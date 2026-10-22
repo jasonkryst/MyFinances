@@ -3414,6 +3414,31 @@ body.dark-mode .debt-min-trap-warn { background: #422006; color: #fde68a; border
     font-weight: 700;
     margin-right: 4px;
 }
+/* ── Group-by headers (#288) ── */
+.debt-group-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 0.9rem;
+    margin: 1.1rem 0 0.6rem;
+    background: var(--bg-secondary, #f8fafc);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 8px;
+}
+.debt-group-header:first-child { margin-top: 0; }
+.debt-group-header-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+.debt-group-header-summary {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+body.dark-mode .debt-group-header { background: #1e293b; border-color: #334155; }
+
 .debt-bulk-bar {
     display: none;
     align-items: center;
@@ -6903,6 +6928,57 @@ body.dark-mode .health-cf-income { color: #4ade80; }
 .health-link { font-size: 0.76rem; color: var(--primary-color); text-decoration: none; cursor: pointer; margin-top: auto; display: inline-block; }
 .health-link:hover { text-decoration: underline; }
 body.dark-mode .health-link { color: #60a5fa; }
+
+/* ── Recommendations panel (#254) ── */
+.health-recommendations-panel {
+    margin-top: 1.25rem;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    box-shadow: var(--shadow);
+}
+.health-recommendations-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+    color: var(--text-primary);
+}
+.health-recommendations-panel--healthy .health-recommendations-healthy-msg {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+.health-recommendations-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.health-recommendation-item {
+    border-left: 4px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary, #f8fafc);
+    padding: 0.7rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.health-recommendation-item--red    { border-left-color: #dc2626; }
+.health-recommendation-item--orange { border-left-color: #ea580c; }
+.health-recommendation-item--yellow { border-left-color: #d97706; }
+.health-recommendation-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.health-recommendation-metric { font-weight: 600; font-size: 0.85rem; color: var(--text-primary); }
+.health-recommendation-value  { font-weight: 700; font-size: 0.85rem; color: var(--text-primary); }
+.health-recommendation-text   { font-size: 0.8rem; color: var(--text-secondary); margin: 0; line-height: 1.45; }
+body.dark-mode .health-recommendation-item { background: #1e293b; }
 
 /* ── Surplus Analysis card ── */
 .health-surplus-card { grid-column: 1 / -1; }

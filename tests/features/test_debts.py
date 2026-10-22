@@ -1125,3 +1125,165 @@ def test_next_payment_due_invalid_date_stored_as_null(app_page):
     assert saved is None or saved == '', (
         f"Expected invalid date sanitized to null, got '{saved}'"
     )
+
+
+# ---------------------------------------------------------------------------
+# "Group by" Person / Institution (#288)
+# ---------------------------------------------------------------------------
+
+def _seed_debts_for_grouping(page):
+    """Two people, one debt each, one unassigned, plus a same-institution pair."""
+    page.evaluate("""() => {
+        const app = window.app;
+        app.persons = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }];
+        function mkDebt(id, name, personIds, balance, minPay, rate) {
+            return {
+                id, name, category: '', debtType: 'creditCard',
+                accountBalance: balance, originalBalance: balance,
+                interestRate: rate, minimumPayment: minPay, originalMinimumPayment: minPay,
+                dueDate: 1, debtStartDate: null, creditLimit: null,
+                fixedAmount: null, fixedStartDate: null, fixedEndDate: null,
+                updatedAt: null, priority: null, accountId: null, archived: false,
+                personIds: personIds || [], notes: '', nextPaymentDue: null
+            };
+        }
+        app.debts = [
+            mkDebt(101, 'Alice Card', [1], 1000, 50, 10),
+            mkDebt(102, 'Bob Card', [2], 2000, 80, 15),
+            mkDebt(103, 'Unassigned Card', [], 500, 20, 5),
+            mkDebt(104, 'Chase - Freedom', [], 300, 25, 12),
+            mkDebt(105, 'Chase - Sapphire', [], 700, 35, 18)
+        ];
+        app.settings = [];
+        app.switchPage('liabilities');
+        app.updateUI();
+    }""")
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
+
+
+@pytest.mark.feature
+def test_debt_group_by_none_is_default_flat_list(app_page):
+    """With Group by left at 'None', no group headers render (unchanged behavior)."""
+    page = app_page
+    _seed_debts_for_grouping(page)
+
+    assert page.query_selector('.debt-group-header') is None, \
+        "No group headers should render when Group by is None"
+    assert page.query_selector('text=Alice Card') is not None
+
+
+@pytest.mark.feature
+def test_debt_group_by_person_creates_headers_with_totals(app_page):
+    """Grouping by Person creates one header per person plus Unassigned, with correct totals."""
+    page = app_page
+    _seed_debts_for_grouping(page)
+
+    page.select_option('#debtGroupBy', 'person')
+
+    headers = page.query_selector_all('.debt-group-header')
+    names = [h.query_selector('.debt-group-header-name').text_content() for h in headers]
+    assert names == ['Alice', 'Bob', 'Unassigned'], f"Expected [Alice, Bob, Unassigned] in order, got {names}"
+
+    alice_header = headers[0].text_content()
+    assert '1 debt' in alice_header and '1,000.00' in alice_header and '50.00' in alice_header, \
+        f"Expected Alice's header to show count/balance/min totals, got: {alice_header}"
+
+    # Unassigned group should hold the 3 debts with no personIds.
+    unassigned_header = headers[2].text_content()
+    assert '3 debt' in unassigned_header, f"Expected 3 unassigned debts, got: {unassigned_header}"
+
+
+@pytest.mark.feature
+def test_debt_group_by_person_shared_debt_appears_in_both_groups(app_page):
+    """A debt with multiple personIds renders under each person's group."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.persons = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }];
+        app.debts = [{
+            id: 201, name: 'Joint Card', category: '', debtType: 'creditCard',
+            accountBalance: 1500, originalBalance: 1500, interestRate: 10,
+            minimumPayment: 60, originalMinimumPayment: 60, dueDate: 1,
+            debtStartDate: null, creditLimit: null, fixedAmount: null,
+            fixedStartDate: null, fixedEndDate: null, updatedAt: null,
+            priority: null, accountId: null, archived: false,
+            personIds: [1, 2], notes: '', nextPaymentDue: null
+        }];
+        app.settings = [];
+        app.switchPage('liabilities');
+        app.updateUI();
+    }""")
+    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
+
+    page.select_option('#debtGroupBy', 'person')
+
+    headers = page.query_selector_all('.debt-group-header')
+    names = [h.query_selector('.debt-group-header-name').text_content() for h in headers]
+    assert names == ['Alice', 'Bob'], f"Expected [Alice, Bob], got {names}"
+
+    joint_cards = page.query_selector_all('.debt-card .debt-name')
+    assert len(joint_cards) == 2, \
+        f"Expected the shared debt to render once per person group (2 total), found {len(joint_cards)}"
+    assert all('Joint Card' in c.text_content() for c in joint_cards)
+
+
+@pytest.mark.feature
+def test_debt_group_by_institution_collates_matching_name_prefix(app_page):
+    """Grouping by Institution collates debts sharing a name prefix before ' - '."""
+    page = app_page
+    _seed_debts_for_grouping(page)
+
+    page.select_option('#debtGroupBy', 'institution')
+
+    headers = page.query_selector_all('.debt-group-header')
+    names = sorted(h.query_selector('.debt-group-header-name').text_content() for h in headers)
+    assert 'Chase' in names, f"Expected a 'Chase' group header, got {names}"
+
+    chase_header = next(h for h in headers if h.query_selector('.debt-group-header-name').text_content() == 'Chase')
+    assert '2 debt' in chase_header.text_content(), \
+        f"Expected 2 debts under Chase, got: {chase_header.text_content()}"
+
+
+@pytest.mark.feature
+def test_debt_group_by_switch_back_to_none_restores_flat_list(app_page):
+    """Switching Group by back to None removes the group headers."""
+    page = app_page
+    _seed_debts_for_grouping(page)
+
+    page.select_option('#debtGroupBy', 'person')
+    assert page.query_selector('.debt-group-header') is not None
+
+    page.select_option('#debtGroupBy', '')
+    assert page.query_selector('.debt-group-header') is None, \
+        "Group headers should be removed when switching back to None"
+    assert page.query_selector('text=Alice Card') is not None
+
+
+@pytest.mark.feature
+def test_debt_group_by_sort_applies_within_groups(app_page):
+    """Sort-by-balance still applies within each group when grouping is active."""
+    page = app_page
+    _seed_debts_for_grouping(page)
+
+    page.select_option('#debtGroupBy', 'institution')
+    page.select_option('#debtSortBy', 'balance-desc')
+
+    chase_header = next(
+        h for h in page.query_selector_all('.debt-group-header')
+        if h.query_selector('.debt-group-header-name').text_content() == 'Chase'
+    )
+    # Walk siblings after the Chase header until the next header (or end) to
+    # read the order debts render in within that group.
+    names_in_order = page.evaluate("""(headerEl) => {
+        const names = [];
+        let el = headerEl.nextElementSibling;
+        while (el && !el.classList.contains('debt-group-header')) {
+            if (el.classList.contains('debt-card')) {
+                names.push(el.querySelector('.debt-name').textContent.trim());
+            }
+            el = el.nextElementSibling;
+        }
+        return names;
+    }""", chase_header)
+    assert names_in_order == ['Chase - Sapphire', 'Chase - Freedom'], \
+        f"Expected Sapphire ($700) before Freedom ($300) within the Chase group, got {names_in_order}"

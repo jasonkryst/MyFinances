@@ -1377,3 +1377,129 @@ def test_health_fire_card_with_expenses(app_page):
     card_text = page.query_selector('#healthFireCard').text_content()
     assert 'years away' in card_text or 'Already FI' in card_text, \
         f"Expected FIRE projection or 'Already FI', got: {card_text[:200]}"
+
+
+# ── Recommendations panel (#254) ────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_health_recommendations_hidden_with_no_data(app_page):
+    """Recommendations panel is absent on a brand-new, empty dashboard."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = []; app.debts = []; app.accounts = [];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+
+    assert page.query_selector('#healthRecommendationsPanel') is None, \
+        "Recommendations panel should not render when there is no data at all"
+
+
+@pytest.mark.feature
+def test_health_recommendations_all_healthy_message(app_page):
+    """Panel shows an 'all healthy' message when every contributing metric is green."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        // DTI: 0% (no debt) -> green. Savings: 1200/5000 = 24% -> green.
+        // Cash flow: 5000 - 0 = +5000 -> green. EF/timeline/credit-util are
+        // gated off (no funds / no debts / no credit limits) so don't count.
+        app.incomes = [{ id: 1, name: 'Salary', amount: 5000, frequency: 'monthly', firstPayDate: '2020-01-01' }];
+        app.debts = [];
+        app.accounts = [];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = [];
+        app.sinkingFunds = [{ id: 1, name: 'Vacation', monthlyAllocation: 1200 }];
+        app.switchPage('health');
+    }""")
+
+    panel = page.query_selector('#healthRecommendationsPanel')
+    assert panel, "Recommendations panel should render when there is data"
+    assert 'All metrics healthy' in panel.text_content(), \
+        f"Expected healthy message, got: {panel.text_content()[:200]}"
+    assert len(page.query_selector_all('.health-recommendation-item')) == 0, \
+        "No recommendation items should render when all metrics are healthy"
+
+
+@pytest.mark.feature
+def test_health_recommendations_surfaces_high_dti_with_debt_name(app_page):
+    """A red DTI produces a recommendation naming the highest-APR debt."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 1000, firstPayDate: '2020-01-01', frequency: 'monthly' }];
+        app.debts = [
+            { id: 1, name: 'LowAprCard', accountBalance: 5000, originalBalance: 5000,
+              minimumPayment: 100, interestRate: 8, dueDate: 1, debtType: 'creditCard' },
+            { id: 2, name: 'HighAprCard', accountBalance: 20000, originalBalance: 20000,
+              minimumPayment: 400, interestRate: 24, dueDate: 15, debtType: 'creditCard' }
+        ];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.accounts = [];
+        app.switchPage('health');
+    }""")
+
+    panel = page.query_selector('#healthRecommendationsPanel')
+    assert panel, "Recommendations panel should render"
+    panel_text = panel.text_content()
+    assert 'Debt-to-Income Ratio' in panel_text, f"Expected DTI recommendation, got: {panel_text[:300]}"
+    assert 'HighAprCard' in panel_text, \
+        f"Expected the highest-APR debt to be named in the DTI recommendation, got: {panel_text[:300]}"
+
+
+@pytest.mark.feature
+def test_health_recommendations_capped_at_three(app_page):
+    """Panel never shows more than 3 recommendations even with many red/yellow metrics."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        // DTI red (50%), savings red (0%), cash flow red (deficit), credit
+        // utilization red (maxed) all fire at once -> 4+ candidates.
+        app.incomes = [{ id: 1, name: 'Salary', amount: 1000, firstPayDate: '2020-01-01', frequency: 'monthly' }];
+        app.debts = [
+            { id: 1, name: 'MaxedCard', accountBalance: 5000, originalBalance: 5000,
+              minimumPayment: 500, interestRate: 24, dueDate: 1, debtType: 'creditCard',
+              creditLimit: 5000 }
+        ];
+        app.bills = [{ id: 1, name: 'Rent', amount: 900, category: 'Housing', dueDate: 1 }];
+        app.expenses = [];
+        app.recurringTemplates = [];
+        app.emergencyFunds = [];
+        app.sinkingFunds = [];
+        app.accounts = [];
+        app.switchPage('health');
+    }""")
+
+    items = page.query_selector_all('.health-recommendation-item')
+    assert len(items) <= 3, f"Expected at most 3 recommendations, found {len(items)}"
+    assert len(items) > 0, "Expected at least one recommendation for this unhealthy scenario"
+
+
+@pytest.mark.feature
+def test_health_recommendation_link_navigates_to_plan_page(app_page):
+    """Clicking a DTI recommendation's action link navigates to the Plan (Strategy) page."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 1000, firstPayDate: '2020-01-01', frequency: 'monthly' }];
+        app.debts = [{ id: 1, name: 'BigDebt', accountBalance: 50000, originalBalance: 50000,
+                       minimumPayment: 500, interestRate: 18, dueDate: 15, debtType: 'creditCard' }];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.accounts = [];
+        app.switchPage('health');
+    }""")
+
+    panel = page.query_selector('#healthRecommendationsPanel')
+    assert panel, "Recommendations panel should render"
+    link = panel.query_selector('a[data-health-nav="strategy"]')
+    assert link, "Expected a Plan-page navigation link in the recommendations panel"
+    link.click()
+
+    page.wait_for_selector('#strategySection.active', timeout=5000)

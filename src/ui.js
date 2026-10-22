@@ -155,7 +155,7 @@ export function initializeEventListeners(app) {
         debtInterestFilter.addEventListener('change', () => app.renderDebtsList());
     }
 
-    ['debtSortBy', 'debtAccountFilter', 'debtProgressFilter', 'debtUtilizationFilter'].forEach(id => {
+    ['debtSortBy', 'debtAccountFilter', 'debtProgressFilter', 'debtUtilizationFilter', 'debtGroupBy'].forEach(id => {
         document.getElementById(id)?.addEventListener('change', () => app.renderDebtsList());
     });
 
