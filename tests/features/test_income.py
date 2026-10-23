@@ -956,3 +956,101 @@ def test_income_variable_flag_persists_through_add_and_edit(app_page):
 
     checked = page.evaluate("() => document.querySelector('[id^=\"ie-variable-\"]')?.checked")
     assert checked is True, "Edit form should show the variable checkbox pre-checked"
+
+
+# ── #262 Income Trend chart ───────────────────────────────────────────────────
+
+def _seed_income_for_trend(page, amount=3000):
+    """One monthly income source with a firstPayDate far enough in the past
+    that every trailing 12/24-month window (plus the YoY lookback) has a
+    payday — frequency='monthly' always counts exactly one payday per
+    queried month regardless of how far firstPayDate is, so any old date works."""
+    _create_income_account(page, "Trend Chart Account")
+    page.fill('#incomeName', 'Trend Salary')
+    page.fill('#incomeAmount', str(amount))
+    page.fill('#incomeFirstDate', '2015-01-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('text=Trend Salary', timeout=10000)
+
+
+@pytest.mark.feature
+def test_income_trend_chart_renders_with_income_data(app_page):
+    """The Income Trend chart renders a canvas and an accessible data table
+    once at least one income source exists."""
+    page = app_page
+    _seed_income_for_trend(page)
+
+    assert page.is_visible('#incomeTrendChart'), "Expected the Income Trend canvas to be visible"
+    sr_rows = page.evaluate("() => document.querySelectorAll('#incomeTrendChart-sr-table tbody tr').length")
+    assert sr_rows == 12, f"Expected 12 rows for the default trailing-12-month range, got {sr_rows}"
+
+
+@pytest.mark.feature
+def test_income_trend_chart_hidden_with_no_income_or_bonuses(app_page):
+    """The Income Trend card is hidden when there is no income or bonus data at all."""
+    page = app_page
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    card_hidden = page.evaluate("() => document.getElementById('incomeTrendCard')?.classList.contains('hidden')")
+    assert card_hidden, "Expected #incomeTrendCard to be hidden when there's no income/bonus data"
+
+
+@pytest.mark.feature
+def test_income_trend_range_toggle_switches_to_24_months(app_page):
+    """Switching the range select to 24 months re-renders the chart's
+    accessible data table with 24 rows instead of 12."""
+    page = app_page
+    _seed_income_for_trend(page)
+
+    page.select_option('#incomeTrendRangeSelect', '24')
+    page.wait_for_timeout(200)
+
+    sr_rows = page.evaluate("() => document.querySelectorAll('#incomeTrendChart-sr-table tbody tr').length")
+    assert sr_rows == 24, f"Expected 24 rows after switching to the 24-month range, got {sr_rows}"
+
+
+@pytest.mark.feature
+def test_income_trend_yoy_toggle_adds_comparison_column(app_page):
+    """Checking the YoY toggle adds a 'Same month last year' column to the
+    accessible data table."""
+    page = app_page
+    _seed_income_for_trend(page)
+
+    headers_before = page.evaluate(
+        "() => Array.from(document.querySelectorAll('#incomeTrendChart-sr-table thead th')).map(th => th.textContent)"
+    )
+    assert not any('last year' in h.lower() for h in headers_before)
+
+    page.check('#incomeTrendYoYToggle')
+    page.wait_for_timeout(200)
+
+    headers_after = page.evaluate(
+        "() => Array.from(document.querySelectorAll('#incomeTrendChart-sr-table thead th')).map(th => th.textContent)"
+    )
+    assert any('last year' in h.lower() for h in headers_after), \
+        f"Expected a 'Same month last year' column after enabling YoY, got headers: {headers_after}"
+
+
+@pytest.mark.feature
+def test_income_trend_includes_bonus_in_data_table(app_page):
+    """A bonus received this month shows up in the chart's Bonuses column."""
+    page = app_page
+    _seed_income_for_trend(page)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const thisMonthDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-15`;
+        app.bonuses = [{ id: 9201, name: 'Year-end bonus', amount: 500, date: thisMonthDate, category: 'Bonus', accountId: null, purpose: null }];
+        app.renderIncomeList();
+        app.renderBonusList();
+    }""")
+
+    rows = page.evaluate("""() => Array.from(document.querySelectorAll('#incomeTrendChart-sr-table tbody tr')).map(
+        tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent)
+    )""")
+    last_row = rows[-1]
+    assert '$500.00' in last_row, f"Expected the current month's row to show the $500 bonus, got: {last_row}"

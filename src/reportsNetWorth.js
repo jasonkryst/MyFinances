@@ -1,6 +1,6 @@
 // Net worth snapshots: capture, series aggregation, dashboard widget, and reports-page timeline
 
-import { formatCurrency, renderChartDataTable } from './utils.js';
+import { formatCurrency, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut } from './postgresSync.js';
 
@@ -54,6 +54,68 @@ function computeSnapshotMetrics(app, snapshotDate = new Date()) {
         debtPaymentMade: parseFloat(debtPaymentMade.toFixed(2)),
         incomeReceived: parseFloat(incomeReceived.toFixed(2))
     };
+}
+
+// Projects net worth forward `horizonMonths` from today (issue #335).
+// Starts from the latest snapshot (or a freshly computed one if none exist)
+// and adds, per month:
+//   assets   += monthlyIncome - nonDebtExpenses - cashPaidToDebtThisMonth
+//   liabilities = total remaining debt balance that month
+// Debt principal paid is a dollar-for-dollar transfer from assets to a
+// reduced liability (no net-worth effect by itself — only interest and
+// true expenses move net worth), so this avoids double-counting it.
+// When app.lastPaymentPlan exists, liabilities/cashPaidToDebt come from its
+// real per-debt balance/payment schedule (true compounding); once the plan
+// ends (or none exists), falls back to the simplified model the issue
+// describes: net worth grows by a flat (income - expenses) delta per month,
+// with no further debt-payoff compounding.
+export function computeNetWorthProjection(app, horizonMonths) {
+    const now = new Date();
+    const year = now.getFullYear(), month = now.getMonth();
+
+    const latestSnapshot = getSnapshotSeries(app, 1)[0];
+    const current = latestSnapshot || computeSnapshotMetrics(app, now);
+
+    const { monthlyTotal: monthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, year, month);
+    const txs = getLedgerTransactionsForMonth(app, year, month);
+    let nonDebtExpenses = 0, debtPayments = 0;
+    for (const tx of txs) {
+        if ((tx.amount || 0) >= 0) continue;
+        if (tx.type === 'debt') debtPayments += Math.abs(tx.amount);
+        else nonDebtExpenses += Math.abs(tx.amount);
+    }
+
+    const plan = Array.isArray(app.lastPaymentPlan) ? app.lastPaymentPlan : [];
+    const points = [];
+    let assets = current.totalAssets;
+    let flatNetWorth = current.netWorth;
+
+    for (let i = 1; i <= horizonMonths; i++) {
+        const planMonth = plan[i - 1];
+        let netWorth, liabilities;
+        if (planMonth) {
+            const liabilitiesThisMonth = planMonth.payments.reduce((s, p) => s + Math.max(0, p.balance || 0), 0);
+            const cashPaidThisMonth = planMonth.payments.reduce((s, p) => s + (p.payment || 0), 0);
+            assets += monthlyIncome - nonDebtExpenses - cashPaidThisMonth;
+            liabilities = liabilitiesThisMonth;
+            netWorth = assets - liabilities;
+        } else {
+            // No plan, or past the end of a plan that's already fully run —
+            // simplified flat model; liabilities aren't tracked separately.
+            flatNetWorth += monthlyIncome - nonDebtExpenses - debtPayments;
+            netWorth = flatNetWorth;
+            liabilities = null;
+        }
+        const d = new Date(year, month + i, 1);
+        points.push({
+            year: d.getFullYear(), month: d.getMonth(),
+            label: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            netWorth: parseFloat(netWorth.toFixed(2)),
+            liabilities: liabilities !== null ? parseFloat(liabilities.toFixed(2)) : null,
+            isYearEnd: (i % 12) === 0
+        });
+    }
+    return points;
 }
 
 export function captureNetWorthSnapshot(app, options = {}) {
@@ -142,6 +204,9 @@ export function renderReportsNetWorth(app) {
     app._netWorthRangeMonths = horizon;
     const series = getSnapshotSeries(app, horizon);
 
+    const projectionYears = [1, 3, 5].includes(app._netWorthProjectionYears) ? app._netWorthProjectionYears : 3;
+    app._netWorthProjectionYears = projectionYears;
+
     if (series.length === 0) {
         container.innerHTML = `
             <div class="nw-report-header">
@@ -157,6 +222,15 @@ export function renderReportsNetWorth(app) {
     const debtDrop = Math.max(0, first.totalLiabilities - latest.totalLiabilities);
     const assetGrowth = latest.totalAssets - first.totalAssets;
     const netChange = latest.netWorth - first.netWorth;
+
+    const projection = computeNetWorthProjection(app, projectionYears * 12);
+    const yearEndMilestones = projection.filter(p => p.isYearEnd);
+    const milestonesHtml = yearEndMilestones.length > 0
+        ? `<div class="nw-projection-milestones-list">${yearEndMilestones.map((m, i) =>
+            `<div class="nw-projection-milestone-item"><span class="nw-projection-milestone-label">Year ${i + 1} (${escapeHtml(m.label)})</span><span class="nw-projection-milestone-value">${formatCurrency(m.netWorth)}</span></div>`
+          ).join('')}</div>`
+        : '';
+
     const historyRows = [...series]
         .reverse()
         .map(snapshot => {
@@ -182,6 +256,11 @@ export function renderReportsNetWorth(app) {
                     <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-networth-range="6" type="button">6M</button>
                     <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-networth-range="12" type="button">12M</button>
                 </div>
+                <div class="nw-range-buttons" role="group" aria-label="Net worth projection horizon">
+                    <button class="nw-range-btn ${projectionYears === 1 ? 'active' : ''}" data-networth-projection="1" type="button">Project 1Y</button>
+                    <button class="nw-range-btn ${projectionYears === 3 ? 'active' : ''}" data-networth-projection="3" type="button">Project 3Y</button>
+                    <button class="nw-range-btn ${projectionYears === 5 ? 'active' : ''}" data-networth-projection="5" type="button">Project 5Y</button>
+                </div>
                 <button class="btn btn-primary" id="captureSnapshotBtn" type="button">Capture Snapshot Now</button>
             </div>
         </div>
@@ -194,8 +273,9 @@ export function renderReportsNetWorth(app) {
         <div class="rpt-charts-row">
             <div class="rpt-chart-card">
                 <h4 class="rpt-chart-title">Net Worth vs Debt Payoff</h4>
-                <p class="rpt-chart-sub">Net worth growth and falling liabilities across snapshots</p>
+                <p class="rpt-chart-sub">Net worth growth and falling liabilities across snapshots, with a ${projectionYears}-year dashed forward projection</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="rptNetWorthTrendChart"></canvas></div>
+                ${milestonesHtml}
             </div>
             <div class="rpt-chart-card">
                 <h4 class="rpt-chart-title">Asset Growth vs Debt Reduction</h4>
@@ -227,6 +307,20 @@ export function renderReportsNetWorth(app) {
     const netWorthData = series.map(s => s.netWorth);
     const debtData = series.map(s => s.totalLiabilities);
 
+    // Forward projection (issue #335): a dashed continuation of the Net Worth
+    // line. The projected dataset is null everywhere except the last
+    // historical point (so it visually connects) and the projected months
+    // themselves, so Chart.js draws a single unbroken dashed segment rather
+    // than a gap. `projection` itself was already computed above (also used
+    // for the milestones list).
+    const projectedLabels = projection.map(p => p.label);
+    const allLabels = [...labels, ...projectedLabels];
+    const netWorthHistorical = [...netWorthData, ...projection.map(() => null)];
+    const netWorthProjected = [
+        ...labels.map(() => null).slice(0, -1), netWorthData[netWorthData.length - 1],
+        ...projection.map(p => p.netWorth)
+    ];
+
     const compLabels = [];
     const growthData = [];
     const reductionData = [];
@@ -246,27 +340,40 @@ export function renderReportsNetWorth(app) {
         app._rptNetWorthTrendChart = new Chart(trendCanvas, {
             type: 'line',
             data: {
-                labels,
+                labels: allLabels,
                 datasets: [
                     {
                         label: 'Net Worth',
-                        data: netWorthData,
+                        data: netWorthHistorical,
                         borderColor: '#2563eb',
                         backgroundColor: 'rgba(37,99,235,0.12)',
                         tension: 0.32,
                         fill: true,
                         pointRadius: 3,
-                        borderWidth: 2.2
+                        borderWidth: 2.2,
+                        spanGaps: false
                     },
                     {
                         label: 'Liabilities',
-                        data: debtData,
+                        data: [...debtData, ...projection.map(() => null)],
                         borderColor: '#dc2626',
                         backgroundColor: 'rgba(220,38,38,0.08)',
                         tension: 0.32,
                         fill: false,
                         pointRadius: 3,
                         borderWidth: 2.2
+                    },
+                    {
+                        label: 'Net Worth (projected)',
+                        data: netWorthProjected,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'transparent',
+                        borderDash: [6, 4],
+                        tension: 0.32,
+                        fill: false,
+                        pointRadius: 2,
+                        borderWidth: 2,
+                        spanGaps: true
                     }
                 ]
             },
@@ -285,9 +392,12 @@ export function renderReportsNetWorth(app) {
         });
 
         renderChartDataTable('rptNetWorthTrendChart', {
-            caption: 'Net worth trend over time',
-            columns: ['Month', 'Net Worth', 'Liabilities'],
-            rows: labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx])])
+            caption: `Net worth trend over time, with a ${projectionYears}-year forward projection`,
+            columns: ['Month', 'Net Worth', 'Liabilities', 'Projected'],
+            rows: [
+                ...labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx]), 'No']),
+                ...projection.map(p => [p.label, formatCurrency(p.netWorth), p.liabilities !== null ? formatCurrency(p.liabilities) : '—', 'Yes'])
+            ]
         });
     }
 

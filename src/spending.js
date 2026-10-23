@@ -135,6 +135,18 @@ function _hexToRgba(hex, alpha) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Builds a category -> total lookup from computeSpendingByCategory's result,
+// for comparing the current month against an arbitrary baseline month
+// (prior calendar month, or the same month one year prior).
+function _totalsByCategory(cats) {
+    return new Map(cats.map(c => [c.category, c.total]));
+}
+
+function _changeVsBaseline(total, baselineTotals, category) {
+    const baseline = baselineTotals.get(category);
+    return (baseline && baseline > 0) ? (total - baseline) / baseline : null;
+}
+
 export function renderReportsSpending(app) {
     const container = document.getElementById('reportsSpending');
     if (!container) return;
@@ -159,12 +171,24 @@ export function renderReportsSpending(app) {
     const prevLabel = new Date(py, pm, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     const prevCats = computeSpendingByCategory(app, py, pm);
     const prevTotal = prevCats.reduce((s, c) => s + c.total, 0);
-    const totalChange = prevTotal > 0 ? (total - prevTotal) / prevTotal : null;
-    const totalBadge = _changeBadgeHTML(totalChange, prevLabel, totalChange !== null && totalChange >= 0 ? 'spending-badge--up' : 'spending-badge--down');
+
+    // Year-over-year baseline: the same month, one calendar year prior (issue #332).
+    // Default comparison mode is always "vs. last month" — YoY is opt-in via the toggle.
+    const yoyMode = !!app._spendingYoYMode;
+    const yoyLabel = new Date(year - 1, month, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const yoyCats = computeSpendingByCategory(app, year - 1, month);
+    const yoyTotal = yoyCats.reduce((s, c) => s + c.total, 0);
+
+    const baselineLabel = yoyMode ? yoyLabel : prevLabel;
+    const baselineTotals = yoyMode ? _totalsByCategory(yoyCats) : _totalsByCategory(prevCats);
+    const totalBaseline = yoyMode ? yoyTotal : prevTotal;
+    const totalChange = totalBaseline > 0 ? (total - totalBaseline) / totalBaseline : null;
+    const totalBadge = _changeBadgeHTML(totalChange, baselineLabel, totalChange !== null && totalChange >= 0 ? 'spending-badge--up' : 'spending-badge--down');
 
     const rankedRows = categories.map((cat, i) => {
-        const changeHTML = _changeBadgeHTML(cat.changeVsLastMonth, prevLabel,
-            cat.changeVsLastMonth !== null && cat.changeVsLastMonth >= 0 ? 'spending-ranked-change--up' : 'spending-ranked-change--down');
+        const change = yoyMode ? _changeVsBaseline(cat.total, baselineTotals, cat.category) : cat.changeVsLastMonth;
+        const changeHTML = _changeBadgeHTML(change, baselineLabel,
+            change !== null && change >= 0 ? 'spending-ranked-change--up' : 'spending-ranked-change--down');
         return `<div class="spending-ranked-row" data-spending-cat="${escapeHtml(cat.category)}" role="button" tabindex="0" aria-label="View ${escapeHtml(cat.category)} transactions">
             <span class="spending-ranked-rank">${i + 1}.</span>
             <span class="spending-ranked-name">${escapeHtml(cat.category)}</span>
@@ -178,6 +202,12 @@ export function renderReportsSpending(app) {
         <div class="spending-summary-strip">
             <span>Total: <strong>${formatCurrency(total)}</strong> · ${escapeHtml(monthLabel)}</span>
             ${totalBadge}
+            <label class="spending-yoy-toggle-label" for="spendingComparisonMode">Compare:
+                <select id="spendingComparisonMode" class="select-styled">
+                    <option value="month"${yoyMode ? '' : ' selected'}>vs. last month</option>
+                    <option value="year"${yoyMode ? ' selected' : ''}>vs. same month last year</option>
+                </select>
+            </label>
         </div>
         <div class="spending-hero-row">
             <div class="spending-pie-wrap"><canvas id="rptSpendingPieChart"></canvas></div>
@@ -187,6 +217,14 @@ export function renderReportsSpending(app) {
             <h4 class="spending-bar-title">6-Month Trend by Category</h4>
             <div class="spending-bar-wrap"><canvas id="rptSpendingBarChart"></canvas></div>
         </div>`;
+
+    const modeSelect = document.getElementById('spendingComparisonMode');
+    if (modeSelect) {
+        modeSelect.onchange = () => {
+            app._spendingYoYMode = modeSelect.value === 'year';
+            renderReportsSpending(app);
+        };
+    }
 
     const rankedList = document.getElementById('spendingRankedList');
     if (rankedList) {

@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.31.0] — 2026-10-22
+
+### Added
+- **Reports: year-over-year spending comparison** (issue #332) — the Spending Analysis report adds a "Compare:" toggle ("vs. last month" / "vs. same month last year") in the summary strip. In YoY mode, each category badge and the total badge recompute against the same calendar month one year prior instead of the prior calendar month; a category with no spending that far back shows no badge at all rather than a misleading 0%/divide-by-zero result. Default stays "vs. last month" — existing behavior is unchanged unless the toggle is switched.
+- **Income Trend chart** (issue #262) — the Income page adds a stacked bar chart (Regular Income vs. Bonuses) over a trailing 12- or 24-month range (toggle), with an optional dashed overlay comparing each month to the same calendar month one year prior ("Compare to same month last year" checkbox). Hidden entirely when there's no income or bonus data at all. Follows the existing `renderChartDataTable` accessibility convention.
+- **Net worth trajectory projection** (issue #335) — the Net Worth report's trend chart now extends forward 1/3/5 years (selectable) as a dashed continuation of the Net Worth line, with year-end values called out as milestone cards below the chart. `computeNetWorthProjection()` (`src/reportsNetWorth.js`) grows assets by (monthly income − non-debt expenses − cash actually paid to debt that month) and sources liabilities from `app.lastPaymentPlan`'s real per-debt balance schedule when one exists — avoiding double-counting principal, which is a dollar-for-dollar transfer from assets to a reduced liability, not a net-worth change by itself. Falls back to the issue's simplified flat model (net worth grows by a constant monthly income-minus-expenses delta, no debt-payoff compounding) once a plan ends or when none exists.
+
 ## [6.30.0] — 2026-10-22
 
 ### Added

@@ -5367,6 +5367,12 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
 .rpt-chart-sub    { margin: 0 0 16px; font-size: 0.8rem; color: var(--text-muted); }
 .rpt-chart-canvas-wrap { position: relative; height: 280px; min-width: 0; }
 
+/* Income Trend chart (issue #262) */
+.income-trend-card { margin-top: 20px; }
+.income-trend-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.income-trend-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 0.82rem; }
+.income-trend-yoy-toggle { display: flex; align-items: center; gap: 6px; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+
 /* ── Money Flow ─────────────────────────────────────────────────────────── */
 .rpt-section-title { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
 .rpt-moneyflow-wrap { position: relative; height: 360px; }
@@ -5634,6 +5640,29 @@ body.dark-mode .rpt-cal-today .rpt-cal-count {
     border-radius: 10px;
     padding: 12px;
 }
+
+/* Net worth projection milestones (issue #335) -- distinct from the
+   unrelated net-worth-gain milestone celebrations (captureNetWorthSnapshot). */
+.nw-projection-milestones-list {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+}
+.nw-projection-milestone-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--bg-secondary, #f8fafc);
+    min-width: 90px;
+}
+.nw-projection-milestone-label { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
+.nw-projection-milestone-value { font-size: 0.92rem; font-weight: 700; color: var(--text-primary); }
 
 .nw-history-table-wrap {
     overflow-x: auto;
@@ -7337,6 +7366,17 @@ body.dark-mode #settingsModal .settings-toggle-row input[type="checkbox"] {
 .spending-badge--down { background: #dcfce7; color: #15803d; }
 body.dark-mode .spending-badge--up   { background: #450a0a; color: #fca5a5; }
 body.dark-mode .spending-badge--down { background: #052e16; color: #86efac; }
+
+/* YoY comparison toggle (issue #332) */
+.spending-yoy-toggle-label {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-muted, #64748b);
+    white-space: nowrap;
+}
 
 .spending-hero-row {
     display: grid;
