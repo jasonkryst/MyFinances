@@ -373,3 +373,93 @@ def test_spending_comparison_mode_persists_across_rerender(app_page):
 
     value = page.eval_on_selector('#spendingComparisonMode', 'el => el.value')
     assert value == 'year'
+
+
+# ── Spending -> Ledger cross-navigation (#315) ──────────────────────────────────
+
+def _seed_linked_and_navigate(page):
+    """Like _seed_and_navigate, but links the expense to a real account —
+    the Ledger only shows account-linked transactions (unlinked ones are
+    excluded from getLedgerTransactions by design), so the cross-nav tests
+    need a seed that will actually appear there."""
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.evaluate("""(dates) => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.expenses = [
+            { id: 9001, name: 'Rent', category: 'Housing', budgetAmount: 950, date: dates.rent, accountId: 1 },
+            { id: 9002, name: 'Groceries', category: 'Food', budgetAmount: 180, date: dates.groceries, accountId: 1 }
+        ];
+        app.bills = []; app.recurringTemplates = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.incomes = []; app.bonuses = [];
+        app.ledgerAmountOverrides = {};
+        app._reportMonthOffset = 0;
+        app.renderReportsPage();
+    }""", {"rent": current_month_iso(1), "groceries": current_month_iso(10)})
+    page.click('[data-rptab="spending"]')
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
+
+
+@pytest.mark.ui
+def test_spending_drilldown_view_in_ledger_navigates_with_category_filter(app_page):
+    """Positive: clicking 'View in Ledger' from a category's drill-down
+    modal lands on the Ledger page with that category pre-selected in the
+    Category filter, and shows a 'Back to Spending' breadcrumb."""
+    page = app_page
+    _seed_linked_and_navigate(page)
+
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    page.click('#spendingDrilldownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    assert page.eval_on_selector('#ledgerCategoryFilter', 'el => el.value') == 'Food'
+    assert page.is_visible('.ledger-crossnav-banner')
+
+
+@pytest.mark.ui
+def test_spending_drilldown_view_in_ledger_back_button_returns_to_spending(app_page):
+    """Positive: the breadcrumb's 'Back to Spending' button returns to the
+    Reports page with the Spending sub-tab active again."""
+    page = app_page
+    _seed_linked_and_navigate(page)
+
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    page.click('#spendingDrilldownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    page.click('#ledgerCrossNavBackBtn')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    assert page.get_attribute('[data-rptab="spending"]', 'aria-selected') == 'true'
+
+
+@pytest.mark.ui
+def test_ledger_category_filter_persists_across_navigation(app_page):
+    """Positive/regression: manually picking a category filter survives
+    navigating away and back, like the existing account/date/cleared filters."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.bills = [{ id: 30, name: 'Internet', amount: 60, category: 'Utilities', dueDay: 5, accountId: 1 }];
+        app.expenses = []; app.incomes = []; app.debts = []; app.bonuses = []; app.recurringTemplates = [];
+    }""")
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    options = page.eval_on_selector_all('#ledgerCategoryFilter option', 'opts => opts.map(o => o.value)')
+    non_all = [o for o in options if o and o != 'all']
+    if not non_all:
+        pytest.skip("No non-'all' category options to select")
+
+    page.select_option('#ledgerCategoryFilter', non_all[0])
+    page.wait_for_timeout(300)
+    page.click('button[data-page="health"]')
+    page.wait_for_selector('#healthSection.active', timeout=5000)
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    assert page.eval_on_selector('#ledgerCategoryFilter', 'el => el.value') == non_all[0]

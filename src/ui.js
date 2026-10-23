@@ -710,6 +710,12 @@ export function attachLiabilitiesEventListeners(app) {
 }
 
 export function switchPage(app, pageName) {
+    // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
+    // while still looking at the Ledger page it dropped you into — clear it
+    // the moment you navigate anywhere else, so a later plain nav back into
+    // Ledger doesn't show stale "Viewing: ..." context.
+    if (pageName !== 'ledger') app._ledgerCrossNavLabel = null;
+
     document.querySelectorAll('.page-button').forEach(b => {
         b.classList.remove('active');
         b.setAttribute('aria-current', 'false');

@@ -95,6 +95,7 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
         </div>
         <div class="spending-modal-tx-list">${txRows || '<p class="spending-empty-detail">No transactions.</p>'}</div>
         <div class="spending-modal-footer">
+            <button class="btn btn-secondary" id="spendingDrilldownViewLedgerBtn" aria-label="View ${escapeHtml(catData.category)} transactions in Ledger">View in Ledger &rarr;</button>
             <button class="btn btn-secondary" id="spendingDrilldownClose" aria-label="Close drill-down">Close</button>
         </div>`;
     modal.classList.remove('hidden');
@@ -123,6 +124,15 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     };
 
     document.getElementById('spendingDrilldownClose').onclick = close;
+    document.getElementById('spendingDrilldownViewLedgerBtn').onclick = () => {
+        close();
+        app._ledgerCategoryFilter = catData.category;
+        app._ledgerAccountFilter = 'all';
+        app._ledgerDateRange = 'all';
+        app._ledgerPage = 1;
+        app._ledgerCrossNavLabel = `${catData.category} · ${monthLabel}`;
+        app.switchPage('ledger');
+    };
     modal.onclick = e => { if (e.target === modal) close(); };
     modal.addEventListener('keydown', handleKeydown);
     modal.focus();

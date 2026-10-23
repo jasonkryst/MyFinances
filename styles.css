@@ -342,6 +342,24 @@
 #ledgerTableContainer {
     margin-top: 18px;
 }
+/* #315: Spending-to-Ledger cross-navigation breadcrumb */
+.ledger-crossnav-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--light-bg);
+    border: 1px solid var(--border-color, #e5e7eb);
+    font-size: 0.85rem;
+}
+body.dark-mode .ledger-crossnav-banner {
+    background: #1e293b;
+    border-color: #374151;
+}
+
 .filter-controls {
     position: sticky;
     top: 0;
