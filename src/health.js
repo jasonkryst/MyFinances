@@ -1,7 +1,10 @@
 import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
-import { getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT } from './settings.js';
+import {
+    getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT,
+    HOUSING_COST_OVERRIDE, budgetThresholdKey
+} from './settings.js';
 
 // Persists allocation slider position across renderSurplusSection re-renders (0–100 = % to debt).
 let _surplusDebtPct = 100;
@@ -31,6 +34,19 @@ function dtiStatus(ratio) {
     return { cls: 'health-status--red', label: t('health.status.highRisk') };
 }
 
+// #253: mortgage-lender DTI models, shown alongside Consumer DTI on the same card.
+function mortgageFrontEndStatus(ratio) {
+    if (ratio < 0.28) return { cls: 'health-status--green', label: t('health.status.healthy') };
+    if (ratio < 0.36) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
+    return { cls: 'health-status--red', label: t('health.status.highRisk') };
+}
+
+function mortgageBackEndStatus(ratio) {
+    if (ratio < 0.43) return { cls: 'health-status--green', label: t('health.status.healthy') };
+    if (ratio < 0.50) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
+    return { cls: 'health-status--red', label: t('health.status.highRisk') };
+}
+
 function savingsStatus(ratio) {
     if (ratio >= 0.20) return { cls: 'health-status--green', label: t('health.status.strong') };
     if (ratio >= 0.10) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
@@ -56,15 +72,33 @@ function cashFlowStatus(net) {
     return { cls: 'health-status--red', label: t('health.status.deficit') };
 }
 
-function budgetCategoryStatusCls(pct, category) {
-    const isHousing = /rent|mortgage|housing/i.test(category);
-    if (isHousing) {
-        if (pct < 0.28) return 'health-status--green';
-        if (pct < 0.36) return 'health-status--yellow';
-        return 'health-status--red';
-    }
-    if (pct < 0.10) return 'health-status--green';
-    if (pct < 0.15) return 'health-status--yellow';
+const HOUSING_CATEGORY_RE = /rent|mortgage|housing/i;
+
+// #250: default healthy/warn thresholds (as fractions) used when a category
+// has no persisted override. Also what the threshold modal's "Reset to
+// Defaults" button restores.
+function defaultCategoryThresholds(category) {
+    return HOUSING_CATEGORY_RE.test(category)
+        ? { healthy: 0.28, warn: 0.36 }
+        : { healthy: 0.10, warn: 0.15 };
+}
+
+// #250: reads persisted per-category thresholds (set via the budget
+// thresholds modal), falling back to the hardcoded defaults above.
+function getCategoryThresholds(app, category) {
+    const defaults = defaultCategoryThresholds(category);
+    const healthyPct = getSetting(app, budgetThresholdKey(category, 'healthy'), null);
+    const warnPct = getSetting(app, budgetThresholdKey(category, 'warn'), null);
+    return {
+        healthy: typeof healthyPct === 'number' ? healthyPct / 100 : defaults.healthy,
+        warn: typeof warnPct === 'number' ? warnPct / 100 : defaults.warn,
+    };
+}
+
+function budgetCategoryStatusCls(app, pct, category) {
+    const { healthy, warn } = getCategoryThresholds(app, category);
+    if (pct < healthy) return 'health-status--green';
+    if (pct < warn) return 'health-status--yellow';
     return 'health-status--red';
 }
 
@@ -636,6 +670,137 @@ function renderSurplusSection(app) {
     }
 }
 
+// #253: mortgage Front-End/Back-End DTI sub-panel inside the existing DTI
+// card. Re-rendered on its own (not the whole dashboard) when the user edits
+// the housing-cost field, matching renderSurplusSection()'s pattern.
+function renderMortgageDtiPanel(app, monthlyIncome, totalDebtMin, housingDebtMin) {
+    const panel = document.getElementById('healthMortgageDtiPanel');
+    if (!panel) return;
+
+    const override = getSetting(app, HOUSING_COST_OVERRIDE, null);
+    const housingCost = typeof override === 'number' ? override : housingDebtMin;
+    const frontEndRatio = monthlyIncome > 0 ? housingCost / monthlyIncome : 0;
+    const backEndRatio = monthlyIncome > 0 ? (totalDebtMin - housingDebtMin + housingCost) / monthlyIncome : 0;
+    const feSt = mortgageFrontEndStatus(frontEndRatio);
+    const beSt = mortgageBackEndStatus(backEndRatio);
+
+    panel.innerHTML = `
+        <div class="health-mortgage-dti-row health-mortgage-dti-input-row">
+            <label class="health-mortgage-dti-label" for="healthHousingCostInput">${t('health.housingCostLabel')}</label>
+            <div class="health-surplus-input-wrap">
+                <span class="health-surplus-unit">$</span>
+                <input type="number" class="health-surplus-input" id="healthHousingCostInput"
+                       value="${housingCost.toFixed(2)}" min="0" step="1">
+            </div>
+        </div>
+        <div class="health-mortgage-dti-row">
+            <span class="health-mortgage-dti-title">${t('health.mortgageFrontEndLabel')}</span>
+            <span class="health-badge health-badge--sm ${feSt.cls}">${(frontEndRatio * 100).toFixed(1)}%</span>
+        </div>
+        <div class="health-mortgage-dti-row">
+            <span class="health-mortgage-dti-title">${t('health.mortgageBackEndLabel')}</span>
+            <span class="health-badge health-badge--sm ${beSt.cls}">${(backEndRatio * 100).toFixed(1)}%</span>
+        </div>
+    `;
+
+    const input = document.getElementById('healthHousingCostInput');
+    if (input) {
+        input.addEventListener('change', () => {
+            const v = Math.max(0, parseFloat(input.value) || 0);
+            setSetting(app, HOUSING_COST_OVERRIDE, v);
+            renderMortgageDtiPanel(app, monthlyIncome, totalDebtMin, housingDebtMin);
+        });
+    }
+}
+
+// #250: one row of the budget thresholds modal — a category name plus its
+// healthy/warn % inputs, prefilled from the persisted or default thresholds.
+function buildBudgetThresholdRowHtml(app, cat) {
+    const { healthy, warn } = getCategoryThresholds(app, cat);
+    const safeId = cat.replace(/[^a-zA-Z0-9]/g, '_');
+    return `
+        <div class="health-threshold-row" data-category="${escapeHtml(cat)}">
+            <span class="health-threshold-cat-name">${escapeHtml(cat)}</span>
+            <div class="health-threshold-field">
+                <label class="health-threshold-label" for="bctHealthy_${safeId}">${t('health.thresholdHealthyLabel')}</label>
+                <input type="number" class="health-threshold-input" id="bctHealthy_${safeId}" min="0" max="100" step="0.5" value="${(healthy * 100).toFixed(1)}">
+            </div>
+            <div class="health-threshold-field">
+                <label class="health-threshold-label" for="bctWarn_${safeId}">${t('health.thresholdWarnLabel')}</label>
+                <input type="number" class="health-threshold-input" id="bctWarn_${safeId}" min="0" max="100" step="0.5" value="${(warn * 100).toFixed(1)}">
+            </div>
+        </div>`;
+}
+
+// #250: opens the budget category thresholds modal for the given detected
+// (non-debt) budget categories, following the open/close/focus-trap idiom
+// shared by reconcileModal/retirementSnapshotModal.
+function openBudgetThresholdsModal(app, categories) {
+    const modal = document.getElementById('budgetThresholdsModal');
+    const body = document.getElementById('budgetThresholdsModalBody');
+    const saveBtn = document.getElementById('budgetThresholdsModalSaveBtn');
+    const resetBtn = document.getElementById('budgetThresholdsModalResetBtn');
+    const cancelBtn = document.getElementById('budgetThresholdsModalCancelBtn');
+    const closeBtn = document.getElementById('budgetThresholdsModalCloseBtn');
+    if (!modal || !body || !saveBtn || !resetBtn || !cancelBtn || !closeBtn) return;
+
+    const cats = categories.map(c => c.cat);
+    const renderRows = () => { body.innerHTML = cats.map(cat => buildBudgetThresholdRowHtml(app, cat)).join(''); };
+    renderRows();
+
+    const lastFocused = document.activeElement;
+    const close = () => {
+        modal.classList.add('hidden'); modal.classList.remove('flex-visible');
+        modal.onkeydown = null;
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    };
+
+    saveBtn.onclick = () => {
+        cats.forEach(cat => {
+            const safeId = cat.replace(/[^a-zA-Z0-9]/g, '_');
+            const healthyInput = document.getElementById(`bctHealthy_${safeId}`);
+            const warnInput = document.getElementById(`bctWarn_${safeId}`);
+            const healthyPct = Math.max(0, Math.min(100, parseFloat(healthyInput?.value) || 0));
+            let warnPct = Math.max(0, Math.min(100, parseFloat(warnInput?.value) || 0));
+            if (warnPct < healthyPct) warnPct = healthyPct;
+            setSetting(app, budgetThresholdKey(cat, 'healthy'), healthyPct);
+            setSetting(app, budgetThresholdKey(cat, 'warn'), warnPct);
+        });
+        close();
+        app.renderHealthDashboard();
+    };
+
+    resetBtn.onclick = () => {
+        cats.forEach(cat => {
+            const d = defaultCategoryThresholds(cat);
+            setSetting(app, budgetThresholdKey(cat, 'healthy'), d.healthy * 100);
+            setSetting(app, budgetThresholdKey(cat, 'warn'), d.warn * 100);
+        });
+        renderRows();
+    };
+
+    cancelBtn.onclick = close;
+    closeBtn.onclick = close;
+    modal.onclick = (event) => { if (event.target === modal) close(); };
+    modal.onkeydown = (event) => {
+        if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+        if (event.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault(); last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault(); first.focus();
+            }
+        }
+    };
+
+    modal.classList.add('flex-visible'); modal.classList.remove('hidden');
+    setTimeout(() => closeBtn.focus(), 30);
+}
+
 function gaugeColor(statusCls) {
     if (statusCls === 'health-status--green') return '#16a34a';
     if (statusCls === 'health-status--yellow') return '#d97706';
@@ -670,6 +835,13 @@ export function renderHealthDashboard(app) {
     const dtiRatio = monthlyIncome > 0 ? totalDebtMin / monthlyIncome : 0;
     const dtiPct   = Math.min(dtiRatio * 100, 100);
     const dtiSt    = dtiStatus(dtiRatio);
+
+    // ── Mortgage DTI models (#253) ──────────────────────────────────────────────
+    // Ratios themselves are computed inside renderMortgageDtiPanel() so the
+    // panel can be re-rendered standalone when the housing-cost field changes.
+    const housingDebtMin = activeDebts
+        .filter(d => HOUSING_CATEGORY_RE.test(d.category || ''))
+        .reduce((s, d) => s + (d.minimumPayment || 0), 0);
 
     // ── Savings Rate ───────────────────────────────────────────────────────────
     const totalSavingsContrib =
@@ -890,6 +1062,7 @@ export function renderHealthDashboard(app) {
                     <span>${t('health.perMonthDebt', { amount: formatCurrency(totalDebtMin) })}</span>
                     <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
                 </div>
+                <div class="health-mortgage-dti-panel" id="healthMortgageDtiPanel"></div>
                 <a href="#" class="health-link" data-health-nav="liabilities">${t('health.manageDebts')} &rarr;</a>
             </div>
 
@@ -1023,6 +1196,10 @@ export function renderHealthDashboard(app) {
             <div class="health-metric-card" data-card-nav="liabilities">
                 <div class="health-card-header">
                     <span class="health-card-title">${t('health.budgetTitle')}</span>
+                    ${budgetCategories.some(c => !c.isDebt) ? `
+                        <button type="button" class="health-budget-thresholds-btn" id="healthBudgetThresholdsBtn"
+                                title="${t('health.budgetThresholdsBtnTitle')}" aria-label="${t('health.budgetThresholdsBtnTitle')}">&#9881;</button>
+                    ` : ''}
                 </div>
                 <p class="health-card-desc">${t('health.budgetDesc')}</p>
                 ${monthlyIncome === 0 || budgetCategories.length === 0 ? `
@@ -1033,7 +1210,7 @@ export function renderHealthDashboard(app) {
                     const barPct   = Math.min(pct * 100, 100);
                     const stCls    = isDebt
                         ? (pct < 0.15 ? 'health-status--green' : pct < 0.20 ? 'health-status--yellow' : 'health-status--red')
-                        : budgetCategoryStatusCls(pct, cat);
+                        : budgetCategoryStatusCls(app, pct, cat);
                     return `
                         <div class="health-budget-row">
                             <div class="health-budget-cat-hd">
@@ -1233,6 +1410,7 @@ export function renderHealthDashboard(app) {
 
     renderGauge(app, '_healthDtiChart',     'healthDtiGauge',     dtiPct,     dtiSt.cls,     gaugeGray);
     renderGauge(app, '_healthSavingsChart', 'healthSavingsGauge', savingsPct, savingsSt.cls, gaugeGray);
+    renderMortgageDtiPanel(app, monthlyIncome, totalDebtMin, housingDebtMin);
 
     renderChartDataTable('healthDtiGauge', {
         caption: t('health.dtiTitle'),
@@ -1270,6 +1448,14 @@ export function renderHealthDashboard(app) {
     const healthPrintBtn = document.getElementById('healthPrintBtn');
     if (healthPrintBtn) {
         healthPrintBtn.addEventListener('click', () => window.print());
+    }
+
+    // ── Budget category thresholds modal wiring (#250) ───────────────────────
+    const budgetThresholdsBtn = document.getElementById('healthBudgetThresholdsBtn');
+    if (budgetThresholdsBtn) {
+        budgetThresholdsBtn.addEventListener('click', () => {
+            openBudgetThresholdsModal(app, budgetCategories.filter(c => !c.isDebt));
+        });
     }
 
     // ── Surplus Analysis wiring ────────────────────────────────────────────────
