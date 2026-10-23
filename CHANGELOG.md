@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.32.1] — 2026-10-23
+
+### Fixed
+- **What's New notification content was stale since v6.24.0** — the `WHATS_NEW_ENTRIES` constant in `src/ui.js` carries an explicit "update this every version bump alongside CHANGELOG.md" comment, but no version from 6.25.0 through 6.32.0 actually added an entry. The notification mechanism (dot on upgrade, modal on click) kept working, but anyone upgrading past 6.24.0 only ever saw the 6.23.0/6.24.0 highlights. Backfilled entries for 6.25.0–6.32.0 from `CHANGELOG.md`, and added `test_whats_new_entries_not_stale` (`tests/features/test_whats_new.py`) asserting the newest entry stays within 3 minor versions of the running app version, so this can't silently regress again.
+
 ## [6.32.0] — 2026-10-23
 
 ### Added
