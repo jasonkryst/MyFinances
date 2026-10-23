@@ -969,6 +969,66 @@ function _buildWhatsNewHtml() {
 // Update this list every version bump alongside CHANGELOG.md.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.32.0 — 2026-10-23',
+        items: [
+            '<strong>Health: multi-model DTI view</strong> (issue #253) — the Debt-to-Income card now shows Mortgage Front-End and Back-End ratios alongside the existing Consumer DTI, with an editable "Est. monthly housing cost" field.',
+            '<strong>Health: customizable budget category thresholds</strong> (issue #250) — a gear button on the Budget Allocation card opens a modal to set your own healthy/warning % thresholds per category, with a one-click reset to defaults.'
+        ]
+    },
+    {
+        version: '6.31.0 — 2026-10-22',
+        items: [
+            '<strong>Year-over-year spending comparison</strong> (issue #332) — the Spending Analysis report adds a "Compare:" toggle to switch each category\'s change badge between "vs. last month" and "vs. same month last year".',
+            '<strong>Income Trend chart</strong> (issue #262) — the Income page adds a stacked bar chart of Regular Income vs. Bonuses over a trailing 12/24-month range, with an optional year-over-year overlay line.',
+            '<strong>Net worth trajectory projection</strong> (issue #335) — the Net Worth report\'s trend chart now extends forward 1/3/5 years as a dashed projection, with year-end milestone cards below the chart.'
+        ]
+    },
+    {
+        version: '6.30.0 — 2026-10-22',
+        items: [
+            '<strong>Retirement: monthly income in retirement</strong> (issue #345) — the Retirement page\'s projection panel now shows an estimated monthly income in retirement, based on a configurable 2%–8% safe withdrawal rate slider.'
+        ]
+    },
+    {
+        version: '6.29.0 — 2026-10-22',
+        items: [
+            '<strong>JSON import error surface</strong> (issue #291) — importing a backup now reports exactly what happened to every record (coerced fields, dropped records) in a collapsible list, instead of a generic success/failure message.',
+            '<strong>Modal focus-trap coverage</strong> (issue #310) — confirmed and extended Tab-trap/focus-restore test coverage across the Ledger Export, Ledger Mark-All-Cleared, and Reports Calendar day-detail modals.'
+        ]
+    },
+    {
+        version: '6.28.0 — 2026-10-22',
+        items: [
+            '<strong>Health "Top recommendations" panel</strong> (issue #254) — the Health page now surfaces up to 3 ranked, actionable recommendations drawn from your DTI, savings rate, emergency fund, payoff timeline, cash flow, and credit utilization.',
+            '<strong>Liabilities "Group by" (Person / Institution)</strong> (issue #288) — group the Debts list by linked person or by institution (derived from the debt name), each with a count/total header.'
+        ]
+    },
+    {
+        version: '6.27.0 — 2026-10-22',
+        items: [
+            '<strong>Debt payoff celebration flow</strong> (issue #294) — paying off a debt now opens a congratulations modal with Archive Debt / Keep Active options, instead of a plain Archive button.',
+            '<strong>Upcoming-due urgency badge on recurring cards</strong> (issue #382) — recurring template cards show a red/yellow badge when the next occurrence is due within 3 or 7 days.',
+            '<strong>Health page stale-plan nudge</strong> (issue #383) — a banner appears on the Health page when you haven\'t updated any debt or income record in 30+ days.'
+        ]
+    },
+    {
+        version: '6.26.0 — 2026-10-20',
+        items: [
+            '<strong>Sinking fund priority ordering + completion flow</strong> (issues #304, #308) — sinking funds can now be ordered, and a fully funded fund shows a "Complete this goal" button (Archive / Delete / Keep Active).',
+            '<strong>Empty state CTAs across pages</strong> (issue #276) — Debts, Accounts, Income, Health, and Ledger now show a styled empty state with a call-to-action button when there\'s nothing to show yet.',
+            '<strong>Recurring actual-amount override + Ledger cross-navigation</strong> (issues #293, #285) — "Mark as paid" lets you enter the actual amount paid; Ledger rows gain a ↗ button that jumps to the matching source page.',
+            '<strong>Minimum payment trap warning + bulk debt actions</strong> (issues #259, #282) — a warning badge appears when a debt would take 36+ months to pay off at the minimum; debt cards gain multi-select Archive/Export/Delete actions.'
+        ]
+    },
+    {
+        version: '6.25.0 — 2026-10-19',
+        items: [
+            '<strong>Bonus Advisor discoverability + next payment due date</strong> (issues #267, #277) — the command palette and Health page surplus section now surface the Bonus Advisor; debts gain an optional "Next Payment Due" date field.',
+            '<strong>Category autocomplete + Strategy plan stale warning</strong> (issues #298, #325) — Recurring/Expenses category fields are now autocomplete inputs; the Plan page warns when your debt data has changed since the last calculation.',
+            '<strong>Ledger filter persistence</strong> (issue #338) — Ledger account/date-range/cleared/page-size filters are now remembered across visits.'
+        ]
+    },
+    {
         version: '6.24.0 — 2026-10-19',
         items: [
             '<strong>S-01 — Emergency fund auto-sync</strong> (issue #313) — Emergency fund records can now link to an account and automatically reflect the account\'s projected balance. Enable "Auto-sync balance from linked account" on any emergency fund. The current-amount field disables when auto-sync is on, and the card shows a ⟳ synced indicator. The manual + Contribute button is hidden when auto-sync is active.',

@@ -175,3 +175,30 @@ def test_whats_new_modal_exists_in_dom(app_page):
     assert modal, "#whatsNewModal should exist in the DOM"
     is_hidden = modal.evaluate('(el) => el.classList.contains("hidden")')
     assert is_hidden, "#whatsNewModal should be hidden by default"
+
+
+# ── Staleness regression (WHATS_NEW_ENTRIES was last updated at v6.24.0,
+#    then not touched again through v6.31.0 — see fix/whats-new-backfill) ──
+
+@pytest.mark.feature
+def test_whats_new_entries_not_stale(app_page):
+    """The newest What's New entry must stay within a few minor versions of
+    the running app version, so this list can't silently go stale again."""
+    page = app_page
+
+    page.click('#accountMenuBtn')
+    page.wait_for_selector('#accountMenuDropdown:not(.hidden)', timeout=3000)
+    page.click('#accountMenuWhatsNewBtn')
+    page.wait_for_selector('#whatsNewModal:not(.hidden)', timeout=3000)
+
+    app_version_text = page.inner_text('#appVersion')  # e.g. "v6.32.0"
+    app_minor = int(app_version_text.lstrip('v').split('.')[1])
+
+    first_heading = page.query_selector('.wn-version-heading')
+    assert first_heading, "Expected at least one version heading in the What's New modal"
+    heading_minor = int(first_heading.inner_text().split('—')[0].strip().split('.')[1])
+
+    assert app_minor - heading_minor <= 3, (
+        f"Newest What's New entry (minor {heading_minor}) is more than 3 versions behind "
+        f"the running app version (minor {app_minor}) — WHATS_NEW_ENTRIES needs a new entry."
+    )
