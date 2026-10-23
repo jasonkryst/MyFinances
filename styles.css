@@ -7127,6 +7127,26 @@ body.dark-mode .health-surplus-tx-toggle { color: #60a5fa; }
     font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);
     text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;
 }
+
+/* #281: per-card credit utilization breakdown — same toggle/detail pattern
+   as .health-surplus-tx-toggle/-tx-detail; row/hd/name/detail-line are left
+   unstyled on purpose, matching the existing .health-person-util-* rows. */
+.health-card-util-toggle {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: none; border: none; padding: 0.25rem 0; cursor: pointer;
+    font-size: 0.76rem; color: var(--primary-color); font-family: inherit;
+    margin-bottom: 0.35rem; text-decoration: none;
+}
+.health-card-util-toggle:hover { text-decoration: underline; }
+body.dark-mode .health-card-util-toggle { color: #60a5fa; }
+.health-card-util-detail {
+    border: 1px solid var(--border-color); border-radius: 8px;
+    padding: 0.55rem 0.75rem; margin-bottom: 0.5rem;
+    max-height: 240px; overflow-y: auto; font-size: 0.77rem;
+}
+.health-card-util-nolimit {
+    font-size: 0.72rem; color: var(--text-secondary); font-style: italic;
+}
 .health-surplus-tx-group-label--spaced { margin-top: 0.5rem; }
 .health-surplus-tx-row {
     display: grid; grid-template-columns: 1fr auto auto;

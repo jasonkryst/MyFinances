@@ -116,6 +116,35 @@ function creditUtilizationStatus(pct) {
     return { cls: 'health-status--red', label: pct >= 100 ? 'Maxed' : 'Critical' };
 }
 
+// #281: per-card credit utilization breakdown, shown behind a disclosure
+// toggle on the Credit Utilization card (both when the aggregate has data
+// and when it's in its empty state — a card with no limit set still gets
+// its own row rather than vanishing along with the aggregate figure).
+function renderCardUtilBreakdownHtml(cardRows) {
+    if (cardRows.length === 0) return '';
+    return `
+        <button class="health-card-util-toggle" id="healthCardUtilToggle" aria-expanded="false" aria-controls="healthCardUtilDetail">
+            &#x25BC; Show per-card breakdown (${cardRows.length})
+        </button>
+        <div id="healthCardUtilDetail" class="health-card-util-detail" hidden>
+            ${cardRows.map(c => `
+                <div class="health-card-util-row">
+                    <div class="health-card-util-hd">
+                        <span class="health-card-util-name">${escapeHtml(c.name)}</span>
+                        ${c.hasLimit
+                            ? `<span class="health-badge health-badge--sm ${c.st.cls}">${c.pct}%</span>`
+                            : `<span class="health-card-util-nolimit">No limit set</span>`}
+                    </div>
+                    ${c.hasLimit ? `
+                        <div class="progress-bar health-compact-bar">
+                            <div class="progress-fill ${statusFillCls(c.st.cls)}" data-progress-width="${Math.min(c.pct, 100)}"></div>
+                        </div>
+                        <div class="health-card-util-detail-line">${formatCurrency(c.balance)} of ${formatCurrency(c.limit)}</div>
+                    ` : `<div class="health-card-util-detail-line">${formatCurrency(c.balance)} balance</div>`}
+                </div>`).join('')}
+        </div>`;
+}
+
 function surplusStatus(surplus) {
     if (surplus > 0)  return { cls: 'health-status--green',  label: 'Surplus' };
     if (surplus === 0) return { cls: 'health-status--yellow', label: 'Break-even' };
@@ -931,6 +960,16 @@ export function renderHealthDashboard(app) {
     const utilSt = creditUtilizationStatus(rawUtilPct);
     const hasUtilData = ccDebtsWithLimit.length > 0;
 
+    // #281: per-card breakdown (every credit-card debt, limit or not) — a
+    // superset of ccDebtsWithLimit, which only feeds the aggregate figure.
+    const allCcDebts = activeDebts.filter(d => d.debtType === 'creditCard');
+    const cardRows = allCcDebts.map(d => {
+        const hasLimit = d.creditLimit != null && d.creditLimit > 0;
+        const balance = d.accountBalance || 0;
+        const pct = hasLimit ? Math.round((balance / d.creditLimit) * 100) : null;
+        return { name: d.name || 'Credit Card', balance, limit: d.creditLimit, hasLimit, pct, st: hasLimit ? creditUtilizationStatus(pct) : null };
+    });
+
     // ── Per-person utilization + DTI ───────────────────────────────────────────
     const personRows = (app.persons || []).map(p => {
         const personCcDebts = ccDebtsWithLimit.filter(d => (d.personIds || []).includes(p.id));
@@ -1238,6 +1277,7 @@ export function renderHealthDashboard(app) {
                         <span class="health-empty-sub">No credit limits set on any credit card debt.</span>
                     </div>
                     <a href="#" class="health-link" data-health-nav="liabilities">Set a credit limit &rarr;</a>
+                    ${renderCardUtilBreakdownHtml(cardRows)}
                 ` : `
                     <div class="health-timeline-hero">
                         <span class="health-timeline-value">${rawUtilPct}${rawUtilPct >= 100 ? '<span class="health-timeline-unit"> ⚠</span>' : ''}</span>
@@ -1270,6 +1310,7 @@ export function renderHealthDashboard(app) {
                                 </div>`).join('')}
                         </div>
                     ` : ''}
+                    ${renderCardUtilBreakdownHtml(cardRows)}
                     <a href="#" class="health-link" data-health-nav="liabilities">Manage debts &rarr;</a>
                 `}
             </div>
@@ -1455,6 +1496,20 @@ export function renderHealthDashboard(app) {
     if (budgetThresholdsBtn) {
         budgetThresholdsBtn.addEventListener('click', () => {
             openBudgetThresholdsModal(app, budgetCategories.filter(c => !c.isDebt));
+        });
+    }
+
+    // ── Credit utilization per-card breakdown toggle (#281) ──────────────────
+    const cardUtilToggle = document.getElementById('healthCardUtilToggle');
+    const cardUtilDetail = document.getElementById('healthCardUtilDetail');
+    if (cardUtilToggle && cardUtilDetail) {
+        cardUtilToggle.addEventListener('click', () => {
+            const expanded = !cardUtilDetail.hidden;
+            cardUtilDetail.hidden = expanded;
+            cardUtilToggle.setAttribute('aria-expanded', String(!expanded));
+            cardUtilToggle.textContent = expanded
+                ? `▼ Show per-card breakdown (${cardRows.length})`
+                : `▲ Hide per-card breakdown`;
         });
     }
 
