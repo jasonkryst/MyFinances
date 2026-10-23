@@ -68,7 +68,12 @@ async def test_send_test_email_button_hidden_for_non_postgres_backend(base_url, 
         await page.wait_for_selector('#topNav', state='visible', timeout=8000)
         await page.evaluate("() => document.getElementById('settingsBtn').click()")
         await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
-        assert not await page.locator('#settingsEmailTestGroup').is_visible()
+        # Click the Notifications tab first (#322): the group would also be
+        # invisible on the default Appearance tab regardless of its own
+        # hidden class, so an is_visible() check without this would pass
+        # vacuously instead of proving the backend-gated hide actually works.
+        await page.click('[data-settings-tab="notifications"]')
+        assert await page.locator('#settingsEmailTestGroup').evaluate("el => el.classList.contains('hidden')")
         await browser.close()
 
 
@@ -78,6 +83,7 @@ async def test_send_test_email_delivers_to_mailpit(pg_page, base_url, credential
 
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+    await pg_page.click('[data-settings-tab="notifications"]')  # #322: email test group now lives on the Notifications tab
 
     group = pg_page.locator('#settingsEmailTestGroup')
     await expect(group).to_be_visible()

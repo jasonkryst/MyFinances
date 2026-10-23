@@ -533,6 +533,11 @@ export function getFilteredSortedLedgerTransactions(app) {
         transactions = transactions.filter(tx => String(tx.accountId) === String(selectedAccount));
     }
 
+    const selectedCategory = app._ledgerCategoryFilter || 'all';
+    if (selectedCategory !== 'all') {
+        transactions = transactions.filter(tx => (tx.category || 'Other') === selectedCategory);
+    }
+
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (selectedDateRange !== 'all') {

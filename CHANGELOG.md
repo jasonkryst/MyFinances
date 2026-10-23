@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.33.0] — 2026-10-23
+
+### Added
+- **Health: per-card credit utilization breakdown** (issue #281) — the Credit Utilization card's "Show per-card breakdown" toggle lists every credit-card debt individually (balance, limit, percentage, color-coded status bar), not just the aggregate figure. Cards with no credit limit set show a "No limit set" label instead of disappearing — this now surfaces even when *no* card has a limit, a case that previously made the whole card fall back to its generic empty state. Reuses the existing `creditUtilizationStatus`/`statusFillCls` thresholds for consistency with the aggregate number.
+- **Reports: Spending category → Ledger cross-navigation** (issue #315) — the Spending report's category drill-down modal gains a "View in Ledger →" link that jumps to the Ledger pre-filtered to that category, with a "Viewing: `<category>` · `<month>` — ← Back to Spending" breadcrumb that returns to the Spending tab. This required adding a real Category filter to the Ledger first — `getFilteredSortedLedgerTransactions` had no category filtering at all despite the issue's assumption that one already existed — now persisted alongside the existing Account/Date/Cleared filters. The category/pie-slice click itself still opens the existing drill-down modal unchanged (removing that to cross-navigate instead would have been a regression); the new link is additive, following the same "View in Ledger →" pattern issue #257 established for account balances.
+- **Settings modal tabbed layout** (issue #322) — `#settingsModal` is reorganized into four tabs (Appearance, Data & Storage, Notifications, Advanced) using the same tab pattern already shipped for the Data Transfer modal's Export/Import tabs, under its own `settings-tab-*` class namespace. The active tab is remembered across open/close within the same page load, and opening the modal now focuses the first control of the active tab rather than a hardcoded checkbox that could end up hidden on a different tab.
+
 ## [6.32.1] — 2026-10-23
 
 ### Fixed

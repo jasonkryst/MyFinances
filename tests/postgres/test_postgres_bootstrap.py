@@ -139,6 +139,7 @@ async def test_settings_postgres_option_reloads_to_gate(base_url, bypass_postgre
 
         await page.evaluate("() => document.getElementById('settingsBtn').click()")
         await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+        await page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
 
         await page.select_option('#settingStorageBackend', 'postgres')
         await page.click('#settingsModalDoneBtn')

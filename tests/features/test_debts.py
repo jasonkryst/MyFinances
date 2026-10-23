@@ -574,6 +574,7 @@ def test_show_archived_debts_setting_reveals_card(app_page):
     assert page.query_selector('text=Hidden Archived') is None
 
     open_settings(page)
+    page.click('[data-settings-tab="advanced"]')  # #322: archived-debts toggle now lives on the Advanced tab
     page.check('#settingShowArchivedDebts')
     close_settings(page)
 

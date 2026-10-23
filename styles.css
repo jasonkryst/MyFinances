@@ -342,6 +342,24 @@
 #ledgerTableContainer {
     margin-top: 18px;
 }
+/* #315: Spending-to-Ledger cross-navigation breadcrumb */
+.ledger-crossnav-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--light-bg);
+    border: 1px solid var(--border-color, #e5e7eb);
+    font-size: 0.85rem;
+}
+body.dark-mode .ledger-crossnav-banner {
+    background: #1e293b;
+    border-color: #374151;
+}
+
 .filter-controls {
     position: sticky;
     top: 0;
@@ -5263,6 +5281,51 @@ body.dark-mode .dt-tab-btn:hover {
 }
 .dt-tab-panel { display: none; }
 .dt-tab-panel--active { display: block; }
+
+/* ── Settings modal tabs (#322) — same pill pattern as .dt-tab-btn, own
+   class namespace so Settings and Data Transfer stay decoupled ────────── */
+.settings-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.settings-tab-btn {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.settings-tab-btn:hover {
+    background: var(--light-bg);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+.settings-tab-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+.settings-tab-btn--active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+body.dark-mode .settings-tab-btn--active {
+    background: #60a5fa;
+    border-color: #60a5fa;
+    color: #0f172a;
+}
+body.dark-mode .settings-tab-btn:hover {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+.settings-tab-panel { display: none; }
+.settings-tab-panel--active { display: block; }
+
 .dt-import-choice {
     margin-top: 14px;
     padding-top: 14px;
@@ -7126,6 +7189,26 @@ body.dark-mode .health-surplus-tx-toggle { color: #60a5fa; }
 .health-surplus-tx-group-label {
     font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);
     text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;
+}
+
+/* #281: per-card credit utilization breakdown — same toggle/detail pattern
+   as .health-surplus-tx-toggle/-tx-detail; row/hd/name/detail-line are left
+   unstyled on purpose, matching the existing .health-person-util-* rows. */
+.health-card-util-toggle {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: none; border: none; padding: 0.25rem 0; cursor: pointer;
+    font-size: 0.76rem; color: var(--primary-color); font-family: inherit;
+    margin-bottom: 0.35rem; text-decoration: none;
+}
+.health-card-util-toggle:hover { text-decoration: underline; }
+body.dark-mode .health-card-util-toggle { color: #60a5fa; }
+.health-card-util-detail {
+    border: 1px solid var(--border-color); border-radius: 8px;
+    padding: 0.55rem 0.75rem; margin-bottom: 0.5rem;
+    max-height: 240px; overflow-y: auto; font-size: 0.77rem;
+}
+.health-card-util-nolimit {
+    font-size: 0.72rem; color: var(--text-secondary); font-style: italic;
 }
 .health-surplus-tx-group-label--spaced { margin-top: 0.5rem; }
 .health-surplus-tx-row {

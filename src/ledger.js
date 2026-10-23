@@ -2,7 +2,7 @@
 
 import { formatCurrency, escapeHtml, formatShortDate, buildPersonPillsHtml } from './utils.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
-import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
+import { getFilteredSortedLedgerTransactions, getLedgerTransactions } from './ledgerTransactions.js';
 import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
 import { setLedgerCleared } from './ledgerCleared.js';
 import { LEDGER_EXPORT_COLUMN_KEYS } from './dataExport.js';
@@ -131,16 +131,33 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
     setTimeout(() => closeBtn.focus(), 30);
 }
 
-function saveLedgerFilters(accountFilter, dateRange, clearedFilter, pageSize) {
+function saveLedgerFilters(accountFilter, dateRange, clearedFilter, pageSize, categoryFilter) {
     try {
-        localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({ accountFilter, dateRange, clearedFilter, pageSize }));
+        localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({ accountFilter, dateRange, clearedFilter, pageSize, categoryFilter }));
     } catch (_) {}
 }
 
-function loadLedgerFilters() {
+export function loadLedgerFilters() {
     try {
         return JSON.parse(localStorage.getItem('debtTrackerLedgerFilters') || 'null');
     } catch (_) { return null; }
+}
+
+// Persists the current filter state, except while a Spending cross-nav
+// (#315) is active: its account/date-range reset to 'all' is a transient
+// view override, not a preference the user chose, so touching an unrelated
+// control (e.g. page size) while viewing it must not overwrite whatever
+// account/date the user had deliberately saved before cross-navigating —
+// those are restored from app._ledgerPreCrossNavAccount/-DateRange, set by
+// spending.js's "View in Ledger" handler.
+function persistLedgerFilters(app) {
+    const accountFilter = app._ledgerCrossNavLabel
+        ? (app._ledgerPreCrossNavAccount ?? 'all')
+        : (app._ledgerAccountFilter || 'all');
+    const dateRange = app._ledgerCrossNavLabel
+        ? (app._ledgerPreCrossNavDateRange ?? 'around7')
+        : (app._ledgerDateRange || 'around7');
+    saveLedgerFilters(accountFilter, dateRange, app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
 }
 
 // Render the Ledger page
@@ -152,6 +169,7 @@ export function renderLedgerPage(app) {
     let selectedAccount = app._ledgerAccountFilter || 'all';
     let selectedDateRange = app._ledgerDateRange || 'around7';
     let selectedClearedFilter = app._ledgerClearedFilter || 'all';
+    let selectedCategory = app._ledgerCategoryFilter || 'all';
     let selectedPageSize = parseInt(app._ledgerPageSize, 10);
     if (![10, 25, 50, 100].includes(selectedPageSize)) {
         selectedPageSize = 25;
@@ -163,11 +181,13 @@ export function renderLedgerPage(app) {
             app._ledgerDateRange = saved.dateRange ?? app._ledgerDateRange;
             app._ledgerClearedFilter = saved.clearedFilter ?? app._ledgerClearedFilter;
             app._ledgerPageSize = saved.pageSize ?? app._ledgerPageSize;
+            app._ledgerCategoryFilter = saved.categoryFilter ?? app._ledgerCategoryFilter;
         }
         app._ledgerFiltersRestored = true;
         selectedAccount = app._ledgerAccountFilter || 'all';
         selectedDateRange = app._ledgerDateRange || 'around7';
         selectedClearedFilter = app._ledgerClearedFilter || 'all';
+        selectedCategory = app._ledgerCategoryFilter || 'all';
         selectedPageSize = parseInt(app._ledgerPageSize, 10);
         if (![10, 25, 50, 100].includes(selectedPageSize)) selectedPageSize = 25;
     }
@@ -181,6 +201,14 @@ export function renderLedgerPage(app) {
     if (selectedAccount !== 'all') activeFilterCount++;
     if (selectedDateRange !== 'around7') activeFilterCount++;
     if (selectedClearedFilter !== 'all') activeFilterCount++;
+    if (selectedCategory !== 'all') activeFilterCount++;
+
+    // #315: category options come from the full unfiltered transaction set,
+    // same convention as the Account <select> (built from app.accounts, not
+    // from whatever the other active filters currently show) — otherwise
+    // picking an account filter first could make a category disappear from
+    // its own dropdown.
+    const allCategories = [...new Set(getLedgerTransactions(app).map(tx => tx.category || 'Other'))].sort();
 
     let filterHtml = '';
     filterHtml += `<div class="filter-controls">`;
@@ -190,6 +218,15 @@ export function renderLedgerPage(app) {
                 <option value="all">All Accounts</option>`;
         for (const acct of accounts) {
             filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)} (${escapeHtml(acct.type)})</option>`;
+        }
+        filterHtml += `</select>`;
+    }
+    if (allCategories.length > 0) {
+        filterHtml += `<label for="ledgerCategoryFilter" class="filter-label">Category:</label>
+            <select id="ledgerCategoryFilter" class="select-styled">
+                <option value="all">All Categories</option>`;
+        for (const cat of allCategories) {
+            filterHtml += `<option value="${escapeHtml(cat)}"${selectedCategory === cat ? ' selected' : ''}>${escapeHtml(cat)}</option>`;
         }
         filterHtml += `</select>`;
     }
@@ -256,7 +293,15 @@ export function renderLedgerPage(app) {
     const hiddenCols = loadHiddenCols();
     const ch = col => hiddenCols.has(col) ? ' class="ledger-col-hidden"' : '';
 
-    let html = filterHtml;
+    // #315: cross-nav breadcrumb when arriving here via the Spending
+    // drill-down modal's "View in Ledger →" link.
+    const crossNavBanner = app._ledgerCrossNavLabel ? `
+        <div class="ledger-crossnav-banner">
+            <span>Viewing: ${escapeHtml(app._ledgerCrossNavLabel)}</span>
+            <button id="ledgerCrossNavBackBtn" class="btn btn-secondary btn-small" type="button">&larr; Back to Spending</button>
+        </div>` : '';
+
+    let html = crossNavBanner + filterHtml;
     html += `<div id="ledgerBulkBar" class="ledger-bulk-bar">
         <span id="ledgerBulkCount" class="ledger-bulk-count" aria-live="polite"></span>
         <button id="ledgerBulkClearBtn" class="btn btn-secondary btn-small" type="button">✓ Mark Cleared</button>
@@ -400,12 +445,31 @@ export function renderLedgerPage(app) {
             };
         });
     }
+    const crossNavBackBtn = container.querySelector('#ledgerCrossNavBackBtn');
+    if (crossNavBackBtn) {
+        crossNavBackBtn.onclick = () => {
+            app._ledgerCategoryFilter = 'all';
+            // switchPage() restores the pre-cross-nav account/date filters
+            // and clears _ledgerCrossNavLabel — see ui.js.
+            app.switchPage('reports');
+            document.querySelector('.rpt-tab-btn[data-rptab="spending"]')?.click();
+        };
+    }
     const acctFilter = container.querySelector('#ledgerAccountFilter');
     if (acctFilter) {
         acctFilter.onchange = (e) => {
             app._ledgerAccountFilter = e.target.value;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
+            persistLedgerFilters(app);
+            renderLedgerPage(app);
+        };
+    }
+    const categoryFilterEl = container.querySelector('#ledgerCategoryFilter');
+    if (categoryFilterEl) {
+        categoryFilterEl.onchange = (e) => {
+            app._ledgerCategoryFilter = e.target.value;
+            app._ledgerPage = 1;
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -414,7 +478,7 @@ export function renderLedgerPage(app) {
         dateRangeFilter.onchange = (e) => {
             app._ledgerDateRange = e.target.value;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -424,7 +488,7 @@ export function renderLedgerPage(app) {
             const pageSize = parseInt(e.target.value, 10);
             app._ledgerPageSize = [10, 25, 50, 100].includes(pageSize) ? pageSize : 25;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -433,7 +497,7 @@ export function renderLedgerPage(app) {
         clearedFilterEl.onchange = (e) => {
             app._ledgerClearedFilter = e.target.value;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25);
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -443,6 +507,7 @@ export function renderLedgerPage(app) {
             app._ledgerAccountFilter = 'all';
             app._ledgerDateRange = 'around7';
             app._ledgerClearedFilter = 'all';
+            app._ledgerCategoryFilter = 'all';
             app._ledgerPage = 1;
             localStorage.removeItem('debtTrackerLedgerFilters');
             app._ledgerFiltersRestored = false;

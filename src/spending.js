@@ -1,5 +1,6 @@
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { escapeHtml, formatCurrency, renderChartDataTable, getReportDate } from './utils.js';
+import { loadLedgerFilters } from './ledger.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -95,6 +96,7 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
         </div>
         <div class="spending-modal-tx-list">${txRows || '<p class="spending-empty-detail">No transactions.</p>'}</div>
         <div class="spending-modal-footer">
+            ${catData.category === 'Debt Payments' ? '' : `<button class="btn btn-secondary" id="spendingDrilldownViewLedgerBtn" aria-label="View ${escapeHtml(catData.category)} transactions in Ledger">View in Ledger &rarr;</button>`}
             <button class="btn btn-secondary" id="spendingDrilldownClose" aria-label="Close drill-down">Close</button>
         </div>`;
     modal.classList.remove('hidden');
@@ -123,6 +125,35 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     };
 
     document.getElementById('spendingDrilldownClose').onclick = close;
+    const viewLedgerBtn = document.getElementById('spendingDrilldownViewLedgerBtn');
+    if (viewLedgerBtn) {
+        viewLedgerBtn.onclick = () => {
+            close();
+            // Remember the account/date filters as they stood before this
+            // cross-nav so they can be restored (not left stuck at 'all')
+            // once the user leaves or the Ledger page is re-saved while this
+            // view is still active — see loadLedgerFilters()/persistLedgerFilters()
+            // in ledger.js. Read from live state if the Ledger has already
+            // rendered once this session, otherwise from the saved blob.
+            const existing = app._ledgerFiltersRestored
+                ? { accountFilter: app._ledgerAccountFilter, dateRange: app._ledgerDateRange }
+                : (loadLedgerFilters() || {});
+            app._ledgerPreCrossNavAccount = existing.accountFilter ?? 'all';
+            app._ledgerPreCrossNavDateRange = existing.dateRange ?? 'around7';
+
+            app._ledgerCategoryFilter = catData.category;
+            app._ledgerAccountFilter = 'all';
+            app._ledgerDateRange = 'all';
+            app._ledgerPage = 1;
+            // Prevent renderLedgerPage's restore-from-storage from clobbering
+            // the overrides just set above back to whatever was last saved.
+            app._ledgerFiltersRestored = true;
+            // Shows every month for this category (dateRange is 'all', not
+            // scoped to monthLabel) — the label must not imply otherwise.
+            app._ledgerCrossNavLabel = catData.category;
+            app.switchPage('ledger');
+        };
+    }
     modal.onclick = e => { if (e.target === modal) close(); };
     modal.addEventListener('keydown', handleKeydown);
     modal.focus();

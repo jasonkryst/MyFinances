@@ -111,7 +111,11 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
-    await pg_page.wait_for_selector('text=Delete Me', timeout=5000)
+    # Scoped to the debts list: an unscoped 'text=Delete Me' can also match
+    # the Health page's per-card credit-util breakdown (#281), which renders
+    # every credit-card debt's name into a hidden span that stays in the DOM
+    # (just class-hidden) once Health has rendered once this session.
+    await pg_page.wait_for_selector('#debtsList >> text=Delete Me', timeout=5000)
 
     await pg_page.click(f'[data-debt-action="delete"][data-debt-id="{debt_id}"]')
     await pg_page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
@@ -141,7 +145,8 @@ async def test_debt_edit_form_renders(pg_page, base_url, credentials):
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
-    await pg_page.wait_for_selector('text=Edit Me', timeout=5000)
+    # Scoped for the same reason as test_debt_delete_persists above.
+    await pg_page.wait_for_selector('#debtsList >> text=Edit Me', timeout=5000)
 
     # Root-cause assertion: id must be a JS number, not a string
     id_type = await pg_page.evaluate(
@@ -357,6 +362,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+    await pg_page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
     checkbox = pg_page.locator('#settingReconciliationAdjusts')
     initial_state = await checkbox.is_checked()
     await checkbox.click()
@@ -371,6 +377,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await _wait_for_app_ready(pg_page)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+    await pg_page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
     new_state = await pg_page.locator('#settingReconciliationAdjusts').is_checked()
     assert new_state != initial_state, f'Setting not persisted after reload. Console: {logs}'
 

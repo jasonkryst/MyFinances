@@ -1658,91 +1658,105 @@
         <div class="modal-content">
             <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="settingsModalTitle" data-i18n="settings.title">Settings</h3>
-            <div class="form-group modal-form-group">
-                <label for="themeSwitcher" data-i18n="settings.themeLabel">Theme</label>
-                <select id="themeSwitcher">
-                    <option value="light" data-i18n="settings.themeLight">☀️ Light</option>
-                    <option value="dark" data-i18n="settings.themeDark">🌙 Dark</option>
-                    <option value="high-contrast" data-i18n="settings.themeHighContrast">◐ High Contrast</option>
-                </select>
-                <p class="modal-helper-text" data-i18n="settings.themeHelp">High Contrast layers extra overrides on top of Dark for stronger contrast.</p>
+            <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+                <button type="button" class="settings-tab-btn settings-tab-btn--active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="settingsPanel-appearance">Appearance</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="settingsPanel-data">Data &amp; Storage</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="notifications" role="tab" aria-selected="false" aria-controls="settingsPanel-notifications">Notifications</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="advanced" role="tab" aria-selected="false" aria-controls="settingsPanel-advanced">Advanced</button>
             </div>
-            <div class="form-group modal-form-group">
-                <label class="settings-toggle-row" for="settingReconciliationAdjusts">
-                    <input type="checkbox" id="settingReconciliationAdjusts">
-                    <span data-i18n="settings.reconciliationLabel">Reconciliations adjust the tracked balance</span>
-                </label>
-                <p class="modal-helper-text" data-i18n="settings.reconciliationHelp">When on, reconciling an account replaces its tracked balance with the statement balance you enter. When off, reconciliations are recorded and shown on the Ledger for transparency, but the tracked balance keeps being computed from your transactions.</p>
+            <div id="settingsPanel-appearance" class="settings-tab-panel settings-tab-panel--active" role="tabpanel">
+                <div class="form-group modal-form-group">
+                    <label for="themeSwitcher" data-i18n="settings.themeLabel">Theme</label>
+                    <select id="themeSwitcher">
+                        <option value="light" data-i18n="settings.themeLight">☀️ Light</option>
+                        <option value="dark" data-i18n="settings.themeDark">🌙 Dark</option>
+                        <option value="high-contrast" data-i18n="settings.themeHighContrast">◐ High Contrast</option>
+                    </select>
+                    <p class="modal-helper-text" data-i18n="settings.themeHelp">High Contrast layers extra overrides on top of Dark for stronger contrast.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label for="settingLocale" data-i18n="settings.language">Language</label>
+                    <select id="settingLocale">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="pl">Polski</option>
+                    </select>
+                    <p class="modal-helper-text" data-i18n="settings.languageHelp">Translation is still expanding — some pages may remain in English.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label for="settingCurrency">Currency</label>
+                    <select id="settingCurrency">
+                        <option value="USD">USD — US Dollar</option>
+                        <option value="EUR">EUR — Euro</option>
+                        <option value="GBP">GBP — British Pound</option>
+                        <option value="JPY">JPY — Japanese Yen</option>
+                        <option value="CAD">CAD — Canadian Dollar</option>
+                        <option value="AUD">AUD — Australian Dollar</option>
+                        <option value="CHF">CHF — Swiss Franc</option>
+                        <option value="CNY">CNY — Chinese Yuan</option>
+                        <option value="INR">INR — Indian Rupee</option>
+                        <option value="MXN">MXN — Mexican Peso</option>
+                        <option value="BRL">BRL — Brazilian Real</option>
+                        <option value="KRW">KRW — South Korean Won</option>
+                        <option value="SEK">SEK — Swedish Krona</option>
+                        <option value="NOK">NOK — Norwegian Krone</option>
+                        <option value="DKK">DKK — Danish Krone</option>
+                        <option value="SGD">SGD — Singapore Dollar</option>
+                        <option value="HKD">HKD — Hong Kong Dollar</option>
+                        <option value="NZD">NZD — New Zealand Dollar</option>
+                        <option value="ZAR">ZAR — South African Rand</option>
+                        <option value="PLN">PLN — Polish Zloty</option>
+                    </select>
+                    <p class="modal-helper-text">Currency used to display all monetary amounts in the app.</p>
+                </div>
             </div>
-            <div class="form-group modal-form-group">
-                <label class="settings-toggle-row" for="settingShowArchivedDebts">
-                    <input type="checkbox" id="settingShowArchivedDebts">
-                    <span data-i18n="settings.showArchivedDebts">Show archived debts</span>
-                </label>
-                <p class="modal-helper-text">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
+            <div id="settingsPanel-data" class="settings-tab-panel" role="tabpanel">
+                <div class="form-group modal-form-group">
+                    <label for="settingStorageBackend" data-i18n="settings.dataStorageLabel">Data Storage</label>
+                    <select id="settingStorageBackend">
+                        <option value="local" data-i18n="settings.storageLocal">Local Storage (persists across visits)</option>
+                        <option value="session" data-i18n="settings.storageSession">Session Storage (cleared when this tab closes)</option>
+                        <option value="postgres" data-i18n="settings.storagePostgres">PostgreSQL (self-hosted server)</option>
+                    </select>
+                    <p class="modal-helper-text" data-i18n="settings.dataStorageHelp">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
+                    <p id="settingsStoragePostgresNote" class="modal-helper-text hidden" data-i18n="settings.storagePostgresNote">You are using PostgreSQL. Switching back to local or session storage is not supported.</p>
+                </div>
             </div>
-            <div class="form-group modal-form-group">
-                <label class="settings-toggle-row" for="settingShowArchivedRecurring">
-                    <input type="checkbox" id="settingShowArchivedRecurring">
-                    <span data-i18n="settings.showArchivedRecurring">Show archived recurring templates</span>
-                </label>
-                <p class="modal-helper-text">When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.</p>
+            <div id="settingsPanel-notifications" class="settings-tab-panel" role="tabpanel">
+                <div class="form-group modal-form-group hidden" id="settingsEmailTestGroup">
+                    <button type="button" id="settingsSendTestEmailBtn" class="btn btn-secondary" data-i18n="settings.sendTestEmail">Send test email</button>
+                    <p class="modal-helper-text">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
+                </div>
             </div>
-            <div class="form-group modal-form-group">
-                <label class="settings-toggle-row" for="settingAutoNwSnapshot">
-                    <input type="checkbox" id="settingAutoNwSnapshot">
-                    <span data-i18n="settings.autoNwSnapshot">Auto-capture monthly net worth snapshot</span>
-                </label>
-                <p class="modal-helper-text">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>
-            </div>
-            <div class="form-group modal-form-group">
-                <label for="settingStorageBackend" data-i18n="settings.dataStorageLabel">Data Storage</label>
-                <select id="settingStorageBackend">
-                    <option value="local" data-i18n="settings.storageLocal">Local Storage (persists across visits)</option>
-                    <option value="session" data-i18n="settings.storageSession">Session Storage (cleared when this tab closes)</option>
-                    <option value="postgres" data-i18n="settings.storagePostgres">PostgreSQL (self-hosted server)</option>
-                </select>
-                <p class="modal-helper-text" data-i18n="settings.dataStorageHelp">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
-                <p id="settingsStoragePostgresNote" class="modal-helper-text hidden" data-i18n="settings.storagePostgresNote">You are using PostgreSQL. Switching back to local or session storage is not supported.</p>
-            </div>
-            <div class="form-group modal-form-group hidden" id="settingsEmailTestGroup">
-                <button type="button" id="settingsSendTestEmailBtn" class="btn btn-secondary" data-i18n="settings.sendTestEmail">Send test email</button>
-                <p class="modal-helper-text">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
-            </div>
-            <div class="form-group modal-form-group">
-                <label for="settingLocale" data-i18n="settings.language">Language</label>
-                <select id="settingLocale">
-                    <option value="en">English</option>
-                    <option value="es">Español</option>
-                    <option value="pl">Polski</option>
-                </select>
-                <p class="modal-helper-text" data-i18n="settings.languageHelp">Translation is still expanding — some pages may remain in English.</p>
-            </div>
-            <div class="form-group modal-form-group">
-                <label for="settingCurrency">Currency</label>
-                <select id="settingCurrency">
-                    <option value="USD">USD — US Dollar</option>
-                    <option value="EUR">EUR — Euro</option>
-                    <option value="GBP">GBP — British Pound</option>
-                    <option value="JPY">JPY — Japanese Yen</option>
-                    <option value="CAD">CAD — Canadian Dollar</option>
-                    <option value="AUD">AUD — Australian Dollar</option>
-                    <option value="CHF">CHF — Swiss Franc</option>
-                    <option value="CNY">CNY — Chinese Yuan</option>
-                    <option value="INR">INR — Indian Rupee</option>
-                    <option value="MXN">MXN — Mexican Peso</option>
-                    <option value="BRL">BRL — Brazilian Real</option>
-                    <option value="KRW">KRW — South Korean Won</option>
-                    <option value="SEK">SEK — Swedish Krona</option>
-                    <option value="NOK">NOK — Norwegian Krone</option>
-                    <option value="DKK">DKK — Danish Krone</option>
-                    <option value="SGD">SGD — Singapore Dollar</option>
-                    <option value="HKD">HKD — Hong Kong Dollar</option>
-                    <option value="NZD">NZD — New Zealand Dollar</option>
-                    <option value="ZAR">ZAR — South African Rand</option>
-                    <option value="PLN">PLN — Polish Zloty</option>
-                </select>
-                <p class="modal-helper-text">Currency used to display all monetary amounts in the app.</p>
+            <div id="settingsPanel-advanced" class="settings-tab-panel" role="tabpanel">
+                <div class="form-group modal-form-group">
+                    <label class="settings-toggle-row" for="settingReconciliationAdjusts">
+                        <input type="checkbox" id="settingReconciliationAdjusts">
+                        <span data-i18n="settings.reconciliationLabel">Reconciliations adjust the tracked balance</span>
+                    </label>
+                    <p class="modal-helper-text" data-i18n="settings.reconciliationHelp">When on, reconciling an account replaces its tracked balance with the statement balance you enter. When off, reconciliations are recorded and shown on the Ledger for transparency, but the tracked balance keeps being computed from your transactions.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label class="settings-toggle-row" for="settingShowArchivedDebts">
+                        <input type="checkbox" id="settingShowArchivedDebts">
+                        <span data-i18n="settings.showArchivedDebts">Show archived debts</span>
+                    </label>
+                    <p class="modal-helper-text">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label class="settings-toggle-row" for="settingShowArchivedRecurring">
+                        <input type="checkbox" id="settingShowArchivedRecurring">
+                        <span data-i18n="settings.showArchivedRecurring">Show archived recurring templates</span>
+                    </label>
+                    <p class="modal-helper-text">When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label class="settings-toggle-row" for="settingAutoNwSnapshot">
+                        <input type="checkbox" id="settingAutoNwSnapshot">
+                        <span data-i18n="settings.autoNwSnapshot">Auto-capture monthly net worth snapshot</span>
+                    </label>
+                    <p class="modal-helper-text">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>
+                </div>
             </div>
             <div class="modal-actions">
                 <button id="settingsModalDoneBtn" class="btn btn-success" data-i18n="settings.done">Done</button>

@@ -230,6 +230,11 @@ def close_settings(page):
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
 
+def switch_settings_tab(page, tab):
+    """Click a Settings modal tab (#322: 'appearance'/'data'/'notifications'/'advanced')."""
+    page.click(f'[data-settings-tab="{tab}"]')
+
+
 def open_data_transfer(page):
     """Open the Backup & Restore modal (#exportJsonBtn/#importJsonBtn live
     here now) and wait for it to be visible before interacting with any

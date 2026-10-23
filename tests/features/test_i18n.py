@@ -184,6 +184,7 @@ def test_settings_modal_postgres_storage_option_translates(app_page):
     page.evaluate("() => window.app.setLocale('es')")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
 
     option_text = page.inner_text('#settingStorageBackend option[value="postgres"]')
     assert option_text == 'PostgreSQL (servidor autoalojado)'

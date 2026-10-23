@@ -1749,3 +1749,111 @@ def test_health_budget_thresholds_cancel_discards_changes(app_page):
     budget_row = page.query_selector('.health-budget-row')
     assert 'health-status--yellow' in budget_row.inner_html(), \
         "Cancelling should leave the badge at its original (unsaved) color"
+
+
+# ── Credit utilization: per-card breakdown (#281) ───────────────────────────────
+
+@pytest.mark.feature
+def test_credit_util_card_shows_per_card_breakdown_toggle(app_page):
+    """Positive: two credit-card debts with limits produce a toggle whose
+    count matches, and expanding it reveals both card names/balances."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [
+            { id: 1, name: 'Visa', debtType: 'creditCard', accountBalance: 300, creditLimit: 1000, minimumPayment: 25, interestRate: 20, dueDate: 1 },
+            { id: 2, name: 'Amex', debtType: 'creditCard', accountBalance: 900, creditLimit: 1000, minimumPayment: 25, interestRate: 20, dueDate: 1 }
+        ];
+        app.accounts = []; app.incomes = []; app.bonuses = []; app.bills = [];
+        app.expenses = []; app.recurringTemplates = []; app.persons = [];
+        app.switchPage('health');
+    }""")
+    toggle = page.query_selector('#healthCardUtilToggle')
+    assert toggle is not None
+    assert '2' in toggle.inner_text()
+    assert page.is_hidden('#healthCardUtilDetail')
+    toggle.click()
+    assert page.is_visible('#healthCardUtilDetail')
+    text = page.inner_text('#healthCardUtilDetail')
+    assert 'Visa' in text and 'Amex' in text
+    assert '30%' in text  # 300/1000
+    assert '90%' in text  # 900/1000
+
+
+@pytest.mark.feature
+def test_credit_util_card_breakdown_labels_cards_without_limit(app_page):
+    """Positive: a card with no creditLimit shows a 'No limit set' label and
+    no percentage, alongside a normal card that does have one."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [
+            { id: 1, name: 'Visa', debtType: 'creditCard', accountBalance: 300, creditLimit: 1000, minimumPayment: 25, interestRate: 20, dueDate: 1 },
+            { id: 2, name: 'Store Card', debtType: 'creditCard', accountBalance: 50, creditLimit: null, minimumPayment: 10, interestRate: 25, dueDate: 1 }
+        ];
+        app.accounts = []; app.incomes = []; app.bonuses = []; app.bills = [];
+        app.expenses = []; app.recurringTemplates = []; app.persons = [];
+        app.switchPage('health');
+    }""")
+    page.click('#healthCardUtilToggle')
+    text = page.inner_text('#healthCardUtilDetail')
+    assert 'Store Card' in text
+    assert 'No limit set' in text
+
+
+@pytest.mark.feature
+def test_credit_util_card_breakdown_absent_when_no_credit_cards(app_page):
+    """Negative: no creditCard-type debts at all means no breakdown toggle,
+    even though other debt types exist."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [
+            { id: 1, name: 'Car Loan', debtType: 'fixedAmount', fixedAmount: 5000, minimumPayment: 200, interestRate: 6, dueDate: 1 }
+        ];
+        app.accounts = []; app.incomes = []; app.bonuses = []; app.bills = [];
+        app.expenses = []; app.recurringTemplates = []; app.persons = [];
+        app.switchPage('health');
+    }""")
+    assert page.query_selector('#healthCardUtilToggle') is None
+
+
+@pytest.mark.feature
+def test_credit_util_card_breakdown_present_even_when_no_card_has_a_limit(app_page):
+    """Positive/regression: today the whole card falls back to its generic
+    empty state when NO credit card has a limit set. The per-card list must
+    still render (every row labeled 'No limit set') rather than disappearing
+    along with the aggregate figure."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [
+            { id: 1, name: 'Store Card', debtType: 'creditCard', accountBalance: 50, creditLimit: null, minimumPayment: 10, interestRate: 25, dueDate: 1 }
+        ];
+        app.accounts = []; app.incomes = []; app.bonuses = []; app.bills = [];
+        app.expenses = []; app.recurringTemplates = []; app.persons = [];
+        app.switchPage('health');
+    }""")
+    toggle = page.query_selector('#healthCardUtilToggle')
+    assert toggle is not None
+    toggle.click()
+    assert 'No limit set' in page.inner_text('#healthCardUtilDetail')
+
+
+@pytest.mark.feature
+def test_credit_util_card_breakdown_color_codes_high_utilization(app_page):
+    """Positive: a card above the existing 50%-critical threshold gets the
+    same red status class the aggregate figure already uses."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.debts = [
+            { id: 1, name: 'Maxed Card', debtType: 'creditCard', accountBalance: 950, creditLimit: 1000, minimumPayment: 50, interestRate: 20, dueDate: 1 }
+        ];
+        app.accounts = []; app.incomes = []; app.bonuses = []; app.bills = [];
+        app.expenses = []; app.recurringTemplates = []; app.persons = [];
+        app.switchPage('health');
+    }""")
+    page.click('#healthCardUtilToggle')
+    row_html = page.eval_on_selector('#healthCardUtilDetail', 'el => el.innerHTML')
+    assert 'health-status--red' in row_html

@@ -77,6 +77,46 @@ def test_get_filtered_sorted_ledger_transactions_respects_account_filter(app_pag
     assert not any(tx['name'] == 'Job B' for tx in txs)
 
 
+@pytest.mark.feature
+def test_get_filtered_sorted_ledger_transactions_respects_category_filter(app_page):
+    """Positive: setting _ledgerCategoryFilter to a specific category only
+    returns transactions carrying that category (#315)."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.bills = [{ id: 20, name: 'Internet', amount: 60, category: 'Utilities', dueDay: 5, accountId: 1 }];
+        app.expenses = [{ id: 21, name: 'Groceries', budgetAmount: 80, category: 'Food', date: new Date().toISOString().slice(0, 10), accountId: 1 }];
+        app.incomes = []; app.debts = []; app.bonuses = []; app.recurringTemplates = [];
+        app._ledgerAccountFilter = 'all'; app._ledgerDateRange = 'all';
+        app._ledgerCategoryFilter = 'Utilities';
+        app._ledgerSortKey = 'date'; app._ledgerSortDir = 'desc';
+    }""")
+    txs = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+    assert all(tx['category'] == 'Utilities' for tx in txs)
+    assert any(tx['name'] == 'Internet' for tx in txs)
+    assert not any(tx['name'] == 'Groceries' for tx in txs)
+
+
+@pytest.mark.feature
+def test_get_filtered_sorted_ledger_transactions_category_all_returns_everything(app_page):
+    """Negative: the default 'all' value applies no category filtering."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.bills = [{ id: 20, name: 'Internet', amount: 60, category: 'Utilities', dueDay: 5, accountId: 1 }];
+        app.expenses = [{ id: 21, name: 'Groceries', budgetAmount: 80, category: 'Food', date: new Date().toISOString().slice(0, 10), accountId: 1 }];
+        app.incomes = []; app.debts = []; app.bonuses = []; app.recurringTemplates = [];
+        app._ledgerAccountFilter = 'all'; app._ledgerDateRange = 'all';
+        app._ledgerCategoryFilter = 'all';
+        app._ledgerSortKey = 'date'; app._ledgerSortDir = 'desc';
+    }""")
+    txs = page.evaluate("() => window.app.getFilteredSortedLedgerTransactions()")
+    assert any(tx['name'] == 'Internet' for tx in txs)
+    assert any(tx['name'] == 'Groceries' for tx in txs)
+
+
 def _seed_income_for_ledger(page, name="Override Salary", amount=4000):
     """Create an account, then an income source linked to it, via the UI so
     the ledger has at least one overridable transaction (income paydays
@@ -1177,6 +1217,10 @@ def test_ledger_mark_all_cleared_modal_tab_trap_cycles_focus(app_page):
 
     page.click('#ledgerMarkAllClearedBtn')
     page.wait_for_selector('#ledgerMarkAllClearedModal.flex-visible', timeout=5000)
+    # openLedgerMarkAllClearedModal auto-focuses the close button via a 30ms
+    # setTimeout; wait it out before overriding focus below, or the two race
+    # and this assertion becomes timing-dependent.
+    page.wait_for_timeout(60)
 
     page.evaluate("() => document.getElementById('ledgerMarkAllClearedConfirmBtn').focus()")
     page.keyboard.press('Tab')

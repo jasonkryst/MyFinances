@@ -178,6 +178,7 @@ def test_settings_button_opens_settings_modal(app_page):
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
 
     checked = page.evaluate("""() => document.getElementById('settingReconciliationAdjusts').checked""")
     assert checked is True
@@ -191,6 +192,7 @@ def test_settings_modal_save_updates_setting(app_page):
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', false); }""")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
 
     checkbox = page.query_selector('#settingReconciliationAdjusts')
     assert checkbox.is_checked() is False
@@ -217,8 +219,10 @@ def test_settings_modal_escape_closes_without_losing_unsaved_choice_state(app_pa
     # The modal's Escape handler is wired on the modal element itself, so the
     # keydown only bubbles through it once focus has actually moved inside
     # (the post-open `setTimeout(..., 30)` focus shift) — wait for that first.
+    # #322: the auto-focused control is now the first one on the default
+    # (Appearance) tab, i.e. the theme select.
     page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'settingReconciliationAdjusts'",
+        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
         timeout=2000
     )
     page.keyboard.press('Escape')
@@ -272,6 +276,7 @@ def test_settings_modal_switching_backend_migrates_on_done(app_page):
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
     page.select_option('#settingStorageBackend', 'session')
     page.click('#settingsModalDoneBtn')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
@@ -297,9 +302,10 @@ def test_settings_modal_escape_does_not_switch_backend(app_page):
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'settingReconciliationAdjusts'",
+        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
         timeout=2000
     )
+    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
     page.select_option('#settingStorageBackend', 'session')
     page.keyboard.press('Escape')
 
@@ -315,6 +321,7 @@ def test_settings_postgres_switch_shows_confirm_modal(app_page):
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
     page.select_option('#settingStorageBackend', 'postgres')
     page.click('#settingsModalDoneBtn')
 
@@ -336,6 +343,7 @@ def test_settings_postgres_switch_cancel_closes_modal_and_keeps_backend(app_page
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
     page.select_option('#settingStorageBackend', 'postgres')
     page.click('#settingsModalDoneBtn')
 
@@ -360,6 +368,7 @@ def test_settings_postgres_switch_escape_closes_modal_and_keeps_backend(app_page
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
     page.select_option('#settingStorageBackend', 'postgres')
     page.click('#settingsModalDoneBtn')
 

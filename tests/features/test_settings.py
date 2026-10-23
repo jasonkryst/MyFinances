@@ -247,3 +247,103 @@ def test_ledger_export_columns_setting_with_garbage_value_is_bounded_string(app_
     # sanitizeSetting accepts any bounded string value at the storage layer;
     # the column whitelist is enforced at read-time in openLedgerExportModal.
     assert result == 'bogus,columns,not,real'
+
+
+# ── Settings modal tabbed layout (#322) ─────────────────────────────────────────
+
+@pytest.mark.feature
+def test_settings_modal_has_four_tabs(app_page):
+    page = app_page
+    from tests.conftest import open_settings
+    open_settings(page)
+    labels = page.eval_on_selector_all('.settings-tab-btn', 'els => els.map(e => e.getAttribute("data-settings-tab"))')
+    assert labels == ['appearance', 'data', 'notifications', 'advanced']
+
+
+@pytest.mark.feature
+def test_settings_default_tab_is_appearance_and_others_hidden(app_page):
+    page = app_page
+    from tests.conftest import open_settings
+    open_settings(page)
+    assert page.is_visible('#settingsPanel-appearance')
+    assert not page.is_visible('#settingsPanel-advanced')
+    assert page.is_visible('#themeSwitcher')
+    assert not page.is_visible('#settingReconciliationAdjusts')
+
+
+@pytest.mark.feature
+def test_settings_tab_switch_shows_correct_panel(app_page):
+    page = app_page
+    from tests.conftest import open_settings, switch_settings_tab
+    open_settings(page)
+    switch_settings_tab(page, 'advanced')
+    assert page.is_visible('#settingsPanel-advanced')
+    assert not page.is_visible('#settingsPanel-appearance')
+    assert page.is_visible('#settingReconciliationAdjusts')
+
+
+@pytest.mark.feature
+def test_settings_active_tab_remembered_across_reopen(app_page):
+    """Positive: switching to a tab, closing, and reopening Settings within
+    the same page load keeps that tab active (not reset to Appearance)."""
+    page = app_page
+    from tests.conftest import open_settings, close_settings, switch_settings_tab
+    open_settings(page)
+    switch_settings_tab(page, 'data')
+    close_settings(page)
+    open_settings(page)
+    assert page.is_visible('#settingsPanel-data')
+    assert not page.is_visible('#settingsPanel-appearance')
+
+
+@pytest.mark.feature
+def test_settings_tabs_have_required_aria_attributes(app_page):
+    page = app_page
+    from tests.conftest import open_settings
+    open_settings(page)
+    assert page.get_attribute('.settings-tabs', 'role') == 'tablist'
+    tab_roles = page.eval_on_selector_all('.settings-tab-btn', 'els => els.map(e => e.getAttribute("role"))')
+    assert all(r == 'tab' for r in tab_roles)
+    panel_roles = page.eval_on_selector_all('.settings-tab-panel', 'els => els.map(e => e.getAttribute("role"))')
+    assert all(r == 'tabpanel' for r in panel_roles)
+    assert page.get_attribute('.settings-tab-btn[data-settings-tab="appearance"]', 'aria-selected') == 'true'
+    assert page.get_attribute('.settings-tab-btn[data-settings-tab="data"]', 'aria-selected') == 'false'
+
+
+@pytest.mark.feature
+def test_settings_modal_focus_lands_in_visible_tab(app_page):
+    """Negative/regression: opening Settings must not focus a control that's
+    hidden inside an inactive tab panel."""
+    page = app_page
+    from tests.conftest import open_settings
+    open_settings(page)
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
+        timeout=2000
+    )
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'themeSwitcher'
+
+
+@pytest.mark.feature
+def test_settings_modal_focus_falls_back_when_first_control_is_hidden(app_page):
+    """Negative/regression (review finding #5): the Notifications tab's only
+    control (#settingsSendTestEmailBtn) is itself hidden outside Postgres
+    mode. Since the active tab is remembered across reopens, reopening
+    Settings on that tab must fall back to the Close button rather than
+    focus()-ing a hidden element, which silently does nothing and leaves
+    focus stuck behind the modal."""
+    page = app_page
+    from tests.conftest import open_settings, close_settings, switch_settings_tab
+    open_settings(page)
+    switch_settings_tab(page, 'notifications')
+    assert page.is_hidden('#settingsSendTestEmailBtn')
+    close_settings(page)
+
+    open_settings(page)
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'settingsModalCloseBtn'",
+        timeout=2000
+    )
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'settingsModalCloseBtn'

@@ -710,6 +710,22 @@ export function attachLiabilitiesEventListeners(app) {
 }
 
 export function switchPage(app, pageName) {
+    // #315: the Spending-to-Ledger cross-nav breadcrumb only makes sense
+    // while still looking at the Ledger page it dropped you into — clear it
+    // the moment you navigate anywhere else, so a later plain nav back into
+    // Ledger doesn't show stale "Viewing: ..." context. Also restore the
+    // account/date-range filters the cross-nav overrode to 'all' back to
+    // whatever they were before it (saved by spending.js's "View in Ledger"
+    // handler), regardless of which path the user takes out of Ledger —
+    // not just the dedicated "Back to Spending" button.
+    if (pageName !== 'ledger' && app._ledgerCrossNavLabel) {
+        app._ledgerCrossNavLabel = null;
+        app._ledgerAccountFilter = app._ledgerPreCrossNavAccount ?? 'all';
+        app._ledgerDateRange = app._ledgerPreCrossNavDateRange ?? 'around7';
+        app._ledgerPreCrossNavAccount = undefined;
+        app._ledgerPreCrossNavDateRange = undefined;
+    }
+
     document.querySelectorAll('.page-button').forEach(b => {
         b.classList.remove('active');
         b.setAttribute('aria-current', 'false');
@@ -968,6 +984,14 @@ function _buildWhatsNewHtml() {
 // Statically embed the last few versions' highlights.
 // Update this list every version bump alongside CHANGELOG.md.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.33.0 — 2026-10-23',
+        items: [
+            '<strong>Health: per-card credit utilization breakdown</strong> (issue #281) — see which individual credit card is driving your utilization number, not just the total.',
+            '<strong>Reports: Spending → Ledger cross-navigation</strong> (issue #315) — jump straight from a spending category to its transactions in the Ledger.',
+            '<strong>Settings: tabbed layout</strong> (issue #322) — reorganized into Appearance, Data & Storage, Notifications, and Advanced tabs so it\'s easier to find what you need.'
+        ]
+    },
     {
         version: '6.32.0 — 2026-10-23',
         items: [

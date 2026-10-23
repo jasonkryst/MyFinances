@@ -297,6 +297,7 @@ async def test_settings_select_hidden_when_on_postgres(pg_page, base_url, creden
     await _wait_for_app_ready(pg_page)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.locator("#settingsModal").wait_for(state="visible", timeout=5000)
+    await pg_page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
 
     assert not await pg_page.locator("#settingStorageBackend").is_visible(), \
         "Storage select should be hidden when backend is already Postgres"
@@ -345,6 +346,7 @@ async def test_one_way_lock_confirm_shown_on_switch_to_postgres(base_url, creden
 
         await page.evaluate("() => document.getElementById('settingsBtn').click()")
         await page.locator("#settingsModal").wait_for(state="visible", timeout=5000)
+        await page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
         await page.select_option("#settingStorageBackend", "postgres")
         await page.click("#settingsModalDoneBtn")
 
