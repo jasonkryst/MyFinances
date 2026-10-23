@@ -357,6 +357,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+    await pg_page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
     checkbox = pg_page.locator('#settingReconciliationAdjusts')
     initial_state = await checkbox.is_checked()
     await checkbox.click()
@@ -371,6 +372,7 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await _wait_for_app_ready(pg_page)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+    await pg_page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
     new_state = await pg_page.locator('#settingReconciliationAdjusts').is_checked()
     assert new_state != initial_state, f'Setting not persisted after reload. Console: {logs}'
 

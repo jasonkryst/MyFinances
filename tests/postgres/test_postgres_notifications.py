@@ -78,6 +78,7 @@ async def test_send_test_email_delivers_to_mailpit(pg_page, base_url, credential
 
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
+    await pg_page.click('[data-settings-tab="notifications"]')  # #322: email test group now lives on the Notifications tab
 
     group = pg_page.locator('#settingsEmailTestGroup')
     await expect(group).to_be_visible()

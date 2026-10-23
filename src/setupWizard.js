@@ -87,6 +87,25 @@ export function initSettingsModal(app) {
     const currencySelect = document.getElementById('settingCurrency');
     if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect || !currencySelect) return;
 
+    // #322: tabbed layout — same data-attribute/classList pattern as the
+    // Data Transfer modal's Export/Import tabs, under its own class
+    // namespace (settings-tab-*, not dt-tab-*).
+    const tabBtns = modal.querySelectorAll('.settings-tab-btn');
+    const tabPanels = modal.querySelectorAll('.settings-tab-panel');
+    let activeSettingsTab = 'appearance';
+    function showSettingsTab(tab) {
+        activeSettingsTab = tab;
+        tabBtns.forEach(b => {
+            const active = b.getAttribute('data-settings-tab') === tab;
+            b.classList.toggle('settings-tab-btn--active', active);
+            b.setAttribute('aria-selected', String(active));
+        });
+        tabPanels.forEach(p => {
+            p.classList.toggle('settings-tab-panel--active', p.id === `settingsPanel-${tab}`);
+        });
+    }
+    tabBtns.forEach(btn => btn.addEventListener('click', () => showSettingsTab(btn.getAttribute('data-settings-tab'))));
+
     let lastFocused = null;
 
     const close = () => {
@@ -98,6 +117,7 @@ export function initSettingsModal(app) {
 
     const open = () => {
         lastFocused = document.activeElement;
+        showSettingsTab(activeSettingsTab);
         adjustsCheckbox.checked = Boolean(getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false));
         if (showArchivedCheckbox) showArchivedCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false));
         if (showArchivedRecurringCheckbox) showArchivedRecurringCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_RECURRING, false));
@@ -124,7 +144,11 @@ export function initSettingsModal(app) {
                 close();
             }
         };
-        setTimeout(() => adjustsCheckbox.focus(), 30);
+        setTimeout(() => {
+            const panel = modal.querySelector(`#settingsPanel-${activeSettingsTab}`);
+            const first = panel ? panel.querySelector('input, select, button, a[href]') : null;
+            (first || closeBtn).focus();
+        }, 30);
     };
 
     const save = async () => {

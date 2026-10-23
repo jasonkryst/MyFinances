@@ -409,18 +409,21 @@ def test_settings_button_has_accessible_label(app_page):
 
 @pytest.mark.ui
 def test_settings_modal_focus_and_keyboard_trap(app_page):
-    """Opening the Settings modal focuses the checkbox; Escape closes it."""
+    """Opening the Settings modal focuses the first control on the default
+    (Appearance) tab; Escape closes it. (#322: the modal is now tabbed, so
+    the auto-focused element is the theme select, not the Reconciliation
+    checkbox, which now lives on the Advanced tab.)"""
     page = app_page
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
     page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'settingReconciliationAdjusts'",
+        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
         timeout=2000
     )
 
     focused_id = page.evaluate('() => document.activeElement.id')
-    assert focused_id == 'settingReconciliationAdjusts', "Opening Settings should focus the checkbox"
+    assert focused_id == 'themeSwitcher', "Opening Settings should focus the first control of the active tab"
 
     page.keyboard.press('Escape')
 

@@ -83,6 +83,7 @@ def test_celebration_button_absent_for_archived_debt(app_page):
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     open_settings(page)
+    page.click('[data-settings-tab="advanced"]')  # #322: archived-debts toggle now lives on the Advanced tab
     page.check('#settingShowArchivedDebts')
     close_settings(page)
     page.wait_for_selector('text=Already Archived Paid Off', timeout=5000)
