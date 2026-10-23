@@ -32,7 +32,10 @@ def test_interest_income_end_to_end(app_page):
     page.evaluate("() => window.app.switchPage('ledger')")
     page.wait_for_selector('.ledger-table')
     page.select_option('#ledgerDateRange', 'all')
-    page.wait_for_selector('text=Interest', timeout=10000)
+    # Scoped to the table: an unscoped 'text=Interest' also matches the
+    # Ledger's Category filter <option value="Interest"> (#315), which is
+    # never "visible" per Playwright, so an unscoped wait times out.
+    page.wait_for_selector('.ledger-table >> text=Interest', timeout=10000)
     assert page.query_selector('.ledger-table >> text=Interest'), \
         "Interest transaction not visible in the Ledger"
 

@@ -1217,6 +1217,10 @@ def test_ledger_mark_all_cleared_modal_tab_trap_cycles_focus(app_page):
 
     page.click('#ledgerMarkAllClearedBtn')
     page.wait_for_selector('#ledgerMarkAllClearedModal.flex-visible', timeout=5000)
+    # openLedgerMarkAllClearedModal auto-focuses the close button via a 30ms
+    # setTimeout; wait it out before overriding focus below, or the two race
+    # and this assertion becomes timing-dependent.
+    page.wait_for_timeout(60)
 
     page.evaluate("() => document.getElementById('ledgerMarkAllClearedConfirmBtn').focus()")
     page.keyboard.press('Tab')
