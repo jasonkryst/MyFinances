@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.32.0] — 2026-10-23
+
+### Added
+- **Health: multi-model DTI view** (issue #253) — the Debt-to-Income card now shows Mortgage Front-End (housing cost ÷ income, green <28%/yellow <36%/red ≥36%) and Back-End (all debt minimums with housing cost swapped in ÷ income, green <43%/yellow <50%/red ≥50%) ratios alongside the existing Consumer DTI, in the same card. An editable "Est. monthly housing cost" field defaults to the sum of debts whose category matches the existing `/rent|mortgage|housing/i` pattern and persists via `getSetting`/`setSetting` (`HOUSING_COST_OVERRIDE`); with no housing debts and no override, Front-End is 0% and Back-End equals Consumer DTI exactly.
+- **Health: customizable budget category thresholds** (issue #250) — a gear button on the Budget Allocation card opens a modal to set per-category healthy/warning % thresholds, replacing the previously hardcoded 28%/36% (housing) and 10%/15% (everything else) for categories a user wants to treat differently. `budgetCategoryStatusCls()` reads persisted thresholds and falls back to those same defaults when none are set; "Reset to Defaults" restores them. Thresholds are stored as two flat `getSetting`/`setSetting` entries per category (`bct:<category>:healthy`/`:warn`) rather than one JSON-blob setting, since `sanitizeSetting()` only accepts boolean/number/string values and would silently drop an object-valued entry on every load/import — the flat-key approach round-trips through export/import and the Postgres backend with zero sanitizer changes.
+
 ## [6.31.0] — 2026-10-22
 
 ### Added

@@ -184,7 +184,11 @@ def _add_account(page, name, acct_type, balance, min_payment=None):
     if min_payment is not None:
         page.fill('#accountMinimumPayment', min_payment)
     page.click('#accountFormSubmit')
-    page.wait_for_selector(f'text={name}', timeout=10000)
+    # Scoped to #accountsSection — an unscoped `text=` locator can match
+    # substrings elsewhere in the (hidden) DOM, e.g. an account named
+    # "Mortgage" collides with the Health page's "Mortgage Front-End"/
+    # "Mortgage Back-End" DTI panel labels (#253) even while that page is inactive.
+    page.wait_for_selector(f'#accountsSection >> text={name}', timeout=10000)
     return page.evaluate(f"() => window.app.accounts.find(a => a.name === {json.dumps(name)}).id")
 
 

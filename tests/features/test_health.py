@@ -1503,3 +1503,249 @@ def test_health_recommendation_link_navigates_to_plan_page(app_page):
     link.click()
 
     page.wait_for_selector('#strategySection.active', timeout=5000)
+
+
+# ── Mortgage DTI panel (#253) ───────────────────────────────────────────────────
+
+@pytest.mark.feature
+def test_health_mortgage_dti_panel_renders(app_page):
+    """The DTI card shows the mortgage front-end/back-end panel with a housing-cost input."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 4000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.debts = []; app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    panel = page.query_selector('#healthMortgageDtiPanel')
+    assert panel, "Mortgage DTI panel not found"
+    assert page.query_selector('#healthHousingCostInput'), "Housing cost input not found"
+
+    panel_text = panel.text_content()
+    assert 'Mortgage Front-End' in panel_text
+    assert 'Mortgage Back-End' in panel_text
+
+
+@pytest.mark.feature
+def test_health_mortgage_front_end_zero_with_no_housing_debt_or_override(app_page):
+    """Front-End ratio is 0% when there are no housing debts and no housing-cost override."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 4000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.debts = [{ id: 1, name: 'Card', accountBalance: 1000, originalBalance: 1000,
+                       minimumPayment: 100, interestRate: 10, dueDate: 15, debtType: 'creditCard', category: 'Credit Card' }];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    panel = page.query_selector('#healthMortgageDtiPanel')
+    rows = panel.query_selector_all('.health-mortgage-dti-row')
+    front_end_row = next(r for r in rows if 'Front-End' in r.text_content())
+    assert '0.0%' in front_end_row.text_content(), f"Expected 0.0% Front-End, got: {front_end_row.text_content()}"
+
+
+@pytest.mark.feature
+def test_health_mortgage_back_end_equals_consumer_dti_by_default(app_page):
+    """With no housing-cost override, Back-End ratio equals the existing Consumer DTI."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 2000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.debts = [
+            { id: 1, name: 'Mortgage', accountBalance: 200000, originalBalance: 200000,
+              minimumPayment: 400, interestRate: 5, dueDate: 1, debtType: 'creditCard', category: 'Housing' },
+            { id: 2, name: 'Card', accountBalance: 1000, originalBalance: 1000,
+              minimumPayment: 100, interestRate: 10, dueDate: 15, debtType: 'creditCard', category: 'Credit Card' }
+        ];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    # Consumer DTI: (400+100)/2000 = 25.0%
+    gauge_value = page.query_selector('.health-gauge-value').text_content()
+    assert '25.0%' in gauge_value, f"Expected 25.0% consumer DTI, got: {gauge_value}"
+
+    panel = page.query_selector('#healthMortgageDtiPanel')
+    rows = panel.query_selector_all('.health-mortgage-dti-row')
+    back_end_row = next(r for r in rows if 'Back-End' in r.text_content())
+    assert '25.0%' in back_end_row.text_content(), f"Expected 25.0% Back-End by default, got: {back_end_row.text_content()}"
+
+    front_end_row = next(r for r in rows if 'Front-End' in r.text_content())
+    # Housing debt minimum (400) / income (2000) = 20.0%
+    assert '20.0%' in front_end_row.text_content(), f"Expected 20.0% Front-End, got: {front_end_row.text_content()}"
+
+
+@pytest.mark.feature
+def test_health_mortgage_housing_cost_override_updates_ratios_and_persists(app_page):
+    """Editing the housing-cost field recomputes both ratios and survives re-rendering the panel."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 2000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.debts = [{ id: 1, name: 'Card', accountBalance: 1000, originalBalance: 1000,
+                       minimumPayment: 100, interestRate: 10, dueDate: 15, debtType: 'creditCard', category: 'Credit Card' }];
+        app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    page.evaluate("""() => {
+        const inp = document.getElementById('healthHousingCostInput');
+        inp.value = '1000';
+        inp.dispatchEvent(new Event('change'));
+    }""")
+
+    panel = page.query_selector('#healthMortgageDtiPanel')
+    rows = panel.query_selector_all('.health-mortgage-dti-row')
+    front_end_row = next(r for r in rows if 'Front-End' in r.text_content())
+    back_end_row = next(r for r in rows if 'Back-End' in r.text_content())
+    # Front-End: 1000/2000 = 50.0% (red, >=36%)
+    assert '50.0%' in front_end_row.text_content()
+    assert 'health-status--red' in front_end_row.inner_html()
+    # Back-End: (100 - 0 + 1000)/2000 = 55.0% (red, >=50%)
+    assert '55.0%' in back_end_row.text_content()
+    assert 'health-status--red' in back_end_row.inner_html()
+
+    # Re-navigate away and back — the override should persist via settings.
+    page.evaluate("() => window.app.switchPage('accounts')")
+    page.evaluate("() => window.app.switchPage('health')")
+    housing_input_again = page.query_selector('#healthHousingCostInput')
+    assert housing_input_again.get_attribute('value') == '1000.00', \
+        f"Expected housing cost override to persist, got: {housing_input_again.get_attribute('value')}"
+
+
+# ── Budget category thresholds modal (#250) ─────────────────────────────────────
+
+@pytest.mark.feature
+def test_health_budget_thresholds_btn_absent_with_no_categories(app_page):
+    """The thresholds gear button doesn't render when there are no budget categories."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = []; app.bills = []; app.expenses = [];
+        app.debts = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    assert page.query_selector('#healthBudgetThresholdsBtn') is None, \
+        "Thresholds button should not render with no budget categories"
+
+
+@pytest.mark.feature
+def test_health_budget_thresholds_modal_opens_with_category_rows(app_page):
+    """Clicking the gear button opens the modal with a row per detected category."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 4000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.bills = [{ id: 10, name: 'Mortgage', amount: 1200, dueDay: 1, category: 'Housing' }];
+        app.expenses = []; app.debts = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    btn = page.query_selector('#healthBudgetThresholdsBtn')
+    assert btn, "Thresholds gear button should render when a budget category exists"
+    btn.click()
+
+    modal = page.query_selector('#budgetThresholdsModal')
+    page.wait_for_selector('#budgetThresholdsModal.flex-visible', timeout=3000)
+    row = modal.query_selector('.health-threshold-row[data-category="Housing"]')
+    assert row, "Expected a threshold row for the Housing category"
+
+    healthy_input = page.query_selector('#bctHealthy_Housing')
+    warn_input = page.query_selector('#bctWarn_Housing')
+    assert healthy_input.get_attribute('value') == '28.0', "Expected default 28% healthy threshold"
+    assert warn_input.get_attribute('value') == '36.0', "Expected default 36% warn threshold"
+
+
+@pytest.mark.feature
+def test_health_budget_thresholds_save_changes_badge_color(app_page):
+    """Saving custom thresholds changes the category badge's health color on next render."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 4000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.bills = [{ id: 10, name: 'Mortgage', amount: 1200, dueDay: 1, category: 'Housing' }];
+        app.expenses = []; app.debts = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    # 1200/4000 = 30% -> yellow under the 28/36 default thresholds.
+    budget_row = page.query_selector('.health-budget-row')
+    assert 'health-status--yellow' in budget_row.inner_html()
+
+    page.click('#healthBudgetThresholdsBtn')
+    page.wait_for_selector('#budgetThresholdsModal.flex-visible', timeout=3000)
+    page.fill('#bctHealthy_Housing', '35')
+    page.click('#budgetThresholdsModalSaveBtn')
+
+    modal_class = page.get_attribute('#budgetThresholdsModal', 'class')
+    assert 'hidden' in modal_class, f"Expected modal to close after save, got class: {modal_class}"
+    budget_row_after = page.query_selector('.health-budget-row')
+    assert 'health-status--green' in budget_row_after.inner_html(), \
+        f"Expected green badge after raising healthy threshold to 35%, got: {budget_row_after.inner_html()}"
+
+
+@pytest.mark.feature
+def test_health_budget_thresholds_reset_restores_defaults(app_page):
+    """The Reset to Defaults button restores the hardcoded 28%/36% housing thresholds."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 4000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.bills = [{ id: 10, name: 'Mortgage', amount: 1200, dueDay: 1, category: 'Housing' }];
+        app.expenses = []; app.debts = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    page.click('#healthBudgetThresholdsBtn')
+    page.wait_for_selector('#budgetThresholdsModal.flex-visible', timeout=3000)
+    page.fill('#bctHealthy_Housing', '5')
+    page.fill('#bctWarn_Housing', '8')
+    page.click('#budgetThresholdsModalResetBtn')
+
+    healthy_input = page.query_selector('#bctHealthy_Housing')
+    warn_input = page.query_selector('#bctWarn_Housing')
+    assert healthy_input.get_attribute('value') == '28.0', "Reset should restore the 28% default"
+    assert warn_input.get_attribute('value') == '36.0', "Reset should restore the 36% default"
+
+
+@pytest.mark.feature
+def test_health_budget_thresholds_cancel_discards_changes(app_page):
+    """Cancelling the modal doesn't persist edited (unsaved) threshold values."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 4000, firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.bills = [{ id: 10, name: 'Mortgage', amount: 1200, dueDay: 1, category: 'Housing' }];
+        app.expenses = []; app.debts = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.settings = [];
+        app.switchPage('health');
+    }""")
+
+    page.click('#healthBudgetThresholdsBtn')
+    page.wait_for_selector('#budgetThresholdsModal.flex-visible', timeout=3000)
+    page.fill('#bctHealthy_Housing', '99')
+    page.click('#budgetThresholdsModalCancelBtn')
+
+    budget_row = page.query_selector('.health-budget-row')
+    assert 'health-status--yellow' in budget_row.inner_html(), \
+        "Cancelling should leave the badge at its original (unsaved) color"

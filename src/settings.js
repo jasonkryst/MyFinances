@@ -13,6 +13,16 @@ export const SURPLUS_WINDOW_DAYS = 'surplusWindowDays';
 export const SURPLUS_CUSHION_PCT = 'surplusCushionPct';
 export const AUTO_NW_SNAPSHOT = 'autoNwSnapshot';
 export const RETIREMENT_WITHDRAWAL_RATE = 'retirementWithdrawalRate';
+export const HOUSING_COST_OVERRIDE = 'healthHousingCostOverride';
+
+// #250: per-category budget health thresholds, stored as two flat settings
+// entries per category rather than one JSON-blob setting — sanitizeSetting()
+// only accepts boolean/number/string values, so an object value would be
+// silently dropped on every load/import. budgetThresholdKey() builds the
+// flat key; `which` is 'healthy' or 'warn'.
+export function budgetThresholdKey(category, which) {
+    return `bct:${String(category).toLowerCase()}:${which}`;
+}
 
 export function getSetting(app, key, defaultValue) {
     const entry = (app.settings || []).find(s => s.key === key);
