@@ -255,3 +255,121 @@ def test_spending_empty_state_message(app_page):
     assert empty, "Expected a .spending-empty element when there is no spending data"
     ranked = page.query_selector('#spendingRankedList')
     assert not ranked, "Expected no ranked list when there is no spending data"
+
+
+# ── #332 Year-over-year comparison toggle ────────────────────────────────────
+
+def _seed_yoy_and_navigate(page, this_year_amount=220, last_year_amount=100):
+    """Seed a Food category expense in the current report month and an
+    expense for the SAME category one year prior, so YoY comparison has a
+    non-null baseline to compare against."""
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.evaluate("""(args) => {
+        const app = window.app;
+        const now = new Date();
+        const thisYearDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-10`;
+        const lastYearDate = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, '0')}-10`;
+        app.expenses = [
+            { id: 9101, name: 'Groceries', category: 'Food', budgetAmount: args.thisYear, date: thisYearDate, accountId: null },
+            { id: 9102, name: 'Groceries LY', category: 'Food', budgetAmount: args.lastYear, date: lastYearDate, accountId: null }
+        ];
+        app.bills = []; app.recurringTemplates = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.incomes = []; app.bonuses = []; app.accounts = [];
+        app.ledgerAmountOverrides = {};
+        app._reportMonthOffset = 0;
+        app._spendingYoYMode = false;
+        app.renderReportsPage();
+    }""", {"thisYear": this_year_amount, "lastYear": last_year_amount})
+    page.click('[data-rptab="spending"]')
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
+
+
+@pytest.mark.ui
+def test_spending_comparison_mode_select_present_and_defaults_to_month(app_page):
+    """The comparison-mode toggle exists and defaults to 'vs. last month'."""
+    page = app_page
+    _seed_yoy_and_navigate(page)
+
+    select = page.query_selector('#spendingComparisonMode')
+    assert select, "Expected #spendingComparisonMode select in the summary strip"
+    value = page.eval_on_selector('#spendingComparisonMode', 'el => el.value')
+    assert value == 'month'
+
+
+@pytest.mark.ui
+def test_spending_switching_to_yoy_mode_changes_badge_baseline(app_page):
+    """Selecting 'vs. same month last year' recomputes the Food category's
+    badge against last year's total instead of last month's."""
+    page = app_page
+    # This month: $220 Food. Last year same month: $100 Food (prior calendar
+    # month is seeded empty by _seed_yoy_and_navigate, so the month-mode
+    # badge is null while the YoY badge is +120%).
+    _seed_yoy_and_navigate(page, this_year_amount=220, last_year_amount=100)
+
+    row = page.query_selector('[data-spending-cat="Food"]')
+    month_mode_badge = row.query_selector('.spending-ranked-change--up, .spending-ranked-change--down')
+    assert month_mode_badge is None, "Expected no badge in month mode (no prior-month data seeded)"
+
+    page.select_option('#spendingComparisonMode', 'year')
+    page.wait_for_selector('#spendingComparisonMode', timeout=5000)
+
+    row = page.query_selector('[data-spending-cat="Food"]')
+    yoy_badge = row.query_selector('.spending-ranked-change--up')
+    assert yoy_badge, "Expected an 'up' badge comparing $220 this year vs $100 last year"
+    assert '120%' in yoy_badge.inner_text()
+
+    select_value = page.eval_on_selector('#spendingComparisonMode', 'el => el.value')
+    assert select_value == 'year'
+
+
+@pytest.mark.ui
+def test_spending_yoy_badge_hidden_when_no_prior_year_data(app_page):
+    """A category with no spending in the same month last year shows no
+    badge in YoY mode, rather than a misleading 0%/division-by-zero result."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const thisYearDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-10`;
+        // Only this year's record is seeded -- nothing exists for the prior-year month.
+        app.expenses = [{ id: 9101, name: 'Groceries', category: 'Food', budgetAmount: 220, date: thisYearDate, accountId: null }];
+        app.bills = []; app.recurringTemplates = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.incomes = []; app.bonuses = []; app.accounts = [];
+        app.ledgerAmountOverrides = {};
+        app._reportMonthOffset = 0;
+        app._spendingYoYMode = false;
+        app.renderReportsPage();
+    }""")
+    page.click('[data-rptab="spending"]')
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
+
+    page.select_option('#spendingComparisonMode', 'year')
+    page.wait_for_selector('#spendingComparisonMode', timeout=5000)
+
+    row = page.query_selector('[data-spending-cat="Food"]')
+    badge = row.query_selector('.spending-ranked-change--up, .spending-ranked-change--down')
+    assert badge is None, "Expected no YoY badge when there is no prior-year data for this category"
+
+
+@pytest.mark.ui
+def test_spending_comparison_mode_persists_across_rerender(app_page):
+    """Switching to YoY mode stays selected when the panel re-renders
+    (e.g. after navigating away and back to the Spending tab)."""
+    page = app_page
+    _seed_yoy_and_navigate(page)
+
+    page.select_option('#spendingComparisonMode', 'year')
+    page.wait_for_selector('#spendingComparisonMode', timeout=5000)
+
+    page.click('[data-rptab="calendar"]')
+    page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
+    page.click('[data-rptab="spending"]')
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
+
+    value = page.eval_on_selector('#spendingComparisonMode', 'el => el.value')
+    assert value == 'year'

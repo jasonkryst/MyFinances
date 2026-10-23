@@ -11,7 +11,8 @@ import {
     escapeHtml,
     formatShortDate,
     buildPersonPillsHtml,
-    todayISO
+    todayISO,
+    renderChartDataTable
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
@@ -40,6 +41,7 @@ export function renderIncomeList(app) {
             setTimeout(() => document.getElementById('incomeName')?.focus(), 300);
         });
         if (summaryEl) { summaryEl.classList.add('hidden'); summaryEl.classList.remove('visible'); }
+        renderIncomeTrendChart(app);
         return;
     }
 
@@ -192,6 +194,7 @@ export function renderIncomeList(app) {
                 </div>
             </div>`;
     }
+    renderIncomeTrendChart(app);
 }
 
 // Add a new income source
@@ -373,6 +376,7 @@ export function renderBonusList(app) {
     if (!container) return;
     if (!app.bonuses || app.bonuses.length === 0) {
         container.innerHTML = '';
+        renderIncomeTrendChart(app);
         return;
     }
 
@@ -536,4 +540,105 @@ export function renderBonusList(app) {
         if (action === 'edit') app.startEditBonus(id);
         if (action === 'delete') app.deleteBonus(id);
     };
+    renderIncomeTrendChart(app);
+}
+
+function _isDarkMode() { return document.body.classList.contains('dark-mode'); }
+
+function _incomeTrendChartColors() {
+    const dark = _isDarkMode();
+    return { grid: dark ? '#374151' : '#e5e7eb', label: dark ? '#d1d5db' : '#374151' };
+}
+
+// Renders the "Income Trend" chart (issue #262): a stacked bar of regular
+// income vs. one-time bonuses over a trailing 12/24-month range, with an
+// optional dashed overlay line comparing each month against the same
+// calendar month one year prior.
+export function renderIncomeTrendChart(app) {
+    const canvas = document.getElementById('incomeTrendChart');
+    const card = document.getElementById('incomeTrendCard');
+    if (!canvas || !card) return;
+    if (app._incomeTrendChart) { app._incomeTrendChart.destroy(); app._incomeTrendChart = null; }
+
+    if (app.incomes.length === 0 && app.bonuses.length === 0) {
+        card.classList.add('hidden');
+        return;
+    }
+    card.classList.remove('hidden');
+
+    const rangeMonths = [12, 24].includes(app._incomeTrendRangeMonths) ? app._incomeTrendRangeMonths : 12;
+    const showYoY = !!app._incomeTrendShowYoY;
+
+    const rangeSelect = document.getElementById('incomeTrendRangeSelect');
+    const yoyToggle = document.getElementById('incomeTrendYoYToggle');
+    if (rangeSelect) rangeSelect.value = String(rangeMonths);
+    if (yoyToggle) yoyToggle.checked = showYoY;
+
+    const now = new Date();
+    const months = [];
+    for (let i = rangeMonths - 1; i >= 0; i--) {
+        let m = now.getMonth() - i, y = now.getFullYear();
+        while (m < 0) { m += 12; y--; }
+        months.push({ year: y, month: m, label: new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) });
+    }
+
+    const regularTotals = months.map(({ year, month }) =>
+        app.incomes.reduce((sum, inc) => sum + (inc.amount || 0) * countIncomePaydaysInMonth(inc, year, month), 0));
+    const bonusTotals = months.map(({ year, month }) => computeMonthlyBonusesForMonth(app.bonuses, year, month));
+    const priorYearTotals = months.map(({ year, month }) =>
+        app.incomes.reduce((sum, inc) => sum + (inc.amount || 0) * countIncomePaydaysInMonth(inc, year - 1, month), 0)
+        + computeMonthlyBonusesForMonth(app.bonuses, year - 1, month));
+
+    const { grid, label } = _incomeTrendChartColors();
+    const datasets = [
+        { label: 'Regular Income', data: regularTotals, backgroundColor: '#2563eb', stack: 'income', borderRadius: 4 },
+        { label: 'Bonuses', data: bonusTotals, backgroundColor: '#f59e0b', stack: 'income', borderRadius: 4 }
+    ];
+    if (showYoY) {
+        datasets.push({
+            type: 'line', label: 'Same month last year', data: priorYearTotals,
+            borderColor: '#64748b', borderDash: [5, 5], borderWidth: 2, pointRadius: 2,
+            backgroundColor: 'transparent', fill: false
+        });
+    }
+
+    app._incomeTrendChart = new Chart(canvas, {
+        type: 'bar',
+        data: { labels: months.map(m => m.label), datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true, ticks: { color: label }, grid: { color: grid } },
+                y: { stacked: true, ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { color: label, boxWidth: 12, font: { size: 11 } } },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } }
+            }
+        }
+    });
+
+    const columns = ['Month', 'Regular Income', 'Bonuses'];
+    const rows = months.map((m, i) => [m.label, formatCurrency(regularTotals[i]), formatCurrency(bonusTotals[i])]);
+    if (showYoY) {
+        columns.push('Same month last year');
+        rows.forEach((row, i) => row.push(formatCurrency(priorYearTotals[i])));
+    }
+    renderChartDataTable('incomeTrendChart', {
+        caption: `Income trend — trailing ${rangeMonths} months`,
+        columns, rows
+    });
+
+    if (rangeSelect) {
+        rangeSelect.onchange = () => {
+            app._incomeTrendRangeMonths = parseInt(rangeSelect.value, 10);
+            app.renderIncomeTrendChart();
+        };
+    }
+    if (yoyToggle) {
+        yoyToggle.onchange = () => {
+            app._incomeTrendShowYoY = yoyToggle.checked;
+            app.renderIncomeTrendChart();
+        };
+    }
 }

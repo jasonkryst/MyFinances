@@ -172,3 +172,110 @@ def test_multiple_assets_and_liabilities(app_page):
     # Net worth should be (5000+10000+3000) - (2000+15000) = 1000
     net_worth_text = page.evaluate('() => document.querySelector("#netWorthWidget").textContent')
     assert net_worth_text, "Net worth should be calculated with multiple accounts/debts"
+
+
+# ── #335 Net worth trajectory projection ─────────────────────────────────────
+
+def _seed_snapshot_and_navigate(page, net_worth=10000, assets=10000, liabilities=0):
+    """One snapshot dated this month (no income/expenses seeded, so the
+    flat-fallback projection model has a zero monthly delta -- every
+    projected month's net worth equals the snapshot's exactly)."""
+    page.evaluate("""(args) => {
+        const app = window.app;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-15`;
+        app.monthlySnapshots = [{
+            date: dateStr, totalAssets: args.assets, totalLiabilities: args.liabilities,
+            netWorth: args.netWorth, debtPaymentMade: 0, incomeReceived: 0, source: 'manual'
+        }];
+        app.incomes = []; app.bonuses = []; app.bills = []; app.recurringTemplates = [];
+        app.debts = []; app.expenses = []; app.ledgerAmountOverrides = {};
+        app.lastPaymentPlan = null;
+        app._netWorthRangeMonths = 6;
+        app._netWorthProjectionYears = 3;
+        app.renderReportsPage();
+    }""", {"netWorth": net_worth, "assets": assets, "liabilities": liabilities})
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.click('[data-rptab="networth"]')
+    page.wait_for_selector('#rptPanel-networth.rpt-tab-panel--active', timeout=5000)
+    page.wait_for_selector('#rptNetWorthTrendChart', timeout=5000)
+
+
+@pytest.mark.feature
+def test_net_worth_projection_buttons_present_default_3y(app_page):
+    """Projection horizon buttons (1Y/3Y/5Y) are present and 3Y is active by default."""
+    page = app_page
+    _seed_snapshot_and_navigate(page)
+
+    buttons = page.query_selector_all('[data-networth-projection]')
+    assert len(buttons) == 3
+    active = page.query_selector('[data-networth-projection="3"].active')
+    assert active, "Expected the 3Y projection button to be active by default"
+
+
+@pytest.mark.feature
+def test_net_worth_projection_horizon_switches_to_1y(app_page):
+    """Clicking 'Project 1Y' switches the active horizon and shrinks the
+    projection to 12 months (1 year-end milestone instead of 3)."""
+    page = app_page
+    _seed_snapshot_and_navigate(page)
+
+    page.click('[data-networth-projection="1"]')
+    page.wait_for_selector('[data-networth-projection="1"].active', timeout=5000)
+
+    stored = page.evaluate('() => window.app._netWorthProjectionYears')
+    assert stored == 1
+
+    milestones = page.query_selector_all('.nw-projection-milestone-item')
+    assert len(milestones) == 1, f"Expected 1 year-end milestone for a 1-year projection, got {len(milestones)}"
+
+
+@pytest.mark.feature
+def test_net_worth_projection_milestones_shown_for_3y_default(app_page):
+    """The default 3-year projection shows 3 year-end milestone cards."""
+    page = app_page
+    _seed_snapshot_and_navigate(page)
+
+    milestones = page.query_selector_all('.nw-projection-milestone-item')
+    assert len(milestones) == 3, f"Expected 3 year-end milestones, got {len(milestones)}"
+
+
+@pytest.mark.feature
+def test_net_worth_projection_flat_model_without_payment_plan(app_page):
+    """With no income/expenses and no lastPaymentPlan, the flat-fallback
+    model keeps net worth constant across every projected month."""
+    page = app_page
+    _seed_snapshot_and_navigate(page, net_worth=12345)
+
+    rows = page.evaluate("""() => Array.from(document.querySelectorAll('#rptNetWorthTrendChart-sr-table tbody tr')).map(
+        tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent)
+    )""")
+    projected_rows = [r for r in rows if r[3] == 'Yes']
+    assert len(projected_rows) == 36, f"Expected 36 projected rows for a 3-year (default) horizon, got {len(projected_rows)}"
+    for row in projected_rows:
+        assert row[1] == '$12,345.00', f"Expected flat net worth of $12,345.00 with no income/expenses, got: {row}"
+
+
+@pytest.mark.feature
+def test_net_worth_projection_uses_payment_plan_balances_when_available(app_page):
+    """When app.lastPaymentPlan exists, projected liabilities come from its
+    real per-debt balance schedule instead of the flat fallback."""
+    page = app_page
+    _seed_snapshot_and_navigate(page, net_worth=5000, assets=10000, liabilities=5000)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.lastPaymentPlan = [
+            { month: 1, payments: [{ debtName: 'Card', balance: 4000, payment: 1000 }] },
+            { month: 2, payments: [{ debtName: 'Card', balance: 3000, payment: 1000 }] }
+        ];
+        app.renderReportsPage();
+    }""")
+
+    rows = page.evaluate("""() => Array.from(document.querySelectorAll('#rptNetWorthTrendChart-sr-table tbody tr')).map(
+        tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent)
+    )""")
+    projected_rows = [r for r in rows if r[3] == 'Yes']
+    assert projected_rows[0][2] == '$4,000.00', f"Expected month 1 liabilities from the payment plan, got: {projected_rows[0]}"
+    assert projected_rows[1][2] == '$3,000.00', f"Expected month 2 liabilities from the payment plan, got: {projected_rows[1]}"

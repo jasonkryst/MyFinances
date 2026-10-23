@@ -412,6 +412,16 @@ export function initializeEventListeners(app) {
             return;
         }
 
+        const projectionBtn = event.target.closest('[data-networth-projection]');
+        if (projectionBtn) {
+            const nextYears = parseInt(projectionBtn.getAttribute('data-networth-projection'), 10);
+            if ([1, 3, 5].includes(nextYears)) {
+                app._netWorthProjectionYears = nextYears;
+                app.renderReportsPage();
+            }
+            return;
+        }
+
         const cashFlowRangeBtn = event.target.closest('[data-cashflow-range]');
         if (cashFlowRangeBtn) {
             const nextRange = parseInt(cashFlowRangeBtn.getAttribute('data-cashflow-range'), 10);

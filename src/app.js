@@ -58,7 +58,8 @@ import {
     startEditBonus,
     cancelEditBonus,
     saveEditBonus,
-    renderBonusList
+    renderBonusList,
+    renderIncomeTrendChart
 } from './income.js';
 import { showBonusAdvice } from './bonusAdvisor.js';
 import {
@@ -585,6 +586,14 @@ export class DebtTrackerApp {
      */
     renderIncomeList() {
         return renderIncomeList(this);
+    }
+
+    /**
+     * Render the Income Trend chart (regular income vs. bonuses, optional
+     * year-over-year overlay) on the Income page.
+     */
+    renderIncomeTrendChart() {
+        return renderIncomeTrendChart(this);
     }
 
     /**

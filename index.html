@@ -752,6 +752,26 @@
 
                 <!-- Monthly Income Summary -->
                 <div id="incomeSummary" class="income-summary"></div>
+
+                <!-- Income Trend Chart (issue #262) -->
+                <div class="rpt-chart-card income-trend-card" id="incomeTrendCard">
+                    <div class="income-trend-header">
+                        <h4 class="rpt-chart-title">Income Trend</h4>
+                        <div class="income-trend-controls">
+                            <label for="incomeTrendRangeSelect" class="filter-label">Range:
+                                <select id="incomeTrendRangeSelect" class="select-styled">
+                                    <option value="12">Trailing 12 months</option>
+                                    <option value="24">Trailing 24 months</option>
+                                </select>
+                            </label>
+                            <label class="income-trend-yoy-toggle">
+                                <input type="checkbox" id="incomeTrendYoYToggle">
+                                Compare to same month last year
+                            </label>
+                        </div>
+                    </div>
+                    <div class="rpt-chart-canvas-wrap"><canvas id="incomeTrendChart"></canvas></div>
+                </div>
             </section>
 
             <!-- People Section -->
