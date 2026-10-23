@@ -146,7 +146,12 @@ export function initSettingsModal(app) {
         };
         setTimeout(() => {
             const panel = modal.querySelector(`#settingsPanel-${activeSettingsTab}`);
-            const first = panel ? panel.querySelector('input, select, button, a[href]') : null;
+            const candidates = panel ? panel.querySelectorAll('input, select, button, a[href]') : [];
+            // A panel's first matching control can itself be hidden (e.g. the
+            // Notifications tab's email-test button/group, hidden outside
+            // Postgres mode) — querySelector alone would pick it and focus()
+            // would then silently do nothing, leaving focus behind the modal.
+            const first = Array.from(candidates).find(el => el.offsetParent !== null);
             (first || closeBtn).focus();
         }, 30);
     };

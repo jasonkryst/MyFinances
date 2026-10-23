@@ -137,10 +137,27 @@ function saveLedgerFilters(accountFilter, dateRange, clearedFilter, pageSize, ca
     } catch (_) {}
 }
 
-function loadLedgerFilters() {
+export function loadLedgerFilters() {
     try {
         return JSON.parse(localStorage.getItem('debtTrackerLedgerFilters') || 'null');
     } catch (_) { return null; }
+}
+
+// Persists the current filter state, except while a Spending cross-nav
+// (#315) is active: its account/date-range reset to 'all' is a transient
+// view override, not a preference the user chose, so touching an unrelated
+// control (e.g. page size) while viewing it must not overwrite whatever
+// account/date the user had deliberately saved before cross-navigating —
+// those are restored from app._ledgerPreCrossNavAccount/-DateRange, set by
+// spending.js's "View in Ledger" handler.
+function persistLedgerFilters(app) {
+    const accountFilter = app._ledgerCrossNavLabel
+        ? (app._ledgerPreCrossNavAccount ?? 'all')
+        : (app._ledgerAccountFilter || 'all');
+    const dateRange = app._ledgerCrossNavLabel
+        ? (app._ledgerPreCrossNavDateRange ?? 'around7')
+        : (app._ledgerDateRange || 'around7');
+    saveLedgerFilters(accountFilter, dateRange, app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
 }
 
 // Render the Ledger page
@@ -431,8 +448,9 @@ export function renderLedgerPage(app) {
     const crossNavBackBtn = container.querySelector('#ledgerCrossNavBackBtn');
     if (crossNavBackBtn) {
         crossNavBackBtn.onclick = () => {
-            app._ledgerCrossNavLabel = null;
             app._ledgerCategoryFilter = 'all';
+            // switchPage() restores the pre-cross-nav account/date filters
+            // and clears _ledgerCrossNavLabel — see ui.js.
             app.switchPage('reports');
             document.querySelector('.rpt-tab-btn[data-rptab="spending"]')?.click();
         };
@@ -442,7 +460,7 @@ export function renderLedgerPage(app) {
         acctFilter.onchange = (e) => {
             app._ledgerAccountFilter = e.target.value;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -451,7 +469,7 @@ export function renderLedgerPage(app) {
         categoryFilterEl.onchange = (e) => {
             app._ledgerCategoryFilter = e.target.value;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -460,7 +478,7 @@ export function renderLedgerPage(app) {
         dateRangeFilter.onchange = (e) => {
             app._ledgerDateRange = e.target.value;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -470,7 +488,7 @@ export function renderLedgerPage(app) {
             const pageSize = parseInt(e.target.value, 10);
             app._ledgerPageSize = [10, 25, 50, 100].includes(pageSize) ? pageSize : 25;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }
@@ -479,7 +497,7 @@ export function renderLedgerPage(app) {
         clearedFilterEl.onchange = (e) => {
             app._ledgerClearedFilter = e.target.value;
             app._ledgerPage = 1;
-            saveLedgerFilters(app._ledgerAccountFilter || 'all', app._ledgerDateRange || 'around7', app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
+            persistLedgerFilters(app);
             renderLedgerPage(app);
         };
     }

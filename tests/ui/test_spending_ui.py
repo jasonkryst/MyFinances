@@ -437,6 +437,122 @@ def test_spending_drilldown_view_in_ledger_back_button_returns_to_spending(app_p
 
 
 @pytest.mark.ui
+def test_spending_drilldown_view_in_ledger_does_not_clobber_saved_account_filter(app_page):
+    """Regression (review finding #1): if the user had already saved a
+    non-default Ledger account/date filter earlier this session, cross-
+    navigating from Spending must not let renderLedgerPage's restore-from-
+    storage overwrite the cross-nav's 'all'/'all' override back to the
+    stale saved values — the Category filter and 'all' overrides must win."""
+    page = app_page
+    _seed_linked_and_navigate(page)
+
+    page.evaluate("""() => {
+        localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({
+            accountFilter: '1', dateRange: '30', clearedFilter: 'all',
+            pageSize: 25, categoryFilter: 'all'
+        }));
+    }""")
+
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    page.click('#spendingDrilldownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    assert page.eval_on_selector('#ledgerCategoryFilter', 'el => el.value') == 'Food'
+    assert page.eval_on_selector('#ledgerAccountFilter', 'el => el.value') == 'all'
+    assert page.eval_on_selector('#ledgerDateRange', 'el => el.value') == 'all'
+
+
+@pytest.mark.ui
+def test_spending_drilldown_view_in_ledger_does_not_overwrite_saved_filters_on_save(app_page):
+    """Regression (review finding #3): touching an unrelated filter control
+    (page size) while viewing a cross-nav'd category must not persist the
+    cross-nav's 'all'/'all' account/date override over the account/date the
+    user had deliberately saved before cross-navigating."""
+    page = app_page
+    _seed_linked_and_navigate(page)
+
+    page.evaluate("""() => {
+        localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({
+            accountFilter: '1', dateRange: '30', clearedFilter: 'all',
+            pageSize: 25, categoryFilter: 'all'
+        }));
+    }""")
+
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    page.click('#spendingDrilldownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    page.select_option('#ledgerPageSize', '50')
+    page.wait_for_timeout(200)
+
+    saved = page.evaluate("() => JSON.parse(localStorage.getItem('debtTrackerLedgerFilters'))")
+    assert saved['accountFilter'] == '1', f"Cross-nav override leaked into saved filters: {saved}"
+    assert saved['dateRange'] == '30', f"Cross-nav override leaked into saved filters: {saved}"
+    assert saved['pageSize'] == 50
+
+
+@pytest.mark.ui
+def test_spending_drilldown_back_button_restores_pre_cross_nav_account_and_date(app_page):
+    """Regression: 'Back to Spending' must restore the account/date filters
+    that were active before the cross-nav, not leave them stuck at 'all'."""
+    page = app_page
+    _seed_linked_and_navigate(page)
+
+    page.evaluate("""() => {
+        localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({
+            accountFilter: '1', dateRange: '30', clearedFilter: 'all',
+            pageSize: 25, categoryFilter: 'all'
+        }));
+    }""")
+
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    page.click('#spendingDrilldownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    page.click('#ledgerCrossNavBackBtn')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+
+    page.click('button[data-page="ledger"]')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    assert page.eval_on_selector('#ledgerAccountFilter', 'el => el.value') == '1'
+    assert page.eval_on_selector('#ledgerDateRange', 'el => el.value') == '30'
+
+
+@pytest.mark.ui
+def test_spending_drilldown_debt_payments_has_no_view_in_ledger_link(app_page):
+    """Negative (review finding #2): the synthetic 'Debt Payments' Spending
+    category has no matching Ledger category (debt rows there use the
+    debt's own name) — the 'View in Ledger' link would always land on an
+    empty filtered table, so it must not be offered for this category."""
+    page = app_page
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.evaluate("""(date) => {
+        const app = window.app;
+        app.accounts = [{ id: 1, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
+        app.debts = [{ id: 1, name: 'Visa', debtType: 'creditCard', accountBalance: 500,
+            interestRate: 20, minimumPayment: 50, dueDate: 5, accountId: 1 }];
+        app.expenses = []; app.bills = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = []; app.incomes = []; app.bonuses = [];
+        app.ledgerAmountOverrides = {};
+        app._reportMonthOffset = 0;
+        app.renderReportsPage();
+    }""", current_month_iso(5))
+    page.click('[data-rptab="spending"]')
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
+
+    cat_el = page.query_selector('[data-spending-cat="Debt Payments"]')
+    if not cat_el:
+        pytest.skip("No Debt Payments category rendered for this seed")
+    cat_el.click()
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    assert page.query_selector('#spendingDrilldownViewLedgerBtn') is None
+
+
+@pytest.mark.ui
 def test_ledger_category_filter_persists_across_navigation(app_page):
     """Positive/regression: manually picking a category filter survives
     navigating away and back, like the existing account/date/cleared filters."""

@@ -323,3 +323,27 @@ def test_settings_modal_focus_lands_in_visible_tab(app_page):
     )
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'themeSwitcher'
+
+
+@pytest.mark.feature
+def test_settings_modal_focus_falls_back_when_first_control_is_hidden(app_page):
+    """Negative/regression (review finding #5): the Notifications tab's only
+    control (#settingsSendTestEmailBtn) is itself hidden outside Postgres
+    mode. Since the active tab is remembered across reopens, reopening
+    Settings on that tab must fall back to the Close button rather than
+    focus()-ing a hidden element, which silently does nothing and leaves
+    focus stuck behind the modal."""
+    page = app_page
+    from tests.conftest import open_settings, close_settings, switch_settings_tab
+    open_settings(page)
+    switch_settings_tab(page, 'notifications')
+    assert page.is_hidden('#settingsSendTestEmailBtn')
+    close_settings(page)
+
+    open_settings(page)
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'settingsModalCloseBtn'",
+        timeout=2000
+    )
+    focused_id = page.evaluate('() => document.activeElement.id')
+    assert focused_id == 'settingsModalCloseBtn'
