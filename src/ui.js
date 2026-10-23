@@ -975,6 +975,14 @@ function _buildWhatsNewHtml() {
 // Update this list every version bump alongside CHANGELOG.md.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.33.0 — 2026-10-23',
+        items: [
+            '<strong>Health: per-card credit utilization breakdown</strong> (issue #281) — see which individual credit card is driving your utilization number, not just the total.',
+            '<strong>Reports: Spending → Ledger cross-navigation</strong> (issue #315) — jump straight from a spending category to its transactions in the Ledger.',
+            '<strong>Settings: tabbed layout</strong> (issue #322) — reorganized into Appearance, Data & Storage, Notifications, and Advanced tabs so it\'s easier to find what you need.'
+        ]
+    },
+    {
         version: '6.32.0 — 2026-10-23',
         items: [
             '<strong>Health: multi-model DTI view</strong> (issue #253) — the Debt-to-Income card now shows Mortgage Front-End and Back-End ratios alongside the existing Consumer DTI, with an editable "Est. monthly housing cost" field.',
