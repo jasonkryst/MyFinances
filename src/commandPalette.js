@@ -18,6 +18,15 @@ function buildCommands(app) {
         nav('liabilities', 'Liabilities', '💳'),
         nav('recurring', 'Recurring', '🔁'),
         nav('savings', 'Savings', '💰'),
+        {
+            label: 'Savings — Home Purchase Planning',
+            hint: 'Go to page',
+            icon: '🏠',
+            run: () => {
+                app.savingsSubTab = 'home';
+                app.switchPage('savings');
+            }
+        },
         nav('strategy', 'Plan', '🎯'),
         nav('reports', 'Reports', '📈'),
         {

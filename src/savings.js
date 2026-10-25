@@ -3,6 +3,7 @@ import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 import { getSetting, setSetting, SHOW_ARCHIVED_SINKING_FUNDS } from './settings.js';
+import { renderHomePurchaseContent, attachHomePurchaseEventListeners } from './homePurchase.js';
 
 /**
  * Render the Savings page with toggleable Emergency Fund and Sinking Funds sections
@@ -22,6 +23,7 @@ export function renderSavingsPage(app) {
       <div class="savings-subtabs">
         <button class="savings-subtab-btn ${currentSubTab === 'emergency' ? 'active' : ''}" data-savings-subtab="emergency">🏦 Emergency Fund</button>
         <button class="savings-subtab-btn ${currentSubTab === 'sinking' ? 'active' : ''}" data-savings-subtab="sinking">🎯 Sinking Funds</button>
+        <button class="savings-subtab-btn ${currentSubTab === 'home' ? 'active' : ''}" data-savings-subtab="home">🏠 Home Purchase</button>
       </div>
 
       <div class="savings-content">
@@ -29,8 +31,10 @@ export function renderSavingsPage(app) {
 
   if (currentSubTab === 'emergency') {
     html += renderEmergencyFundContent(app);
-  } else {
+  } else if (currentSubTab === 'sinking') {
     html += renderSinkingFundsContent(app);
+  } else {
+    html += renderHomePurchaseContent(app);
   }
 
   html += `
@@ -362,6 +366,8 @@ export function attachSavingsEventListeners(app) {
       switchSavingsSubTab(app, btn.dataset.savingsSubtab);
     });
   });
+
+  attachHomePurchaseEventListeners(app);
 
   // Emergency Fund form toggle
   const emergencyFormToggle = document.getElementById('emergencyFormToggle');

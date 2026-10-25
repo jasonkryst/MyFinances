@@ -8,6 +8,7 @@ const {
     sanitizeExpense,
     sanitizeRecurringTemplate,
     sanitizeLedgerOverrides,
+    sanitizeHomePurchasePlan,
     sanitizeLedgerClearedTransactions,
     sanitizeEmergencyFund,
     sanitizeSinkingFund,
@@ -300,6 +301,56 @@ describe('sanitizeLedgerOverrides', () => {
     test('defaults updatedAt to the current time when missing or malformed', () => {
         const result = sanitizeLedgerOverrides({ a: { amount: 50, updatedAt: 'garbage' } });
         expect(result.a.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    });
+});
+
+describe('sanitizeHomePurchasePlan', () => {
+    test('passes through a well-formed plan', () => {
+        const result = sanitizeHomePurchasePlan({
+            targetHomePrice: 400000, targetDownPaymentPct: 10, currentSavings: 15000,
+            monthlyContribution: 500, housingCostEstimate: 2200, notes: 'First home'
+        });
+        expect(result).toEqual({
+            targetHomePrice: 400000, targetDownPaymentPct: 10, currentSavings: 15000,
+            monthlyContribution: 500, housingCostEstimate: 2200, notes: 'First home'
+        });
+    });
+
+    test('returns null when raw input is null, undefined, or not an object', () => {
+        expect(sanitizeHomePurchasePlan(null)).toBeNull();
+        expect(sanitizeHomePurchasePlan(undefined)).toBeNull();
+        expect(sanitizeHomePurchasePlan('nope')).toBeNull();
+    });
+
+    test('returns null when targetHomePrice is missing, zero, or negative', () => {
+        expect(sanitizeHomePurchasePlan({})).toBeNull();
+        expect(sanitizeHomePurchasePlan({ targetHomePrice: 0 })).toBeNull();
+        expect(sanitizeHomePurchasePlan({ targetHomePrice: -50000 })).toBeNull();
+    });
+
+    test('defaults targetDownPaymentPct to 20 and clamps to 0-100', () => {
+        expect(sanitizeHomePurchasePlan({ targetHomePrice: 300000 }).targetDownPaymentPct).toBe(20);
+        expect(sanitizeHomePurchasePlan({ targetHomePrice: 300000, targetDownPaymentPct: -5 }).targetDownPaymentPct).toBe(0);
+        expect(sanitizeHomePurchasePlan({ targetHomePrice: 300000, targetDownPaymentPct: 150 }).targetDownPaymentPct).toBe(100);
+    });
+
+    test('clamps negative currentSavings/monthlyContribution/housingCostEstimate to 0', () => {
+        const result = sanitizeHomePurchasePlan({
+            targetHomePrice: 300000, currentSavings: -1, monthlyContribution: -1, housingCostEstimate: -1
+        });
+        expect(result.currentSavings).toBe(0);
+        expect(result.monthlyContribution).toBe(0);
+        expect(result.housingCostEstimate).toBe(0);
+    });
+
+    test('strips HTML/script content from notes and truncates to 500 chars', () => {
+        const result = sanitizeHomePurchasePlan({ targetHomePrice: 300000, notes: '<script>evil</script>' + 'x'.repeat(600) });
+        expect(result.notes).not.toContain('<script>');
+        expect(result.notes.length).toBeLessThanOrEqual(500);
+    });
+
+    test('defaults notes to an empty string when missing', () => {
+        expect(sanitizeHomePurchasePlan({ targetHomePrice: 300000 }).notes).toBe('');
     });
 });
 
