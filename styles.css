@@ -7021,7 +7021,7 @@ body.dark-mode .health-status--red    { background: #450a0a; color: #fca5a5; }
 
 /* Detail row */
 .health-metric-detail { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-secondary); }
-.health-dti-basis { font-size: 0.7rem; color: var(--text-muted-secondary, #9ca3af); margin-top: 2px; }
+.health-dti-basis { font-size: 0.7rem; color: var(--text-secondary, #6b7280); margin-top: 2px; }
 
 /* Emergency Fund rows */
 .health-ef-row   { display: flex; flex-direction: column; gap: 0.2rem; }
