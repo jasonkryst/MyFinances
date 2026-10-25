@@ -13,7 +13,7 @@
     saveInlineEdit as saveInlineEditDebtFeature
 } from './debts.js';
 import { showAccelerateModal as showAccelerateModalFeature } from './debtBreakEven.js';
-import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature, archiveAccount as archiveAccountFeature, unarchiveAccount as unarchiveAccountFeature } from './accounts.js';
+import { renderAccountsList, addAccount as addAccountFeature, deleteAccount as deleteAccountFeature, startEditAccount as startEditAccountFeature, cancelEditAccount as cancelEditAccountFeature, saveEditAccount as saveEditAccountFeature, computeAccountBalance as computeAccountBalanceFeature, archiveAccount as archiveAccountFeature, unarchiveAccount as unarchiveAccountFeature, renderAccountBalanceBreakdown as renderAccountBalanceBreakdownFeature } from './accounts.js';
 import {
     renderBudgetPage,
     addBill,
@@ -1051,6 +1051,7 @@ export class DebtTrackerApp {
     deleteBalanceHistoryEntry(id) { return deleteBalanceHistoryEntryFeature(this, id); }
     seedMissingBalanceHistory() { return seedMissingBalanceHistoryFeature(this); }
     showBalanceHistoryModal(owner) { return showBalanceHistoryModalFeature(this, owner); }
+    showAccountBalanceBreakdown(accountId, triggerEl) { return renderAccountBalanceBreakdownFeature(this, accountId, triggerEl); }
     deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
     computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
     renderRetirementPage() { return renderRetirementPageFeature(this); }

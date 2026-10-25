@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.34.0] — 2026-10-25
+
+### Added
+- **Accounts: balance breakdown drill-down** (issue #257) — each account card's projected balance figure gains a "See breakdown" button that opens a read-only modal listing every transaction (income, debt payment, bill, expense, recurring item) that was summed to produce it, with a running balance shown after each row so the final total is traceable back to the account's starting balance. The list is the exact same `getLedgerTransactionsForMonth()` array `computeAccountBalance()` already sums, so the breakdown's final running balance always reconciles with the card's displayed figure by construction — no separate calculation to keep in sync. A "View in Ledger →" link pre-filters the Ledger page to this account (date range left at "All" since Ledger has no exact-calendar-month filter) and closes the modal. Follows the same accessible modal pattern (focus trap, Escape, backdrop click, `aria-labelledby`) established by the Spending report's category drill-down (#315).
+
 ## [6.33.0] — 2026-10-23
 
 ### Added

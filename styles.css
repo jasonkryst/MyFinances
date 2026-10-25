@@ -6265,6 +6265,11 @@ body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; 
 .acct-balance-item { display: flex; flex-direction: column; align-items: flex-end; }
 .acct-balance-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .acct-balance-value { font-size: 1rem; font-weight: 700; }
+.acct-balance-breakdown-btn {
+    background: none; border: none; padding: 0; margin-top: 2px;
+    font-size: 0.72rem; color: var(--primary-color); cursor: pointer; text-decoration: underline;
+}
+.acct-balance-breakdown-btn:hover, .acct-balance-breakdown-btn:focus-visible { color: var(--primary-color-hover, var(--primary-color)); }
 .acct-balance--pos { color: #059669; }
 .acct-balance--neg { color: #dc2626; }
 body.dark-mode .acct-balance--pos { color: #34d399; }
@@ -7578,6 +7583,41 @@ body.dark-mode .spending-modal-tx-name { color: #e2e8f0; }
 body.dark-mode .spending-modal-tx-amt--neg { color: #fca5a5; }
 .spending-modal-footer  { text-align: right; }
 .spending-empty-detail  { text-align: center; color: #64748b; padding: 16px 0; }
+
+/* Account balance breakdown modal (#257) */
+.acct-breakdown-header-row {
+    display: grid;
+    grid-template-columns: 56px 20px 1fr auto auto;
+    gap: 8px;
+    padding: 0 0 6px;
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #64748b;
+}
+.acct-breakdown-list {
+    max-height: 320px;
+    overflow-y: auto;
+    border-top: 1px solid #e5e7eb;
+    margin-bottom: 16px;
+}
+body.dark-mode .acct-breakdown-list { border-top-color: #374151; }
+.acct-breakdown-row {
+    display: grid;
+    grid-template-columns: 56px 20px 1fr auto auto;
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+}
+body.dark-mode .acct-breakdown-row { border-bottom-color: #1e293b; }
+.acct-breakdown-date    { font-size: 0.8rem; color: #64748b; }
+.acct-breakdown-name    { font-weight: 500; color: #1e293b; }
+body.dark-mode .acct-breakdown-name { color: #e2e8f0; }
+.acct-breakdown-amt     { font-weight: 600; font-size: 0.9rem; text-align: right; }
+.acct-breakdown-amt--pos { color: #15803d; }
+body.dark-mode .acct-breakdown-amt--pos { color: #86efac; }
+.acct-breakdown-amt--neg { color: #b91c1c; }
+body.dark-mode .acct-breakdown-amt--neg { color: #fca5a5; }
+.acct-breakdown-running { font-size: 0.85rem; color: #64748b; text-align: right; }
 
 /* var(--primary-color) is too dark against the dark-mode page background for
    small 10px text (WCAG 1.4.3 fails at ~3.45:1); use the lighter dark-mode
