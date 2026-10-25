@@ -6270,6 +6270,10 @@ body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; 
     font-size: 0.72rem; color: var(--primary-color); cursor: pointer; text-decoration: underline;
 }
 .acct-balance-breakdown-btn:hover, .acct-balance-breakdown-btn:focus-visible { color: var(--primary-color-hover, var(--primary-color)); }
+/* var(--primary-color) fails WCAG 1.4.3 at this small font size against the
+   dark-mode card background (~2.83:1); reuse the established lighter
+   dark-mode link color (body.dark-mode .health-link). */
+body.dark-mode .acct-balance-breakdown-btn { color: #60a5fa; }
 .acct-balance--pos { color: #059669; }
 .acct-balance--neg { color: #dc2626; }
 body.dark-mode .acct-balance--pos { color: #34d399; }
