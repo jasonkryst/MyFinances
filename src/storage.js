@@ -148,6 +148,7 @@ function _writeNow(app) {
             planHistory: app.planHistory || [],
             retirementSnapshots: app.retirementSnapshots || [],
             retirementTargetDate: app.retirementTargetDate || null,
+            homePurchasePlan: app.homePurchasePlan || null,
             balanceHistory: app.balanceHistory || [],
             settings: app.settings || [],
             monthlySnapshots: app.monthlySnapshots || [],
@@ -292,6 +293,7 @@ export function loadFromStorage(app) {
             app.planHistory = clean.planHistory;
             app.retirementSnapshots = clean.retirementSnapshots;
             app.retirementTargetDate = clean.retirementTargetDate;
+            app.homePurchasePlan = clean.homePurchasePlan;
             app.balanceHistory = clean.balanceHistory;
             app.settings = clean.settings;
             app.monthlySnapshots = clean.monthlySnapshots;
@@ -396,6 +398,7 @@ export function clearAllData(app, options = {}) {
     app.planHistory = [];
     app.retirementSnapshots = [];
     app.retirementTargetDate = null;
+    app.homePurchasePlan = null;
     app.balanceHistory = [];
     app.settings = [];
 

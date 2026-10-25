@@ -226,6 +226,30 @@ export function sanitizeLedgerOverrides(overrides, warnings) {
     return out;
 }
 
+// #249: Home Purchase Planning is a single nullable plan object (not a
+// record array/map) — null means "no plan set up yet", mirroring how
+// retirementTargetDate round-trips as a bare scalar rather than a collection.
+export function sanitizeHomePurchasePlan(raw, warnings) {
+    if (!raw || typeof raw !== 'object') return null;
+    const targetHomePrice = sanitizeFiniteNumber(raw.targetHomePrice, NaN, { min: 0 });
+    if (!Number.isFinite(targetHomePrice) || targetHomePrice <= 0) {
+        if (warnings && raw) {
+            warnings.push({ recordType: 'Home Purchase Plan', recordName: 'Home Purchase Plan', kind: 'rejected', reason: 'Missing or invalid target home price — plan was not imported.' });
+        }
+        return null;
+    }
+    const sanitized = {
+        targetHomePrice,
+        targetDownPaymentPct: sanitizeFiniteNumber(raw.targetDownPaymentPct, 20, { min: 0, max: 100 }),
+        currentSavings: sanitizeFiniteNumber(raw.currentSavings, 0, { min: 0 }),
+        monthlyContribution: sanitizeFiniteNumber(raw.monthlyContribution, 0, { min: 0 }),
+        housingCostEstimate: sanitizeFiniteNumber(raw.housingCostEstimate, 0, { min: 0 }),
+        notes: normalizeText(raw.notes, 500) || ''
+    };
+    _diffFields(warnings, 'Home Purchase Plan', 'Home Purchase Plan', raw, sanitized);
+    return sanitized;
+}
+
 export function sanitizeLedgerClearedTransactions(entries, warnings) {
     const out = {};
     if (!entries || typeof entries !== 'object') return out;
@@ -462,6 +486,7 @@ export function sanitizeParsedState(parsed = {}, warnings) {
         retirementSnapshots: _sanitizeRecordArray(parsed.retirementSnapshots, sanitizeRetirementSnapshot, now + 6500, s => s.accountId !== null,
             'Retirement Snapshot', (raw, i) => raw?.date ? `Retirement Snapshot ${raw.date}` : `Retirement Snapshot #${i + 1}`, warnings),
         retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
+        homePurchasePlan: sanitizeHomePurchasePlan(parsed.homePurchasePlan, warnings),
         settings: _sanitizeValueArray(parsed.settings, sanitizeSetting, Boolean, 'Setting', (raw, i) => raw?.key ? String(raw.key) : `Setting #${i + 1}`, warnings),
         balanceHistory: _sanitizeRecordArray(parsed.balanceHistory, sanitizeBalanceHistoryEntry, now + 8000, Boolean,
             'Balance History', (raw, i) => raw?.date ? `Balance History ${raw.date}` : `Balance History #${i + 1}`, warnings)

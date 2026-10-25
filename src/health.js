@@ -34,14 +34,17 @@ function dtiStatus(ratio) {
     return { cls: 'health-status--red', label: t('health.status.highRisk') };
 }
 
-// #253: mortgage-lender DTI models, shown alongside Consumer DTI on the same card.
-function mortgageFrontEndStatus(ratio) {
+// #253: mortgage-lender DTI models, shown alongside Consumer DTI on the same
+// card. Exported (#249) so the Savings > Home Purchase affordability
+// calculator uses the exact same lender thresholds, rather than duplicating
+// the 28%/36%/43%/50% magic numbers in a second module.
+export function mortgageFrontEndStatus(ratio) {
     if (ratio < 0.28) return { cls: 'health-status--green', label: t('health.status.healthy') };
     if (ratio < 0.36) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
     return { cls: 'health-status--red', label: t('health.status.highRisk') };
 }
 
-function mortgageBackEndStatus(ratio) {
+export function mortgageBackEndStatus(ratio) {
     if (ratio < 0.43) return { cls: 'health-status--green', label: t('health.status.healthy') };
     if (ratio < 0.50) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
     return { cls: 'health-status--red', label: t('health.status.highRisk') };

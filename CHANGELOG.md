@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.36.0] — 2026-10-25
+
+### Added
+- **Home purchase planning** (issue #249) — a new "Home Purchase" sub-tab under Savings (alongside Emergency Fund and Sinking Funds) surfaces a down-payment goal tracker, a mortgage affordability calculator (Front-End/Back-End DTI, reusing the exact `mortgageFrontEndStatus`/`mortgageBackEndStatus` thresholds and `computeMonthlyIncomeForMonth` income derivation the Health page's mortgage DTI card already uses), a PMI threshold tracker (estimated monthly PMI cost while below 20% down, at a fixed ~1%/year assumed rate), and a "Debts to Clear Before Qualifying" panel that lists active debts smallest-balance-first (snowball order) and stops at the first point paying them off would bring the back-end ratio under the conventional 43% threshold. Logic lives in the new `src/homePurchase.js` module (`app.homePurchasePlan`, a single nullable plan object — not a record collection), sanitized on load/import via `sanitizeHomePurchasePlan()`, registered in the command palette, and wired into local/session storage save/load/export/import. Not yet wired to the optional Postgres backend (local/session storage only for this release).
+
 ## [6.35.0] — 2026-10-25
 
 ### Added

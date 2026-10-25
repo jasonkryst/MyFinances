@@ -6860,6 +6860,14 @@ body.dark-mode .progress-fill--funded { background: linear-gradient(90deg, #34d3
 .savings-archived-row { margin: 8px 0 4px; }
 .empty-message { color: #9ca3af; font-style: italic; text-align: center; padding: 24px 0; font-size: 0.9rem; }
 
+/* Home Purchase Planning (#249) */
+.hp-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.hp-header-actions { display: flex; gap: 8px; align-items: center; }
+.hp-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+.hp-card h4 { margin: 0 0 10px; font-size: 0.95rem; }
+.hp-pmi-clear, .hp-qualifies { color: #059669; font-weight: 600; }
+body.dark-mode .hp-pmi-clear, body.dark-mode .hp-qualifies { color: #86efac; }
+
 @media (max-width: 768px) {
     .emergency-form-grid { grid-template-columns: 1fr; }
     .sinking-form-grid { grid-template-columns: 1fr; }

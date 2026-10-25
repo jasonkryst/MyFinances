@@ -45,6 +45,7 @@ export function exportAllJSON(app) {
         retirementSnapshots: app.retirementSnapshots || [],
         balanceHistory: app.balanceHistory || [],
         retirementTargetDate: app.retirementTargetDate || null,
+        homePurchasePlan: app.homePurchasePlan || null,
         settings: app.settings || [],
         monthlySnapshots: app.monthlySnapshots || [],
         netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
@@ -357,6 +358,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingRetirementSnapshots = clean.retirementSnapshots;
         const incomingBalanceHistory = clean.balanceHistory || [];
         const incomingRetirementTargetDate = clean.retirementTargetDate;
+        const incomingHomePurchasePlan = clean.homePurchasePlan;
         const incomingSettings = clean.settings;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
@@ -444,6 +446,7 @@ export function importAllJSON(app, file, options = {}) {
             app.balanceHistory = remapHistoryOwners(incomingBalanceHistory, debtIdMap, accountIdMap)
                 .map((h, i) => ({ ...h, id: Date.now() + 8000 + i }));
             app.retirementTargetDate = incomingRetirementTargetDate || null;
+            app.homePurchasePlan = incomingHomePurchasePlan || null;
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
@@ -506,6 +509,7 @@ export function importAllJSON(app, file, options = {}) {
                     .map((h, i) => ({ ...h, id: Date.now() + 8000 + i }))
             ];
             if (incomingRetirementTargetDate) app.retirementTargetDate = incomingRetirementTargetDate;
+            if (incomingHomePurchasePlan) app.homePurchasePlan = incomingHomePurchasePlan;
             app.settings = incomingSettings || [];
             app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
             app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
