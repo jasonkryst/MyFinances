@@ -1,6 +1,14 @@
 // Charts and visualizations
 import { computeMonthlyIncomeForMonth, formatCurrency, renderChartDataTable } from './utils.js';
 
+// Shared per-debt color assignment for every chart on the Plan page's
+// Chart View tab, so the same debt always gets the same color across
+// renderBalanceChart, renderPayoffGanttChart, etc.
+export const PLAN_CHART_PALETTE = [
+    '#2563eb','#dc2626','#059669','#d97706','#7c3aed',
+    '#db2777','#0891b2','#65a30d','#ea580c','#6366f1'
+];
+
 export function renderBalanceChart(app) {
     if (!app.lastPaymentPlan) return;
 
@@ -8,10 +16,7 @@ export function renderBalanceChart(app) {
     const debtBalances = {};
     const debtNames = [];
     const debtNameSet = new Set();
-    const palette = [
-        '#2563eb','#dc2626','#059669','#d97706','#7c3aed',
-        '#db2777','#0891b2','#65a30d','#ea580c','#6366f1'
-    ];
+    const palette = PLAN_CHART_PALETTE;
 
     for (const monthData of app.lastPaymentPlan) {
         for (const payment of monthData.payments) {
@@ -78,6 +83,94 @@ export function renderBalanceChart(app) {
         caption: 'Payoff timeline — balance per debt',
         columns: ['Month', ...debtNames],
         rows: months.map((m, i) => [m, ...debtNames.map(name => formatCurrency(debtBalances[name][i]))])
+    });
+}
+
+// #314: horizontal-bar Gantt view — every debt in app.lastPaymentPlan starts
+// being paid in month 1 (the engine applies a minimum payment to every
+// non-paid-off debt every month), so each bar is a plain span from 0 to its
+// own payoff month — no floating/offset bar syntax needed.
+export function renderPayoffGanttChart(app) {
+    if (!app.lastPaymentPlan || app.lastPaymentPlan.length === 0) return;
+    const canvas = document.getElementById('payoffGanttChart');
+    if (!canvas) return;
+
+    const palette = PLAN_CHART_PALETTE;
+    const plan = app.lastPaymentPlan;
+
+    // Last month index (1-based `month`) each debt appears in the plan is
+    // its payoff month — once paid off, a debt stops appearing in later
+    // months' `payments` arrays. Same convention strategyScheduleTable.js
+    // already uses to order its columns.
+    const payoffMonth = {};
+    const totalInterest = {};
+    const debtNames = [];
+    const debtNameSet = new Set();
+    for (const monthData of plan) {
+        for (const payment of monthData.payments) {
+            if (!debtNameSet.has(payment.debtName)) {
+                debtNames.push(payment.debtName);
+                debtNameSet.add(payment.debtName);
+                totalInterest[payment.debtName] = 0;
+            }
+            payoffMonth[payment.debtName] = monthData.month;
+            totalInterest[payment.debtName] += payment.interest || 0;
+        }
+    }
+
+    // Soonest-paid-off first, so the bars visually cascade top to bottom.
+    debtNames.sort((a, b) => payoffMonth[a] - payoffMonth[b]);
+
+    const monthLabel = (monthNum) => {
+        const monthData = plan[monthNum - 1];
+        return monthData ? monthData.date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+    };
+
+    const colors = debtNames.map((_, i) => palette[i % palette.length]);
+
+    const ctx = canvas.getContext('2d');
+    if (app.payoffGanttChart) app.payoffGanttChart.destroy();
+    app.payoffGanttChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: debtNames,
+            datasets: [{
+                label: 'Months to payoff',
+                data: debtNames.map(name => payoffMonth[name]),
+                backgroundColor: colors,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: 'Debt Elimination Timeline', font: { size: 13 } },
+                tooltip: {
+                    callbacks: {
+                        title: items => items[0]?.label || '',
+                        label: ctx => `Paid off: ${monthLabel(payoffMonth[ctx.label])}`,
+                        afterLabel: ctx => `Total interest: ${formatCurrency(totalInterest[ctx.label] || 0)}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Payoff date' },
+                    ticks: { callback: v => monthLabel(v) }
+                },
+                y: { title: { display: false } }
+            }
+        }
+    });
+
+    renderChartDataTable('payoffGanttChart', {
+        caption: 'Debt elimination timeline',
+        columns: ['Debt', 'Payoff month', 'Total interest paid'],
+        rows: debtNames.map(name => [name, monthLabel(payoffMonth[name]), formatCurrency(totalInterest[name])])
     });
 }
 

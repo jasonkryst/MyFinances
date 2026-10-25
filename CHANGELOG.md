@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.35.0] — 2026-10-25
+
+### Added
+- **Plan: visual payoff Gantt chart** (issue #314) — the Plan page's Chart View tab adds a "Debt Elimination Timeline" horizontal-bar chart, with one bar per debt spanning from the plan's start to its own payoff month. Bars are sorted soonest-payoff-first so the chart visually cascades, colored with the same shared per-debt palette (`PLAN_CHART_PALETTE`) now used by the existing balance-over-time chart too, and their tooltip shows the payoff month plus total interest paid for that debt. Driven entirely by `app.lastPaymentPlan` — no new calculation — since every debt in the plan starts receiving payments in month 1, so each bar is a plain 0-to-payoff span with no floating-bar offset needed. Includes the standard `renderChartDataTable()` screen-reader fallback.
+
 ## [6.34.0] — 2026-10-25
 
 ### Added
