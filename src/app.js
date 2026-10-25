@@ -32,7 +32,8 @@ import {
     renderPieChart as renderPieChartFeature,
     renderProgressChart as renderProgressChartFeature,
     renderDebtDistributionChart as renderDebtDistributionChartFeature,
-    renderDebtToIncomeChart as renderDebtToIncomeChartFeature
+    renderDebtToIncomeChart as renderDebtToIncomeChartFeature,
+    renderPayoffGanttChart as renderPayoffGanttChartFeature
 } from './charts.js';
 import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, checkPostgresBackendPresent, loadFromPostgres, flushStorageSave } from './storage.js';
 import { showLoginGate } from './loginGate.js';
@@ -728,7 +729,7 @@ export class DebtTrackerApp {
      * Activate a Results sub-tab by name.
      * Valid tab names: `'table'`, `'chart'`, `'calendar'`.
      * Side effects:
-     *   - `'chart'` triggers `renderBalanceChart()`, `renderProgressChart()`, `renderPieChart()`
+     *   - `'chart'` triggers `renderPayoffGanttChart()`, `renderBalanceChart()`, `renderProgressChart()`, `renderPieChart()`
      *   - `'calendar'` triggers `renderCalendarView()`
      * @param {string} tabName
      */
@@ -902,6 +903,14 @@ export class DebtTrackerApp {
      */
     renderDebtToIncomeChart() {
         return renderDebtToIncomeChartFeature(this);
+    }
+
+    /**
+     * Payoff Timeline: horizontal-bar Gantt view of each debt's span from
+     * the plan start to its own payoff month (#314).
+     */
+    renderPayoffGanttChart() {
+        return renderPayoffGanttChartFeature(this);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

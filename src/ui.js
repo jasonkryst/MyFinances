@@ -636,6 +636,7 @@ export function switchTab(app, tabName) {
     }
 
     if (tabName === 'chart') {
+        app.renderPayoffGanttChart();
         app.renderBalanceChart();
         app.renderProgressChart();
         app.renderPieChart();
@@ -984,6 +985,12 @@ function _buildWhatsNewHtml() {
 // Statically embed the last few versions' highlights.
 // Update this list every version bump alongside CHANGELOG.md.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.35.0 — 2026-10-25',
+        items: [
+            '<strong>Plan: visual payoff Gantt chart</strong> (issue #314) — the Plan page\'s Chart View tab adds a "Debt Elimination Timeline" chart showing each debt\'s payoff span at a glance.'
+        ]
+    },
     {
         version: '6.34.0 — 2026-10-25',
         items: [

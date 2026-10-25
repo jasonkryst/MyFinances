@@ -272,3 +272,26 @@ def test_reports_networth_composition_chart_has_sr_table(app_page, account_data)
 
     _assert_sr_table(page, 'rptNetWorthCompositionChart')
     assert_no_errors(page)
+
+
+@pytest.mark.ui
+def test_payoff_gantt_chart_has_sr_table(app_page, debt_data):
+    """The Plan page's Payoff Timeline Gantt chart (#314) has a screen-reader
+    data table listing each debt's payoff month and total interest paid."""
+    page = app_page
+    create_debt(page, debt_data)
+
+    page.click('button[data-page="strategy"]')
+    page.wait_for_selector('#strategySection.active', timeout=5000)
+    page.fill('#monthlyPayment', '500')
+    page.select_option('#paymentStrategy', 'avalanche')
+    page.click('#calculateBtn')
+    page.wait_for_selector('#resultsSection.visible', timeout=10000)
+
+    page.click('[data-rtab="schedule"]')
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
+    page.click('button[data-tab="chart"]')
+    page.wait_for_selector('button[data-tab="chart"].active', timeout=5000)
+
+    _assert_sr_table(page, 'payoffGanttChart')
+    assert_no_errors(page)

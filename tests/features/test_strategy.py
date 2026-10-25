@@ -265,3 +265,100 @@ def test_export_payment_schedule_csv(app_page):
     # Call the export function and ensure it doesn't throw
     result = page.evaluate("() => { try { window.app.exportPaymentScheduleCSV(); return 'ok'; } catch(e) { return e.message; } }")
     assert result == 'ok', f"exportPaymentScheduleCSV should not throw, got: {result}"
+
+
+# --- Payoff Timeline Gantt chart (#314) ---
+
+def _open_chart_tab(page):
+    page.click('[data-rtab="schedule"]')
+    page.wait_for_selector('#rPanel-schedule', timeout=5000)
+    page.click('button[data-tab="chart"]')
+    page.wait_for_selector('button[data-tab="chart"].active', timeout=5000)
+
+
+@pytest.mark.feature
+def test_payoff_gantt_chart_renders_one_bar_per_debt(app_page):
+    """Positive: after calculating a plan and opening the Chart View tab,
+    the Gantt chart has exactly one bar (data point) per debt."""
+    page = app_page
+    _create_two_debts(page)
+    _calculate(page, 'avalanche')
+    _open_chart_tab(page)
+
+    labels = page.evaluate("() => window.app.payoffGanttChart?.data?.labels || []")
+    assert len(labels) == 2, f"Expected 2 bars (one per debt), got: {labels}"
+    assert set(labels) == {'High Interest Debt', 'Low Interest Debt'}
+
+
+@pytest.mark.feature
+def test_payoff_gantt_sorts_soonest_payoff_first(app_page):
+    """Positive: bars are ordered soonest-paid-off first, so the chart
+    visually cascades — Avalanche pays extra toward the 24% debt first,
+    so 'High Interest Debt' (smaller balance + prioritized) finishes before
+    'Low Interest Debt'."""
+    page = app_page
+    _create_two_debts(page)
+    _calculate(page, 'avalanche')
+    _open_chart_tab(page)
+
+    labels = page.evaluate("() => window.app.payoffGanttChart.data.labels")
+    assert labels[0] == 'High Interest Debt', f"Expected soonest-paid-off debt first, got: {labels}"
+
+    values = page.evaluate("() => window.app.payoffGanttChart.data.datasets[0].data")
+    assert values[0] <= values[1], f"Expected ascending payoff-month order, got: {values}"
+
+
+@pytest.mark.feature
+def test_payoff_gantt_assigns_distinct_colors_per_bar(app_page):
+    """Positive: each bar gets its own color from the shared Plan-page
+    palette, matching the per-debt color convention used by the other
+    Plan page charts (balanceChart)."""
+    page = app_page
+    _create_two_debts(page)
+    _calculate(page, 'avalanche')
+    _open_chart_tab(page)
+
+    colors = page.evaluate("() => window.app.payoffGanttChart.data.datasets[0].backgroundColor")
+    assert len(colors) == 2
+    assert colors[0] != colors[1], f"Expected distinct bar colors, got: {colors}"
+
+
+@pytest.mark.feature
+def test_payoff_gantt_chart_without_a_plan_does_not_crash(app_page):
+    """Negative: the UI itself never exposes the Chart View tab before a
+    plan exists (the whole Results/Schedule section stays hidden until
+    #calculateBtn runs), but renderPayoffGanttChart() must still guard
+    against being called with no app.lastPaymentPlan rather than throw."""
+    page = app_page
+    page.click('button[data-page="strategy"]')
+    page.wait_for_selector('#strategySection.active', timeout=5000)
+
+    result = page.evaluate("""() => {
+        window.app.lastPaymentPlan = null;
+        try { window.app.renderPayoffGanttChart(); return 'ok'; } catch (e) { return e.message; }
+    }""")
+    assert result == 'ok', f"renderPayoffGanttChart() should not throw with no plan, got: {result}"
+
+    chart_exists = page.evaluate("() => !!window.app.payoffGanttChart")
+    assert not chart_exists, "Expected no Gantt chart instance without a calculated plan"
+    assert_no_errors(page)
+
+
+@pytest.mark.feature
+def test_payoff_gantt_chart_survives_repeated_recalculation(app_page):
+    """Negative/robustness: recalculating the plan multiple times while the
+    Chart View tab is open must not throw or leak Chart.js instances."""
+    page = app_page
+    _create_two_debts(page)
+    _calculate(page, 'avalanche')
+    _open_chart_tab(page)
+
+    for _ in range(3):
+        page.click('#calculateBtn')
+        page.wait_for_selector('#resultsSection.visible', timeout=10000)
+
+    assert_no_errors(page)
+    chart_attached = page.evaluate(
+        "() => !!Chart.getChart(document.getElementById('payoffGanttChart'))"
+    )
+    assert chart_attached, "Expected exactly one live Chart.js instance attached to #payoffGanttChart"
