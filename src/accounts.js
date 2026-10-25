@@ -68,6 +68,102 @@ export function computeAccountBalance(app, accountId, year = null, month = null)
     return balance;
 }
 
+// #257: transaction-level drill-down backing an account's "Proj. (month)"
+// figure — reuses the exact same getLedgerTransactionsForMonth() list that
+// computeAccountBalance() sums, so the running balance in the modal always
+// reconciles with the card's displayed total.
+const BREAKDOWN_TYPE_ICONS = { income: '💵', bonus: '🎁', debt: '💳', bill: '🧾', recurring: '🔄', expense: '💸', savings: '💰' };
+
+export function renderAccountBalanceBreakdown(app, accountId, triggerEl = null) {
+    const modal = document.getElementById('acctBreakdownModal');
+    const content = document.getElementById('acctBreakdownContent');
+    if (!modal || !content) return;
+    const acct = app.accounts.find(a => a.id === accountId);
+    if (!acct) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const txs = getLedgerTransactionsForMonth(app, year, month, accountId);
+
+    let running = Number(acct.startingBalance) || 0;
+    const rows = txs.map(tx => {
+        running += Number(tx.amount) || 0;
+        const d = new Date(tx.date);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const icon = BREAKDOWN_TYPE_ICONS[tx.type] || '•';
+        const isNeg = tx.amount < 0;
+        const amtCls = isNeg ? 'acct-breakdown-amt--neg' : 'acct-breakdown-amt--pos';
+        const sign = isNeg ? '–' : '+';
+        return `<div class="acct-breakdown-row">
+            <span class="acct-breakdown-date">${dateStr}</span>
+            <span class="acct-breakdown-icon" aria-hidden="true">${icon}</span>
+            <span class="acct-breakdown-name">${escapeHtml(tx.name)}</span>
+            <span class="acct-breakdown-amt ${amtCls}">${sign}${formatCurrency(Math.abs(tx.amount))}</span>
+            <span class="acct-breakdown-running">${formatCurrency(running)}</span>
+        </div>`;
+    }).join('');
+
+    content.innerHTML = `
+        <div class="spending-modal-header">
+            <div>
+                <h3 class="spending-modal-title" id="acctBreakdownTitle">${escapeHtml(acct.name)} — ${escapeHtml(monthLabel)}</h3>
+                <p class="spending-modal-subtitle">${txs.length} transaction${txs.length !== 1 ? 's' : ''} starting from ${formatCurrency(acct.startingBalance)}</p>
+            </div>
+        </div>
+        ${txs.length > 0 ? `<div class="acct-breakdown-header-row">
+            <span>Date</span><span></span><span>Description</span><span>Amount</span><span>Balance</span>
+        </div>` : ''}
+        <div class="acct-breakdown-list">${rows || '<p class="spending-empty-detail">No transactions this month.</p>'}</div>
+        <div class="spending-modal-footer">
+            <button class="btn btn-secondary" id="acctBreakdownViewLedgerBtn" aria-label="View ${escapeHtml(acct.name)} transactions in Ledger">View in Ledger &rarr;</button>
+            <button class="btn btn-secondary" id="acctBreakdownClose" aria-label="Close balance breakdown">Close</button>
+        </div>`;
+    modal.classList.remove('hidden');
+
+    const close = () => {
+        modal.classList.add('hidden');
+        modal.removeEventListener('keydown', handleKeydown);
+        modal.onclick = null;
+        if (triggerEl) triggerEl.focus();
+    };
+
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+        if (e.key === 'Tab') {
+            const focusable = Array.from(modal.querySelectorAll(
+                'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            ));
+            if (focusable.length === 0) { e.preventDefault(); return; }
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (e.shiftKey && (document.activeElement === first || document.activeElement === modal)) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
+        }
+    };
+
+    document.getElementById('acctBreakdownClose').onclick = close;
+    document.getElementById('acctBreakdownViewLedgerBtn').onclick = () => {
+        close();
+        // Pre-filters Ledger to this account; dateRange is left at 'all'
+        // rather than scoped to the current month, since Ledger has no
+        // exact-calendar-month filter (its date options are all relative —
+        // around today, next N days, etc.) — see #257 discussion.
+        app._ledgerAccountFilter = accountId;
+        app._ledgerCategoryFilter = 'all';
+        app._ledgerDateRange = 'all';
+        app._ledgerPage = 1;
+        app._ledgerFiltersRestored = true;
+        app.switchPage('ledger');
+    };
+    modal.onclick = e => { if (e.target === modal) close(); };
+    modal.addEventListener('keydown', handleKeydown);
+    modal.focus();
+}
+
 export function renderAccountsList(app) {
     const container = document.getElementById('accountList');
     if (!container) return;
@@ -228,6 +324,7 @@ export function renderAccountsList(app) {
                     <div class="acct-balance-item">
                         <span class="acct-balance-label">Proj. (${monthLabel})</span>
                         <span class="acct-balance-value ${balClass}">${formatCurrency(projBalance)}</span>
+                        <button type="button" class="acct-balance-breakdown-btn" data-account-action="breakdown" data-account-id="${a.id}" aria-label="See balance breakdown for ${escapeHtml(a.name)}">See breakdown</button>
                     </div>
                 </div>
                 <div class="debt-actions">
@@ -293,6 +390,7 @@ export function renderAccountsList(app) {
         if (action === 'archive') app.archiveAccount(id);
         if (action === 'unarchive') app.unarchiveAccount(id);
         if (action === 'history') app.showBalanceHistoryModal({ kind: 'account', id });
+        if (action === 'breakdown') app.showAccountBalanceBreakdown(id, actionEl);
     };
     container.onchange = (event) => {
         const typeSelect = event.target.closest('select[id^="ac-type-"]');

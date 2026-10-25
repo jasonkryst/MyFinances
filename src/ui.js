@@ -985,6 +985,12 @@ function _buildWhatsNewHtml() {
 // Update this list every version bump alongside CHANGELOG.md.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.34.0 — 2026-10-25',
+        items: [
+            '<strong>Accounts: balance breakdown drill-down</strong> (issue #257) — click "See breakdown" on any account\'s projected balance to see exactly which transactions make it up, with a running balance after each one.'
+        ]
+    },
+    {
         version: '6.33.0 — 2026-10-23',
         items: [
             '<strong>Health: per-card credit utilization breakdown</strong> (issue #281) — see which individual credit card is driving your utilization number, not just the total.',

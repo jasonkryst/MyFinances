@@ -107,7 +107,14 @@ def _is_dynamic_modal_title_false_positive(ref):
     actually shown to a screen reader, the title exists. Not a real WCAG
     failure; narrowly filtered by its exact id pair.
     """
-    return ref.get("id") == "spendingDrilldownModal" and ref.get("refId") == "spendingDrilldownTitle"
+    if ref.get("id") == "spendingDrilldownModal" and ref.get("refId") == "spendingDrilldownTitle":
+        return True
+    # Same dynamic-content pattern as above, for #257's account balance
+    # breakdown modal: src/accounts.js only renders #acctBreakdownTitle into
+    # #acctBreakdownContent once "See breakdown" is actually clicked.
+    if ref.get("id") == "acctBreakdownModal" and ref.get("refId") == "acctBreakdownTitle":
+        return True
+    return False
 
 
 @pytest.mark.a11y

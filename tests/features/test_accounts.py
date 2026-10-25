@@ -6,7 +6,24 @@ Tests account CRUD operations and calculations.
 
 import pytest
 
+from tests.conftest import current_month_iso
+
 BASE_URL = "http://localhost:32900/"
+
+
+def _seed_breakdown_account(page):
+    """Seed one account with a linked income deposit and a linked debt
+    payment landing in the current calendar month, matching the exact
+    shape sanitizeAccount/sanitizeIncome/sanitizeDebt expect (#257)."""
+    page.evaluate("""(firstPayDate) => {
+        const app = window.app;
+        app.accounts = [{ id: 9101, name: 'Breakdown Checking', type: 'Checking', startingBalance: 1000, interestRate: 0 }];
+        app.incomes = [{ id: 9102, name: 'Paycheck', amount: 2000, firstPayDate, frequency: 'monthly', accountId: 9101 }];
+        app.debts = [{ id: 9103, name: 'Visa', accountBalance: 500, originalBalance: 500,
+                       minimumPayment: 150, interestRate: 20, dueDate: 20, debtType: 'creditCard', accountId: 9101 }];
+        app.bills = []; app.expenses = []; app.recurringTemplates = []; app.bonuses = [];
+        app.renderAccountsList();
+    }""", current_month_iso(5))
 
 
 @pytest.mark.feature
@@ -988,4 +1005,160 @@ def test_archived_account_badge_visible(app_page):
     badge = page.query_selector('.acct-archived-badge')
     assert badge, "Archived badge should appear on archived account card"
     assert 'Archived' in (badge.text_content() or ''), "Badge should say 'Archived'"
+
+
+# --- Balance breakdown drill-down (#257) ---
+
+@pytest.mark.feature
+def test_account_card_has_breakdown_button(app_page):
+    """Positive: each account card renders a 'See breakdown' affordance
+    wired to the correct account id."""
+    page = app_page
+    _seed_breakdown_account(page)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    btn = page.query_selector('[data-account-action="breakdown"][data-account-id="9101"]')
+    assert btn, "Expected a 'See breakdown' button for the seeded account"
+
+
+@pytest.mark.feature
+def test_account_breakdown_lists_linked_transactions(app_page):
+    """Positive: the breakdown modal lists both the income deposit and the
+    debt payment that compose the projected balance, labeled by type."""
+    page = app_page
+    _seed_breakdown_account(page)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    page.click('[data-account-action="breakdown"][data-account-id="9101"]')
+    page.wait_for_selector('#acctBreakdownModal:not(.hidden)', timeout=5000)
+
+    content = page.evaluate('() => document.getElementById("acctBreakdownContent").textContent || ""')
+    assert 'Paycheck' in content, f"Expected income transaction 'Paycheck' in breakdown, got: {content[:300]}"
+    assert 'Visa' in content, f"Expected debt transaction 'Visa' in breakdown, got: {content[:300]}"
+
+    row_count = page.evaluate('() => document.querySelectorAll("#acctBreakdownContent .acct-breakdown-row").length')
+    assert row_count == 2, f"Expected exactly 2 transaction rows, got {row_count}"
+
+
+@pytest.mark.feature
+def test_account_breakdown_running_balance_matches_card(app_page):
+    """Positive: the breakdown's final running balance equals the account
+    card's own projected balance figure — they must never diverge since
+    both are derived from the same getLedgerTransactionsForMonth() list."""
+    page = app_page
+    _seed_breakdown_account(page)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    # Both "Starting" and "Proj. (month)" spans share the base
+    # .acct-balance-value class — only the projected-balance one additionally
+    # carries acct-balance--pos/--neg, so scope the selector to that.
+    card_balance = page.evaluate(
+        '() => document.querySelector(".acct-balance-value.acct-balance--pos, .acct-balance-value.acct-balance--neg").textContent.trim()'
+    )
+
+    page.click('[data-account-action="breakdown"][data-account-id="9101"]')
+    page.wait_for_selector('#acctBreakdownModal:not(.hidden)', timeout=5000)
+    last_running = page.evaluate("""() => {
+        const rows = document.querySelectorAll('#acctBreakdownContent .acct-breakdown-running');
+        return rows.length ? rows[rows.length - 1].textContent.trim() : null;
+    }""")
+    assert last_running == card_balance, (
+        f"Expected final running balance '{last_running}' to match card balance '{card_balance}'"
+    )
+    # 1000 starting + 2000 income - 150 debt payment = 2850
+    assert '2,850.00' in card_balance, f"Expected projected balance of $2,850.00, got: {card_balance}"
+
+
+@pytest.mark.feature
+def test_account_breakdown_amount_signs_and_classes(app_page):
+    """Positive: the income row is styled/sign-prefixed as positive (+),
+    the debt payment row as negative (–)."""
+    page = app_page
+    _seed_breakdown_account(page)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.click('[data-account-action="breakdown"][data-account-id="9101"]')
+    page.wait_for_selector('#acctBreakdownModal:not(.hidden)', timeout=5000)
+
+    pos_count = page.evaluate('() => document.querySelectorAll("#acctBreakdownContent .acct-breakdown-amt--pos").length')
+    neg_count = page.evaluate('() => document.querySelectorAll("#acctBreakdownContent .acct-breakdown-amt--neg").length')
+    assert pos_count == 1, f"Expected 1 positive (income) row, got {pos_count}"
+    assert neg_count == 1, f"Expected 1 negative (debt payment) row, got {neg_count}"
+
+
+@pytest.mark.feature
+def test_account_breakdown_empty_state_no_transactions(app_page):
+    """Negative: an account with no linked transactions this month shows
+    the explicit empty-state message instead of a blank or broken list."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 9201, name: 'Empty Savings', type: 'Savings', startingBalance: 250, interestRate: 0 }];
+        app.incomes = []; app.debts = []; app.bills = []; app.expenses = [];
+        app.recurringTemplates = []; app.bonuses = [];
+        app.renderAccountsList();
+    }""")
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.click('[data-account-action="breakdown"][data-account-id="9201"]')
+    page.wait_for_selector('#acctBreakdownModal:not(.hidden)', timeout=5000)
+
+    content = page.evaluate('() => document.getElementById("acctBreakdownContent").textContent || ""')
+    assert 'No transactions this month' in content, f"Expected empty-state copy, got: {content[:300]}"
+    row_count = page.evaluate('() => document.querySelectorAll("#acctBreakdownContent .acct-breakdown-row").length')
+    assert row_count == 0, f"Expected 0 transaction rows for an account with none, got {row_count}"
+
+
+@pytest.mark.feature
+def test_account_breakdown_is_read_only(app_page):
+    """Negative: the breakdown view contains no editable form controls —
+    per AC it is strictly read-only (view in Ledger to act on a row)."""
+    page = app_page
+    _seed_breakdown_account(page)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.click('[data-account-action="breakdown"][data-account-id="9101"]')
+    page.wait_for_selector('#acctBreakdownModal:not(.hidden)', timeout=5000)
+
+    editable_count = page.evaluate(
+        '() => document.querySelectorAll("#acctBreakdownContent input, #acctBreakdownContent select, #acctBreakdownContent textarea").length'
+    )
+    assert editable_count == 0, "Breakdown modal must not contain any editable form controls"
+
+
+@pytest.mark.feature
+def test_account_breakdown_nonexistent_account_does_not_crash(app_page):
+    """Negative: calling the breakdown renderer with an id that matches no
+    account is a silent no-op (modal stays hidden), not a crash."""
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+
+    page.evaluate('() => window.app.showAccountBalanceBreakdown(999999)')
+    is_hidden = page.evaluate('() => document.getElementById("acctBreakdownModal").classList.contains("hidden")')
+    assert is_hidden, "Breakdown modal should remain hidden for a nonexistent account id"
+    assert len(page.console_errors) == 0, f"Expected no console errors, got: {page.console_errors}"
+
+
+@pytest.mark.feature
+def test_account_breakdown_view_in_ledger_prefilters_account(app_page):
+    """Positive: 'View in Ledger →' navigates to the Ledger page with this
+    account pre-selected in the Account filter."""
+    page = app_page
+    _seed_breakdown_account(page)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.click('[data-account-action="breakdown"][data-account-id="9101"]')
+    page.wait_for_selector('#acctBreakdownModal:not(.hidden)', timeout=5000)
+
+    page.click('#acctBreakdownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+
+    selected = page.evaluate('() => document.getElementById("ledgerAccountFilter")?.value')
+    assert selected == '9101', f"Expected Ledger's Account filter to be set to '9101', got: {selected}"
+    is_hidden = page.evaluate('() => document.getElementById("acctBreakdownModal").classList.contains("hidden")')
+    assert is_hidden, "Breakdown modal should be closed after navigating to the Ledger"
 
