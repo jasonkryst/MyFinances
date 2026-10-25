@@ -18,6 +18,7 @@ const PRECACHE_URLS = [
     '/src/breakEven.js', '/src/charts.js', '/src/commandPalette.js', '/src/dataExport.js',
     '/src/dataTransferModal.js', '/src/debtBreakEven.js', '/src/debtCalculator.js', '/src/debts.js',
     '/src/forecast.js', '/src/guideNav.js', '/src/guideTheme.js', '/src/health.js',
+    '/src/homePurchase.js',
     '/src/i18n.js', '/src/income.js', '/src/ledger.js', '/src/ledgerOverrides.js',
     '/src/ledgerCleared.js', '/src/keyboardShortcuts.js',
     '/src/ledgerTransactions.js', '/src/reconciliation.js', '/src/recurring.js', '/src/reports.js',
