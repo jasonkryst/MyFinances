@@ -71,6 +71,8 @@ export default {
     'health.dtiGaugeLabel': 'DTI',
     'health.perMonthDebt': '{amount}/mo debt',
     'health.perMonthIncome': '{amount}/mo income',
+    'health.dtiBasisNet': 'Based on net income (after withholding)',
+    'health.dtiBasisGross': 'Based on gross income (no withholding set)',
     'health.manageDebts': 'Manage debts',
     'health.housingCostLabel': 'Est. monthly housing cost',
     'health.mortgageFrontEndLabel': 'Mortgage Front-End',

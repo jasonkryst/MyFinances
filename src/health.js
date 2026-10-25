@@ -867,6 +867,11 @@ export function renderHealthDashboard(app) {
     const dtiRatio = monthlyIncome > 0 ? totalDebtMin / monthlyIncome : 0;
     const dtiPct   = Math.min(dtiRatio * 100, 100);
     const dtiSt    = dtiStatus(dtiRatio);
+    // #251: monthlyIncome is now always net-of-withholding (computeMonthlyIncomeForMonth);
+    // note which basis is in effect for the user so an unexpectedly lower DTI
+    // figure (vs. a gross-income mental model) isn't surprising.
+    const dtiUsesNetIncome = (app.incomes || []).some(i => (i.withholdingPercent || 0) > 0);
+    const dtiIncomeBasisText = dtiUsesNetIncome ? t('health.dtiBasisNet') : t('health.dtiBasisGross');
 
     // ── Mortgage DTI models (#253) ──────────────────────────────────────────────
     // Ratios themselves are computed inside renderMortgageDtiPanel() so the
@@ -1104,6 +1109,7 @@ export function renderHealthDashboard(app) {
                     <span>${t('health.perMonthDebt', { amount: formatCurrency(totalDebtMin) })}</span>
                     <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
                 </div>
+                <div class="health-dti-basis">${dtiIncomeBasisText}</div>
                 <div class="health-mortgage-dti-panel" id="healthMortgageDtiPanel"></div>
                 <a href="#" class="health-link" data-health-nav="liabilities">${t('health.manageDebts')} &rarr;</a>
             </div>

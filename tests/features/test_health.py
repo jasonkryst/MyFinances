@@ -97,6 +97,47 @@ def test_health_dti_high_risk_with_large_debt(app_page):
     section_text = section.text_content()
     assert 'High Risk' in section_text, "Expected High Risk badge with 50% DTI"
 
+# ── DTI gross/net income basis note (#251) ──────────────────────────────────────
+
+@pytest.mark.feature
+def test_health_dti_basis_shows_gross_by_default(app_page):
+    """With no withholding set on any income, the DTI card notes it's using gross income."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 1000,
+                         firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.debts = []; app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+
+    basis = page.query_selector('.health-dti-basis')
+    assert basis, "Expected a .health-dti-basis note on the DTI card"
+    assert 'gross' in basis.text_content().lower(), (
+        f"Expected the gross-income note with no withholding set, got: {basis.text_content()!r}"
+    )
+
+
+@pytest.mark.feature
+def test_health_dti_basis_shows_net_when_withholding_set(app_page):
+    """Once any income has a withholdingPercent > 0, the DTI card notes it's using net income."""
+    page = app_page
+    page.evaluate("""() => {
+        const app = window.app;
+        app.incomes = [{ id: 1, name: 'Salary', amount: 1000, withholdingPercent: 20,
+                         firstPayDate: '2026-06-01', frequency: 'monthly' }];
+        app.debts = []; app.bills = []; app.expenses = []; app.recurringTemplates = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.switchPage('health');
+    }""")
+
+    basis = page.query_selector('.health-dti-basis')
+    assert basis, "Expected a .health-dti-basis note on the DTI card"
+    assert 'net' in basis.text_content().lower(), (
+        f"Expected the net-income note once withholding is set, got: {basis.text_content()!r}"
+    )
+
 
 # ── Savings Rate card ──────────────────────────────────────────────────────────
 

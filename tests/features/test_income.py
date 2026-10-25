@@ -958,6 +958,179 @@ def test_income_variable_flag_persists_through_add_and_edit(app_page):
     assert checked is True, "Edit form should show the variable checkbox pre-checked"
 
 
+# ── #251 Gross vs. net income (tax withholding) ──────────────────────────────
+
+@pytest.mark.feature
+def test_income_withholding_field_present_in_add_form(app_page):
+    """Add Income form has an optional Tax Withholding (%) input."""
+    page = app_page
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+
+    field = page.query_selector('#incomeWithholding')
+    assert field, "Expected #incomeWithholding input in the Add Income form"
+    assert field.get_attribute('max') == '99.9'
+
+
+@pytest.mark.feature
+def test_add_income_with_withholding_shows_net_amount_with_gross_tooltip(app_page):
+    """A withholding % reduces the amount shown on the card (net), with the
+    gross amount available via a secondary note/tooltip."""
+    page = app_page
+    _create_income_account(page, "Withholding Account")
+
+    page.fill('#incomeName', 'Withheld Salary')
+    page.fill('#incomeAmount', '2000')
+    page.fill('#incomeWithholding', '20')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('text=Withheld Salary', timeout=10000)
+
+    card = page.query_selector('#incomeList .income-card:has-text("Withheld Salary")')
+    assert card, "Expected the income card to render"
+
+    amount_text = card.query_selector('.income-card-amount').text_content()
+    assert '1,600' in amount_text, f"Expected net amount $1,600.00 on the card, got {amount_text!r}"
+
+    gross_note = card.query_selector('.income-card-gross-note')
+    assert gross_note, "Expected a gross-amount note when withholding is set"
+    assert '2,000' in gross_note.text_content(), f"Expected gross note to mention $2,000, got {gross_note.text_content()!r}"
+
+
+@pytest.mark.feature
+def test_income_without_withholding_shows_gross_amount_with_no_note(app_page):
+    """Default (0%) withholding looks exactly as before: no gross note, and the
+    amount shown equals the entered amount."""
+    page = app_page
+    _create_income_account(page, "No Withholding Account")
+
+    page.fill('#incomeName', 'Plain Salary')
+    page.fill('#incomeAmount', '1800')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('text=Plain Salary', timeout=10000)
+
+    card = page.query_selector('#incomeList .income-card:has-text("Plain Salary")')
+    amount_text = card.query_selector('.income-card-amount').text_content()
+    assert '1,800' in amount_text
+
+    assert card.query_selector('.income-card-gross-note') is None, (
+        "No gross note should render when withholding is 0 (gross === net)"
+    )
+
+
+@pytest.mark.feature
+def test_income_withholding_persists_through_add_and_edit(app_page):
+    """withholdingPercent persists on add, pre-fills the edit form, and a new
+    value entered there persists on save."""
+    page = app_page
+    _create_income_account(page, "Withholding Edit Account")
+
+    page.fill('#incomeName', 'Edit Withholding Salary')
+    page.fill('#incomeAmount', '3000')
+    page.fill('#incomeWithholding', '15')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('text=Edit Withholding Salary', timeout=10000)
+
+    stored = page.evaluate(
+        "() => window.app.incomes.find(i => i.name === 'Edit Withholding Salary')?.withholdingPercent"
+    )
+    assert stored == 15, f"Expected withholdingPercent 15 after add, got {stored!r}"
+
+    page.click('[data-income-action="edit"]')
+    page.wait_for_selector('[data-income-action="save"]', timeout=5000)
+
+    withholding_input = page.query_selector('input[id^="ie-withholding-"]')
+    assert withholding_input, "Expected the inline-edit withholding input to be present"
+    assert withholding_input.input_value() == '15'
+
+    withholding_input.fill('25')
+    page.click('[data-income-action="save"]')
+
+    updated = page.evaluate(
+        "() => window.app.incomes.find(i => i.name === 'Edit Withholding Salary')?.withholdingPercent"
+    )
+    assert updated == 25, f"Expected withholdingPercent 25 after edit, got {updated!r}"
+
+
+@pytest.mark.feature
+def test_add_income_withholding_out_of_range_rejected(app_page):
+    """A withholding % above 99.9 is rejected, not silently clamped and saved."""
+    page = app_page
+    _create_income_account(page, "Withholding Validation Account")
+
+    page.fill('#incomeName', 'Bad Withholding Salary')
+    page.fill('#incomeAmount', '2000')
+    page.fill('#incomeWithholding', '150')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
+    page.click('#alertModalOkBtn')
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
+
+    assert page.query_selector('text=Bad Withholding Salary') is None, (
+        "An out-of-range withholding percent should be rejected, not silently saved"
+    )
+
+
+@pytest.mark.feature
+def test_income_withholding_export_import_round_trip(app_page):
+    """withholdingPercent survives a full export -> import roundtrip."""
+    page = app_page
+    _create_income_account(page, "Withholding Roundtrip Account")
+
+    page.fill('#incomeName', 'Roundtrip Salary')
+    page.fill('#incomeAmount', '2500')
+    page.fill('#incomeWithholding', '18.5')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('text=Roundtrip Salary', timeout=10000)
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/dataExport.js');
+
+        let capturedBlob = null;
+        const origCreate = URL.createObjectURL;
+        URL.createObjectURL = (blob) => { capturedBlob = blob; return 'blob:mock'; };
+        try {
+            mod.exportAllJSON(app);
+        } finally {
+            URL.createObjectURL = origCreate;
+        }
+        const text = await capturedBlob.text();
+        const file = new File([text], 'backup.json', { type: 'application/json' });
+
+        app.incomes = [];
+        return new Promise(resolve => {
+            mod.importAllJSON(app, file, {
+                requestImportMode: () => true,
+                onImported: () => {}
+            });
+            setTimeout(() => resolve({
+                income: app.incomes.find(i => i.name === 'Roundtrip Salary')
+            }), 400);
+        });
+    }""")
+
+    income = result.get('income')
+    assert income, "Expected the reimported income to be present"
+    assert income['withholdingPercent'] == 18.5, (
+        f"Expected withholdingPercent 18.5 to survive export/import, got {income.get('withholdingPercent')!r}"
+    )
+
+
 # ── #262 Income Trend chart ───────────────────────────────────────────────────
 
 def _seed_income_for_trend(page, amount=3000):

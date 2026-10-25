@@ -161,7 +161,10 @@ export function sanitizeIncome(record, idFallback) {
         isVariable: Boolean(record?.isVariable ?? false),
         accountId: sanitizeInteger(record?.accountId, null),
         personId: sanitizeInteger(record?.personId, null),
-        updatedAt: sanitizeDateISO(record?.updatedAt)
+        updatedAt: sanitizeDateISO(record?.updatedAt),
+        // #251: optional tax withholding percent — 0 (no withholding) is the
+        // safe default, so legacy records without this field are unaffected.
+        withholdingPercent: sanitizeFiniteNumber(record?.withholdingPercent, 0, { min: 0, max: 99.9 })
     };
 }
 

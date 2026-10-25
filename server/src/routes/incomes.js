@@ -15,6 +15,7 @@ export default createCrudResource({
         accountId: 'account_id',
         personId: 'person_id',
         category: 'category',
-        isVariable: 'is_variable'
+        isVariable: 'is_variable',
+        withholdingPercent: 'withholding_percent'
     }
 });

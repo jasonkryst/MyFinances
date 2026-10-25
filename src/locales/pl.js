@@ -68,6 +68,8 @@ export default {
     'health.dtiGaugeLabel': 'WZD',
     'health.perMonthDebt': '{amount}/mies. długu',
     'health.perMonthIncome': '{amount}/mies. dochodu',
+    'health.dtiBasisNet': 'Na podstawie dochodu netto (po potrąceniach)',
+    'health.dtiBasisGross': 'Na podstawie dochodu brutto (brak ustawionych potrąceń)',
     'health.manageDebts': 'Zarządzaj długami',
     'health.housingCostLabel': 'Szacowany miesięczny koszt mieszkania',
     'health.mortgageFrontEndLabel': 'Hipoteczny Front-End',

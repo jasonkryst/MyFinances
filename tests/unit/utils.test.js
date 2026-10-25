@@ -9,6 +9,8 @@ const {
     formatShortDate,
     formatMonthYear,
     dailyCompoundInterest,
+    computeNetIncomeAmount,
+    computeMonthlyIncomeForMonth,
 } = require('../../src/utils.js');
 
 describe('formatCurrency', () => {
@@ -149,5 +151,55 @@ describe('dailyCompoundInterest', () => {
 
     test('treats an undefined APR as 0', () => {
         expect(dailyCompoundInterest(1000, undefined, 30)).toBe(0);
+    });
+});
+
+describe('computeNetIncomeAmount (#251)', () => {
+    test('returns the raw amount when withholdingPercent is unset (gross === net, backward compatible)', () => {
+        expect(computeNetIncomeAmount({ amount: 2000 })).toBe(2000);
+    });
+
+    test('returns the raw amount when withholdingPercent is 0', () => {
+        expect(computeNetIncomeAmount({ amount: 2000, withholdingPercent: 0 })).toBe(2000);
+    });
+
+    test('applies withholding to derive take-home pay', () => {
+        expect(computeNetIncomeAmount({ amount: 2000, withholdingPercent: 25 })).toBe(1500);
+    });
+
+    test('treats a missing amount as 0', () => {
+        expect(computeNetIncomeAmount({ withholdingPercent: 25 })).toBe(0);
+    });
+});
+
+describe('computeMonthlyIncomeForMonth (#251 withholding)', () => {
+    test('0%/unset withholding matches the pre-existing gross total (backward compatible)', () => {
+        const incomes = [{ amount: 2000, firstPayDate: '2026-01-01', frequency: 'monthly' }];
+        const { monthlyTotal } = computeMonthlyIncomeForMonth(incomes, [], 2026, 0);
+        expect(monthlyTotal).toBe(2000);
+    });
+
+    test('a non-zero withholding percent reduces the monthly total proportionally', () => {
+        const incomes = [{ amount: 2000, firstPayDate: '2026-01-01', frequency: 'monthly', withholdingPercent: 20 }];
+        const { monthlyTotal } = computeMonthlyIncomeForMonth(incomes, [], 2026, 0);
+        expect(monthlyTotal).toBe(1600);
+    });
+
+    test('composes with multiple paydays (biweekly) and multiple income sources', () => {
+        const incomes = [
+            // 3 biweekly paydays land in January 2026 (1st, 15th, 29th); 10% withheld
+            { amount: 1000, firstPayDate: '2026-01-01', frequency: 'biweekly', withholdingPercent: 10 },
+            // no withholding set on this one
+            { amount: 3000, firstPayDate: '2026-01-01', frequency: 'monthly' }
+        ];
+        const { monthlyTotal } = computeMonthlyIncomeForMonth(incomes, [], 2026, 0);
+        expect(monthlyTotal).toBeCloseTo(900 * 3 + 3000, 10);
+    });
+
+    test('bonuses are never withheld — they add on top of net income', () => {
+        const incomes = [{ amount: 2000, firstPayDate: '2026-01-01', frequency: 'monthly', withholdingPercent: 50 }];
+        const bonuses = [{ date: '2026-01-15', amount: 500 }];
+        const { monthlyTotal } = computeMonthlyIncomeForMonth(incomes, bonuses, 2026, 0);
+        expect(monthlyTotal).toBe(1000 + 500);
     });
 });
