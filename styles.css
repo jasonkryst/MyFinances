@@ -5463,6 +5463,17 @@ body.dark-mode .rpt-net--neg .rpt-stat-value      { color: #fca5a5; }
     margin-top: 10px;
 }
 
+/* ── Lazy-loaded module failure (issue #278) ─────────────────────────────── */
+.lazy-load-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    border: 2px dashed var(--danger-color, #ef4444);
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
 /* ── Calendar ────────────────────────────────────────────────────────────── */
 .rpt-cal-month-title {
     margin: 0 0 10px;

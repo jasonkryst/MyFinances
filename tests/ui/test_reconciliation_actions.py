@@ -123,7 +123,7 @@ def test_history_filter_and_delete(app_page):
     """History table account filter narrows rows, and delete removes a row."""
     page = app_page
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [
             { id: 8001, name: 'Recon Checking', type: 'Checking', startingBalance: 1000 },
@@ -133,9 +133,10 @@ def test_history_filter_and_delete(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
         app._reconciliationAccountFilter = 'all';
-        app.applyReconciliation(8001, 1100, 'Checking adj', '2026-06-01');
-        app.applyReconciliation(8002, 600, 'Savings adj', '2026-06-02');
+        await app.applyReconciliation(8001, 1100, 'Checking adj', '2026-06-01');
+        await app.applyReconciliation(8002, 600, 'Savings adj', '2026-06-02');
         app.switchPage('reconcile');
+        await app.renderReconciliationPage();
     }""")
 
     rows = page.query_selector_all('.recon-history-table tbody tr')

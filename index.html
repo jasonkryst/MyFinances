@@ -22,7 +22,12 @@
          With HTTP/2 multiplexing at the reverse proxy this is already largely mitigated,
          but the hints remain valuable for local dev (http.server) and HTTP/1.1 edge cases.
          See issue #146. The list must stay in sync with the actual import graph —
-         test_performance.py::test_modulepreload_covers_transitive_modules enforces this. -->
+         test_performance.py::test_modulepreload_covers_transitive_modules enforces this.
+         Issue #278: reportsCalendar.js, reportsVariance.js, and retirementCalculator.js
+         were removed from this list — they're no longer part of the static import graph
+         at all (loaded on demand via src/lazyModules.js), and a modulepreload hint would
+         force the browser to eagerly fetch+compile them on every load regardless, which
+         is exactly what lazy-loading them is meant to avoid. -->
     <link rel="modulepreload" href="src/locales/en.js">
     <link rel="modulepreload" href="src/locales/es.js">
     <link rel="modulepreload" href="src/locales/pl.js">
@@ -31,12 +36,9 @@
     <link rel="modulepreload" href="src/breakEven.js">
     <link rel="modulepreload" href="src/forecast.js">
     <link rel="modulepreload" href="src/spending.js">
-    <link rel="modulepreload" href="src/reportsCalendar.js">
-    <link rel="modulepreload" href="src/reportsVariance.js">
     <link rel="modulepreload" href="src/postgresSync.js">
     <link rel="modulepreload" href="src/postgresImport.js">
     <link rel="modulepreload" href="src/sanitizers.js">
-    <link rel="modulepreload" href="src/retirementCalculator.js">
     <link rel="modulepreload" href="src/ledgerOverrides.js">
     <link rel="modulepreload" href="src/ledgerCleared.js">
     <link rel="modulepreload" href="src/people.js">

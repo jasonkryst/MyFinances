@@ -137,9 +137,9 @@ def test_apply_reconciliation_defaults_to_visible_mode_when_no_setting_present(a
         app._reconciliationAccountFilter = 'all';
     }""")
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
-        app.applyReconciliation(7001, 1500, '', '2026-06-10');
+        await app.applyReconciliation(7001, 1500, '', '2026-06-10');
         return { balance: app.accounts[0].startingBalance };
     }""")
 
@@ -155,7 +155,7 @@ def test_apply_reconciliation_invalid_date_falls_back_to_today(app_page):
     result = page.evaluate("""async () => {
         const app = window.app;
         const mod = await import('/src/utils.js');
-        app.applyReconciliation(7001, 1100, '', 'not-a-date');
+        await app.applyReconciliation(7001, 1100, '', 'not-a-date');
         return { entryDate: app.reconciliations[0].date, today: mod.todayISO() };
     }""")
 
@@ -195,11 +195,11 @@ def test_delete_reconciliation_entry_does_not_alter_balance(app_page):
     page = app_page
     _seed_reconciliation_account(page)
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
-        app.applyReconciliation(7001, 1200, '', '2026-06-10');
+        await app.applyReconciliation(7001, 1200, '', '2026-06-10');
         const entryId = app.reconciliations[0].id;
-        app.deleteReconciliationEntry(entryId);
+        await app.deleteReconciliationEntry(entryId);
         return { balance: app.accounts[0].startingBalance, historyCount: app.reconciliations.length };
     }""")
 
@@ -212,7 +212,7 @@ def test_expected_transactions_across_month_boundary(app_page):
     """getExpectedTransactionsInRange returns transactions spanning a month boundary, sorted by date."""
     page = app_page
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 7002, name: 'Recon Bills', type: 'Checking', startingBalance: 2000 }];
         app.bills = [
@@ -223,7 +223,7 @@ def test_expected_transactions_across_month_boundary(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
 
-        const results = app.getExpectedTransactionsInRange(7002, '2026-01-28', '2026-02-02');
+        const results = await app.getExpectedTransactionsInRange(7002, '2026-01-28', '2026-02-02');
         return results.map(tx => ({ name: tx.name, date: tx.date.slice(0, 10) }));
     }""")
 
@@ -308,7 +308,7 @@ def test_clear_all_data_resets_reconciliations(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        app.applyReconciliation(7001, 1200, '', '2026-06-10');
+        await app.applyReconciliation(7001, 1200, '', '2026-06-10');
         app._reconciliationAccountFilter = '7001';
         const mod = await import('/src/storage.js');
         mod.clearAllData(app, {});
@@ -326,7 +326,7 @@ def test_orphaned_reconciliation_entry_renders_without_throwing(app_page):
     'Unknown account' label instead of throwing."""
     page = app_page
 
-    result = page.evaluate("""() => {
+    result = page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [
             { id: 7301, name: 'Recon Deleted', type: 'Checking', startingBalance: 1000 },
@@ -336,14 +336,14 @@ def test_orphaned_reconciliation_entry_renders_without_throwing(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
         app._reconciliationAccountFilter = 'all';
-        app.applyReconciliation(7301, 1100, 'Orphan test', '2026-06-10');
+        await app.applyReconciliation(7301, 1100, 'Orphan test', '2026-06-10');
 
         // Delete the reconciled account, leaving its history entry orphaned
         app.accounts = app.accounts.filter(a => a.id !== 7301);
 
         let threw = false;
         try {
-            app.renderReconciliationPage();
+            await app.renderReconciliationPage();
         } catch (e) {
             threw = true;
         }

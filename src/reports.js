@@ -1,16 +1,12 @@
 // Reports page logic: month navigation, calendar, charts
 
 import {
-    getReportDate
+    getReportDate, renderLazyLoadError
 } from './utils.js';
 import { renderCashFlowForecast } from './forecast.js';
 import { renderReportsSpending } from './spending.js';
 import { renderReportsNetWorth } from './reportsNetWorth.js';
-import { renderReportsCalendar } from './reportsCalendar.js';
-import { renderReportsIncomeExp, renderReportsMoneyFlow, renderReportsCashFlowTrend } from './reportsCashFlow.js';
-import { renderMoneyFlowSankey } from './reportsMoneyFlowSankey.js';
-import { renderReportsVariance } from './reportsVariance.js';
-import { renderReportsSummary } from './reportsSummary.js';
+import { loadReportsSubModules } from './lazyModules.js';
 
 export function prevReportMonth(app) {
     app._reportMonthOffset--;
@@ -34,7 +30,13 @@ export function updateReportMonthNav(app) {
     if (prevBtn) prevBtn.disabled = app._reportMonthOffset <= -24;
 }
 
-// Maps each Reports sub-tab to the render function(s) its panel needs.
+// Maps each always-eager Reports sub-tab to the render function(s) its panel
+// needs. The other five tabs (calendar, incomeexp, moneyflow, variance,
+// summary) are rendered by modules loaded on demand via
+// loadReportsSubModules() (issue #278) -- see getLazyReportRenderers() below
+// -- since nothing outside reports.js reaches them and they're all behind
+// this same single dispatch point.
+//
 // Every chart-owning render function destroys its own prior Chart.js
 // instance before creating a new one (see reportsNetWorth.js), so
 // re-rendering only the active tab -- instead of unconditionally rebuilding
@@ -43,22 +45,43 @@ export function updateReportMonthNav(app) {
 // whatever it last rendered until the user switches to it, at which point
 // the tab-click handler (src/ui.js) calls renderReportsPage() again and it
 // renders fresh. See docs/audit/performance/PERFORMANCE_AUDIT_2026-09-02.md.
-const REPORT_TAB_RENDERERS = {
-    calendar: [renderReportsCalendar],
-    incomeexp: [renderReportsIncomeExp],
-    moneyflow: [renderMoneyFlowSankey, renderReportsMoneyFlow, renderReportsCashFlowTrend],
-    variance: [renderReportsVariance],
+const STATIC_REPORT_TAB_RENDERERS = {
     networth: [renderReportsNetWorth],
     forecast: [renderCashFlowForecast],
     spending: [renderReportsSpending],
-    summary: [renderReportsSummary],
 };
 
-export function renderReportsPage(app) {
+const LAZY_REPORT_TABS = new Set(['calendar', 'incomeexp', 'moneyflow', 'variance', 'summary']);
+
+async function getLazyReportRenderers(tab) {
+    const mods = await loadReportsSubModules();
+    switch (tab) {
+        case 'calendar': return [mods.calendar.renderReportsCalendar];
+        case 'incomeexp': return [mods.cashFlow.renderReportsIncomeExp];
+        case 'moneyflow': return [mods.sankey.renderMoneyFlowSankey, mods.cashFlow.renderReportsMoneyFlow, mods.cashFlow.renderReportsCashFlowTrend];
+        case 'variance': return [mods.variance.renderReportsVariance];
+        case 'summary': return [mods.summary.renderReportsSummary];
+        default: return [];
+    }
+}
+
+export async function renderReportsPage(app) {
     updateReportMonthNav(app);
 
     const activeBtn = document.querySelector('.rpt-tab-btn--active');
     const activeTab = activeBtn?.getAttribute('data-rptab') || 'calendar';
-    const renderers = REPORT_TAB_RENDERERS[activeTab] || REPORT_TAB_RENDERERS.calendar;
-    for (const render of renderers) render(app);
+
+    if (STATIC_REPORT_TAB_RENDERERS[activeTab]) {
+        for (const render of STATIC_REPORT_TAB_RENDERERS[activeTab]) render(app);
+        return;
+    }
+
+    const tab = LAZY_REPORT_TABS.has(activeTab) ? activeTab : 'calendar';
+    try {
+        const renderers = await getLazyReportRenderers(tab);
+        for (const render of renderers) render(app);
+    } catch (err) {
+        console.error(`Failed to load Reports module for tab "${tab}"`, err);
+        renderLazyLoadError(`rptPanel-${tab}`, 'this report');
+    }
 }

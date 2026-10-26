@@ -15,7 +15,7 @@ export default {
         'src/debtCalculator.js:442-454', // calculateMonthsBetweenDates
         'src/utils.js:10-83', // formatCurrency, normalizeText, sanitizeFiniteNumber, parseFiniteOrNull, formatShortDate, formatMonthYear, sanitizeInteger, sanitizeDateISO
         'src/utils.js:92-97', // dateToISO
-        'src/utils.js:284-287', // dailyCompoundInterest
+        'src/utils.js:327-330', // dailyCompoundInterest (shifted by issue #278's renderLazyLoadError addition)
         'src/sanitizers.js:5-64', // sanitizeAccount, sanitizeDebt, sanitizeIncome
         'src/sanitizers.js:78-99', // sanitizeBill, sanitizeExpense
         'src/sanitizers.js:89-99', // sanitizeBonus

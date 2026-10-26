@@ -415,13 +415,17 @@ function renderProjectionPanel(app, accounts) {
     }
 
     const rows = accounts.map(a => {
-        const projected = app.computeAccountProjection(a.id);
+        // Local call, not app.computeAccountProjection(): this module is
+        // already loaded and executing, and the app wrapper is async
+        // (issue #278) -- going through it here would hand back a Promise
+        // instead of the synchronous number formatCurrency()/the sum below need.
+        const projected = computeAccountProjection(app, a.id);
         const label = a.retirementSubtype === 'Pension'
             ? `${escapeHtml(a.name)} ${t('retirement.pensionTotalContribLabel')}`
             : escapeHtml(a.name);
         return `<div class="acct-balance-item"><span class="acct-balance-label">${label}</span><span class="acct-balance-value">${formatCurrency(projected)}</span></div>`;
     });
-    const total = accounts.reduce((sum, a) => sum + (app.computeAccountProjection(a.id) || 0), 0);
+    const total = accounts.reduce((sum, a) => sum + (computeAccountProjection(app, a.id) || 0), 0);
 
     const withdrawalRate = Number(getSetting(app, RETIREMENT_WITHDRAWAL_RATE, 4)) || 4;
 

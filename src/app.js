@@ -85,7 +85,6 @@ import {
     displayInterestComparison as displayInterestComparisonFeature,
     displayWhatIfSimulator as displayWhatIfSimulatorFeature
 } from './strategyComparison.js';
-import { renderCalendarView as renderCalendarViewFeature } from './strategyCalendar.js';
 import {
     prevReportMonth as prevReportMonthFeature,
     nextReportMonth as nextReportMonthFeature,
@@ -95,18 +94,15 @@ import {
     captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
     renderNetWorthWidget as renderNetWorthWidgetFeature
 } from './reportsNetWorth.js';
-import {
-    computeReportsSummaryMetrics as computeReportsSummaryMetricsFeature
-} from './reportsSummary.js';
-import {
-    getCashFlowTrendSeries as getCashFlowTrendSeriesFeature
-} from './reportsCashFlow.js';
-import {
-    computeMoneyFlowSankeyData as computeMoneyFlowSankeyDataFeature
-} from './reportsMoneyFlowSankey.js';
 import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, checkWhatsNew as checkWhatsNewFeature, openWhatsNewModal as openWhatsNewModalFeature, showAlertModal } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
-import { APP_VERSION } from './utils.js';
+import { APP_VERSION, renderLazyLoadError } from './utils.js';
+import {
+    loadRetirementModule,
+    loadReconciliationModule,
+    loadStrategyCalendarModule,
+    loadReportsSubModules
+} from './lazyModules.js';
 import {
     renderRecurringPage as renderRecurringPageFeature,
     addRecurringTemplate as addRecurringTemplateFeature,
@@ -128,14 +124,6 @@ import {
     attachSavingsEventListeners as attachSavingsEventListenersFeature
 } from './savings.js';
 import { renderHealthDashboard as renderHealthDashboardFeature } from './health.js';
-import {
-    renderReconciliationPage as renderReconciliationPageFeature,
-    applyReconciliation as applyReconciliationFeature,
-    reconcileAccount as reconcileAccountFeature,
-    deleteReconciliationEntry as deleteReconciliationEntryFeature,
-    getExpectedTransactionsInRange as getExpectedTransactionsInRangeFeature,
-    openReconcileModal as openReconcileModalFeature
-} from './reconciliation.js';
 import { openKeyboardShortcutsModal as openKeyboardShortcutsModalFeature } from './keyboardShortcuts.js';
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT } from './settings.js';
@@ -143,14 +131,6 @@ import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal 
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { initCalendarFeedModal } from './calendarFeed.js';
 import { applyStaticTranslations, setLocale as setLocaleFeature } from './i18n.js';
-import {
-    getRetirementAccounts,
-    getSnapshotsForAccount,
-    addRetirementSnapshot as addRetirementSnapshotFeature,
-    deleteRetirementSnapshot as deleteRetirementSnapshotFeature,
-    computeAccountProjection,
-    renderRetirementPage as renderRetirementPageFeature
-} from './retirement.js';
 import {
     addPerson as addPersonFeature,
     deletePerson as deletePersonFeature,
@@ -746,8 +726,14 @@ export class DebtTrackerApp {
      * rendered at the top and bottom of the container.
      * @param {number} [page=0] - Zero-based page index
      */
-    renderCalendarView(page = 0) {
-        return renderCalendarViewFeature(this, page);
+    async renderCalendarView(page = 0) {
+        try {
+            const mod = await loadStrategyCalendarModule();
+            return mod.renderCalendarView(this, page);
+        } catch (err) {
+            console.error('Failed to load strategy calendar module', err);
+            renderLazyLoadError('calendar-tab', 'the Payment Calendar');
+        }
     }
     /**
      * Render the Strategy Comparison panel inside `#interestComparison`.
@@ -1004,16 +990,19 @@ export class DebtTrackerApp {
         return renderNetWorthWidgetFeature(this);
     }
 
-    computeReportsSummaryMetrics(rangeType, baseDate) {
-        return computeReportsSummaryMetricsFeature(this, rangeType, baseDate);
+    async computeReportsSummaryMetrics(rangeType, baseDate) {
+        const mods = await loadReportsSubModules();
+        return mods.summary.computeReportsSummaryMetrics(this, rangeType, baseDate);
     }
 
-    getCashFlowTrendSeries(months) {
-        return getCashFlowTrendSeriesFeature(this, months);
+    async getCashFlowTrendSeries(months) {
+        const mods = await loadReportsSubModules();
+        return mods.cashFlow.getCashFlowTrendSeries(this, months);
     }
 
-    computeMoneyFlowSankeyData(year, month) {
-        return computeMoneyFlowSankeyDataFeature(this, year, month);
+    async computeMoneyFlowSankeyData(year, month) {
+        const mods = await loadReportsSubModules();
+        return mods.sankey.computeMoneyFlowSankeyData(this, year, month);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -1044,27 +1033,97 @@ export class DebtTrackerApp {
 
     renderHealthDashboard() { return renderHealthDashboardFeature(this); }
 
-    renderReconciliationPage() { return renderReconciliationPageFeature(this); }
-    applyReconciliation(accountId, statementBalance, note, dates) { return applyReconciliationFeature(this, accountId, statementBalance, note, dates); }
-    reconcileAccount(accountId) { return reconcileAccountFeature(this, accountId); }
-    deleteReconciliationEntry(id) { return deleteReconciliationEntryFeature(this, id); }
+    // Issue #278: reconciliation.js is loaded on demand. Every wrapper method
+    // here awaits the shared loader (loadReconciliationModule() resolves
+    // instantly once cached, so this costs nothing after the first call) --
+    // these are called directly by data-layer tests and potentially other
+    // code without the Reconcile page ever having rendered, so none of them
+    // can safely assume the module is already loaded. renderReconciliationPage
+    // and openReconcileModal additionally handle a failed import gracefully
+    // (in-page error / alert respectively, since openReconcileModal's caller,
+    // the Ledger page, has no Reconcile-page DOM of its own to host one).
+    async renderReconciliationPage() {
+        try {
+            const mod = await loadReconciliationModule();
+            return mod.renderReconciliationPage(this);
+        } catch (err) {
+            console.error('Failed to load reconciliation module', err);
+            renderLazyLoadError('reconcileSection', 'the Reconcile page');
+        }
+    }
+    async applyReconciliation(accountId, statementBalance, note, dates) {
+        const mod = await loadReconciliationModule();
+        return mod.applyReconciliation(this, accountId, statementBalance, note, dates);
+    }
+    async reconcileAccount(accountId) {
+        const mod = await loadReconciliationModule();
+        return mod.reconcileAccount(this, accountId);
+    }
+    async deleteReconciliationEntry(id) {
+        const mod = await loadReconciliationModule();
+        return mod.deleteReconciliationEntry(this, id);
+    }
+    async openReconcileModal(accountId) {
+        try {
+            const mod = await loadReconciliationModule();
+            return mod.openReconcileModal(this, accountId);
+        } catch (err) {
+            console.error('Failed to load reconciliation module', err);
+            showAlertModal("Couldn't load the Reconcile feature. Check your connection and try again.");
+        }
+    }
+    async getExpectedTransactionsInRange(accountId, startDate, endDate) {
+        const mod = await loadReconciliationModule();
+        return mod.getExpectedTransactionsInRange(this, accountId, startDate, endDate);
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  RETIREMENT
     // ═════════════════════════════════════════════════════════════════════════
 
-    getRetirementAccounts() { return getRetirementAccounts(this); }
-    getSnapshotsForAccount(accountId) { return getSnapshotsForAccount(this, accountId); }
-    addRetirementSnapshot(accountId, date, balance, contribution, annualSalary = null) { return addRetirementSnapshotFeature(this, accountId, date, balance, contribution, annualSalary); }
+    // Issue #278: retirement.js is loaded on demand. Every wrapper method here
+    // awaits the shared loader for the same reason as the reconciliation group
+    // above -- data-layer tests (and potentially other future callers) invoke
+    // these directly without the Retirement page ever having rendered.
+    // retirement.js's own internal rendering code (renderProjectionPanel) calls
+    // the local computeAccountProjection()/getRetirementAccounts() functions
+    // directly rather than through these async wrappers, since it needs a
+    // synchronous value and is already guaranteed to be running after load.
+    async getRetirementAccounts() {
+        const mod = await loadRetirementModule();
+        return mod.getRetirementAccounts(this);
+    }
+    async getSnapshotsForAccount(accountId) {
+        const mod = await loadRetirementModule();
+        return mod.getSnapshotsForAccount(this, accountId);
+    }
+    async addRetirementSnapshot(accountId, date, balance, contribution, annualSalary = null) {
+        const mod = await loadRetirementModule();
+        return mod.addRetirementSnapshot(this, accountId, date, balance, contribution, annualSalary);
+    }
     recordBalanceHistory(owner) { return recordBalanceHistoryFeature(this, owner); }
     getBalanceHistory(owner) { return getBalanceHistoryFeature(this, owner); }
     deleteBalanceHistoryEntry(id) { return deleteBalanceHistoryEntryFeature(this, id); }
     seedMissingBalanceHistory() { return seedMissingBalanceHistoryFeature(this); }
     showBalanceHistoryModal(owner) { return showBalanceHistoryModalFeature(this, owner); }
     showAccountBalanceBreakdown(accountId, triggerEl) { return renderAccountBalanceBreakdownFeature(this, accountId, triggerEl); }
-    deleteRetirementSnapshot(id) { return deleteRetirementSnapshotFeature(this, id); }
-    computeAccountProjection(accountId) { return computeAccountProjection(this, accountId); }
-    renderRetirementPage() { return renderRetirementPageFeature(this); }
+    async deleteRetirementSnapshot(id) {
+        const mod = await loadRetirementModule();
+        return mod.deleteRetirementSnapshot(this, id);
+    }
+    async computeAccountProjection(accountId) {
+        const mod = await loadRetirementModule();
+        return mod.computeAccountProjection(this, accountId);
+    }
+    async renderRetirementPage() {
+        try {
+            const mod = await loadRetirementModule();
+            return mod.renderRetirementPage(this);
+        } catch (err) {
+            console.error('Failed to load retirement module', err);
+            renderLazyLoadError('retirementSection', 'the Retirement page');
+        }
+    }
 
     addPerson() { return addPersonFeature(this); }
     deletePerson(id) { return deletePersonFeature(this, id); }
@@ -1074,8 +1133,6 @@ export class DebtTrackerApp {
     renderPeopleList() { return renderPeopleListFeature(this); }
     refreshPersonSelectors() { return refreshPersonSelectorsFeature(this); }
 
-    getExpectedTransactionsInRange(accountId, startDate, endDate) { return getExpectedTransactionsInRangeFeature(this, accountId, startDate, endDate); }
-    openReconcileModal(accountId) { return openReconcileModalFeature(this, accountId); }
     openKeyboardShortcuts() { return openKeyboardShortcutsModalFeature(this); }
 
     getSetting(key, defaultValue) { return getSettingFeature(this, key, defaultValue); }

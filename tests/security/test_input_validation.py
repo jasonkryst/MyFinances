@@ -397,7 +397,7 @@ async def test_reconciliation_note_truncated_on_save_reload(async_app_page):
     """A reconciliation note longer than 200 characters is truncated on save/reload."""
     page = async_app_page
 
-    result = await page.evaluate("""() => {
+    result = await page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 7503, name: 'Recon Truncate', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
@@ -405,7 +405,7 @@ async def test_reconciliation_note_truncated_on_save_reload(async_app_page):
         app.reconciliations = [];
 
         const longNote = 'x'.repeat(250);
-        app.applyReconciliation(7503, 1100, longNote, '2026-06-10');
+        await app.applyReconciliation(7503, 1100, longNote, '2026-06-10');
         app.saveToStorage();
         app.loadFromStorage();
         return { noteLength: app.reconciliations[0].note.length };
