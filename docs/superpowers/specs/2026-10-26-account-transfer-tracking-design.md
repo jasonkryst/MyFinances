@@ -1,7 +1,7 @@
 # Account Transfer Tracking — Design
 
 **Date:** 2026-10-26
-**Status:** Proposed — pending sign-off before implementation (issue #248 explicitly calls for a spec first; P2/strategic)
+**Status:** Approved — signed off 2026-10-26, see Decisions below
 
 ## Problem
 
@@ -57,19 +57,19 @@ with the recurring-transfer's two-`addTx()`-calls shape.
 
 ## Non-goals
 
-- Editing a transfer's legs independently. A transfer is one record with two generated legs; edit
-  and delete act on the record, never on a single leg.
+- Editing a transfer's two legs *independently*. A transfer is one record with two generated legs;
+  edit and delete act on the whole record (see Decisions — edit is in scope for v1, but always
+  edits the record, never a single leg).
 - Scheduled/recurring transfers — already covered by `recurring.js`'s existing `transfer` type. This
   issue is for one-off/ad hoc transfers only.
 - Multi-currency conversion.
 - Retrofitting the new Ledger visual indicator onto existing recurring-transfer-sourced rows (both
-  currently render as generic `type: 'recurring'`). Worth doing for consistency, but it touches
-  already-shipped `recurring.js` behavior and isn't required by #248 — flagged as a candidate
-  fast-follow, see Open Questions.
+  currently render as generic `type: 'recurring'`). Spun out as its own fast-follow: **issue #399**.
 - A dedicated "Transfers" list/history page. The Ledger (filterable per account) and each account's
   balance breakdown already surface them; a standalone list view is a follow-up if requested.
 - Letting a transfer leg participate in `ledgerAmountOverrides`. Overriding one leg without the
-  other would break the zero-sum guarantee (see Open Questions).
+  other would break the zero-sum guarantee — each leg may still be independently marked "cleared"
+  (informational/per-account), per the Decisions below.
 
 ## Data model
 
@@ -173,9 +173,15 @@ shape.
 - `addTransfer(app, fromAccountId, toAccountId, amount, date, memo)` — validates
   `fromAccountId !== toAccountId` and `amount > 0` before pushing (mirrors `applyReconciliation`'s
   `{ success, error }` return shape); calls `pgPost` when `app._storageBackendKind === 'postgres'`.
+- `editTransfer(app, id, { fromAccountId, toAccountId, amount, date, memo })` — same validation as
+  `addTransfer`, applied to the existing record in place; calls `pgPatch` on Postgres. Edit is in
+  scope for v1 (see Decisions), so `openTransferModal` needs an edit mode mirroring
+  `editingDebtId`/`editingIncomeId`'s pattern in `app.js` (an `app._editingTransferId` flag the modal
+  checks to decide `addTransfer` vs. `editTransfer` on submit, and to pre-fill fields).
 - `deleteTransfer(app, id)` — removes the one record (both legs disappear together on next render,
   since they're generated from it, not stored separately).
-- `openTransferModal(app, { fromAccountId } = {})`.
+- `openTransferModal(app, { fromAccountId, editId } = {})` — `editId` pre-fills from the existing
+  record and switches the modal into edit mode.
 
 ## Storage / export (`src/storage.js`, `src/dataExport.js`)
 
@@ -243,20 +249,13 @@ Bump `APP_VERSION`/`CHANGELOG.md` per the usual convention. Add a `CLAUDE.md` Cr
 bullet (same shape as the Home Purchase/Retirement entries), explicitly cross-referencing this spec
 and the relationship to `recurring.js`'s existing transfer type.
 
-## Open questions for sign-off
+## Decisions (signed off 2026-10-26)
 
-1. **Ledger icon** — `⇄` suggested for the new transfer indicator, to avoid colliding with `🔄`
-   (already used by reconciliation rows and the Recurring page's own transfer badge). Any
-   preference?
-2. **Edit support** — recommend add/delete only for v1 (matches reconciliation history, which is
-   delete-only), with edit as a fast follow if requested, rather than building edit-in-place now.
-3. **Retrofit the new indicator onto existing recurring-transfer legs?** Recommend no for this issue
-   — raise as a separate fast-follow since it touches already-shipped `recurring.js` behavior, not
-   something #248 strictly requires.
-4. **Both entry points, or pick one?** Recommend both (Accounts card action + Ledger toolbar
-   button), matching the issue's literal "Accounts **or** Ledger page" phrasing as "either place
-   works," not "only one."
-5. **Override/cleared exclusion scope** — recommend transfer legs are excluded from
-   `ledgerAmountOverrides` entirely (both legs must match the one `amount` field) but may still be
-   independently marked "cleared" per leg (since clearing is informational/per-account, unlike
-   amount). Confirm this split is the right one before implementation.
+1. **Ledger icon** — `⇄`, as suggested.
+2. **Edit support** — in scope for v1. `editTransfer()` and an edit mode on `openTransferModal()`,
+   per the Module section above.
+3. **Retrofit the new indicator onto existing recurring-transfer legs?** No, split out as its own
+   issue: **#399**.
+4. **Entry points** — both (Accounts card action + Ledger toolbar button).
+5. **Override/cleared exclusion scope** — agreed as proposed: transfer legs are excluded from
+   `ledgerAmountOverrides` entirely, but each leg may still be independently marked "cleared."
