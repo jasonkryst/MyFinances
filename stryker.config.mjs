@@ -25,8 +25,9 @@ export default {
         'src/sanitizers.js:247-267', // sanitizeReconciliation
         'src/sanitizers.js:269-283', // sanitizePlanHistoryEntry
         'src/sanitizers.js:299-313', // sanitizeBalanceHistoryEntry
-        'src/retirementCalculator.js:3-12', // computeRetirementProjection
-        'src/retirementCalculator.js:14-23', // splitGrowthFromContribution
+        'src/retirementCalculator.js:59-68', // computeRetirementProjection
+        'src/retirementCalculator.js:79-140', // computeScenarioRates, computeRetirementProjectionScenarios, computeRetirementProjectionSeries (issue #264)
+        'src/retirementCalculator.js:160-169', // splitGrowthFromContribution
         'src/balanceHistoryCore.js', // balance history pure helpers
     ],
     jest: {

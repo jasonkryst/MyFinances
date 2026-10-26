@@ -67,6 +67,78 @@ export function computeRetirementProjection(currentBalance, monthlyContribution,
     return balance;
 }
 
+// ── Multi-scenario projections (issue #264) ────────────────────────────────
+// Conservative/aggressive rates are derived from a given "moderate" rate
+// (the account's own rateOfReturn, honored as-is) by applying a configurable
+// delta rather than three flat global rates — see the design spec's
+// "Design decision" section for the reasoning. Defaults (-2 / +3) produce
+// the issue's suggested 5%/7%/10% band for a typical 7% moderate rate.
+export const DEFAULT_CONSERVATIVE_DELTA = -2;
+export const DEFAULT_AGGRESSIVE_DELTA = 3;
+
+function clampRatePct(rate) {
+    const n = Number(rate);
+    if (!Number.isFinite(n)) return 0;
+    return Math.min(100, Math.max(0, n));
+}
+
+// null/undefined mean "not provided" and fall back to the given default;
+// anything else is coerced with Number() and falls back only if that
+// coercion isn't finite (e.g. a non-numeric string) — explicit 0 is a
+// legitimate delta and must NOT be treated as "missing" (Number(null) === 0
+// would otherwise silently collapse a missing value to a real zero delta).
+function resolveDelta(value, fallback) {
+    if (value === null || value === undefined) return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+export function computeScenarioRates(moderateRatePct, conservativeDelta = DEFAULT_CONSERVATIVE_DELTA, aggressiveDelta = DEFAULT_AGGRESSIVE_DELTA) {
+    const moderate = clampRatePct(moderateRatePct);
+    const cDelta = resolveDelta(conservativeDelta, DEFAULT_CONSERVATIVE_DELTA);
+    const aDelta = resolveDelta(aggressiveDelta, DEFAULT_AGGRESSIVE_DELTA);
+    return {
+        conservative: clampRatePct(moderate + cDelta),
+        moderate,
+        aggressive: clampRatePct(moderate + aDelta),
+    };
+}
+
+// Produces a conservative/moderate/aggressive projection band by calling
+// computeRetirementProjection three times (once per derived rate) rather
+// than changing that function's own scalar signature — it has other call
+// sites that only ever need a single rate.
+export function computeRetirementProjectionScenarios(currentBalance, monthlyContribution, moderateRatePct, monthsUntilTarget, conservativeDelta = DEFAULT_CONSERVATIVE_DELTA, aggressiveDelta = DEFAULT_AGGRESSIVE_DELTA) {
+    const rates = computeScenarioRates(moderateRatePct, conservativeDelta, aggressiveDelta);
+    return {
+        conservative: computeRetirementProjection(currentBalance, monthlyContribution, rates.conservative, monthsUntilTarget),
+        moderate: computeRetirementProjection(currentBalance, monthlyContribution, rates.moderate, monthsUntilTarget),
+        aggressive: computeRetirementProjection(currentBalance, monthlyContribution, rates.aggressive, monthsUntilTarget),
+        rates,
+    };
+}
+
+// Month-by-month projection series for a single rate, sampled every
+// sampleEveryMonths (always including month 0 and the final month) — used
+// to plot the three-scenario projection chart. monsthUntilTarget <= 0
+// mirrors computeRetirementProjection's own short-circuit.
+export function computeRetirementProjectionSeries(currentBalance, monthlyContribution, annualRatePct, monthsUntilTarget, sampleEveryMonths = 1) {
+    const startBalance = Number(currentBalance) || 0;
+    if (!(monthsUntilTarget > 0)) return [{ month: 0, balance: startBalance }];
+    const monthlyRate = (Number(annualRatePct) || 0) / 100 / 12;
+    const contribution = Number(monthlyContribution) || 0;
+    const step = Math.max(1, Math.round(Number(sampleEveryMonths) || 1));
+    let balance = startBalance;
+    const points = [{ month: 0, balance }];
+    for (let m = 1; m <= monthsUntilTarget; m++) {
+        balance = balance * (1 + monthlyRate) + contribution;
+        if (m % step === 0 || m === monthsUntilTarget) {
+            points.push({ month: m, balance });
+        }
+    }
+    return points;
+}
+
 // Projects total employee contributions paid into a pension by the target date.
 // Unlike investment accounts, pension value is defined by the employer formula —
 // only the employee's own accumulated contributions are projected here.
