@@ -18,7 +18,7 @@
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "node-pg-migrate": "^9.0.0",
-    "nodemailer": "^10.1.0",
+    "nodemailer": "^10.2.1",
     "pg": "^8.23.1"
   },
   "allowScripts": {
