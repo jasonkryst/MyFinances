@@ -68,6 +68,8 @@ export default {
     'health.dtiGaugeLabel': 'RDI',
     'health.perMonthDebt': '{amount}/mes de deuda',
     'health.perMonthIncome': '{amount}/mes de ingresos',
+    'health.dtiBasisNet': 'Basado en ingreso neto (después de retenciones)',
+    'health.dtiBasisGross': 'Basado en ingreso bruto (sin retenciones configuradas)',
     'health.manageDebts': 'Gestionar deudas',
     'health.housingCostLabel': 'Costo mensual estimado de vivienda',
     'health.mortgageFrontEndLabel': 'Hipotecario Front-End',

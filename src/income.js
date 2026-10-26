@@ -5,6 +5,7 @@ import {
     getNextIncomePayDates,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth,
+    computeNetIncomeAmount,
     normalizeText,
     sanitizeFiniteNumber,
     sanitizeDateISO,
@@ -60,6 +61,10 @@ export function renderIncomeList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">Amount per paycheck ($)</label>
                                 <input type="number" id="ie-amount-${inc.id}" value="${inc.amount}" min="0.01" step="0.01" class="form-control form-full-width">
+                            </div>
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact">Tax withholding (%)</label>
+                                <input type="number" id="ie-withholding-${inc.id}" value="${inc.withholdingPercent || 0}" min="0" max="99.9" step="0.1" class="form-control form-full-width">
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">First pay date</label>
@@ -119,6 +124,14 @@ export function renderIncomeList(app) {
             : '';
 
         const linkedPerson = inc.personId ? (app.persons || []).find(p => p.id === inc.personId) : null;
+        // #251: net is the primary displayed amount; gross only shown
+        // (as a tooltip + secondary span) when withholding is actually set,
+        // so an income record with the default 0% looks exactly as before.
+        const netAmount = computeNetIncomeAmount(inc);
+        const hasWithholding = (inc.withholdingPercent || 0) > 0;
+        const grossNote = hasWithholding
+            ? `Gross: ${formatCurrency(inc.amount)} (${inc.withholdingPercent}% withheld)`
+            : '';
         return `
             <div class="income-card" id="income-card-${inc.id}">
                 <div class="income-card-info">
@@ -126,7 +139,8 @@ export function renderIncomeList(app) {
                     ${inc.isVariable ? `<span class="income-variable-badge" title="Amount varies — update the actual amount in the Ledger each pay period">~ Est.</span>` : ''}
                     ${inc.category && inc.category !== 'Salary' ? `<span class="income-category-badge">${escapeHtml(inc.category)}</span>` : ''}
                     ${linkedPerson ? `<span class="income-card-detail"><span class="person-pill">${escapeHtml(linkedPerson.name)}</span></span>` : ''}
-                    <span class="income-card-amount">${formatCurrency(inc.amount)}</span>
+                    <span class="income-card-amount"${grossNote ? ` title="${escapeHtml(grossNote)}"` : ''}>${formatCurrency(netAmount)}</span>
+                    ${grossNote ? `<span class="income-card-gross-note">${escapeHtml(grossNote)}</span>` : ''}
                     <span class="income-card-detail">First pay: ${dateStr}</span>
                     <span class="income-card-freq">${escapeHtml(freqLabel[inc.frequency] || inc.frequency)} &mdash; ${escapeHtml(pdayLabel)}</span>
                     ${upcomingHTML ? `<span class="income-card-upcoming-label">Next paydays:</span>${upcomingHTML}` : ''}
@@ -160,8 +174,10 @@ export function renderIncomeList(app) {
         const { monthlyTotal } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, year, month);
         const bonusThisMonth = computeMonthlyBonusesForMonth(app.bonuses, year, month);
         const regularThisMonth = monthlyTotal - bonusThisMonth;
+        // #251: net, matching the net "Expected this month"/"Regular pay" figures above.
         const totalAnnual = app.incomes.reduce((s, i) => {
-            return s + (i.frequency === 'biweekly' ? i.amount * 26 : i.amount * 12);
+            const net = computeNetIncomeAmount(i);
+            return s + (i.frequency === 'biweekly' ? net * 26 : net * 12);
         }, 0);
 
         const bonusRow = bonusThisMonth > 0
@@ -209,13 +225,18 @@ export async function addIncome(app) {
     const personId = personIdRaw ? parseInt(personIdRaw, 10) : null;
     const category = document.getElementById('incomeCategory')?.value || 'Salary';
     const isVariable = Boolean(document.getElementById('incomeIsVariable')?.checked);
+    const rawWithholding = document.getElementById('incomeWithholding')?.value;
+    const withholdingPercent = sanitizeFiniteNumber(rawWithholding, 0, { min: 0, max: 99.9 });
 
     if (!name) { await showAlertModal('Please enter a name for this income source.'); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
     if (!firstPayDate) { await showAlertModal('Please enter the first pay date.'); return; }
     if (!accountId || isNaN(accountId)) { await showAlertModal('Please select an account for this income source.'); return; }
+    if (rawWithholding && (isNaN(Number(rawWithholding)) || Number(rawWithholding) < 0 || Number(rawWithholding) > 99.9)) {
+        await showAlertModal('Please enter a tax withholding percent between 0 and 99.9.'); return;
+    }
 
-    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, updatedAt: todayISO() };
+    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.incomes.push(income);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -260,6 +281,7 @@ export async function saveEditIncome(app, incomeId) {
     const accountEl   = document.getElementById(`ie-account-${incomeId}`);
     const personEl    = document.getElementById(`ie-person-${incomeId}`);
     const categoryEl  = document.getElementById(`ie-category-${incomeId}`);
+    const withholdingEl = document.getElementById(`ie-withholding-${incomeId}`);
 
     if (!nameEl || !amountEl || !dateEl || !freqEl) return;
 
@@ -272,15 +294,20 @@ export async function saveEditIncome(app, incomeId) {
     const personId    = personEl?.value ? parseInt(personEl.value, 10) : null;
     const category    = categoryEl?.value || 'Salary';
     const isVariable  = Boolean(document.getElementById(`ie-variable-${incomeId}`)?.checked);
+    const rawWithholding = withholdingEl?.value;
+    const withholdingPercent = sanitizeFiniteNumber(rawWithholding, 0, { min: 0, max: 99.9 });
 
     if (!name)                        { await showAlertModal('Please enter a name.');            return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount.');     return; }
     if (!firstPayDate)                { await showAlertModal('Please select a first pay date.');  return; }
+    if (rawWithholding && (isNaN(Number(rawWithholding)) || Number(rawWithholding) < 0 || Number(rawWithholding) > 99.9)) {
+        await showAlertModal('Please enter a tax withholding percent between 0 and 99.9.'); return;
+    }
 
     const idx = app.incomes.findIndex(i => i.id === incomeId);
     if (idx === -1) return;
 
-    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, updatedAt: todayISO() };
+    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.editingIncomeId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
@@ -582,11 +609,12 @@ export function renderIncomeTrendChart(app) {
         months.push({ year: y, month: m, label: new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) });
     }
 
+    // #251: net, consistent with the net figures shown everywhere else on this page.
     const regularTotals = months.map(({ year, month }) =>
-        app.incomes.reduce((sum, inc) => sum + (inc.amount || 0) * countIncomePaydaysInMonth(inc, year, month), 0));
+        app.incomes.reduce((sum, inc) => sum + computeNetIncomeAmount(inc) * countIncomePaydaysInMonth(inc, year, month), 0));
     const bonusTotals = months.map(({ year, month }) => computeMonthlyBonusesForMonth(app.bonuses, year, month));
     const priorYearTotals = months.map(({ year, month }) =>
-        app.incomes.reduce((sum, inc) => sum + (inc.amount || 0) * countIncomePaydaysInMonth(inc, year - 1, month), 0)
+        app.incomes.reduce((sum, inc) => sum + computeNetIncomeAmount(inc) * countIncomePaydaysInMonth(inc, year - 1, month), 0)
         + computeMonthlyBonusesForMonth(app.bonuses, year - 1, month));
 
     const { grid, label } = _incomeTrendChartColors();

@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.37.0] — 2026-10-25
+
+### Added
+- **Income: gross vs. net modeling** (issue #251) — income sources gain an optional "Tax Withholding (%)" field (0–99.9%, default 0, backward compatible), sanitized via `sanitizeIncome()` and round-tripping through export/import. `computeMonthlyIncomeForMonth()` (`src/utils.js`) now applies withholding to return net (take-home) income, which flows through every one of its cash-flow call sites (Health's DTI/savings/cash-flow card, the Cash Flow summary, the Debt-to-Income chart, Home Purchase mortgage affordability, the Net Worth projection, and the Plan page's suggested-payment/income widgets) — all of which are more accurate against real take-home pay than gross. The Ledger's generated income transactions (and everything that derives from them: Account projections, Forecast, and the Cash Flow/Money Flow/Variance/Summary reports) likewise post the net amount. Income cards now show net as the primary amount with gross shown via tooltip/secondary text when withholding is set; the inline edit form and Add Income form still edit the raw gross amount. The Health page's DTI card now notes whether its income figure is gross or net. Wired to the optional Postgres backend via a new `withholding_percent` column (migration `1755600000022`) and the `/api/incomes` route.
+
 ## [6.36.0] — 2026-10-25
 
 ### Added

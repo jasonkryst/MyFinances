@@ -1,6 +1,6 @@
 // Ledger transaction aggregation: pure computation, no DOM.
 
-import { getIncomePaydaysInMonth, dateToISO } from './utils.js';
+import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getOverrideAmount, getEffectiveAmount } from './ledgerOverrides.js';
@@ -100,7 +100,10 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                     accountId: inc.accountId,
                     date: payDate,
                     name: inc.name || 'Income',
-                    amount: Number(inc.amount),
+                    // #251: posted/projected amount is net of withholding —
+                    // a 0% (or unset) withholdingPercent leaves this equal
+                    // to the raw gross amount, same as before.
+                    amount: computeNetIncomeAmount(inc),
                     type: 'income',
                     sourceId: inc.id,
                     category: inc.category || 'Income'

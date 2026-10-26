@@ -218,6 +218,42 @@ async def test_income_add_persists(pg_page, base_url, credentials):
     assert await pg_page.locator('text=Smoke Salary').count() > 0, f'Income not persisted. Console: {logs}'
 
 
+async def test_income_withholding_percent_persists(pg_page, base_url, credentials):
+    """#251: withholdingPercent round-trips through the /api/incomes Postgres
+    column (migration 1755600000022) across a reload."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    account = await _ensure_account(pg_page, base_url)
+    await pg_page.click('[data-page="income"]')
+    await pg_page.wait_for_selector('#incomeName', state='visible', timeout=5000)
+    await pg_page.fill('#incomeName', 'Smoke Withholding Salary')
+    await pg_page.fill('#incomeAmount', '4000')
+    await pg_page.fill('#incomeWithholding', '22.5')
+    await pg_page.fill('#incomeFirstDate', '2026-01-01')
+    await pg_page.select_option('#incomeFrequency', 'monthly')
+    await pg_page.select_option('#incomeAccount', str(account['id']))
+    async with pg_page.expect_response(
+        lambda r: '/api/incomes' in r.url and r.request.method == 'POST',
+        timeout=8000
+    ):
+        await pg_page.click('#incomeFormSubmit')
+    await pg_page.wait_for_selector('text=Smoke Withholding Salary', timeout=5000)
+
+    incomes = await (await _api_get(pg_page, base_url, '/api/incomes')).json()
+    saved = next((i for i in incomes if i['name'] == 'Smoke Withholding Salary'), None)
+    assert saved, f'Income not found via API. Console: {logs}'
+    assert float(saved['withholdingPercent']) == 22.5, f"Expected withholdingPercent 22.5, got {saved.get('withholdingPercent')!r}"
+
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    reloaded = await (await _api_get(pg_page, base_url, '/api/incomes')).json()
+    reloaded_saved = next((i for i in reloaded if i['name'] == 'Smoke Withholding Salary'), None)
+    assert reloaded_saved, f'Income not persisted after reload. Console: {logs}'
+    assert float(reloaded_saved['withholdingPercent']) == 22.5, (
+        f"Expected withholdingPercent 22.5 to survive reload, got {reloaded_saved.get('withholdingPercent')!r}"
+    )
+
+
 async def test_bill_add_persists(pg_page, base_url, credentials):
     # Bills have no dedicated add-form in the current UI -- test via API POST
     # to verify the server endpoint persists and the data survives a reload.

@@ -624,9 +624,16 @@
 
                             <div class="form-group">
                                 <label for="incomeAmount">Amount per Paycheck ($) *
-                                    <span class="help-icon" tabindex="0" aria-label="The gross or net amount you receive each pay period.">?</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The gross amount before any withholding. If this is already your take-home pay, leave Tax Withholding at 0.">?</span>
                                 </label>
                                 <input type="number" id="incomeAmount" placeholder="0.00" step="0.01" min="0" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="incomeWithholding">Tax Withholding (%)
+                                    <span class="help-icon" tabindex="0" aria-label="Optional. Percent withheld for taxes before this paycheck hits your account — used to show your net (take-home) income instead of gross. Leave at 0 if the amount above is already your take-home pay.">?</span>
+                                </label>
+                                <input type="number" id="incomeWithholding" placeholder="0" step="0.1" min="0" max="99.9">
                             </div>
 
                             <div class="form-group">

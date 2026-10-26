@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.36.0';
+export const APP_VERSION = '6.37.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -281,11 +281,23 @@ export function computeMonthlyBonusesForMonth(bonuses, year, month) {
     }, 0);
 }
 
+// Returns the take-home (net) amount for a single paycheck after applying
+// the income's optional withholdingPercent (issue #251) — 0 by default, so
+// an income record with no withholding set returns its raw `amount`
+// unchanged (fully backward compatible).
+export function computeNetIncomeAmount(income) {
+    const pct = income?.withholdingPercent || 0;
+    return (income?.amount || 0) * (1 - pct / 100);
+}
+
+// Returns the net (take-home) monthly income total — every call site is a
+// cash-flow/affordability calculation, so withholding is applied here rather
+// than at each caller (issue #251). Bonuses are never withheld.
 export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
     let monthlyTotal = 0;
     for (const inc of (incomes || [])) {
         const count = countIncomePaydaysInMonth(inc, year, month);
-        monthlyTotal += (inc.amount || 0) * count;
+        monthlyTotal += computeNetIncomeAmount(inc) * count;
     }
     monthlyTotal += computeMonthlyBonusesForMonth(bonuses, year, month);
     return { monthlyTotal };

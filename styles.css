@@ -4033,6 +4033,16 @@ body.dark-mode .target-result--warn .target-result-payment {
     white-space: nowrap;
 }
 
+.income-card-gross-note {
+    font-size: 0.74rem;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+body.dark-mode .income-card-gross-note {
+    color: #9ca3af;
+}
+
 .income-card-freq {
     display: inline-block;
     background: #d1fae5;
@@ -7011,6 +7021,7 @@ body.dark-mode .health-status--red    { background: #450a0a; color: #fca5a5; }
 
 /* Detail row */
 .health-metric-detail { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-secondary); }
+.health-dti-basis { font-size: 0.7rem; color: var(--text-secondary, #6b7280); margin-top: 2px; }
 
 /* Emergency Fund rows */
 .health-ef-row   { display: flex; flex-direction: column; gap: 0.2rem; }

@@ -203,6 +203,29 @@ for (const c of cases) {
     });
 }
 
+test('/api/incomes: withholdingPercent persists on create, update, and defaults to 0 when omitted (#251)', async () => {
+    const createRes = await fetch(`${baseUrl}/api/incomes`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Paycheck', amount: 2000, firstPayDate: '2026-08-01', frequency: 'biweekly', accountId, withholdingPercent: 22.5 })
+    });
+    assert.equal(createRes.status, 201);
+    const created = await createRes.json();
+    assert.equal(created.withholdingPercent, 22.5);
+
+    const updateRes = await fetch(`${baseUrl}/api/incomes/${created.id}`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ withholdingPercent: 30 })
+    });
+    assert.equal(updateRes.status, 200);
+    assert.equal((await updateRes.json()).withholdingPercent, 30);
+
+    const defaultRes = await fetch(`${baseUrl}/api/incomes`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Paycheck 2', amount: 1500, firstPayDate: '2026-08-01', frequency: 'monthly', accountId })
+    });
+    assert.equal(defaultRes.status, 201);
+    assert.equal((await defaultRes.json()).withholdingPercent, 0);
+});
+
 test('/api/debts: delete all removes all user rows and returns 204', async () => {
     await fetch(`${baseUrl}/api/debts`, {
         method: 'POST', headers: csrfHeaders(),

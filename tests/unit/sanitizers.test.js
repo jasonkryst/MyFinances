@@ -206,6 +206,43 @@ describe('sanitizeIncome', () => {
         expect(sanitizeIncome({}, 1).updatedAt).toBeNull();
         expect(sanitizeIncome({ updatedAt: 'not-a-date' }, 1).updatedAt).toBeNull();
     });
+
+    // #251: optional tax withholding percent, clamped [0, 99.9], default 0.
+    describe('withholdingPercent (#251)', () => {
+        test('defaults to 0 when absent', () => {
+            expect(sanitizeIncome({}, 1).withholdingPercent).toBe(0);
+        });
+
+        test('passes through valid values: 0, 15.5, 99.9', () => {
+            expect(sanitizeIncome({ withholdingPercent: 0 }, 1).withholdingPercent).toBe(0);
+            expect(sanitizeIncome({ withholdingPercent: 15.5 }, 1).withholdingPercent).toBe(15.5);
+            expect(sanitizeIncome({ withholdingPercent: 99.9 }, 1).withholdingPercent).toBe(99.9);
+        });
+
+        test('clamps a negative value to 0', () => {
+            expect(sanitizeIncome({ withholdingPercent: -10 }, 1).withholdingPercent).toBe(0);
+        });
+
+        test('clamps a value of 100 or more to 99.9', () => {
+            expect(sanitizeIncome({ withholdingPercent: 100 }, 1).withholdingPercent).toBe(99.9);
+            expect(sanitizeIncome({ withholdingPercent: 250 }, 1).withholdingPercent).toBe(99.9);
+        });
+
+        test('falls back to 0 for a non-numeric value', () => {
+            expect(sanitizeIncome({ withholdingPercent: 'abc' }, 1).withholdingPercent).toBe(0);
+        });
+
+        test('falls back to 0 when null or undefined', () => {
+            expect(sanitizeIncome({ withholdingPercent: null }, 1).withholdingPercent).toBe(0);
+            expect(sanitizeIncome({ withholdingPercent: undefined }, 1).withholdingPercent).toBe(0);
+        });
+
+        test('round-trips through a second sanitize pass unchanged (export/import)', () => {
+            const once = sanitizeIncome({ name: 'Paycheck', amount: 2000, withholdingPercent: 22.5 }, 1);
+            const twice = sanitizeIncome(once, 1);
+            expect(twice.withholdingPercent).toBe(22.5);
+        });
+    });
 });
 
 describe('sanitizeBill', () => {
