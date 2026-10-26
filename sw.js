@@ -21,7 +21,7 @@ const PRECACHE_URLS = [
     '/src/homePurchase.js',
     '/src/i18n.js', '/src/income.js', '/src/ledger.js', '/src/ledgerOverrides.js',
     '/src/ledgerCleared.js', '/src/keyboardShortcuts.js',
-    '/src/ledgerTransactions.js', '/src/reconciliation.js', '/src/recurring.js', '/src/reports.js',
+    '/src/ledgerTransactions.js', '/src/lazyModules.js', '/src/reconciliation.js', '/src/recurring.js', '/src/reports.js',
     '/src/reportsCalendar.js', '/src/reportsCashFlow.js', '/src/reportsMoneyFlowSankey.js', '/src/reportsNetWorth.js', '/src/reportsSummary.js',
     '/src/reportsVariance.js', '/src/retirement.js', '/src/retirementCalculator.js',
     '/src/sanitizers.js', '/src/savings.js', '/src/serviceWorker.js',

@@ -32,9 +32,9 @@ def test_calendar_shows_bill_due_date(app_page, debt_data):
     page = app_page
     _calculate_plan_and_open_calendar(page, debt_data)
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         window.app.bills = [{ id: 1, name: 'Internet', amount: 60, dueDay: 10, category: 'Internet / Phone', accountId: null }];
-        window.app.renderCalendarView(0);
+        await window.app.renderCalendarView(0);
     }""")
 
     chip = page.query_selector('.cal-bill-event')
@@ -49,9 +49,9 @@ def test_calendar_shows_expense_day(app_page, debt_data):
     page = app_page
     _calculate_plan_and_open_calendar(page, debt_data)
 
-    page.evaluate("""(dateIso) => {
+    page.evaluate("""async (dateIso) => {
         window.app.expenses = [{ id: 1, name: 'Groceries', budgetAmount: 300, date: new Date(dateIso + 'T00:00:00'), category: 'Food', accountId: null }];
-        window.app.renderCalendarView(0);
+        await window.app.renderCalendarView(0);
     }""", current_month_iso(12))
 
     chip = page.query_selector('.cal-expense-event')
@@ -69,9 +69,9 @@ def test_calendar_shows_bonus_day(app_page, debt_data):
     page = app_page
     _calculate_plan_and_open_calendar(page, debt_data)
 
-    page.evaluate("""(dateIso) => {
+    page.evaluate("""async (dateIso) => {
         window.app.bonuses = [{ id: 1, name: 'Tax Refund', amount: 1500, date: dateIso, category: 'Other', accountId: null, purpose: null }];
-        window.app.renderCalendarView(0);
+        await window.app.renderCalendarView(0);
     }""", current_month_iso(20))
 
     chip = page.query_selector('.cal-bonus-event')
@@ -89,10 +89,10 @@ def test_calendar_hides_expense_bonus_legend_when_none_exist(app_page, debt_data
     page = app_page
     _calculate_plan_and_open_calendar(page, debt_data)
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         window.app.expenses = [];
         window.app.bonuses = [];
-        window.app.renderCalendarView(0);
+        await window.app.renderCalendarView(0);
     }""")
 
     assert page.query_selector('.cal-legend-swatch--expense') is None
