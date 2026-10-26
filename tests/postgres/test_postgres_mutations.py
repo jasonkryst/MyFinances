@@ -352,6 +352,36 @@ async def test_retirement_target_date_persists(pg_page, base_url, credentials):
     assert target == '2050-01-01', f'Target date not persisted. Console: {logs}'
 
 
+async def test_transfer_add_persists(pg_page, base_url, credentials):
+    """app.addTransfer() (transfers.js, lazy-loaded) round-trips through the
+    new /api/transfers endpoint (#248)."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    account = await _ensure_account(pg_page, base_url)
+
+    second = await _api_post(pg_page, base_url, '/api/accounts', {'name': 'Transfer Target', 'type': 'Savings', 'startingBalance': 0})
+    assert second.status == 201, f'Second account POST failed: {await second.text()}'
+    second_account = await second.json()
+
+    result = await pg_page.evaluate(
+        """async ([fromId, toId]) => window.app.addTransfer(fromId, toId, 250, '2026-01-15', 'Smoke test transfer')""",
+        [account['id'], second_account['id']]
+    )
+    assert result and result.get('success') is True, f'addTransfer failed: {result}. Console: {logs}'
+
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    transfers = await (await _api_get(pg_page, base_url, '/api/transfers')).json()
+    assert len(transfers) > 0, f'Transfer not persisted. Console: {logs}'
+    latest = max(transfers, key=lambda t: t['id'])
+    assert latest['fromAccountId'] == account['id'], f'fromAccountId not persisted: {latest}'
+    assert latest['toAccountId'] == second_account['id'], f'toAccountId not persisted: {latest}'
+    assert float(latest['amount']) == 250, f'amount not persisted: {latest}'
+
+    # Cleanup
+    await _api_delete(pg_page, base_url, f"/api/transfers/{latest['id']}")
+
+
 async def test_plan_history_persists_and_restores(pg_page, base_url, credentials):
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)

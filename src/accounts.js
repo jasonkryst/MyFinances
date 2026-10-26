@@ -72,7 +72,7 @@ export function computeAccountBalance(app, accountId, year = null, month = null)
 // figure — reuses the exact same getLedgerTransactionsForMonth() list that
 // computeAccountBalance() sums, so the running balance in the modal always
 // reconciles with the card's displayed total.
-const BREAKDOWN_TYPE_ICONS = { income: '💵', bonus: '🎁', debt: '💳', bill: '🧾', recurring: '🔄', expense: '💸', savings: '💰' };
+const BREAKDOWN_TYPE_ICONS = { income: '💵', bonus: '🎁', debt: '💳', bill: '🧾', recurring: '🔄', expense: '💸', savings: '💰', transfer: '⇄' };
 
 export function renderAccountBalanceBreakdown(app, accountId, triggerEl = null) {
     const modal = document.getElementById('acctBreakdownModal');
@@ -329,6 +329,7 @@ export function renderAccountsList(app) {
                 </div>
                 <div class="debt-actions">
                     ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}">History</button>` : ''}
+                    <button class="btn btn-secondary btn-small" data-account-action="transfer" data-account-id="${a.id}">⇄ Transfer</button>
                     <button class="btn-edit" data-account-action="edit" data-account-id="${a.id}">Edit</button>
                     <button class="btn btn-secondary btn-small" data-account-action="${a.archived ? 'unarchive' : 'archive'}" data-account-id="${a.id}" title="${a.archived ? 'Unarchive account' : 'Archive account'}">${a.archived ? 'Unarchive' : 'Archive'}</button>
                     <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}">Delete</button>
@@ -391,6 +392,7 @@ export function renderAccountsList(app) {
         if (action === 'unarchive') app.unarchiveAccount(id);
         if (action === 'history') app.showBalanceHistoryModal({ kind: 'account', id });
         if (action === 'breakdown') app.showAccountBalanceBreakdown(id, actionEl);
+        if (action === 'transfer' && typeof app.openTransferModal === 'function') app.openTransferModal({ fromAccountId: id });
     };
     container.onchange = (event) => {
         const typeSelect = event.target.closest('select[id^="ac-type-"]');

@@ -986,6 +986,36 @@ function _buildWhatsNewHtml() {
 // Update this list every version bump alongside CHANGELOG.md.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.41.0 — 2026-10-26',
+        items: [
+            '<strong>Accounts: transfer tracking between accounts</strong> (issue #248) — move money between two of your own accounts with a proper zero-sum transfer record instead of unexplained outflows/inflows. Reachable via a "⇄ Transfer" action on any Accounts card or the Ledger toolbar.'
+        ]
+    },
+    {
+        version: '6.40.0 — 2026-10-26',
+        items: [
+            '<strong>Reconciliation: partial/in-progress state</strong> (issue #343) — closing the Reconcile modal mid-review now offers Save Progress / Discard / Keep Editing instead of silently losing your work.'
+        ]
+    },
+    {
+        version: '6.39.0 — 2026-10-26',
+        items: [
+            '<strong>Retirement: multi-scenario projections</strong> (issue #264) — the projection panel now shows conservative/moderate/aggressive bands instead of a single projected value.'
+        ]
+    },
+    {
+        version: '6.38.0 — 2026-10-25',
+        items: [
+            '<strong>Performance improvements</strong> (issue #278) — several less-visited pages (Retirement, Reconciliation, Plan Calendar, and most Reports sub-tabs) now load their code on first visit instead of at startup, speeding up initial load.'
+        ]
+    },
+    {
+        version: '6.37.0 — 2026-10-25',
+        items: [
+            '<strong>Income: gross vs. net modeling</strong> (issue #251) — income sources gain an optional tax withholding percentage, and cash-flow figures across Health, Reports, and the Plan page now reflect take-home pay.'
+        ]
+    },
+    {
         version: '6.36.0 — 2026-10-25',
         items: [
             '<strong>Home purchase planning</strong> (issue #249) — a new Home Purchase sub-tab under Savings adds a down payment goal tracker, mortgage affordability calculator, PMI threshold tracker, and a "debts to clear before qualifying" panel.'
