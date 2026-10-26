@@ -25,6 +25,11 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 # transitively.  Preloading them in <head> breaks the fetch waterfall.
 # Keep this list in sync with the actual import graph — if a module is added
 # here it must genuinely be a transitive (not direct) app.js import.
+#
+# Issue #278: reportsCalendar.js, reportsVariance.js, and retirementCalculator.js
+# were removed — they're no longer part of the static import graph at all (loaded
+# on demand via src/lazyModules.js), so a modulepreload hint for them would force
+# an eager fetch+compile that defeats the point of lazy-loading them.
 EXPECTED_PRELOADED_MODULES = [
     'src/locales/en.js',
     'src/locales/es.js',
@@ -34,12 +39,9 @@ EXPECTED_PRELOADED_MODULES = [
     'src/breakEven.js',
     'src/forecast.js',
     'src/spending.js',
-    'src/reportsCalendar.js',
-    'src/reportsVariance.js',
     'src/postgresSync.js',
     'src/postgresImport.js',
     'src/sanitizers.js',
-    'src/retirementCalculator.js',
     'src/ledgerOverrides.js',
     'src/ledgerCleared.js',
 ]

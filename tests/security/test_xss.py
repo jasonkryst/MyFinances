@@ -462,15 +462,20 @@ async def test_xss_in_reconciliation_note(async_app_page):
     """Test XSS prevention in the reconciliation note field, rendered in the history table."""
     page = async_app_page
 
-    await page.evaluate("""() => {
+    await page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 7401, name: 'Recon XSS', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
         app._reconciliationAccountFilter = 'all';
-        app.applyReconciliation(7401, 1100, '<img src=x onerror="window.__xss_recon=1">', '2026-06-10');
+        await app.applyReconciliation(7401, 1100, '<img src=x onerror="window.__xss_recon=1">', '2026-06-10');
         app.switchPage('reconcile');
+        // switchPage()/renderPageData() don't propagate their internal async
+        // render chain through their own return value (by design -- see
+        // docs/superpowers/specs/2026-10-25-dynamic-import-code-splitting-design.md),
+        // so explicitly await the render this test actually depends on.
+        await app.renderReconciliationPage();
     }""")
 
     section_html = await page.evaluate('() => document.getElementById("reconcileSection")?.innerHTML || ""')
@@ -486,14 +491,14 @@ async def test_xss_in_reconciliation_ledger_row_account_name(async_app_page):
     through escapeHtml just like every other row type."""
     page = async_app_page
 
-    await page.evaluate("""() => {
+    await page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 7601, name: '<img src=x onerror="window.__xss_recon_ledger=1">', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
-        app.applyReconciliation(7601, 1100, '', new Date().toISOString().slice(0, 10));
+        await app.applyReconciliation(7601, 1100, '', new Date().toISOString().slice(0, 10));
         app.switchPage('ledger');
     }""")
 

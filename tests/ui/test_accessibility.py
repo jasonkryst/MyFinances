@@ -171,15 +171,16 @@ def test_reconcile_action_buttons_are_buttons(app_page):
     """Reconcile and delete-history actions are rendered as <button> elements."""
     page = app_page
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 8502, name: 'Recon Buttons', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
         app._reconciliationAccountFilter = 'all';
-        app.applyReconciliation(8502, 1100, '', '2026-06-10');
+        await app.applyReconciliation(8502, 1100, '', '2026-06-10');
         app.switchPage('reconcile');
+        await app.renderReconciliationPage();
     }""")
 
     reconcile_btn = page.query_selector('[data-recon-action="reconcile"][data-recon-id="8502"]')

@@ -479,7 +479,7 @@ def test_reconciliation_appears_as_ledger_row(app_page):
         const app = window.app;
         const mod = await import('/src/utils.js');
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
-        app.applyReconciliation(8001, 1200, 'Spot check', mod.todayISO());
+        await app.applyReconciliation(8001, 1200, 'Spot check', mod.todayISO());
         const txs = await import('/src/ledgerTransactions.js').then(m => m.getLedgerTransactions(app));
         return txs.filter(tx => tx.type === 'reconciliation');
     }""")
@@ -506,7 +506,7 @@ def test_reconciliation_row_contributes_zero_to_running_balance_visible_mode(app
         const mod = await import('/src/utils.js');
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: false }];
         const today = mod.todayISO();
-        app.applyReconciliation(8001, 1200, '', today);
+        await app.applyReconciliation(8001, 1200, '', today);
         const txs = await import('/src/ledgerTransactions.js').then(m => m.getLedgerTransactions(app));
         const reconRow = txs.find(tx => tx.type === 'reconciliation');
         return { balance: reconRow.balance, accountStartingBalance: app.accounts[0].startingBalance };
@@ -552,8 +552,8 @@ def test_reconciliation_excluded_from_expected_transactions_list(app_page):
         const app = window.app;
         const mod = await import('/src/utils.js');
         const today = mod.todayISO();
-        app.applyReconciliation(8001, 1200, '', today);
-        return app.getExpectedTransactionsInRange(8001, today, today);
+        await app.applyReconciliation(8001, 1200, '', today);
+        return await app.getExpectedTransactionsInRange(8001, today, today);
     }""")
 
     assert all(tx['type'] != 'reconciliation' for tx in result)

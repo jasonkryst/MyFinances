@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.38.0] — 2026-10-25
+
+### Changed
+- **Performance: dynamic `import()` code-splitting for non-critical modules** (issue #278) — `src/app.js` previously imported every feature module statically, so the whole module graph was fetched and evaluated before `DOMContentLoaded` fired, even for sessions that never visit the Retirement or Reconciliation pages or several Reports sub-tabs. A new `src/lazyModules.js` wraps native ES module dynamic `import()` with a per-module cache (fetched at most once; a failed load isn't cached, so a later retry re-fetches instead of being stuck): `retirement.js`/`retirementCalculator.js`, `reconciliation.js`, `strategyCalendar.js` (the Plan page's Calendar sub-tab), and the five Reports sub-tab modules (`reportsCalendar.js`, `reportsMoneyFlowSankey.js`, `reportsCashFlow.js`, `reportsVariance.js`, `reportsSummary.js`) now load on first navigation to their page/tab rather than at startup. A failed `import()` (e.g. a network error) shows an in-page error message instead of crashing or leaving a blank section. `reportsNetWorth.js` was deliberately kept static despite being a plausible-looking candidate — it's also used as a cross-page Accounts widget and from the app's startup auto-snapshot logic, not just the Reports page. No build step, bundler, or `index.html` script tag was introduced or changed; three `<link rel="modulepreload">` hints for now-lazy files were removed, since preloading them would have defeated the point. See `docs/superpowers/specs/2026-10-25-dynamic-import-code-splitting-design.md`.
+
 ## [6.37.0] — 2026-10-25
 
 ### Added

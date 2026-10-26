@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.37.0';
+export const APP_VERSION = '6.38.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -148,6 +148,27 @@ export function renderChartDataTable(canvasId, { caption, columns, rows }) {
             <tbody>${tbodyHtml}</tbody>
         </table>
     `);
+}
+
+// Issue #278: graceful fallback for a lazily-`import()`ed feature module
+// that failed to load (e.g. a network error, or offline in a PWA session
+// before the service worker's precache has populated). Replaces the target
+// container's content with a plain-language message — built with
+// createElement/textContent, never innerHTML of interpolated text, per the
+// CSP/XSS conventions in CLAUDE.md — so a failed dynamic import degrades to
+// an in-page error state instead of a blank section or an unhandled
+// rejection reaching the browser.
+export function renderLazyLoadError(containerId, label) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'lazy-load-error';
+    const msg = document.createElement('p');
+    msg.textContent = `Couldn't load ${label}. Check your connection and try again.`;
+    wrap.appendChild(msg);
+    container.appendChild(wrap);
 }
 
 export function getDayOrdinal(day) {
