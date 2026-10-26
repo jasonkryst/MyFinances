@@ -1406,6 +1406,7 @@
         <div class="modal-content">
             <button id="reconcileModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="reconcileModalTitle">Reconcile Account</h3>
+            <p id="reconcileModalResumeBanner" class="ledger-crossnav-banner hidden" role="status"></p>
             <p class="modal-helper-text">Current tracked balance: <span id="reconcileModalCurrent"></span></p>
             <div class="recon-date-range">
                 <div class="form-group modal-form-group">
@@ -1433,6 +1434,20 @@
             <div class="modal-actions">
                 <button id="reconcileModalConfirmBtn" class="btn btn-success">Reconcile</button>
                 <button id="reconcileModalCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Reconciliation Save Progress Modal (issue #343) - shown when closing the
+         Reconcile modal with unsaved changes; offers Save Progress / Discard / Keep Editing -->
+    <div id="reconSaveProgressModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="reconSaveProgressTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="reconSaveProgressTitle">Save reconciliation progress?</h3>
+            <p class="modal-description">You have unsaved changes in this reconciliation. Save your progress to resume later, or discard it.</p>
+            <div class="modal-actions">
+                <button id="reconSaveProgressSaveBtn" class="btn btn-success">Save Progress</button>
+                <button id="reconSaveProgressDiscardBtn" class="btn btn-danger">Discard</button>
+                <button id="reconSaveProgressKeepEditingBtn" class="btn btn-secondary">Keep Editing</button>
             </div>
         </div>
     </div>

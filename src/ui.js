@@ -1186,6 +1186,58 @@ export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
     });
 }
 
+// Tri-state confirm for closing the Reconcile modal with unsaved changes
+// (issue #343): 'save' persists in-progress state, 'discard' drops it,
+// 'cancel' (including Escape) leaves the Reconcile modal open untouched —
+// unlike showDeleteConfirmModal, Escape here must NOT be treated as the
+// destructive option.
+export function showReconSaveProgressModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('reconSaveProgressModal');
+        const saveBtn = document.getElementById('reconSaveProgressSaveBtn');
+        const discardBtn = document.getElementById('reconSaveProgressDiscardBtn');
+        const keepEditingBtn = document.getElementById('reconSaveProgressKeepEditingBtn');
+        if (!modal || !saveBtn || !discardBtn || !keepEditingBtn) { resolve('cancel'); return; }
+
+        const lastFocused = document.activeElement;
+        const dismiss = (result) => {
+            saveBtn.onclick = null;
+            discardBtn.onclick = null;
+            keepEditingBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            resolve(result);
+        };
+
+        saveBtn.onclick = () => dismiss('save');
+        discardBtn.onclick = () => dismiss('discard');
+        keepEditingBtn.onclick = () => dismiss('cancel');
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss('cancel'); return; }
+            if (event.key === 'Tab') {
+                const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => saveBtn.focus(), 30);
+    });
+}
+
 export function showArchiveConfirmModal(debtName) {
     return new Promise((resolve) => {
         const modal = document.getElementById('archiveConfirmModal');
