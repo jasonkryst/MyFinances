@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.39.0] — 2026-10-26
+
+### Added
+- **Retirement: multi-scenario projections** (issue #264) — the Retirement page's projection panel and a new "Projected Growth" chart now show conservative/moderate/aggressive bands instead of a single projected value. Moderate stays exactly each account's own `rateOfReturn` (unchanged behavior); conservative/aggressive are derived by applying a user-configurable delta (default −2 / +3 percentage points, giving the suggested 5%/7%/10% band for a typical 7% account) to that per-account rate, clamped to 0–100%, rather than three flat global rates — preserving each account's own assumption instead of overwriting it. Pension accounts (contribution-based, not rate-driven) show the same value in all three scenarios. New pure functions `computeScenarioRates`/`computeRetirementProjectionScenarios`/`computeRetirementProjectionSeries` in `src/retirementCalculator.js`; `computeRetirementProjection()` itself is unchanged. The withdrawal-rate ("monthly income in retirement") panel now shows three estimates, one per scenario, alongside the existing combined-total figure. See `docs/superpowers/specs/2026-10-25-retirement-multi-scenario-projections-design.md`.
+
 ## [6.38.0] — 2026-10-25
 
 ### Changed

@@ -1115,6 +1115,11 @@ export class DebtTrackerApp {
         const mod = await loadRetirementModule();
         return mod.computeAccountProjection(this, accountId);
     }
+    // Issue #264: same async-lazy pattern as its siblings above (#278).
+    async computeAccountProjectionScenarios(accountId, conservativeDelta, aggressiveDelta) {
+        const mod = await loadRetirementModule();
+        return mod.computeAccountProjectionScenarios(this, accountId, conservativeDelta, aggressiveDelta);
+    }
     async renderRetirementPage() {
         try {
             const mod = await loadRetirementModule();

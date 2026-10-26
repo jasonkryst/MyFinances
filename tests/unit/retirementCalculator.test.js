@@ -1,4 +1,16 @@
-const { computeRetirementProjection, splitGrowthFromContribution, IRS_CONTRIBUTION_LIMITS, getContributionLimit, computeYtdContributions, computeMonthlyWithdrawal } = require('../../src/retirementCalculator.js');
+const {
+    computeRetirementProjection,
+    splitGrowthFromContribution,
+    IRS_CONTRIBUTION_LIMITS,
+    getContributionLimit,
+    computeYtdContributions,
+    computeMonthlyWithdrawal,
+    computeScenarioRates,
+    computeRetirementProjectionScenarios,
+    computeRetirementProjectionSeries,
+    DEFAULT_CONSERVATIVE_DELTA,
+    DEFAULT_AGGRESSIVE_DELTA,
+} = require('../../src/retirementCalculator.js');
 
 describe('computeRetirementProjection', () => {
     test('returns currentBalance unchanged when monthsUntilTarget is zero or negative', () => {
@@ -178,5 +190,124 @@ describe('computeMonthlyWithdrawal', () => {
 
     test('handles a negative balance proportionally (no clamping — a projection should never actually be negative)', () => {
         expect(computeMonthlyWithdrawal(-120000, 4)).toBeCloseTo(-400, 2);
+    });
+});
+
+// ── Multi-scenario projections (issue #264) ────────────────────────────────
+
+describe('computeScenarioRates', () => {
+    test('default deltas on a 7% moderate rate produce the suggested 5/7/10 band', () => {
+        expect(computeScenarioRates(7)).toEqual({ conservative: 5, moderate: 7, aggressive: 10 });
+    });
+
+    test('DEFAULT_CONSERVATIVE_DELTA and DEFAULT_AGGRESSIVE_DELTA match -2/+3', () => {
+        expect(DEFAULT_CONSERVATIVE_DELTA).toBe(-2);
+        expect(DEFAULT_AGGRESSIVE_DELTA).toBe(3);
+    });
+
+    test('honors a custom delta pair', () => {
+        expect(computeScenarioRates(6, -1, 5)).toEqual({ conservative: 5, moderate: 6, aggressive: 11 });
+    });
+
+    test('preserves a different per-account moderate rate instead of flattening to a global default', () => {
+        expect(computeScenarioRates(4)).toEqual({ conservative: 2, moderate: 4, aggressive: 7 });
+        expect(computeScenarioRates(9)).toEqual({ conservative: 7, moderate: 9, aggressive: 12 });
+    });
+
+    test('clamps conservative at 0 rather than going negative', () => {
+        expect(computeScenarioRates(1)).toEqual({ conservative: 0, moderate: 1, aggressive: 4 });
+        expect(computeScenarioRates(0)).toEqual({ conservative: 0, moderate: 0, aggressive: 3 });
+    });
+
+    test('clamps aggressive at 100', () => {
+        expect(computeScenarioRates(99)).toEqual({ conservative: 97, moderate: 99, aggressive: 100 });
+    });
+
+    test('falls back to the default delta when a non-finite delta is passed', () => {
+        expect(computeScenarioRates(7, NaN, undefined)).toEqual({ conservative: 5, moderate: 7, aggressive: 10 });
+        expect(computeScenarioRates(7, 'bad', null)).toEqual({ conservative: 5, moderate: 7, aggressive: 10 });
+    });
+
+    test('treats a missing/non-numeric moderate rate as 0 (e.g. an account with no assumedReturn set)', () => {
+        expect(computeScenarioRates(undefined)).toEqual({ conservative: 0, moderate: 0, aggressive: 3 });
+        expect(computeScenarioRates(null)).toEqual({ conservative: 0, moderate: 0, aggressive: 3 });
+    });
+
+    test('a negative moderate rate is clamped to 0 before deltas are applied', () => {
+        expect(computeScenarioRates(-5)).toEqual({ conservative: 0, moderate: 0, aggressive: 3 });
+    });
+
+    test('duplicate (zero) deltas collapse all three scenarios to the same rate', () => {
+        expect(computeScenarioRates(7, 0, 0)).toEqual({ conservative: 7, moderate: 7, aggressive: 7 });
+    });
+});
+
+describe('computeRetirementProjectionScenarios', () => {
+    test('three scenarios diverge over a multi-year horizon with a positive contribution', () => {
+        const result = computeRetirementProjectionScenarios(10000, 200, 7, 120); // 10 years
+        expect(result.conservative).toBeLessThan(result.moderate);
+        expect(result.moderate).toBeLessThan(result.aggressive);
+        expect(result.rates).toEqual({ conservative: 5, moderate: 7, aggressive: 10 });
+    });
+
+    test('matches calling computeRetirementProjection three times with the derived rates', () => {
+        const result = computeRetirementProjectionScenarios(5000, 100, 7, 36);
+        expect(result.conservative).toBeCloseTo(computeRetirementProjection(5000, 100, 5, 36), 6);
+        expect(result.moderate).toBeCloseTo(computeRetirementProjection(5000, 100, 7, 36), 6);
+        expect(result.aggressive).toBeCloseTo(computeRetirementProjection(5000, 100, 10, 36), 6);
+    });
+
+    test('zero months collapses all three scenarios to currentBalance unchanged', () => {
+        const result = computeRetirementProjectionScenarios(10000, 500, 7, 0);
+        expect(result).toMatchObject({ conservative: 10000, moderate: 10000, aggressive: 10000 });
+    });
+
+    test('duplicate deltas (0, 0) collapse all three scenarios to the same value', () => {
+        const result = computeRetirementProjectionScenarios(10000, 200, 7, 24, 0, 0);
+        expect(result.conservative).toBeCloseTo(result.moderate, 6);
+        expect(result.moderate).toBeCloseTo(result.aggressive, 6);
+    });
+
+    test('a zero moderate rate with zero contribution still diverges only on the aggressive side (conservative clamps to 0)', () => {
+        const result = computeRetirementProjectionScenarios(10000, 0, 0, 60);
+        expect(result.conservative).toBe(10000);
+        expect(result.moderate).toBe(10000);
+        expect(result.aggressive).toBeGreaterThan(10000);
+    });
+});
+
+describe('computeRetirementProjectionSeries', () => {
+    test('zero/negative months returns a single point at currentBalance', () => {
+        expect(computeRetirementProjectionSeries(10000, 500, 7, 0)).toEqual([{ month: 0, balance: 10000 }]);
+        expect(computeRetirementProjectionSeries(10000, 500, 7, -3)).toEqual([{ month: 0, balance: 10000 }]);
+    });
+
+    test('includes month 0 and the final month', () => {
+        const series = computeRetirementProjectionSeries(1000, 100, 12, 7, 3);
+        expect(series[0]).toEqual({ month: 0, balance: 1000 });
+        expect(series[series.length - 1].month).toBe(7);
+    });
+
+    test('samples every sampleEveryMonths in between', () => {
+        const series = computeRetirementProjectionSeries(1000, 100, 12, 12, 3);
+        expect(series.map(p => p.month)).toEqual([0, 3, 6, 9, 12]);
+    });
+
+    test('is monotonically non-decreasing for a positive rate and contribution', () => {
+        const series = computeRetirementProjectionSeries(1000, 100, 7, 24, 1);
+        for (let i = 1; i < series.length; i++) {
+            expect(series[i].balance).toBeGreaterThanOrEqual(series[i - 1].balance);
+        }
+    });
+
+    test('final point matches computeRetirementProjection for the same inputs', () => {
+        const series = computeRetirementProjectionSeries(5000, 150, 6, 18, 1);
+        const expected = computeRetirementProjection(5000, 150, 6, 18);
+        expect(series[series.length - 1].balance).toBeCloseTo(expected, 6);
+    });
+
+    test('defaults sampleEveryMonths to 1 when omitted', () => {
+        const series = computeRetirementProjectionSeries(1000, 50, 5, 5);
+        expect(series.map(p => p.month)).toEqual([0, 1, 2, 3, 4, 5]);
     });
 });

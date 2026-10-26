@@ -6278,6 +6278,14 @@ body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; 
 .retire-withdrawal-row label { font-size: 0.85rem; color: var(--text-color); }
 .retire-withdrawal-row input[type="range"] { flex: 1; min-width: 160px; }
 
+/* Multi-scenario projections (issue #264) */
+.retire-scenario-controls { display: flex; align-items: center; gap: 8px; margin: 16px 0 12px; flex-wrap: wrap; }
+.retire-scenario-controls label { font-size: 0.85rem; color: var(--text-color); }
+.retire-scenario-controls input[type="number"] { width: 72px; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); }
+.retire-scenario-table { width: 100%; border-collapse: collapse; }
+.retire-scenario-table th, .retire-scenario-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+.retire-scenario-total-row td { font-weight: 700; }
+
 .acct-balances {
     display: flex;
     gap: 20px;

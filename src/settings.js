@@ -13,6 +13,8 @@ export const SURPLUS_WINDOW_DAYS = 'surplusWindowDays';
 export const SURPLUS_CUSHION_PCT = 'surplusCushionPct';
 export const AUTO_NW_SNAPSHOT = 'autoNwSnapshot';
 export const RETIREMENT_WITHDRAWAL_RATE = 'retirementWithdrawalRate';
+export const RETIREMENT_SCENARIO_CONSERVATIVE_DELTA = 'retirementScenarioConservativeDelta';
+export const RETIREMENT_SCENARIO_AGGRESSIVE_DELTA = 'retirementScenarioAggressiveDelta';
 export const HOUSING_COST_OVERRIDE = 'healthHousingCostOverride';
 
 // #250: per-category budget health thresholds, stored as two flat settings
