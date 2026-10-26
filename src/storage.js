@@ -427,6 +427,7 @@ export function clearAllData(app, options = {}) {
     app._storageBackendKind = 'local';
     setStorageBackendPreference('local');
     localStorage.removeItem('debtTrackerTheme');
+    localStorage.removeItem('debtTrackerReconInProgress');
 
     if (wasPostgres) pgDeleteAll(app); // fire-and-forget; backend kind is already 'local'
 

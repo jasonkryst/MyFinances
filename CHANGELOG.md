@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.40.0] — 2026-10-26
+
+### Added
+- **Reconciliation: partial/in-progress state** (issue #343) — closing the Reconcile modal (via Cancel, the × button, the Escape key, or a backdrop click) with unsaved edits now offers "Save Progress" / "Discard" / "Keep Editing" instead of silently losing the review, via a new `showReconSaveProgressModal()` in `src/ui.js`. "Keep Editing" (and Escape inside that prompt) leaves the Reconcile modal open and untouched — unlike the destructive-by-default `showDeleteConfirmModal`, Escape here is deliberately non-destructive. Closing with no changes at all (the common case) still closes immediately with no prompt. Saved progress is stored per account under a standalone `debtTrackerReconInProgress` `localStorage` key — written directly, not through the storage adapter or the main `debtTrackerData` payload, since it's transient per-device UI state that must not round-trip through export/import/Postgres sync — and includes the statement balance, start/end dates, note, and which expected transactions the user had checked off as reviewed during that session (keyed by the same `type|sourceId|accountId|date` format as `app.ledgerClearedTransactions`, via a new per-row checkbox column that only renders in the modal's expected-transactions table, not the Reconcile page's inline cards). Reopening the modal for an account with saved progress restores all of the above and shows a "Resumed in-progress reconciliation" banner; completing the reconciliation, or choosing Discard, clears that account's saved state. `clearAllData` now also removes the `debtTrackerReconInProgress` key outright.
+
 ## [6.39.0] — 2026-10-26
 
 ### Added
