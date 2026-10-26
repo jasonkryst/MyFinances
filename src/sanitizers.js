@@ -396,6 +396,26 @@ export function sanitizeReconciliation(record, idFallback) {
     };
 }
 
+export function sanitizeTransfer(record, idFallback) {
+    const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
+        ? record.createdAt
+        : new Date().toISOString();
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        fromAccountId: sanitizeInteger(record?.fromAccountId, null),
+        toAccountId: sanitizeInteger(record?.toAccountId, null),
+        // No min clamp here -- sanitizeFiniteNumber's min option clamps up to
+        // the floor rather than rejecting, which would silently turn a
+        // negative/zero amount into a valid 0.01 transfer. The keepFn in
+        // sanitizeParsedState's _sanitizeRecordArray call rejects non-positive
+        // amounts outright instead.
+        amount: sanitizeFiniteNumber(record?.amount, NaN),
+        date: sanitizeDateISO(record?.date) || todayISO(),
+        memo: normalizeText(record?.memo, 200),
+        createdAt
+    };
+}
+
 export function sanitizePlanHistoryEntry(record, idFallback) {
     const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
         ? record.createdAt
@@ -488,6 +508,9 @@ export function sanitizeParsedState(parsed = {}, warnings) {
             'Plan History', (raw, i) => raw?.strategy ? `Plan (${raw.strategy})` : `Plan History #${i + 1}`, warnings),
         retirementSnapshots: _sanitizeRecordArray(parsed.retirementSnapshots, sanitizeRetirementSnapshot, now + 6500, s => s.accountId !== null,
             'Retirement Snapshot', (raw, i) => raw?.date ? `Retirement Snapshot ${raw.date}` : `Retirement Snapshot #${i + 1}`, warnings),
+        transfers: _sanitizeRecordArray(parsed.transfers, sanitizeTransfer, now + 7500,
+            t => t.fromAccountId !== null && t.toAccountId !== null && t.fromAccountId !== t.toAccountId && Number.isFinite(t.amount) && t.amount > 0,
+            'Transfer', (raw, i) => raw?.date ? `Transfer ${raw.date}` : `Transfer #${i + 1}`, warnings),
         retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
         homePurchasePlan: sanitizeHomePurchasePlan(parsed.homePurchasePlan, warnings),
         settings: _sanitizeValueArray(parsed.settings, sanitizeSetting, Boolean, 'Setting', (raw, i) => raw?.key ? String(raw.key) : `Setting #${i + 1}`, warnings),
@@ -507,6 +530,18 @@ export function sanitizeParsedState(parsed = {}, warnings) {
                 recordName: h.date ? `Balance History ${h.date}` : `Balance History #${idx + 1}`,
                 kind: 'rejected',
                 reason: 'References a debt/account that no longer exists after import — not imported.'
+            });
+        }
+        return keep;
+    });
+    state.transfers = state.transfers.filter((t, idx) => {
+        const keep = accountIds.has(t.fromAccountId) && accountIds.has(t.toAccountId);
+        if (!keep && warnings) {
+            warnings.push({
+                recordType: 'Transfer',
+                recordName: t.date ? `Transfer ${t.date}` : `Transfer #${idx + 1}`,
+                kind: 'rejected',
+                reason: 'References an account that no longer exists after import — not imported.'
             });
         }
         return keep;

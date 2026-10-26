@@ -16,6 +16,7 @@ const ALL_RESOURCE_PATHS = [
     '/api/reconciliations',
     '/api/plan-history',
     '/api/retirement-snapshots',
+    '/api/transfers',
     '/api/ledger-overrides',
     '/api/ledger-cleared',
     '/api/net-worth-snapshots',

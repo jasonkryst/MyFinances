@@ -17,6 +17,7 @@ const CRUD_RESOURCES = [
     { field: 'reconciliations',    path: '/api/reconciliations' },
     { field: 'planHistory',        path: '/api/plan-history' },
     { field: 'retirementSnapshots', path: '/api/retirement-snapshots' },
+    { field: 'transfers',           path: '/api/transfers' },
 ];
 
 // Resources deduplicated by name in merge mode (same logic as localStorage merge)
@@ -33,6 +34,9 @@ function remapFk(record, idMap, personIdMap = {}) {
     const r = { ...record };
     if (r.accountId != null && idMap[r.accountId] != null) r.accountId = idMap[r.accountId];
     if (r.targetAccountId != null && idMap[r.targetAccountId] != null) r.targetAccountId = idMap[r.targetAccountId];
+    // Transfers (#248) carry two account FKs instead of one.
+    if (r.fromAccountId != null && idMap[r.fromAccountId] != null) r.fromAccountId = idMap[r.fromAccountId];
+    if (r.toAccountId != null && idMap[r.toAccountId] != null) r.toAccountId = idMap[r.toAccountId];
     if (r.personId != null && personIdMap[r.personId] != null) r.personId = personIdMap[r.personId];
     if (Array.isArray(r.personIds)) r.personIds = r.personIds.map(id => personIdMap[id] ?? id);
     return r;
@@ -70,6 +74,7 @@ function snapshotAppState(app) {
         reconciliations:       app.reconciliations.map(r => ({ ...r })),
         planHistory:           (app.planHistory || []).map(r => ({ ...r })),
         retirementSnapshots:   (app.retirementSnapshots || []).map(r => ({ ...r })),
+        transfers:             (app.transfers || []).map(r => ({ ...r })),
         balanceHistory:        (app.balanceHistory || []).map(r => ({ ...r })),
         ledgerAmountOverrides: { ...app.ledgerAmountOverrides },
         ledgerClearedTransactions: { ...app.ledgerClearedTransactions },
@@ -232,6 +237,7 @@ function snapshotToPostData(snapshot) {
         reconciliations:       snapshot.reconciliations,
         planHistory:           snapshot.planHistory,
         retirementSnapshots:   snapshot.retirementSnapshots,
+        transfers:             snapshot.transfers,
         balanceHistory:        snapshot.balanceHistory,
         ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
         ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
@@ -466,6 +472,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             reconciliations:      snapshot.reconciliations,
             planHistory:          snapshot.planHistory,
             retirementSnapshots:  snapshot.retirementSnapshots,
+            transfers:            snapshot.transfers,
             retirementTargetDate: snapshot.retirementTargetDate,
             balanceHistory:       snapshot.balanceHistory,
             ledgerAmountOverrides: snapshot.ledgerAmountOverrides,

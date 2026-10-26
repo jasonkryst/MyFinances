@@ -100,6 +100,7 @@ import { APP_VERSION, renderLazyLoadError } from './utils.js';
 import {
     loadRetirementModule,
     loadReconciliationModule,
+    loadTransfersModule,
     loadStrategyCalendarModule,
     loadReportsSubModules
 } from './lazyModules.js';
@@ -165,6 +166,7 @@ export class DebtTrackerApp {
         this.reconciliations = [];
         this.planHistory = [];
         this.retirementSnapshots = [];
+        this.transfers = [];
         this.retirementTargetDate = null;
         this.homePurchasePlan = null;
         this.balanceHistory = [];
@@ -1075,6 +1077,35 @@ export class DebtTrackerApp {
     async getExpectedTransactionsInRange(accountId, startDate, endDate) {
         const mod = await loadReconciliationModule();
         return mod.getExpectedTransactionsInRange(this, accountId, startDate, endDate);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  TRANSFERS (issue #248)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    // transfers.js is lazy-loaded (issue #278 pattern) -- same reasoning as the
+    // Reconciliation group above: these wrappers are called directly from the
+    // Accounts/Ledger pages, which have no reason to have already loaded it.
+    async addTransfer(fromAccountId, toAccountId, amount, date, memo) {
+        const mod = await loadTransfersModule();
+        return mod.addTransfer(this, fromAccountId, toAccountId, amount, date, memo);
+    }
+    async editTransfer(id, fields) {
+        const mod = await loadTransfersModule();
+        return mod.editTransfer(this, id, fields);
+    }
+    async deleteTransfer(id) {
+        const mod = await loadTransfersModule();
+        return mod.deleteTransfer(this, id);
+    }
+    async openTransferModal(options) {
+        try {
+            const mod = await loadTransfersModule();
+            return mod.openTransferModal(this, options);
+        } catch (err) {
+            console.error('Failed to load transfers module', err);
+            showAlertModal("Couldn't load the Transfer feature. Check your connection and try again.");
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
