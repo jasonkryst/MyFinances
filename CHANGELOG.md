@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.46.0] — 2026-10-27
+
+### Fixed
+- **Home Purchase plan now syncs to the optional Postgres backend** (issue #405) — the plan from #249 previously persisted only in the browser's local/session storage even when the Postgres backend was active. It is now stored as a nullable `home_purchase_plan jsonb` column on `plan_settings` (migration `1755600000025`) and travels through the existing `/api/plan-settings` GET/PATCH, re-sanitized server-side with `sanitizeHomePurchasePlan()` (invalid payloads become `null`). Load, save, clear-all (`pgDeleteAll`), and Postgres replace/merge import (including rollback snapshots) all carry it. Also fixes a JSON import containing only a Home Purchase plan being rejected as "no data".
+
 ## [6.45.0] — 2026-10-27
 
 ### Added

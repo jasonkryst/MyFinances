@@ -1,6 +1,6 @@
 import express from 'express';
 import { query } from '../db.js';
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO } from '../sanitizers/index.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan } from '../sanitizers/index.js';
 
 const router = express.Router();
 
@@ -15,6 +15,7 @@ function rowToJson(row, milestones) {
         ledgerSettings: row.ledger_settings,
         forecastSettings: row.forecast_settings,
         retirementTargetDate: row.retirement_target_date || null,
+        homePurchasePlan: row.home_purchase_plan || null,
         netWorthMilestonesAwarded: milestones
     };
 }
@@ -66,6 +67,8 @@ router.patch('/', async (req, res, next) => {
             notableThresholdPct: sanitizeFiniteNumber(body.forecastSettings?.notableThresholdPct, 130, { min: 100, max: 500 })
         };
         const retirementTargetDate = body.retirementTargetDate === undefined ? undefined : sanitizeDateISO(body.retirementTargetDate);
+        // Invalid or non-object input sanitizes to null, which clears the plan.
+        const homePurchasePlan = body.homePurchasePlan === undefined ? undefined : sanitizeHomePurchasePlan(body.homePurchasePlan);
 
         const sets = [];
         const values = [req.userId];
@@ -75,6 +78,7 @@ router.patch('/', async (req, res, next) => {
         if (ledgerSettings !== undefined) { values.push(JSON.stringify(ledgerSettings)); sets.push(`ledger_settings = $${values.length}`); }
         if (forecastSettings !== undefined) { values.push(JSON.stringify(forecastSettings)); sets.push(`forecast_settings = $${values.length}`); }
         if (retirementTargetDate !== undefined) { values.push(retirementTargetDate); sets.push(`retirement_target_date = $${values.length}`); }
+        if (homePurchasePlan !== undefined) { values.push(homePurchasePlan === null ? null : JSON.stringify(homePurchasePlan)); sets.push(`home_purchase_plan = $${values.length}`); }
 
         if (sets.length > 0) {
             await query(`UPDATE plan_settings SET ${sets.join(', ')} WHERE user_id = $1`, values);

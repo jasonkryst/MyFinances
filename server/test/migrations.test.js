@@ -113,3 +113,14 @@ test('plan_settings accepts a retirement_target_date', async () => {
     // date column in this codebase -- see the comment in src/db.js.
     assert.equal(rows[0].retirement_target_date, '2050-01-01');
 });
+
+test('plan_settings accepts a nullable home_purchase_plan jsonb', async () => {
+    await resetDb();
+    const user = await createTestUser();
+    await pool.query('INSERT INTO plan_settings (user_id) VALUES ($1)', [user.id]);
+    let { rows } = await pool.query('SELECT home_purchase_plan FROM plan_settings WHERE user_id = $1', [user.id]);
+    assert.equal(rows[0].home_purchase_plan, null);
+    await pool.query('UPDATE plan_settings SET home_purchase_plan = $1 WHERE user_id = $2', [JSON.stringify({ targetHomePrice: 300000 }), user.id]);
+    ({ rows } = await pool.query('SELECT home_purchase_plan FROM plan_settings WHERE user_id = $1', [user.id]));
+    assert.equal(rows[0].home_purchase_plan.targetHomePrice, 300000);
+});

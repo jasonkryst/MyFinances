@@ -102,7 +102,7 @@ async def _wipe_all(page, base_url):
     # Reset plan-settings scalars
     await page.request.patch(
         f'{base_url}/api/plan-settings',
-        data={'strategy': None, 'monthlyPayment': None, 'perMonthStimulus': []},
+        data={'strategy': None, 'monthlyPayment': None, 'perMonthStimulus': [], 'homePurchasePlan': None},
         headers={'X-CSRF-Token': csrf}
     )
 
@@ -472,3 +472,145 @@ async def test_postgres_delete_milestones_endpoint(pg_page, base_url, credential
     plan_after = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
     assert plan_after.get('netWorthMilestonesAwarded', []) == [], \
         f'Milestones not cleared. Plan: {plan_after}. Console: {logs}'
+
+
+# ─── Home purchase plan (issue #405) ─────────────────────────────────────────
+
+HOME_PLAN = {
+    'targetHomePrice': 425000, 'targetDownPaymentPct': 15, 'currentSavings': 20000,
+    'monthlyContribution': 800, 'housingCostEstimate': 2400, 'notes': 'Starter home',
+}
+
+
+async def test_postgres_home_purchase_plan_persists_across_reload(pg_page, base_url, credentials):
+    """Saving a plan via app.saveToStorage() PATCHes plan-settings and survives a reload."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    await _wipe_all(pg_page, base_url)
+
+    await pg_page.evaluate("(plan) => { window.app.homePurchasePlan = plan; return window.app.saveToStorage(); }", HOME_PLAN)
+    await pg_page.wait_for_timeout(1500)
+
+    plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
+    assert plan.get('homePurchasePlan') == HOME_PLAN, f'Plan not stored. Plan: {plan}. Console: {logs}'
+
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    loaded = await pg_page.evaluate("() => window.app.homePurchasePlan")
+    assert loaded == HOME_PLAN, f'Plan not loaded after reload: {loaded}. Console: {logs}'
+
+    # Clearing the plan persists null server-side
+    await pg_page.evaluate("() => { window.app.homePurchasePlan = null; return window.app.saveToStorage(); }")
+    await pg_page.wait_for_timeout(1500)
+    plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
+    assert plan.get('homePurchasePlan') is None, f'Plan not cleared. Plan: {plan}. Console: {logs}'
+
+    await _wipe_all(pg_page, base_url)
+
+
+async def test_postgres_home_purchase_plan_replace_import_roundtrip(pg_page, base_url, credentials):
+    """Export -> wipe -> replace import restores the home purchase plan server-side."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    await _wipe_all(pg_page, base_url)
+
+    csrf = await _csrf(pg_page)
+    r = await pg_page.request.patch(
+        f'{base_url}/api/plan-settings', data={'homePurchasePlan': HOME_PLAN},
+        headers={'X-CSRF-Token': csrf})
+    assert r.status == 200
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    exported_json = await _capture_export(pg_page)
+
+    await _wipe_all(pg_page, base_url)
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
+    assert plan.get('homePurchasePlan') is None
+
+    result = await _run_import(pg_page, exported_json, replace=True)
+    assert result['ok'], f'Import failed: {result}. Console: {logs}'
+    await pg_page.wait_for_timeout(2000)
+    plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
+    assert plan.get('homePurchasePlan') == HOME_PLAN, f'Plan not restored. Plan: {plan}. Console: {logs}'
+
+    await _wipe_all(pg_page, base_url)
+
+
+async def test_postgres_home_purchase_plan_merge_import_roundtrip(pg_page, base_url, credentials):
+    """Merge-mode import of a file containing a plan stores it server-side."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    await _wipe_all(pg_page, base_url)
+
+    csrf = await _csrf(pg_page)
+    await pg_page.request.patch(
+        f'{base_url}/api/plan-settings', data={'homePurchasePlan': HOME_PLAN},
+        headers={'X-CSRF-Token': csrf})
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+    exported_json = await _capture_export(pg_page)
+
+    await _wipe_all(pg_page, base_url)
+    await pg_page.reload()
+    await _wait_for_app_ready(pg_page)
+
+    result = await _run_import(pg_page, exported_json, replace=False)
+    assert result['ok'], f'Merge import failed: {result}. Console: {logs}'
+    await pg_page.wait_for_timeout(2000)
+    plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
+    assert plan.get('homePurchasePlan') == HOME_PLAN, f'Plan not merged. Plan: {plan}. Console: {logs}'
+
+    await _wipe_all(pg_page, base_url)
+
+
+async def test_postgres_clear_all_resets_home_purchase_plan(pg_page, base_url, credentials):
+    """clearAllData (pgDeleteAll) resets the home purchase plan to null."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+
+    csrf = await _csrf(pg_page)
+    await pg_page.request.patch(
+        f'{base_url}/api/plan-settings', data={'homePurchasePlan': HOME_PLAN},
+        headers={'X-CSRF-Token': csrf})
+    await pg_page.evaluate("() => window.app.clearAllData()")
+    await pg_page.wait_for_timeout(2000)
+
+    plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
+    assert plan.get('homePurchasePlan') is None, f'Plan not reset. Plan: {plan}. Console: {logs}'
+
+
+async def test_postgres_home_purchase_plan_invalid_payloads_sanitized(pg_page, base_url, credentials):
+    """Invalid / malicious homePurchasePlan PATCH payloads are nulled or sanitized, never stored raw."""
+    await _login(pg_page, base_url, credentials)
+    await _wipe_all(pg_page, base_url)
+    csrf = await _csrf(pg_page)
+
+    for bad in ['a string', [1, 2, 3], {'targetHomePrice': -100}, {'targetHomePrice': 'abc'}, {}]:
+        await pg_page.request.patch(
+            f'{base_url}/api/plan-settings', data={'homePurchasePlan': HOME_PLAN},
+            headers={'X-CSRF-Token': csrf})
+        r = await pg_page.request.patch(
+            f'{base_url}/api/plan-settings', data={'homePurchasePlan': bad},
+            headers={'X-CSRF-Token': csrf})
+        assert r.status == 200
+        assert (await r.json()).get('homePurchasePlan') is None, f'Payload not nulled: {bad!r}'
+
+    r = await pg_page.request.patch(
+        f'{base_url}/api/plan-settings',
+        data={'homePurchasePlan': {'targetHomePrice': 1000, 'currentSavings': -5,
+                                   'notes': '<script>alert(1)</script>' + 'x' * 5000}},
+        headers={'X-CSRF-Token': csrf})
+    plan = (await r.json())['homePurchasePlan']
+    assert len(plan['notes']) <= 500
+    assert plan['currentSavings'] == 0
+
+    # No CSRF token -> rejected, plan unchanged
+    r = await pg_page.request.patch(
+        f'{base_url}/api/plan-settings', data={'homePurchasePlan': None})
+    assert r.status in (401, 403)
+    stored = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
+    assert stored.get('homePurchasePlan') is not None
+
+    await _wipe_all(pg_page, base_url)
