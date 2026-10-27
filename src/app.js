@@ -114,6 +114,7 @@ import {
     skipRecurringOccurrence as skipRecurringOccurrenceFeature,
     markRecurringPaid as markRecurringPaidFeature,
     openRecurringMarkPaidModal as openRecurringMarkPaidModalFeature,
+    openRecurringPauseModal as openRecurringPauseModalFeature,
     startEditRecurring as startEditRecurringFeature,
     cancelEditRecurring as cancelEditRecurringFeature,
     saveEditRecurring as saveEditRecurringFeature,
@@ -1014,12 +1015,13 @@ export class DebtTrackerApp {
     renderRecurringPage() { return renderRecurringPageFeature(this); }
     addRecurringTemplate() { return addRecurringTemplateFeature(this); }
     deleteRecurringTemplate(id) { return deleteRecurringTemplateFeature(this, id); }
-    pauseRecurringTemplate(id, paused) { return pauseRecurringTemplateFeature(this, id, paused); }
+    pauseRecurringTemplate(id, paused, pauseUntil) { return pauseRecurringTemplateFeature(this, id, paused, pauseUntil); }
     archiveRecurringTemplate(id) { return archiveRecurringTemplateFeature(this, id); }
     unarchiveRecurringTemplate(id) { return unarchiveRecurringTemplateFeature(this, id); }
     skipRecurringOccurrence(id, monthKey, unskip) { return skipRecurringOccurrenceFeature(this, id, monthKey, unskip); }
     markRecurringPaid(id, monthKey, unmark, actualAmount) { return markRecurringPaidFeature(this, id, monthKey, unmark, actualAmount); }
     openRecurringMarkPaidModal(id, monthKey) { return openRecurringMarkPaidModalFeature(this, id, monthKey); }
+    openRecurringPauseModal(id) { return openRecurringPauseModalFeature(this, id); }
     startEditRecurring(id) { return startEditRecurringFeature(this, id); }
     cancelEditRecurring() { return cancelEditRecurringFeature(this); }
     saveEditRecurring(id) { return saveEditRecurringFeature(this, id); }

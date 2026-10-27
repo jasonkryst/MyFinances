@@ -8,8 +8,20 @@ import { query } from './db.js';
 
 const WINDOW_MONTHS = 12;
 
+// #299: mirrors src/recurring.js::isEffectivelyPaused — a paused template
+// whose pauseUntil date has passed is treated as active.
+function isEffectivelyPaused(template) {
+    if (!template.paused) return false;
+    if (template.pauseUntil) {
+        const today = new Date();
+        const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (todayIso >= template.pauseUntil) return false;
+    }
+    return true;
+}
+
 function getOccurrences(template, year, month) {
-    if (template.paused) return [];
+    if (isEffectivelyPaused(template)) return [];
 
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
     if (Array.isArray(template.skippedMonths) && template.skippedMonths.includes(monthKey)) return [];
@@ -151,7 +163,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
         query('SELECT id, name FROM accounts WHERE user_id = $1', [userId]),
         query('SELECT id, name, amount, due_day, category, account_id FROM bills WHERE user_id = $1', [userId]),
         query('SELECT id, name, minimum_payment, due_date, category, account_id, archived FROM debts WHERE user_id = $1', [userId]),
-        query('SELECT id, name, type, amount, frequency, day_of_month, category, account_id, start_date, end_date, paused, skipped_months, paid_months FROM recurring_templates WHERE user_id = $1', [userId]),
+        query('SELECT id, name, type, amount, frequency, day_of_month, category, account_id, start_date, end_date, paused, pause_until, skipped_months, paid_months FROM recurring_templates WHERE user_id = $1', [userId]),
         query('SELECT id, name, budget_amount, date, category, account_id FROM expenses WHERE user_id = $1', [userId]),
         query('SELECT id, name, amount, first_pay_date, frequency, account_id FROM incomes WHERE user_id = $1', [userId]),
         query("SELECT value FROM settings WHERE user_id = $1 AND key = 'showArchivedDebts'", [userId]),
@@ -209,6 +221,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
             if (row.paid_months?.includes(monthKey)) continue;
             const template = {
                 paused: row.paused,
+                pauseUntil: row.pause_until || null,
                 skippedMonths: row.skipped_months || [],
                 startDate: row.start_date || null,
                 endDate: row.end_date || null,

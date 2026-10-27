@@ -36,6 +36,11 @@ def test_recurring_pause_and_resume(app_page):
     assert pause_btn, "Expected a Pause button on an active template"
     pause_btn.click()
 
+    # Pause opens a modal (issue #299) with an optional resume date; confirm
+    # with the date left blank for an indefinite pause.
+    page.wait_for_selector('#recurringPauseModal', timeout=5000)
+    page.click('#recurringPauseConfirmBtn')
+
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' in badge_text, "Template should show a Paused badge after pausing"
 

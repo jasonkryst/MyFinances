@@ -283,6 +283,21 @@ describe('sanitizeRecurringTemplate', () => {
         const result = sanitizeRecurringTemplate({ skippedMonths: ['2026-08', 'bad-format', '2026-13'] }, 1);
         expect(result.skippedMonths).toEqual(['2026-08', '2026-13']);
     });
+
+    test('issue #299: passes through a well-formed pauseUntil date', () => {
+        const result = sanitizeRecurringTemplate({ paused: true, pauseUntil: '2026-10-31' }, 1);
+        expect(result.pauseUntil).toBe('2026-10-31');
+    });
+
+    test('issue #299: sanitizes a malformed pauseUntil to null', () => {
+        const result = sanitizeRecurringTemplate({ paused: true, pauseUntil: 'not-a-date' }, 1);
+        expect(result.pauseUntil).toBeNull();
+    });
+
+    test('issue #299: pauseUntil defaults to null when absent (backward compatible with pre-#299 records)', () => {
+        const result = sanitizeRecurringTemplate({ paused: false }, 1);
+        expect(result.pauseUntil).toBeNull();
+    });
 });
 
 describe('sanitizeLedgerOverrides', () => {
