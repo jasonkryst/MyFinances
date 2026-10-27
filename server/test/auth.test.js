@@ -6,14 +6,18 @@ import { resetDb, createTestUser, loginTestUser } from './helpers/testDb.js';
 import { _setTransportOverride, _clearTransportOverride } from '../src/email/transport.js';
 
 let server, baseUrl;
+const originalAllowSetup = process.env.ALLOW_SETUP;
 
 before(() => {
+    // POST /auth/register is gated behind ALLOW_SETUP=true (404 otherwise).
+    process.env.ALLOW_SETUP = 'true';
     const app = createApp();
     server = app.listen(0);
     baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
 
 after(async () => {
+    if (originalAllowSetup === undefined) delete process.env.ALLOW_SETUP; else process.env.ALLOW_SETUP = originalAllowSetup;
     server.close();
     await pool.end();
 });

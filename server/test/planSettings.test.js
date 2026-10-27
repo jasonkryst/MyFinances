@@ -34,7 +34,7 @@ test('GET returns defaults on first access', async () => {
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.strategy, null);
-    assert.deepEqual(body.ledgerSettings, { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc' });
+    assert.deepEqual(body.ledgerSettings, { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' });
     assert.deepEqual(body.netWorthMilestonesAwarded, []);
 });
 
