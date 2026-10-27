@@ -801,7 +801,7 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     }
     if (pageName === 'strategy') { app.renderStrategyIncomeWidget(); app.renderPlanHistory(); }
     if (pageName === 'reports') {
-        if (resetToDefaults) app._reportMonthOffset = 0;
+        if (resetToDefaults) { app._reportMonthOffset = 0; app._reportRangeMonths = 1; }
         app.renderReportsPage();
     }
     if (pageName === 'ledger') {

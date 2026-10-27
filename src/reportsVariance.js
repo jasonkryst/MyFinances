@@ -1,7 +1,44 @@
-// Reports page logic: month-to-month variance comparison
+// Reports page logic: month-to-month (or range-to-range) variance comparison
 
-import { formatCurrency, getReportDate } from './utils.js';
+import { formatCurrency, getReportDate, getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+
+// Classifies one month's ledger transactions into the five variance buckets.
+function _classifyMonthTotals(txs) {
+    let income = 0, expenses = 0, recurring = 0, debtMin = 0, savings = 0;
+    for (const tx of txs) {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
+            income += tx.amount;
+        } else if (tx.type === 'expense') {
+            expenses += Math.abs(tx.amount || 0);
+        } else if (tx.type === 'recurring' && tx.amount < 0) {
+            recurring += Math.abs(tx.amount);
+        } else if (tx.type === 'recurring' && tx.amount >= 0) {
+            income += tx.amount;
+        } else if (tx.type === 'debt') {
+            debtMin += Math.abs(tx.amount || 0);
+        } else if (tx.type === 'savings') {
+            savings += Math.abs(tx.amount || 0);
+        }
+    }
+    return { income, expenses, recurring, debtMin, savings };
+}
+
+// Sums classified totals across every month in the rangeMonths-month range
+// ending at (year, month) inclusive (issue #329; rangeMonths=1 reduces to
+// the original single-month behavior).
+function _sumRangeTotals(app, year, month, rangeMonths) {
+    const totals = { income: 0, expenses: 0, recurring: 0, debtMin: 0, savings: 0 };
+    for (const { year: y, month: m } of reportRangeMonthsList(year, month, rangeMonths)) {
+        const monthTotals = _classifyMonthTotals(getLedgerTransactionsForMonth(app, y, m));
+        totals.income += monthTotals.income;
+        totals.expenses += monthTotals.expenses;
+        totals.recurring += monthTotals.recurring;
+        totals.debtMin += monthTotals.debtMin;
+        totals.savings += monthTotals.savings;
+    }
+    return totals;
+}
 
 export function renderReportsVariance(app) {
     const container = document.getElementById('reportsVariance');
@@ -10,47 +47,13 @@ export function renderReportsVariance(app) {
     const rptDate = getReportDate(app);
     const rptYear = rptDate.getFullYear();
     const rptMonth = rptDate.getMonth();
+    const rangeMonths = getReportRangeMonths(app);
 
-    // Get current month and previous month transactions
-    const currMonthTxs = getLedgerTransactionsForMonth(app, rptYear, rptMonth);
-    const prevMonthDate = rptMonth === 0 ? new Date(rptYear - 1, 11, 1) : new Date(rptYear, rptMonth - 1, 1);
-    const prevMonthTxs = getLedgerTransactionsForMonth(app, prevMonthDate.getFullYear(), prevMonthDate.getMonth());
-
-    // Calculate totals for current month
-    let currIncome = 0, currExpenses = 0, currRecurring = 0, currDebtMin = 0, currSavings = 0;
-    for (const tx of currMonthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
-            currIncome += tx.amount;
-        } else if (tx.type === 'expense') {
-            currExpenses += Math.abs(tx.amount || 0);
-        } else if (tx.type === 'recurring' && tx.amount < 0) {
-            currRecurring += Math.abs(tx.amount);
-        } else if (tx.type === 'recurring' && tx.amount >= 0) {
-            currIncome += tx.amount;
-        } else if (tx.type === 'debt') {
-            currDebtMin += Math.abs(tx.amount || 0);
-        } else if (tx.type === 'savings') {
-            currSavings += Math.abs(tx.amount || 0);
-        }
-    }
-
-    // Calculate totals for previous month
-    let prevIncome = 0, prevExpenses = 0, prevRecurring = 0, prevDebtMin = 0, prevSavings = 0;
-    for (const tx of prevMonthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
-            prevIncome += tx.amount;
-        } else if (tx.type === 'expense') {
-            prevExpenses += Math.abs(tx.amount || 0);
-        } else if (tx.type === 'recurring' && tx.amount < 0) {
-            prevRecurring += Math.abs(tx.amount);
-        } else if (tx.type === 'recurring' && tx.amount >= 0) {
-            prevIncome += tx.amount;
-        } else if (tx.type === 'debt') {
-            prevDebtMin += Math.abs(tx.amount || 0);
-        } else if (tx.type === 'savings') {
-            prevSavings += Math.abs(tx.amount || 0);
-        }
-    }
+    const curr = _sumRangeTotals(app, rptYear, rptMonth, rangeMonths);
+    const priorEnd = getPriorEquivalentRangeEnd(rptYear, rptMonth, rangeMonths);
+    const prev = _sumRangeTotals(app, priorEnd.year, priorEnd.month, rangeMonths);
+    const { income: currIncome, expenses: currExpenses, recurring: currRecurring, debtMin: currDebtMin, savings: currSavings } = curr;
+    const { income: prevIncome, expenses: prevExpenses, recurring: prevRecurring, debtMin: prevDebtMin, savings: prevSavings } = prev;
 
     // Calculate deltas
     const deltaIncome = currIncome - prevIncome;
@@ -59,9 +62,9 @@ export function renderReportsVariance(app) {
     const deltaDebtMin = currDebtMin - prevDebtMin;
     const deltaSavings = currSavings - prevSavings;
 
-    // Format dates
-    const currLabel = rptDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    const prevLabel = prevMonthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    // Format labels (single month, or an N-month range ending at rptMonth/priorEnd)
+    const currLabel = formatReportRangeLabel(rptYear, rptMonth, rangeMonths);
+    const prevLabel = formatReportRangeLabel(priorEnd.year, priorEnd.month, rangeMonths);
 
     // Helper function to create delta badge
     const deltaBadge = (delta, isExpense = false) => {
@@ -133,8 +136,20 @@ export function renderReportsVariance(app) {
 
     container.innerHTML = `
         <div class="var-container">
-            <h3 class="var-title">Month-to-Month Comparison</h3>
-            <p class="var-subtitle">Changes from ${prevLabel} to ${currLabel}</p>
+            <div class="var-header-row">
+                <div>
+                    <h3 class="var-title">${rangeMonths > 1 ? 'Period-to-Period Comparison' : 'Month-to-Month Comparison'}</h3>
+                    <p class="var-subtitle">Changes from ${prevLabel} to ${currLabel}</p>
+                </div>
+                <label class="var-range-toggle-label" for="varianceRangeMonths">Range:
+                    <select id="varianceRangeMonths" class="select-styled">
+                        <option value="1"${rangeMonths === 1 ? ' selected' : ''}>Single Month</option>
+                        <option value="3"${rangeMonths === 3 ? ' selected' : ''}>Quarter (3 mo)</option>
+                        <option value="6"${rangeMonths === 6 ? ' selected' : ''}>Half Year (6 mo)</option>
+                        <option value="12"${rangeMonths === 12 ? ' selected' : ''}>Year (12 mo)</option>
+                    </select>
+                </label>
+            </div>
             <div class="var-table">
                 <div class="var-header">
                     <span class="var-label-col">Category</span>
@@ -156,4 +171,12 @@ export function renderReportsVariance(app) {
             </div>
         </div>
     `;
+
+    const rangeSelect = document.getElementById('varianceRangeMonths');
+    if (rangeSelect) {
+        rangeSelect.onchange = () => {
+            app._reportRangeMonths = parseInt(rangeSelect.value, 10) || 1;
+            renderReportsVariance(app);
+        };
+    }
 }

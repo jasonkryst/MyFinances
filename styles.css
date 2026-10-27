@@ -5952,6 +5952,14 @@ body.dark-mode .cf-row--negative td {
     padding: 0;
 }
 
+.var-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .var-title {
     margin: 0 0 4px;
     font-size: 1.2rem;
@@ -5963,6 +5971,17 @@ body.dark-mode .cf-row--negative td {
     margin: 0 0 20px;
     font-size: 0.9rem;
     color: var(--text-muted);
+}
+
+/* Date range selector (issue #329), shared visual pattern with the Spending
+   report's range/compare selectors below */
+.var-range-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    white-space: nowrap;
 }
 
 .var-table {
@@ -7527,6 +7546,7 @@ body.dark-mode #settingsModal .settings-toggle-row input[type="checkbox"] {
 .spending-summary-strip {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 20px;
     font-size: 1rem;
@@ -7543,9 +7563,22 @@ body.dark-mode #settingsModal .settings-toggle-row input[type="checkbox"] {
 body.dark-mode .spending-badge--up   { background: #450a0a; color: #fca5a5; }
 body.dark-mode .spending-badge--down { background: #052e16; color: #86efac; }
 
+/* Date range selector (issue #329) - placed before the YoY toggle below, so
+   it alone carries the margin-left: auto that pushes both to the right edge
+   of .spending-summary-strip; a second auto margin on the YoY toggle would
+   split the free space and open an unwanted gap between the two selects. */
+.spending-range-toggle-label {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-muted, #64748b);
+    white-space: nowrap;
+}
+
 /* YoY comparison toggle (issue #332) */
 .spending-yoy-toggle-label {
-    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 6px;
