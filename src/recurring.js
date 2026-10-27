@@ -2,10 +2,12 @@
 
 import {
     formatCurrency,
+    formatShortDate,
     normalizeText,
     sanitizeFiniteNumber,
     sanitizeInteger,
     sanitizeDateISO,
+    dateToISO,
     escapeHtml
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
@@ -40,11 +42,24 @@ const CATEGORIES = [
 // ─── Occurrence calculation ────────────────────────────────────────────────────
 
 /**
+ * A paused template whose auto-resume date (`pauseUntil`) has passed is
+ * treated exactly as if it had been manually unpaused (issue #299) — this is
+ * computed fresh on every call rather than persisted, so no render path
+ * needs to write back to storage just to evaluate occurrences/overdue state.
+ */
+function isEffectivelyPaused(template, now = new Date()) {
+    if (!template?.paused) return false;
+    if (template.pauseUntil && dateToISO(now) >= template.pauseUntil) return false;
+    return true;
+}
+
+/**
  * Returns an array of Date objects for all occurrences of this template in
  * the given calendar month (year/month where month is 0-indexed).
  */
 export function getRecurringOccurrencesInMonth(template, year, month) {
-    if (!template || template.paused || template.archived) return [];
+    if (!template || template.archived) return [];
+    if (isEffectivelyPaused(template)) return [];
 
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
     if (Array.isArray(template.skippedMonths) && template.skippedMonths.includes(monthKey)) return [];
@@ -113,7 +128,8 @@ export function getRecurringOccurrencesInMonth(template, year, month) {
 // ─── R-02: Overdue detection ──────────────────────────────────────────────────
 
 function isOverdue(template, now) {
-    if (!template || template.paused || template.archived) return false;
+    if (!template || template.archived) return false;
+    if (isEffectivelyPaused(template, now)) return false;
     if (template.frequency !== 'monthly') return false;
     const dom = Number(template.dayOfMonth);
     if (!dom || dom < 1 || dom > 31) return false;
@@ -168,7 +184,7 @@ function renderUpcomingThisMonthPanel(app) {
     const month = now.getMonth();
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
 
-    const active = (app.recurringTemplates || []).filter(t => !t.paused && !t.archived);
+    const active = (app.recurringTemplates || []).filter(t => !isEffectivelyPaused(t, now) && !t.archived);
 
     if (active.length === 0) {
         panel.innerHTML = `<div class="recurring-upcoming-panel recurring-upcoming-panel--empty" role="region" aria-label="Upcoming this month"><span class="recurring-upcoming-empty">No active recurring items this month.</span></div>`;
@@ -377,7 +393,7 @@ export function renderRecurringPage(app) {
                 app.deleteRecurringTemplate(id);
             }
         }
-        else if (action === 'pause') app.pauseRecurringTemplate(id, true);
+        else if (action === 'pause') app.openRecurringPauseModal(id);
         else if (action === 'unpause') app.pauseRecurringTemplate(id, false);
         else if (action === 'skip') app.skipRecurringOccurrence(id, mk, false);
         else if (action === 'unskip') app.skipRecurringOccurrence(id, mk, true);
@@ -397,14 +413,22 @@ function _buildReadCard(app, t, year, month, monthKey) {
     const sign = t.type === 'reimbursement' ? '+' : '-';
     const amountClass = t.type === 'reimbursement' ? 'recurring-amount--pos' : 'recurring-amount--neg';
 
+    const now = new Date();
+    // #299: a template whose pauseUntil date has passed behaves exactly like
+    // an active one everywhere on this card (badge, buttons, occurrences).
+    const paused = isEffectivelyPaused(t, now);
+
     const occurrences = getRecurringOccurrencesInMonth(t, year, month);
     const thisMonthTotal = occurrences.length * (t.amount || 0);
     const isSkippedThisMonth = Array.isArray(t.skippedMonths) && t.skippedMonths.includes(monthKey);
     const isPaidThisMonth = Array.isArray(t.paidMonths) && t.paidMonths.includes(monthKey);
 
     let statusBadge;
-    if (t.paused) {
-        statusBadge = `<span class="recurring-badge recurring-badge--paused">⏸ Paused</span>`;
+    if (paused) {
+        const resumeNote = t.pauseUntil
+            ? ` <span class="recurring-pause-resume-note">until ${escapeHtml(formatShortDate(t.pauseUntil))}</span>`
+            : '';
+        statusBadge = `<span class="recurring-badge recurring-badge--paused">⏸ Paused${resumeNote}</span>`;
     } else if (isSkippedThisMonth) {
         statusBadge = `<span class="recurring-badge recurring-badge--skipped">⏭ Skipped this month</span>`;
     } else if (occurrences.length > 0 && isPaidThisMonth) {
@@ -431,7 +455,7 @@ function _buildReadCard(app, t, year, month, monthKey) {
             : escapeHtml(srcAccount.name)
         : '—';
 
-    const thisMonthLine = (occurrences.length > 0 && !t.paused && !isSkippedThisMonth)
+    const thisMonthLine = (occurrences.length > 0 && !paused && !isSkippedThisMonth)
         ? `<span class="recurring-this-month">This month: <strong>${sign}${formatCurrency(thisMonthTotal)}</strong> (${occurrences.length}×${nextDates ? ' on ' + nextDates : ''})</span>`
         : '';
 
@@ -439,15 +463,14 @@ function _buildReadCard(app, t, year, month, monthKey) {
         ? `<span class="recurring-badge recurring-badge--archived">📦 Archived</span>`
         : '';
 
-    const now = new Date();
     const overdueBadge = isOverdue(t, now)
         ? `<span class="recurring-overdue-badge" role="status" aria-label="Overdue">Overdue</span>`
         : '';
-    const urgencyBadge = (!t.paused && !t.archived && !isSkippedThisMonth && !isPaidThisMonth && !isOverdue(t, now))
+    const urgencyBadge = (!paused && !t.archived && !isSkippedThisMonth && !isPaidThisMonth && !isOverdue(t, now))
         ? getUrgencyBadge(occurrences, now)
         : '';
 
-    return `<div id="recurring-card-${t.id}" class="recurring-card${t.paused ? ' recurring-card--paused' : ''}${t.archived ? ' recurring-card--archived' : ''}${isOverdue(t, now) ? ' recurring-card--overdue' : ''}">
+    return `<div id="recurring-card-${t.id}" class="recurring-card${paused ? ' recurring-card--paused' : ''}${t.archived ? ' recurring-card--archived' : ''}${isOverdue(t, now) ? ' recurring-card--overdue' : ''}">
         <div class="recurring-card-header">
             <span class="recurring-type-icon">${typeIcon}</span>
             <div class="recurring-card-info">
@@ -477,17 +500,17 @@ function _buildReadCard(app, t, year, month, monthKey) {
                 ? `<button class="btn btn-secondary btn-small" data-recurring-action="unarchive" data-recurring-id="${t.id}">↩ Unarchive</button>
                    <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}">Delete</button>`
                 : `<button class="btn btn-secondary btn-small" data-recurring-action="edit" data-recurring-id="${t.id}">Edit</button>
-                   ${t.paused
+                   ${paused
                        ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}">▶ Resume</button>`
                        : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}">⏸ Pause</button>`}
-                   ${(!t.paused && !isSkippedThisMonth && occurrences.length > 0)
+                   ${(!paused && !isSkippedThisMonth && occurrences.length > 0)
                        ? (isPaidThisMonth
                            ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unmark paid</button>`
                            : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">✅ Mark as paid</button>`)
                        : ''}
                    ${isSkippedThisMonth
                        ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unskip</button>`
-                       : !t.paused
+                       : !paused
                            ? `<button class="btn btn-secondary btn-small" data-recurring-action="skip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">⏭ Skip month</button>`
                            : ''}
                    <button class="btn btn-secondary btn-small" data-recurring-action="archive" data-recurring-id="${t.id}">Archive</button>
@@ -619,13 +642,78 @@ export function deleteRecurringTemplate(app, id) {
     app.renderRecurringPage();
 }
 
-export function pauseRecurringTemplate(app, id, paused) {
+// #299: pauseUntil is only meaningful while paused=true; unpausing (manual or
+// via the auto-resume modal flow) always clears it so a later re-pause starts fresh.
+export function pauseRecurringTemplate(app, id, paused, pauseUntil = null) {
     const t = app.recurringTemplates?.find(x => x.id === id);
     if (!t) return;
     t.paused = paused;
+    t.pauseUntil = paused ? (pauseUntil || null) : null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, t);
     app.renderRecurringPage();
+}
+
+/**
+ * Pause action gains an optional "resume on" date (issue #299) — collected
+ * via this modal instead of pausing immediately, mirroring
+ * openRecurringMarkPaidModal's optional-extra-input pattern below.
+ */
+export function openRecurringPauseModal(app, id) {
+    const t = app.recurringTemplates?.find(x => x.id === id);
+    if (!t) return;
+
+    const existing = document.getElementById('recurringPauseModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'recurringPauseModal';
+    modal.className = 'modal-overlay flex-visible';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'recurringPauseModalTitle');
+    modal.setAttribute('tabindex', '-1');
+    modal.innerHTML = `<div class="modal-content">
+        <h3 class="modal-subtitle" id="recurringPauseModalTitle">Pause Recurring Item</h3>
+        <p class="modal-description">Optionally pick a date to automatically resume <strong>${escapeHtml(t.name)}</strong>. Leave blank to pause indefinitely until manually resumed.</p>
+        <div class="form-group">
+            <label class="label-compact" for="recurringPauseUntilInput">Resume on</label>
+            <input type="date" id="recurringPauseUntilInput" class="form-control">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" id="recurringPauseConfirmBtn">⏸ Pause</button>
+            <button class="btn btn-secondary" id="recurringPauseCancelBtn">Cancel</button>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+
+    const input = modal.querySelector('#recurringPauseUntilInput');
+    const lastFocused = document.activeElement;
+    const close = () => {
+        modal.remove();
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    };
+
+    modal.querySelector('#recurringPauseConfirmBtn').onclick = () => {
+        const pauseUntil = sanitizeDateISO(input.value);
+        close();
+        app.pauseRecurringTemplate(id, true, pauseUntil);
+    };
+    modal.querySelector('#recurringPauseCancelBtn').onclick = close;
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+    modal.onkeydown = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+        if (e.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button:not([disabled]), input:not([disabled])');
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    };
+
+    modal.focus();
+    setTimeout(() => { input.focus(); }, 30);
 }
 
 export function skipRecurringOccurrence(app, id, monthKey, unskip = false) {

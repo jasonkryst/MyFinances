@@ -19,6 +19,7 @@ export default createCrudResource({
         startDate: 'start_date',
         endDate: 'end_date',
         paused: 'paused',
+        pauseUntil: 'pause_until',
         skippedMonths: 'skipped_months',
         paidMonths: 'paid_months'
     }

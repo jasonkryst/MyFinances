@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.43.0] — 2026-10-27
+
+### Added
+- **Recurring: pause with auto-resume date** (issue #299) — pausing a recurring template now opens a modal (`openRecurringPauseModal()` in `src/recurring.js`) with an optional "Resume on" date picker instead of pausing immediately; leaving it blank pauses indefinitely as before. The date is stored as `pauseUntil` (ISO date string or `null`) via `sanitizeRecurringTemplate()`. A new `isEffectivelyPaused(template, now)` helper treats a paused template as active again, with no manual unpause needed, once the current date reaches `pauseUntil` — applied everywhere `paused` previously gated behavior (`getRecurringOccurrencesInMonth`, `isOverdue`, the "Upcoming this month" panel, and the Recurring page card's badge/buttons/styling), so a template auto-resumes consistently across the Recurring page, Ledger, and Forecast. The Recurring page shows "⏸ Paused until Oct 31" on paused templates that have a resume date set. Manually resuming (the existing "▶ Resume" action) still clears `pauseUntil`. Wired to the optional Postgres backend via a new `pause_until` column (migration `1755600000024`) and the `/api/recurring-templates` route; the server-side calendar feed generator (`server/src/calendarGenerator.js`, which duplicates the occurrence engine since it can't import DOM-dependent frontend modules) mirrors the same auto-resume check.
+
 ## [6.42.0] — 2026-10-27
 
 ### Added

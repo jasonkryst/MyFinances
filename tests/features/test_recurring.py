@@ -146,6 +146,11 @@ def test_recurring_pause_state_persists_after_reload(app_page):
     assert pause_btn, "Expected a Pause button on the seeded active template"
     pause_btn.click()
 
+    # Pause opens a modal (issue #299) with an optional resume date; confirm
+    # with the date left blank for an indefinite pause.
+    page.wait_for_selector('#recurringPauseModal', timeout=5000)
+    page.click('#recurringPauseConfirmBtn')
+
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' in badge_text, "Template should show Paused badge immediately after pausing"
 
@@ -158,6 +163,184 @@ def test_recurring_pause_state_persists_after_reload(app_page):
         "Paused state should persist in localStorage and survive a page reload"
 
     assert_no_errors(page)
+
+
+# ── Pause with auto-resume date (issue #299) ───────────────────────────────────
+
+@pytest.mark.feature
+def test_recurring_pause_modal_opens_with_date_field(app_page):
+    """Clicking Pause opens a modal with an optional resume-date input, rather than pausing immediately."""
+    page = app_page
+    _seed_account(page)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.recurringTemplates = [{
+            id: 8901, name: 'Streaming Sub', type: 'subscription', amount: 12,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
+            accountId: 7201, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: false, skippedMonths: [], paidMonths: []
+        }];
+        app.saveToStorage();
+        app.switchPage('recurring');
+    }""")
+
+    page.click('[data-recurring-action="pause"][data-recurring-id="8901"]')
+    page.wait_for_selector('#recurringPauseModal', timeout=5000)
+
+    date_input = page.query_selector('#recurringPauseUntilInput')
+    assert date_input, "Expected an optional resume-date input in the pause modal"
+    assert date_input.get_attribute('type') == 'date', "Resume-date input should be a date picker"
+
+    # Pausing is not applied until confirmed
+    is_paused = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8901).paused")
+    assert is_paused is False, "Template should not be paused until the modal is confirmed"
+
+    page.click('#recurringPauseCancelBtn')
+    assert page.query_selector('#recurringPauseModal') is None, "Cancel should close the pause modal"
+
+
+@pytest.mark.feature
+def test_recurring_pause_with_resume_date_stores_pause_until(app_page):
+    """Confirming the pause modal with a resume date stores pauseUntil on the template."""
+    page = app_page
+    _seed_account(page)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.recurringTemplates = [{
+            id: 8902, name: 'Gym', type: 'subscription', amount: 40,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Health',
+            accountId: 7201, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: false, skippedMonths: [], paidMonths: []
+        }];
+        app.saveToStorage();
+        app.switchPage('recurring');
+    }""")
+
+    page.click('[data-recurring-action="pause"][data-recurring-id="8902"]')
+    page.wait_for_selector('#recurringPauseModal', timeout=5000)
+    page.fill('#recurringPauseUntilInput', '2099-12-31')
+    page.click('#recurringPauseConfirmBtn')
+
+    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8902)")
+    assert tmpl['paused'] is True, "Template should be paused after confirming"
+    assert tmpl['pauseUntil'] == '2099-12-31', "pauseUntil should be stored as entered"
+
+    resume_note = page.evaluate('() => document.querySelector("#recurringList .recurring-pause-resume-note")?.textContent || ""')
+    assert resume_note, "Paused card should show the auto-resume date"
+
+
+@pytest.mark.feature
+def test_recurring_pause_without_resume_date_is_indefinite(app_page):
+    """Confirming the pause modal with no date leaves pauseUntil null (indefinite pause)."""
+    page = app_page
+    _seed_account(page)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.recurringTemplates = [{
+            id: 8903, name: 'Indefinite Pause Sub', type: 'subscription', amount: 20,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
+            accountId: 7201, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: false, skippedMonths: [], paidMonths: []
+        }];
+        app.saveToStorage();
+        app.switchPage('recurring');
+    }""")
+
+    page.click('[data-recurring-action="pause"][data-recurring-id="8903"]')
+    page.wait_for_selector('#recurringPauseModal', timeout=5000)
+    page.click('#recurringPauseConfirmBtn')
+
+    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8903)")
+    assert tmpl['paused'] is True
+    assert tmpl['pauseUntil'] is None, "pauseUntil should be null when no date was entered"
+
+
+@pytest.mark.feature
+def test_recurring_pause_until_in_future_stays_paused(app_page):
+    """A template paused with a future pauseUntil date still shows Paused and has no this-month occurrence."""
+    page = app_page
+    _seed_account(page)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.recurringTemplates = [{
+            id: 8904, name: 'Future Resume', type: 'subscription', amount: 10,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
+            accountId: 7201, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: true, pauseUntil: '2099-01-01', skippedMonths: [], paidMonths: []
+        }];
+        app.saveToStorage();
+        app.switchPage('recurring');
+    }""")
+
+    badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
+    assert 'Paused' in badge_text, "Template paused with a future resume date should still show Paused"
+
+    this_month_line = page.evaluate('() => document.querySelector("#recurringList .recurring-this-month")')
+    assert this_month_line is None, "A still-paused template should not show a 'This month' total"
+
+
+@pytest.mark.feature
+def test_recurring_pause_until_in_past_auto_resumes(app_page):
+    """A template whose pauseUntil date has already passed is treated as active again, with no manual unpause."""
+    page = app_page
+    _seed_account(page)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.recurringTemplates = [{
+            id: 8905, name: 'Auto Resumed Sub', type: 'subscription', amount: 25,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
+            accountId: 7201, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: true, pauseUntil: '2020-01-01', skippedMonths: [], paidMonths: []
+        }];
+        app.saveToStorage();
+        app.switchPage('recurring');
+    }""")
+
+    badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
+    assert 'Paused' not in badge_text, \
+        "A pauseUntil date in the past should make the template render as active, not Paused"
+
+    pause_btn = page.query_selector('[data-recurring-action="pause"][data-recurring-id="8905"]')
+    assert pause_btn, "An auto-resumed template should show a Pause button again, not Resume"
+    assert page.query_selector('[data-recurring-action="unpause"][data-recurring-id="8905"]') is None
+
+
+@pytest.mark.feature
+def test_recurring_manual_unpause_clears_pause_until(app_page):
+    """Manually resuming a template clears any stored pauseUntil date."""
+    page = app_page
+    _seed_account(page)
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.recurringTemplates = [{
+            id: 8906, name: 'Manual Resume Sub', type: 'subscription', amount: 18,
+            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
+            accountId: 7201, targetAccountId: null,
+            startDate: '2026-01-01', endDate: null,
+            paused: true, pauseUntil: '2099-06-15', skippedMonths: [], paidMonths: []
+        }];
+        app.saveToStorage();
+        app.switchPage('recurring');
+    }""")
+
+    resume_btn = page.query_selector('[data-recurring-action="unpause"][data-recurring-id="8906"]')
+    assert resume_btn, "Expected a Resume button on the paused template"
+    resume_btn.click()
+
+    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8906)")
+    assert tmpl['paused'] is False
+    assert tmpl['pauseUntil'] is None, "Manual unpause should clear pauseUntil"
 
 
 @pytest.mark.feature
