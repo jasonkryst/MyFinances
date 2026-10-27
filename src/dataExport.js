@@ -292,6 +292,38 @@ export function exportLedgerToCSV(app, columns) {
     window.URL.revokeObjectURL(url);
 }
 
+// Export every currently-visible Chart.js canvas as a PNG download (#271).
+// "Visible" = offsetParent !== null, i.e. not inside a display:none
+// page-section/tab-panel - a raw canvas.toDataURL() works regardless of
+// which module drew it, so no Chart instance registry is needed. Downloads
+// are triggered sequentially with a short stagger (not bundled into a ZIP)
+// to stay dependency-free, matching the rest of this file; this feature was
+// previously shipped as a per-chart overlay button and rolled back same-day
+// for cluttering the chart views (see ROADMAP.md), so this entry point lives
+// only in the Backup & Restore modal - no chart page markup changes at all.
+export function exportChartsAsPng(app) {
+    const canvases = Array.from(document.querySelectorAll('canvas'))
+        .filter(c => c.id && c.offsetParent !== null);
+    if (canvases.length === 0) return 0;
+
+    const dateSuffix = new Date().toISOString().split('T')[0];
+    canvases.forEach((canvas, index) => {
+        setTimeout(() => {
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = `${_chartCanvasIdToSlug(canvas.id)}-${dateSuffix}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }, index * 150);
+    });
+    return canvases.length;
+}
+
+function _chartCanvasIdToSlug(id) {
+    return id.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
 // Import a full backup JSON file.
 export function importAllJSON(app, file, options = {}) {
     const {

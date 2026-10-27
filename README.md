@@ -289,6 +289,7 @@ The **Backup & Restore** button (⇅ icon) is in the top-right toolbar on every 
 - **Export (JSON)** — complete backup of all data as a single `.json` file
 - **Import (JSON)** — choose Replace (full restore) or Merge (append debts)
 - **Export CSV** — payment schedule or Ledger with custom columns
+- **Export Charts as PNG** — downloads every currently-visible chart as a PNG image
 - **Print / Save as PDF** — 🖨️ Print button on every page
 
 ---

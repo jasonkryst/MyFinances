@@ -601,7 +601,7 @@ Domain-specific tools for advanced users.
 - ✅ CSV export with custom columns — column-picker modal on the Ledger page (`#ledgerExportCsvBtn`), exports the currently filtered/sorted view.
 - ✅ Monthly/yearly summary reports — new "Summary" tab on the Reports page with a Monthly/Yearly toggle.
 - ✅ PDF report generation — "Print / Save as PDF" button on the Reports page, using the browser's native print-to-PDF (no new dependency).
-- ❌ Chart export as images — removed post-launch per UI/UX feedback (per-chart PNG buttons cluttered the chart views).
+- ✅ Chart export as images — **Delivered October 27, 2026** (issue #271) as a single "Export Charts as PNG" button inside the Backup & Restore modal, exporting every currently-visible chart; the earlier per-chart overlay-button version (removed post-launch per UI/UX feedback for cluttering the chart views) is not reintroduced — no chart page gained any new markup this time.
 
 ---
 

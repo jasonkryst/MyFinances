@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.44.0] — 2026-10-27
+
+### Added
+- **Export charts as PNG** (issue #271) — a new "Export Charts as PNG" button in the Backup & Restore modal's Export tab (`exportChartsAsPng()` in `src/dataExport.js`) exports every currently-visible Chart.js `<canvas>` as a sequentially-downloaded PNG (`<canvas-id-kebab-cased>-<date>.png`), using `canvas.toDataURL('image/png')` directly — no Chart.js instance tracking needed, and no new dependency (sequential downloads, not a ZIP). This is a deliberately different UX from the per-chart overlay-button version shipped and rolled back same-day in June 2026 for cluttering the chart views (see `ROADMAP.md`): the only new UI lives inside the already-existing modal, so no chart page gains any new markup. The button is disabled with an explanatory tooltip when no chart is currently visible (e.g. a page with no charts, or a chart hidden behind an empty-state).
+
 ## [6.43.0] — 2026-10-27
 
 ### Added
