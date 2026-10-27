@@ -28,7 +28,7 @@ export function renderBreakEvenBadge(app, debt, container) {
         const s = document.createElement('div');
         s.className = 'break-even-section';
         s.dataset.revealed = 'false';
-        s.innerHTML = `<button class="btn btn-secondary btn-small break-even-show-btn" data-be-show="${debt.id}">Show payoff estimate</button>`;
+        s.innerHTML = `<button class="btn btn-secondary btn-small break-even-show-btn" data-be-show="${debt.id}" aria-label="Show payoff estimate for ${escapeHtml(debt.name)}">Show payoff estimate</button>`;
         container.querySelector('.debt-details').after(s);
         return;
     }
@@ -80,7 +80,7 @@ export function renderBreakEvenBadge(app, debt, container) {
 
     const chartId = `be-chart-${debt.id}`;
     contentHTML += `<div class="break-even-chart-wrap"><canvas id="${chartId}" aria-label="Balance over time chart for ${escapeHtml(debt.name)}"></canvas></div>`;
-    contentHTML += `<button class="btn btn-secondary btn-small break-even-accelerate-btn" data-be-accelerate="${debt.id}">Accelerate this debt →</button>`;
+    contentHTML += `<button class="btn btn-secondary btn-small break-even-accelerate-btn" data-be-accelerate="${debt.id}" aria-label="Accelerate debt ${escapeHtml(debt.name)}">Accelerate this debt →</button>`;
 
     s.innerHTML = contentHTML;
     container.querySelector('.debt-details').after(s);

@@ -67,8 +67,8 @@ export function renderExpenseList(app) {
                         </select></div>
                 </div>
                 <div class="budget-edit-actions">
-                    <button class="btn btn-primary btn-small" data-expense-action="save" data-expense-id="${exp.id}">Save</button>
-                    <button class="btn btn-secondary btn-small" data-expense-action="cancel">Cancel</button>
+                    <button class="btn btn-primary btn-small" data-expense-action="save" data-expense-id="${exp.id}" aria-label="Save changes to ${escapeHtml(exp.name)}">Save</button>
+                    <button class="btn btn-secondary btn-small" data-expense-action="cancel" aria-label="Cancel editing ${escapeHtml(exp.name)}">Cancel</button>
                 </div>
             </div>`;
         }
@@ -79,8 +79,8 @@ export function renderExpenseList(app) {
                 <span class="budget-card-meta">${escapeHtml(exp.category)} • ${escapeHtml(exp.date instanceof Date ? exp.date.toLocaleDateString() : new Date(exp.date).toLocaleDateString())}</span>
             </div>
             <div class="budget-card-actions">
-                <button class="btn-edit" data-expense-action="edit" data-expense-id="${exp.id}">Edit</button>
-                <button class="btn btn-danger btn-small" data-expense-action="delete" data-expense-id="${exp.id}">Delete</button>
+                <button class="btn-edit" data-expense-action="edit" data-expense-id="${exp.id}" aria-label="Edit ${escapeHtml(exp.name)}">Edit</button>
+                <button class="btn btn-danger btn-small" data-expense-action="delete" data-expense-id="${exp.id}" aria-label="Delete ${escapeHtml(exp.name)}">Delete</button>
             </div>
         </div>`;
     }).join('');
@@ -204,8 +204,8 @@ export function renderCashFlowSummary(app) {
 
     el.innerHTML = `
         <div class="cashflow-tab-bar">
-            <button class="cashflow-tab cashflow-tab--active" data-tab="summary">📋 Summary</button>
-            <button class="cashflow-tab" data-tab="charts">📊 Charts</button>
+            <button class="cashflow-tab cashflow-tab--active" data-tab="summary" aria-pressed="true">📋 Summary</button>
+            <button class="cashflow-tab" data-tab="charts" aria-pressed="false">📊 Charts</button>
         </div>
 
         <div class="cashflow-tab-panel cashflow-tab-panel--active" id="cashflowPanelSummary">
@@ -250,9 +250,10 @@ export function renderCashFlowSummary(app) {
 
     el.querySelectorAll('.cashflow-tab').forEach(btn => {
         btn.addEventListener('click', () => {
-            el.querySelectorAll('.cashflow-tab').forEach(b => b.classList.remove('cashflow-tab--active'));
+            el.querySelectorAll('.cashflow-tab').forEach(b => { b.classList.remove('cashflow-tab--active'); b.setAttribute('aria-pressed', 'false'); });
             el.querySelectorAll('.cashflow-tab-panel').forEach(p => p.classList.remove('cashflow-tab-panel--active'));
             btn.classList.add('cashflow-tab--active');
+            btn.setAttribute('aria-pressed', 'true');
             el.querySelector(`#cashflowPanel${btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)}`).classList.add('cashflow-tab-panel--active');
             if (btn.dataset.tab === 'charts') {
                 renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBills, totalExpenses, net, filteredExpenses);

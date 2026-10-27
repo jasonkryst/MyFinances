@@ -240,3 +240,12 @@ The button content (`‹` / `›`) is a non-descriptive symbol. All other naviga
 | **P3** | F2 — Mobile Print button tap target (AAA, out of scope) | 2.5.5 (AAA) | Low (increase min-height on `.page-print-btn`) | Out of WCAG 2.1 AA scope |
 
 **N1 and N2 follow the same pattern as F3/F4 from September: newly built features missed the established conventions.** The same conventions that the September report recommended codifying as checklists (chart sr-tables for every `new Chart(`, focus management for every new modal) should be enforced before landing new feature code, not caught by post-hoc audit. Extending `tests/ui/test_chart_accessibility.py` to cover each new canvas ID as it is added (rather than in a follow-up audit) is the most durable way to prevent N1-category regressions from accumulating.
+
+---
+
+## Status update — 2026-10-27 (issue #331, v6.47.0)
+
+- **N6 (month navigation `title`-only names)** — RESOLVED: `#rptPrevMonth` / `#rptNextMonth` now carry `aria-label`.
+- **N4 (Strategy Schedule inner sub-tabs)** — already resolved in `index.html` (`role=tablist/tab`, `aria-selected` synced in `switchTab()`).
+- **Control-name sweep (#331)** — per-item list actions now name their item, toggle chips expose `aria-pressed`, sort headers expose `aria-sort` + direction-aware labels; regression guard in `tests/ui/test_aria_labels.py`.
+- N1, N2, N3, N5, F1, F2 are outside #331's scope and remain as listed above (N3/N5/N1/N2 were not re-verified in this pass).

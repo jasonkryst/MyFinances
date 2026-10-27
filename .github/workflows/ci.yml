@@ -387,6 +387,7 @@ jobs:
       - run: |
           pytest \
             tests/ui/test_accessibility.py \
+            tests/ui/test_aria_labels.py \
             tests/ui/test_setup_wizard.py \
             tests/ui/test_remaining_pages_print.py \
             tests/ui/test_reports_nav.py \

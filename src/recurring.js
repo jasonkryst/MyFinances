@@ -497,24 +497,24 @@ function _buildReadCard(app, t, year, month, monthKey) {
         </div>
         <div class="recurring-card-actions">
             ${t.archived
-                ? `<button class="btn btn-secondary btn-small" data-recurring-action="unarchive" data-recurring-id="${t.id}">↩ Unarchive</button>
-                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}">Delete</button>`
-                : `<button class="btn btn-secondary btn-small" data-recurring-action="edit" data-recurring-id="${t.id}">Edit</button>
+                ? `<button class="btn btn-secondary btn-small" data-recurring-action="unarchive" data-recurring-id="${t.id}" aria-label="Unarchive ${escapeHtml(t.name)}">↩ Unarchive</button>
+                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}" aria-label="Delete ${escapeHtml(t.name)}">Delete</button>`
+                : `<button class="btn btn-secondary btn-small" data-recurring-action="edit" data-recurring-id="${t.id}" aria-label="Edit ${escapeHtml(t.name)}">Edit</button>
                    ${paused
-                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}">▶ Resume</button>`
-                       : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}">⏸ Pause</button>`}
+                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}" aria-label="Resume ${escapeHtml(t.name)}">▶ Resume</button>`
+                       : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}" aria-label="Pause ${escapeHtml(t.name)}">⏸ Pause</button>`}
                    ${(!paused && !isSkippedThisMonth && occurrences.length > 0)
                        ? (isPaidThisMonth
-                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unmark paid</button>`
-                           : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">✅ Mark as paid</button>`)
+                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Unmark paid ${escapeHtml(t.name)}">↩ Unmark paid</button>`
+                           : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Mark as paid ${escapeHtml(t.name)}">✅ Mark as paid</button>`)
                        : ''}
                    ${isSkippedThisMonth
-                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">↩ Unskip</button>`
+                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Unskip ${escapeHtml(t.name)}">↩ Unskip</button>`
                        : !paused
-                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="skip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}">⏭ Skip month</button>`
+                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="skip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Skip month ${escapeHtml(t.name)}">⏭ Skip month</button>`
                            : ''}
-                   <button class="btn btn-secondary btn-small" data-recurring-action="archive" data-recurring-id="${t.id}">Archive</button>
-                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}">Delete</button>`}
+                   <button class="btn btn-secondary btn-small" data-recurring-action="archive" data-recurring-id="${t.id}" aria-label="Archive ${escapeHtml(t.name)}">Archive</button>
+                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}" aria-label="Delete ${escapeHtml(t.name)}">Delete</button>`}
         </div>
     </div>`;
 }
@@ -580,8 +580,8 @@ function _buildEditCard(app, t) {
             </div>
         </div>
         <div class="recurring-edit-actions">
-            <button class="btn btn-primary btn-small" data-recurring-action="save" data-recurring-id="${t.id}">Save</button>
-            <button class="btn btn-secondary btn-small" data-recurring-action="cancel">Cancel</button>
+            <button class="btn btn-primary btn-small" data-recurring-action="save" data-recurring-id="${t.id}" aria-label="Save changes to ${escapeHtml(t.name)}">Save</button>
+            <button class="btn btn-secondary btn-small" data-recurring-action="cancel" aria-label="Cancel editing ${escapeHtml(t.name)}">Cancel</button>
         </div>
     </div>`;
 }

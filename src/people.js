@@ -76,8 +76,8 @@ export function renderPeopleList(app) {
                             </div>
                         </div>
                         <div class="income-edit-actions">
-                            <button class="btn btn-primary btn-small" data-person-action="save" data-person-id="${p.id}">Save</button>
-                            <button class="btn btn-secondary btn-small" data-person-action="cancel">Cancel</button>
+                            <button class="btn btn-primary btn-small" data-person-action="save" data-person-id="${p.id}" aria-label="Save changes to ${escapeHtml(p.name)}">Save</button>
+                            <button class="btn btn-secondary btn-small" data-person-action="cancel" aria-label="Cancel editing ${escapeHtml(p.name)}">Cancel</button>
                         </div>
                     </div>
                 </div>`;
@@ -162,8 +162,8 @@ export function renderPeopleList(app) {
                     </details>` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" data-person-action="edit" data-person-id="${p.id}">Edit</button>
-                    <button class="btn btn-danger btn-small" data-person-action="delete" data-person-id="${p.id}">Delete</button>
+                    <button class="btn-edit" data-person-action="edit" data-person-id="${p.id}" aria-label="Edit ${escapeHtml(p.name)}">Edit</button>
+                    <button class="btn btn-danger btn-small" data-person-action="delete" data-person-id="${p.id}" aria-label="Delete ${escapeHtml(p.name)}">Delete</button>
                 </div>
             </div>`;
     }).join('');

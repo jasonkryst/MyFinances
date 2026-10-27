@@ -320,7 +320,7 @@ function renderAccountCard(app, account) {
                     <td>${escapeHtml(s.date)}</td>
                     <td>${formatCurrency(s.annualSalary != null ? s.annualSalary : 0)}</td>
                     <td>${formatCurrency(s.contribution)}</td>
-                    <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}">${t('retirement.deleteBtn')}</button></td>
+                    <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}" aria-label="${escapeHtml(t('retirement.deleteSnapshotAria', { date: s.date }))}">${t('retirement.deleteBtn')}</button></td>
                 </tr>`).join('');
         return `
             <div class="retire-card">
@@ -334,7 +334,7 @@ function renderAccountCard(app, account) {
                         <span class="acct-balance-label">${t('retirement.monthlyContribLabel')}</span>
                         <span class="acct-balance-value">${formatCurrency(monthlyContrib)}</span>
                     </div>
-                    <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}">${t('retirement.logSalaryReviewBtn')}</button>
+                    <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}" aria-label="${escapeHtml(t('retirement.logSalaryReviewAria', { name: account.name }))}">${t('retirement.logSalaryReviewBtn')}</button>
                 </div>
                 ${Number(account.pensionEstimatedMonthlyBenefit) > 0 || Number(account.pensionYearsOfService) > 0 ? `
                 <div class="retire-pension-meta">
@@ -358,7 +358,7 @@ function renderAccountCard(app, account) {
                 <td>${escapeHtml(s.date)}</td>
                 <td>${formatCurrency(s.balance)}</td>
                 <td>${formatCurrency(s.contribution)}</td>
-                <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}">${t('retirement.deleteBtn')}</button></td>
+                <td><button class="btn btn-danger btn-small" data-retire-action="delete-snapshot" data-retire-snapshot-id="${s.id}" aria-label="${escapeHtml(t('retirement.deleteSnapshotAria', { date: s.date }))}">${t('retirement.deleteBtn')}</button></td>
             </tr>`).join('');
 
     return `
@@ -373,7 +373,7 @@ function renderAccountCard(app, account) {
                     <span class="acct-balance-label">${t('retirement.currentBalanceLabel')}</span>
                     <span class="acct-balance-value">${formatCurrency(currentBalance)}</span>
                 </div>
-                <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}">${t('retirement.addSnapshotBtn')}</button>
+                <button class="btn btn-primary btn-small" data-retire-action="add-snapshot" data-retire-account-id="${account.id}" aria-label="${escapeHtml(t('retirement.addSnapshotAria', { name: account.name }))}">${t('retirement.addSnapshotBtn')}</button>
             </div>
             <div class="table-wrapper">
                 <table class="retire-snapshot-table">

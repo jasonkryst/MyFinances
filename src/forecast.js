@@ -241,7 +241,7 @@ export function renderCashFlowForecast(app) {
     const notableMonths = findNotableMonths(app, accountId, stats.projected, thresholdPct);
 
     const horizonButtonsHtml = HORIZON_OPTIONS.map(months => `
-        <button class="nw-range-btn ${months === rangeMonths ? 'active' : ''}" data-forecast-range="${months}" type="button">${months}M</button>
+        <button class="nw-range-btn ${months === rangeMonths ? 'active' : ''}" data-forecast-range="${months}" type="button" aria-pressed="${months === rangeMonths ? 'true' : 'false'}" aria-label="Next ${months} months (${months}M)">${months}M</button>
     `).join('');
 
     const accountOptionsHtml = [`<option value="total" ${accountId === 'total' ? 'selected' : ''}>Total Cash Position</option>`]

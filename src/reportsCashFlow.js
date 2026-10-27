@@ -411,10 +411,10 @@ export function renderReportsCashFlowTrend(app) {
 
     const rangeButtonsHTML = `
         <div class="nw-range-buttons" role="group" aria-label="Cash flow trend range">
-            <button class="nw-range-btn ${horizon === 1 ? 'active' : ''}" data-cashflow-range="1" type="button">1M</button>
-            <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-cashflow-range="3" type="button">3M</button>
-            <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-cashflow-range="6" type="button">6M</button>
-            <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-cashflow-range="12" type="button">12M</button>
+            <button class="nw-range-btn ${horizon === 1 ? 'active' : ''}" data-cashflow-range="1" type="button" aria-pressed="${horizon === 1 ? 'true' : 'false'}" aria-label="Next 1 month (1M)">1M</button>
+            <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-cashflow-range="3" type="button" aria-pressed="${horizon === 3 ? 'true' : 'false'}" aria-label="Next 3 months (3M)">3M</button>
+            <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-cashflow-range="6" type="button" aria-pressed="${horizon === 6 ? 'true' : 'false'}" aria-label="Next 6 months (6M)">6M</button>
+            <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-cashflow-range="12" type="button" aria-pressed="${horizon === 12 ? 'true' : 'false'}" aria-label="Next 12 months (12M)">12M</button>
         </div>`;
 
     if (!hasData) {

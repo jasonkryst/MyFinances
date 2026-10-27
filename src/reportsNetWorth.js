@@ -252,14 +252,14 @@ export function renderReportsNetWorth(app) {
             <h3>Net Worth Timeline</h3>
             <div class="nw-report-actions">
                 <div class="nw-range-buttons" role="group" aria-label="Net worth range">
-                    <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-networth-range="3" type="button">3M</button>
-                    <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-networth-range="6" type="button">6M</button>
-                    <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-networth-range="12" type="button">12M</button>
+                    <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-networth-range="3" type="button" aria-pressed="${horizon === 3 ? 'true' : 'false'}" aria-label="Last 3 months (3M)">3M</button>
+                    <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-networth-range="6" type="button" aria-pressed="${horizon === 6 ? 'true' : 'false'}" aria-label="Last 6 months (6M)">6M</button>
+                    <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-networth-range="12" type="button" aria-pressed="${horizon === 12 ? 'true' : 'false'}" aria-label="Last 12 months (12M)">12M</button>
                 </div>
                 <div class="nw-range-buttons" role="group" aria-label="Net worth projection horizon">
-                    <button class="nw-range-btn ${projectionYears === 1 ? 'active' : ''}" data-networth-projection="1" type="button">Project 1Y</button>
-                    <button class="nw-range-btn ${projectionYears === 3 ? 'active' : ''}" data-networth-projection="3" type="button">Project 3Y</button>
-                    <button class="nw-range-btn ${projectionYears === 5 ? 'active' : ''}" data-networth-projection="5" type="button">Project 5Y</button>
+                    <button class="nw-range-btn ${projectionYears === 1 ? 'active' : ''}" data-networth-projection="1" type="button" aria-pressed="${projectionYears === 1 ? 'true' : 'false'}">Project 1Y</button>
+                    <button class="nw-range-btn ${projectionYears === 3 ? 'active' : ''}" data-networth-projection="3" type="button" aria-pressed="${projectionYears === 3 ? 'true' : 'false'}">Project 3Y</button>
+                    <button class="nw-range-btn ${projectionYears === 5 ? 'active' : ''}" data-networth-projection="5" type="button" aria-pressed="${projectionYears === 5 ? 'true' : 'false'}">Project 5Y</button>
                 </div>
                 <button class="btn btn-primary" id="captureSnapshotBtn" type="button">Capture Snapshot Now</button>
             </div>

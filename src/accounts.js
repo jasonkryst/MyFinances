@@ -278,8 +278,8 @@ export function renderAccountsList(app) {
                     </div>
                 </div>
                 <div class="acct-edit-actions">
-                    <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}">Save</button>
-                    <button class="btn btn-secondary btn-small" data-account-action="cancel">Cancel</button>
+                    <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}" aria-label="Save changes to ${escapeHtml(a.name)}">Save</button>
+                    <button class="btn btn-secondary btn-small" data-account-action="cancel" aria-label="Cancel editing ${escapeHtml(a.name)}">Cancel</button>
                 </div>
             </div>`;
         }
@@ -303,7 +303,7 @@ export function renderAccountsList(app) {
 
         const linkRows = typeGroups.length === 0 ? '' : `
             <div class="acct-links">
-                ${typeGroups.map(g => `<button class="acct-link ${escapeHtml(g.cls)} acct-link--nav" data-account-nav-page="${escapeHtml(g.page)}" title="Go to ${escapeHtml(g.label)}">${escapeHtml(g.label)} (${g.count})</button>`).join('')}
+                ${typeGroups.map(g => `<button class="acct-link ${escapeHtml(g.cls)} acct-link--nav" data-account-nav-page="${escapeHtml(g.page)}" title="Go to ${escapeHtml(g.label)}" aria-label="Go to ${escapeHtml(g.label)} linked to ${escapeHtml(a.name)}">${escapeHtml(g.label)} (${g.count})</button>`).join('')}
             </div>`;
 
         return `<div class="acct-card${a.archived ? ' acct-card--archived' : ''}">
@@ -328,11 +328,11 @@ export function renderAccountsList(app) {
                     </div>
                 </div>
                 <div class="debt-actions">
-                    ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}">History</button>` : ''}
-                    <button class="btn btn-secondary btn-small" data-account-action="transfer" data-account-id="${a.id}">⇄ Transfer</button>
-                    <button class="btn-edit" data-account-action="edit" data-account-id="${a.id}">Edit</button>
-                    <button class="btn btn-secondary btn-small" data-account-action="${a.archived ? 'unarchive' : 'archive'}" data-account-id="${a.id}" title="${a.archived ? 'Unarchive account' : 'Archive account'}">${a.archived ? 'Unarchive' : 'Archive'}</button>
-                    <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}">Delete</button>
+                    ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}" aria-label="History for ${escapeHtml(a.name)}">History</button>` : ''}
+                    <button class="btn btn-secondary btn-small" data-account-action="transfer" data-account-id="${a.id}" aria-label="Transfer from ${escapeHtml(a.name)}">⇄ Transfer</button>
+                    <button class="btn-edit" data-account-action="edit" data-account-id="${a.id}" aria-label="Edit ${escapeHtml(a.name)}">Edit</button>
+                    <button class="btn btn-secondary btn-small" data-account-action="${a.archived ? 'unarchive' : 'archive'}" data-account-id="${a.id}" title="${a.archived ? 'Unarchive account' : 'Archive account'}" aria-label="${a.archived ? 'Unarchive' : 'Archive'} ${escapeHtml(a.name)}">${a.archived ? 'Unarchive' : 'Archive'}</button>
+                    <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}" aria-label="Delete ${escapeHtml(a.name)}">Delete</button>
                 </div>
             </div>
             ${linkRows}
@@ -341,7 +341,7 @@ export function renderAccountsList(app) {
 
     const archivedToggle = archivedCount > 0
         ? `<div class="acct-archived-toggle">
-               <button class="btn btn-secondary btn-small" id="acctToggleArchived">
+               <button class="btn btn-secondary btn-small" id="acctToggleArchived" aria-pressed="${showArchived ? 'true' : 'false'}">
                    ${showArchived ? 'Hide' : `Show ${archivedCount} archived`}
                </button>
            </div>`

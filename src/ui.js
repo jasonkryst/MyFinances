@@ -689,6 +689,7 @@ export function switchLiabilitiesSubTab(app, subTab) {
     // Update button states
     section.querySelectorAll('.liabilities-subtab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.liabilitiesSubtab === subTab);
+        btn.setAttribute('aria-pressed', String(btn.dataset.liabilitiesSubtab === subTab));
     });
 
     // Show/hide panels
