@@ -1,13 +1,14 @@
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
-import { escapeHtml, formatCurrency, renderChartDataTable, getReportDate } from './utils.js';
+import {
+    escapeHtml, formatCurrency, renderChartDataTable, getReportDate, PINNED_COLORS,
+    getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel
+} from './utils.js';
 import { loadLedgerFilters } from './ledger.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
     '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#64748b'
 ];
-
-export const PINNED_COLORS = { 'Debt Payments': '#ef4444', 'Savings': '#10b981' };
 
 export function categoryColor(name) {
     name = String(name || 'Other');
@@ -54,6 +55,26 @@ export function computeSpendingByCategory(app, year, month) {
     }
     result.sort((a, b) => b.total - a.total);
     return result;
+}
+
+// Multi-month variant of computeSpendingByCategory (issue #329): sums each
+// category's total/transactions across every month in the range. Does not
+// carry over per-month changeVsLastMonth - for a range, the caller computes
+// its own comparison against the equivalent prior range (same pattern the
+// YoY toggle below already uses via _totalsByCategory/_changeVsBaseline).
+export function computeSpendingByCategoryRange(app, year, month, rangeMonths) {
+    if (rangeMonths <= 1) return computeSpendingByCategory(app, year, month);
+
+    const merged = new Map();
+    for (const { year: y, month: m } of reportRangeMonthsList(year, month, rangeMonths)) {
+        for (const { category, total, transactions } of computeSpendingByCategory(app, y, m)) {
+            if (!merged.has(category)) merged.set(category, { category, total: 0, transactions: [] });
+            const bucket = merged.get(category);
+            bucket.total += total;
+            bucket.transactions.push(...transactions);
+        }
+    }
+    return Array.from(merged.values()).sort((a, b) => b.total - a.total);
 }
 
 function _changeBadgeHTML(change, prevLabel, cls) {
@@ -187,9 +208,10 @@ export function renderReportsSpending(app) {
 
     const d = getReportDate(app);
     const year = d.getFullYear(), month = d.getMonth();
-    const monthLabel = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const rangeMonths = getReportRangeMonths(app);
+    const monthLabel = formatReportRangeLabel(year, month, rangeMonths);
 
-    const categories = computeSpendingByCategory(app, year, month);
+    const categories = computeSpendingByCategoryRange(app, year, month, rangeMonths);
 
     if (categories.length === 0) {
         container.innerHTML = `<p class="spending-empty">No spending data for ${escapeHtml(monthLabel)}. Add expenses, bills, or recurring templates.</p>`;
@@ -197,17 +219,21 @@ export function renderReportsSpending(app) {
     }
 
     const total = categories.reduce((s, c) => s + c.total, 0);
-    let py = year, pm = month - 1;
-    if (pm < 0) { pm = 11; py--; }
-    const prevLabel = new Date(py, pm, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    const prevCats = computeSpendingByCategory(app, py, pm);
+
+    // Prior-period baseline: the equivalent-length range immediately before this
+    // one (issue #329 generalizes the pre-existing single-prior-month comparison
+    // the same way for a multi-month range).
+    const priorEnd = getPriorEquivalentRangeEnd(year, month, rangeMonths);
+    const prevLabel = formatReportRangeLabel(priorEnd.year, priorEnd.month, rangeMonths);
+    const prevCats = computeSpendingByCategoryRange(app, priorEnd.year, priorEnd.month, rangeMonths);
     const prevTotal = prevCats.reduce((s, c) => s + c.total, 0);
 
-    // Year-over-year baseline: the same month, one calendar year prior (issue #332).
-    // Default comparison mode is always "vs. last month" — YoY is opt-in via the toggle.
+    // Year-over-year baseline: the same range, one calendar year prior (issue #332,
+    // generalized to ranges by #329). Default comparison mode is always "vs. last
+    // period" — YoY is opt-in via the toggle.
     const yoyMode = !!app._spendingYoYMode;
-    const yoyLabel = new Date(year - 1, month, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    const yoyCats = computeSpendingByCategory(app, year - 1, month);
+    const yoyLabel = formatReportRangeLabel(year - 1, month, rangeMonths);
+    const yoyCats = computeSpendingByCategoryRange(app, year - 1, month, rangeMonths);
     const yoyTotal = yoyCats.reduce((s, c) => s + c.total, 0);
 
     const baselineLabel = yoyMode ? yoyLabel : prevLabel;
@@ -217,7 +243,7 @@ export function renderReportsSpending(app) {
     const totalBadge = _changeBadgeHTML(totalChange, baselineLabel, totalChange !== null && totalChange >= 0 ? 'spending-badge--up' : 'spending-badge--down');
 
     const rankedRows = categories.map((cat, i) => {
-        const change = yoyMode ? _changeVsBaseline(cat.total, baselineTotals, cat.category) : cat.changeVsLastMonth;
+        const change = _changeVsBaseline(cat.total, baselineTotals, cat.category);
         const changeHTML = _changeBadgeHTML(change, baselineLabel,
             change !== null && change >= 0 ? 'spending-ranked-change--up' : 'spending-ranked-change--down');
         return `<div class="spending-ranked-row" data-spending-cat="${escapeHtml(cat.category)}" role="button" tabindex="0" aria-label="View ${escapeHtml(cat.category)} transactions">
@@ -233,10 +259,18 @@ export function renderReportsSpending(app) {
         <div class="spending-summary-strip">
             <span>Total: <strong>${formatCurrency(total)}</strong> · ${escapeHtml(monthLabel)}</span>
             ${totalBadge}
+            <label class="spending-range-toggle-label" for="spendingRangeMonths">Range:
+                <select id="spendingRangeMonths" class="select-styled">
+                    <option value="1"${rangeMonths === 1 ? ' selected' : ''}>Single Month</option>
+                    <option value="3"${rangeMonths === 3 ? ' selected' : ''}>Quarter (3 mo)</option>
+                    <option value="6"${rangeMonths === 6 ? ' selected' : ''}>Half Year (6 mo)</option>
+                    <option value="12"${rangeMonths === 12 ? ' selected' : ''}>Year (12 mo)</option>
+                </select>
+            </label>
             <label class="spending-yoy-toggle-label" for="spendingComparisonMode">Compare:
                 <select id="spendingComparisonMode" class="select-styled">
-                    <option value="month"${yoyMode ? '' : ' selected'}>vs. last month</option>
-                    <option value="year"${yoyMode ? ' selected' : ''}>vs. same month last year</option>
+                    <option value="month"${yoyMode ? '' : ' selected'}>vs. ${rangeMonths > 1 ? 'prior period' : 'last month'}</option>
+                    <option value="year"${yoyMode ? ' selected' : ''}>vs. same ${rangeMonths > 1 ? 'period' : 'month'} last year</option>
                 </select>
             </label>
         </div>
@@ -253,6 +287,14 @@ export function renderReportsSpending(app) {
     if (modeSelect) {
         modeSelect.onchange = () => {
             app._spendingYoYMode = modeSelect.value === 'year';
+            renderReportsSpending(app);
+        };
+    }
+
+    const rangeSelect = document.getElementById('spendingRangeMonths');
+    if (rangeSelect) {
+        rangeSelect.onchange = () => {
+            app._reportRangeMonths = parseInt(rangeSelect.value, 10) || 1;
             renderReportsSpending(app);
         };
     }

@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.44.0';
+export const APP_VERSION = '6.45.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -114,6 +114,69 @@ export function getReportDate(app) {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth() + app._reportMonthOffset, 1);
 }
+
+// Shared by the Spending and Variance reports (issue #329): both support
+// aggregating across a multi-month range ending at the report's current
+// month, rather than just that single month. `app._reportRangeMonths`
+// (default 1, meaning "single month" - the pre-#329 behavior) is the one
+// shared piece of range state; it lives on `app` rather than a module-local
+// variable so it gets reset to 1 by the exact same resetToDefaults path in
+// renderPageData() that already zeroes app._reportMonthOffset on navigation
+// into Reports, and so Spending/Variance stay in sync when switching tabs.
+export function getReportRangeMonths(app) {
+    return app._reportRangeMonths && app._reportRangeMonths > 1 ? app._reportRangeMonths : 1;
+}
+
+// Chronological (oldest-first) list of { year, month } for the rangeMonths
+// months ending at (year, month) inclusive.
+export function reportRangeMonthsList(year, month, rangeMonths) {
+    const months = [];
+    for (let i = rangeMonths - 1; i >= 0; i--) {
+        let m = month - i, y = year;
+        while (m < 0) { m += 12; y--; }
+        months.push({ year: y, month: m });
+    }
+    return months;
+}
+
+// The end month of the equivalent-length range immediately preceding the
+// range ending at (year, month) - e.g. for a 3-month range ending Sep 2026
+// (Jul-Sep), this returns Jun 2026, so the caller can build Apr-Jun 2026.
+export function getPriorEquivalentRangeEnd(year, month, rangeMonths) {
+    let m = month - rangeMonths, y = year;
+    while (m < 0) { m += 12; y--; }
+    return { year: y, month: m };
+}
+
+// Short label for a report range: a single month name for rangeMonths===1,
+// or "<start short month> – <end short month> <year>" otherwise (crossing a
+// year boundary spells out both years, e.g. "Dec 2025 – Feb 2026").
+export function formatReportRangeLabel(year, month, rangeMonths) {
+    const end = new Date(year, month, 1);
+    if (rangeMonths <= 1) {
+        return end.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    const months = reportRangeMonthsList(year, month, rangeMonths);
+    const start = new Date(months[0].year, months[0].month, 1);
+    const sameYear = start.getFullYear() === end.getFullYear();
+    const startLabel = start.toLocaleDateString('en-US', sameYear ? { month: 'short' } : { month: 'short', year: 'numeric' });
+    const endLabel = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return `${startLabel} – ${endLabel}`;
+}
+
+// Pinned category->color overrides shared by spending.js (categoryColor())
+// and recurring.js (its category color-picker's suggested-colors list).
+// Lives here, not in spending.js, because recurring.js -> spending.js ->
+// ledgerTransactions.js -> recurring.js forms a 3-module import cycle
+// (ledgerTransactions.js pulls in getRecurringOccurrencesInMonth, spending.js
+// pulls in getLedgerTransactionsForMonth) - a `const` export read across
+// that cycle intermittently throws "Cannot access before initialization"
+// depending on which module the browser happens to evaluate first. utils.js
+// has no outgoing edge back into that cycle, so importing this constant
+// from here instead is cycle-safe. See CLAUDE.md's "Module import
+// constraints" section for the same hazard class in the ui.js/postgresSync.js
+// cycle.
+export const PINNED_COLORS = { 'Debt Payments': '#ef4444', 'Savings': '#10b981' };
 
 export function escapeHtml(value) {
     return String(value ?? '')

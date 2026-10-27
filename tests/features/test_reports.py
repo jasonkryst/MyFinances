@@ -209,6 +209,75 @@ def test_variance_report_income_expense_delta(app_page):
 
 
 @pytest.mark.feature
+def test_variance_report_range_sums_actuals_across_months(app_page):
+    """Issue #329: with app._reportRangeMonths set to 3, the Variance report
+    sums expense actuals across all 3 months of the current range and all 3
+    months of the equivalent prior range, rather than comparing just the
+    single current/previous month."""
+    page = app_page
+
+    result = page.evaluate("""() => {
+        const app = window.app;
+        const now = new Date();
+        const pad = n => String(n + 1).padStart(2, '0');
+        // One-time dated expenses in each of the 3 "current" months
+        // (now, now-1, now-2) at $100 each -> current total $300, and each
+        // of the 3 "prior" months (now-3, now-4, now-5) at $50 each -> prior
+        // total $150, so the delta should read +$150.00.
+        const expenses = [];
+        for (let i = 0; i < 6; i++) {
+            let m = now.getMonth() - i, y = now.getFullYear();
+            while (m < 0) { m += 12; y--; }
+            expenses.push({
+                id: i + 1, name: `Expense ${i}`, category: 'Misc',
+                budgetAmount: i < 3 ? 100 : 50,
+                date: `${y}-${pad(m)}-10`, accountId: null
+            });
+        }
+        app.accounts = [];
+        app.incomes = []; app.bonuses = [];
+        app.expenses = expenses;
+        app.bills = []; app.debts = [];
+        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
+        app.monthlySnapshots = [];
+        app._reportMonthOffset = 0;
+        // switchPage('reports')'s resetToDefaults path zeroes _reportRangeMonths
+        // back to 1 - it must be set *after* navigating, exactly like a real
+        // user would pick the range from the select only once the page is open.
+        app.switchPage('reports');
+        app._reportRangeMonths = 3;
+        return true;
+    }""")
+    assert result is True
+
+    page.click('[data-rptab="variance"]')
+    page.wait_for_selector('#rptPanel-variance.rpt-tab-panel--active', timeout=5000)
+
+    variance_text = page.query_selector('#reportsVariance').text_content()
+    assert 'Period-to-Period Comparison' in variance_text, \
+        f"Expected the range-mode title, got: {variance_text}"
+    assert '$300.00' in variance_text, f"Expected current 3-month expense total $300.00: {variance_text}"
+    assert '$150.00' in variance_text, f"Expected prior 3-month expense total $150.00: {variance_text}"
+    assert '+$150.00' in variance_text, f"Expected expense delta of +$150.00: {variance_text}"
+
+
+@pytest.mark.feature
+def test_variance_range_selector_present_and_defaults_to_single_month(app_page):
+    """Negative/default: with no range selected, the selector shows 'Single
+    Month' and the original single-month title is used."""
+    page = app_page
+    page.evaluate("() => window.app.switchPage('reports')")
+    page.click('[data-rptab="variance"]')
+    page.wait_for_selector('#rptPanel-variance.rpt-tab-panel--active', timeout=5000)
+
+    select = page.query_selector('#varianceRangeMonths')
+    assert select is not None
+    assert select.input_value() == '1'
+    variance_text = page.query_selector('#reportsVariance').text_content()
+    assert 'Month-to-Month Comparison' in variance_text
+
+
+@pytest.mark.feature
 def test_summary_metrics_month_cash_flow(app_page):
     page = app_page
     page.evaluate("""() => {

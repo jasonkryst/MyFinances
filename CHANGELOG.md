@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.45.0] — 2026-10-27
+
+### Added
+- **Reports: custom date range for Spending and Variance** (issue #329) — both the Spending Analysis and Budget Variance ("What Changed") reports gain a shared Range selector (Single Month/Quarter/Half Year/Year), generalizing their existing single-month comparison into an N-month window ending at the currently-navigated report month. `computeSpendingByCategoryRange(app, year, month, rangeMonths)` (`src/spending.js`) sums `computeSpendingByCategory()`'s per-category totals across every month in the range; `reportsVariance.js`'s new `_sumRangeTotals()` does the same for its five income/expense/recurring/debt/savings buckets. Both reports compare the selected range against the equivalent-length range immediately before it (e.g. a quarter compares against the prior quarter) via new shared helpers in `src/utils.js` (`reportRangeMonthsList`, `getPriorEquivalentRangeEnd`, `formatReportRangeLabel`); Spending's existing year-over-year toggle (issue #332) is generalized the same way (same N-month range, one year prior). The shared `app._reportRangeMonths` state (default `1`, the original single-month behavior) persists across Spending/Variance tab switches and resets to `1` on navigating away from and back to Reports, matching the existing `app._reportMonthOffset` reset convention in `renderPageData`.
+- Fixed a latent, intermittent circular-import hazard surfaced by this work: `spending.js` (imports `ledgerTransactions.js`) → `ledgerTransactions.js` (imports `recurring.js`) → `recurring.js` (imported `PINNED_COLORS` from `spending.js`) formed a 3-module ES import cycle through a `const` export, which the browser's module loader intermittently evaluated out of order, throwing `ReferenceError: Cannot access 'PINNED_COLORS' before initialization`. `PINNED_COLORS` now lives in `src/utils.js` (a leaf module with no edge back into this cycle), removing the `recurring.js → spending.js` edge entirely. See the "Module import constraints" section in `CLAUDE.md` for the same hazard class.
+
 ## [6.44.0] — 2026-10-27
 
 ### Added

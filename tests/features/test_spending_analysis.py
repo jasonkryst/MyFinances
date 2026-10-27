@@ -140,6 +140,83 @@ def test_spending_change_vs_last_month_null_when_no_prior(app_page):
 
 
 @pytest.mark.feature
+def test_spending_range_aggregates_across_months(app_page):
+    """computeSpendingByCategoryRange sums a category's spending across every
+    month in the range (issue #329)."""
+    page = app_page
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/spending.js');
+        const app = window.app;
+        // April ($50), May ($75), June ($60) - a 3-month range ending in June
+        // (month index 5) should total $185; April alone should be excluded
+        // once the range narrows to 2 months (May+June = $135).
+        app.expenses = [
+            { id: 1, name: 'Apr grocery', category: 'Food', budgetAmount: 50, date: '2026-04-10', accountId: null },
+            { id: 2, name: 'May grocery', category: 'Food', budgetAmount: 75, date: '2026-05-10', accountId: null },
+            { id: 3, name: 'Jun grocery', category: 'Food', budgetAmount: 60, date: '2026-06-10', accountId: null }
+        ];
+        app.bills = []; app.recurringTemplates = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.incomes = []; app.bonuses = []; app.accounts = [];
+        app.ledgerAmountOverrides = {};
+
+        const threeMonth = mod.computeSpendingByCategoryRange(app, 2026, 5, 3);
+        const twoMonth = mod.computeSpendingByCategoryRange(app, 2026, 5, 2);
+        return {
+            threeMonthTotal: threeMonth.find(c => c.category === 'Food')?.total ?? 0,
+            twoMonthTotal: twoMonth.find(c => c.category === 'Food')?.total ?? 0,
+        };
+    }""")
+    assert result['threeMonthTotal'] == pytest.approx(185, rel=0.01)
+    assert result['twoMonthTotal'] == pytest.approx(135, rel=0.01)
+
+
+@pytest.mark.feature
+def test_spending_range_of_one_matches_single_month(app_page):
+    """computeSpendingByCategoryRange(..., 1) is identical to
+    computeSpendingByCategory (single-month mode is unchanged, per AC)."""
+    page = app_page
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/spending.js');
+        const app = window.app;
+        app.expenses = [{ id: 1, name: 'Rent', category: 'Housing', budgetAmount: 950, date: '2026-06-01', accountId: null }];
+        app.bills = []; app.recurringTemplates = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.incomes = []; app.bonuses = []; app.accounts = [];
+        app.ledgerAmountOverrides = {};
+        const single = mod.computeSpendingByCategory(app, 2026, 5);
+        const range = mod.computeSpendingByCategoryRange(app, 2026, 5, 1);
+        return {
+            singleTotal: single[0]?.total,
+            rangeTotal: range[0]?.total,
+        };
+    }""")
+    assert result['singleTotal'] == result['rangeTotal'] == pytest.approx(950, rel=0.01)
+
+
+# ─────────────────────────── negative tests ───────────────────────────
+
+@pytest.mark.feature
+def test_spending_range_excludes_months_outside_range(app_page):
+    """A category with spending only outside the requested range contributes
+    nothing to the aggregate."""
+    page = app_page
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/spending.js');
+        const app = window.app;
+        // January spending is 5 months before a range ending in June - well
+        // outside even a 3-month range - and must not appear in the total.
+        app.expenses = [{ id: 1, name: 'Old purchase', category: 'Food', budgetAmount: 999, date: '2026-01-10', accountId: null }];
+        app.bills = []; app.recurringTemplates = []; app.debts = [];
+        app.emergencyFunds = []; app.sinkingFunds = [];
+        app.incomes = []; app.bonuses = []; app.accounts = [];
+        app.ledgerAmountOverrides = {};
+        return mod.computeSpendingByCategoryRange(app, 2026, 5, 3);
+    }""")
+    assert result == []
+
+
+@pytest.mark.feature
 def test_spending_empty_state(app_page):
     """Returns empty array when there are no outflow transactions."""
     page = app_page

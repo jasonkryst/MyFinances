@@ -8,13 +8,13 @@ import {
     sanitizeInteger,
     sanitizeDateISO,
     dateToISO,
-    escapeHtml
+    escapeHtml,
+    PINNED_COLORS
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
-import { PINNED_COLORS } from './spending.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
