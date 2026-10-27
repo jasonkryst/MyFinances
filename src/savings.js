@@ -1,9 +1,37 @@
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, computeMonthlyIncomeForMonth, computeTotalSavingsContribution } from './utils.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 import { getSetting, setSetting, SHOW_ARCHIVED_SINKING_FUNDS } from './settings.js';
 import { renderHomePurchaseContent, attachHomePurchaseEventListeners } from './homePurchase.js';
+import { savingsStatus } from './health.js';
+
+/**
+ * Savings rate summary panel shown at the top of the Savings page (issue #303):
+ * what percentage of this month's net income is going to active savings
+ * contributions (emergency fund + sinking fund allocations), using the exact
+ * same formula and color thresholds as Health's Savings Rate card.
+ */
+function renderSavingsRateSummary(app) {
+  const now = new Date();
+  const totalSavingsContrib = computeTotalSavingsContribution(app);
+  const { monthlyTotal: monthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
+  const ratio = monthlyIncome > 0 ? totalSavingsContrib / monthlyIncome : 0;
+  const pct = Math.min(ratio * 100, 100);
+  const status = savingsStatus(ratio);
+
+  return `
+    <div class="savings-rate-summary">
+      <div class="savings-rate-summary-main">
+        <span class="savings-rate-summary-label">Savings Rate</span>
+        <span class="savings-rate-summary-value health-badge ${status.cls}">${pct.toFixed(1)}%</span>
+      </div>
+      <div class="savings-rate-summary-detail">
+        Saving ${formatCurrency(totalSavingsContrib)} of ${formatCurrency(monthlyIncome)}/mo income
+      </div>
+    </div>
+  `;
+}
 
 /**
  * Render the Savings page with toggleable Emergency Fund and Sinking Funds sections
@@ -20,6 +48,7 @@ export function renderSavingsPage(app) {
       <button type="button" class="page-print-btn" id="savingsPrintBtn" title="Print this page" aria-label="Print the Savings page">🖨️ Print</button>
     </div>
     <div class="savings-container">
+      ${renderSavingsRateSummary(app)}
       <div class="savings-subtabs">
         <button class="savings-subtab-btn ${currentSubTab === 'emergency' ? 'active' : ''}" data-savings-subtab="emergency">🏦 Emergency Fund</button>
         <button class="savings-subtab-btn ${currentSubTab === 'sinking' ? 'active' : ''}" data-savings-subtab="sinking">🎯 Sinking Funds</button>

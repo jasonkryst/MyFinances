@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.41.0';
+export const APP_VERSION = '6.42.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -322,6 +322,15 @@ export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
     }
     monthlyTotal += computeMonthlyBonusesForMonth(bonuses, year, month);
     return { monthlyTotal };
+}
+
+// Sum of this month's active savings contributions (emergency fund monthly
+// contributions + sinking fund monthly allocations) — shared by Health's
+// Savings Rate card and the Savings page's rate summary panel (issue #303)
+// so the two pages can never disagree about what counts as "saving".
+export function computeTotalSavingsContribution(app) {
+    return (app.emergencyFunds || []).reduce((s, f) => s + (f.monthlyContribution || 0), 0) +
+           (app.sinkingFunds   || []).reduce((s, f) => s + (f.monthlyAllocation   || 0), 0);
 }
 
 export function dailyCompoundInterest(balance, aprPct, days) {
