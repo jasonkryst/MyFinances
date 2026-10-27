@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.42.0] — 2026-10-27
+
+### Added
+- **Savings: savings rate summary panel** (issue #303) — a new summary panel at the top of the Savings page (above the Emergency Fund/Sinking Funds/Home Purchase sub-tabs, so it's visible regardless of which sub-tab is active) shows what percentage of this month's net income is going to active savings contributions: `(emergency fund monthly contributions + sinking fund monthly allocations) ÷ computeMonthlyIncomeForMonth`. A new `computeTotalSavingsContribution(app)` helper in `src/utils.js` extracts the exact contribution-sum formula the Health page's existing Savings Rate card already used, so the two cannot drift apart on what counts as "saving"; `savingsStatus()` (`src/health.js`) is now exported and reused for the same green ≥20% / yellow 10–19% / red <10% thresholds and badge styling (`.health-status--*`/`.health-badge`). The panel shows both the rate (e.g. "18.0%") and the raw amounts ("Saving $900.00 of $5,000.00/mo income").
+
 ## [6.41.0] — 2026-10-26
 
 ### Added

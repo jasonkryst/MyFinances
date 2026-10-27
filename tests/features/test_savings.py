@@ -389,3 +389,104 @@ def test_ef_account_name_displayed_correctly(app_page):
         "EF card should show the correct account name, not 'Unknown Account'"
     assert 'Unknown Account' not in list_html, \
         "EF card should not show 'Unknown Account' for a valid linked account"
+
+
+# ── Savings rate summary panel (issue #303) ────────────────────────────────────
+
+@pytest.mark.feature
+def test_savings_rate_summary_renders_with_no_data(app_page):
+    """Summary panel renders (0% / $0 of $0) when there's no income or fund data."""
+    page = app_page
+
+    page.evaluate("""() => {
+        window.app.incomes = [];
+        window.app.bonuses = [];
+        window.app.emergencyFunds = [];
+        window.app.sinkingFunds = [];
+        window.app.switchPage('savings');
+    }""")
+
+    summary = page.query_selector('.savings-rate-summary')
+    assert summary, "Savings rate summary panel should always render"
+    text = summary.text_content()
+    assert '0.0%' in text or '0%' in text, "Rate should show 0% with no income/contributions"
+    assert '$0' in text, "Dollar amounts should show $0 with no data"
+
+
+@pytest.mark.feature
+def test_savings_rate_summary_computes_percentage_and_status(app_page):
+    """Summary panel computes rate = contributions / income and shows a green badge ≥20%."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 30001, name: 'Savings Acct', type: 'Savings', startingBalance: 0 }];
+        app.incomes = [{
+            id: 30002, name: 'Paycheck', amount: 5000, accountId: 30001,
+            frequency: 'monthly', firstDate: '2026-01-01'
+        }];
+        app.bonuses = [];
+        app.emergencyFunds = [{
+            id: 30003, name: 'EF', accountId: 30001,
+            currentAmount: 1000, targetAmount: 10000, monthlyContribution: 600
+        }];
+        app.sinkingFunds = [{
+            id: 30004, name: 'Car Fund', accountId: 30001,
+            currentAmount: 0, targetAmount: 5000, monthlyAllocation: 400
+        }];
+        app.switchPage('savings');
+    }""")
+
+    summary = page.query_selector('.savings-rate-summary')
+    assert summary, "Savings rate summary panel should render"
+    text = summary.text_content()
+    # (600 + 400) / 5000 = 20%
+    assert '20.0%' in text, f"Expected 20.0% savings rate, got: {text}"
+    assert '$1,000' in text, f"Expected $1,000 total contribution in detail text, got: {text}"
+    assert '$5,000' in text, f"Expected $5,000 income in detail text, got: {text}"
+
+    badge = page.query_selector('.savings-rate-summary-value')
+    badge_class = badge.get_attribute('class')
+    assert 'health-status--green' in badge_class, \
+        f"Expected green status badge at 20% savings rate, got classes: {badge_class}"
+
+
+@pytest.mark.feature
+def test_savings_rate_summary_shows_red_status_below_threshold(app_page):
+    """Summary panel shows a red badge when the savings rate is under 10%."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const app = window.app;
+        app.accounts = [{ id: 30101, name: 'Savings Acct 2', type: 'Savings', startingBalance: 0 }];
+        app.incomes = [{
+            id: 30102, name: 'Paycheck', amount: 5000, accountId: 30101,
+            frequency: 'monthly', firstDate: '2026-01-01'
+        }];
+        app.bonuses = [];
+        app.emergencyFunds = [{
+            id: 30103, name: 'EF', accountId: 30101,
+            currentAmount: 500, targetAmount: 10000, monthlyContribution: 100
+        }];
+        app.sinkingFunds = [];
+        app.switchPage('savings');
+    }""")
+
+    badge = page.query_selector('.savings-rate-summary-value')
+    assert badge, "Savings rate badge should render"
+    badge_class = badge.get_attribute('class')
+    assert 'health-status--red' in badge_class, \
+        f"Expected red status badge at 2% savings rate, got classes: {badge_class}"
+
+
+@pytest.mark.feature
+def test_savings_rate_summary_appears_across_all_subtabs(app_page):
+    """Summary panel is visible on every Savings sub-tab, not just the default one."""
+    page = app_page
+
+    page.evaluate("() => window.app.switchPage('savings')")
+    page.click('button[data-savings-subtab="home"]')
+    page.wait_for_timeout(200)
+
+    summary = page.query_selector('.savings-rate-summary')
+    assert summary, "Savings rate summary panel should remain visible on the Home Purchase sub-tab"

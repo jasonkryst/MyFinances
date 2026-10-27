@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeTotalSavingsContribution, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import {
@@ -50,7 +50,10 @@ export function mortgageBackEndStatus(ratio) {
     return { cls: 'health-status--red', label: t('health.status.highRisk') };
 }
 
-function savingsStatus(ratio) {
+// Exported (#303) so the Savings page's rate summary panel uses the exact
+// same green/yellow/red thresholds as this card, rather than a second set
+// of magic numbers.
+export function savingsStatus(ratio) {
     if (ratio >= 0.20) return { cls: 'health-status--green', label: t('health.status.strong') };
     if (ratio >= 0.10) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
     return { cls: 'health-status--red', label: t('health.status.low') };
@@ -881,9 +884,7 @@ export function renderHealthDashboard(app) {
         .reduce((s, d) => s + (d.minimumPayment || 0), 0);
 
     // ── Savings Rate ───────────────────────────────────────────────────────────
-    const totalSavingsContrib =
-        (app.emergencyFunds || []).reduce((s, f) => s + (f.monthlyContribution || 0), 0) +
-        (app.sinkingFunds   || []).reduce((s, f) => s + (f.monthlyAllocation   || 0), 0);
+    const totalSavingsContrib = computeTotalSavingsContribution(app);
     const savingsRatio = monthlyIncome > 0 ? totalSavingsContrib / monthlyIncome : 0;
     const savingsPct   = Math.min(savingsRatio * 100, 100);
     const savingsSt    = savingsStatus(savingsRatio);
