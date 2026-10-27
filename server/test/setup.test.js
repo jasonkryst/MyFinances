@@ -47,19 +47,28 @@ test('setup-status returns needsSetup:false when a user exists', async () => {
 // ---------------------------------------------------------------------------
 
 test('register returns 404 and creates no user when ALLOW_SETUP is not "true"', async () => {
-    for (const value of [undefined, 'false', '1', 'TRUE']) {
-        if (value === undefined) delete process.env.ALLOW_SETUP; else process.env.ALLOW_SETUP = value;
-        const res = await fetch(`${baseUrl}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'gated@example.com', password: 'correct horse battery staple' })
-        });
-        assert.equal(res.status, 404, `ALLOW_SETUP=${value} should 404`);
-        assert.ok(!res.headers.getSetCookie().some(c => c.startsWith('session=')));
+    // Isolated app/server: these 404s count against the register rate limiter
+    // (skipSuccessfulRequests), so they must not use the shared suite's budget.
+    const isolatedApp = createApp();
+    const isolatedServer = isolatedApp.listen(0);
+    const isolatedBaseUrl = `http://127.0.0.1:${isolatedServer.address().port}`;
+    try {
+        for (const value of [undefined, 'false', '1', 'TRUE']) {
+            if (value === undefined) delete process.env.ALLOW_SETUP; else process.env.ALLOW_SETUP = value;
+            const res = await fetch(`${isolatedBaseUrl}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: 'gated@example.com', password: 'correct horse battery staple' })
+            });
+            assert.equal(res.status, 404, `ALLOW_SETUP=${value} should 404`);
+            assert.ok(!res.headers.getSetCookie().some(c => c.startsWith('session=')));
+        }
+        const { rows } = await pool.query('SELECT count(*)::int AS n FROM users');
+        assert.equal(rows[0].n, 0);
+    } finally {
+        process.env.ALLOW_SETUP = 'true';
+        isolatedServer.close();
     }
-    process.env.ALLOW_SETUP = 'true';
-    const { rows } = await pool.query('SELECT count(*)::int AS n FROM users');
-    assert.equal(rows[0].n, 0);
 });
 
 // ---------------------------------------------------------------------------
