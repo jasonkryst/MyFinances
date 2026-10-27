@@ -411,7 +411,7 @@ export function importAllJSON(app, file, options = {}) {
             || incomingSinkingFunds.length > 0 || incomingReconciliations.length > 0
             || incomingPlanHistory.length > 0
             || incomingMonthlySnapshots.length > 0 || incomingNetWorthMilestones.length > 0
-            || incomingRetirementSnapshots.length > 0 || incomingTransfers.length > 0 || !!incomingRetirementTargetDate
+            || incomingRetirementSnapshots.length > 0 || incomingTransfers.length > 0 || !!incomingRetirementTargetDate || !!incomingHomePurchasePlan
             || !!incomingStrategy?.monthlyPayment || !!incomingStrategy?.paymentStrategy;
         if (!hasData) {
             if (typeof onNoData === 'function') onNoData();

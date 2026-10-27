@@ -96,7 +96,8 @@ function snapshotAppState(app) {
             accountId:            app._forecastAccountId            || 'total',
             notableThresholdPct:  app._forecastNotableThresholdPct  || 130
         },
-        retirementTargetDate:  app.retirementTargetDate ?? null
+        retirementTargetDate:  app.retirementTargetDate ?? null,
+        homePurchasePlan:      app.homePurchasePlan ?? null
     };
 }
 
@@ -163,7 +164,8 @@ async function postAllResources(data) {
         perMonthStimulus: data.perMonthStimulus || [],
         ledgerSettings:   data.ledgerSettings,
         forecastSettings: data.forecastSettings,
-        retirementTargetDate: data.retirementTargetDate ?? null
+        retirementTargetDate: data.retirementTargetDate ?? null,
+        homePurchasePlan: data.homePurchasePlan ?? null
     });
 
     // Balance history FKs to debts (which remapFk doesn't handle), so it is
@@ -205,6 +207,7 @@ function applyResultsToApp(app, data, { accountResults, personResults, resourceR
     app._savedMonthlyPayment       = data.monthlyPayment ?? null;
     app._savedStrategy             = data.strategy ?? null;
     app.retirementTargetDate       = data.retirementTargetDate ?? null;
+    app.homePurchasePlan           = data.homePurchasePlan ?? null;
 
     if (data.ledgerSettings) {
         app._ledgerAccountFilter = data.ledgerSettings.accountFilter || 'all';
@@ -249,7 +252,8 @@ function snapshotToPostData(snapshot) {
         monthlyPayment:        snapshot.monthlyPayment,
         ledgerSettings:        snapshot.ledgerSettings,
         forecastSettings:      snapshot.forecastSettings,
-        retirementTargetDate:  snapshot.retirementTargetDate
+        retirementTargetDate:  snapshot.retirementTargetDate,
+        homePurchasePlan:      snapshot.homePurchasePlan
     };
 }
 
@@ -447,13 +451,15 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             app._forecastNotableThresholdPct = clean.forecastSettings.notableThresholdPct || 130;
         }
         if (clean.retirementTargetDate) app.retirementTargetDate = clean.retirementTargetDate;
+        if (clean.homePurchasePlan) app.homePurchasePlan = clean.homePurchasePlan;
         await apiFetch('PATCH', '/api/plan-settings', {
             strategy:        app._savedStrategy,
             monthlyPayment:  app._savedMonthlyPayment,
             perMonthStimulus: app.perMonthStimulus,
             ledgerSettings:   clean.ledgerSettings,
             forecastSettings: clean.forecastSettings,
-            retirementTargetDate: app.retirementTargetDate
+            retirementTargetDate: app.retirementTargetDate,
+            homePurchasePlan: app.homePurchasePlan ?? null
         });
 
     } catch (err) {
@@ -474,6 +480,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             retirementSnapshots:  snapshot.retirementSnapshots,
             transfers:            snapshot.transfers,
             retirementTargetDate: snapshot.retirementTargetDate,
+            homePurchasePlan:     snapshot.homePurchasePlan,
             balanceHistory:       snapshot.balanceHistory,
             ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
             ledgerClearedTransactions: snapshot.ledgerClearedTransactions,

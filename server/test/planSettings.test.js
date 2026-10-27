@@ -80,3 +80,56 @@ test('PATCH accepts and persists retirementTargetDate', async () => {
     const body = await res.json();
     assert.equal(body.retirementTargetDate, '2050-01-01');
 });
+
+test('PATCH persists homePurchasePlan and clears it with null', async () => {
+    let res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(),
+        body: JSON.stringify({ homePurchasePlan: { targetHomePrice: 400000, targetDownPaymentPct: 10, notes: 'hi' } })
+    });
+    assert.equal(res.status, 200);
+    res = await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } });
+    let body = await res.json();
+    assert.equal(body.homePurchasePlan.targetHomePrice, 400000);
+    assert.equal(body.homePurchasePlan.targetDownPaymentPct, 10);
+    assert.equal(body.homePurchasePlan.notes, 'hi');
+
+    await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ homePurchasePlan: null })
+    });
+    res = await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } });
+    body = await res.json();
+    assert.equal(body.homePurchasePlan, null);
+});
+
+test('PATCH sanitizes invalid homePurchasePlan payloads to null', async () => {
+    for (const bad of ['a string', [1, 2], { targetHomePrice: -5 }, { targetHomePrice: 'abc' }, {}, 42]) {
+        await fetch(`${baseUrl}/api/plan-settings`, {
+            method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ homePurchasePlan: { targetHomePrice: 1000 } })
+        });
+        const res = await fetch(`${baseUrl}/api/plan-settings`, {
+            method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ homePurchasePlan: bad })
+        });
+        assert.equal(res.status, 200);
+        assert.equal((await res.json()).homePurchasePlan, null, JSON.stringify(bad));
+    }
+});
+
+test('PATCH truncates oversized homePurchasePlan notes and clamps negatives', async () => {
+    const res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(),
+        body: JSON.stringify({ homePurchasePlan: { targetHomePrice: 1000, notes: '<script>alert(1)</script>' + 'x'.repeat(5000), currentSavings: -50 } })
+    });
+    const plan = (await res.json()).homePurchasePlan;
+    assert.ok(plan.notes.length <= 500);
+    assert.equal(plan.currentSavings, 0);
+});
+
+test('PATCH without homePurchasePlan leaves an existing plan untouched', async () => {
+    await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ homePurchasePlan: { targetHomePrice: 2000 } })
+    });
+    const res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ strategy: 'avalanche' })
+    });
+    assert.equal((await res.json()).homePurchasePlan.targetHomePrice, 2000);
+});
