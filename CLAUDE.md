@@ -45,6 +45,15 @@ pytest tests/features/test_debts.py::test_add_debt -v
 ```
 `pytest.ini` sets `asyncio_mode = auto`. Custom markers (`security`, `feature`, `ui`, `integration`, `slow`) are registered in `tests/conftest.py`.
 
+### Server tests
+```bash
+cd server
+docker compose -f docker-compose.test.yml up -d   # Postgres on :5433
+export DATABASE_URL="postgres://myfinances_test:myfinances_test@localhost:5433/myfinances_test"
+npm run migrate up && npm test                   # node:test, server/test/*.test.js
+```
+Runs in CI as the `test-server` job against a `postgres:16-alpine` service container (issue #407 — before that, nothing ran this suite).
+
 ### Mutation testing
 ```bash
 npm install
