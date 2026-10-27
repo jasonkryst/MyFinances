@@ -50,9 +50,9 @@ export function renderSavingsPage(app) {
     <div class="savings-container">
       ${renderSavingsRateSummary(app)}
       <div class="savings-subtabs">
-        <button class="savings-subtab-btn ${currentSubTab === 'emergency' ? 'active' : ''}" data-savings-subtab="emergency">🏦 Emergency Fund</button>
-        <button class="savings-subtab-btn ${currentSubTab === 'sinking' ? 'active' : ''}" data-savings-subtab="sinking">🎯 Sinking Funds</button>
-        <button class="savings-subtab-btn ${currentSubTab === 'home' ? 'active' : ''}" data-savings-subtab="home">🏠 Home Purchase</button>
+        <button class="savings-subtab-btn ${currentSubTab === 'emergency' ? 'active' : ''}" data-savings-subtab="emergency" aria-pressed="${currentSubTab === 'emergency' ? 'true' : 'false'}">🏦 Emergency Fund</button>
+        <button class="savings-subtab-btn ${currentSubTab === 'sinking' ? 'active' : ''}" data-savings-subtab="sinking" aria-pressed="${currentSubTab === 'sinking' ? 'true' : 'false'}">🎯 Sinking Funds</button>
+        <button class="savings-subtab-btn ${currentSubTab === 'home' ? 'active' : ''}" data-savings-subtab="home" aria-pressed="${currentSubTab === 'home' ? 'true' : 'false'}">🏠 Home Purchase</button>
       </div>
 
       <div class="savings-content">
@@ -186,9 +186,9 @@ function renderEmergencyFundContent(app) {
             ${fund.notes ? `<div class="detail-row"><span>Notes:</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
           </div>
           <div class="emergency-card-actions">
-            <button class="btn btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(String(fund.id))}">Edit</button>
-            ${fund.autoSyncBalance ? '' : `<button class="btn btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(String(fund.id))}">+ Contribute</button>`}
-            <button class="btn btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(String(fund.id))}">Delete</button>
+            <button class="btn btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="Edit ${escapeHtml(accountName)}">Edit</button>
+            ${fund.autoSyncBalance ? '' : `<button class="btn btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="Contribute to ${escapeHtml(accountName)}">+ Contribute</button>`}
+            <button class="btn btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="Delete ${escapeHtml(accountName)}">Delete</button>
           </div>
         </div>
       `;
@@ -287,7 +287,7 @@ function renderSinkingFundsContent(app) {
 
   if (archivedCount > 0) {
     html += `<div class="savings-archived-row">
-      <button class="btn btn-small btn-secondary" id="toggleArchivedSinkingFunds">
+      <button class="btn btn-small btn-secondary" id="toggleArchivedSinkingFunds" aria-pressed="${showArchived ? 'true' : 'false'}">
         ${showArchived ? 'Hide Archived' : `Show Archived (${archivedCount})`}
       </button>
     </div>`;
@@ -347,12 +347,12 @@ function renderSinkingFundsContent(app) {
           </div>
           <div class="sinking-card-actions">
             ${fund.archived
-              ? `<button class="btn btn-small btn-secondary" data-sinking-action="unarchive" data-sinking-id="${escapeHtml(String(fund.id))}">Unarchive</button>
-                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}">Delete</button>`
-              : `<button class="btn btn-small btn-secondary" data-sinking-action="edit" data-sinking-id="${escapeHtml(String(fund.id))}">Edit</button>
-                 ${!isFullyFunded ? `<button class="btn btn-small btn-primary" data-sinking-action="contribute" data-sinking-id="${escapeHtml(String(fund.id))}">+ Contribute</button>` : ''}
-                 ${isFullyFunded ? `<button class="btn btn-small btn-primary sinking-complete-btn" data-sinking-action="complete" data-sinking-id="${escapeHtml(String(fund.id))}">Complete this goal</button>` : ''}
-                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}">Delete</button>`
+              ? `<button class="btn btn-small btn-secondary" data-sinking-action="unarchive" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Unarchive ${escapeHtml(fund.name)}">Unarchive</button>
+                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Delete ${escapeHtml(fund.name)}">Delete</button>`
+              : `<button class="btn btn-small btn-secondary" data-sinking-action="edit" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Edit ${escapeHtml(fund.name)}">Edit</button>
+                 ${!isFullyFunded ? `<button class="btn btn-small btn-primary" data-sinking-action="contribute" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Contribute to ${escapeHtml(fund.name)}">+ Contribute</button>` : ''}
+                 ${isFullyFunded ? `<button class="btn btn-small btn-primary sinking-complete-btn" data-sinking-action="complete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Complete this goal: ${escapeHtml(fund.name)}">Complete this goal</button>` : ''}
+                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Delete ${escapeHtml(fund.name)}">Delete</button>`
             }
           </div>
         </div>

@@ -723,8 +723,8 @@ export function renderDebtsList(app) {
                     </div>
                 </div>
                 <div class="debt-actions">
-                    <button class="btn btn-success btn-save" data-debt-action="save-inline" data-debt-id="${debt.id}">Save</button>
-                    <button class="btn btn-secondary btn-cancel" data-debt-action="cancel-inline">Cancel</button>
+                    <button class="btn btn-success btn-save" data-debt-action="save-inline" data-debt-id="${debt.id}" aria-label="Save changes to ${escapeHtml(debt.name)}">Save</button>
+                    <button class="btn btn-secondary btn-cancel" data-debt-action="cancel-inline" aria-label="Cancel editing ${escapeHtml(debt.name)}">Cancel</button>
                 </div>
             `;
             card.innerHTML = editHTML;
@@ -878,14 +878,14 @@ export function renderDebtsList(app) {
                 <div class="debt-actions">
                     ${debt.archived
                         ? `<span class="debt-archived-badge">Archived</span>
-                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}">History</button>
-                           <button class="btn btn-secondary btn-small" data-debt-action="unarchive" data-debt-id="${debt.id}">Unarchive</button>`
-                        : `<button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}">Edit</button>
-                           ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}">Update Balance</button>` : ''}
-                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}">History</button>
+                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}" aria-label="History for ${escapeHtml(debt.name)}">History</button>
+                           <button class="btn btn-secondary btn-small" data-debt-action="unarchive" data-debt-id="${debt.id}" aria-label="Unarchive ${escapeHtml(debt.name)}">Unarchive</button>`
+                        : `<button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}" aria-label="Edit ${escapeHtml(debt.name)}">Edit</button>
+                           ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}" aria-label="Update Balance for ${escapeHtml(debt.name)}">Update Balance</button>` : ''}
+                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}" aria-label="History for ${escapeHtml(debt.name)}">History</button>
                            ${debt.debtType !== 'fixedAmount' && debt.accountBalance > 0 && debt.interestRate > 0 ? `<button class="btn btn-secondary btn-small debt-breakeven-btn" data-be-shortcut="${debt.id}" aria-label="Run break-even analysis for ${escapeHtml(debt.name)}">Break-even</button>` : ''}
-                           ${isDebtPaidOff(debt) ? `<button class="btn btn-primary btn-small debt-paid-off-btn" data-debt-action="celebrate" data-debt-id="${debt.id}">🎉 Debt Paid Off!</button>` : ''}
-                           <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}">Delete</button>`
+                           ${isDebtPaidOff(debt) ? `<button class="btn btn-primary btn-small debt-paid-off-btn" data-debt-action="celebrate" data-debt-id="${debt.id}" aria-label="Debt paid off: ${escapeHtml(debt.name)}">🎉 Debt Paid Off!</button>` : ''}
+                           <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}" aria-label="Delete ${escapeHtml(debt.name)}">Delete</button>`
                     }
                 </div>
             `;

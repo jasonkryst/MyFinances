@@ -103,8 +103,8 @@ export function renderIncomeList(app) {
                             </div>
                         </div>
                         <div class="income-edit-actions">
-                            <button class="btn btn-primary btn-small" data-income-action="save" data-income-id="${inc.id}">Save</button>
-                            <button class="btn btn-secondary btn-small" data-income-action="cancel">Cancel</button>
+                            <button class="btn btn-primary btn-small" data-income-action="save" data-income-id="${inc.id}" aria-label="Save changes to ${escapeHtml(inc.name)}">Save</button>
+                            <button class="btn btn-secondary btn-small" data-income-action="cancel" aria-label="Cancel editing ${escapeHtml(inc.name)}">Cancel</button>
                         </div>
                     </div>
                 </div>`;
@@ -146,8 +146,8 @@ export function renderIncomeList(app) {
                     ${upcomingHTML ? `<span class="income-card-upcoming-label">Next paydays:</span>${upcomingHTML}` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" data-income-action="edit" data-income-id="${inc.id}">Edit</button>
-                    <button class="btn btn-danger btn-small" data-income-action="delete" data-income-id="${inc.id}">Delete</button>
+                    <button class="btn-edit" data-income-action="edit" data-income-id="${inc.id}" aria-label="Edit ${escapeHtml(inc.name)}">Edit</button>
+                    <button class="btn btn-danger btn-small" data-income-action="delete" data-income-id="${inc.id}" aria-label="Delete ${escapeHtml(inc.name)}">Delete</button>
                 </div>
             </div>`;
     }).join('');
@@ -444,10 +444,10 @@ export function renderBonusList(app) {
     const filterHtml = `
         <div class="bonus-filter-row">
             <button class="bonus-filter-nav" data-bonus-year-nav="prev"
-                ${prevYear === null ? 'disabled aria-disabled="true"' : `aria-label="Show ${prevYear}"`}>&#8249;</button>
+                aria-label="${prevYear === null ? 'Previous year (none available)' : `Show ${prevYear}`}"${prevYear === null ? ' disabled aria-disabled="true"' : ''}>&#8249;</button>
             <span class="bonus-filter-label">${_bonusFilterYear ?? 'All time'}</span>
             <button class="bonus-filter-nav" data-bonus-year-nav="next"
-                ${nextYear === null ? 'disabled aria-disabled="true"' : `aria-label="Show ${nextYear}"`}>&#8250;</button>
+                aria-label="${nextYear === null ? 'Next year (none available)' : `Show ${nextYear}`}"${nextYear === null ? ' disabled aria-disabled="true"' : ''}>&#8250;</button>
             ${_bonusFilterYear !== null
                 ? `<button class="bonus-filter-all" data-bonus-show-all>All time</button>`
                 : `<button class="bonus-filter-all" data-bonus-show-year="${currentYear}">This year</button>`
@@ -504,8 +504,8 @@ export function renderBonusList(app) {
                         </div>
                     </div>
                     <div class="income-edit-actions margin-top-auto">
-                        <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}">Save</button>
-                        <button class="btn btn-secondary btn-small" data-bonus-action="cancel">Cancel</button>
+                        <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}" aria-label="Save changes to ${escapeHtml(b.name)}">Save</button>
+                        <button class="btn btn-secondary btn-small" data-bonus-action="cancel" aria-label="Cancel editing ${escapeHtml(b.name)}">Cancel</button>
                     </div>
                 </div>`;
             }
@@ -524,8 +524,8 @@ export function renderBonusList(app) {
                     ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" data-bonus-action="edit" data-bonus-id="${b.id}">Edit</button>
-                    <button class="btn btn-danger btn-small" data-bonus-action="delete" data-bonus-id="${b.id}">Delete</button>
+                    <button class="btn-edit" data-bonus-action="edit" data-bonus-id="${b.id}" aria-label="Edit ${escapeHtml(b.name)}">Edit</button>
+                    <button class="btn btn-danger btn-small" data-bonus-action="delete" data-bonus-id="${b.id}" aria-label="Delete ${escapeHtml(b.name)}">Delete</button>
                 </div>
             </div>`;
         }).join('');

@@ -129,8 +129,8 @@ export function renderReportsSummary(app) {
         <div class="nw-report-header">
             <h3>Summary Report — ${escapeHtml(metrics.periodLabel)}</h3>
             <div class="nw-range-buttons" role="group" aria-label="Summary report range">
-                <button class="nw-range-btn ${rangeType === 'month' ? 'active' : ''}" data-rpt-summary-range="month" type="button">Monthly</button>
-                <button class="nw-range-btn ${rangeType === 'year' ? 'active' : ''}" data-rpt-summary-range="year" type="button">Yearly</button>
+                <button class="nw-range-btn ${rangeType === 'month' ? 'active' : ''}" data-rpt-summary-range="month" type="button" aria-pressed="${rangeType === 'month' ? 'true' : 'false'}">Monthly</button>
+                <button class="nw-range-btn ${rangeType === 'year' ? 'active' : ''}" data-rpt-summary-range="year" type="button" aria-pressed="${rangeType === 'year' ? 'true' : 'false'}">Yearly</button>
             </div>
         </div>
         <h4 class="rpt-section-title">Cash Flow</h4>

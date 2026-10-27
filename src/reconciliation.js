@@ -298,7 +298,7 @@ function renderReconcileCard(app, acct) {
             <span class="recon-diff-label">Difference:</span>
             <span id="recon-diff-${acct.id}" class="recon-diff--zero">${formatCurrency(0)}</span>
         </div>
-        <button class="btn btn-primary" data-recon-action="reconcile" data-recon-id="${acct.id}">Reconcile</button>
+        <button class="btn btn-primary" data-recon-action="reconcile" data-recon-id="${acct.id}" aria-label="Reconcile ${escapeHtml(acct.name)}">Reconcile</button>
         <details class="recon-expected">
             <summary id="recon-expected-summary-${acct.id}">${expectedSummaryText(start, end)}</summary>
             <div id="recon-expected-body-${acct.id}">${renderExpectedTransactionsHtml(expected)}</div>
@@ -371,7 +371,7 @@ function renderReconciliationHistory(app) {
                 <td>${accountName}</td>
                 <td><span class="recon-badge">🔄 Balance Reconciliation</span>${entry.note ? ` ${escapeHtml(entry.note)}` : ''}${periodHtml}</td>
                 <td class="${_diffClass(entry.difference)}">${formatCurrency(entry.previousBalance)} → ${formatCurrency(entry.statementBalance)} (${formatCurrency(entry.difference)})</td>
-                <td><button class="btn btn-danger btn-small" data-recon-action="delete-history" data-recon-history-id="${entry.id}">Delete</button></td>
+                <td><button class="btn btn-danger btn-small" data-recon-action="delete-history" data-recon-history-id="${entry.id}" aria-label="Delete reconciliation for ${accountName} on ${escapeHtml(entry.date || '')}">Delete</button></td>
             </tr>`;
         }).join('');
     }

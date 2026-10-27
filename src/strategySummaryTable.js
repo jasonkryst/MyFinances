@@ -19,12 +19,20 @@ function renderDebtSummaryTable(app) {
     document.querySelectorAll('#debtSummaryTable th[data-sort]').forEach(th => {
         const icon = th.querySelector('.sort-icon');
         if (!icon) return;
+        // #331: expose sort state + a direction-aware name for assistive tech
+        if (!th.dataset.sortName) th.dataset.sortName = (th.firstChild?.textContent || '').trim();
+        th.setAttribute('tabindex', '0');
         if (th.getAttribute('data-sort') === col) {
             icon.textContent = dir === 1 ? '↑' : '↓';
             th.classList.add('sort-active');
+            const dirWord = dir === 1 ? 'ascending' : 'descending';
+            th.setAttribute('aria-sort', dirWord);
+            th.setAttribute('aria-label', `Sort by ${th.dataset.sortName}, ${dirWord}`);
         } else {
             icon.textContent = '↕';
             th.classList.remove('sort-active');
+            th.removeAttribute('aria-sort');
+            th.setAttribute('aria-label', `Sort by ${th.dataset.sortName}`);
         }
     });
 
@@ -100,7 +108,7 @@ function renderDebtSummaryTable(app) {
             <td>${summary.payoffDate || '-'}</td>
             <td>${iSavedCell}</td>
             <td>${mSavedCell}</td>
-            <td><button class="btn btn-small btn-secondary" data-amortization="${escapeHtml(summary.name)}">View</button></td>
+            <td><button class="btn btn-small btn-secondary" data-amortization="${escapeHtml(summary.name)}" aria-label="View amortization schedule for ${escapeHtml(summary.name)}">View</button></td>
         `;
         row.querySelectorAll('[data-progress-width]').forEach(el =>
             el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
@@ -221,6 +229,9 @@ export function displayDebtSummary(app) {
     // Wire up column header sort clicks (once)
     const table = document.getElementById('debtSummaryTable');
     table.querySelectorAll('th[data-sort]').forEach(th => {
+        th.onkeydown = e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); th.click(); }
+        };
         th.onclick = () => {
             const col = th.getAttribute('data-sort');
             if (app._debtSummarySort.col === col) {

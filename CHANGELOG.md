@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.47.0] — 2026-10-27
+
+### Changed
+- **Accessibility: ARIA label audit across interactive controls** (issue #331) — per-item action buttons now carry item-specific accessible names (`Edit Visa card`, `Delete Netflix`, `Save changes to Main Checking`, `Cancel editing Visa card`, `Transfer from Main Checking`, `History for Visa card`, `Contribute to Vacation Fund`, etc.) on the Accounts, Income/Bonuses, People, Liabilities (Debts + Budget), Recurring, Savings (Emergency/Sinking), Reconcile, Retirement, and Ledger (override/transfer/cleared/select) controls; each label starts with the button's visible text, and item names are escaped with `escapeHtml()` before reaching the attribute. Toggle-style buttons (Liabilities/Savings sub-tabs, 1M/3M/6M/12M and Project range chips, Monthly/Yearly summary toggle, Budget cash-flow tabs, Show/Hide archived) now expose an explicit `aria-pressed` that is kept in sync on every change. The Ledger and Plan debt-summary sortable column headers are now keyboard-focusable (Enter/Space), expose `aria-sort`, and carry a direction-aware `aria-label` (e.g. "Sort by Amount, descending"). Reports month navigation gains `aria-label`s (previously `title`-only), the disabled bonus year arrows keep a label, and Plan's amortization "View" buttons name their debt. New Retirement strings are localized (`retirement.deleteSnapshotAria`, `retirement.addSnapshotAria`, `retirement.logSalaryReviewAria` in `en`/`es`/`pl`).
+
+### Added
+- `tests/ui/test_aria_labels.py` — automated scan asserting every visible `button`/`[role=button]`/`[role=tab]` has a non-empty accessible name on every top-level page and Reports sub-tab, plus positive and negative (XSS-safe literal item names, `aria-pressed="false"` never missing, untouched text buttons not overridden) checks for the labels above.
+
 ## [6.46.0] — 2026-10-27
 
 ### Fixed

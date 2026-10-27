@@ -323,8 +323,8 @@
                 </div>
                 <div class="liabilities-container">
                     <div class="liabilities-subtabs">
-                        <button class="liabilities-subtab-btn active" data-liabilities-subtab="debts">💳 Debts</button>
-                        <button class="liabilities-subtab-btn" data-liabilities-subtab="expenses">📊 Expenses</button>
+                        <button class="liabilities-subtab-btn active" data-liabilities-subtab="debts" aria-pressed="true">💳 Debts</button>
+                        <button class="liabilities-subtab-btn" data-liabilities-subtab="expenses" aria-pressed="false">📊 Expenses</button>
                     </div>
 
                     <div class="liabilities-content">
@@ -1035,9 +1035,9 @@
 
                 <!-- Month pagination -->
                 <div class="rpt-month-nav">
-                    <button class="rpt-month-btn" id="rptPrevMonth" title="Previous month">&#8249;</button>
+                    <button class="rpt-month-btn" id="rptPrevMonth" title="Previous month" aria-label="Previous month">&#8249;</button>
                     <span class="rpt-month-label" id="rptMonthLabel"></span>
-                    <button class="rpt-month-btn" id="rptNextMonth" title="Next month">&#8250;</button>
+                    <button class="rpt-month-btn" id="rptNextMonth" title="Next month" aria-label="Next month">&#8250;</button>
                     <button class="rpt-month-btn rpt-print-btn" id="rptPrintBtn" type="button" title="Print or save this report as a PDF" aria-label="Print or save this report as a PDF">🖨️ Print</button>
                 </div>
 

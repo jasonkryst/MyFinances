@@ -285,6 +285,13 @@ export function renderLedgerPage(app) {
     const startItem = totalRows === 0 ? 0 : startIndex + 1;
     const endItem = Math.min(endIndex, totalRows);
 
+    const sortLabelNames = { date: 'Date', account: 'Account', name: 'Transaction', amount: 'Amount', balance: 'Running Balance' };
+    const sortThAttrs = key => {
+        const active = app._ledgerSortKey === key;
+        const dirWord = app._ledgerSortDir === 'asc' ? 'ascending' : 'descending';
+        const label = `Sort by ${sortLabelNames[key]}${active ? `, ${dirWord}` : ''}`;
+        return ` tabindex="0" aria-label="${label}"${active ? ` aria-sort="${dirWord}"` : ''}`;
+    };
     const sortIcon = key => {
         if (app._ledgerSortKey !== key) return '<span class="sort-icon">⇅</span>';
         return app._ledgerSortDir === 'asc' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
@@ -311,11 +318,11 @@ export function renderLedgerPage(app) {
     html += `<div class="table-wrapper"><table class="ledger-table">
         <thead><tr>
             <th data-col="select" class="ledger-select-col${hiddenCols.has('cleared') ? ' ledger-col-hidden' : ''}"><input type="checkbox" id="ledgerSelectAll" aria-label="Select all rows"></th>
-            <th data-key="date" data-col="date"${ch('date')}>Date ${sortIcon('date')}</th>
-            <th data-key="account" data-col="account"${ch('account')}>Account ${sortIcon('account')}</th>
-            <th data-key="name" data-col="name"${ch('name')}>Transaction ${sortIcon('name')}</th>
-            <th data-key="amount" data-col="amount"${ch('amount')}>Amount ${sortIcon('amount')}</th>
-            <th data-key="balance" data-col="balance"${ch('balance')}>Running Balance ${sortIcon('balance')}</th>
+            <th data-key="date" data-col="date"${ch('date')}${sortThAttrs('date')}>Date ${sortIcon('date')}</th>
+            <th data-key="account" data-col="account"${ch('account')}${sortThAttrs('account')}>Account ${sortIcon('account')}</th>
+            <th data-key="name" data-col="name"${ch('name')}${sortThAttrs('name')}>Transaction ${sortIcon('name')}</th>
+            <th data-key="amount" data-col="amount"${ch('amount')}${sortThAttrs('amount')}>Amount ${sortIcon('amount')}</th>
+            <th data-key="balance" data-col="balance"${ch('balance')}${sortThAttrs('balance')}>Running Balance ${sortIcon('balance')}</th>
             <th data-col="cleared"${ch('cleared')}>Cleared</th>
         </tr></thead>
         <tbody>`;
@@ -405,20 +412,20 @@ export function renderLedgerPage(app) {
                     ? `⇄ ${escapeHtml(tx.name || '')}`
                     : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
             const transferActions = isTransfer
-                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}">Edit</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}">Delete</button></div>`
+                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}" aria-label="Edit transfer ${escapeHtml(tx.name || '')}">Edit</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}" aria-label="Delete transfer ${escapeHtml(tx.name || '')}">Delete</button></div>`
                 : '';
             const overrideBtnLabel = isVariableIncome && !tx.hasOverride ? null
                 : isVariableIncome && tx.hasOverride ? 'Edit actual'
                 : tx.hasOverride ? 'Edit override'
                 : 'Override';
             const overrideActions = canOverride
-                ? `<div class="ledger-override-actions">${overrideBtnLabel === null ? `<button class="ledger-override-btn ledger-enter-actual-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">Enter actual</button>` : `<button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${overrideBtnLabel}</button>`}${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
+                ? `<div class="ledger-override-actions">${overrideBtnLabel === null ? `<button class="ledger-override-btn ledger-enter-actual-btn" data-ledger-override="${escapeHtml(tx.transactionId)}" aria-label="Enter actual amount for ${escapeHtml(tx.name || '')}">Enter actual</button>` : `<button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}" aria-label="${overrideBtnLabel} for ${escapeHtml(tx.name || '')}">${overrideBtnLabel}</button>`}${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}" aria-label="Reset override for ${escapeHtml(tx.name || '')}">Reset</button>` : ''}</div>`
                 : '';
             const clearedCell = canClear
-                ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark cleared">`
+                ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark ${escapeHtml(tx.name || 'transaction')} cleared">`
                 : '';
             const selectCell = canClear
-                ? `<input type="checkbox" class="ledger-row-select" data-ledger-select="${escapeHtml(tx.transactionId)}" aria-label="Select row">`
+                ? `<input type="checkbox" class="ledger-row-select" data-ledger-select="${escapeHtml(tx.transactionId)}" aria-label="Select ${escapeHtml(tx.name || 'transaction')}">`
                 : '';
             html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
                 <td data-col="select" class="ledger-select-col${hiddenCols.has('cleared') ? ' ledger-col-hidden' : ''}">${selectCell}</td>
@@ -445,6 +452,9 @@ export function renderLedgerPage(app) {
     if (table) {
         table.querySelectorAll('th[data-key]').forEach(th => {
             th.classList.add('cursor-pointer');
+            th.onkeydown = e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); th.click(); }
+            };
             th.onclick = () => {
                 const key = th.getAttribute('data-key');
                 if (app._ledgerSortKey === key) {
