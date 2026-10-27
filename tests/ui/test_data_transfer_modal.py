@@ -92,6 +92,57 @@ def test_export_button_triggers_download(app_page):
 
 
 @pytest.mark.ui
+def test_export_charts_button_disabled_when_no_chart_visible(app_page):
+    """Negative (#271): with every canvas on the page hidden, opening the
+    modal disables the Export Charts as PNG button and sets a tooltip."""
+    page = app_page
+
+    page.evaluate("""() => {
+        document.querySelectorAll('canvas').forEach(c => { c.dataset.prevDisplay = c.style.display; c.style.display = 'none'; });
+    }""")
+    open_data_transfer(page)
+
+    btn = page.query_selector('#exportChartsPngBtn')
+    assert btn is not None
+    assert btn.is_disabled()
+    assert btn.get_attribute('title')
+
+
+@pytest.mark.ui
+def test_export_charts_button_enabled_and_downloads_when_chart_visible(app_page):
+    """Positive (#271): with a visible chart canvas present, opening the
+    modal enables the button and clicking it downloads a PNG. The default
+    landing page (Health) already has its own visible chart(s), so this
+    collects every download fired rather than assuming the injected test
+    canvas is the only - or first - one exported."""
+    page = app_page
+
+    page.evaluate("""() => {
+        const c = document.createElement('canvas');
+        c.id = 'testModalPngChart';
+        c.width = 10;
+        c.height = 10;
+        document.body.appendChild(c);
+    }""")
+    open_data_transfer(page)
+
+    btn = page.query_selector('#exportChartsPngBtn')
+    assert btn is not None
+    assert not btn.is_disabled()
+
+    downloads = []
+    page.on('download', lambda d: downloads.append(d))
+    page.click('#exportChartsPngBtn')
+    page.wait_for_timeout(1500)
+
+    matching = [d for d in downloads if d.suggested_filename.startswith('test-modal-png-chart-')]
+    assert len(matching) == 1, f"expected exactly one matching download, got: {[d.suggested_filename for d in downloads]}"
+    assert matching[0].suggested_filename.endswith('.png')
+
+    page.evaluate("() => document.getElementById('testModalPngChart')?.remove()")
+
+
+@pytest.mark.ui
 def test_import_button_opens_file_picker_and_triggers_import(app_page):
     """Positive: clicking Choose File then selecting a file calls
     app.importAllJSON (verified via a resulting localStorage write)."""

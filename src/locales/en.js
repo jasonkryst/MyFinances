@@ -56,6 +56,8 @@ export default {
     'dataTransfer.tabImport': 'Import',
     'dataTransfer.exportDescription': 'Download a full backup (accounts, debts, income, bills, plan, and settings) as a JSON file.',
     'dataTransfer.exportButton': 'Export Backup',
+    'dataTransfer.exportChartsButton': 'Export Charts as PNG',
+    'dataTransfer.exportChartsNoCharts': 'Navigate to a page with charts to enable this export',
     'dataTransfer.importDescription': 'Restore from a previously exported JSON backup.',
     'dataTransfer.importButton': 'Choose File…',
     'dataTransfer.replaceButton': 'Replace',

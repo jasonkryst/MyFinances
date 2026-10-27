@@ -4,6 +4,8 @@
 // owns all of #dataTransferModal's internal wiring, including the
 // relocated #exportJsonBtn/#importJsonBtn/#importJsonInput.
 
+import { t } from './i18n.js';
+
 export function initDataTransferModal(app) {
     const modal = document.getElementById('dataTransferModal');
     const openBtn = document.getElementById('dataTransferBtn');
@@ -37,6 +39,17 @@ export function initDataTransferModal(app) {
         };
         const exportBtn = document.getElementById('exportJsonBtn');
         setTimeout(() => exportBtn && exportBtn.focus(), 30);
+
+        // Whether any chart is visible depends on whatever page was open
+        // before this modal was opened (the modal overlays, it doesn't hide
+        // the page underneath), so this has to be recomputed on every open.
+        const chartsBtn = document.getElementById('exportChartsPngBtn');
+        if (chartsBtn) {
+            const hasVisibleChart = Array.from(document.querySelectorAll('canvas'))
+                .some(c => c.id && c.offsetParent !== null);
+            chartsBtn.disabled = !hasVisibleChart;
+            chartsBtn.title = hasVisibleChart ? '' : t('dataTransfer.exportChartsNoCharts');
+        }
     };
 
     openBtn.onclick = open;
@@ -62,6 +75,11 @@ export function initDataTransferModal(app) {
     const exportBtn = document.getElementById('exportJsonBtn');
     if (exportBtn) {
         exportBtn.addEventListener('click', () => app.exportAllJSON());
+    }
+
+    const chartsBtn = document.getElementById('exportChartsPngBtn');
+    if (chartsBtn) {
+        chartsBtn.addEventListener('click', () => app.exportChartsAsPng());
     }
 
     const importBtn = document.getElementById('importJsonBtn');

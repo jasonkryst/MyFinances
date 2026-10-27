@@ -53,6 +53,8 @@ export default {
     'dataTransfer.tabImport': 'Importar',
     'dataTransfer.exportDescription': 'Descarga una copia de seguridad completa (cuentas, deudas, ingresos, facturas, plan y configuración) como archivo JSON.',
     'dataTransfer.exportButton': 'Exportar Copia de Seguridad',
+    'dataTransfer.exportChartsButton': 'Exportar Gráficos como PNG',
+    'dataTransfer.exportChartsNoCharts': 'Ve a una página con gráficos para habilitar esta exportación',
     'dataTransfer.importDescription': 'Restaura desde una copia de seguridad JSON exportada previamente.',
     'dataTransfer.importButton': 'Elegir Archivo…',
     'dataTransfer.replaceButton': 'Reemplazar',

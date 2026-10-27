@@ -38,7 +38,7 @@ import {
 import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, checkPostgresBackendPresent, loadFromPostgres, flushStorageSave } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgMigrationModal } from './pgMigrationModal.js';
-import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
+import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, exportChartsAsPng as exportChartsAsPngFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import { createStorageAdapter, getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import {
     recordBalanceHistory as recordBalanceHistoryFeature,
@@ -400,6 +400,10 @@ export class DebtTrackerApp {
 
     exportPaymentScheduleCSV() {
         return exportPaymentScheduleCSVFeature(this);
+    }
+
+    exportChartsAsPng() {
+        return exportChartsAsPngFeature(this);
     }
 
     /**

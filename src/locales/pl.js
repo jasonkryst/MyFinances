@@ -53,6 +53,8 @@ export default {
     'dataTransfer.tabImport': 'Importuj',
     'dataTransfer.exportDescription': 'Pobierz pełną kopię zapasową (konta, długi, dochody, rachunki, plan i ustawienia) jako plik JSON.',
     'dataTransfer.exportButton': 'Eksportuj Kopię Zapasową',
+    'dataTransfer.exportChartsButton': 'Eksportuj Wykresy jako PNG',
+    'dataTransfer.exportChartsNoCharts': 'Przejdź do strony z wykresami, aby włączyć ten eksport',
     'dataTransfer.importDescription': 'Przywróć z wcześniej wyeksportowanej kopii zapasowej JSON.',
     'dataTransfer.importButton': 'Wybierz Plik…',
     'dataTransfer.replaceButton': 'Zastąp',
