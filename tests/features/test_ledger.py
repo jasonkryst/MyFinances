@@ -161,6 +161,9 @@ def test_ledger_override_modal_updates_row_amount(app_page):
 
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
 
     page.fill('#ledgerOverrideAmountInput', '1234.56')
     page.click('#ledgerOverrideConfirmBtn')
@@ -204,6 +207,9 @@ def test_ledger_override_persists_after_reload(app_page):
 
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '777.77')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
@@ -264,6 +270,9 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     # Override the first row.
     override_btns[0].click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '111.11')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
@@ -272,6 +281,9 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     btn2 = page.query_selector(f'[data-ledger-override="{tx_id_2}"]')
     btn2.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '222.22')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
@@ -1407,6 +1419,9 @@ def test_ledger_enter_actual_opens_override_modal(app_page):
     btn.click()
 
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     modal = page.query_selector('#ledgerOverrideModal')
     assert modal, "#ledgerOverrideModal should exist"
     assert 'flex-visible' in (modal.get_attribute('class') or ''), \
@@ -1430,6 +1445,9 @@ def test_ledger_enter_actual_becomes_edit_actual_after_override(app_page):
     assert btn, "Expected 'Enter actual' button"
     btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
 
     page.fill('#ledgerOverrideAmountInput', '1350.00')
     page.click('#ledgerOverrideConfirmBtn')
@@ -1484,6 +1502,9 @@ def test_ledger_override_icon_present_after_override_set(app_page):
     assert override_btn, "Expected an override button in the ledger"
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '1500.00')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
@@ -1507,6 +1528,9 @@ def test_ledger_override_icon_tooltip_shows_original_amount(app_page):
     assert override_btn, "Expected an override button"
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '1750.00')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
@@ -1533,6 +1557,9 @@ def test_ledger_override_icon_click_opens_override_modal(app_page):
     assert override_btn
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '1500.00')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
@@ -1542,6 +1569,9 @@ def test_ledger_override_icon_click_opens_override_modal(app_page):
     assert icon is not None, "Expected pencil icon (data-ledger-edit-icon) after override set"
     icon.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
 
     modal = page.query_selector('#ledgerOverrideModal')
     assert 'flex-visible' in (modal.get_attribute('class') or ''), \
@@ -1560,6 +1590,9 @@ def test_ledger_override_modal_has_memo_field(app_page):
 
     page.click('[data-ledger-override]')
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
 
     memo_input = page.query_selector('#ledgerOverrideMemoInput')
     assert memo_input, "Expected #ledgerOverrideMemoInput textarea in the override modal"
@@ -1583,6 +1616,9 @@ def test_ledger_override_memo_saves_and_shows_tooltip(app_page):
 
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '999.00')
     page.fill('#ledgerOverrideMemoInput', 'vet bill split with roommate')
     page.click('#ledgerOverrideConfirmBtn')
@@ -1616,6 +1652,9 @@ def test_ledger_override_memo_persists_after_storage_reload(app_page):
 
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '500.00')
     page.fill('#ledgerOverrideMemoInput', 'refund received')
     page.click('#ledgerOverrideConfirmBtn')
@@ -1650,6 +1689,9 @@ def test_ledger_override_memo_empty_when_not_entered(app_page):
 
     override_btn.click()
     page.wait_for_selector('#ledgerOverrideModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the amount input 30ms after opening; wait for it so a
+    # fill() can't have its focus stolen mid-input (CI-only race, memo/amount lost).
+    page.wait_for_selector('#ledgerOverrideAmountInput:focus', timeout=5000)
     page.fill('#ledgerOverrideAmountInput', '200.00')
     # Leave memo blank
     page.click('#ledgerOverrideConfirmBtn')
