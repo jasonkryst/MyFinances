@@ -18,6 +18,7 @@ after(async () => {
 });
 
 let accountId;
+let accountId2;
 
 beforeEach(async () => {
     await resetDb();
@@ -30,6 +31,13 @@ beforeEach(async () => {
         body: JSON.stringify({ name: 'Checking', type: 'checking', startingBalance: 100, interestRate: 0 })
     });
     accountId = (await acctRes.json()).id;
+    // A second account, for resources with two account FKs (/api/transfers).
+    const acctRes2 = await fetch(`${baseUrl}/api/accounts`, {
+        method: 'POST',
+        headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Savings', type: 'savings', startingBalance: 500, interestRate: 0 })
+    });
+    accountId2 = (await acctRes2.json()).id;
 });
 
 function csrfHeaders() {
@@ -246,4 +254,91 @@ test('/api/debts: delete all removes all user rows and returns 204', async () =>
 test('/api/debts: delete all returns 401 without auth', async () => {
     const res = await fetch(`${baseUrl}/api/debts`, { method: 'DELETE' });
     assert.equal(res.status, 401);
+});
+
+// /api/transfers (#248) isn't in the shared `cases` harness above because
+// its IDOR test hardcodes a single `accountId` field -- transfers has two
+// (fromAccountId/toAccountId), so that generic check wouldn't exercise
+// either real FK. Dedicated tests cover the same ground explicitly instead.
+test('/api/transfers: create, list, update, delete round trip', async () => {
+    const createRes = await fetch(`${baseUrl}/api/transfers`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ fromAccountId: accountId, toAccountId: accountId2, amount: 500, date: '2026-08-01', memo: 'Move to savings' })
+    });
+    assert.equal(createRes.status, 201);
+    const created = await createRes.json();
+    assert.ok(created.id);
+    assert.equal(created.amount, 500);
+
+    const list = await (await fetch(`${baseUrl}/api/transfers`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.length, 1);
+
+    const updateRes = await fetch(`${baseUrl}/api/transfers/${created.id}`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ amount: 600 })
+    });
+    assert.equal(updateRes.status, 200);
+    assert.equal((await updateRes.json()).amount, 600);
+
+    const deleteRes = await fetch(`${baseUrl}/api/transfers/${created.id}`, { method: 'DELETE', headers: csrfHeaders() });
+    assert.equal(deleteRes.status, 204);
+
+    const listAfter = await (await fetch(`${baseUrl}/api/transfers`, { headers: { Cookie: cookies } })).json();
+    assert.equal(listAfter.length, 0);
+});
+
+test('/api/transfers: rejects payload missing fromAccountId/toAccountId', async () => {
+    const res = await fetch(`${baseUrl}/api/transfers`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ amount: 500, date: '2026-08-01' })
+    });
+    assert.equal(res.status, 400);
+});
+
+test('/api/transfers: cannot see or delete another user\'s rows', async () => {
+    const created = await (await fetch(`${baseUrl}/api/transfers`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ fromAccountId: accountId, toAccountId: accountId2, amount: 500, date: '2026-08-01' })
+    })).json();
+
+    const otherUser = await createTestUser('transfer-other@example.com', 'another correct horse battery');
+    const otherLoginRes = await loginTestUser(baseUrl, otherUser.email, otherUser.password);
+    const otherCookies = otherLoginRes.headers.getSetCookie().map(x => x.split(';')[0]).join('; ');
+    const otherCsrf = otherCookies.match(/csrf=([^;]+)/)[1];
+
+    const list = await (await fetch(`${baseUrl}/api/transfers`, { headers: { Cookie: otherCookies } })).json();
+    assert.equal(list.length, 0);
+
+    const deleteRes = await fetch(`${baseUrl}/api/transfers/${created.id}`, {
+        method: 'DELETE',
+        headers: { Cookie: otherCookies, 'X-CSRF-Token': otherCsrf }
+    });
+    assert.equal(deleteRes.status, 404);
+});
+
+test('/api/transfers: rejects a fromAccountId/toAccountId belonging to another user (IDOR)', async () => {
+    const otherUser = await createTestUser('transfer-idor@example.com', 'another correct horse battery');
+    const otherLoginRes = await loginTestUser(baseUrl, otherUser.email, otherUser.password);
+    const otherCookies = otherLoginRes.headers.getSetCookie().map(x => x.split(';')[0]).join('; ');
+    const otherCsrf = otherCookies.match(/csrf=([^;]+)/)[1];
+    const otherAccountRes = await fetch(`${baseUrl}/api/accounts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: otherCookies, 'X-CSRF-Token': otherCsrf },
+        body: JSON.stringify({ name: 'Their Account', type: 'checking', startingBalance: 0, interestRate: 0 })
+    });
+    const otherAccountId = (await otherAccountRes.json()).id;
+
+    const fromRes = await fetch(`${baseUrl}/api/transfers`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ fromAccountId: otherAccountId, toAccountId: accountId2, amount: 500, date: '2026-08-01' })
+    });
+    assert.equal(fromRes.status, 400);
+
+    const toRes = await fetch(`${baseUrl}/api/transfers`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ fromAccountId: accountId, toAccountId: otherAccountId, amount: 500, date: '2026-08-01' })
+    });
+    assert.equal(toRes.status, 400);
+
+    const list = await (await fetch(`${baseUrl}/api/transfers`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.length, 0);
 });

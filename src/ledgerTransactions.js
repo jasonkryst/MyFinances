@@ -175,6 +175,38 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
             }
         }
 
+        // One-off transfers (issue #248) -- a dated pair of opposite-signed
+        // legs, same shape as the recurring-template transfer type below but
+        // for a single exact date rather than a recurring schedule. Reusing
+        // addTx() for both legs is what makes computeAccountBalance() and
+        // every Reports/Forecast consumer correct for transfers automatically:
+        // they already just sum whatever this generator produces per account.
+        for (const t of app.transfers || []) {
+            if (!t.date) continue;
+            const tDate = new Date(String(t.date).includes('T') ? t.date : t.date + 'T00:00:00');
+            if (tDate.getFullYear() !== year || tDate.getMonth() !== month) continue;
+            const toAcct = (app.accounts || []).find(a => a.id === t.toAccountId);
+            const fromAcct = (app.accounts || []).find(a => a.id === t.fromAccountId);
+            addTx({
+                accountId: t.fromAccountId,
+                date: tDate,
+                name: `Transfer to ${toAcct?.name || 'account'}`,
+                amount: -Math.abs(Number(t.amount)),
+                type: 'transfer',
+                sourceId: t.id,
+                category: 'Transfer'
+            });
+            addTx({
+                accountId: t.toAccountId,
+                date: tDate,
+                name: `Transfer from ${fromAcct?.name || 'account'}`,
+                amount: Math.abs(Number(t.amount)),
+                type: 'transfer',
+                sourceId: t.id,
+                category: 'Transfer'
+            });
+        }
+
         for (const tmpl of (app.recurringTemplates || []).filter(t => !t.archived)) {
             const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
             for (const occDate of occurrences) {

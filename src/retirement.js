@@ -1,10 +1,44 @@
 // Retirement accounts: history log, projection, and page rendering.
 
-import { computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution, getContributionLimit, computeYtdContributions, computeMonthlyWithdrawal } from './retirementCalculator.js';
+import {
+    computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution,
+    getContributionLimit, computeYtdContributions, computeMonthlyWithdrawal,
+    computeScenarioRates, computeRetirementProjectionScenarios, computeRetirementProjectionSeries,
+    DEFAULT_CONSERVATIVE_DELTA, DEFAULT_AGGRESSIVE_DELTA
+} from './retirementCalculator.js';
 import { pgPost, pgDelete, pgPatch } from './postgresSync.js';
 import { formatCurrency, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
-import { getSetting, setSetting, RETIREMENT_WITHDRAWAL_RATE } from './settings.js';
+import {
+    getSetting, setSetting, RETIREMENT_WITHDRAWAL_RATE,
+    RETIREMENT_SCENARIO_CONSERVATIVE_DELTA, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA
+} from './settings.js';
 import { t } from './i18n.js';
+
+// Bounds enforced on the user-editable scenario deltas: a conservative
+// scenario can never be more optimistic than moderate, and vice versa.
+const CONSERVATIVE_DELTA_MIN = -20;
+const CONSERVATIVE_DELTA_MAX = 0;
+const AGGRESSIVE_DELTA_MIN = 0;
+const AGGRESSIVE_DELTA_MAX = 20;
+
+function clampConservativeDelta(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return DEFAULT_CONSERVATIVE_DELTA;
+    return Math.min(CONSERVATIVE_DELTA_MAX, Math.max(CONSERVATIVE_DELTA_MIN, n));
+}
+
+function clampAggressiveDelta(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return DEFAULT_AGGRESSIVE_DELTA;
+    return Math.min(AGGRESSIVE_DELTA_MAX, Math.max(AGGRESSIVE_DELTA_MIN, n));
+}
+
+function getScenarioDeltas(app) {
+    return {
+        conservativeDelta: clampConservativeDelta(getSetting(app, RETIREMENT_SCENARIO_CONSERVATIVE_DELTA, DEFAULT_CONSERVATIVE_DELTA)),
+        aggressiveDelta: clampAggressiveDelta(getSetting(app, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA, DEFAULT_AGGRESSIVE_DELTA)),
+    };
+}
 
 export function getRetirementAccounts(app) {
     return (app.accounts || []).filter(a => a.type === 'Retirement');
@@ -64,6 +98,82 @@ export function computeAccountProjection(app, accountId) {
     const monthlyContribution = lastContribution * employerMultiplier;
 
     return computeRetirementProjection(currentBalance, monthlyContribution, Number(account.rateOfReturn) || 0, monthsUntilTarget);
+}
+
+// Current-balance/monthly-contribution inputs for a (non-pension) account's
+// projection — shared by computeAccountProjection (above), the scenario band,
+// and the combined projection chart series, so all three stay in sync.
+function getAccountProjectionInputs(app, account) {
+    const snapshots = getSnapshotsForAccount(app, account.id);
+    const latest = snapshots[snapshots.length - 1];
+    const currentBalance = latest ? latest.balance : (Number(account.startingBalance) || 0);
+    const lastContribution = latest ? latest.contribution : 0;
+    const employerMultiplier = 1 + (Number(account.employerMatchPercent) || 0) / 100;
+    return { currentBalance, monthlyContribution: lastContribution * employerMultiplier };
+}
+
+// Conservative/moderate/aggressive projection band for a single account
+// (issue #264). Pension accounts have no rate-of-return to vary, so all
+// three scenarios equal the account's existing (rate-independent) projection.
+// Investment accounts: moderate is computeAccountProjection(app, accountId)
+// itself (guarantees parity with the existing single-scenario number);
+// conservative/aggressive derive from the account's own rateOfReturn via
+// computeScenarioRates. Returns null under the same conditions as
+// computeAccountProjection (no target date / unknown account).
+export function computeAccountProjectionScenarios(app, accountId, conservativeDelta, aggressiveDelta) {
+    if (!app.retirementTargetDate) return null;
+    const account = (app.accounts || []).find(a => a.id === accountId);
+    if (!account) return null;
+
+    const moderate = computeAccountProjection(app, accountId);
+
+    if (account.retirementSubtype === 'Pension') {
+        return { conservative: moderate, moderate, aggressive: moderate, rates: { conservative: null, moderate: null, aggressive: null } };
+    }
+
+    const { conservativeDelta: cDeltaDefault, aggressiveDelta: aDeltaDefault } = getScenarioDeltas(app);
+    const cDelta = conservativeDelta != null ? conservativeDelta : cDeltaDefault;
+    const aDelta = aggressiveDelta != null ? aggressiveDelta : aDeltaDefault;
+
+    const monthsUntilTarget = DebtCalculator.calculateMonthsBetweenDates(
+        new Date(),
+        new Date(`${app.retirementTargetDate}T12:00:00`)
+    );
+    const { currentBalance, monthlyContribution } = getAccountProjectionInputs(app, account);
+    const rates = computeScenarioRates(Number(account.rateOfReturn) || 0, cDelta, aDelta);
+
+    return {
+        conservative: computeRetirementProjection(currentBalance, monthlyContribution, rates.conservative, monthsUntilTarget),
+        moderate,
+        aggressive: computeRetirementProjection(currentBalance, monthlyContribution, rates.aggressive, monthsUntilTarget),
+        rates,
+    };
+}
+
+// Sums each non-pension account's own per-scenario month-by-month series
+// (not by averaging rates — different accounts can have different absolute
+// conservative/aggressive rates once their own moderate rate differs).
+function computeCombinedProjectionSeries(app, accounts, monthsUntilTarget, conservativeDelta, aggressiveDelta) {
+    if (!(monthsUntilTarget > 0) || accounts.length === 0) return [];
+    const sampleEvery = monthsUntilTarget > 120 ? 12 : (monthsUntilTarget > 24 ? 3 : 1);
+
+    const perAccount = accounts.map(account => {
+        const { currentBalance, monthlyContribution } = getAccountProjectionInputs(app, account);
+        const rates = computeScenarioRates(Number(account.rateOfReturn) || 0, conservativeDelta, aggressiveDelta);
+        return {
+            conservative: computeRetirementProjectionSeries(currentBalance, monthlyContribution, rates.conservative, monthsUntilTarget, sampleEvery),
+            moderate: computeRetirementProjectionSeries(currentBalance, monthlyContribution, rates.moderate, monthsUntilTarget, sampleEvery),
+            aggressive: computeRetirementProjectionSeries(currentBalance, monthlyContribution, rates.aggressive, monthsUntilTarget, sampleEvery),
+        };
+    });
+
+    const months = perAccount[0].moderate.map(p => p.month);
+    return months.map((month, i) => ({
+        month,
+        conservative: perAccount.reduce((sum, s) => sum + (s.conservative[i]?.balance || 0), 0),
+        moderate: perAccount.reduce((sum, s) => sum + (s.moderate[i]?.balance || 0), 0),
+        aggressive: perAccount.reduce((sum, s) => sum + (s.aggressive[i]?.balance || 0), 0),
+    }));
 }
 
 export function openRetirementSnapshotModal(app, accountId) {
@@ -405,6 +515,58 @@ function renderBreakdownChart(app, accounts) {
     });
 }
 
+// Three-line conservative/moderate/aggressive projection chart to
+// app.retirementTargetDate (issue #264). Pension accounts have no
+// rate-driven growth to project, so they're excluded here — same convention
+// as the other three charts.
+function renderProjectionChart(app, accounts, conservativeDelta, aggressiveDelta) {
+    const canvas = document.getElementById('retireProjectionChart');
+    if (!canvas) return;
+    destroyChart(app, '_retireProjectionChart');
+
+    const investAccounts = accounts.filter(a => a.retirementSubtype !== 'Pension');
+    if (investAccounts.length === 0 || !app.retirementTargetDate) return;
+
+    const monthsUntilTarget = DebtCalculator.calculateMonthsBetweenDates(
+        new Date(),
+        new Date(`${app.retirementTargetDate}T12:00:00`)
+    );
+    if (!(monthsUntilTarget > 0)) return;
+
+    const series = computeCombinedProjectionSeries(app, investAccounts, monthsUntilTarget, conservativeDelta, aggressiveDelta);
+    if (series.length === 0) return;
+
+    const today = new Date();
+    const labels = series.map(p => {
+        const d = new Date(today.getFullYear(), today.getMonth() + p.month, 1);
+        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    });
+
+    const { grid, label } = chartColors();
+    app._retireProjectionChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: t('retirement.scenarioConservative'), data: series.map(p => p.conservative), borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.25, pointRadius: 2, fill: false },
+                { label: t('retirement.scenarioModerate'), data: series.map(p => p.moderate), borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.25, pointRadius: 2, fill: false },
+                { label: t('retirement.scenarioAggressive'), data: series.map(p => p.aggressive), borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.25, pointRadius: 2, fill: false },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } } },
+            scales: { y: { ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }, x: { ticks: { color: label }, grid: { color: grid } } }
+        }
+    });
+
+    renderChartDataTable('retireProjectionChart', {
+        caption: t('retirement.a11yProjectionCaption'),
+        columns: [t('retirement.colDate'), t('retirement.scenarioConservative'), t('retirement.scenarioModerate'), t('retirement.scenarioAggressive')],
+        rows: series.map((p, i) => [labels[i], formatCurrency(p.conservative), formatCurrency(p.moderate), formatCurrency(p.aggressive)])
+    });
+}
+
 function renderProjectionPanel(app, accounts) {
     const panel = document.getElementById('retireProjectionPanel');
     if (!panel) return;
@@ -428,30 +590,85 @@ function renderProjectionPanel(app, accounts) {
     const total = accounts.reduce((sum, a) => sum + (computeAccountProjection(app, a.id) || 0), 0);
 
     const withdrawalRate = Number(getSetting(app, RETIREMENT_WITHDRAWAL_RATE, 4)) || 4;
+    const { conservativeDelta, aggressiveDelta } = getScenarioDeltas(app);
+
+    // Multi-scenario band (issue #264): per-account + combined totals for all
+    // three scenarios, feeding both the scenario summary table and the
+    // withdrawal-estimate row below.
+    const scenarioByAccount = accounts.map(a => ({
+        account: a,
+        scenarios: computeAccountProjectionScenarios(app, a.id, conservativeDelta, aggressiveDelta)
+    }));
+    const scenarioTotal = scenarioByAccount.reduce((sum, { scenarios }) => ({
+        conservative: sum.conservative + (scenarios?.conservative || 0),
+        moderate: sum.moderate + (scenarios?.moderate || 0),
+        aggressive: sum.aggressive + (scenarios?.aggressive || 0),
+    }), { conservative: 0, moderate: 0, aggressive: 0 });
+
+    const scenarioRows = scenarioByAccount.map(({ account: a, scenarios: s }) => {
+        const label = a.retirementSubtype === 'Pension'
+            ? `${escapeHtml(a.name)} ${t('retirement.pensionTotalContribLabel')}`
+            : escapeHtml(a.name);
+        return `<tr><td>${label}</td><td>${formatCurrency(s?.conservative || 0)}</td><td>${formatCurrency(s?.moderate || 0)}</td><td>${formatCurrency(s?.aggressive || 0)}</td></tr>`;
+    }).join('');
 
     panel.innerHTML = `
         <h4 class="rpt-chart-title">${t('retirement.projectionTitle', { date: escapeHtml(app.retirementTargetDate) })}</h4>
         <p class="rpt-chart-sub">${t('retirement.projectionSub')}</p>
         <div class="acct-balances">${rows.join('')}</div>
         <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.combinedTotal')}</span><span class="acct-balance-value">${formatCurrency(total)}</span></div>
+
+        <div class="retire-scenario-controls">
+            <label for="retireConservativeDeltaInput">${t('retirement.scenarioConservativeDeltaLabel')}</label>
+            <input type="number" id="retireConservativeDeltaInput" step="0.5" min="${CONSERVATIVE_DELTA_MIN}" max="${CONSERVATIVE_DELTA_MAX}" value="${conservativeDelta}">
+            <label for="retireAggressiveDeltaInput">${t('retirement.scenarioAggressiveDeltaLabel')}</label>
+            <input type="number" id="retireAggressiveDeltaInput" step="0.5" min="${AGGRESSIVE_DELTA_MIN}" max="${AGGRESSIVE_DELTA_MAX}" value="${aggressiveDelta}">
+        </div>
+        <div class="table-wrapper">
+            <table class="retire-scenario-table">
+                <thead><tr><th scope="col">${t('retirement.a11yAccountCol')}</th><th scope="col">${t('retirement.scenarioConservative')}</th><th scope="col">${t('retirement.scenarioModerate')}</th><th scope="col">${t('retirement.scenarioAggressive')}</th></tr></thead>
+                <tbody>
+                    ${scenarioRows}
+                    <tr class="retire-scenario-total-row"><td>${t('retirement.scenarioCombinedTotalRow')}</td><td>${formatCurrency(scenarioTotal.conservative)}</td><td>${formatCurrency(scenarioTotal.moderate)}</td><td>${formatCurrency(scenarioTotal.aggressive)}</td></tr>
+                </tbody>
+            </table>
+        </div>
+
         <div class="retire-withdrawal-row">
             <label for="retireWithdrawalRateSlider">${t('retirement.withdrawalRateLabel')}: <strong id="retireWithdrawalRateVal">${withdrawalRate}%</strong></label>
             <span class="help-icon" tabindex="0" aria-label="${t('retirement.withdrawalRateHelp')}">?</span>
             <input type="range" id="retireWithdrawalRateSlider" min="2" max="8" step="0.5" value="${withdrawalRate}" aria-label="${t('retirement.withdrawalRateLabel')}">
         </div>
-        <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.monthlyIncomeLabel')}</span><span class="acct-balance-value" id="retireMonthlyWithdrawalVal">${formatCurrency(computeMonthlyWithdrawal(total, withdrawalRate))}</span></div>
+        <div class="acct-balances">
+            <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.monthlyIncomeConservativeLabel')}</span><span class="acct-balance-value" id="retireMonthlyWithdrawalConservativeVal">${formatCurrency(computeMonthlyWithdrawal(scenarioTotal.conservative, withdrawalRate))}</span></div>
+            <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.monthlyIncomeLabel')}</span><span class="acct-balance-value" id="retireMonthlyWithdrawalVal">${formatCurrency(computeMonthlyWithdrawal(total, withdrawalRate))}</span></div>
+            <div class="acct-balance-item"><span class="acct-balance-label">${t('retirement.monthlyIncomeAggressiveLabel')}</span><span class="acct-balance-value" id="retireMonthlyWithdrawalAggressiveVal">${formatCurrency(computeMonthlyWithdrawal(scenarioTotal.aggressive, withdrawalRate))}</span></div>
+        </div>
     `;
 
     const slider = document.getElementById('retireWithdrawalRateSlider');
     const rateValEl = document.getElementById('retireWithdrawalRateVal');
     const monthlyValEl = document.getElementById('retireMonthlyWithdrawalVal');
+    const monthlyConservativeValEl = document.getElementById('retireMonthlyWithdrawalConservativeVal');
+    const monthlyAggressiveValEl = document.getElementById('retireMonthlyWithdrawalAggressiveVal');
     slider.oninput = () => {
         const rate = Number(slider.value);
         rateValEl.textContent = `${rate}%`;
         monthlyValEl.textContent = formatCurrency(computeMonthlyWithdrawal(total, rate));
+        monthlyConservativeValEl.textContent = formatCurrency(computeMonthlyWithdrawal(scenarioTotal.conservative, rate));
+        monthlyAggressiveValEl.textContent = formatCurrency(computeMonthlyWithdrawal(scenarioTotal.aggressive, rate));
     };
     slider.onchange = () => {
         setSetting(app, RETIREMENT_WITHDRAWAL_RATE, Number(slider.value));
+    };
+
+    document.getElementById('retireConservativeDeltaInput').onchange = (event) => {
+        setSetting(app, RETIREMENT_SCENARIO_CONSERVATIVE_DELTA, clampConservativeDelta(event.target.value));
+        app.renderRetirementPage();
+    };
+    document.getElementById('retireAggressiveDeltaInput').onchange = (event) => {
+        setSetting(app, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA, clampAggressiveDelta(event.target.value));
+        app.renderRetirementPage();
     };
 }
 
@@ -493,6 +710,11 @@ export function renderRetirementPage(app) {
                 <h4 class="rpt-chart-title">${t('retirement.breakdownChartTitle')}</h4>
                 <p class="rpt-chart-sub">${t('retirement.breakdownChartSub')}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="retireBreakdownChart"></canvas></div>
+            </div>
+            <div class="rpt-chart-card">
+                <h4 class="rpt-chart-title">${t('retirement.projectionChartTitle')}</h4>
+                <p class="rpt-chart-sub">${t('retirement.projectionChartSub')}</p>
+                <div class="rpt-chart-canvas-wrap"><canvas id="retireProjectionChart"></canvas></div>
             </div>
         </div>
         <div class="retire-card" id="retireProjectionPanel"></div>
@@ -548,5 +770,7 @@ export function renderRetirementPage(app) {
     renderBalanceChart(app, accounts);
     renderContributionChart(app, accounts);
     renderBreakdownChart(app, accounts);
+    const { conservativeDelta, aggressiveDelta } = getScenarioDeltas(app);
+    renderProjectionChart(app, accounts, conservativeDelta, aggressiveDelta);
     renderProjectionPanel(app, accounts);
 }

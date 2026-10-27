@@ -69,6 +69,10 @@ export function loadReconciliationModule() {
     return loadOnce('reconciliation', () => import('./reconciliation.js'));
 }
 
+export function loadTransfersModule() {
+    return loadOnce('transfers', () => import('./transfers.js'));
+}
+
 export function loadStrategyCalendarModule() {
     return loadOnce('strategyCalendar', () => import('./strategyCalendar.js'));
 }

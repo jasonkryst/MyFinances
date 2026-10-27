@@ -986,6 +986,36 @@ function _buildWhatsNewHtml() {
 // Update this list every version bump alongside CHANGELOG.md.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.41.0 — 2026-10-26',
+        items: [
+            '<strong>Accounts: transfer tracking between accounts</strong> (issue #248) — move money between two of your own accounts with a proper zero-sum transfer record instead of unexplained outflows/inflows. Reachable via a "⇄ Transfer" action on any Accounts card or the Ledger toolbar.'
+        ]
+    },
+    {
+        version: '6.40.0 — 2026-10-26',
+        items: [
+            '<strong>Reconciliation: partial/in-progress state</strong> (issue #343) — closing the Reconcile modal mid-review now offers Save Progress / Discard / Keep Editing instead of silently losing your work.'
+        ]
+    },
+    {
+        version: '6.39.0 — 2026-10-26',
+        items: [
+            '<strong>Retirement: multi-scenario projections</strong> (issue #264) — the projection panel now shows conservative/moderate/aggressive bands instead of a single projected value.'
+        ]
+    },
+    {
+        version: '6.38.0 — 2026-10-25',
+        items: [
+            '<strong>Performance improvements</strong> (issue #278) — several less-visited pages (Retirement, Reconciliation, Plan Calendar, and most Reports sub-tabs) now load their code on first visit instead of at startup, speeding up initial load.'
+        ]
+    },
+    {
+        version: '6.37.0 — 2026-10-25',
+        items: [
+            '<strong>Income: gross vs. net modeling</strong> (issue #251) — income sources gain an optional tax withholding percentage, and cash-flow figures across Health, Reports, and the Plan page now reflect take-home pay.'
+        ]
+    },
+    {
         version: '6.36.0 — 2026-10-25',
         items: [
             '<strong>Home purchase planning</strong> (issue #249) — a new Home Purchase sub-tab under Savings adds a down payment goal tracker, mortgage affordability calculator, PMI threshold tracker, and a "debts to clear before qualifying" panel.'
@@ -1183,6 +1213,58 @@ export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
         modal.classList.remove('hidden');
         modal.focus();  // immediate focus ensures onkeydown fires for Escape
         setTimeout(() => cancelBtn.focus(), 30);
+    });
+}
+
+// Tri-state confirm for closing the Reconcile modal with unsaved changes
+// (issue #343): 'save' persists in-progress state, 'discard' drops it,
+// 'cancel' (including Escape) leaves the Reconcile modal open untouched —
+// unlike showDeleteConfirmModal, Escape here must NOT be treated as the
+// destructive option.
+export function showReconSaveProgressModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('reconSaveProgressModal');
+        const saveBtn = document.getElementById('reconSaveProgressSaveBtn');
+        const discardBtn = document.getElementById('reconSaveProgressDiscardBtn');
+        const keepEditingBtn = document.getElementById('reconSaveProgressKeepEditingBtn');
+        if (!modal || !saveBtn || !discardBtn || !keepEditingBtn) { resolve('cancel'); return; }
+
+        const lastFocused = document.activeElement;
+        const dismiss = (result) => {
+            saveBtn.onclick = null;
+            discardBtn.onclick = null;
+            keepEditingBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            resolve(result);
+        };
+
+        saveBtn.onclick = () => dismiss('save');
+        discardBtn.onclick = () => dismiss('discard');
+        keepEditingBtn.onclick = () => dismiss('cancel');
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss('cancel'); return; }
+            if (event.key === 'Tab') {
+                const focusable = modal.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (!first || !last) return;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => saveBtn.focus(), 30);
     });
 }
 

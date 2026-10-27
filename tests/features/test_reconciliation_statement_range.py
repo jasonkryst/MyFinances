@@ -399,6 +399,12 @@ def test_modal_reopen_resets_error_state(app_page):
     page.fill('#reconcileModalStartDate', '2026-09-30')
     page.fill('#reconcileModalEndDate', '2026-09-01')
     page.keyboard.press('Escape')
+    # Changing the dates (even to an invalid range) counts as unsaved progress
+    # (issue #343), so Escape now offers Save Progress / Discard / Keep Editing
+    # instead of closing immediately. Discard -- not Save -- so the invalid
+    # range isn't what gets restored on reopen below.
+    page.wait_for_selector('#reconSaveProgressModal.flex-visible', timeout=5000)
+    page.click('#reconSaveProgressDiscardBtn')
     page.wait_for_selector('#reconcileModal', state='hidden', timeout=5000)
 
     page.evaluate("() => window.app.openReconcileModal(9001)")

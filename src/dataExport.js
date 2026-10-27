@@ -43,6 +43,7 @@ export function exportAllJSON(app) {
         reconciliations: app.reconciliations || [],
         planHistory: app.planHistory || [],
         retirementSnapshots: app.retirementSnapshots || [],
+        transfers: app.transfers || [],
         balanceHistory: app.balanceHistory || [],
         retirementTargetDate: app.retirementTargetDate || null,
         homePurchasePlan: app.homePurchasePlan || null,
@@ -356,6 +357,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingReconciliations = clean.reconciliations;
         const incomingPlanHistory = clean.planHistory;
         const incomingRetirementSnapshots = clean.retirementSnapshots;
+        const incomingTransfers = clean.transfers || [];
         const incomingBalanceHistory = clean.balanceHistory || [];
         const incomingRetirementTargetDate = clean.retirementTargetDate;
         const incomingHomePurchasePlan = clean.homePurchasePlan;
@@ -377,7 +379,7 @@ export function importAllJSON(app, file, options = {}) {
             || incomingSinkingFunds.length > 0 || incomingReconciliations.length > 0
             || incomingPlanHistory.length > 0
             || incomingMonthlySnapshots.length > 0 || incomingNetWorthMilestones.length > 0
-            || incomingRetirementSnapshots.length > 0 || !!incomingRetirementTargetDate
+            || incomingRetirementSnapshots.length > 0 || incomingTransfers.length > 0 || !!incomingRetirementTargetDate
             || !!incomingStrategy?.monthlyPayment || !!incomingStrategy?.paymentStrategy;
         if (!hasData) {
             if (typeof onNoData === 'function') onNoData();
@@ -392,6 +394,7 @@ export function importAllJSON(app, file, options = {}) {
         if (incomingExpenses.length) parts.push(`${incomingExpenses.length} expense budget(s)`);
         if (incomingRecurringTemplates.length) parts.push(`${incomingRecurringTemplates.length} recurring item(s)`);
         if (incomingRetirementSnapshots.length) parts.push(`${incomingRetirementSnapshots.length} retirement snapshot(s)`);
+        if (incomingTransfers.length) parts.push(`${incomingTransfers.length} transfer(s)`);
         if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
         const shouldReplace = typeof requestImportMode === 'function'
@@ -443,6 +446,12 @@ export function importAllJSON(app, file, options = {}) {
             // Debts get fresh ids by index; accounts keep their ids in replace mode.
             const debtIdMap = new Map(validDebts.map((d, i) => [d.id, app.debts[i].id]));
             const accountIdMap = new Map(app.accounts.map(a => [a.id, a.id]));
+            // Accounts keep their ids in replace mode, so this is a pass-through
+            // rather than a real remap -- still routed through accountIdMap for
+            // the same orphan-dropping behavior merge mode needs (see below).
+            app.transfers = incomingTransfers
+                .filter(t => accountIdMap.has(t.fromAccountId) && accountIdMap.has(t.toAccountId))
+                .map((t, i) => ({ ...t, fromAccountId: accountIdMap.get(t.fromAccountId), toAccountId: accountIdMap.get(t.toAccountId), id: Date.now() + 7500 + i }));
             app.balanceHistory = remapHistoryOwners(incomingBalanceHistory, debtIdMap, accountIdMap)
                 .map((h, i) => ({ ...h, id: Date.now() + 8000 + i }));
             app.retirementTargetDate = incomingRetirementTargetDate || null;
@@ -502,6 +511,15 @@ export function importAllJSON(app, file, options = {}) {
             const accountIdByName = new Map(app.accounts.map(a => [a.name.toLowerCase(), a.id]));
             const debtIdMap = new Map(validDebts.map(d => [d.id, debtIdByName.get(d.name.toLowerCase())]));
             const accountIdMap = new Map(incomingAccounts.map(a => [a.id, accountIdByName.get(a.name.toLowerCase())]));
+            // A transfer whose from/to account didn't resolve to a surviving
+            // account (name not found) is dropped rather than imported with a
+            // dangling reference.
+            app.transfers = [
+                ...(app.transfers || []),
+                ...incomingTransfers
+                    .filter(t => accountIdMap.has(t.fromAccountId) && accountIdMap.has(t.toAccountId))
+                    .map((t, i) => ({ ...t, fromAccountId: accountIdMap.get(t.fromAccountId), toAccountId: accountIdMap.get(t.toAccountId), id: Date.now() + 7500 + i }))
+            ];
             const remappedHistory = remapHistoryOwners(incomingBalanceHistory, debtIdMap, accountIdMap);
             app.balanceHistory = [
                 ...(app.balanceHistory || []),

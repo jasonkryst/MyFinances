@@ -321,6 +321,113 @@ def test_clear_all_data_resets_reconciliations(app_page):
 
 
 @pytest.mark.feature
+def test_recon_in_progress_save_and_get_round_trip(app_page):
+    """saveReconInProgress persists under debtTrackerReconInProgress, keyed
+    by accountId, and getReconInProgress reads it back (issue #343)."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/reconciliation.js');
+        mod.saveReconInProgress(9001, {
+            statementBalance: 1234.56,
+            statementStartDate: '2026-06-01',
+            statementEndDate: '2026-06-30',
+            note: 'Checked bank app',
+            clearedTxIds: ['debt|1|9001|2026-06-05'],
+            savedAt: '2026-06-15T00:00:00.000Z'
+        });
+        const raw = JSON.parse(localStorage.getItem('debtTrackerReconInProgress'));
+        const fetched = mod.getReconInProgress(9001);
+        return { raw, fetched, otherAccount: mod.getReconInProgress(9999) };
+    }""")
+
+    assert result['raw']['9001']['statementBalance'] == 1234.56
+    assert result['fetched']['note'] == 'Checked bank app'
+    assert result['fetched']['clearedTxIds'] == ['debt|1|9001|2026-06-05']
+    assert result['otherAccount'] is None, "An account with no saved progress returns null"
+
+
+@pytest.mark.feature
+def test_recon_in_progress_clear_removes_only_that_account(app_page):
+    """clearReconInProgress drops one account's entry without disturbing
+    another account's saved progress."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        const mod = await import('/src/reconciliation.js');
+        mod.saveReconInProgress(9001, { statementBalance: 100, clearedTxIds: [] });
+        mod.saveReconInProgress(9002, { statementBalance: 200, clearedTxIds: [] });
+        mod.clearReconInProgress(9001);
+        return { cleared: mod.getReconInProgress(9001), remaining: mod.getReconInProgress(9002) };
+    }""")
+
+    assert result['cleared'] is None
+    assert result['remaining']['statementBalance'] == 200
+
+
+@pytest.mark.feature
+def test_recon_in_progress_survives_corrupted_json(app_page):
+    """A corrupted debtTrackerReconInProgress value is treated as empty
+    rather than throwing, and a subsequent save overwrites it cleanly."""
+    page = app_page
+
+    result = page.evaluate("""async () => {
+        localStorage.setItem('debtTrackerReconInProgress', '{not valid json');
+        const mod = await import('/src/reconciliation.js');
+        let threw = false;
+        let before = null;
+        try {
+            before = mod.getReconInProgress(9001);
+        } catch (e) {
+            threw = true;
+        }
+        mod.saveReconInProgress(9001, { statementBalance: 50, clearedTxIds: [] });
+        return { threw, before, after: mod.getReconInProgress(9001) };
+    }""")
+
+    assert result['threw'] is False
+    assert result['before'] is None
+    assert result['after']['statementBalance'] == 50
+
+
+@pytest.mark.feature
+def test_apply_reconciliation_success_clears_in_progress_state(app_page):
+    """Completing a reconciliation via applyReconciliation clears any saved
+    in-progress state for that account (acceptance criterion of #343)."""
+    page = app_page
+    _seed_reconciliation_account(page)
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/reconciliation.js');
+        mod.saveReconInProgress(7001, { statementBalance: 999, clearedTxIds: ['x'] });
+        await app.applyReconciliation(7001, 1250.50, 'Completed', '2026-06-10');
+        return { remaining: mod.getReconInProgress(7001) };
+    }""")
+
+    assert result['remaining'] is None, "A successful reconciliation must clear its account's in-progress state"
+
+
+@pytest.mark.feature
+def test_clear_all_data_removes_recon_in_progress_key(app_page):
+    """clearAllData wipes the standalone debtTrackerReconInProgress key
+    entirely, not just app.reconciliations (acceptance criterion of #343)."""
+    page = app_page
+    _seed_reconciliation_account(page)
+
+    result = page.evaluate("""async () => {
+        const app = window.app;
+        const mod = await import('/src/reconciliation.js');
+        mod.saveReconInProgress(7001, { statementBalance: 999, clearedTxIds: [] });
+        const storageMod = await import('/src/storage.js');
+        storageMod.clearAllData(app, {});
+        return { raw: localStorage.getItem('debtTrackerReconInProgress') };
+    }""")
+
+    assert result['raw'] is None, "clearAllData must remove the debtTrackerReconInProgress key entirely"
+
+
+@pytest.mark.feature
 def test_orphaned_reconciliation_entry_renders_without_throwing(app_page):
     """A reconciliation entry whose account was deleted renders with an
     'Unknown account' label instead of throwing."""

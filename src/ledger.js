@@ -258,6 +258,7 @@ export function renderLedgerPage(app) {
             ${LEDGER_ALL_COLS.map(col => `<option value="${col}">${escapeHtml(LEDGER_COL_LABELS[col])}</option>`).join('')}
         </select>`;
     filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
+    filterHtml += `<button id="ledgerTransferBtn" class="btn btn-secondary btn-small" type="button">⇄ Transfer</button>`;
     if (selectedAccount !== 'all') {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
     }
@@ -341,7 +342,14 @@ export function renderLedgerPage(app) {
     } else {
         for (const tx of pagedTransactions) {
             const isReconciliation = tx.type === 'reconciliation';
-            const canOverride = !tx.isRollover && !isReconciliation && !!tx.transactionId;
+            // Transfers (#248) can be marked cleared per leg (informational,
+            // like any other row) but never overridden -- overriding one leg's
+            // amount independently of the other would break the record's
+            // zero-sum guarantee, since both legs always come from the one
+            // `amount` field on the underlying transfer record.
+            const isTransfer = tx.type === 'transfer';
+            const canClear = !tx.isRollover && !isReconciliation && !!tx.transactionId;
+            const canOverride = canClear && !isTransfer;
             const amountColorClass = isReconciliation ? '' : (tx.amount < 0 ? 'text-expense' : 'text-income');
             const reconDiffClass = isReconciliation && tx.meta
                 ? (tx.meta.difference > 0 ? 'recon-diff--pos' : tx.meta.difference < 0 ? 'recon-diff--neg' : 'recon-diff--zero')
@@ -393,7 +401,12 @@ export function renderLedgerPage(app) {
                 : '';
             const nameCell = isReconciliation && tx.meta
                 ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
-                : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
+                : isTransfer
+                    ? `⇄ ${escapeHtml(tx.name || '')}`
+                    : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
+            const transferActions = isTransfer
+                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}">Edit</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}">Delete</button></div>`
+                : '';
             const overrideBtnLabel = isVariableIncome && !tx.hasOverride ? null
                 : isVariableIncome && tx.hasOverride ? 'Edit actual'
                 : tx.hasOverride ? 'Edit override'
@@ -401,10 +414,10 @@ export function renderLedgerPage(app) {
             const overrideActions = canOverride
                 ? `<div class="ledger-override-actions">${overrideBtnLabel === null ? `<button class="ledger-override-btn ledger-enter-actual-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">Enter actual</button>` : `<button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}">${overrideBtnLabel}</button>`}${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}">Reset</button>` : ''}</div>`
                 : '';
-            const clearedCell = canOverride
+            const clearedCell = canClear
                 ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark cleared">`
                 : '';
-            const selectCell = canOverride
+            const selectCell = canClear
                 ? `<input type="checkbox" class="ledger-row-select" data-ledger-select="${escapeHtml(tx.transactionId)}" aria-label="Select row">`
                 : '';
             html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
@@ -412,7 +425,7 @@ export function renderLedgerPage(app) {
                 <td data-col="date"${ch('date')}>${tx.date ? formatShortDate(tx.date) : ''}</td>
                 <td data-col="account"${ch('account')}>${escapeHtml(tx.account || '')}</td>
                 <td data-col="name"${ch('name')}>${nameCell}</td>
-                <td data-col="amount" class="text-right ${amountColorClass}"${ch('amount')}>${amountCell}${overrideActions}</td>
+                <td data-col="amount" class="text-right ${amountColorClass}"${ch('amount')}>${amountCell}${overrideActions}${transferActions}</td>
                 <td data-col="balance" class="text-right"${ch('balance')}>${formatCurrency(tx.balance)}</td>
                 <td data-col="cleared" class="text-center"${ch('cleared')}>${clearedCell}</td>
             </tr>`;
@@ -569,6 +582,19 @@ export function renderLedgerPage(app) {
         };
     });
 
+    container.querySelectorAll('[data-ledger-transfer-edit]').forEach(btn => {
+        btn.onclick = () => {
+            const id = parseInt(btn.getAttribute('data-ledger-transfer-edit'), 10);
+            if (typeof app.openTransferModal === 'function') app.openTransferModal({ editId: id });
+        };
+    });
+    container.querySelectorAll('[data-ledger-transfer-delete]').forEach(btn => {
+        btn.onclick = async () => {
+            const id = parseInt(btn.getAttribute('data-ledger-transfer-delete'), 10);
+            if (typeof app.deleteTransfer === 'function') await app.deleteTransfer(id);
+        };
+    });
+
     container.querySelectorAll('[data-ledger-nav-type]').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -658,6 +684,15 @@ export function renderLedgerPage(app) {
     const exportCsvBtn = container.querySelector('#ledgerExportCsvBtn');
     if (exportCsvBtn) {
         exportCsvBtn.onclick = () => openLedgerExportModal(app);
+    }
+
+    const transferBtn = container.querySelector('#ledgerTransferBtn');
+    if (transferBtn) {
+        transferBtn.onclick = () => {
+            if (typeof app.openTransferModal === 'function') {
+                app.openTransferModal(selectedAccount !== 'all' ? { fromAccountId: parseInt(selectedAccount, 10) } : {});
+            }
+        };
     }
 
     // Column visibility multi-select

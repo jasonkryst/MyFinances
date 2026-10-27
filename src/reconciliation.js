@@ -7,12 +7,56 @@ import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
-import { showAlertModal } from './ui.js';
+import { showAlertModal, showReconSaveProgressModal } from './ui.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
     if (diff < 0) return 'recon-diff--neg';
     return 'recon-diff--zero';
+}
+
+// Partial/in-progress reconciliation state (issue #343). Stored directly in
+// localStorage -- NOT via the storage adapter or the main debtTrackerData
+// payload -- because this is transient per-device UI state, not app data:
+// it must survive a page reload while the user is mid-review, but must not
+// round-trip through export/import/Postgres sync, and must be wiped by
+// clearAllData (see storage.js). Keyed by accountId since only one
+// reconciliation can be in progress per account at a time.
+const RECON_IN_PROGRESS_KEY = 'debtTrackerReconInProgress';
+
+function _readReconInProgressMap() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(RECON_IN_PROGRESS_KEY) || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function _writeReconInProgressMap(map) {
+    try {
+        localStorage.setItem(RECON_IN_PROGRESS_KEY, JSON.stringify(map));
+    } catch (_) {
+        // Storage unavailable/full -- saving progress is best-effort.
+    }
+}
+
+export function getReconInProgress(accountId) {
+    return _readReconInProgressMap()[String(accountId)] || null;
+}
+
+export function saveReconInProgress(accountId, data) {
+    const map = _readReconInProgressMap();
+    map[String(accountId)] = data;
+    _writeReconInProgressMap(map);
+}
+
+export function clearReconInProgress(accountId) {
+    const map = _readReconInProgressMap();
+    if (String(accountId) in map) {
+        delete map[String(accountId)];
+        _writeReconInProgressMap(map);
+    }
 }
 
 export function getExpectedTransactionsInRange(app, accountId, startDate, endDate) {
@@ -71,12 +115,34 @@ export function getDefaultStatementRange(app, accountId) {
     return { start: start > end ? end : start, end };
 }
 
-function renderExpectedTransactionsHtml(expected) {
-    return expected.length === 0
-        ? `<p class="recon-expected-empty">No expected transactions in this period.</p>`
-        : `<div class="recon-table-wrap"><table class="recon-expected-table"><thead><tr><th>Date</th><th>Name</th><th>Amount</th><th>Category</th></tr></thead><tbody>${
-            expected.map(tx => `<tr><td>${formatShortDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(tx.category || '')}</td></tr>`).join('')
-        }</tbody></table></div>`;
+// `clearedIds`, when passed (modal context only -- issue #343), renders a
+// per-row "reviewed" checkbox keyed by the same transactionId format as
+// app.ledgerClearedTransactions, checked for ids already in the set. The
+// Reconcile page's inline cards call this with no `clearedIds`, so they
+// render unchanged (no checkbox column).
+function renderExpectedTransactionsHtml(expected, clearedIds) {
+    if (expected.length === 0) return `<p class="recon-expected-empty">No expected transactions in this period.</p>`;
+    const checkHeader = clearedIds ? `<th class="recon-expected-check-col"><span class="sr-only">Reviewed</span></th>` : '';
+    const rows = expected.map(tx => {
+        const checkCell = clearedIds
+            ? `<td><input type="checkbox" class="recon-expected-checkbox" data-recon-expected-id="${escapeHtml(tx.transactionId)}"${clearedIds.has(tx.transactionId) ? ' checked' : ''} aria-label="Mark ${escapeHtml(tx.name)} reviewed"></td>`
+            : '';
+        return `<tr>${checkCell}<td>${formatShortDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(tx.category || '')}</td></tr>`;
+    }).join('');
+    return `<div class="recon-table-wrap"><table class="recon-expected-table"><thead><tr>${checkHeader}<th>Date</th><th>Name</th><th>Amount</th><th>Category</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// Wires each rendered "reviewed" checkbox to add/remove its transactionId
+// from the session's clearedIds set as the user toggles it.
+function attachExpectedCheckboxEvents(bodyEl, clearedIds) {
+    if (!bodyEl || !clearedIds) return;
+    bodyEl.querySelectorAll('[data-recon-expected-id]').forEach(checkbox => {
+        checkbox.onchange = () => {
+            const id = checkbox.getAttribute('data-recon-expected-id');
+            if (checkbox.checked) clearedIds.add(id);
+            else clearedIds.delete(id);
+        };
+    });
 }
 
 function expectedSummaryText(start, end) {
@@ -85,7 +151,7 @@ function expectedSummaryText(start, end) {
 
 // Wires a start/end date pair to live validation and the expected-transactions
 // preview. Returns the refresh function so callers can run it once up front.
-function bindStatementRange(app, accountId, { startInput, endInput, errorEl, submitBtn, summaryEl, bodyEl }) {
+function bindStatementRange(app, accountId, { startInput, endInput, errorEl, submitBtn, summaryEl, bodyEl, clearedIds }) {
     const refresh = () => {
         const error = validateStatementRange(startInput.value, endInput.value);
         errorEl.textContent = error;
@@ -93,7 +159,10 @@ function bindStatementRange(app, accountId, { startInput, endInput, errorEl, sub
         submitBtn.disabled = Boolean(error);
         if (error) return;
         if (summaryEl) summaryEl.textContent = expectedSummaryText(startInput.value, endInput.value);
-        if (bodyEl) bodyEl.innerHTML = renderExpectedTransactionsHtml(getExpectedTransactionsInRange(app, accountId, startInput.value, endInput.value));
+        if (bodyEl) {
+            bodyEl.innerHTML = renderExpectedTransactionsHtml(getExpectedTransactionsInRange(app, accountId, startInput.value, endInput.value), clearedIds);
+            attachExpectedCheckboxEvents(bodyEl, clearedIds);
+        }
     };
     startInput.oninput = refresh;
     endInput.oninput = refresh;
@@ -146,6 +215,10 @@ export async function applyReconciliation(app, accountId, statementBalance, note
         createdAt: new Date().toISOString()
     };
     app.reconciliations.push(entry);
+    // Completing a reconciliation (from either the modal or the Reconcile
+    // page's inline card form) supersedes any saved partial progress for
+    // this account (issue #343).
+    clearReconInProgress(accountId);
 
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -378,30 +451,86 @@ export function openReconcileModal(app, accountId) {
     const cancelBtn = document.getElementById('reconcileModalCancelBtn');
     const closeBtn = document.getElementById('reconcileModalCloseBtn');
 
+    const resumeBanner = document.getElementById('reconcileModalResumeBanner');
+
     if (!currentEl || !startInput || !endInput || !errorEl || !balanceInput || !noteInput || !confirmBtn || !cancelBtn || !closeBtn) {
         return;
     }
 
     currentEl.textContent = formatCurrency(account.startingBalance);
     const { start, end } = getDefaultStatementRange(app, accountId);
-    startInput.value = start;
-    endInput.value = end;
-    balanceInput.value = account.startingBalance;
-    noteInput.value = '';
+
+    const saved = getReconInProgress(accountId);
+    const clearedIds = new Set(saved && Array.isArray(saved.clearedTxIds) ? saved.clearedTxIds : []);
+
+    const savedBalance = saved ? sanitizeFiniteNumber(saved.statementBalance, NaN) : NaN;
+    startInput.value = (saved && sanitizeDateISO(saved.statementStartDate)) || start;
+    endInput.value = (saved && sanitizeDateISO(saved.statementEndDate)) || end;
+    balanceInput.value = Number.isFinite(savedBalance) ? savedBalance : account.startingBalance;
+    noteInput.value = saved ? normalizeText(saved.note, 200) : '';
+
+    if (resumeBanner) {
+        resumeBanner.classList.toggle('hidden', !saved);
+        if (saved) {
+            const savedOn = saved.savedAt ? formatShortDate(saved.savedAt.slice(0, 10)) : '';
+            resumeBanner.textContent = `↩️ Resumed in-progress reconciliation${savedOn ? ` saved ${savedOn}` : ''}.`;
+        }
+    }
+
     bindStatementRange(app, accountId, {
         startInput,
         endInput,
         errorEl,
         submitBtn: confirmBtn,
         summaryEl: document.getElementById('reconcileModalExpectedSummary'),
-        bodyEl: document.getElementById('reconcileModalExpected')
+        bodyEl: document.getElementById('reconcileModalExpected'),
+        clearedIds
     })();
+
+    // Snapshot of the fields' state as initially shown (either the fresh
+    // defaults, or whatever was just restored from saved progress) so a
+    // close with no further edits never prompts to re-save unchanged state.
+    const initialSnapshot = {
+        balance: balanceInput.value,
+        start: startInput.value,
+        end: endInput.value,
+        note: noteInput.value,
+        clearedSignature: [...clearedIds].sort().join(',')
+    };
+    const hasUnsavedProgress = () =>
+        balanceInput.value !== initialSnapshot.balance ||
+        startInput.value !== initialSnapshot.start ||
+        endInput.value !== initialSnapshot.end ||
+        noteInput.value !== initialSnapshot.note ||
+        [...clearedIds].sort().join(',') !== initialSnapshot.clearedSignature;
 
     const lastFocused = document.activeElement;
     const close = () => {
         modal.classList.add('hidden'); modal.classList.remove('flex-visible');
         modal.onkeydown = null;
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    };
+
+    // Closing without completing (Cancel/X/backdrop/Escape): if nothing
+    // changed, close immediately; otherwise offer Save Progress / Discard /
+    // Keep Editing (issue #343) rather than silently losing the review.
+    const attemptClose = async () => {
+        if (!hasUnsavedProgress()) { close(); return; }
+        const choice = await showReconSaveProgressModal();
+        if (choice === 'cancel') return;
+        if (choice === 'save') {
+            saveReconInProgress(accountId, {
+                statementBalance: balanceInput.value,
+                statementStartDate: startInput.value,
+                statementEndDate: endInput.value,
+                note: noteInput.value,
+                clearedTxIds: [...clearedIds],
+                savedAt: new Date().toISOString()
+            });
+        } else {
+            clearReconInProgress(accountId);
+        }
+        close();
     };
 
     confirmBtn.onclick = async () => {
@@ -412,15 +541,15 @@ export function openReconcileModal(app, accountId) {
         if (result.success) close();
     };
 
-    cancelBtn.onclick = close;
-    closeBtn.onclick = close;
+    cancelBtn.onclick = attemptClose;
+    closeBtn.onclick = attemptClose;
     modal.onclick = (event) => {
-        if (event.target === modal) close();
+        if (event.target === modal) attemptClose();
     };
     modal.onkeydown = (event) => {
         if (event.key === 'Escape') {
             event.preventDefault();
-            close();
+            attemptClose();
             return;
         }
         // Only fields confirm on Enter — buttons and the expected-transactions

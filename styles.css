@@ -152,7 +152,8 @@
     justify-content: center;
 }
 
-.modal-overlay[id="ledgerOverrideModal"] {
+.modal-overlay[id="ledgerOverrideModal"],
+.modal-overlay[id="reconSaveProgressModal"] {
     z-index: 10003;
 }
 
@@ -6278,6 +6279,14 @@ body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; 
 .retire-withdrawal-row label { font-size: 0.85rem; color: var(--text-color); }
 .retire-withdrawal-row input[type="range"] { flex: 1; min-width: 160px; }
 
+/* Multi-scenario projections (issue #264) */
+.retire-scenario-controls { display: flex; align-items: center; gap: 8px; margin: 16px 0 12px; flex-wrap: wrap; }
+.retire-scenario-controls label { font-size: 0.85rem; color: var(--text-color); }
+.retire-scenario-controls input[type="number"] { width: 72px; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-color); }
+.retire-scenario-table { width: 100%; border-collapse: collapse; }
+.retire-scenario-table th, .retire-scenario-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+.retire-scenario-total-row td { font-weight: 700; }
+
 .acct-balances {
     display: flex;
     gap: 20px;
@@ -7386,6 +7395,7 @@ body.dark-mode .health-threshold-input { background: var(--input-bg, #1e293b); }
 body.dark-mode .recon-expected summary { color: #60a5fa; }
 .recon-expected-empty { font-size: 0.85rem; color: var(--text-secondary); margin: 8px 0 0; }
 .recon-table-wrap { overflow-x: auto; }
+.recon-expected-check-col { width: 28px; }
 .recon-expected-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 0.85rem; }
 .recon-expected-table th, .recon-expected-table td {
     text-align: left;

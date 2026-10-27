@@ -1406,6 +1406,7 @@
         <div class="modal-content">
             <button id="reconcileModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="reconcileModalTitle">Reconcile Account</h3>
+            <p id="reconcileModalResumeBanner" class="ledger-crossnav-banner hidden" role="status"></p>
             <p class="modal-helper-text">Current tracked balance: <span id="reconcileModalCurrent"></span></p>
             <div class="recon-date-range">
                 <div class="form-group modal-form-group">
@@ -1433,6 +1434,52 @@
             <div class="modal-actions">
                 <button id="reconcileModalConfirmBtn" class="btn btn-success">Reconcile</button>
                 <button id="reconcileModalCancelBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- Reconciliation Save Progress Modal (issue #343) - shown when closing the
+         Reconcile modal with unsaved changes; offers Save Progress / Discard / Keep Editing -->
+    <div id="reconSaveProgressModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="reconSaveProgressTitle" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="reconSaveProgressTitle">Save reconciliation progress?</h3>
+            <p class="modal-description">You have unsaved changes in this reconciliation. Save your progress to resume later, or discard it.</p>
+            <div class="modal-actions">
+                <button id="reconSaveProgressSaveBtn" class="btn btn-success">Save Progress</button>
+                <button id="reconSaveProgressDiscardBtn" class="btn btn-danger">Discard</button>
+                <button id="reconSaveProgressKeepEditingBtn" class="btn btn-secondary">Keep Editing</button>
+            </div>
+        </div>
+    </div>
+    <!-- Transfer Modal (issue #248) - add/edit a one-off transfer between two accounts -->
+    <div id="transferModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="transferModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="transferModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <h3 id="transferModalTitle">Transfer Between Accounts</h3>
+            <div class="form-group modal-form-group">
+                <label for="transferModalFrom">From Account</label>
+                <select id="transferModalFrom"></select>
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="transferModalTo">To Account</label>
+                <select id="transferModalTo"></select>
+            </div>
+            <p id="transferModalError" class="recon-range-error hidden" role="alert"></p>
+            <div class="form-group modal-form-group">
+                <label for="transferModalAmount">Amount ($)</label>
+                <input type="number" id="transferModalAmount" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="transferModalDate">Date</label>
+                <input type="date" id="transferModalDate">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="transferModalMemo">Memo (optional)</label>
+                <input type="text" id="transferModalMemo" maxlength="200">
+            </div>
+            <div class="modal-actions">
+                <button id="transferModalConfirmBtn" class="btn btn-success">Transfer</button>
+                <button id="transferModalCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

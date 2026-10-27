@@ -58,6 +58,7 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
     reconciliations: '/api/reconciliations',
     planHistory: '/api/plan-history',
     retirementSnapshots: '/api/retirement-snapshots',
+    transfers: '/api/transfers',
     balanceHistory: '/api/balance-history'
 };
 
@@ -147,6 +148,7 @@ function _writeNow(app) {
             reconciliations: app.reconciliations || [],
             planHistory: app.planHistory || [],
             retirementSnapshots: app.retirementSnapshots || [],
+            transfers: app.transfers || [],
             retirementTargetDate: app.retirementTargetDate || null,
             homePurchasePlan: app.homePurchasePlan || null,
             balanceHistory: app.balanceHistory || [],
@@ -292,6 +294,7 @@ export function loadFromStorage(app) {
             app.reconciliations = clean.reconciliations;
             app.planHistory = clean.planHistory;
             app.retirementSnapshots = clean.retirementSnapshots;
+            app.transfers = clean.transfers;
             app.retirementTargetDate = clean.retirementTargetDate;
             app.homePurchasePlan = clean.homePurchasePlan;
             app.balanceHistory = clean.balanceHistory;
@@ -397,6 +400,7 @@ export function clearAllData(app, options = {}) {
     app.reconciliations = [];
     app.planHistory = [];
     app.retirementSnapshots = [];
+    app.transfers = [];
     app.retirementTargetDate = null;
     app.homePurchasePlan = null;
     app.balanceHistory = [];
@@ -427,6 +431,7 @@ export function clearAllData(app, options = {}) {
     app._storageBackendKind = 'local';
     setStorageBackendPreference('local');
     localStorage.removeItem('debtTrackerTheme');
+    localStorage.removeItem('debtTrackerReconInProgress');
 
     if (wasPostgres) pgDeleteAll(app); // fire-and-forget; backend kind is already 'local'
 
