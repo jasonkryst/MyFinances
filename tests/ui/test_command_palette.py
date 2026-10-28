@@ -104,6 +104,9 @@ def test_arrow_keys_move_active_selection(app_page):
     page = app_page
     page.keyboard.press('Control+k')
     page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
+    # open() focuses the input via setTimeout(0), and the ArrowDown handler lives on
+    # the input — pressing before focus lands sends the key nowhere.
+    page.wait_for_selector('#commandPaletteInput:focus', timeout=5000)
 
     first_active = page.evaluate(
         '() => document.querySelector(".cmdpal-item--active")?.getAttribute("data-index")'
