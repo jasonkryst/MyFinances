@@ -308,6 +308,9 @@ def _open_modal(page, **seed):
     _seed(page, switch_page=False, **seed)
     page.evaluate("() => window.app.openReconcileModal(9001)")
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the balance input after 30ms; let that land first so it
+    # can't steal focus from whatever the test focuses/fills next.
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)
 
 
 @pytest.mark.ui
