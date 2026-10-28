@@ -180,6 +180,14 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
   - **Payoff progress.** It is clamped to 0–100. A balance above `originalBalance` adds a `.debt-progress-note` instead of showing a negative percentage.
   - **Tests.** `tests/ui/test_debt_card_layout.py` checks the geometry.
 
+- **Number clarity** (issue #427).
+  - **Savings rate:** `computeSavingsRate(app, year, month)` (`utils.js`, a hoisted export) is the single savings-rate definition, used by both Health's gauge and the Savings summary. It is active emergency-fund plus sinking-fund contributions divided by net salary plus bonuses. Recurring inflows (#252) are deliberately left out of the denominator, so the "/mo income" figure under Health's gauge differs from the Cash Flow card's `cashFlowIncome`.
+  - **Payoff date:** Health's payoff date is formatted by `formatPayoffDate()`, which calls `formatShortDate`. Never interpolate a Date object into HTML.
+  - **Net worth labels:** snapshot-sourced Net Worth (the Accounts widget and the Reports stat) is labelled "snapshot as of <date>", and Health's figure is labelled "live".
+  - **Forecast:** the total view still includes Retirement accounts (via the shared `getForecastAssetAccounts`), but it is labelled "Current Balance (all asset accounts)" and has a `#cfRetirementNote` breakout.
+  - **Mortgage ratios:** the Health mortgage panel shows "Enter a housing cost" instead of 0.0% badges.
+  - **Overdue filter:** Recurring's Overdue stat is a `#recurringOverdueFilterBtn` toggle (`app._recurringOverdueOnly`) with explanatory `#recurringOverdueHelp` text.
+  - **What-If headline:** the What-If slider adds a debounced `#whatifHeadline` result line.
 - **Phone clipping guard (issue #426).** Cards use `overflow:hidden`, so content wider than the card is cut off instead of making the page scroll, and `document.scrollWidth` never notices.
   - **Layout rule.** Grid tracks that hold nowrap content must use `minmax(0,1fr)`, and the cards need `min-width:0`; otherwise the track grows past the viewport (`.health-metrics-grid`).
   - **The guard.** `tests/ui/test_mobile_no_card_clipping.py` runs at 390×844 with seeded data. It walks every top-level page, each Savings sub-tab, the Plan results and each Reports sub-tab. On each, it asserts that no visible text (measured with Range rects) inside a card-like container passes the container's right edge by more than 1px.

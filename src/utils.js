@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.53.1';
+export const APP_VERSION = '6.54.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -394,6 +394,20 @@ export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
 export function computeTotalSavingsContribution(app) {
     return (app.emergencyFunds || []).reduce((s, f) => s + (f.monthlyContribution || 0), 0) +
            (app.sinkingFunds   || []).reduce((s, f) => s + (f.monthlyAllocation   || 0), 0);
+}
+
+// Single source of truth for the "Savings Rate" shown on both the Health card and
+// the Savings page summary (issue #427). Definition: active monthly savings
+// contributions (emergency fund + sinking fund) divided by this month's NET income
+// (salary after withholding + bonuses, i.e. computeMonthlyIncomeForMonth). Recurring
+// inflows (reimbursements etc., #252) are deliberately NOT in the denominator: they
+// are cash-flow items, not earned income, and Health's DTI/trend use the same basis.
+// Returns { contribution, income, ratio, pct } where pct is ratio*100 capped at 100.
+export function computeSavingsRate(app, year, month) {
+    const contribution = computeTotalSavingsContribution(app);
+    const { monthlyTotal: income } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, year, month);
+    const ratio = income > 0 ? contribution / income : 0;
+    return { contribution, income, ratio, pct: Math.min(ratio * 100, 100) };
 }
 
 export function dailyCompoundInterest(balance, aprPct, days) {

@@ -242,7 +242,11 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
             const s = DebtCalculator.generateSummary(r.workingDebts, r.paymentPlan);
             const monthsSaved = Math.max(0, baseSummary.monthsToPayOff - s.monthsToPayOff);
             const interestSaved = Math.max(0, baseSummary.totalInterest - s.totalInterest);
-            resultDiv.innerHTML = `<div class="whatif-metrics">
+            // #427: one-line plain-language headline above the detailed metrics.
+            const headline = (interestSaved > 0 || monthsSaved > 0)
+                ? `Saves ${formatCurrency(interestSaved)} interest \u00b7 ${monthsSaved} month${monthsSaved === 1 ? '' : 's'} sooner`
+                : 'No change to payoff at this amount';
+            resultDiv.innerHTML = `<p class="whatif-headline" id="whatifHeadline" role="status">${escapeHtml(headline)}</p><div class="whatif-metrics">
                 <div class="whatif-metric">
                     <div class="whatif-metric-label">New Payoff Date</div>
                     <div class="whatif-metric-val">${DebtCalculator.formatDate(s.payOffDate)}</div>

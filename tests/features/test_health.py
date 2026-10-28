@@ -1588,7 +1588,9 @@ def test_health_mortgage_front_end_zero_with_no_housing_debt_or_override(app_pag
     panel = page.query_selector('#healthMortgageDtiPanel')
     rows = panel.query_selector_all('.health-mortgage-dti-row')
     front_end_row = next(r for r in rows if 'Front-End' in r.text_content())
-    assert '0.0%' in front_end_row.text_content(), f"Expected 0.0% Front-End, got: {front_end_row.text_content()}"
+    # #427: no housing cost -> prompt instead of a misleading "0.0%" badge
+    assert 'Enter a housing cost' in front_end_row.text_content(), f"Expected prompt, got: {front_end_row.text_content()}"
+    assert '0.0%' not in front_end_row.text_content()
 
 
 @pytest.mark.feature

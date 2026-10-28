@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, computeTotalSavingsContribution, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { computeRecurringCashFlowForMonth } from './recurring.js';
@@ -717,6 +717,8 @@ function renderMortgageDtiPanel(app, monthlyIncome, totalDebtMin, housingDebtMin
     const housingCost = typeof override === 'number' ? override : housingDebtMin;
     const frontEndRatio = monthlyIncome > 0 ? housingCost / monthlyIncome : 0;
     const backEndRatio = monthlyIncome > 0 ? (totalDebtMin - housingDebtMin + housingCost) / monthlyIncome : 0;
+    // #427: with no housing cost the ratios are meaningless ("0.0% Healthy"), so show a prompt instead.
+    const hasHousingCost = housingCost > 0;
     const feSt = mortgageFrontEndStatus(frontEndRatio);
     const beSt = mortgageBackEndStatus(backEndRatio);
 
@@ -731,11 +733,15 @@ function renderMortgageDtiPanel(app, monthlyIncome, totalDebtMin, housingDebtMin
         </div>
         <div class="health-mortgage-dti-row">
             <span class="health-mortgage-dti-title">${t('health.mortgageFrontEndLabel')}</span>
-            <span class="health-badge health-badge--sm ${feSt.cls}">${(frontEndRatio * 100).toFixed(1)}%</span>
+            ${hasHousingCost
+                ? `<span class="health-badge health-badge--sm ${feSt.cls}">${(frontEndRatio * 100).toFixed(1)}%</span>`
+                : `<span class="health-mortgage-dti-empty">${t('health.mortgageEnterHousingCost')}</span>`}
         </div>
         <div class="health-mortgage-dti-row">
             <span class="health-mortgage-dti-title">${t('health.mortgageBackEndLabel')}</span>
-            <span class="health-badge health-badge--sm ${beSt.cls}">${(backEndRatio * 100).toFixed(1)}%</span>
+            ${hasHousingCost
+                ? `<span class="health-badge health-badge--sm ${beSt.cls}">${(backEndRatio * 100).toFixed(1)}%</span>`
+                : `<span class="health-mortgage-dti-empty">${t('health.mortgageEnterHousingCost')}</span>`}
         </div>
     `;
 
@@ -843,6 +849,14 @@ function gaugeColor(statusCls) {
     return '#dc2626';
 }
 
+// #427: payoff dates arrive as Date objects (DebtCalculator.getPayOffDate); never
+// interpolate them directly or the browser's Date.toString() ("... GMT-0600 (CST)") leaks into the UI.
+function formatPayoffDate(value) {
+    if (!value) return '';
+    const d = value instanceof Date ? value : new Date(value);
+    return isNaN(d.getTime()) ? '' : formatShortDate(d);
+}
+
 export function renderHealthDashboard(app) {
     const section = document.getElementById('healthSection');
     if (!section) return;
@@ -890,9 +904,8 @@ export function renderHealthDashboard(app) {
         .reduce((s, d) => s + (d.minimumPayment || 0), 0);
 
     // ── Savings Rate ───────────────────────────────────────────────────────────
-    const totalSavingsContrib = computeTotalSavingsContribution(app);
-    const savingsRatio = cashFlowIncome > 0 ? totalSavingsContrib / cashFlowIncome : 0;
-    const savingsPct   = Math.min(savingsRatio * 100, 100);
+    // #427: shared helper so Health and the Savings page can never disagree.
+    const { contribution: totalSavingsContrib, ratio: savingsRatio, pct: savingsPct } = computeSavingsRate(app, year, month);
     const savingsSt    = savingsStatus(savingsRatio);
 
     // ── Prev-month income for trend arrows ────────────────────────────────────
@@ -1153,7 +1166,7 @@ export function renderHealthDashboard(app) {
                 </div>
                 <div class="health-metric-detail">
                     <span>${t('health.perMonthSaved', { amount: formatCurrency(totalSavingsContrib) })}</span>
-                    <span>${t('health.perMonthIncome', { amount: formatCurrency(cashFlowIncome) })}</span>
+                    <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
                 </div>
                 <a href="#" class="health-link" data-health-nav="savings">${t('health.manageSavings')} &rarr;</a>
             </div>
@@ -1206,7 +1219,7 @@ export function renderHealthDashboard(app) {
                         <span class="health-timeline-value">${timelineYears}</span>
                         <span class="health-timeline-unit">${t('health.years')}</span>
                     </div>
-                    ${payoffDate ? `<div class="health-timeline-date">${t('health.estimatedPayoff')}: ${escapeHtml(payoffDate)}</div>` : ''}
+                    ${payoffDate ? `<div class="health-timeline-date">${t('health.estimatedPayoff')}: ${escapeHtml(formatPayoffDate(payoffDate))}</div>` : ''}
                     <div class="health-progress-label">
                         <span>${t('health.originalDebtPaidOff')}</span>
                         <span>${debtProgress}%</span>
@@ -1339,8 +1352,8 @@ export function renderHealthDashboard(app) {
                                 <div class="health-person-util-row">
                                     <div class="health-person-util-hd">
                                         <span class="health-person-util-name">${escapeHtml(p.name)}</span>
-                                        <span class="health-badge health-badge--sm ${pUtilSt.cls}">${pUtilRaw}%</span>
-                                        ${pDtiRaw !== null ? `<span class="health-person-util-dti">DTI ${pDtiRaw}%</span>` : ''}
+                                        <span class="health-badge health-badge--sm ${pUtilSt.cls}">${t('health.personUtilized', { pct: pUtilRaw })}</span>
+                                        ${pDtiRaw !== null ? `<span class="health-person-util-dti">&middot; ${t('health.personDti', { pct: pDtiRaw })}</span>` : ''}
                                     </div>
                                     <div class="progress-bar health-compact-bar">
                                         <div class="progress-fill ${statusFillCls(pUtilSt.cls)}" data-progress-width="${pUtilDisp}"></div>
@@ -1431,7 +1444,7 @@ export function renderHealthDashboard(app) {
                     </div>
                     <div class="health-metric-detail">
                         <span>FIRE Number: ${formatCurrency(fireNumber)}</span>
-                        <span>Current Net Worth: ${formatCurrency(currentNetWorth)}</span>
+                        <span>${t('health.fireNetWorthLive')}: ${formatCurrency(currentNetWorth)}</span>
                     </div>
                     <a href="#" class="health-link" data-health-nav="savings">${t('health.fireViewSavings')} &rarr;</a>
                 ` : net > 0 ? `
@@ -1441,7 +1454,7 @@ export function renderHealthDashboard(app) {
                     </div>
                     <div class="health-metric-detail">
                         <span>FIRE Number: ${formatCurrency(fireNumber)}</span>
-                        <span>Current Net Worth: ${formatCurrency(currentNetWorth)}</span>
+                        <span>${t('health.fireNetWorthLive')}: ${formatCurrency(currentNetWorth)}</span>
                         <span>Monthly Surplus: ${formatCurrency(net)}</span>
                     </div>
                     <a href="#" class="health-link" data-health-nav="savings">${t('health.fireViewSavings')} &rarr;</a>

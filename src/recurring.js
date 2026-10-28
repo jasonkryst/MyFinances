@@ -208,8 +208,15 @@ function renderUpcomingThisMonthPanel(app) {
         if (isOverdue(t, now)) overdueCount++;
     }
 
+    // #427: Overdue is a filter toggle with helper text. Overdue = monthly template whose
+    // due day has already passed this month and that isn't marked paid or skipped.
+    if (overdueCount === 0) app._recurringOverdueOnly = false;
+    const overdueOnly = !!app._recurringOverdueOnly;
     const overdueHtml = overdueCount > 0
-        ? `<div class="recurring-upcoming-stat recurring-upcoming-stat--overdue"><span class="recurring-upcoming-label">Overdue</span><span class="recurring-upcoming-value recurring-upcoming-value--overdue">${overdueCount}</span></div>`
+        ? `<button type="button" class="recurring-upcoming-stat recurring-upcoming-stat--overdue recurring-overdue-filter-btn${overdueOnly ? ' active' : ''}" id="recurringOverdueFilterBtn" aria-pressed="${overdueOnly ? 'true' : 'false'}" aria-label="Overdue: ${overdueCount}. ${overdueOnly ? 'Showing only overdue templates, click to show all' : 'Click to show only overdue templates'}" title="Overdue: the due day has passed this month and the template is not marked paid or skipped."><span class="recurring-upcoming-label">Overdue</span><span class="recurring-upcoming-value recurring-upcoming-value--overdue">${overdueCount}</span></button>`
+        : '';
+    const overdueHelpHtml = overdueCount > 0
+        ? `<p class="recurring-overdue-help" id="recurringOverdueHelp">${overdueOnly ? 'Showing only overdue templates. ' : ''}Overdue means the due day has passed this month and the template isn't marked paid or skipped. ${overdueOnly ? 'Select Overdue again to show everything.' : 'Select Overdue to list just those templates.'}</p>`
         : '';
 
     panel.innerHTML = `
@@ -230,7 +237,16 @@ function renderUpcomingThisMonthPanel(app) {
                 </div>
                 ${overdueHtml}
             </div>
+            ${overdueHelpHtml}
         </div>`;
+
+    const overdueBtn = panel.querySelector('#recurringOverdueFilterBtn');
+    if (overdueBtn) {
+        overdueBtn.addEventListener('click', () => {
+            app._recurringOverdueOnly = !app._recurringOverdueOnly;
+            renderRecurringPage(app);
+        });
+    }
 }
 
 // ─── Category datalist helpers ────────────────────────────────────────────────
@@ -349,6 +365,10 @@ export function renderRecurringPage(app) {
         displayTemplates = displayTemplates.filter(t =>
             t.archived || getRecurringOccurrencesInMonth(t, fy, fm - 1).length > 0
         );
+    }
+
+    if (app._recurringOverdueOnly) {
+        displayTemplates = displayTemplates.filter(t => isOverdue(t, now));
     }
 
     // Apply sort

@@ -1,4 +1,4 @@
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, computeMonthlyIncomeForMonth, computeTotalSavingsContribution } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, computeSavingsRate } from './utils.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
@@ -14,10 +14,7 @@ import { savingsStatus } from './health.js';
  */
 function renderSavingsRateSummary(app) {
   const now = new Date();
-  const totalSavingsContrib = computeTotalSavingsContribution(app);
-  const { monthlyTotal: monthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, now.getFullYear(), now.getMonth());
-  const ratio = monthlyIncome > 0 ? totalSavingsContrib / monthlyIncome : 0;
-  const pct = Math.min(ratio * 100, 100);
+  const { contribution: totalSavingsContrib, income: monthlyIncome, ratio, pct } = computeSavingsRate(app, now.getFullYear(), now.getMonth());
   const status = savingsStatus(ratio);
 
   return `
