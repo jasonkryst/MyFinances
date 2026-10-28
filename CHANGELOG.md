@@ -28,6 +28,56 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - the email row is hidden when there is no email.
 - Updated the existing tests that clicked Clear All Data so they open Settings first.
 
+## [6.55.0] — 2026-10-28
+
+### Changed
+- **Denser phone layouts** (issue #428). These changes apply at 768px and below; desktop is unchanged.
+  - **Filters:** Ledger, Liabilities and Recurring filters collapse behind a "Filters (n active)" button. When opened, they lay out as a 2-column grid. Filter state and its persistence are unchanged.
+  - **Add forms:** the Accounts and Income add forms start collapsed behind "+ Add account" / "+ Add income".
+  - **Ledger rows:** each row is a 2-line card that keeps the amount and running balance on screen. The date no longer wraps, and the sort headers become a row of chips.
+  - **Reconcile:** only the first account's form is expanded; the other accounts show a one-line summary.
+  - **Reports tabs:** they sit in a single horizontally scrollable row.
+  - **Tap targets:** buttons, selects, inputs and tabs are at least 40px tall. The "?" help badges get a 40px hit area without growing visually.
+  - **Account cards:** actions use a tidy two-column grid.
+- **Transfer button on Retirement accounts:** no longer offered, at any screen width.
+
+### Tests
+- New `tests/ui/test_mobile_density.py` (27 tests). Each item is checked at 390px and 1440px, including negative cases: desktop is unchanged, filter values survive collapsing, collapsed add forms still submit, and Transfer still shows on checking accounts.
+
+## [6.54.0] — 2026-10-28
+
+### Fixed
+- **Health's debt-free date no longer shows a raw JavaScript date string** like "Fri Dec 28 2029 00:00:00 GMT-0600…". It is now formatted for your locale (issue #427).
+- **Savings Rate is computed in one place,** a shared `computeSavingsRate()`, so Health and Savings always agree. Before, they showed 6.0% and 6.2% for the same data.
+- **Health's mortgage Front-End/Back-End ratios no longer show "0.0% Healthy"** when no housing cost is set. They now say "Enter a housing cost".
+
+### Changed
+- **Net Worth labels say which figure is which.** The Accounts widget and the Reports stat are labelled with their snapshot date, and Health's figure is labelled "live". These figures differ by design.
+- **Forecast's Current Balance now reads "(all asset accounts)",** and a note shows how much of it is in retirement accounts and so isn't spendable cash.
+- **Per-person credit-utilization badges on Health now read like "58% utilized · DTI 10%"** instead of showing two unlabelled numbers.
+- **Recurring's Overdue count is now a filter button** with text explaining what overdue means.
+
+### Added
+- **The What-If simulator states its result in words,** for example "Saves $235.48 interest · 2 months sooner", as you move the slider.
+
+## [6.53.1] — 2026-10-28
+
+### Fixed
+- **Phone layout: content no longer clipped inside cards** (issue #426).
+  - **Health cards, the Plan summary strip, and the Reports month nav and Print button** no longer cut off amounts, dates or badges at phone width.
+    - Before, the cards' `overflow:hidden` hid content wider than the card, so nothing scrolled sideways either.
+    - The Health grid now uses `minmax(0,1fr)` tracks, and its cards and rows can shrink and wrap.
+  - **Plan Strategy Comparison:** the header has an explicit, readable text colour in light and dark mode, and the table scrolls horizontally on narrow screens.
+  - **Retirement snapshot table:** the Delete button is a full 40px tap target and no longer gets cut off.
+  - **Savings sub-tabs:** they share the row equally instead of truncating "Home Purchase".
+  - **Settings tabs:** they form an equal-width 2×2 grid on phones.
+  - **Net Worth stat cards:** they sit two per row on phones.
+
+### Tests
+- New `tests/ui/test_mobile_no_card_clipping.py`. At 390×844 with realistic seeded data, it visits every top-level page, each Savings sub-tab, the Plan results and each Reports sub-tab. On each, it asserts that no visible text inside a card-like container extends past the container's right edge (measured with Range rects), and that the page doesn't scroll horizontally. A negative control proves the checker flags clipped text.
+  - Run against the previous CSS, it fails on Health, Savings and Plan.
+- New `tests/ui/test_mobile_clipping_fixes.py` with focused checks for the comparison-header contrast, the Retirement Delete button, the Reports nav, the Savings and Settings tabs, and the stat-card grid.
+
 ## [6.53.0] — 2026-10-28
 
 ### Changed

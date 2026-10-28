@@ -8713,3 +8713,293 @@ body.dark-mode .settings-danger-title { color: #f87171; }
 
 /* C4: confirmation dialogs must sit above Settings (Clear All Data is launched from it) */
 #deleteConfirmModal { z-index: 10010; }
+
+   UX C (#428) — mobile density: filter disclosures, collapsible add forms,
+   2-line Ledger rows, tap-target floor, account-card actions, report-tab
+   strip, Reconcile accordion.
+   Desktop (>768px) is unchanged apart from compact filter selects.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Toggles are phone-only controls. */
+.mobile-collapse-toggle,
+.filters-disclosure-toggle,
+.recon-card-toggle { display: none; }
+
+/* Desktop: field wrappers are transparent, selects are compact inline. */
+.fd-field { display: contents; }
+.filter-controls > .filters-disclosure-body { display: contents; }
+.filters-disclosure-body select:not([multiple]),
+.filters-grid select:not([multiple]) { max-width: 200px; }
+
+@media (max-width: 768px) {
+    /* Collapsible add forms (Accounts / Income) */
+    .account-form-card, .income-form-card { padding: 0; }
+    .mobile-collapse-toggle { display: flex; }
+    .mobile-collapsible-body { display: none; padding: 4px 16px 16px; }
+    .mobile-collapsible-body.is-open { display: block; }
+    .mobile-collapsible-body > h3 { display: none; }
+    .account-form-card .mobile-collapsible-body,
+    .income-form-card .mobile-collapsible-body { padding-top: 16px; }
+
+    /* Filter disclosure button */
+    .filters-disclosure-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 14px;
+        margin: 0 0 8px;
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--card-bg, #fff);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-align: left;
+        cursor: pointer;
+    }
+    .filters-disclosure-toggle::after {
+        content: "\25BE";
+        transition: transform 0.2s ease;
+    }
+    .filters-disclosure-toggle.is-open::after { transform: rotate(180deg); }
+    .filters-disclosure-toggle--active {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    body.dark-mode .filters-disclosure-toggle { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+    body.dark-mode .filters-disclosure-toggle--active { border-color: #60a5fa; color: #60a5fa; }
+
+    /* Filter body: hidden until opened, then a 2-column grid */
+    .filters-disclosure-body,
+    .filter-controls > .filters-disclosure-body { display: none; }
+    .filters-disclosure-body.is-open,
+    .filter-controls > .filters-disclosure-body.is-open,
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        width: 100%;
+        flex: 1 1 100%;
+        margin-bottom: 12px;
+    }
+    .filters-disclosure-body .fd-field,
+    .filters-disclosure-body .filter-pair,
+    .filters-grid .fd-field {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        min-width: 0;
+        overflow: visible;
+    }
+    .filters-disclosure-body .filter-pair .category-filter-label,
+    .filters-disclosure-body .fd-field label,
+    .filters-grid .fd-field label {
+        min-width: 0;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-secondary, #6b7280);
+    }
+    .filters-disclosure-body .filter-pair .category-filter,
+    .filters-disclosure-body .fd-field select:not([multiple]),
+    .filters-grid .fd-field select {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        flex: none;
+    }
+    .filters-disclosure-body .fd-field--wide { grid-column: 1 / -1; }
+    .filter-controls { position: static; }
+
+    /* Reconcile accordion (L4) */
+    .recon-card-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 12px;
+        margin-top: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--light-bg, #f9fafb);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .recon-card-toggle::after { content: "\25BE"; transition: transform 0.2s ease; }
+    .recon-card-toggle.is-open::after { transform: rotate(180deg); }
+    .recon-card-body.mobile-collapsible-body { padding: 8px 0 0; }
+    body.dark-mode .recon-card-toggle { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+
+    /* Account-card actions (M2): tidy 2-column grid */
+    .acct-card-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .acct-card-actions > * { width: 100%; margin: 0; justify-content: center; }
+
+    /* Ledger rows (H3): 2-line cards. Sort headers become a chip row. */
+    .ledger-table, .ledger-table tbody { display: block; width: 100%; }
+    .ledger-table thead { display: block; }
+    .ledger-table thead tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        padding: 8px;
+    }
+    .ledger-table th {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 40px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        border: 1px solid rgba(255,255,255,0.35);
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+    .ledger-table th[data-col="cleared"] { display: none; }
+    .ledger-table tbody tr {
+        display: grid;
+        grid-template-columns: 32px auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "sel name name amount"
+            "clr date acct bal";
+        column-gap: 8px;
+        row-gap: 4px;
+        align-items: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .ledger-table tbody td {
+        display: block;
+        padding: 0;
+        border: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .ledger-table td[data-col="select"]  { grid-area: sel; }
+    .ledger-table td[data-col="name"]    { grid-area: name; font-weight: 600; }
+    .ledger-table td[data-col="amount"]  { grid-area: amount; text-align: right; white-space: nowrap; font-weight: 700; }
+    .ledger-table td[data-col="cleared"] { grid-area: clr; text-align: center; }
+    .ledger-table td[data-col="date"]    { grid-area: date; white-space: nowrap; font-size: 0.8rem; color: var(--text-secondary, #6b7280); }
+    .ledger-table td[data-col="account"] { grid-area: acct; font-size: 0.8rem; color: var(--text-secondary, #6b7280); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ledger-table td[data-col="balance"] { grid-area: bal; text-align: right; white-space: nowrap; font-size: 0.8rem; color: var(--text-secondary, #6b7280); }
+    .ledger-table td[data-col="balance"]::before { content: "Bal. "; }
+    .ledger-table td.ledger-empty-cell { grid-column: 1 / -1; }
+    .ledger-table .ledger-override-actions { margin-top: 4px; }
+    .ledger-table td[data-col].ledger-col-hidden { display: none !important; }
+}
+
+/* Tap-target floor (C7): phones and coarse pointers */
+@media (max-width: 600px), (pointer: coarse) {
+    button,
+    select:not([multiple]),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    .btn-small,
+    .rpt-tab-btn,
+    [role="tab"] {
+        min-height: 40px;
+    }
+    .help-icon { position: relative; }
+    .help-icon::after {
+        content: "";
+        position: absolute;
+        inset: -10px;
+    }
+    .sr-only, .sr-only * { min-height: 0; }
+}
+
+/* Reports tab chips (L1): one horizontally scrollable row with edge shadows */
+@media (max-width: 640px) {
+    .rpt-tab-bar {
+        --rpt-bar-bg: #fff;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        gap: 8px;
+        background:
+            linear-gradient(to right, var(--rpt-bar-bg) 30%, rgba(255,255,255,0)) left center / 32px 100% no-repeat local,
+            linear-gradient(to left, var(--rpt-bar-bg) 30%, rgba(255,255,255,0)) right center / 32px 100% no-repeat local,
+            radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.28), rgba(0,0,0,0)) left center / 12px 100% no-repeat scroll,
+            radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.28), rgba(0,0,0,0)) right center / 12px 100% no-repeat scroll,
+            var(--rpt-bar-bg);
+    }
+    body.dark-mode .rpt-tab-bar { --rpt-bar-bg: var(--bg-color, #0f172a); }
+    .rpt-tab-group, .rpt-tab-group-tabs { flex-wrap: nowrap; flex-shrink: 0; }
+    .rpt-tab-btn { flex-shrink: 0; }
+}
+
+/* UX B (#427) numbers and copy clarity */
+.whatif-headline { font-weight: 600; margin: 8px 0; color: var(--success, #16a34a); }
+.health-mortgage-dti-empty { font-size: 0.85em; color: var(--text-muted); font-style: italic; }
+.nw-snapshot-note, .cf-retirement-note { display: block; font-size: 0.75em; font-weight: 400; color: var(--text-muted); }
+.recurring-overdue-filter-btn { cursor: pointer; background: none; border: 1px solid transparent; font: inherit; text-align: inherit; }
+.recurring-overdue-filter-btn.active, .recurring-overdue-filter-btn:focus-visible { border-color: currentColor; }
+.recurring-overdue-help { font-size: 0.8em; color: var(--text-muted); margin: 6px 0 0; }
+
+/* UX A (#426): phone-width clipping fixes
+   Cards clip with overflow:hidden, so content wider than the card is cut off
+   rather than scrolling. Fixes below let content shrink/wrap instead. */
+.health-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 680px) {
+    .health-metrics-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.health-metric-card { min-width: 0; }
+.health-metric-card > *, .health-card-header > * { min-width: 0; }
+.health-metric-detail, .health-cashflow-row { flex-wrap: wrap; gap: 0 0.5rem; }
+.health-cashflow-row > span:last-child, .health-metric-detail > span:last-child { margin-left: auto; text-align: right; }
+.health-card-title { overflow-wrap: anywhere; }
+
+/* Plan summary strip: values may wrap instead of being cut off */
+@media (max-width: 600px) {
+    .summary-item { flex-wrap: wrap; min-width: 0; }
+    .summary-item .label, .summary-item .value { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+}
+
+/* Comparison table header: explicit text colour (was inheriting white on a light fill) */
+.comparison-table th { color: var(--text-primary, #1f2937); }
+body.dark-mode .comparison-table th { color: #e2e8f0; }
+.comparison-table { min-width: 460px; }
+
+/* Reports month nav + Print wrap instead of being cut off */
+.rpt-month-nav { flex-wrap: wrap; max-width: 100%; box-sizing: border-box; }
+.rpt-print-btn { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 480px) {
+    .rpt-month-nav { padding: 7px 10px; gap: 8px; }
+    .rpt-month-label { min-width: 0; }
+}
+
+/* Retirement snapshot table: full-size Delete target, scrolls inside .table-wrapper */
+.retire-snapshot-table { min-width: 340px; }
+.retire-snapshot-table td:last-child { white-space: nowrap; }
+.retire-snapshot-table .btn-small { min-height: 40px; min-width: 40px; white-space: nowrap; }
+
+/* Savings sub-tabs share the row equally and may wrap their label */
+.savings-subtabs { flex-wrap: nowrap; }
+.savings-subtab-btn { flex: 1 1 0; min-width: 0; }
+@media (max-width: 480px) {
+    .savings-subtab-btn { padding: 8px 4px; font-size: 0.8rem; white-space: normal; line-height: 1.25; }
+}
+
+/* Settings tabs: equal-width 2x2 grid on phone */
+@media (max-width: 480px) {
+    .settings-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+    .settings-tab-btn { text-align: center; min-height: 40px; }
+}
+
+/* Net Worth / Forecast stat cards: two per row on phone */
+@media (max-width: 480px) {
+    .nw-report-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nw-report-stat { min-width: 0; }
+    .nw-report-stat strong { overflow-wrap: anywhere; }
+}

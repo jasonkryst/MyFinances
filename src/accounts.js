@@ -1,6 +1,6 @@
 // Account management
 
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml, setCollapsibleOpen } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
@@ -176,6 +176,7 @@ export function renderAccountsList(app) {
             <button class="btn btn-primary empty-state__cta" id="acctEmptyStateCta">Add Your First Account</button>
         </div>`;
         document.getElementById('acctEmptyStateCta')?.addEventListener('click', () => {
+            setCollapsibleOpen('accountFormBody', true);
             document.getElementById('accountForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             setTimeout(() => document.getElementById('accountName')?.focus(), 300);
         });
@@ -327,9 +328,9 @@ export function renderAccountsList(app) {
                         <button type="button" class="acct-balance-breakdown-btn" data-account-action="breakdown" data-account-id="${a.id}" aria-label="See balance breakdown for ${escapeHtml(a.name)}">See breakdown</button>
                     </div>
                 </div>
-                <div class="debt-actions">
+                <div class="debt-actions acct-card-actions">
                     ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}" aria-label="History for ${escapeHtml(a.name)}">History</button>` : ''}
-                    <button class="btn btn-secondary btn-small" data-account-action="transfer" data-account-id="${a.id}" aria-label="Transfer from ${escapeHtml(a.name)}">⇄ Transfer</button>
+                    ${a.type === 'Retirement' ? '' : `<button class="btn btn-secondary btn-small" data-account-action="transfer" data-account-id="${a.id}" aria-label="Transfer from ${escapeHtml(a.name)}">⇄ Transfer</button>`}
                     <button class="btn btn-secondary btn-small" data-account-action="edit" data-account-id="${a.id}" aria-label="Edit ${escapeHtml(a.name)}">Edit</button>
                     <button class="btn btn-secondary btn-small" data-account-action="${a.archived ? 'unarchive' : 'archive'}" data-account-id="${a.id}" title="${a.archived ? 'Unarchive account' : 'Archive account'}" aria-label="${a.archived ? 'Unarchive' : 'Archive'} ${escapeHtml(a.name)}">${a.archived ? 'Unarchive' : 'Archive'}</button>
                     <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}" aria-label="Delete ${escapeHtml(a.name)}">Delete</button>

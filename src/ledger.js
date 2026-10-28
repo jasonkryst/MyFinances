@@ -1,6 +1,6 @@
 // Ledger logic: rendering, amount overrides
 
-import { formatCurrency, escapeHtml, formatShortDate, buildPersonPillsHtml } from './utils.js';
+import { formatCurrency, escapeHtml, formatShortDate, buildPersonPillsHtml, isCollapsibleOpen, buildFiltersLabel } from './utils.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getFilteredSortedLedgerTransactions, getLedgerTransactions } from './ledgerTransactions.js';
 import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
@@ -211,26 +211,29 @@ export function renderLedgerPage(app) {
     const allCategories = [...new Set(getLedgerTransactions(app).map(tx => tx.category || 'Other'))].sort();
 
     let filterHtml = '';
+    const filtersOpen = isCollapsibleOpen('ledgerFiltersBody');
     filterHtml += `<div class="filter-controls">`;
+    filterHtml += `<button type="button" class="filters-disclosure-toggle${activeFilterCount > 0 ? ' filters-disclosure-toggle--active' : ''}${filtersOpen ? ' is-open' : ''}" id="ledgerFiltersToggle" data-collapse-toggle="ledgerFiltersBody" data-filters-count="server" aria-expanded="${filtersOpen}" aria-controls="ledgerFiltersBody">${buildFiltersLabel(activeFilterCount)}</button>`;
+    filterHtml += `<div class="filters-disclosure-body${filtersOpen ? ' is-open' : ''}" id="ledgerFiltersBody">`;
     if (accounts.length > 0) {
-        filterHtml += `<label for="ledgerAccountFilter" class="filter-label">Account:</label>
+        filterHtml += `<div class="fd-field"><label for="ledgerAccountFilter" class="filter-label">Account:</label>
             <select id="ledgerAccountFilter" class="select-styled">
                 <option value="all">All Accounts</option>`;
         for (const acct of accounts) {
             filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)} (${escapeHtml(acct.type)})</option>`;
         }
-        filterHtml += `</select>`;
+        filterHtml += `</select></div>`;
     }
     if (allCategories.length > 0) {
-        filterHtml += `<label for="ledgerCategoryFilter" class="filter-label">Category:</label>
+        filterHtml += `<div class="fd-field"><label for="ledgerCategoryFilter" class="filter-label">Category:</label>
             <select id="ledgerCategoryFilter" class="select-styled">
                 <option value="all">All Categories</option>`;
         for (const cat of allCategories) {
             filterHtml += `<option value="${escapeHtml(cat)}"${selectedCategory === cat ? ' selected' : ''}>${escapeHtml(cat)}</option>`;
         }
-        filterHtml += `</select>`;
+        filterHtml += `</select></div>`;
     }
-    filterHtml += `<label for="ledgerDateRange" class="filter-label">Show:</label>
+    filterHtml += `<div class="fd-field"><label for="ledgerDateRange" class="filter-label">Show:</label>
         <select id="ledgerDateRange" class="select-styled">
             <option value="around7"${selectedDateRange==='around7'?' selected':''}>Around Today (±7 days)</option>
             <option value="all"${selectedDateRange==='all'?' selected':''}>All</option>
@@ -239,24 +242,25 @@ export function renderLedgerPage(app) {
             <option value="month"${selectedDateRange==='month'?' selected':''}>Through Next Month</option>
             <option value="60"${selectedDateRange==='60'?' selected':''}>Next 60 Days</option>
             <option value="90"${selectedDateRange==='90'?' selected':''}>Next 90 Days</option>
-        </select>`;
-    filterHtml += `<label for="ledgerClearedFilter" class="filter-label">Status:</label>
+        </select></div>`;
+    filterHtml += `<div class="fd-field"><label for="ledgerClearedFilter" class="filter-label">Status:</label>
         <select id="ledgerClearedFilter" class="select-styled">
             <option value="all"${selectedClearedFilter==='all'?' selected':''}>All</option>
             <option value="uncleared"${selectedClearedFilter==='uncleared'?' selected':''}>Uncleared Only</option>
             <option value="cleared"${selectedClearedFilter==='cleared'?' selected':''}>Cleared Only</option>
-        </select>`;
-    filterHtml += `<label for="ledgerPageSize" class="filter-label">Rows:</label>
+        </select></div>`;
+    filterHtml += `<div class="fd-field"><label for="ledgerPageSize" class="filter-label">Rows:</label>
         <select id="ledgerPageSize" class="select-styled">
             <option value="10"${selectedPageSize===10?' selected':''}>10</option>
             <option value="25"${selectedPageSize===25?' selected':''}>25</option>
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
             <option value="100"${selectedPageSize===100?' selected':''}>100</option>
-        </select>`;
-    filterHtml += `<label for="ledgerColsSelect" class="filter-label">Columns:</label>
+        </select></div>`;
+    filterHtml += `<div class="fd-field fd-field--wide"><label for="ledgerColsSelect" class="filter-label">Columns:</label>
         <select id="ledgerColsSelect" class="ledger-cols-select" multiple size="${LEDGER_ALL_COLS.length}" aria-label="Visible columns">
             ${LEDGER_ALL_COLS.map(col => `<option value="${col}">${escapeHtml(LEDGER_COL_LABELS[col])}</option>`).join('')}
-        </select>`;
+        </select></div>`;
+    filterHtml += `</div>`;
     filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
     filterHtml += `<button id="ledgerTransferBtn" class="btn btn-secondary btn-small" type="button">⇄ Transfer</button>`;
     if (selectedAccount !== 'all') {

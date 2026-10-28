@@ -396,6 +396,20 @@ export function computeTotalSavingsContribution(app) {
            (app.sinkingFunds   || []).reduce((s, f) => s + (f.monthlyAllocation   || 0), 0);
 }
 
+// Single source of truth for the "Savings Rate" shown on both the Health card and
+// the Savings page summary (issue #427). Definition: active monthly savings
+// contributions (emergency fund + sinking fund) divided by this month's NET income
+// (salary after withholding + bonuses, i.e. computeMonthlyIncomeForMonth). Recurring
+// inflows (reimbursements etc., #252) are deliberately NOT in the denominator: they
+// are cash-flow items, not earned income, and Health's DTI/trend use the same basis.
+// Returns { contribution, income, ratio, pct } where pct is ratio*100 capped at 100.
+export function computeSavingsRate(app, year, month) {
+    const contribution = computeTotalSavingsContribution(app);
+    const { monthlyTotal: income } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, year, month);
+    const ratio = income > 0 ? contribution / income : 0;
+    return { contribution, income, ratio, pct: Math.min(ratio * 100, 100) };
+}
+
 export function dailyCompoundInterest(balance, aprPct, days) {
     const dailyRate = (aprPct || 0) / 100 / 365;
     return balance * (Math.pow(1 + dailyRate, days) - 1);
@@ -499,4 +513,49 @@ export function getIncomeEventsByMonthForRange(incomes, startDate, endDate) {
 /** True for recurring template types that add money (issue #252): 'income' and 'reimbursement'. */
 export function isRecurringInflow(template) {
     return template?.type === 'income' || template?.type === 'reimbursement';
+}
+
+// ── Mobile collapsibles & filter disclosures (issue #428) ────────────────
+// A `[data-collapse-toggle="<bodyId>"]` button controls the element with that
+// id. Below 768px the body is hidden by CSS unless it carries `.is-open`; on
+// desktop the toggle is hidden and the body is always shown. The open set is
+// module-level so re-rendered markup (the Ledger rebuilds its filter bar on
+// every change) can restore the state with isCollapsibleOpen().
+const _collapsibleState = new Map();
+
+export function isCollapsibleOpen(bodyId, defaultOpen = false) {
+    return _collapsibleState.has(bodyId) ? _collapsibleState.get(bodyId) : defaultOpen;
+}
+
+export function setCollapsibleOpen(bodyId, open) {
+    _collapsibleState.set(bodyId, open);
+    const body = document.getElementById(bodyId);
+    if (body) body.classList.toggle('is-open', open);
+    document.querySelectorAll('[data-collapse-toggle]').forEach(btn => {
+        if (btn.getAttribute('data-collapse-toggle') !== bodyId) return;
+        btn.setAttribute('aria-expanded', String(open));
+        btn.classList.toggle('is-open', open);
+        if (btn.classList.contains('debt-form-toggle')) btn.classList.toggle('debt-form-toggle--open', open);
+    });
+}
+
+export function buildFiltersLabel(activeCount) {
+    return activeCount > 0 ? `Filters (${activeCount} active)` : 'Filters';
+}
+
+// Recompute the "Filters (n active)" label of every DOM-counted disclosure:
+// a select counts as active when its value differs from its first option.
+// Selects marked `data-no-count` (sort/group-by) are not filters.
+export function refreshFilterDisclosureCounts(root = document) {
+    root.querySelectorAll('[data-filters-count="dom"]').forEach(btn => {
+        const body = document.getElementById(btn.getAttribute('data-collapse-toggle'));
+        if (!body) return;
+        let n = 0;
+        body.querySelectorAll('select:not([data-no-count])').forEach(sel => {
+            const first = sel.options[0];
+            if (first && sel.value !== first.value) n++;
+        });
+        btn.textContent = buildFiltersLabel(n);
+        btn.classList.toggle('filters-disclosure-toggle--active', n > 0);
+    });
 }

@@ -311,7 +311,7 @@ def create_income(page, income_data):
     page.fill('#incomeAmount', income_data["amount"])
     page.fill('#incomeFirstDate', income_data["first_date"])
     page.select_option('#incomeFrequency', income_data["frequency"])
-    page.click('button:has-text("Add Income")')
+    page.click('#incomeFormSubmit')
     page.wait_for_selector(f'#incomeList >> text={income_data["name"]}', timeout=10000)
 
 

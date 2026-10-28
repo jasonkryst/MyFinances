@@ -187,6 +187,30 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
   - **Header chrome.** The toolbar sits on the title row: about 56px on phone and about 130px on desktop.
   - **Dark mode.** Dark `--text-muted` is `#a8b3c7`, which gives at least 4.5:1 contrast on cards. `.btn-secondary` has a visible border in dark mode.
   - **Tests.** `tests/ui/test_design_consistency.py` covers these.
+- **Mobile density (issue #428)** — below 768px, long filter bars and add forms collapse behind toggles. Desktop is unchanged.
+  - **Toggle mechanism.** One delegated `[data-collapse-toggle="<bodyId>"]` handler (in `ui.js`, `initializeEventListeners`) flips `.is-open` on the target body, and sets `.is-open` and `aria-expanded` on its button.
+  - **Persisted open state.** Open state lives in `utils.js` (`isCollapsibleOpen(id, default)` / `setCollapsibleOpen`), so markup that is rebuilt on every render keeps its state. The Ledger filter bar relies on this.
+  - **Filter disclosures.** They use `.filters-disclosure-toggle` plus `.filters-disclosure-body`, with each label/select pair in a `.fd-field`.
+    - The Ledger counts its own active filters (`data-filters-count="server"`).
+    - The Debts and Recurring disclosures use `data-filters-count="dom"`. There, `refreshFilterDisclosureCounts()` counts selects that differ from their first option and skips sort and group-by selects marked `data-no-count`.
+  - **Same mechanism elsewhere.** The Accounts and Income add forms (`.mobile-collapse-toggle` + `.mobile-collapsible-body`) and the Reconcile cards (first account open) use it too.
+  - **Ledger on phone.** Each row becomes a 2-line grid card, and the sort `th`s become a row of chips.
+  - **Tap targets.** At `max-width: 600px` or `pointer: coarse`, interactive controls get `min-height: 40px`.
+  - **Smaller rules.** Retirement account cards omit Transfer. The Reports tabs are a single scrollable row below 640px.
+  - **CSS and tests.** All the CSS is in the "UX C (#428)" block of `styles.css`. Tests are in `tests/ui/test_mobile_density.py`.
+- **Number clarity** (issue #427).
+  - **Savings rate:** `computeSavingsRate(app, year, month)` (`utils.js`, a hoisted export) is the single savings-rate definition, used by both Health's gauge and the Savings summary. It is active emergency-fund plus sinking-fund contributions divided by net salary plus bonuses. Recurring inflows (#252) are deliberately left out of the denominator, so the "/mo income" figure under Health's gauge differs from the Cash Flow card's `cashFlowIncome`.
+  - **Payoff date:** Health's payoff date is formatted by `formatPayoffDate()`, which calls `formatShortDate`. Never interpolate a Date object into HTML.
+  - **Net worth labels:** snapshot-sourced Net Worth (the Accounts widget and the Reports stat) is labelled "snapshot as of <date>", and Health's figure is labelled "live".
+  - **Forecast:** the total view still includes Retirement accounts (via the shared `getForecastAssetAccounts`), but it is labelled "Current Balance (all asset accounts)" and has a `#cfRetirementNote` breakout.
+  - **Mortgage ratios:** the Health mortgage panel shows "Enter a housing cost" instead of 0.0% badges.
+  - **Overdue filter:** Recurring's Overdue stat is a `#recurringOverdueFilterBtn` toggle (`app._recurringOverdueOnly`) with explanatory `#recurringOverdueHelp` text.
+  - **What-If headline:** the What-If slider adds a debounced `#whatifHeadline` result line.
+- **Phone clipping guard (issue #426).** Cards use `overflow:hidden`, so content wider than the card is cut off instead of making the page scroll, and `document.scrollWidth` never notices.
+  - **Layout rule.** Grid tracks that hold nowrap content must use `minmax(0,1fr)`, and the cards need `min-width:0`; otherwise the track grows past the viewport (`.health-metrics-grid`).
+  - **The guard.** `tests/ui/test_mobile_no_card_clipping.py` runs at 390×844 with seeded data. It walks every top-level page, each Savings sub-tab, the Plan results and each Reports sub-tab. On each, it asserts that no visible text (measured with Range rects) inside a card-like container passes the container's right edge by more than 1px.
+  - **What counts as a card.** Named card classes, plus any rounded `overflow:hidden` box. Content inside a nested horizontal scroller is exempt.
+  - **When adding a new card class,** add it to the test's `CARD_SELECTORS` list.
 
 - **Calendar feed** — `src/calendarFeed.js` (`generateIcs`, client-side `.ics` download) and `server/src/calendarGenerator.js` (`generateIcsFromDbRows`, the token-authenticated public `GET /calendar.ics` webcal feed) produce the same RFC 5545 all-day events for bills, debts, recurring templates, expenses, and income paydays. The server copy can't import frontend modules (DOM-dependent import chains), so it duplicates `getRecurringOccurrencesInMonth` and `getIncomePaydaysInMonth` — **any change to event selection, titles, or occurrence/payday logic must land in both files**. Both honor the `showArchivedDebts` setting (client via `getSetting`, server via the `settings` table row): archived debts are omitted unless it's on, then titled `Debt (Archived) - Name`.
 

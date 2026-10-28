@@ -21,7 +21,7 @@ async def test_negative_balance(async_app_page):
     await page.fill('#accountName', 'Negative Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '-5000')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
     
     # Verify account was created (negative balances are allowed)
     account_name = await page.evaluate("""
@@ -47,7 +47,7 @@ async def test_special_characters_in_names(async_app_page):
     await page.fill('#accountName', special_name)
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
     
     # Verify name is stored (special characters should be preserved but dangerous ones removed)
     account_text = await page.evaluate("""
@@ -74,7 +74,7 @@ async def test_very_large_amount(async_app_page):
     await page.fill('#accountName', 'Large Amount Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', large_amount)
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
     
     # Account should be created
     account_text = await page.evaluate("""
@@ -98,7 +98,7 @@ async def test_decimal_amounts(async_app_page):
     await page.fill('#accountName', 'Decimal Test')
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1234.56')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
     
     # Verify account was created with decimal amount
     account_name = await page.evaluate("""
@@ -125,7 +125,7 @@ async def test_empty_string_input(async_app_page):
     await page.fill('#accountStartingBalance', '1000')
     
     # App should prevent submission or handle gracefully
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
     
     # Check if error message appears or form is still visible
     form_visible = await page.evaluate("""
@@ -235,7 +235,7 @@ async def test_recurring_day_of_month_bounds(async_app_page):
     await page.fill('#accountName', 'Recurring Bounds Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
 
     await page.click('button[data-page="recurring"]')
     await page.wait_for_selector('#recurringSection.active', timeout=5000)
@@ -270,7 +270,7 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     await page.fill('#accountName', 'EF Bounds Checking')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -428,7 +428,7 @@ async def test_unicode_in_names(async_app_page):
     await page.fill('#accountName', unicode_name)
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
     
     # Verify account was created with unicode
     account_text = await page.evaluate("""

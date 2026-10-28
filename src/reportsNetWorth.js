@@ -1,6 +1,6 @@
 // Net worth snapshots: capture, series aggregation, dashboard widget, and reports-page timeline
 
-import { formatCurrency, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
+import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut } from './postgresSync.js';
 
@@ -185,7 +185,7 @@ export function renderNetWorthWidget(app) {
         <div class="nw-widget-card">
             <div class="nw-widget-head">
                 <h3>Net Worth</h3>
-                <span class="nw-widget-date">${latest.date}</span>
+                <span class="nw-widget-date" title="Snapshot value; the Health page shows live balances">Snapshot as of ${escapeHtml(formatShortDate(latest.date))}</span>
             </div>
             <div class="nw-widget-main">${formatCurrency(latest.netWorth)}</div>
             <div class="nw-widget-change ${changeClass}">${changeLabel}</div>
@@ -265,7 +265,7 @@ export function renderReportsNetWorth(app) {
             </div>
         </div>
         <div class="nw-report-summary">
-            <div class="nw-report-stat"><span>Current Net Worth</span><strong>${formatCurrency(latest.netWorth)}</strong></div>
+            <div class="nw-report-stat"><span>Current Net Worth <small class="nw-snapshot-note">(snapshot, ${escapeHtml(formatShortDate(latest.date))})</small></span><strong>${formatCurrency(latest.netWorth)}</strong></div>
             <div class="nw-report-stat"><span>Net Change (${horizon}M)</span><strong class="${netChange >= 0 ? 'nw-change--up' : 'nw-change--down'}">${netChange >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netChange))}</strong></div>
             <div class="nw-report-stat"><span>Asset Growth</span><strong class="${assetGrowth >= 0 ? 'nw-change--up' : 'nw-change--down'}">${assetGrowth >= 0 ? '+' : '-'}${formatCurrency(Math.abs(assetGrowth))}</strong></div>
             <div class="nw-report-stat"><span>Debt Reduction</span><strong>${formatCurrency(debtDrop)}</strong></div>
