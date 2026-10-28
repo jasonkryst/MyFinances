@@ -263,11 +263,26 @@ export function renderCashFlowForecast(app) {
     const lowestLabel = stats.lowestPoint ? formatShortDate(stats.lowestPoint.date) : stats.lowest.label;
     const lowestBalance = stats.lowestPoint ? stats.lowestPoint.balance : stats.lowest.balance;
 
+    // #427: the "total" view sums every non-liability account, including Retirement
+    // accounts (excluding them would change projections other code relies on, and
+    // getForecastAssetAccounts is shared). Instead, break the retirement share out so the
+    // headline number isn't mistaken for spendable cash.
+    let retirementNoteHtml = '';
+    if (accountId === 'total') {
+        const retirementAccts = assetAccounts.filter(a => a.type === 'Retirement');
+        if (retirementAccts.length > 0) {
+            const retirementBalance = retirementAccts.reduce(
+                (sum, a) => sum + getAccountForecastSeries(app, a.id, 0)[0].balance, 0);
+            retirementNoteHtml = `<small class="cf-retirement-note" id="cfRetirementNote">Includes ${formatCurrency(retirementBalance)} in retirement accounts (not spendable cash)</small>`;
+        }
+    }
+
     const summaryHtml = `
         <div class="nw-report-summary">
             <div class="nw-report-stat">
-                <span>Current Balance</span>
+                <span>Current Balance${accountId === 'total' ? ' (all asset accounts)' : ''}</span>
                 <strong>${formatCurrency(stats.current)}</strong>
+                ${retirementNoteHtml}
             </div>
             <div class="nw-report-stat">
                 <span>Lowest Projected (${escapeHtml(lowestLabel)})</span>

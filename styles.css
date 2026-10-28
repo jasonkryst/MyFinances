@@ -8838,4 +8838,68 @@ body.dark-mode .bva-pos { color: #86efac; }
     body.dark-mode .rpt-tab-bar { --rpt-bar-bg: var(--bg-color, #0f172a); }
     .rpt-tab-group, .rpt-tab-group-tabs { flex-wrap: nowrap; flex-shrink: 0; }
     .rpt-tab-btn { flex-shrink: 0; }
+
+/* UX B (#427) numbers and copy clarity */
+.whatif-headline { font-weight: 600; margin: 8px 0; color: var(--success, #16a34a); }
+.health-mortgage-dti-empty { font-size: 0.85em; color: var(--text-muted); font-style: italic; }
+.nw-snapshot-note, .cf-retirement-note { display: block; font-size: 0.75em; font-weight: 400; color: var(--text-muted); }
+.recurring-overdue-filter-btn { cursor: pointer; background: none; border: 1px solid transparent; font: inherit; text-align: inherit; }
+.recurring-overdue-filter-btn.active, .recurring-overdue-filter-btn:focus-visible { border-color: currentColor; }
+.recurring-overdue-help { font-size: 0.8em; color: var(--text-muted); margin: 6px 0 0; }
+
+/* UX A (#426): phone-width clipping fixes
+   Cards clip with overflow:hidden, so content wider than the card is cut off
+   rather than scrolling. Fixes below let content shrink/wrap instead. */
+.health-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 680px) {
+    .health-metrics-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.health-metric-card { min-width: 0; }
+.health-metric-card > *, .health-card-header > * { min-width: 0; }
+.health-metric-detail, .health-cashflow-row { flex-wrap: wrap; gap: 0 0.5rem; }
+.health-cashflow-row > span:last-child, .health-metric-detail > span:last-child { margin-left: auto; text-align: right; }
+.health-card-title { overflow-wrap: anywhere; }
+
+/* Plan summary strip: values may wrap instead of being cut off */
+@media (max-width: 600px) {
+    .summary-item { flex-wrap: wrap; min-width: 0; }
+    .summary-item .label, .summary-item .value { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+}
+
+/* Comparison table header: explicit text colour (was inheriting white on a light fill) */
+.comparison-table th { color: var(--text-primary, #1f2937); }
+body.dark-mode .comparison-table th { color: #e2e8f0; }
+.comparison-table { min-width: 460px; }
+
+/* Reports month nav + Print wrap instead of being cut off */
+.rpt-month-nav { flex-wrap: wrap; max-width: 100%; box-sizing: border-box; }
+.rpt-print-btn { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 480px) {
+    .rpt-month-nav { padding: 7px 10px; gap: 8px; }
+    .rpt-month-label { min-width: 0; }
+}
+
+/* Retirement snapshot table: full-size Delete target, scrolls inside .table-wrapper */
+.retire-snapshot-table { min-width: 340px; }
+.retire-snapshot-table td:last-child { white-space: nowrap; }
+.retire-snapshot-table .btn-small { min-height: 40px; min-width: 40px; white-space: nowrap; }
+
+/* Savings sub-tabs share the row equally and may wrap their label */
+.savings-subtabs { flex-wrap: nowrap; }
+.savings-subtab-btn { flex: 1 1 0; min-width: 0; }
+@media (max-width: 480px) {
+    .savings-subtab-btn { padding: 8px 4px; font-size: 0.8rem; white-space: normal; line-height: 1.25; }
+}
+
+/* Settings tabs: equal-width 2x2 grid on phone */
+@media (max-width: 480px) {
+    .settings-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+    .settings-tab-btn { text-align: center; min-height: 40px; }
+}
+
+/* Net Worth / Forecast stat cards: two per row on phone */
+@media (max-width: 480px) {
+    .nw-report-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nw-report-stat { min-width: 0; }
+    .nw-report-stat strong { overflow-wrap: anywhere; }
 }

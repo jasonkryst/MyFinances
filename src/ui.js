@@ -1016,6 +1016,13 @@ const WHATS_NEW_ENTRIES = [
         ]
     },
     {
+        version: '6.54.0 — 2026-10-28',
+        items: [
+            '<strong>Clearer numbers</strong> (issue #427): Health and Savings now always show the same savings rate. Net worth figures say whether they\'re a snapshot or live. Forecast shows how much of your balance sits in retirement accounts. The debt-free date is a readable date.',
+            '<strong>Plain-language what-ifs</strong>: the Plan page\'s What-If slider now tells you how much interest and how many months you\'d save. Recurring\'s Overdue count is now a one-tap filter.'
+        ]
+    },
+    {
         version: '6.53.0 — 2026-10-28',
         items: [
             '<strong>Cleaner debt cards</strong>: each debt\'s key numbers now sit in a tidy grid with balance and minimum payment up front. The Edit, Update Balance, History and Delete buttons live together at the bottom of the card. A balance that has grown since you added the debt is now explained in words instead of showing a negative percentage.'

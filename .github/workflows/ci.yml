@@ -334,6 +334,7 @@ jobs:
             tests/features/test_calendar_feed.py \
             tests/features/test_whats_new.py \
             tests/features/test_app_ready.py \
+            tests/features/test_number_clarity.py \
             -v
 
   # J/K: files that were never listed in any shard until #415 (~82 / ~71 tests).
@@ -513,6 +514,8 @@ jobs:
             tests/ui/test_charts.py \
             tests/ui/test_debt_actions.py \
             tests/ui/test_mobile_density.py \
+            tests/ui/test_mobile_no_card_clipping.py \
+            tests/ui/test_mobile_clipping_fixes.py \
             -v
 
   test-ui-c:
