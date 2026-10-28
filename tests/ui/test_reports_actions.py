@@ -10,7 +10,7 @@ import pytest
 
 def _seed_calendar_day(page):
     """Seed a single income event landing on the 5th of the current report month."""
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         const app = window.app;
         const rptDate = new Date();
         const isoDay = String(5).padStart(2, '0');
@@ -24,6 +24,7 @@ def _seed_calendar_day(page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.monthlySnapshots = [];
         app.switchPage('reports');
+        await app.renderReportsPage();
     }""")
 
 
@@ -94,13 +95,14 @@ def test_net_worth_capture_snapshot_button(app_page):
     """Test the Capture Snapshot Now button creates and updates a net worth snapshot."""
     page = app_page
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 9101, name: 'Snapshot Test', type: 'Checking', startingBalance: 1000 }];
         app.debts = []; app.bills = []; app.expenses = []; app.incomes = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.monthlySnapshots = [];
         app.switchPage('reports');
+        await app.renderReportsPage();
     }""")
 
     page.click('[data-rptab="networth"]')
@@ -158,12 +160,13 @@ def test_report_tab_switching_toggles_panel_visibility(app_page):
     deactivate the others, mirroring the schedule-tab pattern used elsewhere."""
     page = app_page
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         const app = window.app;
         app.accounts = []; app.debts = []; app.bills = []; app.expenses = [];
         app.incomes = []; app.recurringTemplates = []; app.emergencyFunds = [];
         app.sinkingFunds = []; app.monthlySnapshots = [];
         app.switchPage('reports');
+        await app.renderReportsPage();
     }""")
 
     tabs = ['calendar', 'spending', 'incomeexp', 'moneyflow', 'variance', 'networth', 'forecast']
