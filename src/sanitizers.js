@@ -108,6 +108,47 @@ export function sanitizeAccount(record, idFallback) {
     };
 }
 
+// #272: Debt ownership split. Returns null (= equal share among personIds, the
+// default for every pre-existing debt) or a plain object { [personId]: fraction }
+// over exactly the linked personIds, summing to 1.0. Only validated integer
+// keys (taken from personIds, never from the raw object's own key list) are
+// written, so __proto__/constructor keys in untrusted input can never reach
+// the result.
+export function sanitizeOwnershipSplit(raw, personIds) {
+    const ids = Array.isArray(personIds) ? personIds : [];
+    if (ids.length < 2) return null;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const out = {};
+    let sum = 0;
+    for (const id of ids) {
+        let f = 0;
+        if (Object.prototype.hasOwnProperty.call(raw, String(id)) && typeof raw[String(id)] === 'number') {
+            f = sanitizeFiniteNumber(raw[String(id)], 0, { min: 0, max: 1 });
+        }
+        out[id] = f;
+        sum += f;
+    }
+    if (!(sum > 0)) return null;
+    if (Math.abs(sum - 1) > 0.01) {
+        for (const id of ids) out[id] = out[id] / sum;
+    }
+    return out;
+}
+
+// Remaps a debt's personIds and ownershipSplit keys through { oldId: newId }.
+export function remapDebtPersonRefs(debt, personIdMap) {
+    const map = personIdMap || {};
+    const m = id => (map[id] != null ? map[id] : id);
+    const d = { ...debt };
+    if (Array.isArray(d.personIds)) d.personIds = d.personIds.map(m);
+    if (d.ownershipSplit && typeof d.ownershipSplit === 'object') {
+        const split = {};
+        for (const [k, v] of Object.entries(d.ownershipSplit)) split[m(Number(k))] = v;
+        d.ownershipSplit = split;
+    }
+    return d;
+}
+
 export function sanitizeDebt(record, idFallback) {
     const debtType = record?.debtType === 'fixedAmount' ? 'fixedAmount' : 'creditCard';
     const dueDate = sanitizeInteger(record?.dueDate, null, { min: 1, max: 31 });
@@ -115,6 +156,10 @@ export function sanitizeDebt(record, idFallback) {
     const minimumPayment = sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 });
     const originalBalance = sanitizeFiniteNumber(record?.originalBalance, accountBalance, { min: 0 });
     const originalMinimumPayment = sanitizeFiniteNumber(record?.originalMinimumPayment, minimumPayment, { min: 0 });
+
+    const personIds = Array.isArray(record?.personIds)
+        ? record.personIds.map(id => sanitizeInteger(id, null)).filter(id => id !== null)
+        : [];
 
     return {
         id: sanitizeInteger(record?.id, idFallback),
@@ -136,9 +181,8 @@ export function sanitizeDebt(record, idFallback) {
         creditLimit: record?.creditLimit != null ? sanitizeFiniteNumber(record.creditLimit, null, { min: 0 }) : null,
         updatedAt: sanitizeDateISO(record?.updatedAt),
         archived: Boolean(record?.archived ?? false),
-        personIds: Array.isArray(record?.personIds)
-            ? record.personIds.map(id => sanitizeInteger(id, null)).filter(id => id !== null)
-            : [],
+        personIds,
+        ownershipSplit: sanitizeOwnershipSplit(record?.ownershipSplit, personIds),
         notes: normalizeText(record?.notes ?? '', 500),
         nextPaymentDue: sanitizeDateISO(record?.nextPaymentDue)
     };

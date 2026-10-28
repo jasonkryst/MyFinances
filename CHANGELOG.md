@@ -21,6 +21,25 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Fixed
 - **Health trend arrows were hard to read in dark mode.** The red ▼ (worse than last month) had a contrast ratio of 3.0:1 against the dark card, below the WCAG AA minimum of 4.5:1. Dark mode now uses lighter red and green arrows. CI's accessibility audit caught this once Health's trend started reflecting recurring templates.
 
+## [6.51.0] — 2026-10-28
+
+### Added
+- **Debt ownership split** (issue #272). A debt linked to two or more people can be **Shared equally** (the default) or given a **Custom split** with auto-balancing percentage inputs, in both the Add Debt form and the inline editor. Debt cards show the split, for example "Alex 60% · Sam 40%".
+  - The split is stored on the debt as `ownershipSplit`. It is sanitized and normalized on load and import, survives export/import, and is saved to the optional Postgres backend (new nullable `debts.ownership_split jsonb` column, migration `1755600000026`).
+  - **Income is intentionally not split:** each income stays 100% owned by its single linked person.
+
+### Changed
+- **People page summary tiles now count each person's share of a shared debt.** Total Debt, Monthly Net, DTI and Credit Utilization previously counted the full debt for every linked person. Deleting a person renormalizes their share across the remaining owners, and replacing a person moves the share to the replacement.
+
+### Fixed
+- **Importing a JSON backup could break debt-to-person links.** In both replace and merge modes, imported people get new ids, but debts' person links (`personIds`) were not updated to match, so debts could end up pointing at the wrong person or no one. They are now remapped to the new ids.
+
+## [6.50.0] — 2026-10-28
+
+### Added
+- **Health: adjustable FIRE target** (issue #361). The FIRE card's target was hardcoded at 25× annual expenses; you can now set it with two linked inputs, "Years of expenses" (default 25) and "Withdrawal rate %" (default 4), where changing one updates the other. Any positive value is accepted, up to 1,000×. Invalid input is rejected inline, and the previous value is kept. The FIRE number, years-away and FI badge recalculate immediately. The value is stored as the `fireMultiplier` setting, so it syncs to Postgres and survives export/import. New strings are translated in en/es/pl.
+- **Plan: refinancing what-if** (issue #320). A collapsible "Refinancing scenario" section in the What-If Simulator lets you pick a single debt and enter a new APR. It shows the new payoff date, months saved or added, and interest saved or extra cost, for any of the four strategies. Your debts are never modified. The section resets on Clear, on recalculating, and when you navigate back to the Plan page.
+
 ## [6.49.0] — 2026-10-28
 
 ### Added

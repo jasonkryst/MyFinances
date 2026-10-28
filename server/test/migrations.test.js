@@ -126,6 +126,17 @@ test('plan_settings accepts a nullable home_purchase_plan jsonb', async () => {
     assert.equal(rows[0].home_purchase_plan.targetHomePrice, 300000);
 });
 
+test('debts accepts a nullable ownership_split jsonb (#272)', async () => {
+    await resetDb();
+    const user = await createTestUser();
+    await pool.query(`INSERT INTO debts (user_id, name) VALUES ($1, 'Mortgage')`, [user.id]);
+    let { rows } = await pool.query('SELECT ownership_split FROM debts WHERE user_id = $1', [user.id]);
+    assert.equal(rows[0].ownership_split, null);
+    await pool.query('UPDATE debts SET ownership_split = $1 WHERE user_id = $2', [JSON.stringify({ 1: 0.6, 2: 0.4 }), user.id]);
+    ({ rows } = await pool.query('SELECT ownership_split FROM debts WHERE user_id = $1', [user.id]));
+    assert.equal(rows[0].ownership_split['1'], 0.6);
+});
+
 test('plan_settings accepts a nullable budget_categories jsonb', async () => {
     await resetDb();
     const user = await createTestUser();

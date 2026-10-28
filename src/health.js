@@ -4,7 +4,7 @@ import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { computeRecurringCashFlowForMonth } from './recurring.js';
 import {
     getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT,
-    HOUSING_COST_OVERRIDE, budgetThresholdKey
+    HOUSING_COST_OVERRIDE, budgetThresholdKey, getFireMultiplier, FIRE_MULTIPLIER, FIRE_MULTIPLIER_MAX
 } from './settings.js';
 
 // Persists allocation slider position across renderSurplusSection re-renders (0–100 = % to debt).
@@ -1039,7 +1039,11 @@ export function renderHealthDashboard(app) {
 
     // ── FIRE Number (Retirement) ──────────────────────────────────────────────
     const annualExpenses = (totalBills + totalExpenses) * 12;
-    const fireNumber = annualExpenses * 25;
+    const fireMultiplier = getFireMultiplier(app);
+    const fireNumber = annualExpenses * fireMultiplier;
+    const fmtNum = n => String(parseFloat(n.toFixed(2)));
+    const fireRateDisplay = fmtNum(100 / fireMultiplier);
+    const fireMultDisplay = fmtNum(fireMultiplier);
     const currentNetWorth = dtaAssets - dtaLiabilities;
     const fireStatus = currentNetWorth >= fireNumber
         ? { cls: 'health-status--green', label: 'FI Already!' }
@@ -1405,6 +1409,17 @@ export function renderHealthDashboard(app) {
                     ${annualExpenses > 0 ? `<span class="health-badge ${fireStatus.cls}">${fireStatus.label}</span>` : ''}
                 </div>
                 <p class="health-card-desc">${t('health.fireDesc')}</p>
+                <div class="health-fire-controls">
+                    <div class="health-surplus-ctrl-group">
+                        <label class="health-surplus-label" for="healthFireMultiplier">${t('health.fireMultiplierLabel')}</label>
+                        <input type="number" class="health-surplus-input" id="healthFireMultiplier" value="${fireMultDisplay}" min="0.01" max="${FIRE_MULTIPLIER_MAX}" step="any" inputmode="decimal" aria-describedby="healthFireError">
+                    </div>
+                    <div class="health-surplus-ctrl-group">
+                        <label class="health-surplus-label" for="healthFireRate">${t('health.fireRateLabel')}</label>
+                        <input type="number" class="health-surplus-input" id="healthFireRate" value="${fireRateDisplay}" min="0.1" max="100" step="any" inputmode="decimal" aria-describedby="healthFireError">
+                    </div>
+                </div>
+                <p class="health-fire-error" id="healthFireError" role="alert" hidden></p>
                 ${annualExpenses === 0 ? `
                     <div class="health-empty-state">
                         <span class="health-empty-sub">${t('health.fireNoExpenses')}</span>
@@ -1520,6 +1535,45 @@ export function renderHealthDashboard(app) {
             app.switchPage(card.dataset.cardNav);
         });
     });
+
+    // ── FIRE target multiplier / withdrawal rate (#361) ──────────────────────
+    const fireMultInput = document.getElementById('healthFireMultiplier');
+    const fireRateInput = document.getElementById('healthFireRate');
+    const fireErrorEl   = document.getElementById('healthFireError');
+    if (fireMultInput && fireRateInput && fireErrorEl) {
+        const commitFire = (source) => {
+            const input = source === 'rate' ? fireRateInput : fireMultInput;
+            const raw = input.value.trim();
+            const n = raw === '' ? NaN : Number(raw);
+            let mult = NaN;
+            if (Number.isFinite(n) && n > 0) {
+                if (source === 'rate') { if (n <= 100) mult = 100 / n; }
+                else mult = n;
+            }
+            if (!Number.isFinite(mult) || mult <= 0 || mult > FIRE_MULTIPLIER_MAX) {
+                const msg = t(source === 'rate' ? 'health.fireRateInvalid' : 'health.fireMultiplierInvalid', { max: FIRE_MULTIPLIER_MAX, min: 100 / FIRE_MULTIPLIER_MAX });
+                fireMultInput.value = fmtNum(fireMultiplier);
+                fireRateInput.value = fmtNum(100 / fireMultiplier);
+                fireErrorEl.textContent = msg;
+                fireErrorEl.hidden = false;
+                input.setAttribute('aria-invalid', 'true');
+                return;
+            }
+            setSetting(app, FIRE_MULTIPLIER, mult);
+            renderHealthDashboard(app);
+            const again = document.getElementById(source === 'rate' ? 'healthFireRate' : 'healthFireMultiplier');
+            if (again) again.focus();
+        };
+        fireMultInput.addEventListener('change', () => commitFire('multiplier'));
+        fireRateInput.addEventListener('change', () => commitFire('rate'));
+        [fireMultInput, fireRateInput].forEach(inp => {
+            inp.addEventListener('input', () => {
+                fireErrorEl.hidden = true;
+                fireMultInput.removeAttribute('aria-invalid');
+                fireRateInput.removeAttribute('aria-invalid');
+            });
+        });
+    }
 
     const healthPrintBtn = document.getElementById('healthPrintBtn');
     if (healthPrintBtn) {

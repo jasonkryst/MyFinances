@@ -2,6 +2,7 @@ const {
     sanitizePerson,
     sanitizeAccount,
     sanitizeDebt,
+    sanitizeOwnershipSplit,
     sanitizeIncome,
     sanitizeBonus,
     sanitizeBill,
@@ -137,8 +138,12 @@ describe('sanitizeDebt', () => {
         expect(Object.keys(result).sort()).toEqual([
             'accountBalance', 'accountId', 'archived', 'category', 'creditLimit', 'debtStartDate', 'debtType', 'dueDate',
             'fixedAmount', 'fixedEndDate', 'fixedStartDate', 'id', 'interestRate', 'minimumPayment',
-            'name', 'nextPaymentDue', 'notes', 'originalBalance', 'originalMinimumPayment', 'personIds', 'priority', 'updatedAt',
+            'name', 'nextPaymentDue', 'notes', 'originalBalance', 'originalMinimumPayment', 'ownershipSplit', 'personIds', 'priority', 'updatedAt',
         ]);
+    });
+
+    test('ownershipSplit defaults to null (equal share) for legacy records', () => {
+        expect(sanitizeDebt({ personIds: [1, 2] }, 1).ownershipSplit).toBeNull();
     });
 
     test('passes through a valid creditLimit', () => {
@@ -885,5 +890,38 @@ describe('sanitizePlanHistoryEntry', () => {
     test('sanitizes payoffDate to YYYY-MM-DD or null', () => {
         expect(sanitizePlanHistoryEntry({ payoffDate: '2028-06-15' }, 1).payoffDate).toBe('2028-06-15');
         expect(sanitizePlanHistoryEntry({ payoffDate: 'bad' }, 1).payoffDate).toBeNull();
+    });
+});
+
+describe('sanitizeOwnershipSplit (#272)', () => {
+    test('keeps a valid split over the linked people', () => {
+        expect(sanitizeOwnershipSplit({ 1: 0.6, 2: 0.4 }, [1, 2])).toEqual({ 1: 0.6, 2: 0.4 });
+    });
+
+    test('normalizes a split whose sum is off by more than 0.01', () => {
+        const out = sanitizeOwnershipSplit({ 1: 0.3, 2: 0.2 }, [1, 2]);
+        expect(out[1]).toBeCloseTo(0.6);
+        expect(out[2]).toBeCloseTo(0.4);
+    });
+
+    test('returns null for fewer than two people, non-objects, arrays, and all-zero splits', () => {
+        expect(sanitizeOwnershipSplit({ 1: 1 }, [1])).toBeNull();
+        expect(sanitizeOwnershipSplit('60/40', [1, 2])).toBeNull();
+        expect(sanitizeOwnershipSplit([0.5, 0.5], [1, 2])).toBeNull();
+        expect(sanitizeOwnershipSplit({ 1: 0, 2: 0 }, [1, 2])).toBeNull();
+    });
+
+    test('drops keys for unlinked people and treats non-number/negative values as 0', () => {
+        const out = sanitizeOwnershipSplit({ 1: 1, 2: '0.5', 3: 0.9, 4: -2 }, [1, 2, 4]);
+        expect(Object.keys(out).sort()).toEqual(['1', '2', '4']);
+        expect(out[1]).toBe(1);
+        expect(out[2]).toBe(0);
+        expect(out[4]).toBe(0);
+    });
+
+    test('never copies prototype keys', () => {
+        const out = sanitizeOwnershipSplit(JSON.parse('{"1":0.5,"2":0.5,"__proto__":{"polluted":true}}'), [1, 2]);
+        expect(out.polluted).toBeUndefined();
+        expect({}.polluted).toBeUndefined();
     });
 });
