@@ -992,6 +992,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.51.0 — 2026-10-28',
+        items: [
+            '<strong>Split shared debts</strong> (issue #272): when a debt belongs to two or more people, choose "Custom split" (for example 60/40 on a mortgage). Debt cards show the split, and each person\'s summary on the People page now counts only their share.'
+        ]
+    },
+    {
         version: '6.48.0 — 2026-10-27',
         items: [
             '<strong>Ledger: $0 amount setting</strong> (issue #412) — a new Settings → Advanced option, "$0 ledger amounts" (Allow / Warn / Block, default Allow), controls whether $0 can be saved in the Ledger override modal and on recurring templates. $0 entries are handy for tracking transactions that happen on a credit card or elsewhere without moving a balance. A blank amount field is now always rejected instead of silently saving $0.'
