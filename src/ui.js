@@ -993,6 +993,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.50.0 — 2026-10-28',
+        items: [
+            '<strong>Adjustable FIRE target</strong> (issue #361): on the Health page\'s FIRE card you can now change "Years of expenses" or "Withdrawal rate %" to match your own plan. The two stay in step, and your choice is remembered.',
+            '<strong>Refinancing what-if</strong> (issue #320): in the Plan page\'s What-If Simulator, try a new APR on any one debt. You\'ll see how much interest and time a refinance or balance transfer would save, and your actual debts aren\'t changed.'
+        ]
+    },
+    {
         version: '6.48.0 — 2026-10-27',
         items: [
             '<strong>Ledger: $0 amount setting</strong> (issue #412) — a new Settings → Advanced option, "$0 ledger amounts" (Allow / Warn / Block, default Allow), controls whether $0 can be saved in the Ledger override modal and on recurring templates. $0 entries are handy for tracking transactions that happen on a credit card or elsewhere without moving a balance. A blank amount field is now always rejected instead of silently saving $0.'
