@@ -3561,6 +3561,123 @@ body.dark-mode .debt-bulk-count { color: #f1f5f9; }
 }
 .debt-card { position: relative; }
 .debt-card .debt-name { padding-right: 28px; }
+
+/* Debt card layout: header → fact tiles → progress → footer action bar.
+   The card used to be a centered flex row, so the action buttons floated
+   mid-card beside whatever was tallest (usually the payoff chart). */
+.debt-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 18px 20px;
+}
+.debt-card .debt-info { width: 100%; min-width: 0; }
+.debt-card .debt-name { font-size: 1.15rem; margin-bottom: 4px; }
+.debt-details--tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px 24px;
+    margin-top: 12px;
+}
+.debt-details--tiles .debt-detail {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+.debt-detail-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+.debt-detail-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+.debt-detail--primary .debt-detail-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.debt-details--tiles .debt-detail-value .amount-secondary,
+.debt-details--tiles .debt-detail-value .text-monthly-interest {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+/* Sentence-style notices span the whole row instead of squeezing into a tile */
+.debt-details--tiles .iptd-detail,
+.debt-details--tiles .debt-min-trap-warn {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 6px;
+    order: 10; /* after every tile, so they don't split the grid mid-row */
+}
+.debt-progress-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px 28px;
+    margin-top: 16px;
+}
+.debt-progress-group .debt-progress-wrap { margin-top: 0; }
+.debt-progress-note {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: #b45309;
+}
+body.dark-mode .debt-progress-note { color: #fbbf24; }
+.debt-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+.debt-meta-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-right: 2px;
+}
+.debt-card .debt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+/* One size for every action (Edit used to be visibly smaller than its neighbours) */
+.debt-card .debt-actions .btn-edit,
+.debt-card .debt-actions .btn-small,
+.debt-card .debt-actions .btn-delete {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 0.875rem;
+    border-radius: 8px;
+}
+/* Destructive action sits apart from the everyday ones */
+.debt-card .debt-actions .btn-delete { margin-left: auto; }
+@media (max-width: 480px) {
+    .debt-card { padding: 16px; }
+    .debt-card .debt-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .debt-card .debt-actions > * { width: 100%; margin: 0; }
+    .debt-details--tiles { grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+    .debt-detail--primary .debt-detail-value { font-size: 1.1rem; }
+}
 .debt-select-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #3b82f6; }
 
 /* ---- Strategy comparison panel ---- */

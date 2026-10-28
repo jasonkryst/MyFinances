@@ -995,6 +995,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.53.0 — 2026-10-28',
+        items: [
+            '<strong>Cleaner debt cards</strong>: each debt\'s key numbers now sit in a tidy grid with balance and minimum payment up front. The Edit, Update Balance, History and Delete buttons live together at the bottom of the card. A balance that has grown since you added the debt is now explained in words instead of showing a negative percentage.'
+        ]
+    },
+    {
         version: '6.52.0 — 2026-10-28',
         items: [
             '<strong>Recurring income</strong> (issue #252): recurring templates can now be set to <strong>Income</strong>, for side income like freelance retainers or dividends. The Health page\'s cash-flow and savings figures now also count your recurring subscriptions and recurring income when working out your monthly surplus.'

@@ -4,6 +4,27 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.53.0] — 2026-10-28
+
+### Changed
+- **Liabilities: redesigned debt cards.**
+  - **Facts:** Balance, Min Payment, Interest, Due Date, Payoff Date and Priority now sit in an aligned grid of label-over-value tiles, with Balance and Min Payment emphasized. Before, they wrapped unevenly in "Label: value" rows.
+  - **Actions:** Edit, Update Balance, History and Delete form a footer bar at the bottom of the card, with Delete set apart on the right. Before, the card was a horizontally centered row, so the buttons floated mid-card next to the payoff chart. All action buttons share one 40px+ height; Edit used to be smaller. On phones they form an even two-column grid.
+  - **Progress bars:** payoff progress and credit utilization sit side by side on wide screens.
+  - **Footer row:** category and last-updated move into a compact row.
+  - **Notices:** the "Est. interest paid to date" and min-payment-trap notices span the full width after the tiles instead of splitting the grid.
+
+### Fixed
+- **Payoff progress could show a negative percentage** (e.g. "-21%") when a debt's balance had grown above its starting balance. It now reads 0% with a note: "Balance is up 21% from its starting $1,074.00".
+
+### Tests
+- New `tests/ui/test_debt_card_layout.py`. It checks at phone and desktop widths that:
+  - actions sit below all card content;
+  - the card doesn't scroll horizontally;
+  - the facts are labeled tiles with an emphasized balance;
+  - action buttons share one height of at least 40px;
+  - payoff progress never goes negative, and the growth note appears only when the balance has grown.
+
 ## [6.52.2] — 2026-10-28
 
 ### Fixed
