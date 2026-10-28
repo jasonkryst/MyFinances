@@ -196,6 +196,7 @@ async function openDebtPaidOffModal(app, debtId) {
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', 'debtPaidOffTitle');
+    modal.tabIndex = -1;  // lets modal.focus() succeed so Escape works before the button focus timer fires
     modal.innerHTML = `
       <div class="modal-card">
         <h3 class="modal-title" id="debtPaidOffTitle">🎉 Debt paid off!</h3>
