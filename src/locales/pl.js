@@ -142,6 +142,10 @@ export default {
     'health.status.surplus': 'Nadwyżka',
     'health.status.breakEven': 'Próg Rentowności',
     'health.status.deficit': 'Deficyt',
+    'health.fireMultiplierLabel': 'Lata wydatków',
+    'health.fireRateLabel': 'Stopa wypłat %',
+    'health.fireMultiplierInvalid': 'Wpisz liczbę większą niż 0 i nie większą niż {max}.',
+    'health.fireRateInvalid': 'Wpisz stopę większą niż 0 i nie większą niż 100 (oraz co najmniej {min}).',
     'health.surplusSparklineCaption': 'Prognozowane saldo przez {days} dni',
 
     // Retirement page (#336) — stubs, pending full translation

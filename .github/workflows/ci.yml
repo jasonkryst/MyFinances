@@ -259,6 +259,7 @@ jobs:
             tests/features/test_bills.py \
             tests/features/test_storage_quota.py \
             tests/features/test_retirement.py \
+            tests/features/test_health_fire_target.py \
             -v
 
   test-features-h:

@@ -8245,3 +8245,7 @@ body.dark-mode .login-gate-header {
     }
     .bh-table--fixed .bh-col-balance { display: none; }
 }
+
+/* FIRE target controls (#361) */
+.health-fire-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.4rem; }
+.health-fire-error { color: var(--danger-color, #dc2626); font-size: 0.78rem; margin: 0 0 0.4rem; }
