@@ -2,6 +2,7 @@
 
 import { formatCurrency, getReportDate, getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+import { renderBudgetVsActualHtml } from './categoryBudgets.js';
 
 // Classifies one month's ledger transactions into the five variance buckets.
 function _classifyMonthTotals(txs) {
@@ -169,6 +170,7 @@ export function renderReportsVariance(app) {
                     </span>
                 </div>
             </div>
+            ${renderBudgetVsActualHtml(app, rptYear, rptMonth, rangeMonths)}
         </div>
     `;
 

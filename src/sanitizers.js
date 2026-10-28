@@ -297,6 +297,54 @@ export function sanitizeHomePurchasePlan(raw, warnings) {
     return sanitized;
 }
 
+export const BUDGET_CATEGORY_MAX_ENTRIES = 200;
+export const BUDGET_CATEGORY_MAX_AMOUNT = 1e9;
+const _BUDGET_FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+// Issue #255: explicit per-category monthly budgets, keyed by category name.
+// Invalid entries are dropped (never coerced) so a malformed import can't
+// silently turn into a $0 budget.
+export function sanitizeBudgetCategories(raw, warnings) {
+    const out = {};
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+    const reject = (name, reason) => {
+        if (warnings) warnings.push({ recordType: 'Category Budget', recordName: name, kind: 'rejected', reason });
+    };
+    let count = 0;
+    for (const key of Object.keys(raw)) {
+        const name = normalizeText(key, 40);
+        if (!name || _BUDGET_FORBIDDEN_KEYS.has(name) || _BUDGET_FORBIDDEN_KEYS.has(key)) {
+            reject(String(key).slice(0, 40) || '(blank)', 'Invalid category name — budget was not imported.');
+            continue;
+        }
+        const entry = raw[key];
+        const mode = entry && typeof entry === 'object' ? entry.mode : null;
+        if (mode !== 'fixed' && mode !== 'derived') {
+            reject(name, 'Unknown budget mode — budget was not imported.');
+            continue;
+        }
+        let amount = 0;
+        if (mode === 'fixed') {
+            const usable = (typeof entry.amount === 'number' || typeof entry.amount === 'string') && String(entry.amount).trim() !== '';
+            const n = usable ? Number(entry.amount) : NaN;
+            if (!Number.isFinite(n) || n < 0) {
+                reject(name, 'Missing, negative or non-numeric amount — budget was not imported.');
+                continue;
+            }
+            amount = Math.min(n, BUDGET_CATEGORY_MAX_AMOUNT);
+        }
+        if (!Object.prototype.hasOwnProperty.call(out, name)) {
+            if (count >= BUDGET_CATEGORY_MAX_ENTRIES) {
+                reject(name, `Too many category budgets (max ${BUDGET_CATEGORY_MAX_ENTRIES}) — budget was not imported.`);
+                continue;
+            }
+            count++;
+        }
+        out[name] = { mode, amount };
+    }
+    return out;
+}
+
 export function sanitizeLedgerClearedTransactions(entries, warnings) {
     const out = {};
     if (!entries || typeof entries !== 'object') return out;
@@ -558,6 +606,7 @@ export function sanitizeParsedState(parsed = {}, warnings) {
             'Transfer', (raw, i) => raw?.date ? `Transfer ${raw.date}` : `Transfer #${i + 1}`, warnings),
         retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
         homePurchasePlan: sanitizeHomePurchasePlan(parsed.homePurchasePlan, warnings),
+        budgetCategories: sanitizeBudgetCategories(parsed.budgetCategories, warnings),
         settings: _sanitizeValueArray(parsed.settings, sanitizeSetting, Boolean, 'Setting', (raw, i) => raw?.key ? String(raw.key) : `Setting #${i + 1}`, warnings),
         balanceHistory: _sanitizeRecordArray(parsed.balanceHistory, sanitizeBalanceHistoryEntry, now + 8000, Boolean,
             'Balance History', (raw, i) => raw?.date ? `Balance History ${raw.date}` : `Balance History #${i + 1}`, warnings)

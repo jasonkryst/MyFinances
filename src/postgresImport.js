@@ -101,7 +101,8 @@ function snapshotAppState(app) {
             notableThresholdPct:  app._forecastNotableThresholdPct  || 130
         },
         retirementTargetDate:  app.retirementTargetDate ?? null,
-        homePurchasePlan:      app.homePurchasePlan ?? null
+        homePurchasePlan:      app.homePurchasePlan ?? null,
+        budgetCategories:      app.budgetCategories ?? {}
     };
 }
 
@@ -169,7 +170,8 @@ async function postAllResources(data) {
         ledgerSettings:   data.ledgerSettings,
         forecastSettings: data.forecastSettings,
         retirementTargetDate: data.retirementTargetDate ?? null,
-        homePurchasePlan: data.homePurchasePlan ?? null
+        homePurchasePlan: data.homePurchasePlan ?? null,
+        budgetCategories: data.budgetCategories ?? {}
     });
 
     // Balance history FKs to debts (which remapFk doesn't handle), so it is
@@ -212,6 +214,7 @@ function applyResultsToApp(app, data, { accountResults, personResults, resourceR
     app._savedStrategy             = data.strategy ?? null;
     app.retirementTargetDate       = data.retirementTargetDate ?? null;
     app.homePurchasePlan           = data.homePurchasePlan ?? null;
+    app.budgetCategories           = data.budgetCategories ?? {};
 
     if (data.ledgerSettings) {
         app._ledgerAccountFilter = data.ledgerSettings.accountFilter || 'all';
@@ -257,7 +260,8 @@ function snapshotToPostData(snapshot) {
         ledgerSettings:        snapshot.ledgerSettings,
         forecastSettings:      snapshot.forecastSettings,
         retirementTargetDate:  snapshot.retirementTargetDate,
-        homePurchasePlan:      snapshot.homePurchasePlan
+        homePurchasePlan:      snapshot.homePurchasePlan,
+        budgetCategories:      snapshot.budgetCategories
     };
 }
 
@@ -456,6 +460,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
         }
         if (clean.retirementTargetDate) app.retirementTargetDate = clean.retirementTargetDate;
         if (clean.homePurchasePlan) app.homePurchasePlan = clean.homePurchasePlan;
+        app.budgetCategories = { ...(app.budgetCategories || {}), ...(clean.budgetCategories || {}) };
         await apiFetch('PATCH', '/api/plan-settings', {
             strategy:        app._savedStrategy,
             monthlyPayment:  app._savedMonthlyPayment,
@@ -463,7 +468,8 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             ledgerSettings:   clean.ledgerSettings,
             forecastSettings: clean.forecastSettings,
             retirementTargetDate: app.retirementTargetDate,
-            homePurchasePlan: app.homePurchasePlan ?? null
+            homePurchasePlan: app.homePurchasePlan ?? null,
+            budgetCategories: app.budgetCategories ?? {}
         });
 
     } catch (err) {
@@ -485,6 +491,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             transfers:            snapshot.transfers,
             retirementTargetDate: snapshot.retirementTargetDate,
             homePurchasePlan:     snapshot.homePurchasePlan,
+            budgetCategories:     snapshot.budgetCategories,
             balanceHistory:       snapshot.balanceHistory,
             ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
             ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
