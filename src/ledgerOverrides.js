@@ -2,7 +2,7 @@
 
 import { formatCurrency, parseFiniteOrNull, formatShortDate } from './utils.js';
 import { pgPut, pgDelete } from './postgresSync.js';
-import { showAlertModal } from './ui.js';
+import { showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 
 export function getOverrideAmount(app, txId) {
     if (!txId) return null;
@@ -78,11 +78,13 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
     };
 
     confirmBtn.onclick = async () => {
-        const parsed = parseFiniteOrNull(input.value);
+        const rawValue = String(input.value ?? '').trim();
+        const parsed = rawValue === '' ? null : parseFiniteOrNull(rawValue);
         if (parsed === null) {
             await showAlertModal('Please enter a valid number.');
             return;
         }
+        if (parsed === 0 && !(await confirmZeroAmountAllowed(app, tx.name))) return;
         setLedgerAmountOverride(app, tx.transactionId, parsed, {
             originalAmount: tx.originalAmount,
             transactionName: tx.name,

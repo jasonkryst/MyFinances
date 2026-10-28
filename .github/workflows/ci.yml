@@ -221,6 +221,7 @@ jobs:
             tests/features/test_recurring_archive.py \
             tests/features/test_recurring_r01_r02.py \
             tests/features/test_analytics.py \
+            tests/features/test_zero_amount_policy.py \
             -v
 
   test-features-c:

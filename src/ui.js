@@ -4,6 +4,7 @@ import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from '
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
 import { APP_VERSION, escapeHtml } from './utils.js';
+import { getZeroAmountPolicy } from './settings.js';
 import { initCommandPalette } from './commandPalette.js';
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
@@ -1500,4 +1501,17 @@ export function showAlertModal(message, title = 'Notice') {
         modal.focus();
         setTimeout(() => okBtn.focus(), 30);
     });
+}
+// #412: shared $0-amount gate for the ledger override modal and recurring
+// template forms. Returns true if the caller may save. Callers must only
+// invoke this for a validated amount that is exactly 0 (and never for
+// transfer-type templates, which always require > 0).
+export async function confirmZeroAmountAllowed(app, contextLabel) {
+    const policy = getZeroAmountPolicy(app);
+    if (policy === 'allow') return true;
+    if (policy === 'block') {
+        await showAlertModal('$0 amounts are disabled. You can change this in Settings → Advanced.');
+        return false;
+    }
+    return showDeleteConfirmModal(`Save a $0 amount for ${contextLabel || 'this item'}?`, 'Save');
 }

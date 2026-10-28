@@ -1,7 +1,7 @@
 // First-run setup wizard and the Settings modal that lets users change their
 // choice later. Both are plain static modals following the same
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
-import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_DEBTS, SHOW_ARCHIVED_RECURRING, AUTO_NW_SNAPSHOT } from './settings.js';
+import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_DEBTS, SHOW_ARCHIVED_RECURRING, AUTO_NW_SNAPSHOT, ZERO_AMOUNT_POLICY, getZeroAmountPolicy } from './settings.js';
 import { getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
@@ -79,6 +79,7 @@ export function initSettingsModal(app) {
     const showArchivedCheckbox = document.getElementById('settingShowArchivedDebts');
     const showArchivedRecurringCheckbox = document.getElementById('settingShowArchivedRecurring');
     const autoNwSnapshotCheckbox = document.getElementById('settingAutoNwSnapshot');
+    const zeroPolicySelect = document.getElementById('settingZeroAmountPolicy');
     const storageSelect = document.getElementById('settingStorageBackend');
     const postgresLockNote = document.getElementById('settingsStoragePostgresNote');
     const emailTestGroup = document.getElementById('settingsEmailTestGroup');
@@ -122,6 +123,7 @@ export function initSettingsModal(app) {
         if (showArchivedCheckbox) showArchivedCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false));
         if (showArchivedRecurringCheckbox) showArchivedRecurringCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_RECURRING, false));
         if (autoNwSnapshotCheckbox) autoNwSnapshotCheckbox.checked = Boolean(getSetting(app, AUTO_NW_SNAPSHOT, false));
+        if (zeroPolicySelect) zeroPolicySelect.value = getZeroAmountPolicy(app);
         const isPostgres = getStorageBackendPreference() === 'postgres';
         if (isPostgres) {
             storageSelect.value = 'postgres';
@@ -161,6 +163,7 @@ export function initSettingsModal(app) {
         if (showArchivedCheckbox) setSetting(app, SHOW_ARCHIVED_DEBTS, showArchivedCheckbox.checked);
         if (showArchivedRecurringCheckbox) setSetting(app, SHOW_ARCHIVED_RECURRING, showArchivedRecurringCheckbox.checked);
         if (autoNwSnapshotCheckbox) setSetting(app, AUTO_NW_SNAPSHOT, autoNwSnapshotCheckbox.checked);
+        if (zeroPolicySelect) setSetting(app, ZERO_AMOUNT_POLICY, zeroPolicySelect.value);
         if (storageSelect.value === 'postgres') {
             if (getStorageBackendPreference() !== 'postgres') {
                 close();

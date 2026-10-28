@@ -46,6 +46,11 @@ export default {
     'settings.sendTestEmail': 'Wyślij testowy e-mail',
     'settings.language': 'Język',
     'settings.languageHelp': 'Tłumaczenie jest wciąż rozszerzane — niektóre strony mogą pozostać w języku angielskim.',
+    'settings.zeroAmountLabel': 'Kwoty $0 w księdze',
+    'settings.zeroAmountAllow': 'Zezwalaj',
+    'settings.zeroAmountWarn': 'Ostrzegaj (potwierdź przed zapisem)',
+    'settings.zeroAmountBlock': 'Blokuj',
+    'settings.zeroAmountHelp': 'Wpisy na $0 są przydatne do śledzenia transakcji (np. kartą kredytową) bez zmiany salda. Dotyczy korekt w księdze i szablonów cyklicznych; przelewy zawsze wymagają kwoty powyżej $0.',
     'settings.done': 'Gotowe',
 
     'dataTransfer.title': 'Kopia Zapasowa i Przywracanie',
