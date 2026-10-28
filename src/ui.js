@@ -985,8 +985,52 @@ function _buildWhatsNewHtml() {
 }
 
 // Statically embed the last few versions' highlights.
-// Update this list every version bump alongside CHANGELOG.md.
+// Update this list every minor version bump alongside CHANGELOG.md —
+// tests/features/test_whats_new.py fails if the newest entry's major.minor
+// doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.48.0 — 2026-10-27',
+        items: [
+            '<strong>Ledger: $0 amount setting</strong> (issue #412) — a new Settings → Advanced option, "$0 ledger amounts" (Allow / Warn / Block, default Allow), controls whether $0 can be saved in the Ledger override modal and on recurring templates. $0 entries are handy for tracking transactions that happen on a credit card or elsewhere without moving a balance. A blank amount field is now always rejected instead of silently saving $0.'
+        ]
+    },
+    {
+        version: '6.47.0 — 2026-10-27',
+        items: [
+            '<strong>Accessibility: clearer screen-reader labels</strong> (issue #331) — buttons like Edit, Delete, Pause and Save now say which item they act on ("Edit Visa card"), toggle chips announce whether they\'re on, and Ledger/Plan sort headers are keyboard-operable and announce their sort direction.'
+        ]
+    },
+    {
+        version: '6.46.0 — 2026-10-27',
+        items: [
+            '<strong>Home Purchase plan syncs to the server</strong> (issue #405) — on the optional self-hosted PostgreSQL backend, your Home Purchase plan is now saved server-side like everything else, so it follows you across devices and browsers.'
+        ]
+    },
+    {
+        version: '6.45.0 — 2026-10-27',
+        items: [
+            '<strong>Reports: custom date range</strong> (issue #329) — Spending Analysis and Budget Variance gain a Range selector (Single Month / Quarter / Half Year / Year), comparing the selected period against the equivalent period before it.'
+        ]
+    },
+    {
+        version: '6.44.0 — 2026-10-27',
+        items: [
+            '<strong>Export charts as PNG</strong> (issue #271) — a new "Export Charts as PNG" button in Backup &amp; Restore saves every chart currently on screen as an image.'
+        ]
+    },
+    {
+        version: '6.43.0 — 2026-10-27',
+        items: [
+            '<strong>Recurring: pause with auto-resume</strong> (issue #299) — pausing a recurring item now lets you pick an optional "Resume on" date, so it switches itself back on and your forecasts stay accurate.'
+        ]
+    },
+    {
+        version: '6.42.0 — 2026-10-27',
+        items: [
+            '<strong>Savings: savings rate summary</strong> (issue #303) — a new panel at the top of the Savings page shows your savings rate at a glance.'
+        ]
+    },
     {
         version: '6.41.0 — 2026-10-26',
         items: [

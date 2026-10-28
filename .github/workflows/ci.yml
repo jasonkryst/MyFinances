@@ -327,6 +327,7 @@ jobs:
           pytest \
             tests/features/test_performance.py \
             tests/features/test_calendar_feed.py \
+            tests/features/test_whats_new.py \
             -v
 
   # ---------------------------------------------------------------------------
@@ -431,6 +432,7 @@ jobs:
             tests/ui/test_whatif_simulator.py \
             tests/ui/test_strategy_calendar.py \
             tests/ui/test_mobile.py \
+            tests/ui/test_mobile_layout_fixes.py \
             tests/ui/test_charts.py \
             tests/ui/test_debt_actions.py \
             -v

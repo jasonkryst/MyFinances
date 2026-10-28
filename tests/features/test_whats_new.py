@@ -4,8 +4,12 @@ What's New notification tests (issue #289)
 Tests the version-change notification dot, modal, and localStorage persistence.
 """
 
+import re
+from pathlib import Path
+
 import pytest
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
 BASE_URL = "http://localhost:32900/"
 LAST_SEEN_KEY = "debtTrackerLastSeenVersion"
 
@@ -182,8 +186,9 @@ def test_whats_new_modal_exists_in_dom(app_page):
 
 @pytest.mark.feature
 def test_whats_new_entries_not_stale(app_page):
-    """The newest What's New entry must stay within a few minor versions of
-    the running app version, so this list can't silently go stale again."""
+    """The newest What's New entry must be for the running app's major.minor
+    version (patch releases don't need their own entry), so this list can't
+    silently go stale again — it drifted 7 minor versions behind once (6.41→6.48)."""
     page = app_page
 
     page.click('#accountMenuBtn')
@@ -192,13 +197,49 @@ def test_whats_new_entries_not_stale(app_page):
     page.wait_for_selector('#whatsNewModal:not(.hidden)', timeout=3000)
 
     app_version_text = page.inner_text('#appVersion')  # e.g. "v6.32.0"
-    app_minor = int(app_version_text.lstrip('v').split('.')[1])
+    app_major_minor = tuple(int(p) for p in app_version_text.lstrip('v').split('.')[:2])
 
     first_heading = page.query_selector('.wn-version-heading')
     assert first_heading, "Expected at least one version heading in the What's New modal"
-    heading_minor = int(first_heading.inner_text().split('—')[0].strip().split('.')[1])
+    heading_major_minor = tuple(int(p) for p in first_heading.inner_text().split('—')[0].strip().split('.')[:2])
 
-    assert app_minor - heading_minor <= 3, (
-        f"Newest What's New entry (minor {heading_minor}) is more than 3 versions behind "
-        f"the running app version (minor {app_minor}) — WHATS_NEW_ENTRIES needs a new entry."
+    assert heading_major_minor == app_major_minor, (
+        f"Newest What's New entry is {heading_major_minor} but the app is {app_major_minor} — "
+        f"add a WHATS_NEW_ENTRIES entry in src/ui.js for this release."
     )
+
+
+def _whats_new_versions():
+    src = (REPO_ROOT / 'src' / 'ui.js').read_text(encoding='utf-8')
+    block = src.split('const WHATS_NEW_ENTRIES = [', 1)[1]
+    return [tuple(int(p) for p in m) for m in re.findall(r"version: '(\d+)\.(\d+)\.(\d+)", block)]
+
+
+def _changelog_versions():
+    text = (REPO_ROOT / 'CHANGELOG.md').read_text(encoding='utf-8')
+    return [tuple(int(p) for p in m) for m in re.findall(r'^## \[(\d+)\.(\d+)\.(\d+)\]', text, re.M)]
+
+
+@pytest.mark.feature
+def test_whats_new_has_no_gaps_vs_changelog():
+    """Every minor release in CHANGELOG.md from the oldest What's New entry up
+    to the newest must have its own What's New entry (no skipped versions)."""
+    wn = _whats_new_versions()
+    assert wn, "WHATS_NEW_ENTRIES appears empty or unparseable"
+    oldest = min(wn)
+    wn_minors = {v[:2] for v in wn}
+    missing = sorted({v[:2] for v in _changelog_versions() if v >= oldest and v[2] == 0} - wn_minors)
+    assert not missing, (
+        f"CHANGELOG minor releases with no What's New entry: "
+        f"{['.'.join(map(str, m)) + '.0' for m in missing]} — add them to WHATS_NEW_ENTRIES in src/ui.js."
+    )
+
+
+@pytest.mark.feature
+def test_whats_new_entries_descending_and_not_ahead_of_app():
+    """Negative guard: entries must be newest-first and never newer than APP_VERSION."""
+    wn = _whats_new_versions()
+    assert wn == sorted(wn, reverse=True), f"WHATS_NEW_ENTRIES out of order: {wn}"
+    app_src = (REPO_ROOT / 'src' / 'utils.js').read_text(encoding='utf-8')
+    app_version = tuple(int(p) for p in re.search(r"APP_VERSION = '(\d+)\.(\d+)\.(\d+)'", app_src).groups())
+    assert wn[0] <= app_version, f"Newest What's New entry {wn[0]} is ahead of APP_VERSION {app_version}"
