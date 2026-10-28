@@ -4,6 +4,20 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.52.0] — 2026-10-28
+
+### Added
+- **Recurring templates: new Income type** (issue #252), for regular side income such as freelance retainers, dividends or weekly tutoring. Income templates show a "+" amount and a 💰 badge and default to the "Income" category. They post as inflows, so the Ledger, Accounts, Forecast and Reports all count them as money coming in.
+  - The old "Reimbursement / Income" type is now labeled **Reimbursement**. Existing templates are unchanged.
+  - Both calendar feeds title these events `Income - Name`.
+  - Postgres migration `1755600000028` adds `income` to the allowed recurring types. Rolling it back first converts income templates to reimbursements, so the rollback can't fail or lose rows.
+- Design spec: `docs/superpowers/specs/2026-10-28-recurring-income-type-design.md`.
+
+### Changed
+- **Health now counts recurring templates in your cash flow.** This month's subscriptions count as outflow, and income and reimbursement templates count as inflow, per occurrence, so weekly and biweekly templates are counted correctly. Transfers, paused, archived and skipped-month templates are excluded.
+  - This affects Monthly Cash Flow, Savings Rate, the FIRE estimate, the trend arrow, emergency-fund coverage and Budget Allocation. The cash-flow card adds "Recurring income" and "Recurring" rows.
+  - **DTI, mortgage DTI, interest burden and Home Purchase affordability are unchanged** and still use salary and bonus income only.
+
 ## [6.48.2] — 2026-10-27
 
 ### Fixed

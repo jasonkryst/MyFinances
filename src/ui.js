@@ -990,6 +990,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.52.0 — 2026-10-28',
+        items: [
+            '<strong>Recurring income</strong> (issue #252): recurring templates can now be set to <strong>Income</strong>, for side income like freelance retainers or dividends. The Health page\'s cash-flow and savings figures now also count your recurring subscriptions and recurring income when working out your monthly surplus.'
+        ]
+    },
+    {
         version: '6.48.0 — 2026-10-27',
         items: [
             '<strong>Ledger: $0 amount setting</strong> (issue #412) — a new Settings → Advanced option, "$0 ledger amounts" (Allow / Warn / Block, default Allow), controls whether $0 can be saved in the Ledger override modal and on recurring templates. $0 entries are handy for tracking transactions that happen on a credit card or elsewhere without moving a balance. A blank amount field is now always rejected instead of silently saving $0.'
