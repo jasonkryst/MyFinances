@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.52.2] — 2026-10-28
+
+### Fixed
+- **Self-hosted server failed to start after updating (502 on sign-in).**
+  - **What happened:** migration `1755600000026` (debt ownership split, #272) merged after `1755600000027` (category budgets, #255). Any deployment that had already applied 027 then hit node-pg-migrate's order check ("Not run migration …026 is preceding already run migration …027"), so the server exited on every start and nginx returned 502 for `/api` and `/auth`.
+  - **Fix:** the migration is renumbered to `1755600000029_add-ownership-split-to-debts` and now uses `ADD COLUMN IF NOT EXISTS` / `DROP COLUMN IF EXISTS`, so it's harmless where the old 026 already ran.
+  - **What to do:** pull the update and restart, and the server applies 028 and 029 on startup. No manual database step is needed.
+
+### Tests / CI
+- **Guard against out-of-order migrations.** New `server/scripts/check-migration-order.sh` runs in the `test-server` job on every PR. It fails if a migration the PR adds is numbered at or below the newest migration on the base branch, which is exactly what caused the crash above.
+
 ## [6.52.1] — 2026-10-28
 
 ### Fixed

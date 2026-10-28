@@ -731,6 +731,12 @@ jobs:
           node-version: "26"
           cache: npm
           cache-dependency-path: server/package-lock.json
+      - name: New migrations must sort after the base branch's newest
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          sh server/scripts/check-migration-order.sh "origin/${{ github.base_ref }}"
       - run: npm ci
       - run: npm run migrate up
       - run: npm test
