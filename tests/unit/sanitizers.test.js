@@ -279,6 +279,12 @@ describe('sanitizeRecurringTemplate', () => {
         expect(result.type).toBe('subscription');
     });
 
+    test('keeps the income type (#252) and leaves reimbursement unchanged', () => {
+        expect(sanitizeRecurringTemplate({ type: 'income' }, 1).type).toBe('income');
+        expect(sanitizeRecurringTemplate({ type: 'reimbursement' }, 1).type).toBe('reimbursement');
+        expect(sanitizeRecurringTemplate({ type: 'Income' }, 1).type).toBe('subscription');
+    });
+
     test('filters skippedMonths to YYYY-MM-shaped strings only (does not validate calendar range)', () => {
         const result = sanitizeRecurringTemplate({ skippedMonths: ['2026-08', 'bad-format', '2026-13'] }, 1);
         expect(result.skippedMonths).toEqual(['2026-08', '2026-13']);
