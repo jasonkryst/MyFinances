@@ -441,6 +441,12 @@ function _debtUtilization(debt) {
 /**
  * Render the Debts page list.
  */
+// One label-over-value fact tile in a debt card's .debt-details grid.
+// `valueHtml` must already be escaped/formatted by the caller.
+function debtDetailTile(label, valueHtml, extraCls = '') {
+    return `<div class="debt-detail${extraCls ? ' ' + extraCls : ''}"><span class="debt-detail-label">${label}</span><span class="debt-detail-value">${valueHtml}</span></div>`;
+}
+
 export function renderDebtsList(app) {
     const categorySummary = document.getElementById('categorySummary');
     if (categorySummary) {
@@ -682,8 +688,8 @@ export function renderDebtsList(app) {
 
         const summaryRow = app._debtSummaryRows?.find(r => r.name === debt.name);
         const payoffDetailHTML = (summaryRow && summaryRow.payoffDate)
-            ? `<div class="debt-detail debt-payoff-detail"><strong>📅 Payoff Date:</strong> ${summaryRow.payoffDate}</div>`
-            : `<div class="debt-detail debt-payoff-detail debt-payoff-detail--muted"><strong>📅 Payoff Date:</strong> <span class="text-muted">Run a plan to see</span></div>`;
+            ? debtDetailTile('📅 Payoff Date', escapeHtml(String(summaryRow.payoffDate)), 'debt-payoff-detail')
+            : debtDetailTile('📅 Payoff Date', '<span class="text-muted">Run a plan to see</span>', 'debt-payoff-detail debt-payoff-detail--muted');
 
         if (app.editingDebtId === debt.id) {
             let editHTML = `
@@ -748,7 +754,7 @@ export function renderDebtsList(app) {
             cardHTML += `</div>
                     ${personPills ? `<div class="person-pills debt-person-pills">${personPills}</div>` : ''}
                     ${splitHtml ? `<div class="debt-ownership-split text-muted-secondary" data-ownership-split>Ownership: ${splitHtml}</div>` : ''}
-                    <div class="debt-details">`;
+                    <div class="debt-details debt-details--tiles">`;
 
             if (debt.debtType === 'fixedAmount') {
                 const start = new Date(debt.fixedStartDate);
@@ -759,22 +765,16 @@ export function renderDebtsList(app) {
                 const fixedPct = total > 0 ? Math.min(100, Math.round(elapsed / total * 100)) : 0;
 
                 cardHTML += `
-                        <div class="debt-detail">
-                            <strong>Monthly Amount:</strong> ${formatCurrency(debt.fixedAmount)}
-                        </div>
-                        <div class="debt-detail">
-                            <strong>Period:</strong> ${debt.fixedStartDate} to ${debt.fixedEndDate}
-                        </div>
+                        ${debtDetailTile('Monthly Amount', formatCurrency(debt.fixedAmount), 'debt-detail--primary')}
+                        ${debtDetailTile('Period', `${formatShortDate(debt.fixedStartDate)} – ${formatShortDate(debt.fixedEndDate)}`)}
                         ${payoffDetailHTML}
-                        ${debt.priority ? `
-                            <div class="debt-detail">
-                                <strong>Priority:</strong> ${debt.priority}/100
-                            </div>
-                        ` : ''}`;
+                        ${debt.priority ? debtDetailTile('Priority', `${debt.priority}/100`) : ''}`;
                 cardHTML += `</div>
+                    <div class="debt-progress-group">
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label"><span>Time elapsed</span><span>${fixedPct}%</span></div>
                         <div class="debt-progress-bar"><div class="debt-progress-fill${fixedPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${fixedPct}"></div></div>
+                    </div>
                     </div>`;
             } else {
                 const monthlyInterest = dailyCompoundInterest(debt.accountBalance, debt.interestRate, 30);
@@ -793,36 +793,24 @@ export function renderDebtsList(app) {
                         return Math.max(0, totalPaid - debt.accountBalance);
                     })()
                     : null;
-                const progressPct = origBal > 0 ? Math.min(100, Math.round((origBal - debt.accountBalance) / origBal * 100)) : 0;
+                const rawProgressPct = origBal > 0 ? Math.round((origBal - debt.accountBalance) / origBal * 100) : 0;
+                const progressPct = Math.max(0, Math.min(100, rawProgressPct));
+                const balanceGrowthPct = rawProgressPct < 0 ? -rawProgressPct : 0;
                 const iptd = computeInterestPaidToDate(debt);
 
                 cardHTML += `
-                        <div class="debt-detail">
-                            <strong>Balance:</strong> ${formatCurrency(debt.accountBalance)}
-                            ${origBal > debt.accountBalance ? `<span class="amount-secondary">(was ${formatCurrency(origBal)})</span>` : ''}
-                        </div>
-                        <div class="debt-detail">
-                            <strong>Interest:</strong> ${debt.interestRate.toFixed(2)}%
-                            <span class="text-monthly-interest">≈ ${formatCurrency(monthlyInterest)}/mo</span>
-                        </div>
-                        <div class="debt-detail">
-                            <strong>Min Payment:</strong> ${formatCurrency(debt.minimumPayment)}
+                        ${debtDetailTile('Balance', `${formatCurrency(debt.accountBalance)}
+                            ${origBal > debt.accountBalance ? `<span class="amount-secondary">was ${formatCurrency(origBal)}</span>` : ''}`, 'debt-detail--primary')}
+                        ${debtDetailTile('Min Payment', `${formatCurrency(debt.minimumPayment)}
                             ${debt.originalMinimumPayment !== undefined && debt.originalMinimumPayment !== debt.minimumPayment
-                                ? `<span class="amount-secondary">(originally ${formatCurrency(debt.originalMinimumPayment)})</span>`
+                                ? `<span class="amount-secondary">originally ${formatCurrency(debt.originalMinimumPayment)}</span>`
                                 : ''}
-                            ${negAmortRisk ? `<span class="neg-amort-badge" title="Your minimum payment barely covers interest — the balance may never decrease!">⚠️ Neg. amortization risk</span>` : ''}
-                        </div>
-                        <div class="debt-detail">
-                            <strong>Due Date:</strong> ${getDayOrdinal(debt.dueDate)} of month
-                        </div>
-                        ${debt.nextPaymentDue ? `
-                        <div class="debt-detail">
-                            <strong>Next Payment Due:</strong> ${formatShortDate(debt.nextPaymentDue)}
-                        </div>` : ''}
-                        ${debt.debtStartDate ? `
-                        <div class="debt-detail">
-                            <strong>Opened:</strong> ${formatShortDate(debt.debtStartDate)}
-                        </div>` : ''}
+                            ${negAmortRisk ? `<span class="neg-amort-badge" title="Your minimum payment barely covers interest — the balance may never decrease!">⚠️ Neg. amortization risk</span>` : ''}`, 'debt-detail--primary')}
+                        ${debtDetailTile('Interest', `${debt.interestRate.toFixed(2)}%
+                            <span class="text-monthly-interest">≈ ${formatCurrency(monthlyInterest)}/mo</span>`)}
+                        ${debtDetailTile('Due Date', `${getDayOrdinal(debt.dueDate)} of month`)}
+                        ${debt.nextPaymentDue ? debtDetailTile('Next Payment Due', formatShortDate(debt.nextPaymentDue)) : ''}
+                        ${debt.debtStartDate ? debtDetailTile('Opened', formatShortDate(debt.debtStartDate)) : ''}
                         ${iptd ? `
                         <div class="debt-detail iptd-detail">
                             <strong>Est. interest paid to date:</strong>
@@ -836,11 +824,7 @@ export function renderDebtsList(app) {
                             At this rate: <strong>${(minPayTrapMonths / 12).toFixed(1)} years</strong> to pay off
                             ${minPayTrapInterest !== null ? `— costing <strong>${formatCurrency(minPayTrapInterest)}</strong> in interest` : ''}
                         </div>` : ''}
-                        ${debt.priority ? `
-                            <div class="debt-detail">
-                                <strong>Priority:</strong> ${debt.priority}/100
-                            </div>
-                        ` : ''}`;
+                        ${debt.priority ? debtDetailTile('Priority', `${debt.priority}/100`) : ''}`;
                 let utilHTML = '';
                 if (debt.creditLimit != null && debt.creditLimit > 0) {
                     const rawUtilPct = Math.round((debt.accountBalance / debt.creditLimit) * 100);
@@ -862,28 +846,26 @@ export function renderDebtsList(app) {
                 }
 
                 cardHTML += `</div>
+                    <div class="debt-progress-group">
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label"><span>Payoff progress</span><span>${progressPct}%</span></div>
                         <div class="debt-progress-bar"><div class="debt-progress-fill${progressPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${progressPct}"></div></div>
-                    </div>${utilHTML}`;
+                        ${balanceGrowthPct > 0 ? `<div class="debt-progress-note">Balance is up ${balanceGrowthPct}% from its starting ${formatCurrency(origBal)}</div>` : ''}
+                    </div>${utilHTML}
+                    </div>`;
             }
 
             cardHTML += `
-                        ${debt.category ? `
-                            <div class="debt-detail">
-                                <strong>Category:</strong> ${escapeHtml(debt.category)}
-                            </div>
-                        ` : ''}
                         ${debt.notes ? `
                             <div class="debt-detail debt-notes-display">
                                 ${escapeHtml(debt.notes)}
                             </div>
                         ` : ''}
-                        ${debt.updatedAt ? `
-                            <div class="debt-detail">
-                                <strong>Last updated:</strong> <span class="text-muted">${formatShortDate(debt.updatedAt)}</span>
-                            </div>
-                        ` : ''}
+                        ${debt.category || debt.updatedAt ? `
+                        <div class="debt-meta">
+                            ${debt.category ? `<span class="debt-meta-item"><span class="debt-meta-label">Category</span> ${escapeHtml(debt.category)}</span>` : ''}
+                            ${debt.updatedAt ? `<span class="debt-meta-item"><span class="debt-meta-label">Last updated</span> ${formatShortDate(debt.updatedAt)}</span>` : ''}
+                        </div>` : ''}
                 </div>
                 <div class="debt-actions">
                     ${debt.archived
