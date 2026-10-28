@@ -83,7 +83,8 @@ import {
 } from './strategySummaryTable.js';
 import {
     displayInterestComparison as displayInterestComparisonFeature,
-    displayWhatIfSimulator as displayWhatIfSimulatorFeature
+    displayWhatIfSimulator as displayWhatIfSimulatorFeature,
+    resetRefinanceScenario as resetRefinanceScenarioFeature
 } from './strategyComparison.js';
 import {
     prevReportMonth as prevReportMonthFeature,
@@ -769,6 +770,11 @@ export class DebtTrackerApp {
     // ─── What-If Simulator ────────────────────────────────────────────────────
     displayWhatIfSimulator(basePayment, strategy) {
         return displayWhatIfSimulatorFeature(this, basePayment, strategy);
+    }
+
+    /** Reset the what-if Refinancing scenario section to empty (#320). */
+    resetRefinanceScenario() {
+        return resetRefinanceScenarioFeature(this);
     }
 
     /**

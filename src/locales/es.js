@@ -142,6 +142,10 @@ export default {
     'health.status.surplus': 'Superávit',
     'health.status.breakEven': 'Punto de Equilibrio',
     'health.status.deficit': 'Déficit',
+    'health.fireMultiplierLabel': 'Años de gastos',
+    'health.fireRateLabel': 'Tasa de retiro %',
+    'health.fireMultiplierInvalid': 'Introduce un número mayor que 0 y como máximo {max}.',
+    'health.fireRateInvalid': 'Introduce una tasa mayor que 0 y como máximo 100 (y al menos {min}).',
     'health.surplusSparklineCaption': 'Saldo proyectado durante {days} días',
 
     // Retirement page (#336) — stubs, pending full translation
