@@ -4,6 +4,25 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.52.1] — 2026-10-28
+
+### Fixed
+- **Import: incomes now keep their linked person** (issue #421). JSON import in replace or merge-by-name mode gives imported people new ids, and each income's `personId` is now remapped to the new id.
+  - A person reference that doesn't resolve to anyone in the import is now cleared instead of left pointing at a nonexistent person. This applies to incomes, and also to debts' `personIds`/`ownershipSplit`, which previously kept stale ids.
+  - The optional Postgres import path applies the same rule.
+
+### Changed
+- **Login screen redesign.**
+  - Email and password fields are now full-width, rounded, 48px-tall inputs with a visible focus ring. Before, they were browser-default boxes, because the shared input styles didn't cover `email`/`password` fields.
+  - The card has rounder corners and a softer shadow, the logo sits on a frosted tile, and the Sign In button has more weight.
+  - In the installed app, the blue header is now a hero at the top of the screen. It used to be a stripe floating mid-screen with empty space above, and the form now sits directly beneath it.
+  - High-contrast mode gets matching input borders and a yellow focus ring.
+
+### Tests / CI
+- **Tests now wait for app startup** (issue #422). `src/app.js` sets `<html data-app-ready="true">` once the app has been constructed and `init()` has settled, even if startup fails. The shared `app_page` fixture waits for that marker after the page loads and after every `page.reload()`. This removes the "`window.app` is undefined" race behind most intermittent local and CI failures.
+  - Waiting properly exposed tests that had relied on that race. They read the lazily loaded Reconcile and Reports pages, or a reconciliation alert, before the async render finished; they now `await` the render.
+  - New tests: `tests/features/test_app_ready.py` (including the startup-failure path) and `tests/features/test_import_person_remap.py`, plus Jest coverage for the person-remap helpers.
+
 ## [6.52.0] — 2026-10-28
 
 ### Added

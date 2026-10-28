@@ -54,6 +54,10 @@ npm run migrate up && npm test                   # node:test, server/test/*.test
 ```
 Runs in CI as the `test-server` job against a `postgres:16-alpine` service container (issue #407 — before that, nothing ran this suite).
 
+**App readiness in tests (issue #422):** `src/app.js` sets `<html data-app-ready="true">` once `new DebtTrackerApp()` and `init()` settle, even if startup fails. The `app_page` fixture waits for that marker after `goto`, and wraps `page.reload()` so every reload waits too. For a raw `page` fixture, or for a `goto`, call `tests.conftest.wait_for_app_ready(page)`.
+
+**Lazy pages render asynchronously.** `switchPage('reconcile'|'reports')` returns before the lazy-loaded module renders. Reading the DOM straight away only used to pass because of the startup race. Seed inside `async () => { …; app.switchPage('reconcile'); await app.renderReconciliationPage(); }` (or `await app.renderReportsPage()`), or wait for a selector. `applyReconciliation` also awaits its module before showing `#alertModal`, so wait for `#alertModalOkBtn` to be visible first.
+
 ### Mutation testing
 ```bash
 npm install
@@ -148,8 +152,9 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
   - **Sanitizer.** `sanitizeOwnershipSplit()` (`sanitizers.js`, called from `sanitizeDebt`) takes keys only from `personIds`, so `__proto__`/`constructor` can never appear, and clamps each value to 0..1. It returns `null` for a single person, a non-object, or an empty or all-zero split, and normalizes proportionally when the sum is off by more than ±0.01; the import-warning diff records that as `coerced`.
   - **Share math and UI.** `src/debtOwnership.js` holds `getDebtShare`, `removePersonFromDebt` and `autoBalancePercents`, plus the Ownership control. The control renders into `#debtOwnership` in the Add form and `#inline-ownership-<id>` in the inline editor, using delegated listeners installed from `initializeEventListeners`.
   - **People page.** `people.js` attributes balance, minimum payment and the credit-utilization numerator/denominator by share. `deletePerson` drops the deleted person's key and renormalizes, or moves the share to the replacement person.
-  - **Import remapping.** `remapDebtPersonRefs()` (`dataExport.js`) remaps `personIds` and split keys on local JSON import, in both replace and merge-by-name modes. This also fixed debts' `personIds` going stale on import. `postgresImport.js` `remapFk` remaps split keys through `personIdMap`. Income `personId` is still not remapped on local import, which is a known gap.
+  - **Import remapping.** `remapDebtPersonRefs()` (`dataExport.js`) remaps `personIds` and split keys on local JSON import, in both replace and merge-by-name modes. This also fixed debts' `personIds` going stale on import. `postgresImport.js` `remapFk` remaps split keys through `personIdMap`. 
   - **Postgres.** A nullable `debts.ownership_split jsonb` column (migration `1755600000026`, whose `down()` drops the column).
+  - **Every person reference is remapped on import (#421).** Debt `personIds`/`ownershipSplit` go through `remapDebtPersonRefs`, and income `personId` through `remapIncomePersonRef` (both in `sanitizers.js`; `postgresImport.js`'s `remapFk` mirrors them). An unresolved id becomes `null` (income) or is dropped (debts), never a dangling id. Any new record type that references a person must be added to these remap paths.
 - **Adjustable FIRE target** (issue #361) — the Health FIRE card's formerly hardcoded `annualExpenses * 25` is now `annualExpenses * getFireMultiplier(app)` (`settings.js`).
   - **Storage.** One canonical value is stored: the generic `fireMultiplier` setting (`FIRE_MULTIPLIER`, default 25). Any stored value that isn't a finite number in (0, `FIRE_MULTIPLIER_MAX` = 1000] falls back to 25. Because it is a generic setting it reaches Postgres and export/import with no new wiring.
   - **Inputs.** Two linked inputs, `#healthFireMultiplier` and `#healthFireRate` (rate = 100 / multiplier), commit on `change`. Invalid input is never saved: both inputs revert to the last valid value and an inline `#healthFireError` appears (wired with `aria-describedby`).

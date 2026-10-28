@@ -151,7 +151,7 @@ def test_reconcile_inputs_have_labels(app_page):
     """Reconcile card inputs (statement start/end dates, balance, note) have associated <label> elements."""
     page = app_page
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [{ id: 8501, name: 'Recon Labels', type: 'Checking', startingBalance: 1000 }];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
@@ -159,6 +159,7 @@ def test_reconcile_inputs_have_labels(app_page):
         app.reconciliations = [];
         app._reconciliationAccountFilter = 'all';
         app.switchPage('reconcile');
+        await app.renderReconciliationPage();
     }""")
 
     for field in ('start', 'end', 'balance', 'note'):

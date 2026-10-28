@@ -14,7 +14,7 @@ import pytest
 def _seed(page, reconciliations=None, with_bill=False, switch_page=True):
     """One checking account (id 9001), optional 1st-of-month bill, optional prior reconciliations."""
     page.wait_for_function("() => window.app && window.app.accounts !== undefined", timeout=10000)
-    page.evaluate("""([recons, withBill, switchPage]) => {
+    page.evaluate("""async ([recons, withBill, switchPage]) => {
         const app = window.app;
         app.accounts = [{ id: 9001, name: 'Range Checking', type: 'Checking', startingBalance: 1000 }];
         app.bills = withBill
@@ -25,7 +25,7 @@ def _seed(page, reconciliations=None, with_bill=False, switch_page=True):
         app.reconciliations = recons;
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
         app._reconciliationAccountFilter = 'all';
-        if (switchPage) app.switchPage('reconcile');
+        if (switchPage) { app.switchPage('reconcile'); await app.renderReconciliationPage(); }
     }""", [reconciliations or [], with_bill, switch_page])
 
 
@@ -80,6 +80,8 @@ def test_apply_rejects_end_before_start(app_page):
         window._rangePromise = window.app.applyReconciliation(9001, 1500, '',
             { statementStartDate: '2026-09-30', statementEndDate: '2026-09-01' });
     }""")
+    # applyReconciliation awaits the lazy reconciliation module before alerting.
+    page.locator('#alertModalOkBtn').wait_for(state='visible', timeout=5000)
     alert_text = page.locator('#alertModal').text_content()
     assert 'end date must not be before the start date' in alert_text
     page.locator('#alertModalOkBtn').click()
@@ -108,6 +110,7 @@ def test_apply_rejects_missing_or_invalid_range_dates(app_page, start, end):
         window._rangePromise = window.app.applyReconciliation(9001, 1500, '',
             { statementStartDate: start, statementEndDate: end });
     }""", [start, end])
+    page.locator('#alertModalOkBtn').wait_for(state='visible', timeout=5000)
     assert 'valid statement start and end dates' in page.locator('#alertModal').text_content()
     page.locator('#alertModalOkBtn').click()
 

@@ -14,7 +14,7 @@ def _seed_reconciliation_account(page, with_bill=False):
         "app.bills = [{ id: 80, name: 'Rent', dueDay: 1, amount: 200, category: 'Housing', accountId: 8001 }];"
         if with_bill else "app.bills = [];"
     )
-    page.evaluate(f"""() => {{
+    page.evaluate(f"""async () => {{
         const app = window.app;
         app.accounts = [{{ id: 8001, name: 'Recon Checking', type: 'Checking', startingBalance: 1000 }}];
         {bill_js}
@@ -24,6 +24,7 @@ def _seed_reconciliation_account(page, with_bill=False):
         app.settings = [{{ key: 'reconciliationAdjustsBalance', value: true }}];
         app._reconciliationAccountFilter = 'all';
         app.switchPage('reconcile');
+        await app.renderReconciliationPage();
     }}""")
 
 
@@ -32,13 +33,14 @@ def test_reconcile_empty_state(app_page):
     """Reconcile page shows an empty state when no accounts exist."""
     page = app_page
 
-    page.evaluate("""() => {
+    page.evaluate("""async () => {
         const app = window.app;
         app.accounts = [];
         app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = [];
         app.switchPage('reconcile');
+        await app.renderReconciliationPage();
     }""")
 
     section_text = page.query_selector('#reconcileSection').text_content()

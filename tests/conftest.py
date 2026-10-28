@@ -93,7 +93,30 @@ def app_page(page) -> Page:
             route.continue_()
     page.route(BASE_URL, _intercept_head_root)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
+
+    # ~100 tests reload after seeding localStorage; make every reload wait for init
+    # too, rather than patching each call site.
+    _original_reload = page.reload
+
+    def _reload_and_wait(*args, **kwargs):
+        response = _original_reload(*args, **kwargs)
+        wait_for_app_ready(page)
+        return response
+
+    page.reload = _reload_and_wait
     return page
+
+
+def wait_for_app_ready(page, timeout=30000):
+    """Wait until src/app.js has finished `await window.app.init()` (issue #422).
+
+    window.app is assigned *before* init() resolves, and networkidle can fire before
+    the DOMContentLoaded handler even runs under load — so waiting on either alone
+    races. Call this after any page.reload()/goto() too.
+    """
+    page.wait_for_selector('html[data-app-ready="true"]', state='attached', timeout=timeout)
+    page.wait_for_function('() => !!window.app', timeout=timeout)
 
 
 # Async fixtures

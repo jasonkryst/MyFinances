@@ -1195,8 +1195,16 @@ export class DebtTrackerApp {
 
 // Initialize the app when the DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
-    window.app = new DebtTrackerApp();
-    await window.app.init();
+    try {
+        window.app = new DebtTrackerApp();
+        await window.app.init();
+    } finally {
+        // Readiness marker (issue #422): set once startup settles — even if the
+        // constructor or init() throws —
+        // so tests (and anything else) can wait for a fully initialized app instead of
+        // racing the window.app assignment. A data attribute keeps it CSP-safe.
+        document.documentElement.dataset.appReady = 'true';
+    }
     window.flushStorageSave = flushStorageSave;
     window.addEventListener('beforeunload', () => flushStorageSave());
     const pageParam = new URLSearchParams(window.location.search).get('page');

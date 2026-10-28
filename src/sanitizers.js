@@ -136,17 +136,34 @@ export function sanitizeOwnershipSplit(raw, personIds) {
 }
 
 // Remaps a debt's personIds and ownershipSplit keys through { oldId: newId }.
+// An id with no entry in the map (a person absent from the import) is dropped
+// rather than left dangling; the split is then re-normalised over what remains.
 export function remapDebtPersonRefs(debt, personIdMap) {
     const map = personIdMap || {};
-    const m = id => (map[id] != null ? map[id] : id);
+    const m = id => (Object.prototype.hasOwnProperty.call(map, id) && map[id] != null ? map[id] : null);
     const d = { ...debt };
-    if (Array.isArray(d.personIds)) d.personIds = d.personIds.map(m);
-    if (d.ownershipSplit && typeof d.ownershipSplit === 'object') {
-        const split = {};
-        for (const [k, v] of Object.entries(d.ownershipSplit)) split[m(Number(k))] = v;
-        d.ownershipSplit = split;
+    if (Array.isArray(d.personIds)) {
+        const oldIds = d.personIds;
+        d.personIds = oldIds.map(m).filter(id => id !== null);
+        if (d.ownershipSplit && typeof d.ownershipSplit === 'object') {
+            const split = {};
+            for (const oldId of oldIds) {
+                const nid = m(oldId);
+                if (nid !== null && typeof d.ownershipSplit[oldId] === 'number') split[nid] = d.ownershipSplit[oldId];
+            }
+            d.ownershipSplit = sanitizeOwnershipSplit(split, d.personIds);
+        }
     }
     return d;
+}
+
+// Remaps an income's single personId through { oldId: newId }; an unresolved
+// id (or none) becomes null, never a dangling reference.
+export function remapIncomePersonRef(income, personIdMap) {
+    const map = personIdMap || {};
+    const id = income ? income.personId : null;
+    const mapped = id != null && Object.prototype.hasOwnProperty.call(map, id) && map[id] != null ? map[id] : null;
+    return { ...income, personId: mapped };
 }
 
 export function sanitizeDebt(record, idFallback) {

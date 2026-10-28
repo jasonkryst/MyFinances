@@ -3,6 +3,8 @@ const {
     sanitizeAccount,
     sanitizeDebt,
     sanitizeOwnershipSplit,
+    remapDebtPersonRefs,
+    remapIncomePersonRef,
     sanitizeIncome,
     sanitizeBonus,
     sanitizeBill,
@@ -923,5 +925,31 @@ describe('sanitizeOwnershipSplit (#272)', () => {
         const out = sanitizeOwnershipSplit(JSON.parse('{"1":0.5,"2":0.5,"__proto__":{"polluted":true}}'), [1, 2]);
         expect(out.polluted).toBeUndefined();
         expect({}.polluted).toBeUndefined();
+    });
+});
+
+describe('person-reference remapping on import (#421)', () => {
+    test('remapIncomePersonRef maps through the id map', () => {
+        expect(remapIncomePersonRef({ id: 1, personId: 5 }, { 5: 50 }).personId).toBe(50);
+    });
+
+    test('remapIncomePersonRef nulls unresolved, missing, and prototype-key ids', () => {
+        expect(remapIncomePersonRef({ personId: 7 }, { 5: 50 }).personId).toBeNull();
+        expect(remapIncomePersonRef({ personId: null }, { 5: 50 }).personId).toBeNull();
+        expect(remapIncomePersonRef({}, { 5: 50 }).personId).toBeNull();
+        expect(remapIncomePersonRef({ personId: 'constructor' }, {}).personId).toBeNull();
+    });
+
+    test('remapDebtPersonRefs remaps personIds and split keys, dropping unresolved ids', () => {
+        const out = remapDebtPersonRefs({ personIds: [1, 2, 3], ownershipSplit: { 1: 0.5, 2: 0.3, 3: 0.2 } }, { 1: 10, 2: 20 });
+        expect(out.personIds).toEqual([10, 20]);
+        expect(out.ownershipSplit[10]).toBeCloseTo(0.625);
+        expect(out.ownershipSplit[20]).toBeCloseTo(0.375);
+    });
+
+    test('remapDebtPersonRefs clears the split when fewer than two owners survive', () => {
+        const out = remapDebtPersonRefs({ personIds: [1, 2], ownershipSplit: { 1: 0.6, 2: 0.4 } }, { 1: 10 });
+        expect(out.personIds).toEqual([10]);
+        expect(out.ownershipSplit).toBeNull();
     });
 });

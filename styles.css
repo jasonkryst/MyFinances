@@ -1179,6 +1179,16 @@ body.dark-mode.high-contrast-mode .login-gate {
     background: #000000;
 }
 
+body.dark-mode.high-contrast-mode .login-gate-form .form-control {
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+}
+
+body.dark-mode.high-contrast-mode .login-gate-form .form-control:focus {
+    box-shadow: 0 0 0 3px #ffff00;
+}
+
 body.dark-mode.high-contrast-mode .login-gate-header {
     background: #000000;
     border-bottom: 2px solid #ffffff;
@@ -8127,6 +8137,8 @@ body.dark-mode .accelerate-preview {
     display: none;
     align-items: center;
     justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
 }
 .login-gate.flex-visible {
     display: flex;
@@ -8137,10 +8149,11 @@ body.dark-mode .login-gate {
 .login-gate-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 20px;
     width: 100%;
-    max-width: 380px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    max-width: 400px;
+    margin: auto;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.12);
     overflow: hidden;
 }
 /* Header band — same blue gradient + logo treatment as the real <header> */
@@ -8148,21 +8161,33 @@ body.dark-mode .login-gate {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: #fff;
     text-align: center;
-    padding: 1.75rem 2rem 1.25rem;
+    padding: 2.25rem 2rem 1.75rem;
 }
 body.dark-mode .login-gate-header {
     background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
 }
 .login-gate-header .logo-icon {
     display: inline-flex;
-    margin-bottom: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.75rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+.login-gate-header .logo-svg {
+    width: 32px;
+    height: 32px;
 }
 .login-gate-body {
     padding: 1.75rem 2rem 2rem;
 }
 .login-gate-title {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 700;
+    letter-spacing: -0.01em;
     margin: 0;
     color: #fff;
 }
@@ -8170,9 +8195,44 @@ body.dark-mode .login-gate-header {
     color: var(--text-secondary);
     margin: 0 0 1.5rem;
     font-size: 0.95rem;
+    text-align: center;
 }
 .login-gate-form .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
+}
+.login-gate-form label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--text-primary);
+}
+/* The site-wide input rules only cover text/number/date, so the gate's
+   email/password fields used to render as browser-default boxes. */
+.login-gate-form .form-control {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 48px;
+    padding: 0.75rem 0.9rem;
+    font-size: 16px; /* >= 16px stops iOS zooming on focus */
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.login-gate-form .form-control:hover {
+    border-color: var(--text-secondary);
+}
+.login-gate-form .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18);
+}
+.login-gate-form .form-control:focus-visible {
+    outline: 2px solid transparent; /* keep a forced-colors fallback */
 }
 .login-gate-error {
     color: var(--danger-color, #dc3545);
@@ -8182,13 +8242,28 @@ body.dark-mode .login-gate-header {
 }
 .login-gate-submit {
     width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.login-gate-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.34);
+}
+.login-gate-submit:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.24);
 }
 .login-gate-back-btn {
     display: block;
-    margin-top: 0.5rem;
+    margin: 0.75rem auto 0;
 }
 .login-gate-forgot-link {
-    margin: 0.5rem 0 0;
+    margin: 1rem 0 0;
     text-align: center;
 }
 .link-btn {
@@ -8204,27 +8279,55 @@ body.dark-mode .login-gate-header {
 .link-btn:hover {
     color: var(--primary-hover);
 }
+.login-gate .link-btn {
+    font-weight: 500;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.15s ease;
+}
+.login-gate .link-btn:hover,
+.login-gate .link-btn:focus-visible {
+    text-decoration-color: currentColor;
+}
 
 /* Installed PWA: same flat, edge-to-edge treatment as .container — drop the
-   gradient backdrop and floating-card chrome; keep the header band gradient,
-   matching how the real <header> also keeps its gradient in standalone mode. */
+   gradient backdrop and floating-card chrome. The header band becomes a hero
+   anchored to the top (under the status bar) instead of a stripe floating
+   mid-screen, and the form sits directly beneath it. */
 @media (display-mode: standalone) {
     .login-gate {
-        background: var(--bg-primary);
+        background: var(--bg-secondary);
+        padding: 0;
+        align-items: stretch;
     }
     body.dark-mode .login-gate {
-        background: var(--bg-primary);
+        background: var(--bg-secondary);
     }
     .login-gate-card {
         max-width: none;
         width: 100%;
-        height: 100%;
+        min-height: 100%;
+        margin: 0;
         border: none;
         border-radius: 0;
         box-shadow: none;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+    }
+    .login-gate-header {
+        padding: calc(env(safe-area-inset-top, 0px) + 3.5rem) 1.5rem 2.75rem;
+        border-radius: 0 0 28px 28px;
+    }
+    .login-gate-body {
+        width: 100%;
+        max-width: 440px;
+        margin: 0 auto;
+        box-sizing: border-box;
+        padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2rem);
+    }
+}
+@media (max-width: 480px) {
+    .login-gate-body {
+        padding: 1.5rem 1.25rem 1.75rem;
     }
 }
 .pg-migration-error {
