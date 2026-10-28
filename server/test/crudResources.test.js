@@ -343,6 +343,23 @@ test('/api/transfers: rejects a fromAccountId/toAccountId belonging to another u
     assert.equal(list.length, 0);
 });
 
+test("/api/recurring-templates: an 'income' type template round-trips (#252)", async () => {
+    const createRes = await fetch(`${baseUrl}/api/recurring-templates`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Retainer', type: 'income', amount: 1500, frequency: 'monthly', dayOfMonth: 1, category: 'Income', accountId })
+    });
+    assert.equal(createRes.status, 201);
+    const created = await createRes.json();
+    assert.equal(created.type, 'income');
+
+    const listRes = await fetch(`${baseUrl}/api/recurring-templates`, { headers: csrfHeaders() });
+    const rows = await listRes.json();
+    const found = rows.find(r => r.id === created.id);
+    assert.ok(found, 'income template should be listed');
+    assert.equal(found.type, 'income');
+    assert.equal(Number(found.amount), 1500);
+});
+
 test('/api/debts: ownershipSplit persists as jsonb, defaults to null, and is re-sanitized (#272)', async () => {
     const mk = body => fetch(`${baseUrl}/api/debts`, {
         method: 'POST', headers: csrfHeaders(),

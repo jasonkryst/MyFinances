@@ -373,7 +373,7 @@ export function sanitizeRecurringTemplate(record, idFallback) {
         }
     }
     const frequency = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'].includes(record?.frequency) ? record.frequency : 'monthly';
-    const type = ['subscription', 'reimbursement', 'transfer'].includes(record?.type) ? record.type : 'subscription';
+    const type = ['subscription', 'reimbursement', 'transfer', 'income'].includes(record?.type) ? record.type : 'subscription';
     return {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),

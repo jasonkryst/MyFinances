@@ -995,6 +995,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.52.0 — 2026-10-28',
+        items: [
+            '<strong>Recurring income</strong> (issue #252): recurring templates can now be set to <strong>Income</strong>, for side income like freelance retainers or dividends. The Health page\'s cash-flow and savings figures now also count your recurring subscriptions and recurring income when working out your monthly surplus.'
+        ]
+    },
+    {
         version: '6.51.0 — 2026-10-28',
         items: [
             '<strong>Split shared debts</strong> (issue #272): when a debt belongs to two or more people, choose "Custom split" (for example 60/40 on a mortgage). Debt cards show the split, and each person\'s summary on the People page now counts only their share.'

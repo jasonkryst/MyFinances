@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.51.0';
+export const APP_VERSION = '6.52.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -496,3 +496,7 @@ export function getIncomeEventsByMonthForRange(incomes, startDate, endDate) {
     return byMonth;
 }
 
+/** True for recurring template types that add money (issue #252): 'income' and 'reimbursement'. */
+export function isRecurringInflow(template) {
+    return template?.type === 'income' || template?.type === 'reimbursement';
+}

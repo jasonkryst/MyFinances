@@ -9,20 +9,22 @@ import {
     sanitizeDateISO,
     dateToISO,
     escapeHtml,
-    PINNED_COLORS
+    PINNED_COLORS,
+    isRecurringInflow
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 
-const TYPES = ['subscription', 'reimbursement', 'transfer'];
+const TYPES = ['subscription', 'income', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
     subscription: 'Subscription / Expense',
-    reimbursement: 'Reimbursement / Income',
+    income: 'Income',
+    reimbursement: 'Reimbursement',
     transfer: 'Transfer'
 };
-const TYPE_ICONS = { subscription: '📦', reimbursement: '💸', transfer: '🔄' };
+const TYPE_ICONS = { subscription: '📦', income: '💰', reimbursement: '💸', transfer: '🔄' };
 
 const FREQUENCIES = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'];
 const FREQ_LABELS = {
@@ -36,7 +38,7 @@ const FREQ_LABELS = {
 const CATEGORIES = [
     'Subscription', 'Insurance', 'Rent / Mortgage', 'Utilities', 'Transport',
     'Food', 'Entertainment', 'Health', 'Education', 'Savings', 'Transfer',
-    'Reimbursement', 'Other'
+    'Income', 'Reimbursement', 'Other'
 ];
 
 // ─── Occurrence calculation ────────────────────────────────────────────────────
@@ -273,7 +275,7 @@ export function renderRecurringPage(app) {
     const visible = showArchived ? allTemplates : active;
 
     if (allTemplates.length === 0) {
-        container.innerHTML = `<p class="recurring-empty-msg">No recurring templates yet. Add your first subscription, reimbursement, or transfer above.</p>`;
+        container.innerHTML = `<p class="recurring-empty-msg">No recurring templates yet. Add your first subscription, income, reimbursement, or transfer above.</p>`;
         return;
     }
     if (active.length === 0 && !showArchived) {
@@ -410,8 +412,8 @@ function _buildReadCard(app, t, year, month, monthKey) {
     const freqLabel = FREQ_LABELS[t.frequency] || t.frequency;
 
     // Reimbursements show as positive; everything else as negative
-    const sign = t.type === 'reimbursement' ? '+' : '-';
-    const amountClass = t.type === 'reimbursement' ? 'recurring-amount--pos' : 'recurring-amount--neg';
+    const sign = isRecurringInflow(t) ? '+' : '-';
+    const amountClass = isRecurringInflow(t) ? 'recurring-amount--pos' : 'recurring-amount--neg';
 
     const now = new Date();
     // #299: a template whose pauseUntil date has passed behaves exactly like
@@ -914,4 +916,25 @@ export function refreshRecurringAccountSelectors(app) {
             sel.appendChild(opt);
         }
     }
+}
+
+/**
+ * Month-normalized recurring cash flow (issue #252) for Health's cash-flow
+ * card: every occurrence from getRecurringOccurrencesInMonth (so frequency,
+ * pause, archive, skipped months and start/end dates are all honored).
+ * Inflows (income + reimbursement) and outflows (subscription) are summed
+ * separately; transfers are zero-sum between own accounts and excluded.
+ */
+export function computeRecurringCashFlowForMonth(app, year, month) {
+    let inflow = 0;
+    let outflow = 0;
+    for (const tmpl of (app?.recurringTemplates || [])) {
+        if (tmpl.type === 'transfer') continue;
+        const count = getRecurringOccurrencesInMonth(tmpl, year, month).length;
+        if (!count) continue;
+        const amt = Math.abs(Number(tmpl.amount)) || 0;
+        if (isRecurringInflow(tmpl)) inflow += amt * count;
+        else outflow += amt * count;
+    }
+    return { inflow, outflow };
 }

@@ -76,6 +76,7 @@ test('enum-shaped columns reject values outside their sanitizer allow-list', asy
         pool.query("INSERT INTO recurring_templates (user_id, name, frequency) VALUES ($1, 'x', 'daily')", [user.id]),
         /violates check constraint "recurring_templates_frequency_check"/
     );
+    await pool.query("INSERT INTO recurring_templates (user_id, name, type) VALUES ($1, 'x', 'income')", [user.id]);
     await assert.rejects(
         pool.query("INSERT INTO recurring_templates (user_id, name, type) VALUES ($1, 'x', 'refund')", [user.id]),
         /violates check constraint "recurring_templates_type_check"/
