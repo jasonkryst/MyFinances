@@ -20,6 +20,24 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Added
 - **The What-If simulator states its result in words,** for example "Saves $235.48 interest · 2 months sooner", as you move the slider.
 
+## [6.53.1] — 2026-10-28
+
+### Fixed
+- **Phone layout: content no longer clipped inside cards** (issue #426).
+  - **Health cards, the Plan summary strip, and the Reports month nav and Print button** no longer cut off amounts, dates or badges at phone width.
+    - Before, the cards' `overflow:hidden` hid content wider than the card, so nothing scrolled sideways either.
+    - The Health grid now uses `minmax(0,1fr)` tracks, and its cards and rows can shrink and wrap.
+  - **Plan Strategy Comparison:** the header has an explicit, readable text colour in light and dark mode, and the table scrolls horizontally on narrow screens.
+  - **Retirement snapshot table:** the Delete button is a full 40px tap target and no longer gets cut off.
+  - **Savings sub-tabs:** they share the row equally instead of truncating "Home Purchase".
+  - **Settings tabs:** they form an equal-width 2×2 grid on phones.
+  - **Net Worth stat cards:** they sit two per row on phones.
+
+### Tests
+- New `tests/ui/test_mobile_no_card_clipping.py`. At 390×844 with realistic seeded data, it visits every top-level page, each Savings sub-tab, the Plan results and each Reports sub-tab. On each, it asserts that no visible text inside a card-like container extends past the container's right edge (measured with Range rects), and that the page doesn't scroll horizontally. A negative control proves the checker flags clipped text.
+  - Run against the previous CSS, it fails on Health, Savings and Plan.
+- New `tests/ui/test_mobile_clipping_fixes.py` with focused checks for the comparison-header contrast, the Retirement Delete button, the Reports nav, the Savings and Settings tabs, and the stat-card grid.
+
 ## [6.53.0] — 2026-10-28
 
 ### Changed
