@@ -210,6 +210,12 @@ export function initializeEventListeners(app) {
                 'Clear All Data'
             );
             if (confirmed) {
+                // The button lives in Settings (#429); close it so the
+                // setup wizard shown after clearing isn't covered by it.
+                const settingsDone = document.getElementById('settingsModalDoneBtn');
+                if (settingsDone && document.getElementById('settingsModal')?.classList.contains('flex-visible')) {
+                    settingsDone.click();
+                }
                 app.clearAllData();
             }
         });
@@ -1008,6 +1014,13 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.56.0 — 2026-10-28',
+        items: [
+            '<strong>A cleaner, more consistent look</strong> (issue #429): page titles now match across every page. The header is slimmer, the phone menu button has been redesigned, and dark mode has better contrast.',
+            '<strong>"Clear All Data" has moved</strong> to Settings → Data & Storage, away from the Calculate button, so it\'s harder to hit by accident.'
+        ]
+    },
     {
         version: '6.55.0 — 2026-10-28',
         items: [
