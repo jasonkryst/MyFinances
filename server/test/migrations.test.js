@@ -125,3 +125,14 @@ test('plan_settings accepts a nullable home_purchase_plan jsonb', async () => {
     ({ rows } = await pool.query('SELECT home_purchase_plan FROM plan_settings WHERE user_id = $1', [user.id]));
     assert.equal(rows[0].home_purchase_plan.targetHomePrice, 300000);
 });
+
+test('plan_settings accepts a nullable budget_categories jsonb', async () => {
+    await resetDb();
+    const user = await createTestUser();
+    await pool.query('INSERT INTO plan_settings (user_id) VALUES ($1)', [user.id]);
+    let { rows } = await pool.query('SELECT budget_categories FROM plan_settings WHERE user_id = $1', [user.id]);
+    assert.equal(rows[0].budget_categories, null);
+    await pool.query('UPDATE plan_settings SET budget_categories = $1 WHERE user_id = $2', [JSON.stringify({ Housing: { mode: 'fixed', amount: 2000 } }), user.id]);
+    ({ rows } = await pool.query('SELECT budget_categories FROM plan_settings WHERE user_id = $1', [user.id]));
+    assert.equal(rows[0].budget_categories.Housing.amount, 2000);
+});
