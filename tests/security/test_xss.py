@@ -25,7 +25,7 @@ async def test_xss_in_account_name(async_app_page):
     await page.fill('#accountName', '<script>alert("xss")</script>')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
     
     # Check if script was rendered as text (escaped)
     account_text = await page.evaluate("""
@@ -286,7 +286,7 @@ async def test_xss_in_emergency_fund_notes(async_app_page):
     await page.fill('#accountName', 'EF Checking')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -617,7 +617,7 @@ async def test_xss_in_recurring_template_name(async_app_page):
     await page.fill('#accountName', 'Recurring Name XSS')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '500')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
 
     await page.click('button[data-page="recurring"]')
     await page.wait_for_selector('#recurringSection.active', timeout=5000)
@@ -651,7 +651,7 @@ async def test_xss_in_sinking_fund_name_and_notes(async_app_page):
     await page.fill('#accountName', 'Sinking XSS')
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '0')
-    await page.click('button:has-text("Add Account")')
+    await page.click('#accountFormSubmit')
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
