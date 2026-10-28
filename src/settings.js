@@ -15,6 +15,11 @@ export const AUTO_NW_SNAPSHOT = 'autoNwSnapshot';
 export const RETIREMENT_WITHDRAWAL_RATE = 'retirementWithdrawalRate';
 export const RETIREMENT_SCENARIO_CONSERVATIVE_DELTA = 'retirementScenarioConservativeDelta';
 export const RETIREMENT_SCENARIO_AGGRESSIVE_DELTA = 'retirementScenarioAggressiveDelta';
+// #361: FIRE target as a multiple of annual expenses (25 == the 4% rule).
+// The withdrawal rate shown in the UI is derived (100 / multiplier).
+export const FIRE_MULTIPLIER = 'fireMultiplier';
+export const FIRE_MULTIPLIER_DEFAULT = 25;
+export const FIRE_MULTIPLIER_MAX = 1000;
 export const HOUSING_COST_OVERRIDE = 'healthHousingCostOverride';
 // #412: how $0 ledger/recurring amounts are treated: 'allow' | 'warn' | 'block'.
 export const ZERO_AMOUNT_POLICY = 'zeroAmountPolicy';
@@ -46,6 +51,12 @@ export function setSetting(app, key, value) {
     if (app._storageBackendKind === 'postgres') {
         pgPut(app, `/api/settings/${key}`, { value });
     }
+}
+// Unknown/invalid stored values (non-number, <= 0, > max) fall back to 25.
+export function getFireMultiplier(app) {
+    const v = getSetting(app, FIRE_MULTIPLIER, FIRE_MULTIPLIER_DEFAULT);
+    return (typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= FIRE_MULTIPLIER_MAX)
+        ? v : FIRE_MULTIPLIER_DEFAULT;
 }
 // Returns 'allow' for a missing/unknown stored value so a bad import can
 // never silently turn into a stricter policy.

@@ -801,7 +801,10 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
         app.renderSavingsPage();
         app.attachSavingsEventListeners();
     }
-    if (pageName === 'strategy') { app.renderStrategyIncomeWidget(); app.renderPlanHistory(); }
+    if (pageName === 'strategy') {
+        app.renderStrategyIncomeWidget(); app.renderPlanHistory();
+        if (resetToDefaults) app.resetRefinanceScenario();
+    }
     if (pageName === 'reports') {
         if (resetToDefaults) { app._reportMonthOffset = 0; app._reportRangeMonths = 1; }
         app.renderReportsPage();
@@ -989,6 +992,13 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.50.0 — 2026-10-28',
+        items: [
+            '<strong>Adjustable FIRE target</strong> (issue #361): on the Health page\'s FIRE card you can now change "Years of expenses" or "Withdrawal rate %" to match your own plan. The two stay in step, and your choice is remembered.',
+            '<strong>Refinancing what-if</strong> (issue #320): in the Plan page\'s What-If Simulator, try a new APR on any one debt. You\'ll see how much interest and time a refinance or balance transfer would save, and your actual debts aren\'t changed.'
+        ]
+    },
     {
         version: '6.49.0 — 2026-10-28',
         items: [
