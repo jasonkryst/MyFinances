@@ -8613,3 +8613,11 @@ body.dark-mode .bva-pos { color: #86efac; }
         color: var(--text-muted);
     }
 }
+
+/* UX B (#427) numbers and copy clarity */
+.whatif-headline { font-weight: 600; margin: 8px 0; color: var(--success, #16a34a); }
+.health-mortgage-dti-empty { font-size: 0.85em; color: var(--text-muted); font-style: italic; }
+.nw-snapshot-note, .cf-retirement-note { display: block; font-size: 0.75em; font-weight: 400; color: var(--text-muted); }
+.recurring-overdue-filter-btn { cursor: pointer; background: none; border: 1px solid transparent; font: inherit; text-align: inherit; }
+.recurring-overdue-filter-btn.active, .recurring-overdue-filter-btn:focus-visible { border-color: currentColor; }
+.recurring-overdue-help { font-size: 0.8em; color: var(--text-muted); margin: 6px 0 0; }

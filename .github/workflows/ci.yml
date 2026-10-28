@@ -334,6 +334,7 @@ jobs:
             tests/features/test_calendar_feed.py \
             tests/features/test_whats_new.py \
             tests/features/test_app_ready.py \
+            tests/features/test_number_clarity.py \
             -v
 
   # J/K: files that were never listed in any shard until #415 (~82 / ~71 tests).
