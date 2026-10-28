@@ -37,11 +37,12 @@ function remapFk(record, idMap, personIdMap = {}) {
     // Transfers (#248) carry two account FKs instead of one.
     if (r.fromAccountId != null && idMap[r.fromAccountId] != null) r.fromAccountId = idMap[r.fromAccountId];
     if (r.toAccountId != null && idMap[r.toAccountId] != null) r.toAccountId = idMap[r.toAccountId];
-    if (r.personId != null && personIdMap[r.personId] != null) r.personId = personIdMap[r.personId];
-    if (Array.isArray(r.personIds)) r.personIds = r.personIds.map(id => personIdMap[id] ?? id);
+    // An unresolved person reference becomes null, never a dangling id.
+    if (r.personId != null) r.personId = personIdMap[r.personId] ?? null;
+    if (Array.isArray(r.personIds)) r.personIds = r.personIds.map(id => personIdMap[id] ?? null).filter(id => id !== null);
     // #272: ownershipSplit is keyed by person id — remap its keys the same way.
     if (r.ownershipSplit && typeof r.ownershipSplit === 'object') {
-        r.ownershipSplit = Object.fromEntries(Object.entries(r.ownershipSplit).map(([k, v]) => [personIdMap[k] ?? k, v]));
+        r.ownershipSplit = Object.fromEntries(Object.entries(r.ownershipSplit).filter(([k]) => personIdMap[k] != null).map(([k, v]) => [personIdMap[k], v]));
     }
     return r;
 }
