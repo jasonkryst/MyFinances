@@ -8249,3 +8249,10 @@ body.dark-mode .login-gate-header {
 /* FIRE target controls (#361) */
 .health-fire-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.4rem; }
 .health-fire-error { color: var(--danger-color, #dc2626); font-size: 0.78rem; margin: 0 0 0.4rem; }
+
+/* Refinancing what-if (#320) */
+.whatif-refi { margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; }
+.whatif-refi > summary { cursor: pointer; font-weight: 600; }
+.whatif-refi-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 0.75rem; }
+.whatif-refi-field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 140px; }
+.whatif-refi-field label { font-size: 0.8rem; font-weight: 600; }

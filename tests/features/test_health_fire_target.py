@@ -19,6 +19,7 @@ SETUP = """() => {
 
 
 def _setup(page, income=5000, bills=500):
+    page.wait_for_function("() => window.app && window.app.switchPage")
     page.evaluate(SETUP % {'income': income, 'bills': bills})
     page.wait_for_selector('#healthFireCard #healthFireMultiplier', timeout=5000)
 

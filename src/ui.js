@@ -801,7 +801,10 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
         app.renderSavingsPage();
         app.attachSavingsEventListeners();
     }
-    if (pageName === 'strategy') { app.renderStrategyIncomeWidget(); app.renderPlanHistory(); }
+    if (pageName === 'strategy') {
+        app.renderStrategyIncomeWidget(); app.renderPlanHistory();
+        if (resetToDefaults) app.resetRefinanceScenario();
+    }
     if (pageName === 'reports') {
         if (resetToDefaults) { app._reportMonthOffset = 0; app._reportRangeMonths = 1; }
         app.renderReportsPage();
