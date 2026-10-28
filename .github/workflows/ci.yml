@@ -512,6 +512,7 @@ jobs:
             tests/ui/test_mobile_layout_fixes.py \
             tests/ui/test_charts.py \
             tests/ui/test_debt_actions.py \
+            tests/ui/test_mobile_density.py \
             -v
 
   test-ui-c:

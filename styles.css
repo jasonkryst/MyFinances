@@ -8613,3 +8613,229 @@ body.dark-mode .bva-pos { color: #86efac; }
         color: var(--text-muted);
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UX C (#428) — mobile density: filter disclosures, collapsible add forms,
+   2-line Ledger rows, tap-target floor, account-card actions, report-tab
+   strip, Reconcile accordion.
+   Desktop (>768px) is unchanged apart from compact filter selects.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Toggles are phone-only controls. */
+.mobile-collapse-toggle,
+.filters-disclosure-toggle,
+.recon-card-toggle { display: none; }
+
+/* Desktop: field wrappers are transparent, selects are compact inline. */
+.fd-field { display: contents; }
+.filter-controls > .filters-disclosure-body { display: contents; }
+.filters-disclosure-body select:not([multiple]),
+.filters-grid select:not([multiple]) { max-width: 200px; }
+
+@media (max-width: 768px) {
+    /* Collapsible add forms (Accounts / Income) */
+    .account-form-card, .income-form-card { padding: 0; }
+    .mobile-collapse-toggle { display: flex; }
+    .mobile-collapsible-body { display: none; padding: 4px 16px 16px; }
+    .mobile-collapsible-body.is-open { display: block; }
+    .mobile-collapsible-body > h3 { display: none; }
+    .account-form-card .mobile-collapsible-body,
+    .income-form-card .mobile-collapsible-body { padding-top: 16px; }
+
+    /* Filter disclosure button */
+    .filters-disclosure-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 14px;
+        margin: 0 0 8px;
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--card-bg, #fff);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-align: left;
+        cursor: pointer;
+    }
+    .filters-disclosure-toggle::after {
+        content: "\25BE";
+        transition: transform 0.2s ease;
+    }
+    .filters-disclosure-toggle.is-open::after { transform: rotate(180deg); }
+    .filters-disclosure-toggle--active {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    body.dark-mode .filters-disclosure-toggle { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+    body.dark-mode .filters-disclosure-toggle--active { border-color: #60a5fa; color: #60a5fa; }
+
+    /* Filter body: hidden until opened, then a 2-column grid */
+    .filters-disclosure-body,
+    .filter-controls > .filters-disclosure-body { display: none; }
+    .filters-disclosure-body.is-open,
+    .filter-controls > .filters-disclosure-body.is-open,
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        width: 100%;
+        flex: 1 1 100%;
+        margin-bottom: 12px;
+    }
+    .filters-disclosure-body .fd-field,
+    .filters-disclosure-body .filter-pair,
+    .filters-grid .fd-field {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        min-width: 0;
+        overflow: visible;
+    }
+    .filters-disclosure-body .filter-pair .category-filter-label,
+    .filters-disclosure-body .fd-field label,
+    .filters-grid .fd-field label {
+        min-width: 0;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-secondary, #6b7280);
+    }
+    .filters-disclosure-body .filter-pair .category-filter,
+    .filters-disclosure-body .fd-field select:not([multiple]),
+    .filters-grid .fd-field select {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        flex: none;
+    }
+    .filters-disclosure-body .fd-field--wide { grid-column: 1 / -1; }
+    .filter-controls { position: static; }
+
+    /* Reconcile accordion (L4) */
+    .recon-card-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 12px;
+        margin-top: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--light-bg, #f9fafb);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .recon-card-toggle::after { content: "\25BE"; transition: transform 0.2s ease; }
+    .recon-card-toggle.is-open::after { transform: rotate(180deg); }
+    .recon-card-body.mobile-collapsible-body { padding: 8px 0 0; }
+    body.dark-mode .recon-card-toggle { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+
+    /* Account-card actions (M2): tidy 2-column grid */
+    .acct-card-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .acct-card-actions > * { width: 100%; margin: 0; justify-content: center; }
+
+    /* Ledger rows (H3): 2-line cards. Sort headers become a chip row. */
+    .ledger-table, .ledger-table tbody { display: block; width: 100%; }
+    .ledger-table thead { display: block; }
+    .ledger-table thead tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        padding: 8px;
+    }
+    .ledger-table th {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 40px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        border: 1px solid rgba(255,255,255,0.35);
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+    .ledger-table th[data-col="cleared"] { display: none; }
+    .ledger-table tbody tr {
+        display: grid;
+        grid-template-columns: 32px auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "sel name name amount"
+            "clr date acct bal";
+        column-gap: 8px;
+        row-gap: 4px;
+        align-items: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .ledger-table tbody td {
+        display: block;
+        padding: 0;
+        border: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .ledger-table td[data-col="select"]  { grid-area: sel; }
+    .ledger-table td[data-col="name"]    { grid-area: name; font-weight: 600; }
+    .ledger-table td[data-col="amount"]  { grid-area: amount; text-align: right; white-space: nowrap; font-weight: 700; }
+    .ledger-table td[data-col="cleared"] { grid-area: clr; text-align: center; }
+    .ledger-table td[data-col="date"]    { grid-area: date; white-space: nowrap; font-size: 0.8rem; color: var(--text-secondary, #6b7280); }
+    .ledger-table td[data-col="account"] { grid-area: acct; font-size: 0.8rem; color: var(--text-secondary, #6b7280); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ledger-table td[data-col="balance"] { grid-area: bal; text-align: right; white-space: nowrap; font-size: 0.8rem; color: var(--text-secondary, #6b7280); }
+    .ledger-table td[data-col="balance"]::before { content: "Bal. "; }
+    .ledger-table td.ledger-empty-cell { grid-column: 1 / -1; }
+    .ledger-table .ledger-override-actions { margin-top: 4px; }
+    .ledger-table td[data-col].ledger-col-hidden { display: none !important; }
+}
+
+/* Tap-target floor (C7): phones and coarse pointers */
+@media (max-width: 600px), (pointer: coarse) {
+    button,
+    select:not([multiple]),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    .btn-small,
+    .rpt-tab-btn,
+    [role="tab"] {
+        min-height: 40px;
+    }
+    .help-icon { position: relative; }
+    .help-icon::after {
+        content: "";
+        position: absolute;
+        inset: -10px;
+    }
+    .sr-only, .sr-only * { min-height: 0; }
+}
+
+/* Reports tab chips (L1): one horizontally scrollable row with edge shadows */
+@media (max-width: 640px) {
+    .rpt-tab-bar {
+        --rpt-bar-bg: #fff;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        gap: 8px;
+        background:
+            linear-gradient(to right, var(--rpt-bar-bg) 30%, rgba(255,255,255,0)) left center / 32px 100% no-repeat local,
+            linear-gradient(to left, var(--rpt-bar-bg) 30%, rgba(255,255,255,0)) right center / 32px 100% no-repeat local,
+            radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.28), rgba(0,0,0,0)) left center / 12px 100% no-repeat scroll,
+            radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.28), rgba(0,0,0,0)) right center / 12px 100% no-repeat scroll,
+            var(--rpt-bar-bg);
+    }
+    body.dark-mode .rpt-tab-bar { --rpt-bar-bg: var(--bg-color, #0f172a); }
+    .rpt-tab-group, .rpt-tab-group-tabs { flex-wrap: nowrap; flex-shrink: 0; }
+    .rpt-tab-btn { flex-shrink: 0; }
+}

@@ -1,7 +1,7 @@
 // Account reconciliation: compare tracked balances against statement balances,
 // log adjustments, and surface expected transactions since the last reconciliation.
 
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO, formatShortDate, dateToISO } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO, formatShortDate, dateToISO, isCollapsibleOpen } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
@@ -263,9 +263,13 @@ export function deleteReconciliationEntry(app, id) {
     if (typeof app.renderReconciliationPage === 'function') app.renderReconciliationPage();
 }
 
-function renderReconcileCard(app, acct) {
+function renderReconcileCard(app, acct, index = 0) {
     const { start, end } = getDefaultStatementRange(app, acct.id);
     const expected = getExpectedTransactionsInRange(app, acct.id, start, end);
+    // #428 (L4): on phones only the first account's form starts expanded; the
+    // rest sit behind a one-line summary button. Desktop CSS ignores this.
+    const bodyId = `recon-card-body-${acct.id}`;
+    const open = isCollapsibleOpen(bodyId, index === 0);
 
     return `<div class="recon-card">
         <div class="recon-card-header">
@@ -275,6 +279,8 @@ function renderReconcileCard(app, acct) {
                 <span class="recon-current-balance">Current Tracked Balance: ${formatCurrency(acct.startingBalance)}</span>
             </div>
         </div>
+        <button type="button" class="recon-card-toggle${open ? ' is-open' : ''}" data-collapse-toggle="${bodyId}" aria-expanded="${open}" aria-controls="${bodyId}" aria-label="Reconcile ${escapeHtml(acct.name)}: tracked balance ${escapeHtml(formatCurrency(acct.startingBalance))}"><span>Reconcile &middot; ${escapeHtml(formatCurrency(acct.startingBalance))} tracked</span></button>
+        <div class="recon-card-body mobile-collapsible-body${open ? ' is-open' : ''}" id="${bodyId}">
         <div class="recon-form-grid">
             <div class="form-group form-no-margin">
                 <label for="recon-start-${acct.id}" class="label-compact">Statement Start Date</label>
@@ -303,6 +309,7 @@ function renderReconcileCard(app, acct) {
             <summary id="recon-expected-summary-${acct.id}">${expectedSummaryText(start, end)}</summary>
             <div id="recon-expected-body-${acct.id}">${renderExpectedTransactionsHtml(expected)}</div>
         </details>
+        </div>
     </div>`;
 }
 
@@ -417,7 +424,7 @@ export function renderReconciliationPage(app) {
         return;
     }
 
-    const cardsHtml = app.accounts.map(acct => renderReconcileCard(app, acct)).join('');
+    const cardsHtml = app.accounts.map((acct, i) => renderReconcileCard(app, acct, i)).join('');
     const historyHtml = renderReconciliationHistory(app);
 
     section.innerHTML = `${headerHtml}${cardsHtml}${historyHtml}`;

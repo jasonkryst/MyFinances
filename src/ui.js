@@ -3,7 +3,7 @@ import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
-import { APP_VERSION, escapeHtml } from './utils.js';
+import { APP_VERSION, escapeHtml, isCollapsibleOpen, setCollapsibleOpen, refreshFilterDisclosureCounts } from './utils.js';
 import { getZeroAmountPolicy } from './settings.js';
 import { initCommandPalette } from './commandPalette.js';
 import { installOwnershipListeners } from './debtOwnership.js';
@@ -30,6 +30,19 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    // #428: mobile collapsibles (add forms, filter disclosures). Delegated so
+    // markup that is re-rendered (Ledger filters) keeps working.
+    document.addEventListener('click', e => {
+        const btn = e.target.closest ? e.target.closest('[data-collapse-toggle]') : null;
+        if (!btn) return;
+        const bodyId = btn.getAttribute('data-collapse-toggle');
+        const bodyEl = document.getElementById(bodyId);
+        const open = bodyEl ? bodyEl.classList.contains('is-open') : isCollapsibleOpen(bodyId);
+        setCollapsibleOpen(bodyId, !open);
+    });
+    document.addEventListener('change', e => {
+        if (e.target.closest && e.target.closest('.filters-disclosure-body')) refreshFilterDisclosureCounts();
+    });
     installOwnershipListeners(() => app);
     const themeSwitcher = document.getElementById('themeSwitcher');
 
@@ -828,6 +841,7 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
         app.renderPeopleList();
         app.refreshPersonSelectors();
     }
+    refreshFilterDisclosureCounts();
 }
 
 export function updateUI(app) {
