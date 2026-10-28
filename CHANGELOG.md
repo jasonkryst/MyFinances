@@ -8,6 +8,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ### Fixed
 - **What's New modal stuck at 6.41.0** — `WHATS_NEW_ENTRIES` (`src/ui.js`) hadn't been updated since 6.41.0; entries for 6.42.0–6.48.0 added. The staleness guard `test_whats_new_entries_not_stale` (which allowed up to 3 minor versions of drift) never caught it because `tests/features/test_whats_new.py` wasn't listed in any `ci.yml` feature shard, so it never ran in CI. The file is now in `test-features-i`, the guard requires the newest entry's major.minor to equal `APP_VERSION`'s, and two new file-parsing tests fail on any CHANGELOG minor release missing from What's New and on out-of-order/ahead-of-app entries.
+- **Plan page: Monthly Payment Amount field unusable on phones** — the mobile rule `.strategy-controls .btn { width: 100% }` (meant to stack Calculate/Clear) also caught the inline Suggest button, which then squeezed `#monthlyPayment` (`flex: 1; min-width: 0`) to ~0px and overflowed the card. `.strategy-controls .input-with-action .btn` now opts out (`width: auto; margin-top: 0`), so the input fills the row with Suggest beside it.
+- **Liabilities: debt card select checkbox covered the debt name** — the bulk-select checkbox (`.debt-select-label`) moved from top-left to top-right, and `.debt-card .debt-name` reserves right padding so long names wrap clear of it.
+- New `tests/ui/test_mobile_layout_fixes.py` (in `test-ui-b`) asserts the geometry at phone and desktop widths (input ≥ 50% of the row, Suggest inline and inside the card, Calculate still full-width, checkbox on the right half and never overlapping the name text, including a long wrapping name); verified failing against the previous CSS.
 
 ## [6.48.0] — 2026-10-27
 

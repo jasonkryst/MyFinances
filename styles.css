@@ -3277,6 +3277,14 @@ body.dark-mode .ledger-nav-btn:hover { background: #334155; }
         margin-top: 10px;
     }
 
+    /* The inline Suggest button must not inherit the full-width stacking
+       above — at width:100% it squeezed #monthlyPayment (flex:1; min-width:0)
+       to nothing and overflowed the card. */
+    .strategy-controls .input-with-action .btn {
+        width: auto;
+        margin-top: 0;
+    }
+
     .summary {
         flex-wrap: wrap;
     }
@@ -3480,14 +3488,17 @@ body.dark-mode .debt-group-header { background: #1e293b; border-color: #334155; 
 .debt-bulk-count { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); flex: 1; }
 body.dark-mode .debt-bulk-bar { background: #1e293b; border-color: #334155; }
 body.dark-mode .debt-bulk-count { color: #f1f5f9; }
+/* Bulk-select checkbox sits top-right so it never overlaps the debt name
+   (top-left covered the name's first letter, most visibly on mobile). */
 .debt-select-label {
     position: absolute;
     top: 10px;
-    left: 10px;
+    right: 12px;
     z-index: 1;
     line-height: 1;
 }
 .debt-card { position: relative; }
+.debt-card .debt-name { padding-right: 28px; }
 .debt-select-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #3b82f6; }
 
 /* ---- Strategy comparison panel ---- */
