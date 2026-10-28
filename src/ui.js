@@ -990,6 +990,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.49.0 — 2026-10-28',
+        items: [
+            '<strong>Category budgets</strong> (issue #255): you can now give any spending category a monthly budget, under Liabilities → Expenses → Category Budgets. Reports → Variance then shows Budget vs. Actual and highlights categories that are over budget. A category left on "Derived" keeps using your scheduled bills and recurring items as its budget.'
+        ]
+    },
+    {
         version: '6.48.0 — 2026-10-27',
         items: [
             '<strong>Ledger: $0 amount setting</strong> (issue #412) — a new Settings → Advanced option, "$0 ledger amounts" (Allow / Warn / Block, default Allow), controls whether $0 can be saved in the Ledger override modal and on recurring templates. $0 entries are handy for tracking transactions that happen on a credit card or elsewhere without moving a balance. A blank amount field is now always rejected instead of silently saving $0.'

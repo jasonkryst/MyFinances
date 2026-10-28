@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.49.0] — 2026-10-28
+
+### Added
+- **Category Budgets** (issue #255): a new panel on Liabilities → Expenses. Each spending category gets either a **Fixed** monthly budget or stays **Derived**. Derived is the month's scheduled bills, expenses and recurring items, which matches the previous behavior. Invalid amounts are rejected inline, and each category has a Reset button.
+- **Reports → Variance: "Budget vs. Actual" table.** Columns are budget (marked Fixed or Derived), actual, difference and % used. Over-budget rows are highlighted. The table follows the selected date range: a Fixed budget is multiplied by the number of months, and Derived budgets are summed month by month. On mobile, rows restack into cards.
+- `budgetCategories` is persisted in:
+  - local and session storage;
+  - JSON export/import (replace, and merge by category);
+  - the optional Postgres backend: migration `1755600000027` adds a nullable `plan_settings.budget_categories jsonb` column, and the server re-sanitizes it on every save.
+  The sanitizer drops invalid entries rather than turning them into $0 budgets: negative or non-numeric amounts, unknown modes, and prototype-polluting keys. It caps names at 40 characters, amounts at 1e9 and the list at 200 entries, and reports each dropped entry as an import warning.
+- Design spec: `docs/superpowers/specs/2026-10-28-category-budgets-design.md`.
+
 ## [6.48.2] — 2026-10-27
 
 ### Fixed
