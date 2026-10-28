@@ -197,6 +197,12 @@ export function initializeEventListeners(app) {
                 'Clear All Data'
             );
             if (confirmed) {
+                // The button lives in Settings (#429); close it so the
+                // setup wizard shown after clearing isn't covered by it.
+                const settingsDone = document.getElementById('settingsModalDoneBtn');
+                if (settingsDone && document.getElementById('settingsModal')?.classList.contains('flex-visible')) {
+                    settingsDone.click();
+                }
                 app.clearAllData();
             }
         });

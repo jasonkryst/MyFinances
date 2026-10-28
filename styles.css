@@ -340,13 +340,6 @@
     padding: 28px 24px 32px 24px;
     margin-bottom: 40px;
 }
-.ledger-section h2 {
-    color: var(--primary-color);
-    font-size: 1.4rem;
-    margin-bottom: 18px;
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 8px;
-}
 #ledgerTableContainer {
     margin-top: 18px;
 }
@@ -607,10 +600,6 @@ body.dark-mode .filter-controls {
 }
 body.dark-mode .filter-label {
     color: #94a3b8;
-}
-body.dark-mode .ledger-section h2 {
-    color: #60a5fa;
-    border-bottom-color: #60a5fa;
 }
 body.dark-mode .ledger-table {
     background: #1e293b;
@@ -874,7 +863,7 @@ body.dark-mode {
     --border-color: #334155;
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
-    --text-muted: #94a3b8;
+    --text-muted: #a8b3c7;
     --card-bg: #1e293b;
     --text-color: #f1f5f9;
     --bg-color: #0f172a;
@@ -6689,13 +6678,6 @@ body.dark-mode .acct-mf-diff--neg { color: #f87171; }
     padding: 28px 24px 32px;
     margin-bottom: 40px;
 }
-.recurring-section h2 {
-    color: var(--primary-color);
-    font-size: 1.4rem;
-    margin-bottom: 6px;
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 8px;
-}
 .recurring-intro {
     color: var(--text-muted, #6b7280);
     font-size: 0.92rem;
@@ -7002,7 +6984,6 @@ body.dark-mode .recurring-upcoming-value { color: #f1f5f9; }
    ═══════════════════════════════════════════════════════════════ */
 
 .savings-section { background: var(--card-bg, #fff); border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); padding: 28px 24px 32px 24px; margin-bottom: 40px; }
-.savings-section h2 { color: var(--primary-color); font-size: 1.4rem; margin-bottom: 18px; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; }
 .section-description { color: var(--text-muted, #6b7280); font-size: 0.92rem; margin: 0 0 20px; }
 @media (max-width: 480px) {
     .savings-section { padding: 16px 12px 20px 12px; }
@@ -8613,3 +8594,122 @@ body.dark-mode .bva-pos { color: #86efac; }
         color: var(--text-muted);
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UX D (#429) — design-system consistency
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* C2: one page-header row + one page h2 rule (section h2). Recurring and
+   Savings drop their outer card so the gutters match Accounts. */
+.page-header { margin-bottom: 0; }
+.recurring-section.page-section,
+#savingsSection.savings-section {
+    background: none;
+    box-shadow: none;
+    padding: 0;
+}
+/* Inner Savings cards (Emergency Fund / Sinking Funds / Home Purchase) keep
+   their card look; their h2 is a sub-heading, not a page title. */
+.savings-content .savings-section h2 {
+    font-size: 1.2rem;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 10px;
+}
+
+/* C3c: shared button variants */
+.btn-ghost {
+    background: transparent;
+    color: var(--primary-color);
+    border: 1px solid transparent;
+}
+.btn-ghost:hover { background: rgba(37,99,235,0.08); }
+body.dark-mode .btn-secondary,
+body.dark-mode .btn-edit {
+    border: 1px solid #64748b;
+    color: #e2e8f0;
+}
+body.dark-mode .btn-secondary:hover { border-color: #94a3b8; }
+
+/* C4: Clear All Data lives in Settings → Data & Storage, set apart as a danger zone */
+.settings-danger-zone {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+.settings-danger-title {
+    margin: 0 0 6px;
+    font-size: 0.9rem;
+    color: var(--danger-color, #dc2626);
+}
+body.dark-mode .settings-danger-title { color: #f87171; }
+
+/* C3a/M1: nav toggle is a 44px icon button; the account menu dropdown sits above it */
+.account-menu-dropdown { z-index: 1100; }
+@media (max-width: 768px) {
+    .nav-toggle {
+        z-index: 10;
+        top: 2px;
+        right: 8px;
+        width: 44px;
+        height: 44px;
+        background: rgba(255,255,255,0.14);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.40);
+        border-radius: 8px;
+        cursor: pointer;
+        padding: 0;
+    }
+    .nav-toggle:hover { background: rgba(255,255,255,0.24); }
+    .nav-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+    /* C5: logo + toolbar share one ~56px row on phone */
+    header { position: relative; }
+    .header-top {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 56px;
+        padding: 0 8px;
+        z-index: 20;
+    }
+    .header-hero {
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0 12px;
+        text-align: left;
+    }
+    header h1 { font-size: 1.15rem; margin: 0; white-space: nowrap; }
+}
+
+/* C5 desktop: toolbar sits on the title row, header ~140px */
+@media (min-width: 769px) {
+    header { position: relative; }
+    .header-top {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 8px 14px 0;
+        z-index: 20;
+    }
+    .header-hero { padding: 10px 20px 0; }
+    header h1 { font-size: 1.9rem; margin-bottom: 0; }
+    .top-nav { margin-top: 8px; }
+
+    /* M9: larger nav items, better inactive contrast, group labels left-aligned */
+    .page-button { font-size: 13px; color: rgba(255,255,255,0.85); }
+    .nav-group { align-items: flex-start; }
+    .nav-group-label { font-size: 10px; }
+
+    /* M8: don't stretch Plan inputs across the whole card */
+    .strategy-controls .form-group,
+    .strategy-controls .input-with-action { max-width: 480px; }
+}
+
+/* L5: no divider under the (hidden) empty email row for local-storage users */
+#accountMenuEmail.hidden + .account-menu-divider { display: none; }
+
+/* C4: confirmation dialogs must sit above Settings (Clear All Data is launched from it) */
+#deleteConfirmModal { z-index: 10010; }

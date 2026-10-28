@@ -483,8 +483,10 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     })
     assert seed.status == 201
 
-    # clearDataBtn is in the strategy (Plan) page section, not in a modal
-    await pg_page.click('[data-page="strategy"]')
+    # clearDataBtn lives in Settings -> Data & Storage (#429)
+    await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
+    await pg_page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    await pg_page.click('[data-settings-tab="data"]')
     await pg_page.wait_for_selector('#clearDataBtn', state='visible', timeout=5000)
     await pg_page.click('#clearDataBtn')
     await pg_page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)

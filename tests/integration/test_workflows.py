@@ -9,7 +9,7 @@ import json
 import tempfile
 import os
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, open_settings, switch_settings_tab
 
 ALL_NAV_PAGES = [
     "health", "accounts", "income", "liabilities", "recurring",
@@ -421,8 +421,9 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     close_data_transfer(page)
 
     # --- Clear all data via the real UI control (lives on the Strategy/Plan page) ---
-    page.click('button[data-page="strategy"]')
-    page.wait_for_selector('#clearDataBtn', timeout=10000)
+    open_settings(page)
+    switch_settings_tab(page, 'data')
+    page.wait_for_selector('#clearDataBtn', state='visible', timeout=10000)
     clear_btn = page.query_selector('#clearDataBtn')
     assert clear_btn, "Expected a real 'Clear All Data' control (#clearDataBtn)"
     clear_btn.click()  # opens themed #deleteConfirmModal
@@ -493,8 +494,9 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
 
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
 
-    page.click('button[data-page="strategy"]')
-    page.wait_for_selector('#clearDataBtn', timeout=10000)
+    open_settings(page)
+    switch_settings_tab(page, 'data')
+    page.wait_for_selector('#clearDataBtn', state='visible', timeout=10000)
     page.click('#clearDataBtn')
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
     page.click('#deleteConfirmBtn')

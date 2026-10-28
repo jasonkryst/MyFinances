@@ -43,7 +43,7 @@ export function renderSavingsPage(app) {
   const currentSubTab = app.savingsSubTab || 'emergency';
 
   let html = `
-    <div class="page-header-row">
+    <div class="page-header-row page-header">
       <h2>💰 Savings</h2>
       <button type="button" class="page-print-btn" id="savingsPrintBtn" title="Print this page" aria-label="Print the Savings page">🖨️ Print</button>
     </div>
