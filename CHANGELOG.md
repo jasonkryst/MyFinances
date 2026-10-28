@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.48.2] — 2026-10-27
+
+### Fixed
+- **Plan page: "plan is out of date" banner always showed** — `.plan-stale-warning` sets `display: flex`, which overrode the `hidden` attribute, so the stale-plan banner was visible even with a fresh plan or no plan at all. Added `.plan-stale-warning[hidden] { display: none; }`.
+- **Debt paid-off celebration modal ignored Escape right after opening** — the modal had no `tabindex`, so `modal.focus()` was a no-op and Escape only worked once the 30ms timer focused the Archive button. The modal is now focusable (`tabIndex = -1`).
+
+### Tests / CI
+- **16 test files never ran in CI** (issue #415) — the feature/UI shards in `ci.yml` list files explicitly, and 12 `tests/features/` + 4 `tests/ui/` files were never added (the same gap that let What's New go stale, fixed in 6.48.1). New `test-features-j`, `test-features-k`, and `test-ui-d` jobs run them. 5 of the files had rotted while unsharded (31 failures): both bugs above, plus tests left behind by intentional UI changes (renamed command-palette ids, collapsed add forms, required account/start-date fields, the shared delete-confirm modal, autofocus races, a UTC-vs-local date seed) — repaired to exercise current behavior, and the version-pinned `test_versioning_6_26_0` removed (covered by `test_versioning.py`).
+- New `tests/features/test_ci_shard_coverage.py` fails CI when a `tests/features|ui` test file is missing from every shard, listed in two shards, or a shard references a file that no longer exists.
+
 ## [6.48.1] — 2026-10-27
 
 ### Fixed
