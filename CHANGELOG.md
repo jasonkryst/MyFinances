@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.48.1] — 2026-10-27
+
+### Fixed
+- **What's New modal stuck at 6.41.0** — `WHATS_NEW_ENTRIES` (`src/ui.js`) hadn't been updated since 6.41.0; entries for 6.42.0–6.48.0 added. The staleness guard `test_whats_new_entries_not_stale` (which allowed up to 3 minor versions of drift) never caught it because `tests/features/test_whats_new.py` wasn't listed in any `ci.yml` feature shard, so it never ran in CI. The file is now in `test-features-i`, the guard requires the newest entry's major.minor to equal `APP_VERSION`'s, and two new file-parsing tests fail on any CHANGELOG minor release missing from What's New and on out-of-order/ahead-of-app entries.
+
 ## [6.48.0] — 2026-10-27
 
 ### Added

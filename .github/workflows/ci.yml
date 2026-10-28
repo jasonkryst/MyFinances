@@ -327,6 +327,7 @@ jobs:
           pytest \
             tests/features/test_performance.py \
             tests/features/test_calendar_feed.py \
+            tests/features/test_whats_new.py \
             -v
 
   # ---------------------------------------------------------------------------
