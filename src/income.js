@@ -13,7 +13,8 @@ import {
     formatShortDate,
     buildPersonPillsHtml,
     todayISO,
-    renderChartDataTable
+    renderChartDataTable,
+    setCollapsibleOpen
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
@@ -38,6 +39,7 @@ export function renderIncomeList(app) {
             <button class="btn btn-primary empty-state__cta" id="incomeEmptyStateCta">Add Your First Income</button>
         </div>`;
         document.getElementById('incomeEmptyStateCta')?.addEventListener('click', () => {
+            setCollapsibleOpen('incomeFormBody', true);
             document.getElementById('incomeForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             setTimeout(() => document.getElementById('incomeName')?.focus(), 300);
         });

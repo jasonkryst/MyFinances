@@ -50,7 +50,7 @@ def _seed_income(page, *, name="My Salary", amount="3000"):
     page.select_option('#incomeFrequency', 'monthly')
     # An account is required for income (src/income.js addIncome); pick the first real one.
     page.select_option('#incomeAccount', index=1)
-    page.click('button:has-text("Add Income")')
+    page.click('#incomeFormSubmit')
     page.wait_for_selector(f'#incomeList >> text={name}', timeout=10000)
 
 

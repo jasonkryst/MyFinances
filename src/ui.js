@@ -3,7 +3,7 @@ import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
-import { APP_VERSION, escapeHtml } from './utils.js';
+import { APP_VERSION, escapeHtml, isCollapsibleOpen, setCollapsibleOpen, refreshFilterDisclosureCounts } from './utils.js';
 import { getZeroAmountPolicy } from './settings.js';
 import { initCommandPalette } from './commandPalette.js';
 import { installOwnershipListeners } from './debtOwnership.js';
@@ -30,6 +30,19 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    // #428: mobile collapsibles (add forms, filter disclosures). Delegated so
+    // markup that is re-rendered (Ledger filters) keeps working.
+    document.addEventListener('click', e => {
+        const btn = e.target.closest ? e.target.closest('[data-collapse-toggle]') : null;
+        if (!btn) return;
+        const bodyId = btn.getAttribute('data-collapse-toggle');
+        const bodyEl = document.getElementById(bodyId);
+        const open = bodyEl ? bodyEl.classList.contains('is-open') : isCollapsibleOpen(bodyId);
+        setCollapsibleOpen(bodyId, !open);
+    });
+    document.addEventListener('change', e => {
+        if (e.target.closest && e.target.closest('.filters-disclosure-body')) refreshFilterDisclosureCounts();
+    });
     installOwnershipListeners(() => app);
     const themeSwitcher = document.getElementById('themeSwitcher');
 
@@ -828,6 +841,7 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
         app.renderPeopleList();
         app.refreshPersonSelectors();
     }
+    refreshFilterDisclosureCounts();
 }
 
 export function updateUI(app) {
@@ -994,6 +1008,13 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.55.0 — 2026-10-28',
+        items: [
+            '<strong>Roomier on your phone</strong> (issue #428): filters now tuck behind a "Filters" button. The Accounts and Income add forms open only when you need them. Each Ledger transaction fits on two lines with its amount and balance in view.',
+            '<strong>Easier to tap</strong>: buttons, dropdowns and tabs are at least 40px tall. The Reports tabs now scroll in a single row, and Reconcile opens one account at a time.'
+        ]
+    },
     {
         version: '6.54.0 — 2026-10-28',
         items: [

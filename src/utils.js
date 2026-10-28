@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode } from './i18n.js';
 
-export const APP_VERSION = '6.54.0';
+export const APP_VERSION = '6.55.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -513,4 +513,49 @@ export function getIncomeEventsByMonthForRange(incomes, startDate, endDate) {
 /** True for recurring template types that add money (issue #252): 'income' and 'reimbursement'. */
 export function isRecurringInflow(template) {
     return template?.type === 'income' || template?.type === 'reimbursement';
+}
+
+// ── Mobile collapsibles & filter disclosures (issue #428) ────────────────
+// A `[data-collapse-toggle="<bodyId>"]` button controls the element with that
+// id. Below 768px the body is hidden by CSS unless it carries `.is-open`; on
+// desktop the toggle is hidden and the body is always shown. The open set is
+// module-level so re-rendered markup (the Ledger rebuilds its filter bar on
+// every change) can restore the state with isCollapsibleOpen().
+const _collapsibleState = new Map();
+
+export function isCollapsibleOpen(bodyId, defaultOpen = false) {
+    return _collapsibleState.has(bodyId) ? _collapsibleState.get(bodyId) : defaultOpen;
+}
+
+export function setCollapsibleOpen(bodyId, open) {
+    _collapsibleState.set(bodyId, open);
+    const body = document.getElementById(bodyId);
+    if (body) body.classList.toggle('is-open', open);
+    document.querySelectorAll('[data-collapse-toggle]').forEach(btn => {
+        if (btn.getAttribute('data-collapse-toggle') !== bodyId) return;
+        btn.setAttribute('aria-expanded', String(open));
+        btn.classList.toggle('is-open', open);
+        if (btn.classList.contains('debt-form-toggle')) btn.classList.toggle('debt-form-toggle--open', open);
+    });
+}
+
+export function buildFiltersLabel(activeCount) {
+    return activeCount > 0 ? `Filters (${activeCount} active)` : 'Filters';
+}
+
+// Recompute the "Filters (n active)" label of every DOM-counted disclosure:
+// a select counts as active when its value differs from its first option.
+// Selects marked `data-no-count` (sort/group-by) are not filters.
+export function refreshFilterDisclosureCounts(root = document) {
+    root.querySelectorAll('[data-filters-count="dom"]').forEach(btn => {
+        const body = document.getElementById(btn.getAttribute('data-collapse-toggle'));
+        if (!body) return;
+        let n = 0;
+        body.querySelectorAll('select:not([data-no-count])').forEach(sel => {
+            const first = sel.options[0];
+            if (first && sel.value !== first.value) n++;
+        });
+        btn.textContent = buildFiltersLabel(n);
+        btn.classList.toggle('filters-disclosure-toggle--active', n > 0);
+    });
 }
