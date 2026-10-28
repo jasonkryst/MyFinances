@@ -18,8 +18,8 @@ def test_ctrl_k_opens_palette(app_page):
     page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
     assert page.is_visible('#commandPaletteOverlay'), "Command palette should be visible after Ctrl+K"
-    focused_id = page.evaluate('() => document.activeElement.id')
-    assert focused_id == 'commandPaletteInput', "Search input should be focused on open"
+    # open() focuses the input via setTimeout(0) — wait for it rather than sampling once.
+    page.wait_for_selector('#commandPaletteInput:focus', timeout=5000)
     assert_no_errors(page)
 
 
@@ -40,6 +40,7 @@ def test_escape_closes_palette_and_restores_focus(app_page):
     page.focus('#commandPaletteBtn')
     page.keyboard.press('Control+k')
     page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
+    page.wait_for_selector('#commandPaletteInput:focus', timeout=5000)
 
     page.keyboard.press('Escape')
 
