@@ -415,6 +415,7 @@ def test_modal_reopen_resets_error_state(app_page):
 
     page.evaluate("() => window.app.openReconcileModal(9001)")
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
     assert page.locator('#reconcileModalRangeError').is_hidden()
     assert page.locator('#reconcileModalConfirmBtn').is_enabled()
     assert page.input_value('#reconcileModalEndDate') == _today(page)

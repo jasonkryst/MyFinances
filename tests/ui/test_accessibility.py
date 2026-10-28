@@ -245,6 +245,9 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.wait_for_selector('#reconcileFromLedgerBtn', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    # The modal auto-focuses the balance input after 30ms; let that land so it
+    # can't steal focus back mid-assertion.
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)
 
     # Last focusable -> Tab -> wraps to first (close button)
     page.evaluate("() => document.getElementById('reconcileModalCancelBtn').focus()")
@@ -275,6 +278,7 @@ def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
     page.wait_for_selector('#reconcileFromLedgerBtn', timeout=5000)
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
 
     page.keyboard.press('Escape')
 

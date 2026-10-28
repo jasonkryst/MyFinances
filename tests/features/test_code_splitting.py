@@ -175,6 +175,7 @@ def test_ledger_reconcile_button_loads_reconciliation_module_cold(app_page):
 
     page.click('#reconcileFromLedgerBtn')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=10000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
     page.wait_for_timeout(200)
     assert len(hits) == 1, f"Expected reconciliation.js fetched exactly once, got {len(hits)}: {hits}"
 
