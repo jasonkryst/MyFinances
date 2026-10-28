@@ -2,7 +2,7 @@
 
 import { APP_VERSION, normalizeText, sanitizeFiniteNumber } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
-import { sanitizeParsedState, remapDebtPersonRefs } from './sanitizers.js';
+import { sanitizeParsedState, remapDebtPersonRefs, remapIncomePersonRef } from './sanitizers.js';
 import { replaceForPostgres, mergeForPostgres } from './postgresImport.js';
 import { PLAN_HISTORY_CAP } from './strategyPlanCalculation.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
@@ -470,7 +470,7 @@ export function importAllJSON(app, file, options = {}) {
             const personIdMap = Object.fromEntries(incomingPersons.map((p, i) => [p.id, app.persons[i].id]));
             app.accounts = incomingAccounts;
             app.debts = validDebts.map((d, i) => ({ ...remapDebtPersonRefs(d, personIdMap), id: Date.now() + i }));
-            app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
+            app.incomes = incomingIncomes.map((inc, i) => ({ ...remapIncomePersonRef(inc, personIdMap), id: Date.now() + 1000 + i }));
             app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
             app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
@@ -542,7 +542,7 @@ export function importAllJSON(app, file, options = {}) {
             );
             app.debts = app.debts.map(d => toAddIds.has(d.id) ? remapDebtPersonRefs(d, personIdMap) : d);
             app.accounts = _mergeByName(app.accounts, incomingAccounts, 0);
-            app.incomes = _mergeByName(app.incomes, incomingIncomes, 1000);
+            app.incomes = _mergeByName(app.incomes, incomingIncomes.map(inc => remapIncomePersonRef(inc, personIdMap)), 1000);
             app.bonuses = _mergeByName(app.bonuses, incomingBonuses, 1500);
             app.bills = _mergeByName(app.bills, incomingBills, 2000);
             app.expenses = [...app.expenses, ...incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }))];
