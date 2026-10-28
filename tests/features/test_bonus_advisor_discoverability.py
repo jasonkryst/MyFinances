@@ -11,12 +11,12 @@ from tests.conftest import assert_no_errors
 
 def _open_command_palette(page):
     page.keyboard.press("Control+k")
-    page.wait_for_selector('#commandPaletteModal:not(.hidden)', timeout=5000)
+    page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
 
 
 def _close_command_palette(page):
     page.keyboard.press("Escape")
-    page.wait_for_selector('#commandPaletteModal.hidden', timeout=3000)
+    page.wait_for_selector('#commandPaletteOverlay.hidden', state='attached', timeout=3000)
 
 
 # ── Command palette keyword search ─────────────────────────────────────────────
@@ -28,7 +28,7 @@ def test_bonus_advisor_command_found_by_label(app_page):
     _open_command_palette(page)
     page.fill('#commandPaletteInput', 'Bonus')
     page.wait_for_timeout(300)
-    results = page.query_selector_all('#commandPaletteResults li')
+    results = page.query_selector_all('#commandPaletteList li')
     labels = [r.text_content() for r in results]
     assert any('Bonus Advisor' in l for l in labels), (
         f"Expected 'Bonus Advisor' in results for 'Bonus', got: {labels}"
@@ -43,7 +43,7 @@ def test_bonus_advisor_command_found_by_keyword_windfall(app_page):
     _open_command_palette(page)
     page.fill('#commandPaletteInput', 'windfall')
     page.wait_for_timeout(300)
-    results = page.query_selector_all('#commandPaletteResults li')
+    results = page.query_selector_all('#commandPaletteList li')
     labels = [r.text_content() for r in results]
     assert any('Bonus Advisor' in l for l in labels), (
         f"Expected 'Bonus Advisor' found via keyword 'windfall', got: {labels}"
@@ -58,7 +58,7 @@ def test_bonus_advisor_command_found_by_keyword_lump_sum(app_page):
     _open_command_palette(page)
     page.fill('#commandPaletteInput', 'lump')
     page.wait_for_timeout(300)
-    results = page.query_selector_all('#commandPaletteResults li')
+    results = page.query_selector_all('#commandPaletteList li')
     labels = [r.text_content() for r in results]
     assert any('Bonus Advisor' in l for l in labels), (
         f"Expected 'Bonus Advisor' found via keyword 'lump', got: {labels}"
@@ -73,7 +73,7 @@ def test_unrelated_search_does_not_show_bonus_advisor(app_page):
     _open_command_palette(page)
     page.fill('#commandPaletteInput', 'zzznomatch')
     page.wait_for_timeout(300)
-    results = page.query_selector_all('#commandPaletteResults li')
+    results = page.query_selector_all('#commandPaletteList li')
     labels = [r.text_content() for r in results]
     assert not any('Bonus Advisor' in l for l in labels), (
         f"Did not expect 'Bonus Advisor' for unmatched query, got: {labels}"
@@ -84,8 +84,13 @@ def test_unrelated_search_does_not_show_bonus_advisor(app_page):
 # ── Health page CTA ────────────────────────────────────────────────────────────
 
 def _seed_surplus(page):
-    """Inject enough income so the Health page shows a surplus and renders the CTA."""
+    """Seed a funded account (the Health surplus section analyzes an account's
+    balance against its upcoming window) so the CTA renders."""
     page.evaluate("""() => {
+        window.app.accounts = [{
+            id: 9000, name: 'Surplus Checking', type: 'Checking',
+            startingBalance: 50000, balance: 50000
+        }];
         window.app.incomes = [{
             id: 9001, name: 'Main Job', amount: 10000, frequency: 'monthly',
             accountId: null, startDate: null, endDate: null, notes: ''

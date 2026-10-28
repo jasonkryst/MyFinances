@@ -13,10 +13,14 @@ from tests.conftest import assert_no_errors
 def _add_debt(page, name="Test Debt", balance="5000", rate="15", min_payment="100"):
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
+    if page.get_attribute('#debtFormToggle', 'aria-expanded') != 'true':
+        page.click('#debtFormToggle')
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
     page.fill('#debtName', name)
-    page.fill('#debtBalance', balance)
-    page.fill('#debtInterestRate', rate)
-    page.fill('#debtMinPayment', min_payment)
+    page.fill('#accountBalance', balance)
+    page.fill('#interestRate', rate)
+    page.fill('#minimumPayment', min_payment)
+    page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
     page.wait_for_timeout(300)
 
@@ -100,8 +104,18 @@ def test_stale_banner_visible_after_new_debt_added(app_page):
     _navigate_to_strategy(page)
     _run_plan(page)
 
-    # Add another debt
-    _add_debt(page, name="New Debt After Plan")
+    # Add another debt. Adding via the Debts form auto-recalculates the plan
+    # whenever a monthly payment is configured (debts.js recalculateIfConfigured),
+    # which keeps the fingerprint fresh, so inject the debt directly into app
+    # state to exercise the "debt set changed since plan ran" staleness path.
+    page.evaluate("""() => {
+        window.app.debts.push({
+            id: 987654321, name: 'New Debt After Plan', debtType: 'creditCard',
+            accountBalance: 3000, interestRate: 10, minimumPayment: 60,
+            dueDate: 15, archived: false
+        });
+        window.app.saveToStorage();
+    }""")
     _navigate_to_strategy(page)
     page.wait_for_timeout(400)
 

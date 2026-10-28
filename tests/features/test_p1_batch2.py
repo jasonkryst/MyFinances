@@ -48,6 +48,8 @@ def _seed_income(page, *, name="My Salary", amount="3000"):
     page.fill('#incomeAmount', amount)
     page.fill('#incomeFirstDate', f"{date.today().year}-{date.today().month:02d}-01")
     page.select_option('#incomeFrequency', 'monthly')
+    # An account is required for income (src/income.js addIncome); pick the first real one.
+    page.select_option('#incomeAccount', index=1)
     page.click('button:has-text("Add Income")')
     page.wait_for_selector(f'#incomeList >> text={name}', timeout=10000)
 
@@ -62,31 +64,44 @@ def _seed_account(page, *, name="Checking", acct_type="Checking"):
     page.wait_for_selector(f'#accountList >> text={name}', timeout=10000)
 
 
-def _seed_sinking_fund(page, *, name="Vacation Fund", target="2000", monthly="100"):
-    """Add a sinking fund via UI."""
+def _open_sinking_tab(page, *, open_form=False):
+    """Navigate to Savings > Sinking Funds (optionally expanding the add form)."""
     page.click('button[data-page="savings"]')
     page.wait_for_selector('#savingsSection.active', timeout=5000)
-    # Switch to sinking funds sub-tab if tabs exist
-    sf_tab = page.query_selector('[data-savings-subtab="sinking"]')
-    if sf_tab:
-        sf_tab.click()
+    page.wait_for_selector('[data-savings-subtab="sinking"]', timeout=5000)
+    page.click('[data-savings-subtab="sinking"]')
+    page.wait_for_selector('#sinkingList', timeout=5000)
+    if open_form:
+        page.click('#sinkingFormToggle')
+        page.wait_for_selector('#sinkingFormBody:not(.hidden)', timeout=5000)
+
+
+def _seed_sinking_fund(page, *, name="Vacation Fund", monthly="100"):
+    """Add a sinking fund via UI (requires an account, so one is created first)."""
+    _seed_account(page, name="Sinking Account")
+    _open_sinking_tab(page, open_form=True)
     page.fill('#sinkingName', name)
-    page.fill('#sinkingTarget', target)
-    page.fill('#sinkingMonthly', monthly)
-    page.click('#sinkingSubmit')
-    page.wait_for_selector(f'text={name}', timeout=10000)
+    page.fill('#sinkingMonthlyAllocation', monthly)
+    page.fill('#sinkingCurrentAmount', '0')
+    page.select_option('#sinkingAccount', index=1)
+    page.click('#sinkingFormSubmit')
+    page.wait_for_selector(f'#sinkingList >> text={name}', timeout=10000)
 
 
 def _seed_recurring(page, *, name="Netflix", amount="15"):
-    """Add a recurring template."""
+    """Add a recurring template via the (collapsible) Recurring form."""
+    _seed_account(page, name="Recurring Account")
     page.click('button[data-page="recurring"]')
     page.wait_for_selector('#recurringSection.active', timeout=5000)
+    page.click('#recurringFormToggle')
+    page.wait_for_selector('#recurringFormBody:not([hidden])', timeout=5000)
     page.fill('#recurringName', name)
     page.fill('#recurringAmount', amount)
     page.select_option('#recurringFrequency', 'monthly')
-    page.fill('#recurringDayOfMonth', '1')
-    page.click('#recurringSubmit')
-    page.wait_for_selector(f'text={name}', timeout=10000)
+    page.select_option('#recurringAccount', index=1)
+    page.fill('#recurringStartDate', f"{date.today().year}-{date.today().month:02d}-01")
+    page.click('#recurringFormSubmit')
+    page.wait_for_selector(f'#recurringList >> text={name}', timeout=10000)
 
 
 # ─── #276 Empty State CTAs ─────────────────────────────────────────────────
@@ -188,7 +203,9 @@ def test_min_payment_trap_warning_shown(app_page):
     """#259 — Debt card shows min-payment trap warning when payoff > 36 months."""
     page = app_page
     # High balance + low min payment → many years to pay off
-    _seed_debt(page, name="Trap Debt", balance="8000", rate="22", min_pay="100")
+    # min payment must exceed monthly interest (~$147) or the card shows the negative-amortization
+    # warning instead; $200 amortizes in ~6 years (> 36 months => trap warning).
+    _seed_debt(page, name="Trap Debt", balance="8000", rate="22", min_pay="200")
 
     trap_warn = page.query_selector('.debt-min-trap-warn')
     assert trap_warn, "Min-payment trap warning not shown for long-payoff debt"
@@ -264,11 +281,9 @@ def test_bulk_archive_debts(app_page):
     )
     # Click Archive and confirm
     page.click('#debtBulkArchiveBtn')
-    page.wait_for_selector('.confirm-modal-overlay, [role="dialog"]', timeout=5000)
-    # Accept the confirm modal
-    confirm_btn = page.query_selector('button:has-text("Confirm"), button:has-text("Yes"), button:has-text("Archive")')
-    if confirm_btn:
-        confirm_btn.click()
+    # Bulk archive reuses the shared delete-confirm modal (showDeleteConfirmModal)
+    page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
+    page.click('#deleteConfirmBtn')
     page.wait_for_timeout(500)
 
     # Debt should be archived (not visible unless show-archived is on)
@@ -321,10 +336,8 @@ def test_bulk_delete_debts(app_page):
         timeout=3000
     )
     page.click('#debtBulkDeleteBtn')
-    page.wait_for_selector('.confirm-modal-overlay, [role="dialog"]', timeout=5000)
-    confirm_btn = page.query_selector('button:has-text("Confirm"), button:has-text("Yes"), button:has-text("Delete")')
-    if confirm_btn:
-        confirm_btn.click()
+    page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
+    page.click('#deleteConfirmBtn')
     page.wait_for_timeout(500)
 
     final_count = page.evaluate(
@@ -493,7 +506,7 @@ def test_recurring_mark_paid_cancel_no_change(app_page):
     mark_btn.click()
     page.wait_for_selector('#recurringMarkPaidCancelBtn', timeout=5000)
     page.click('#recurringMarkPaidCancelBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_timeout(500)  # outlast the 300ms saveToStorage debounce so a wrongful write would be visible
 
     month_key = f"{date.today().year}-{date.today().month:02d}"
     paid = page.evaluate(f"""() => {{
@@ -510,11 +523,7 @@ def test_recurring_mark_paid_cancel_no_change(app_page):
 def test_sinking_fund_order_field_exists(app_page):
     """#304 — Sinking fund add form has an order input."""
     page = app_page
-    page.click('button[data-page="savings"]')
-    page.wait_for_selector('#savingsSection.active', timeout=5000)
-    sf_tab = page.query_selector('[data-savings-subtab="sinking"]')
-    if sf_tab:
-        sf_tab.click()
+    _open_sinking_tab(page, open_form=True)
     assert page.query_selector('#sinkingOrder'), "Order input (#sinkingOrder) missing from sinking fund form"
 
 
@@ -522,20 +531,22 @@ def test_sinking_fund_order_field_exists(app_page):
 def test_sinking_fund_order_stored(app_page):
     """#304 — Setting an order value persists it in storage."""
     page = app_page
-    page.click('button[data-page="savings"]')
-    page.wait_for_selector('#savingsSection.active', timeout=5000)
-    sf_tab = page.query_selector('[data-savings-subtab="sinking"]')
-    if sf_tab:
-        sf_tab.click()
+    _seed_account(page, name="Order Account")
+    _open_sinking_tab(page, open_form=True)
     page.fill('#sinkingName', 'Ordered Fund')
-    page.fill('#sinkingTarget', '1000')
-    page.fill('#sinkingMonthly', '50')
-    order_input = page.query_selector('#sinkingOrder')
-    if order_input:
-        page.fill('#sinkingOrder', '3')
-    page.click('#sinkingSubmit')
-    page.wait_for_selector('text=Ordered Fund', timeout=10000)
+    page.fill('#sinkingMonthlyAllocation', '50')
+    page.fill('#sinkingCurrentAmount', '0')
+    page.select_option('#sinkingAccount', index=1)
+    page.fill('#sinkingOrder', '3')
+    page.click('#sinkingFormSubmit')
+    page.wait_for_selector('#sinkingList >> text=Ordered Fund', timeout=10000)
 
+    # saveToStorage is debounced: the account save just before this opens a window,
+    # so the fund lands in a trailing write a moment later — poll for it.
+    page.wait_for_function("""() => {
+        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
+        return (d.sinkingFunds || []).some(x => x.name === 'Ordered Fund');
+    }""", timeout=5000)
     stored_order = page.evaluate("""() => {
         const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
         const f = (d.sinkingFunds || []).find(x => x.name === 'Ordered Fund');
@@ -552,19 +563,16 @@ def test_sinking_fund_complete_btn_shown_when_funded(app_page):
     page = app_page
     page.evaluate("""() => {
         const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
+        // sanitizeSinkingFund callers drop funds without an accountId, so seed an account too
+        d.accounts = [{ id: 8800, name: 'Sinking Seed Acct', type: 'Checking', startingBalance: 1000 }];
         d.sinkingFunds = d.sinkingFunds || [];
-        d.sinkingFunds.push({ id: 8801, name: 'Fully Funded', targetAmount: 500,
+        d.sinkingFunds.push({ id: 8801, name: 'Fully Funded', targetAmount: 500, accountId: 8800,
             currentAmount: 500, monthlyAllocation: 50, order: 0, archived: false, completedDate: null });
         localStorage.setItem('debtTrackerData', JSON.stringify(d));
     }""")
     page.reload(wait_until="networkidle")
 
-    page.click('button[data-page="savings"]')
-    page.wait_for_selector('#savingsSection.active', timeout=5000)
-    sf_tab = page.query_selector('[data-savings-subtab="sinking"]')
-    if sf_tab:
-        sf_tab.click()
-    page.wait_for_timeout(500)
+    _open_sinking_tab(page)
 
     complete_btn = page.query_selector('.sinking-complete-btn')
     assert complete_btn, "'Complete this goal' button not shown for fully funded sinking fund"
@@ -574,7 +582,7 @@ def test_sinking_fund_complete_btn_shown_when_funded(app_page):
 def test_sinking_fund_complete_btn_not_shown_when_not_funded(app_page):
     """#308 — 'Complete this goal' button not shown when fund is not fully funded."""
     page = app_page
-    _seed_sinking_fund(page, name="Partial Fund", target="1000", monthly="50")
+    _seed_sinking_fund(page, name="Partial Fund", monthly="50")
     # currentAmount will be 0 after creation
 
     complete_btn = page.query_selector('.sinking-complete-btn')
@@ -587,19 +595,16 @@ def test_sinking_fund_archive_completes(app_page):
     page = app_page
     page.evaluate("""() => {
         const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
+        // sanitizeSinkingFund callers drop funds without an accountId, so seed an account too
+        d.accounts = [{ id: 8800, name: 'Sinking Seed Acct', type: 'Checking', startingBalance: 1000 }];
         d.sinkingFunds = d.sinkingFunds || [];
-        d.sinkingFunds.push({ id: 8802, name: 'Complete Archive', targetAmount: 200,
+        d.sinkingFunds.push({ id: 8802, name: 'Complete Archive', targetAmount: 200, accountId: 8800,
             currentAmount: 200, monthlyAllocation: 20, order: 0, archived: false, completedDate: null });
         localStorage.setItem('debtTrackerData', JSON.stringify(d));
     }""")
     page.reload(wait_until="networkidle")
 
-    page.click('button[data-page="savings"]')
-    page.wait_for_selector('#savingsSection.active', timeout=5000)
-    sf_tab = page.query_selector('[data-savings-subtab="sinking"]')
-    if sf_tab:
-        sf_tab.click()
-    page.wait_for_timeout(500)
+    _open_sinking_tab(page)
 
     page.click('.sinking-complete-btn')
     page.wait_for_selector('#scArchiveBtn', timeout=5000)
@@ -628,6 +633,7 @@ def test_ledger_export_modal_focus_trap(app_page):
     page.wait_for_selector('#ledgerExportCsvBtn', timeout=5000)
     page.click('#ledgerExportCsvBtn')
     page.wait_for_selector('#ledgerExportModal:not(.hidden)', timeout=5000)
+    page.wait_for_selector('#ledgerExportCloseBtn:focus', timeout=5000)  # modal auto-focuses via setTimeout
 
     # Escape closes the modal
     page.keyboard.press('Escape')
@@ -711,10 +717,5 @@ def test_ledger_export_modal_tab_trap_cycles_focus(app_page):
     assert focused_id == first_focusable, \
         f"Tab from the last element should wrap to the first ({first_focusable!r}), got: {focused_id!r}"
 
-
-@pytest.mark.feature
-def test_versioning_6_26_0(app_page):
-    """Version bump — app footer shows 6.26.0 matching CHANGELOG."""
-    page = app_page
-    footer_text = page.locator('footer').inner_text()
-    assert '6.26.0' in footer_text, f"Version 6.26.0 not in footer: {footer_text!r}"
+# test_versioning_6_26_0 removed: a hard-coded 6.26.0 footer assertion can never hold again after the
+# next version bump; version/CHANGELOG sync is enforced durably by tests/features/test_versioning.py.

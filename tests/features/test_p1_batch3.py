@@ -56,6 +56,7 @@ def test_celebration_modal_escape_closes_without_archiving(app_page):
 
     page.click('[data-debt-action="celebrate"][data-debt-id="9301"]')
     page.wait_for_selector('#debtPaidOffTitle', timeout=5000)
+    page.wait_for_selector('#dpoArchiveBtn:focus', timeout=5000)  # modal auto-focuses via setTimeout
     page.keyboard.press('Escape')
     page.wait_for_selector('#debtPaidOffTitle', state='hidden', timeout=5000)
 
@@ -192,7 +193,8 @@ def _seed_debt_with_updated_at(page, *, days_ago):
         const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{{}}');
         const dt = new Date();
         dt.setDate(dt.getDate() - {days_ago});
-        const iso = dt.toISOString().slice(0, 10);
+        // Local-date ISO: toISOString() is UTC and can be off by a day vs. health.js's local-midnight math.
+        const iso = [dt.getFullYear(), String(dt.getMonth() + 1).padStart(2, '0'), String(dt.getDate()).padStart(2, '0')].join('-');
         d.debts = [{{
             id: 9501, name: 'Stale Test Debt', category: '', debtType: 'creditCard',
             accountBalance: 500, originalBalance: 1000, interestRate: 18,

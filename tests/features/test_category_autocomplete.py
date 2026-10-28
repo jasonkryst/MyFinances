@@ -66,8 +66,17 @@ def test_recurring_category_accepts_free_text(app_page):
     page.click('button[data-page="recurring"]')
     page.wait_for_selector('#recurringSection.active', timeout=5000)
 
+    page.evaluate("""() => {
+        window.app.accounts = [{ id: 7301, name: 'Cat Test Checking', type: 'Checking', startingBalance: 1000 }];
+        window.app.switchPage('recurring');
+    }""")
+    page.wait_for_selector('#recurringSection.active', timeout=5000)
+    page.click('#recurringFormToggle')
+    page.wait_for_selector('#recurringFormBody:not([hidden])', timeout=5000)
     page.fill('#recurringName', 'Custom Cat Item')
     page.fill('#recurringAmount', '50')
+    page.select_option('#recurringAccount', '7301')
+    page.fill('#recurringStartDate', '2026-01-15')
     page.fill('#recurringCategory', 'MyCustomCategory')
     page.select_option('#recurringFrequency', 'monthly')
     page.click('#recurringFormSubmit')
@@ -89,8 +98,17 @@ def test_recurring_category_free_text_appears_in_datalist(app_page):
     page.click('button[data-page="recurring"]')
     page.wait_for_selector('#recurringSection.active', timeout=5000)
 
+    page.evaluate("""() => {
+        window.app.accounts = [{ id: 7301, name: 'Cat Test Checking', type: 'Checking', startingBalance: 1000 }];
+        window.app.switchPage('recurring');
+    }""")
+    page.wait_for_selector('#recurringSection.active', timeout=5000)
+    page.click('#recurringFormToggle')
+    page.wait_for_selector('#recurringFormBody:not([hidden])', timeout=5000)
     page.fill('#recurringName', 'UniqueCatItem')
     page.fill('#recurringAmount', '25')
+    page.select_option('#recurringAccount', '7301')
+    page.fill('#recurringStartDate', '2026-01-15')
     page.fill('#recurringCategory', 'UniqueCategoryXYZ')
     page.select_option('#recurringFrequency', 'monthly')
     page.click('#recurringFormSubmit')
