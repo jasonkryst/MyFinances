@@ -8838,6 +8838,7 @@ body.dark-mode .bva-pos { color: #86efac; }
     body.dark-mode .rpt-tab-bar { --rpt-bar-bg: var(--bg-color, #0f172a); }
     .rpt-tab-group, .rpt-tab-group-tabs { flex-wrap: nowrap; flex-shrink: 0; }
     .rpt-tab-btn { flex-shrink: 0; }
+}
 
 /* UX B (#427) numbers and copy clarity */
 .whatif-headline { font-weight: 600; margin: 8px 0; color: var(--success, #16a34a); }
