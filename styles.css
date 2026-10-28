@@ -7016,6 +7016,9 @@ body.dark-mode .app-footer {
 }
 .health-trend--good { color: var(--positive-color, #16a34a); }
 .health-trend--bad  { color: var(--negative-color, #dc2626); }
+/* #dc2626 on the dark card (#1e293b) is 3.0:1 — below WCAG AA 4.5:1 for this small glyph */
+body.dark-mode .health-trend--good { color: #4ade80; }
+body.dark-mode .health-trend--bad  { color: #f87171; }
 
 .health-card-header {
     display: flex;

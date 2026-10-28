@@ -18,6 +18,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - This affects Monthly Cash Flow, Savings Rate, the FIRE estimate, the trend arrow, emergency-fund coverage and Budget Allocation. The cash-flow card adds "Recurring income" and "Recurring" rows.
   - **DTI, mortgage DTI, interest burden and Home Purchase affordability are unchanged** and still use salary and bonus income only.
 
+### Fixed
+- **Health trend arrows were hard to read in dark mode.** The red ▼ (worse than last month) had a contrast ratio of 3.0:1 against the dark card, below the WCAG AA minimum of 4.5:1. Dark mode now uses lighter red and green arrows. CI's accessibility audit caught this once Health's trend started reflecting recurring templates.
+
 ## [6.48.2] — 2026-10-27
 
 ### Fixed
