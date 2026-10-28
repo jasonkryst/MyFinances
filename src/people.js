@@ -2,6 +2,7 @@
 import { normalizeText, escapeHtml, formatCurrency } from './utils.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
+import { renderOwnershipControl, getDebtShare, removePersonFromDebt } from './debtOwnership.js';
 
 // Cycle member: ui.js → people.js → postgresSync.js → ui.js (safe: all exports are hoisted function declarations)
 
@@ -40,6 +41,7 @@ export function refreshPersonSelectors(app) {
         debtPersonEl.innerHTML = (app.persons || []).map(p =>
             `<option value="${p.id}"${selected.has(String(p.id)) ? ' selected' : ''}>${escapeHtml(p.name)}</option>`
         ).join('');
+        renderOwnershipControl(app, document.getElementById('debtOwnership'), debtPersonEl);
     }
 }
 
@@ -86,14 +88,16 @@ export function renderPeopleList(app) {
         const linkedDebts = (app.debts || []).filter(d => !d.archived && (d.personIds || []).includes(p.id));
         const linkedIncomes = (app.incomes || []).filter(inc => inc.personId === p.id);
         const annualIncome = personAnnualIncome(app, p.id);
+        // #272: shared debts are attributed to each person by their ownership share
+        // (equal share when the debt has no custom split).
         const totalDebt = linkedDebts.reduce((s, d) =>
-            s + (d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0)), 0);
+            s + getDebtShare(d, p.id) * (d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0)), 0);
         const ccDebts = linkedDebts.filter(d => d.debtType === 'creditCard' && d.creditLimit > 0);
-        const totalBalance = ccDebts.reduce((s, d) => s + (d.accountBalance || 0), 0);
-        const totalLimit = ccDebts.reduce((s, d) => s + d.creditLimit, 0);
+        const totalBalance = ccDebts.reduce((s, d) => s + getDebtShare(d, p.id) * (d.accountBalance || 0), 0);
+        const totalLimit = ccDebts.reduce((s, d) => s + getDebtShare(d, p.id) * d.creditLimit, 0);
         const utilPct = totalLimit > 0 ? Math.round((totalBalance / totalLimit) * 100) : 0;
         const monthlyIncome = annualIncome / 12;
-        const totalMinPayment = linkedDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+        const totalMinPayment = linkedDebts.reduce((s, d) => s + getDebtShare(d, p.id) * (d.minimumPayment || 0), 0);
         const dtiPct = monthlyIncome > 0 ? Math.round((totalMinPayment / monthlyIncome) * 100) : null;
 
         const monthlyNet = monthlyIncome - totalMinPayment;
@@ -221,9 +225,8 @@ export async function deletePerson(app, personId) {
 
         for (let i = 0; i < app.debts.length; i++) {
             if (!(app.debts[i].personIds || []).includes(personId)) continue;
-            const newIds = app.debts[i].personIds.filter(id => id !== personId);
-            if (replacementId !== null && !newIds.includes(replacementId)) newIds.push(replacementId);
-            app.debts[i] = { ...app.debts[i], personIds: newIds };
+            // #272: also moves/renormalizes the removed person's ownership share.
+            app.debts[i] = removePersonFromDebt(app.debts[i], personId, replacementId);
             if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${app.debts[i].id}`, app.debts[i]);
         }
     }

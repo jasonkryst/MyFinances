@@ -6,6 +6,7 @@ import { refreshCategoryDatalist } from './recurring.js';
 import { APP_VERSION, escapeHtml } from './utils.js';
 import { getZeroAmountPolicy } from './settings.js';
 import { initCommandPalette } from './commandPalette.js';
+import { installOwnershipListeners } from './debtOwnership.js';
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
@@ -29,6 +30,7 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    installOwnershipListeners(() => app);
     const themeSwitcher = document.getElementById('themeSwitcher');
 
     const savedTheme = localStorage.getItem('debtTrackerTheme');
@@ -992,6 +994,12 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.51.0 — 2026-10-28',
+        items: [
+            '<strong>Split shared debts</strong> (issue #272): when a debt belongs to two or more people, choose "Custom split" (for example 60/40 on a mortgage). Debt cards show the split, and each person\'s summary on the People page now counts only their share.'
+        ]
+    },
     {
         version: '6.50.0 — 2026-10-28',
         items: [

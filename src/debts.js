@@ -6,6 +6,8 @@ import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showArchiveConfirmModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
+import { renderOwnershipControl, readOwnershipSplit, buildOwnershipSplitHtml } from './debtOwnership.js';
+import { sanitizeOwnershipSplit } from './sanitizers.js';
 
 function utilizationStatus(pct) {
     if (pct <= 10) return { cls: 'health-status--green',  label: 'Good' };
@@ -96,6 +98,7 @@ export async function addDebt(app) {
 
     const notes = normalizeText(document.getElementById('debtNotes')?.value ?? '', 500);
     const nextPaymentDue = sanitizeDateISO(document.getElementById('debtNextPaymentDue')?.value);
+    const ownershipSplit = sanitizeOwnershipSplit(readOwnershipSplit(document.getElementById('debtOwnership')), personIds);
 
     const debt = {
         id: Date.now(),
@@ -105,6 +108,7 @@ export async function addDebt(app) {
         debtType,
         accountId,
         personIds,
+        ownershipSplit,
         notes,
         nextPaymentDue,
         updatedAt: todayISO()
@@ -376,6 +380,7 @@ export async function saveEdit(app) {
         dueDate,
         creditLimit,
         personIds,
+        ownershipSplit: sanitizeOwnershipSplit(app.debts[idx].ownershipSplit, personIds),
         notes,
         nextPaymentDue
     };
@@ -713,9 +718,10 @@ export function renderDebtsList(app) {
                         </div>
                         ${(app.persons || []).length > 0 ? `
                         <div class="debt-detail"><strong>People:</strong>
-                            <select id="inline-persons-${debt.id}" multiple>
+                            <select id="inline-persons-${debt.id}" multiple data-ownership-for="inline-ownership-${debt.id}">
                                 ${(app.persons).map(p => `<option value="${p.id}"${(debt.personIds || []).includes(p.id) ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
                             </select>
+                            <div id="inline-ownership-${debt.id}" class="ownership-control hidden"></div>
                         </div>` : ''}
                         <div class="debt-detail debt-detail--notes"><strong>Notes:</strong>
                             <textarea id="inline-notes-${debt.id}" rows="2" maxlength="500" placeholder="Optional notes…">${escapeHtml(debt.notes || '')}</textarea>
@@ -729,6 +735,7 @@ export function renderDebtsList(app) {
                 </div>
             `;
             card.innerHTML = editHTML;
+            renderOwnershipControl(app, card.querySelector(`#inline-ownership-${debt.id}`), card.querySelector(`#inline-persons-${debt.id}`), debt.ownershipSplit || null);
         } else {
             let cardHTML = `<label class="debt-select-label"><input type="checkbox" class="debt-row-select" data-debt-select="${debt.id}" aria-label="Select ${escapeHtml(debt.name)}"></label>
                 <div class="debt-info">
@@ -737,8 +744,10 @@ export function renderDebtsList(app) {
                 cardHTML += ` <span class="debt-type-badge">Fixed Amount</span>`;
             }
             const personPills = buildPersonPillsHtml(debt.personIds, app.persons);
+            const splitHtml = buildOwnershipSplitHtml(debt, app.persons);
             cardHTML += `</div>
                     ${personPills ? `<div class="person-pills debt-person-pills">${personPills}</div>` : ''}
+                    ${splitHtml ? `<div class="debt-ownership-split text-muted-secondary" data-ownership-split>Ownership: ${splitHtml}</div>` : ''}
                     <div class="debt-details">`;
 
             if (debt.debtType === 'fixedAmount') {
@@ -1079,7 +1088,10 @@ export async function saveInlineEdit(app, debtId) {
         if (accountEl) debt.accountId = accountEl.value ? parseInt(accountEl.value) : null;
 
         const personsEl = document.getElementById(`inline-persons-${debtId}`);
-        if (personsEl) debt.personIds = Array.from(personsEl.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite);
+        if (personsEl) {
+            debt.personIds = Array.from(personsEl.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite);
+            debt.ownershipSplit = sanitizeOwnershipSplit(readOwnershipSplit(document.getElementById(`inline-ownership-${debtId}`)), debt.personIds);
+        }
 
         if (debt.debtType === 'fixedAmount') {
             const fixedAmtEl = document.getElementById(`inline-fixed-amount-${debtId}`);

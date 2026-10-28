@@ -436,8 +436,9 @@
                                     <label for="debtPersons">Family Member(s)
                                         <span class="help-icon" tabindex="0" aria-label="Which family member(s) own this debt? Hold Ctrl/Cmd to select multiple.">?</span>
                                     </label>
-                                    <select id="debtPersons" multiple class="form-control">
+                                    <select id="debtPersons" multiple class="form-control" data-ownership-for="debtOwnership">
                                     </select>
+                                    <div id="debtOwnership" class="ownership-control hidden"></div>
                                 </div>
 
                                 <!-- Fixed-Amount Debt Fields -->

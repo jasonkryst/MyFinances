@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.51.0] — 2026-10-28
+
+### Added
+- **Debt ownership split** (issue #272). A debt linked to two or more people can be **Shared equally** (the default) or given a **Custom split** with auto-balancing percentage inputs, in both the Add Debt form and the inline editor. Debt cards show the split, for example "Alex 60% · Sam 40%".
+  - The split is stored on the debt as `ownershipSplit`. It is sanitized and normalized on load and import, survives export/import, and is saved to the optional Postgres backend (new nullable `debts.ownership_split jsonb` column, migration `1755600000026`).
+  - **Income is intentionally not split:** each income stays 100% owned by its single linked person.
+
+### Changed
+- **People page summary tiles now count each person's share of a shared debt.** Total Debt, Monthly Net, DTI and Credit Utilization previously counted the full debt for every linked person. Deleting a person renormalizes their share across the remaining owners, and replacing a person moves the share to the replacement.
+
+### Fixed
+- **Importing a JSON backup could break debt-to-person links.** In both replace and merge modes, imported people get new ids, but debts' person links (`personIds`) were not updated to match, so debts could end up pointing at the wrong person or no one. They are now remapped to the new ids.
+
 ## [6.50.0] — 2026-10-28
 
 ### Added

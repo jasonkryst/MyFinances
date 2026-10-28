@@ -342,3 +342,30 @@ test('/api/transfers: rejects a fromAccountId/toAccountId belonging to another u
     const list = await (await fetch(`${baseUrl}/api/transfers`, { headers: { Cookie: cookies } })).json();
     assert.equal(list.length, 0);
 });
+
+test('/api/debts: ownershipSplit persists as jsonb, defaults to null, and is re-sanitized (#272)', async () => {
+    const mk = body => fetch(`${baseUrl}/api/debts`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Mortgage', category: 'Mortgage', debtType: 'creditCard', accountBalance: 1000, minimumPayment: 10, interestRate: 5, accountId, ...body })
+    });
+
+    const plain = await (await mk({})).json();
+    assert.equal(plain.ownershipSplit, null);
+
+    const created = await (await mk({ personIds: [11, 22], ownershipSplit: { 11: 0.6, 22: 0.4 } })).json();
+    assert.deepEqual(created.ownershipSplit, { 11: 0.6, 22: 0.4 });
+
+    // Shares that do not sum to 1 are normalized server-side.
+    const normalized = await (await mk({ personIds: [11, 22], ownershipSplit: { 11: 0.25, 22: 0.25 } })).json();
+    assert.equal(normalized.ownershipSplit['11'], 0.5);
+
+    // A single owner has no split.
+    const single = await (await mk({ personIds: [11], ownershipSplit: { 11: 1 } })).json();
+    assert.equal(single.ownershipSplit, null);
+
+    // PATCHing personIds down to one person clears the stored split.
+    const patchRes = await fetch(`${baseUrl}/api/debts/${created.id}`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ personIds: [11] })
+    });
+    assert.equal((await patchRes.json()).ownershipSplit, null);
+});
