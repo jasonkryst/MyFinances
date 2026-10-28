@@ -3,6 +3,7 @@ import { formatCurrency, computeMonthlyIncomeForMonth, normalizeText, sanitizeFi
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
+import { renderCategoryBudgetsPanel } from './categoryBudgets.js';
 
 
 // Render the full Budget page: bill cards, expense cards, cashflow summary.
@@ -10,6 +11,7 @@ export function renderBudgetPage(app) {
     if (app._cashflowDonutChart) { app._cashflowDonutChart.destroy(); app._cashflowDonutChart = null; }
     if (app._cashflowBarChart)   { app._cashflowBarChart.destroy();   app._cashflowBarChart   = null; }
     renderExpenseList(app);
+    renderCategoryBudgetsPanel(app);
     renderCashFlowSummary(app);
 }
 
