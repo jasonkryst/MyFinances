@@ -4,6 +4,22 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.54.0] — 2026-10-28
+
+### Fixed
+- **Health's debt-free date no longer shows a raw JavaScript date string** like "Fri Dec 28 2029 00:00:00 GMT-0600…". It is now formatted for your locale (issue #427).
+- **Savings Rate is computed in one place,** a shared `computeSavingsRate()`, so Health and Savings always agree. Before, they showed 6.0% and 6.2% for the same data.
+- **Health's mortgage Front-End/Back-End ratios no longer show "0.0% Healthy"** when no housing cost is set. They now say "Enter a housing cost".
+
+### Changed
+- **Net Worth labels say which figure is which.** The Accounts widget and the Reports stat are labelled with their snapshot date, and Health's figure is labelled "live". These figures differ by design.
+- **Forecast's Current Balance now reads "(all asset accounts)",** and a note shows how much of it is in retirement accounts and so isn't spendable cash.
+- **Per-person credit-utilization badges on Health now read like "58% utilized · DTI 10%"** instead of showing two unlabelled numbers.
+- **Recurring's Overdue count is now a filter button** with text explaining what overdue means.
+
+### Added
+- **The What-If simulator states its result in words,** for example "Saves $235.48 interest · 2 months sooner", as you move the slider.
+
 ## [6.53.0] — 2026-10-28
 
 ### Changed
