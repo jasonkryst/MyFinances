@@ -1001,6 +1001,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.56.0 — 2026-10-28',
+        items: [
+            '<strong>A cleaner, more consistent look</strong> (issue #429): page titles now match across every page. The header is slimmer, the phone menu button has been redesigned, and dark mode has better contrast.',
+            '<strong>"Clear All Data" has moved</strong> to Settings → Data & Storage, away from the Calculate button, so it\'s harder to hit by accident.'
+        ]
+    },
+    {
         version: '6.53.0 — 2026-10-28',
         items: [
             '<strong>Cleaner debt cards</strong>: each debt\'s key numbers now sit in a tidy grid with balance and minimum payment up front. The Edit, Update Balance, History and Delete buttons live together at the bottom of the card. A balance that has grown since you added the debt is now explained in words instead of showing a negative percentage.'
