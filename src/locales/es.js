@@ -46,6 +46,11 @@ export default {
     'settings.sendTestEmail': 'Enviar correo de prueba',
     'settings.language': 'Idioma',
     'settings.languageHelp': 'La traducción sigue en expansión: algunas páginas pueden permanecer en inglés.',
+    'settings.zeroAmountLabel': 'Montos de $0 en el libro mayor',
+    'settings.zeroAmountAllow': 'Permitir',
+    'settings.zeroAmountWarn': 'Advertir (confirmar antes de guardar)',
+    'settings.zeroAmountBlock': 'Bloquear',
+    'settings.zeroAmountHelp': 'Las entradas de $0 sirven para registrar una transacción (por ejemplo, con tarjeta de crédito) sin mover un saldo. Se aplica a los ajustes del libro mayor y a las plantillas recurrentes; las transferencias siempre requieren un monto mayor que $0.',
     'settings.done': 'Listo',
 
     'dataTransfer.title': 'Copia de Seguridad y Restauración',

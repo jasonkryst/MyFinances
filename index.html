@@ -1148,7 +1148,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="recurringAmount">Amount ($) *</label>
-                                    <input type="number" id="recurringAmount" placeholder="0.00" step="0.01" min="0.01" required>
+                                    <input type="number" id="recurringAmount" placeholder="0.00" step="0.01" min="0" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="recurringFrequency">Frequency *</label>
@@ -1815,6 +1815,15 @@
                         <span data-i18n="settings.autoNwSnapshot">Auto-capture monthly net worth snapshot</span>
                     </label>
                     <p class="modal-helper-text">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label for="settingZeroAmountPolicy" data-i18n="settings.zeroAmountLabel">$0 ledger amounts</label>
+                    <select id="settingZeroAmountPolicy">
+                        <option value="allow" data-i18n="settings.zeroAmountAllow">Allow</option>
+                        <option value="warn" data-i18n="settings.zeroAmountWarn">Warn (confirm before saving)</option>
+                        <option value="block" data-i18n="settings.zeroAmountBlock">Block</option>
+                    </select>
+                    <p class="modal-helper-text" data-i18n="settings.zeroAmountHelp">$0 entries are useful for tracking a transaction (for example, one made on a credit card) without moving a balance. Applies to ledger overrides and recurring templates; transfers always need an amount above $0.</p>
                 </div>
             </div>
             <div class="modal-actions">

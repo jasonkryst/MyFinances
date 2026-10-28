@@ -451,11 +451,11 @@ def test_recurring_invalid_amount_rejected_via_ui(app_page):
     _seed_account(page)
     _open_recurring_form(page)
 
-    _fill_recurring_form(page, 'Bad Amount Sub', '0', 'monthly', '2026-05-01', 7201)
+    _fill_recurring_form(page, 'Bad Amount Sub', '-5', 'monthly', '2026-05-01', 7201)
     page.click('#recurringFormSubmit')
 
     templates_count = page.evaluate('() => (window.app.recurringTemplates || []).length')
-    assert templates_count == 0, "A zero amount should be rejected and no template should be created"
+    assert templates_count == 0, "A negative amount should be rejected and no template should be created"
 
 
 @pytest.mark.feature

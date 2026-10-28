@@ -16,6 +16,9 @@ export const RETIREMENT_WITHDRAWAL_RATE = 'retirementWithdrawalRate';
 export const RETIREMENT_SCENARIO_CONSERVATIVE_DELTA = 'retirementScenarioConservativeDelta';
 export const RETIREMENT_SCENARIO_AGGRESSIVE_DELTA = 'retirementScenarioAggressiveDelta';
 export const HOUSING_COST_OVERRIDE = 'healthHousingCostOverride';
+// #412: how $0 ledger/recurring amounts are treated: 'allow' | 'warn' | 'block'.
+export const ZERO_AMOUNT_POLICY = 'zeroAmountPolicy';
+export const ZERO_AMOUNT_POLICIES = ['allow', 'warn', 'block'];
 
 // #250: per-category budget health thresholds, stored as two flat settings
 // entries per category rather than one JSON-blob setting — sanitizeSetting()
@@ -43,4 +46,10 @@ export function setSetting(app, key, value) {
     if (app._storageBackendKind === 'postgres') {
         pgPut(app, `/api/settings/${key}`, { value });
     }
+}
+// Returns 'allow' for a missing/unknown stored value so a bad import can
+// never silently turn into a stricter policy.
+export function getZeroAmountPolicy(app) {
+    const value = getSetting(app, ZERO_AMOUNT_POLICY, 'allow');
+    return ZERO_AMOUNT_POLICIES.includes(value) ? value : 'allow';
 }

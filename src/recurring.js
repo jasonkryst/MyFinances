@@ -13,7 +13,7 @@ import {
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
-import { showDeleteConfirmModal, showAlertModal } from './ui.js';
+import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 
 const TYPES = ['subscription', 'reimbursement', 'transfer'];
@@ -545,7 +545,7 @@ function _buildEditCard(app, t) {
             </div>
             <div class="form-group recurring-edit-field">
                 <label>Amount ($) *</label>
-                <input type="number" id="re-amount-${t.id}" value="${t.amount}" min="0.01" step="0.01">
+                <input type="number" id="re-amount-${t.id}" value="${t.amount}" min="0" step="0.01">
             </div>
             <div class="form-group recurring-edit-field">
                 <label>Frequency</label>
@@ -588,11 +588,30 @@ function _buildEditCard(app, t) {
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
+// #412: blank/non-numeric/negative amounts are always rejected; $0 is subject
+// to the zeroAmountPolicy setting, except for transfers which require > 0.
+async function validateRecurringAmount(app, rawAmount, type, name) {
+    const trimmed = String(rawAmount ?? '').trim();
+    const n = Number(trimmed);
+    if (trimmed === '' || !Number.isFinite(n) || n < 0) {
+        await showAlertModal('Please enter a valid amount (0 or greater).');
+        return false;
+    }
+    if (n === 0) {
+        if (type === 'transfer') {
+            await showAlertModal('Transfers must have an amount greater than $0.');
+            return false;
+        }
+        return confirmZeroAmountAllowed(app, name);
+    }
+    return true;
+}
+
 export async function addRecurringTemplate(app) {
     const name = normalizeText(document.getElementById('recurringName')?.value, 80);
     const type = document.getElementById('recurringType')?.value || 'subscription';
     const rawAmount = document.getElementById('recurringAmount')?.value;
-    const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
+    const amount = sanitizeFiniteNumber(String(rawAmount ?? '').trim() === '' ? NaN : rawAmount, NaN, { min: 0 });
     const frequency = document.getElementById('recurringFrequency')?.value || 'monthly';
     const dayOfMonth = sanitizeInteger(document.getElementById('recurringDayOfMonth')?.value, 1, { min: 1, max: 31 });
     const category = normalizeText(document.getElementById('recurringCategory')?.value, 40) || 'Other';
@@ -602,7 +621,7 @@ export async function addRecurringTemplate(app) {
     const endDate = sanitizeDateISO(document.getElementById('recurringEndDate')?.value) || null;
 
     if (!name) { await showAlertModal('Please enter a name.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid positive amount.'); return; }
+    if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
     if (!accountId) { await showAlertModal('Please select an account.'); return; }
 
     if (!app.recurringTemplates) app.recurringTemplates = [];
@@ -827,7 +846,7 @@ export async function saveEditRecurring(app, id) {
     const name = normalizeText(document.getElementById(`re-name-${id}`)?.value, 80);
     const type = document.getElementById(`re-type-${id}`)?.value || 'subscription';
     const rawAmount = document.getElementById(`re-amount-${id}`)?.value;
-    const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
+    const amount = sanitizeFiniteNumber(String(rawAmount ?? '').trim() === '' ? NaN : rawAmount, NaN, { min: 0 });
     const frequency = document.getElementById(`re-freq-${id}`)?.value || 'monthly';
     const dayOfMonth = sanitizeInteger(document.getElementById(`re-day-${id}`)?.value, 1, { min: 1, max: 31 });
     const category = normalizeText(document.getElementById(`re-cat-${id}`)?.value, 40) || 'Other';
@@ -837,7 +856,7 @@ export async function saveEditRecurring(app, id) {
     const endDate = sanitizeDateISO(document.getElementById(`re-end-${id}`)?.value) || null;
 
     if (!name) { await showAlertModal('Please enter a name.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid positive amount.'); return; }
+    if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
 
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],

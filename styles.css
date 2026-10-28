@@ -157,6 +157,13 @@
     z-index: 10003;
 }
 
+/* #412: alert/confirm dialogs raised from inside the Ledger override modal
+   (z-index 10003) must stack above it. */
+.modal-overlay[id="alertModal"],
+.modal-overlay[id="deleteConfirmModal"] {
+    z-index: 10004;
+}
+
 .modal-content {
     background: var(--bg-secondary, #ffffff);
     color: var(--text-primary, #1e293b);

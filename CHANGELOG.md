@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.48.0] — 2026-10-27
+
+### Added
+- **Configurable $0 ledger amount policy** (issue #412) — new Settings → Advanced select ("$0 ledger amounts": Allow / Warn / Block, default Allow) controls whether a $0 amount may be saved in the Ledger override modal and in recurring templates (add and inline edit). Warn asks for confirmation; Block shows a notice and saves nothing. Recurring templates of type Transfer, and one-off transfers, still require an amount above $0 regardless of the policy. Recurring forms now accept $0 (previously rejected).
+
+### Fixed
+- A blank amount in the Ledger override modal was silently saved as $0; blank or whitespace-only amounts are now always rejected ("Please enter a valid number."). Type 0 for a deliberate $0 entry.
+
 ## [6.47.0] — 2026-10-27
 
 ### Changed

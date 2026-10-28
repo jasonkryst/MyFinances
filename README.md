@@ -92,6 +92,7 @@ All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/M
 - **Screen-reader chart tables** — every Chart.js canvas has a paired visually-hidden `.sr-only` `<table>` with the same data, rebuilt on every chart re-render via `renderChartDataTable()` in `utils.js`
 - **localStorage quota monitoring** — soft-warning banner when usage crosses ~80% of the estimated 5 MB limit; hard-failure banner if `setItem` actually throws
 - **In-app guide** — the ❓ Help button opens `guide.html` in a new tab; theme (including High Contrast) follows the main app preference
+- **$0 ledger amount policy** — Settings → Advanced lets you Allow, Warn about, or Block $0 amounts in ledger overrides and recurring templates (transfers always need more than $0)
 - **Language support (English / Español / Polski)** — switch languages from the Settings modal (gear icon). Navigation, the toolbar, Settings, and the Health dashboard are translated, with number/date formatting following the selected language; other pages are being translated incrementally.
 
 ---

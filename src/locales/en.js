@@ -49,6 +49,11 @@ export default {
     'settings.sendTestEmail': 'Send test email',
     'settings.language': 'Language',
     'settings.languageHelp': 'Translation is still expanding — some pages may remain in English.',
+    'settings.zeroAmountLabel': '$0 ledger amounts',
+    'settings.zeroAmountAllow': 'Allow',
+    'settings.zeroAmountWarn': 'Warn (confirm before saving)',
+    'settings.zeroAmountBlock': 'Block',
+    'settings.zeroAmountHelp': '$0 entries are useful for tracking a transaction (for example, one made on a credit card) without moving a balance. Applies to ledger overrides and recurring templates; transfers always need an amount above $0.',
     'settings.done': 'Done',
 
     'dataTransfer.title': 'Backup & Restore',
