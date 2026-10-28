@@ -10,6 +10,18 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **Health: adjustable FIRE target** (issue #361). The FIRE card's target was hardcoded at 25× annual expenses; you can now set it with two linked inputs, "Years of expenses" (default 25) and "Withdrawal rate %" (default 4), where changing one updates the other. Any positive value is accepted, up to 1,000×. Invalid input is rejected inline, and the previous value is kept. The FIRE number, years-away and FI badge recalculate immediately. The value is stored as the `fireMultiplier` setting, so it syncs to Postgres and survives export/import. New strings are translated in en/es/pl.
 - **Plan: refinancing what-if** (issue #320). A collapsible "Refinancing scenario" section in the What-If Simulator lets you pick a single debt and enter a new APR. It shows the new payoff date, months saved or added, and interest saved or extra cost, for any of the four strategies. Your debts are never modified. The section resets on Clear, on recalculating, and when you navigate back to the Plan page.
 
+## [6.49.0] — 2026-10-28
+
+### Added
+- **Category Budgets** (issue #255): a new panel on Liabilities → Expenses. Each spending category gets either a **Fixed** monthly budget or stays **Derived**. Derived is the month's scheduled bills, expenses and recurring items, which matches the previous behavior. Invalid amounts are rejected inline, and each category has a Reset button.
+- **Reports → Variance: "Budget vs. Actual" table.** Columns are budget (marked Fixed or Derived), actual, difference and % used. Over-budget rows are highlighted. The table follows the selected date range: a Fixed budget is multiplied by the number of months, and Derived budgets are summed month by month. On mobile, rows restack into cards.
+- `budgetCategories` is persisted in:
+  - local and session storage;
+  - JSON export/import (replace, and merge by category);
+  - the optional Postgres backend: migration `1755600000027` adds a nullable `plan_settings.budget_categories jsonb` column, and the server re-sanitizes it on every save.
+  The sanitizer drops invalid entries rather than turning them into $0 budgets: negative or non-numeric amounts, unknown modes, and prototype-polluting keys. It caps names at 40 characters, amounts at 1e9 and the list at 200 entries, and reports each dropped entry as an import warning.
+- Design spec: `docs/superpowers/specs/2026-10-28-category-budgets-design.md`.
+
 ## [6.48.2] — 2026-10-27
 
 ### Fixed

@@ -171,6 +171,7 @@ export class DebtTrackerApp {
         this.transfers = [];
         this.retirementTargetDate = null;
         this.homePurchasePlan = null;
+        this.budgetCategories = {};
         this.balanceHistory = [];
         this._retireBalanceChart = null;
         this._retireContributionChart = null;

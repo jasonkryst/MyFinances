@@ -297,6 +297,7 @@ jobs:
             tests/features/test_savings.py \
             tests/features/test_recurring_occurrences.py \
             tests/features/test_reports_nav_groups.py \
+            tests/features/test_category_budgets.py \
             -v
 
   # test_performance may be slow (render-heavy); isolated here so it doesn't

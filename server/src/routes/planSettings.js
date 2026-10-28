@@ -1,6 +1,6 @@
 import express from 'express';
 import { query } from '../db.js';
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan } from '../sanitizers/index.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan, sanitizeBudgetCategories } from '../sanitizers/index.js';
 
 const router = express.Router();
 
@@ -16,6 +16,7 @@ function rowToJson(row, milestones) {
         forecastSettings: row.forecast_settings,
         retirementTargetDate: row.retirement_target_date || null,
         homePurchasePlan: row.home_purchase_plan || null,
+        budgetCategories: row.budget_categories || {},
         netWorthMilestonesAwarded: milestones
     };
 }
@@ -70,6 +71,9 @@ router.patch('/', async (req, res, next) => {
         // Invalid or non-object input sanitizes to null, which clears the plan.
         const homePurchasePlan = body.homePurchasePlan === undefined ? undefined : sanitizeHomePurchasePlan(body.homePurchasePlan);
 
+        // Non-object input sanitizes to {}, which clears all explicit budgets.
+        const budgetCategories = body.budgetCategories === undefined ? undefined : sanitizeBudgetCategories(body.budgetCategories);
+
         const sets = [];
         const values = [req.userId];
         if (strategy !== undefined) { values.push(strategy); sets.push(`strategy = $${values.length}`); }
@@ -79,6 +83,7 @@ router.patch('/', async (req, res, next) => {
         if (forecastSettings !== undefined) { values.push(JSON.stringify(forecastSettings)); sets.push(`forecast_settings = $${values.length}`); }
         if (retirementTargetDate !== undefined) { values.push(retirementTargetDate); sets.push(`retirement_target_date = $${values.length}`); }
         if (homePurchasePlan !== undefined) { values.push(homePurchasePlan === null ? null : JSON.stringify(homePurchasePlan)); sets.push(`home_purchase_plan = $${values.length}`); }
+        if (budgetCategories !== undefined) { values.push(JSON.stringify(budgetCategories)); sets.push(`budget_categories = $${values.length}`); }
 
         if (sets.length > 0) {
             await query(`UPDATE plan_settings SET ${sets.join(', ')} WHERE user_id = $1`, values);
