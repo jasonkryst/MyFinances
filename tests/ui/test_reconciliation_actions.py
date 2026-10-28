@@ -201,6 +201,7 @@ def test_ledger_reconcile_button_and_modal(app_page):
     assert reconcile_btn, "Expected a Reconcile button when a specific account is selected"
     reconcile_btn.click()
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
 
     modal_visible = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("flex-visible")'
@@ -239,6 +240,7 @@ def test_reconcile_modal_escape_and_enter(app_page):
     }""")
 
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
     modal_visible = page.evaluate(
         '() => document.getElementById("reconcileModal")?.classList.contains("flex-visible")'
     )
@@ -258,6 +260,7 @@ def test_reconcile_modal_escape_and_enter(app_page):
     # Reopen and confirm via Enter
     page.evaluate('() => window.app.openReconcileModal(8004)')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
 
     page.fill('#reconcileModalBalance', '650')
     page.keyboard.press('Enter')
@@ -334,6 +337,7 @@ def test_recon_modal_resume_restores_fields_and_shows_banner(app_page):
     # Re-open the same account.
     page.evaluate('() => window.app.openReconcileModal(8102)')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
 
     banner_visible = page.evaluate(
         '() => !document.getElementById("reconcileModalResumeBanner")?.classList.contains("hidden")'
@@ -376,6 +380,7 @@ def test_recon_modal_discard_drops_saved_state(app_page):
 
     page.evaluate('() => window.app.openReconcileModal(8103)')
     page.wait_for_selector('#reconcileModal.flex-visible', timeout=5000)
+    page.wait_for_selector('#reconcileModalBalance:focus', timeout=5000)  # 30ms autofocus (see #422)
     banner_visible = page.evaluate(
         '() => !document.getElementById("reconcileModalResumeBanner")?.classList.contains("hidden")'
     )
