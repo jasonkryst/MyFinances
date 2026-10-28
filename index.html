@@ -1123,7 +1123,7 @@
                     <h2>🔁 Recurring Templates</h2>
                     <button type="button" class="page-print-btn" id="recurringPrintBtn" title="Print this page" aria-label="Print the Recurring Templates page">🖨️ Print</button>
                 </div>
-                <p class="recurring-intro">Track recurring non-debt entries — subscriptions, reimbursements, and transfers. Each template generates projected ledger entries each month. You can pause a template or skip a specific month at any time.</p>
+                <p class="recurring-intro">Track recurring non-debt entries — subscriptions, income, reimbursements, and transfers. Each template generates projected ledger entries each month. You can pause a template or skip a specific month at any time.</p>
 
                 <!-- Add Template Form -->
                 <div class="recurring-form-card">
@@ -1142,7 +1142,8 @@
                                     <label for="recurringType">Type *</label>
                                     <select id="recurringType" required>
                                         <option value="subscription">Subscription / Expense</option>
-                                        <option value="reimbursement">Reimbursement / Income</option>
+                                        <option value="income">Income</option>
+                                        <option value="reimbursement">Reimbursement</option>
                                         <option value="transfer">Transfer</option>
                                     </select>
                                 </div>

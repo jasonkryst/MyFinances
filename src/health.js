@@ -1,6 +1,7 @@
 import { computeMonthlyIncomeForMonth, computeTotalSavingsContribution, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
+import { computeRecurringCashFlowForMonth } from './recurring.js';
 import {
     getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT,
     HOUSING_COST_OVERRIDE, budgetThresholdKey
@@ -863,8 +864,13 @@ export function renderHealthDashboard(app) {
     const totalBills    = (app.bills    || []).reduce((s, b) => s + (b.amount        || 0), 0);
     const totalExpenses = (app.expenses || []).reduce((s, e) => s + (e.budgetAmount  || 0), 0);
     const totalDebtMin  = activeDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
-    const totalOutflow  = totalBills + totalExpenses + totalDebtMin;
-    const net           = monthlyIncome - totalOutflow;
+    // #252: recurring templates (subscriptions out; income/reimbursements in) feed the
+    // cash-flow side only. monthlyIncome (salary + bonuses) stays the DTI basis.
+    const recurringCf   = computeRecurringCashFlowForMonth(app, year, month);
+    const totalRecurringOut = recurringCf.outflow;
+    const cashFlowIncome = monthlyIncome + recurringCf.inflow;
+    const totalOutflow  = totalBills + totalExpenses + totalDebtMin + totalRecurringOut;
+    const net           = cashFlowIncome - totalOutflow;
 
     // ── DTI ────────────────────────────────────────────────────────────────────
     const dtiRatio = monthlyIncome > 0 ? totalDebtMin / monthlyIncome : 0;
@@ -885,7 +891,7 @@ export function renderHealthDashboard(app) {
 
     // ── Savings Rate ───────────────────────────────────────────────────────────
     const totalSavingsContrib = computeTotalSavingsContribution(app);
-    const savingsRatio = monthlyIncome > 0 ? totalSavingsContrib / monthlyIncome : 0;
+    const savingsRatio = cashFlowIncome > 0 ? totalSavingsContrib / cashFlowIncome : 0;
     const savingsPct   = Math.min(savingsRatio * 100, 100);
     const savingsSt    = savingsStatus(savingsRatio);
 
@@ -895,7 +901,9 @@ export function renderHealthDashboard(app) {
     const { monthlyTotal: prevMonthlyIncome } = computeMonthlyIncomeForMonth(app.incomes, app.bonuses, prevYear, prevMonth);
     const prevDtiPct      = prevMonthlyIncome > 0 ? (totalDebtMin / prevMonthlyIncome) * 100 : null;
     const prevSavingsPct  = prevMonthlyIncome > 0 ? (totalSavingsContrib / prevMonthlyIncome) * 100 : null;
-    const prevNet         = prevMonthlyIncome - totalOutflow;
+    const prevRecurringCf = computeRecurringCashFlowForMonth(app, prevYear, prevMonth);
+    const prevNet         = prevMonthlyIncome + prevRecurringCf.inflow
+        - (totalOutflow - totalRecurringOut + prevRecurringCf.outflow);
 
     // ── Emergency Fund Coverage ────────────────────────────────────────────────
     const emergencyFunds = app.emergencyFunds || [];
@@ -943,17 +951,26 @@ export function renderHealthDashboard(app) {
         expCatMap[cat] = (expCatMap[cat] || 0) + (e.budgetAmount || 0);
     }
     const allCats = new Set([...Object.keys(billCatMap), ...Object.keys(expCatMap)]);
+    // Budget Allocation percentages use cashFlowIncome (salary + recurring inflow) so rows
+    // stay consistent with the Net figure; with no recurring templates it equals monthlyIncome.
     const budgetCategories = [];
     for (const cat of allCats) {
         const total = (billCatMap[cat] || 0) + (expCatMap[cat] || 0);
-        const pct   = monthlyIncome > 0 ? total / monthlyIncome : 0;
+        const pct   = cashFlowIncome > 0 ? total / cashFlowIncome : 0;
         budgetCategories.push({ cat, total, pct });
     }
     budgetCategories.sort((a, b) => b.total - a.total);
+    if (totalRecurringOut > 0) {
+        budgetCategories.push({
+            cat: t('health.recurringCategory'), total: totalRecurringOut,
+            pct: cashFlowIncome > 0 ? totalRecurringOut / cashFlowIncome : 0
+        });
+        budgetCategories.sort((a, b) => b.total - a.total);
+    }
     if (totalDebtMin > 0) {
         budgetCategories.unshift({
             cat: t('health.debtPaymentsCategory'), total: totalDebtMin,
-            pct: monthlyIncome > 0 ? totalDebtMin / monthlyIncome : 0,
+            pct: cashFlowIncome > 0 ? totalDebtMin / cashFlowIncome : 0,
             isDebt: true
         });
     }
@@ -1132,7 +1149,7 @@ export function renderHealthDashboard(app) {
                 </div>
                 <div class="health-metric-detail">
                     <span>${t('health.perMonthSaved', { amount: formatCurrency(totalSavingsContrib) })}</span>
-                    <span>${t('health.perMonthIncome', { amount: formatCurrency(monthlyIncome) })}</span>
+                    <span>${t('health.perMonthIncome', { amount: formatCurrency(cashFlowIncome) })}</span>
                 </div>
                 <a href="#" class="health-link" data-health-nav="savings">${t('health.manageSavings')} &rarr;</a>
             </div>
@@ -1221,6 +1238,14 @@ export function renderHealthDashboard(app) {
                         <span>${t('health.income')}</span>
                         <span class="health-cf-income">${formatCurrency(monthlyIncome)}</span>
                     </div>
+                    ${recurringCf.inflow > 0 ? `<div class="health-cashflow-row">
+                        <span>${t('health.recurringIncome')}</span>
+                        <span class="health-cf-income">+${formatCurrency(recurringCf.inflow)}</span>
+                    </div>` : ''}
+                    ${totalRecurringOut > 0 ? `<div class="health-cashflow-row">
+                        <span>${t('health.recurring')}</span>
+                        <span class="health-cf-out">&minus;${formatCurrency(totalRecurringOut)}</span>
+                    </div>` : ''}
                     ${totalDebtMin > 0 ? `<div class="health-cashflow-row">
                         <span>${t('health.debtPayments')}</span>
                         <span class="health-cf-out">&minus;${formatCurrency(totalDebtMin)}</span>
@@ -1251,7 +1276,7 @@ export function renderHealthDashboard(app) {
                     ` : ''}
                 </div>
                 <p class="health-card-desc">${t('health.budgetDesc')}</p>
-                ${monthlyIncome === 0 || budgetCategories.length === 0 ? `
+                ${cashFlowIncome === 0 || budgetCategories.length === 0 ? `
                     <div class="health-empty-state">
                         <span class="health-empty-sub">${t('health.budgetEmptySub')}</span>
                     </div>
@@ -1478,7 +1503,7 @@ export function renderHealthDashboard(app) {
         rows: [
             [t('health.savingsTitle'), `${savingsPct.toFixed(1)}%`],
             [t('health.monthlyAmountSaved'), formatCurrency(totalSavingsContrib)],
-            [t('health.monthlyIncome'), formatCurrency(monthlyIncome)]
+            [t('health.monthlyIncome'), formatCurrency(cashFlowIncome)]
         ]
     });
 

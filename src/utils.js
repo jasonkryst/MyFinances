@@ -496,3 +496,7 @@ export function getIncomeEventsByMonthForRange(incomes, startDate, endDate) {
     return byMonth;
 }
 
+/** True for recurring template types that add money (issue #252): 'income' and 'reimbursement'. */
+export function isRecurringInflow(template) {
+    return template?.type === 'income' || template?.type === 'reimbursement';
+}

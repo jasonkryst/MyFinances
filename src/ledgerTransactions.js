@@ -1,6 +1,6 @@
 // Ledger transaction aggregation: pure computation, no DOM.
 
-import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount } from './utils.js';
+import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurringInflow } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getOverrideAmount, getEffectiveAmount } from './ledgerOverrides.js';
@@ -210,7 +210,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
         for (const tmpl of (app.recurringTemplates || []).filter(t => !t.archived)) {
             const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
             for (const occDate of occurrences) {
-                if (tmpl.type === 'reimbursement') {
+                if (isRecurringInflow(tmpl)) {
                     addTx({
                         accountId: tmpl.accountId,
                         date: occDate,
@@ -218,7 +218,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                         amount: Math.abs(Number(tmpl.amount)),
                         type: 'recurring',
                         sourceId: tmpl.id,
-                        category: tmpl.category || 'Reimbursement'
+                        category: tmpl.category || (tmpl.type === 'income' ? 'Income' : 'Reimbursement')
                     });
                 } else if (tmpl.type === 'transfer' && tmpl.targetAccountId) {
                     addTx({

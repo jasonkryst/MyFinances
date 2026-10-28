@@ -230,6 +230,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
             };
             const occs = getOccurrences(template, y, mo);
             const typeLabel = row.type === 'reimbursement' ? 'Reimbursement'
+                : row.type === 'income' ? 'Income'
                 : row.type === 'transfer' ? 'Transfer' : 'Subscription';
             for (const occ of occs) {
                 const dateStr = isoDateStr(occ.getFullYear(), occ.getMonth(), occ.getDate());

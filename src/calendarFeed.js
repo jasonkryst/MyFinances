@@ -120,6 +120,7 @@ export function generateIcs(app) {
         for (const t of (app.recurringTemplates || []).filter(t => !t.archived)) {
             if (t.paidMonths?.includes(monthKey)) continue;
             const typeLabel = t.type === 'reimbursement' ? 'Reimbursement'
+                : t.type === 'income' ? 'Income'
                 : t.type === 'transfer' ? 'Transfer' : 'Subscription';
             const occs = getRecurringOccurrencesInMonth(t, y, mo);
             for (const occ of occs) {
