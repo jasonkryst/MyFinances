@@ -81,7 +81,8 @@ const DEFAULT_PLAN_SETTINGS = {
     ledgerSettings: { accountFilter: 'all', dateRange: 'around7', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' },
     forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 },
     retirementTargetDate: null,
-    homePurchasePlan: null
+    homePurchasePlan: null,
+    budgetCategories: {}
 };
 
 export async function pgDeleteAll(app) {

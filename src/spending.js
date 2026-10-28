@@ -26,6 +26,11 @@ function _catForTx(tx) {
     return null; // income, bonus, reimbursement — excluded from spending
 }
 
+// Shared with categoryBudgets.js so budgets and actuals bucket identically.
+export function spendingCategoryForTx(tx) {
+    return _catForTx(tx);
+}
+
 function _aggregate(txs) {
     const m = new Map();
     for (const tx of txs) {

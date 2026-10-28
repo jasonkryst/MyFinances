@@ -133,3 +133,46 @@ test('PATCH without homePurchasePlan leaves an existing plan untouched', async (
     });
     assert.equal((await res.json()).homePurchasePlan.targetHomePrice, 2000);
 });
+
+test('PATCH persists budgetCategories and GET defaults to {}', async () => {
+    const res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(),
+        body: JSON.stringify({ budgetCategories: { Housing: { mode: 'fixed', amount: 2000 }, Food: { mode: 'derived' } } })
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.budgetCategories.Housing, { mode: 'fixed', amount: 2000 });
+    assert.equal(body.budgetCategories.Food.mode, 'derived');
+});
+
+test('PATCH sanitizes budgetCategories server-side', async () => {
+    const res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(),
+        body: JSON.stringify({ budgetCategories: {
+            Good: { mode: 'fixed', amount: 50 },
+            Negative: { mode: 'fixed', amount: -5 },
+            BadMode: { mode: 'weird', amount: 5 },
+            ['x'.repeat(300)]: { mode: 'fixed', amount: 1 }
+        } })
+    });
+    const cats = (await res.json()).budgetCategories;
+    assert.equal(cats.Good.amount, 50);
+    assert.equal(cats.Negative, undefined);
+    assert.equal(cats.BadMode, undefined);
+    assert.ok(cats['x'.repeat(40)]);
+    assert.equal(cats['x'.repeat(300)], undefined);
+});
+
+test('PATCH with a non-object budgetCategories clears to {}, omitting it leaves it untouched', async () => {
+    await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ budgetCategories: { Housing: { mode: 'fixed', amount: 10 } } })
+    });
+    let res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ strategy: 'avalanche' })
+    });
+    assert.equal((await res.json()).budgetCategories.Housing.amount, 10);
+    res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ budgetCategories: 'nope' })
+    });
+    assert.deepEqual((await res.json()).budgetCategories, {});
+});

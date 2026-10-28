@@ -96,6 +96,7 @@ export async function loadFromPostgres(app) {
     app._forecastNotableThresholdPct = planSettings.forecastSettings?.notableThresholdPct ?? 130;
     app.retirementTargetDate = planSettings.retirementTargetDate ?? null;
     app.homePurchasePlan = planSettings.homePurchasePlan ?? null;
+    app.budgetCategories = planSettings.budgetCategories ?? {};
 }
 
 // Browsers commonly cap localStorage somewhere in the 5-10MB range. We can't
@@ -152,6 +153,7 @@ function _writeNow(app) {
             transfers: app.transfers || [],
             retirementTargetDate: app.retirementTargetDate || null,
             homePurchasePlan: app.homePurchasePlan || null,
+            budgetCategories: app.budgetCategories || {},
             balanceHistory: app.balanceHistory || [],
             settings: app.settings || [],
             monthlySnapshots: app.monthlySnapshots || [],
@@ -226,7 +228,8 @@ export function saveToStorage(app) {
                     notableThresholdPct: app._forecastNotableThresholdPct || 130
                 },
                 retirementTargetDate: app.retirementTargetDate || null,
-                homePurchasePlan: app.homePurchasePlan || null
+                homePurchasePlan: app.homePurchasePlan || null,
+                budgetCategories: app.budgetCategories || {}
             })
         }).then(() => true).catch(err => {
             console.error('Error saving plan settings to Postgres:', err);
@@ -299,6 +302,7 @@ export function loadFromStorage(app) {
             app.transfers = clean.transfers;
             app.retirementTargetDate = clean.retirementTargetDate;
             app.homePurchasePlan = clean.homePurchasePlan;
+            app.budgetCategories = clean.budgetCategories || {};
             app.balanceHistory = clean.balanceHistory;
             app.settings = clean.settings;
             app.monthlySnapshots = clean.monthlySnapshots;
@@ -405,6 +409,7 @@ export function clearAllData(app, options = {}) {
     app.transfers = [];
     app.retirementTargetDate = null;
     app.homePurchasePlan = null;
+    app.budgetCategories = {};
     app.balanceHistory = [];
     app.settings = [];
 
