@@ -6,6 +6,7 @@ import { refreshCategoryDatalist } from './recurring.js';
 import { APP_VERSION, escapeHtml } from './utils.js';
 import { getZeroAmountPolicy } from './settings.js';
 import { initCommandPalette } from './commandPalette.js';
+import { installOwnershipListeners } from './debtOwnership.js';
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
@@ -29,6 +30,7 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    installOwnershipListeners(() => app);
     const themeSwitcher = document.getElementById('themeSwitcher');
 
     const savedTheme = localStorage.getItem('debtTrackerTheme');

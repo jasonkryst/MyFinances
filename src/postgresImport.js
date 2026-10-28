@@ -39,6 +39,10 @@ function remapFk(record, idMap, personIdMap = {}) {
     if (r.toAccountId != null && idMap[r.toAccountId] != null) r.toAccountId = idMap[r.toAccountId];
     if (r.personId != null && personIdMap[r.personId] != null) r.personId = personIdMap[r.personId];
     if (Array.isArray(r.personIds)) r.personIds = r.personIds.map(id => personIdMap[id] ?? id);
+    // #272: ownershipSplit is keyed by person id — remap its keys the same way.
+    if (r.ownershipSplit && typeof r.ownershipSplit === 'object') {
+        r.ownershipSplit = Object.fromEntries(Object.entries(r.ownershipSplit).map(([k, v]) => [personIdMap[k] ?? k, v]));
+    }
     return r;
 }
 

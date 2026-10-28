@@ -2726,6 +2726,57 @@ body.dark-mode .person-pill {
     margin: 2px 0 4px;
 }
 
+/* Debt ownership split (#272) */
+.debt-ownership-split {
+    font-size: 0.8rem;
+    margin: 0 0 4px;
+}
+
+.ownership-control {
+    margin-top: 8px;
+}
+
+.ownership-fieldset {
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 0;
+}
+
+.ownership-mode {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 16px;
+    cursor: pointer;
+}
+
+.ownership-custom {
+    margin-top: 8px;
+}
+
+.ownership-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.ownership-row-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.ownership-pct-input {
+    width: 90px;
+}
+
+.ownership-total {
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
 /* Person summary card KPI tiles (issue #284) */
 .person-card-header {
     display: flex;

@@ -25,6 +25,7 @@ export default createCrudResource({
         fixedEndDate: 'fixed_end_date',
         creditLimit: 'credit_limit',
         personIds: 'person_ids',
+        ownershipSplit: 'ownership_split',
         updatedAt: 'updated_at',
         archived: 'archived'
     }

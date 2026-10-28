@@ -2,7 +2,7 @@
 
 import { APP_VERSION, normalizeText, sanitizeFiniteNumber } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
-import { sanitizeParsedState } from './sanitizers.js';
+import { sanitizeParsedState, remapDebtPersonRefs } from './sanitizers.js';
 import { replaceForPostgres, mergeForPostgres } from './postgresImport.js';
 import { PLAN_HISTORY_CAP } from './strategyPlanCalculation.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
@@ -463,8 +463,11 @@ export function importAllJSON(app, file, options = {}) {
 
         if (shouldReplace) {
             app.persons = incomingPersons.map((p, i) => ({ ...p, id: Date.now() + 7000 + i }));
+            // #272: persons get fresh ids, so debts' personIds and ownershipSplit
+            // keys are remapped through the same old->new person id map.
+            const personIdMap = Object.fromEntries(incomingPersons.map((p, i) => [p.id, app.persons[i].id]));
             app.accounts = incomingAccounts;
-            app.debts = validDebts.map((d, i) => ({ ...d, id: Date.now() + i }));
+            app.debts = validDebts.map((d, i) => ({ ...remapDebtPersonRefs(d, personIdMap), id: Date.now() + i }));
             app.incomes = incomingIncomes.map((inc, i) => ({ ...inc, id: Date.now() + 1000 + i }));
             app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
             app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
@@ -522,11 +525,19 @@ export function importAllJSON(app, file, options = {}) {
                 }
             }
             app.debts = [...app.debts, ...toAdd];
+            const toAddIds = new Set(toAdd.map(d => d.id));
             if (skipped > 0 && typeof onMergeDuplicates === 'function') {
                 onMergeDuplicates(toAdd.length, skipped, warnings);
                 mergeDuplicatesReported = true;
             }
             app.persons = _mergeByName(app.persons || [], incomingPersons, 7000);
+            // #272: resolve each incoming person to the surviving (existing or
+            // newly added) person by name, then remap the newly added debts.
+            const personIdByName = new Map(app.persons.map(p => [p.name.toLowerCase(), p.id]));
+            const personIdMap = Object.fromEntries(
+                incomingPersons.filter(p => p.name && personIdByName.has(p.name.toLowerCase())).map(p => [p.id, personIdByName.get(p.name.toLowerCase())])
+            );
+            app.debts = app.debts.map(d => toAddIds.has(d.id) ? remapDebtPersonRefs(d, personIdMap) : d);
             app.accounts = _mergeByName(app.accounts, incomingAccounts, 0);
             app.incomes = _mergeByName(app.incomes, incomingIncomes, 1000);
             app.bonuses = _mergeByName(app.bonuses, incomingBonuses, 1500);
