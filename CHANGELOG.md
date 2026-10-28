@@ -4,6 +4,22 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.55.0] — 2026-10-28
+
+### Changed
+- **Denser phone layouts** (issue #428). These changes apply at 768px and below; desktop is unchanged.
+  - **Filters:** Ledger, Liabilities and Recurring filters collapse behind a "Filters (n active)" button. When opened, they lay out as a 2-column grid. Filter state and its persistence are unchanged.
+  - **Add forms:** the Accounts and Income add forms start collapsed behind "+ Add account" / "+ Add income".
+  - **Ledger rows:** each row is a 2-line card that keeps the amount and running balance on screen. The date no longer wraps, and the sort headers become a row of chips.
+  - **Reconcile:** only the first account's form is expanded; the other accounts show a one-line summary.
+  - **Reports tabs:** they sit in a single horizontally scrollable row.
+  - **Tap targets:** buttons, selects, inputs and tabs are at least 40px tall. The "?" help badges get a 40px hit area without growing visually.
+  - **Account cards:** actions use a tidy two-column grid.
+- **Transfer button on Retirement accounts:** no longer offered, at any screen width.
+
+### Tests
+- New `tests/ui/test_mobile_density.py` (27 tests). Each item is checked at 390px and 1440px, including negative cases: desktop is unchanged, filter values survive collapsing, collapsed add forms still submit, and Transfer still shows on checking accounts.
+
 ## [6.53.0] — 2026-10-28
 
 ### Changed

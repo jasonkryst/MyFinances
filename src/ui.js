@@ -1009,6 +1009,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.55.0 — 2026-10-28',
+        items: [
+            '<strong>Roomier on your phone</strong> (issue #428): filters now tuck behind a "Filters" button. The Accounts and Income add forms open only when you need them. Each Ledger transaction fits on two lines with its amount and balance in view.',
+            '<strong>Easier to tap</strong>: buttons, dropdowns and tabs are at least 40px tall. The Reports tabs now scroll in a single row, and Reconcile opens one account at a time.'
+        ]
+    },
+    {
         version: '6.53.0 — 2026-10-28',
         items: [
             '<strong>Cleaner debt cards</strong>: each debt\'s key numbers now sit in a tidy grid with balance and minimum payment up front. The Edit, Update Balance, History and Delete buttons live together at the bottom of the card. A balance that has grown since you added the debt is now explained in words instead of showing a negative percentage.'
