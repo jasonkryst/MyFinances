@@ -506,7 +506,7 @@ def test_recurring_mark_paid_cancel_no_change(app_page):
     mark_btn.click()
     page.wait_for_selector('#recurringMarkPaidCancelBtn', timeout=5000)
     page.click('#recurringMarkPaidCancelBtn')
-    page.wait_for_timeout(300)
+    page.wait_for_timeout(500)  # outlast the 300ms saveToStorage debounce so a wrongful write would be visible
 
     month_key = f"{date.today().year}-{date.today().month:02d}"
     paid = page.evaluate(f"""() => {{
@@ -541,6 +541,12 @@ def test_sinking_fund_order_stored(app_page):
     page.click('#sinkingFormSubmit')
     page.wait_for_selector('#sinkingList >> text=Ordered Fund', timeout=10000)
 
+    # saveToStorage is debounced: the account save just before this opens a window,
+    # so the fund lands in a trailing write a moment later — poll for it.
+    page.wait_for_function("""() => {
+        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
+        return (d.sinkingFunds || []).some(x => x.name === 'Ordered Fund');
+    }""", timeout=5000)
     stored_order = page.evaluate("""() => {
         const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
         const f = (d.sinkingFunds || []).find(x => x.name === 'Ordered Fund');
