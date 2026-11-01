@@ -21,6 +21,11 @@
     "nodemailer": "^10.2.1",
     "pg": "^8.23.1"
   },
+  "overrides": {
+    "node-pg-migrate": {
+      "glob": "^14.0.3"
+    }
+  },
   "allowScripts": {
     "argon2@0.41.1": true
   }

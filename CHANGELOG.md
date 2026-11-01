@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.59.2] — 2026-11-01
+
+### Security
+- **Dependency alerts cleared** (issue #380, follow-up to 6.59.1).
+  - **Server (runtime):** `node-pg-migrate@9.0.0`, the latest stable release, pins `glob ~13.0.0`, which is vulnerable (GHSA-3g3m-2fjr-6pw4) and pulls in vulnerable `minimatch@10` (GHSA-g3hv-75wg-m249). `server/package.json` now has a scoped `overrides` entry, `node-pg-migrate → glob ^14.0.3`, which brings in `minimatch@11.0.3`. `npm audit` for `server/` now reports 0 vulnerabilities. Verified by running all 29 migrations against Postgres 16.
+  - **Dev tooling (root, never shipped):** a lockfile-only `npm audit fix` updates `@stryker-mutator/*` from 10.0.0 to 10.1.1 (which fixes the high `zod` GHSA) and `qs` from 6.15.1 to 6.17.1, plus in-range Babel patch releases.
+  - **Still open:** `minimatch` and `deepmerge` inside Jest's own dependency tree. npm's only fix would downgrade Jest to 29 or Stryker to 3, so they are left as is. They are dev-only and only ever process repo-controlled paths and config.
+
 ## [6.59.1] — 2026-11-01
 
 ### Security
