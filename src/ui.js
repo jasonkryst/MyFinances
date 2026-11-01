@@ -1015,6 +1015,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.59.0 — 2026-11-01',
+        items: [
+            '<strong>Coast FIRE date</strong> (issue #346): the Retirement page now shows the earliest month you could stop contributing and let investment growth alone reach your target, for conservative, moderate and aggressive returns.',
+            'Enter your own target balance, or leave it blank to use your FIRE number from the Health page. If you\'re already there, you\'ll see "You\'ve reached Coast FIRE!".'
+        ]
+    },
+    {
         version: '6.58.0 — 2026-11-01',
         items: [
             '<strong>"What affects your credit?"</strong> (issue #337): open this section on the Health page\'s Credit Utilization card for a short guide to the five common credit factors. Where the app has your data it adds a note, such as how your utilization compares with 30%. It also links to AnnualCreditReport.com for your free reports. It never shows a credit score.',

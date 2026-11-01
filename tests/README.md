@@ -120,6 +120,7 @@ tests/
 │   ├── test_analytics.py       # GA disabled by default; only injects gtag.js when window.__ENV__.GA_MEASUREMENT_ID is present
 │   ├── test_versioning.py      # APP_VERSION (utils.js) and most-recent CHANGELOG.md entry stay in sync (issue #59)
 │   ├── test_retirement.py      # Retirement account type/fields, snapshot logging, charts, projection, export/import round-trip
+│   ├── test_retirement_coast_fire.py # #346 Coast FIRE: FIRE-number default, custom target, reached/coast/shortfall, invalid input, pensions
 │   ├── test_issue_92_export.py # Regression: perMonthStimulus export gap, hardcoded export version, no-data guard, merge mode (#92)
 │   └── test_issue_93_expense_save.py # Regression: expense.date stored as Date object → JSON timestamp → sanitizeDateISO drops it (#93)
 ├── ui/                         # UI/UX and responsive tests (254 tests, 30 files)

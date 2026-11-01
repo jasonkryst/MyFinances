@@ -6485,6 +6485,18 @@ body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; 
 .retire-withdrawal-row label { font-size: 0.85rem; color: var(--text-color); }
 .retire-withdrawal-row input[type="range"] { flex: 1; min-width: 160px; }
 
+/* Coast FIRE (issue #346) */
+.retire-coast { border-top: 1px solid var(--border-color); margin-top: 16px; padding-top: 12px; min-width: 0; }
+.retire-coast-target-row input[type="number"] { max-width: 220px; }
+.retire-coast-hint { font-size: 0.8rem; color: var(--text-secondary); margin: 4px 0 8px; overflow-wrap: anywhere; }
+.retire-coast-error { font-size: 0.8rem; color: var(--danger-color, #dc2626); margin: 4px 0 8px; }
+.retire-coast-results { list-style: none; margin: 8px 0; padding: 0; }
+.retire-coast-row { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 1fr); gap: 4px 12px; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
+.retire-coast-row:last-child { border-bottom: none; }
+.retire-coast-label { font-size: 0.85rem; color: var(--text-secondary); }
+.retire-coast-value { font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .retire-coast-row { grid-template-columns: minmax(0, 1fr); } }
+
 /* Multi-scenario projections (issue #264) */
 .retire-scenario-controls { display: flex; align-items: center; gap: 8px; margin: 16px 0 12px; flex-wrap: wrap; }
 .retire-scenario-controls label { font-size: 0.85rem; color: var(--text-color); }

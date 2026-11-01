@@ -4,7 +4,7 @@ import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { computeRecurringCashFlowForMonth } from './recurring.js';
 import {
     getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT,
-    HOUSING_COST_OVERRIDE, budgetThresholdKey, getFireMultiplier, FIRE_MULTIPLIER, FIRE_MULTIPLIER_MAX
+    HOUSING_COST_OVERRIDE, budgetThresholdKey, getFireMultiplier, computeFireNumber, FIRE_MULTIPLIER, FIRE_MULTIPLIER_MAX
 } from './settings.js';
 
 // Persists allocation slider position across renderSurplusSection re-renders (0–100 = % to debt).
@@ -1105,7 +1105,7 @@ export function renderHealthDashboard(app) {
     // ── FIRE Number (Retirement) ──────────────────────────────────────────────
     const annualExpenses = (totalBills + totalExpenses) * 12;
     const fireMultiplier = getFireMultiplier(app);
-    const fireNumber = annualExpenses * fireMultiplier;
+    const fireNumber = computeFireNumber(app); // == annualExpenses * fireMultiplier (shared with Retirement Coast FIRE, #346)
     const fmtNum = n => String(parseFloat(n.toFixed(2)));
     const fireRateDisplay = fmtNum(100 / fireMultiplier);
     const fireMultDisplay = fmtNum(fireMultiplier);
