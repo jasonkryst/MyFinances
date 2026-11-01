@@ -411,11 +411,17 @@ export function renderLedgerPage(app) {
             const navIcon = (!isReconciliation && navableTypes.includes(tx.type) && tx.sourceId)
                 ? `<button class="ledger-nav-btn" data-ledger-nav-type="${tx.type}" data-ledger-nav-id="${tx.sourceId}" title="Go to ${tx.type}" aria-label="Go to ${escapeHtml(tx.name || '')} in ${tx.type} page">↗</button>`
                 : '';
+            // Recurring-template transfer legs (#399) get the same ⇄ prefix as
+            // one-off transfers, but stay `type: 'recurring'` rows -- they keep
+            // the override/cleared controls (#434's paid sync writes per-leg
+            // overrides) and the ↗ link back to the Recurring page.
+            const isRecurringTransfer = tx.type === 'recurring' && tx.sourceId
+                && (app.recurringTemplates || []).some(r => r.id === tx.sourceId && r.type === 'transfer' && r.targetAccountId);
             const nameCell = isReconciliation && tx.meta
                 ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
                 : isTransfer
                     ? `⇄ ${escapeHtml(tx.name || '')}`
-                    : `${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
+                    : `${isRecurringTransfer ? '⇄ ' : ''}${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
             const transferActions = isTransfer
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}" aria-label="Edit transfer ${escapeHtml(tx.name || '')}">Edit</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}" aria-label="Delete transfer ${escapeHtml(tx.name || '')}">Delete</button></div>`
                 : '';

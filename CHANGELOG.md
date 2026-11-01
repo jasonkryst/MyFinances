@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.58.0] — 2026-11-01
+
+### Added
+- **"What affects your credit?" explainer on the Health Credit Utilization card** (issue #337). A collapsed `<details>` section at the foot of the card covers the five common credit factors: utilization, payment history, length of history, credit mix, and new credit.
+  - **Statuses from in-app data:** utilization compares the aggregate % with the 30% guideline. Length of history shows the oldest `debtStartDate` among non-archived, interest-bearing debts. Credit mix counts cards with a limit (revolving) against other interest-bearing debts (installment). Payment history and new credit are education only, because the app has no bureau data.
+  - **No score:** there is no score, gauge or meter, and the copy is hedged ("generally affects"). It links to AnnualCreditReport.com (`target="_blank" rel="noopener noreferrer"`).
+  - **Translated** into en/es/pl as `health.credit*` keys.
+  - **Card click:** the Health card click-to-navigate handler now ignores clicks inside a `<details>`, so opening the explainer no longer jumps to Liabilities.
+
+### Changed
+- **Recurring-template transfers show the ⇄ indicator in the Ledger** (issue #399), matching one-off transfers (#248). This is a rendering change only: the legs stay `type: 'recurring'` rows and keep their override, Cleared and ↗ go-to-Recurring controls, which #434's paid sync relies on. A `transfer` template with no target account produces a single plain outflow and gets no ⇄.
+
 ## [6.57.0] — 2026-11-01
 
 ### Changed
