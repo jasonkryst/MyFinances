@@ -592,6 +592,7 @@ jobs:
             tests/ui/test_accounts_ui.py \
             tests/ui/test_reports_date_range.py \
             tests/ui/test_debt_card_layout.py \
+            tests/ui/test_css_integrity.py \
             -v
 
   # ---------------------------------------------------------------------------
