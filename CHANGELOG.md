@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.57.0] — 2026-11-01
+
+### Changed
+- **Recurring "Mark as paid" and the Ledger now stay in sync, per payment date** (issue #434). The amount the Mark-as-paid modal asked for used to be stored only on the template and shown on the card badge. It never reached the Ledger, and the Postgres backend never saved it.
+  - **Recurring → Ledger:** marking an occurrence paid marks every Ledger leg of it Cleared (both legs for a transfer). An amount that differs from the template becomes that leg's Ledger amount override, signed for the leg. Entering the template amount removes any override. Unmark paid clears both.
+  - **Ledger → Recurring:** checking or unchecking Cleared on a recurring Ledger row, singly or in bulk, updates the Recurring card. An override entered on the Ledger shows as the card's "actual" amount.
+  - **Per date:** the modal lists one row per occurrence in the month, each with its own Paid checkbox and amount. A partly paid month shows "◐ Paid N of M".
+  - **Validation:** a negative amount is rejected inline. A $0 amount goes through the existing $0 amount policy (#412).
+  - **Legacy data:** months already in `paidMonths` are migrated on load (their Ledger rows become Cleared), and any `paidAmounts` value becomes a Ledger override. `paidAmounts` is then emptied.
+  - **Implementation:** the Ledger maps are the single source of truth. `paidMonths` is now a cache derived from them, kept because the calendar feeds and the Overdue check read it. New module `src/recurringPaid.js`.
+
 ## [6.56.0] — 2026-10-28
 
 ### Changed

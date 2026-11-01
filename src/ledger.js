@@ -107,6 +107,7 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
         for (const tx of clearableTxs) {
             setLedgerCleared(app, tx.transactionId, true);
         }
+        app.syncRecurringPaidFromLedger(clearableTxs.map(tx => tx.transactionId));
         app.saveToStorage();
         close();
         onComplete();
@@ -632,6 +633,7 @@ export function renderLedgerPage(app) {
         checkbox.onchange = () => {
             const txId = checkbox.getAttribute('data-ledger-cleared');
             setLedgerCleared(app, txId, checkbox.checked);
+            app.syncRecurringPaidFromLedger([txId]);
             app.saveToStorage();
             renderLedgerPage(app);
         };
@@ -668,9 +670,9 @@ export function renderLedgerPage(app) {
     const bulkClearBtn = container.querySelector('#ledgerBulkClearBtn');
     if (bulkClearBtn) {
         bulkClearBtn.onclick = () => {
-            container.querySelectorAll('.ledger-row-select:checked').forEach(cb => {
-                setLedgerCleared(app, cb.getAttribute('data-ledger-select'), true);
-            });
+            const ids = [...container.querySelectorAll('.ledger-row-select:checked')].map(cb => cb.getAttribute('data-ledger-select'));
+            ids.forEach(txId => setLedgerCleared(app, txId, true));
+            app.syncRecurringPaidFromLedger(ids);
             app.saveToStorage();
             renderLedgerPage(app);
         };
@@ -679,9 +681,9 @@ export function renderLedgerPage(app) {
     const bulkUnclearBtn = container.querySelector('#ledgerBulkUnclearBtn');
     if (bulkUnclearBtn) {
         bulkUnclearBtn.onclick = () => {
-            container.querySelectorAll('.ledger-row-select:checked').forEach(cb => {
-                setLedgerCleared(app, cb.getAttribute('data-ledger-select'), false);
-            });
+            const ids = [...container.querySelectorAll('.ledger-row-select:checked')].map(cb => cb.getAttribute('data-ledger-select'));
+            ids.forEach(txId => setLedgerCleared(app, txId, false));
+            app.syncRecurringPaidFromLedger(ids);
             app.saveToStorage();
             renderLedgerPage(app);
         };

@@ -16,6 +16,7 @@ import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
+import { getRecurringMonthPaidStatus, buildRecurringPaidBadge, reconcileRecurringPaidState } from './recurringPaid.js';
 
 const TYPES = ['subscription', 'income', 'reimbursement', 'transfer'];
 const TYPE_LABELS = {
@@ -280,6 +281,11 @@ export function renderRecurringPage(app) {
     const container = document.getElementById('recurringList');
     if (!container) return;
 
+    // #434: legacy paidMonths/paidAmounts and ledger-side Cleared changes made
+    // outside the Ledger UI (import, injected state) are folded in before any
+    // paid/overdue state is read below.
+    if (reconcileRecurringPaidState(app)) app.saveToStorage();
+
     refreshCategoryDatalist(app);
     renderUpcomingThisMonthPanel(app);
 
@@ -419,7 +425,7 @@ export function renderRecurringPage(app) {
         else if (action === 'unpause') app.pauseRecurringTemplate(id, false);
         else if (action === 'skip') app.skipRecurringOccurrence(id, mk, false);
         else if (action === 'unskip') app.skipRecurringOccurrence(id, mk, true);
-        else if (action === 'mark-paid') openRecurringMarkPaidModal(app, id, mk);
+        else if (action === 'mark-paid') app.openRecurringMarkPaidModal(id, mk);
         else if (action === 'unmark-paid') app.markRecurringPaid(id, mk, true);
         else if (action === 'archive') app.archiveRecurringTemplate(id);
         else if (action === 'unarchive') app.unarchiveRecurringTemplate(id);
@@ -443,7 +449,11 @@ function _buildReadCard(app, t, year, month, monthKey) {
     const occurrences = getRecurringOccurrencesInMonth(t, year, month);
     const thisMonthTotal = occurrences.length * (t.amount || 0);
     const isSkippedThisMonth = Array.isArray(t.skippedMonths) && t.skippedMonths.includes(monthKey);
-    const isPaidThisMonth = Array.isArray(t.paidMonths) && t.paidMonths.includes(monthKey);
+    // #434: paid state comes from the Ledger (each occurrence's Cleared flag
+    // and amount override), not from a separate copy on the template.
+    const paidStatus = getRecurringMonthPaidStatus(app, t, year, month);
+    const isPaidThisMonth = paidStatus.allPaid;
+    const paidBadge = buildRecurringPaidBadge(paidStatus, t);
 
     let statusBadge;
     if (paused) {
@@ -453,12 +463,8 @@ function _buildReadCard(app, t, year, month, monthKey) {
         statusBadge = `<span class="recurring-badge recurring-badge--paused">⏸ Paused${resumeNote}</span>`;
     } else if (isSkippedThisMonth) {
         statusBadge = `<span class="recurring-badge recurring-badge--skipped">⏭ Skipped this month</span>`;
-    } else if (occurrences.length > 0 && isPaidThisMonth) {
-        const actualAmt = t.paidAmounts?.[monthKey];
-        const actualLabel = (actualAmt !== undefined && actualAmt !== t.amount)
-            ? ` · actual: ${formatCurrency(actualAmt)}`
-            : '';
-        statusBadge = `<span class="recurring-badge recurring-badge--paid">✅ Paid this month${escapeHtml(actualLabel)}</span>`;
+    } else if (occurrences.length > 0 && paidBadge) {
+        statusBadge = paidBadge;
     } else if (occurrences.length > 0) {
         statusBadge = `<span class="recurring-badge recurring-badge--active">✅ Active</span>`;
     } else {
@@ -765,81 +771,6 @@ export function skipRecurringOccurrence(app, id, monthKey, unskip = false) {
         t.skippedMonths = t.skippedMonths.filter(m => m !== monthKey);
     } else if (!t.skippedMonths.includes(monthKey)) {
         t.skippedMonths.push(monthKey);
-    }
-    app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, t);
-    app.renderRecurringPage();
-}
-
-export function openRecurringMarkPaidModal(app, id, monthKey) {
-    const t = app.recurringTemplates?.find(x => x.id === id);
-    if (!t) return;
-
-    const existing = document.getElementById('recurringMarkPaidModal');
-    if (existing) existing.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'recurringMarkPaidModal';
-    modal.className = 'modal-overlay flex-visible';
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-labelledby', 'recurringMarkPaidModalTitle');
-    modal.setAttribute('tabindex', '-1');
-    modal.innerHTML = `<div class="modal-content">
-        <h3 class="modal-subtitle" id="recurringMarkPaidModalTitle">Mark as Paid</h3>
-        <p class="modal-description">Optionally enter the actual amount paid for <strong>${escapeHtml(t.name)}</strong> this month.</p>
-        <div class="form-group">
-            <label class="label-compact" for="recurringActualAmountInput">Actual amount paid ($)</label>
-            <input type="number" id="recurringActualAmountInput" class="form-control" value="${t.amount}" step="0.01" min="0">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-primary" id="recurringMarkPaidConfirmBtn">✅ Mark as Paid</button>
-            <button class="btn btn-secondary" id="recurringMarkPaidCancelBtn">Cancel</button>
-        </div>
-    </div>`;
-    document.body.appendChild(modal);
-
-    const input = modal.querySelector('#recurringActualAmountInput');
-    const lastFocused = document.activeElement;
-    const close = () => {
-        modal.remove();
-        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
-    };
-
-    modal.querySelector('#recurringMarkPaidConfirmBtn').onclick = () => {
-        const raw = input.value;
-        const actual = raw !== '' ? sanitizeFiniteNumber(raw, null, { min: 0 }) : null;
-        close();
-        app.markRecurringPaid(id, monthKey, false, actual);
-    };
-    modal.querySelector('#recurringMarkPaidCancelBtn').onclick = close;
-    modal.onclick = (e) => { if (e.target === modal) close(); };
-    modal.onkeydown = (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); close(); return; }
-        if (e.key === 'Tab') {
-            const focusable = modal.querySelectorAll('button:not([disabled]), input:not([disabled])');
-            const first = focusable[0], last = focusable[focusable.length - 1];
-            if (!first || !last) return;
-            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
-    };
-
-    modal.focus();
-    setTimeout(() => { input.select(); }, 30);
-}
-
-export function markRecurringPaid(app, id, monthKey, unmark = false, actualAmount = null) {
-    const t = app.recurringTemplates?.find(x => x.id === id);
-    if (!t || !monthKey) return;
-    if (!t.paidMonths) t.paidMonths = [];
-    if (!t.paidAmounts) t.paidAmounts = {};
-    if (unmark) {
-        t.paidMonths = t.paidMonths.filter(m => m !== monthKey);
-        delete t.paidAmounts[monthKey];
-    } else if (!t.paidMonths.includes(monthKey)) {
-        t.paidMonths.push(monthKey);
-        if (actualAmount !== null && actualAmount > 0) t.paidAmounts[monthKey] = actualAmount;
     }
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${id}`, t);

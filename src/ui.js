@@ -1015,6 +1015,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.57.0 — 2026-11-01',
+        items: [
+            '<strong>"Mark as paid" now updates your Ledger</strong> (issue #434): marking a recurring item paid marks the matching Ledger transaction Cleared. If you enter a different amount, that becomes the Ledger amount, so your balances, reports and forecast use what you actually paid.',
+            '<strong>It works the other way too</strong>: checking Cleared on a recurring transaction in the Ledger marks it paid on the Recurring page. Weekly and biweekly items list each payment date separately, and a partly paid month shows "Paid 1 of 4".'
+        ]
+    },
+    {
         version: '6.56.0 — 2026-10-28',
         items: [
             '<strong>A cleaner, more consistent look</strong> (issue #429): page titles now match across every page. The header is slimmer, the phone menu button has been redesigned, and dark mode has better contrast.',

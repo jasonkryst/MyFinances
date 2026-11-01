@@ -158,7 +158,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Flexible frequency** — Weekly, bi-weekly, monthly, quarterly, yearly
 - **Start and end dates** — constrain to a specific date range
 - **Pause & skip controls** — temporarily pause a template or skip individual months without deleting
-- **Mark as Paid** — one-click "paid this month" toggle per template (`paidMonths`); distinct from Skip; resets each calendar month
+- **Mark as Paid** — confirm each of the month's payments and its actual amount; this marks the matching Ledger transaction Cleared and a different amount becomes its Ledger amount. Checking Cleared in the Ledger marks it paid here too (issue #434). Distinct from Skip; resets each calendar month
 - **Integrated** — recurring templates generate projected transactions in the ledger and appear in all Reports views
 
 ---

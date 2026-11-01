@@ -101,12 +101,14 @@ def test_quarterly_recurrence_respects_end_date(app_page):
 
 @pytest.mark.feature
 def test_mark_and_unmark_recurring_paid(app_page):
-    """markRecurringPaid toggles a month-key in paidMonths without affecting
+    """markRecurringPaid toggles a month-key in paidMonths (now a cache derived
+    from the Ledger's Cleared map, #434) without affecting
     getRecurringOccurrencesInMonth."""
     page = app_page
 
     result = page.evaluate("""async () => {
         const mod = await import('/src/recurring.js');
+        const paidMod = await import('/src/recurringPaid.js');
         const template = {
             id: 1, name: 'Streaming', type: 'subscription', amount: 15,
             frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
@@ -122,17 +124,22 @@ def test_mark_and_unmark_recurring_paid(app_page):
 
         const before = mod.getRecurringOccurrencesInMonth(template, 2026, 5).length;
 
-        mod.markRecurringPaid(app, 1, '2026-06', false);
+        paidMod.markRecurringPaid(app, 1, '2026-06', false);
         const afterMark = [...template.paidMonths];
+        const clearedAfterMark = Object.keys(app.ledgerClearedTransactions || {});
 
-        mod.markRecurringPaid(app, 1, '2026-06', true);
+        paidMod.markRecurringPaid(app, 1, '2026-06', true);
         const afterUnmark = [...template.paidMonths];
+        const clearedAfterUnmark = Object.keys(app.ledgerClearedTransactions || {});
 
         const after = mod.getRecurringOccurrencesInMonth(template, 2026, 5).length;
 
-        return { before, after, afterMark, afterUnmark };
+        return { before, after, afterMark, afterUnmark, clearedAfterMark, clearedAfterUnmark };
     }""")
 
     assert result['afterMark'] == ['2026-06']
     assert result['afterUnmark'] == []
+    # Account 1 isn't in app.accounts, so the ledger posts it under __unlinked__.
+    assert result['clearedAfterMark'] == ['recurring|1|__unlinked__|2026-06-01']
+    assert result['clearedAfterUnmark'] == []
     assert result['before'] == result['after'] == 1

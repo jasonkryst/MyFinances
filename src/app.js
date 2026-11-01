@@ -113,14 +113,18 @@ import {
     archiveRecurringTemplate as archiveRecurringTemplateFeature,
     unarchiveRecurringTemplate as unarchiveRecurringTemplateFeature,
     skipRecurringOccurrence as skipRecurringOccurrenceFeature,
-    markRecurringPaid as markRecurringPaidFeature,
-    openRecurringMarkPaidModal as openRecurringMarkPaidModalFeature,
     openRecurringPauseModal as openRecurringPauseModalFeature,
     startEditRecurring as startEditRecurringFeature,
     cancelEditRecurring as cancelEditRecurringFeature,
     saveEditRecurring as saveEditRecurringFeature,
     refreshRecurringAccountSelectors as refreshRecurringAccountSelectorsFeature
 } from './recurring.js';
+import {
+    markRecurringPaid as markRecurringPaidFeature,
+    openRecurringMarkPaidModal as openRecurringMarkPaidModalFeature,
+    syncRecurringPaidFromLedger as syncRecurringPaidFromLedgerFeature,
+    reconcileRecurringPaidState as reconcileRecurringPaidStateFeature
+} from './recurringPaid.js';
 import {
     renderSavingsPage as renderSavingsPageFeature,
     switchSavingsSubTab as switchSavingsSubTabFeature,
@@ -274,6 +278,8 @@ export class DebtTrackerApp {
         }
 
         backfillIncomeAccountIds(this);
+        // #434: migrate legacy recurring paidMonths/paidAmounts into the Ledger.
+        if (this.reconcileRecurringPaidState()) this.saveToStorage();
         await this.seedMissingBalanceHistory();
         initSettingsModalFeature(this);
         initDataTransferModal(this);
@@ -1033,6 +1039,8 @@ export class DebtTrackerApp {
     skipRecurringOccurrence(id, monthKey, unskip) { return skipRecurringOccurrenceFeature(this, id, monthKey, unskip); }
     markRecurringPaid(id, monthKey, unmark, actualAmount) { return markRecurringPaidFeature(this, id, monthKey, unmark, actualAmount); }
     openRecurringMarkPaidModal(id, monthKey) { return openRecurringMarkPaidModalFeature(this, id, monthKey); }
+    syncRecurringPaidFromLedger(txIds) { return syncRecurringPaidFromLedgerFeature(this, txIds); }
+    reconcileRecurringPaidState() { return reconcileRecurringPaidStateFeature(this); }
     openRecurringPauseModal(id) { return openRecurringPauseModalFeature(this, id); }
     startEditRecurring(id) { return startEditRecurringFeature(this, id); }
     cancelEditRecurring() { return cancelEditRecurringFeature(this); }

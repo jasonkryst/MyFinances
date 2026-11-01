@@ -6853,6 +6853,19 @@ body.dark-mode .recurring-badge--skipped { background: #0c4a6e; color: #7dd3fc; 
 body.dark-mode .recurring-badge--pending { background: #1f2937; color: #9ca3af; }
 .recurring-badge--paid { background: #dbeafe; color: #1e40af; }
 body.dark-mode .recurring-badge--paid { background: #1e3a5f; color: #93c5fd; }
+/* #434: some but not all of the month's occurrences are cleared in the Ledger */
+.recurring-badge--partial { background: #ede9fe; color: #5b21b6; }
+body.dark-mode .recurring-badge--partial { background: #2e1065; color: #c4b5fd; }
+/* #434: Mark-as-paid modal — one row per occurrence date */
+.recurring-paid-rows { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.recurring-paid-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 140px);
+    align-items: center;
+    gap: 12px;
+}
+.recurring-paid-row-check { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.recurring-paid-error { color: var(--danger-color, #dc2626); font-size: 0.85rem; margin: 0 0 8px; }
 .recurring-badge--archived { background: #f3f4f6; color: #6b7280; }
 .recurring-pause-resume-note { font-weight: 500; opacity: 0.85; }
 body.dark-mode .recurring-badge--archived { background: #1f2937; color: #9ca3af; }

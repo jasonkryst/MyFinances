@@ -469,7 +469,7 @@ def test_recurring_mark_paid_default_amount_prefilled(app_page):
 
 @pytest.mark.feature
 def test_recurring_mark_paid_with_actual_amount(app_page):
-    """#293 — Submitting an actual amount stores it and shows on the badge."""
+    """#293/#434 — Submitting an actual amount becomes the Ledger amount for that occurrence."""
     page = app_page
     _seed_recurring(page, name="Actual Amount Test", amount="50")
 
@@ -483,14 +483,16 @@ def test_recurring_mark_paid_with_actual_amount(app_page):
     page.click('#recurringMarkPaidConfirmBtn')
     page.wait_for_timeout(500)
 
-    # Template should now have paidAmounts entry
-    month_key = f"{date.today().year}-{date.today().month:02d}"
-    paid_amount = page.evaluate(f"""() => {{
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{{}}');
-        const t = (d.recurringTemplates || []).find(x => x.name === 'Actual Amount Test');
-        return t?.paidAmounts?.['{month_key}'];
-    }}""")
-    assert paid_amount == 65, f"Expected paidAmounts to be 65, got {paid_amount!r}"
+    # #434: the actual amount is a Ledger amount override on that occurrence
+    # (signed: subscriptions are outflows), not a template-only paidAmounts entry.
+    paid_amount = page.evaluate("""() => {
+        const app = window.app;
+        const t = (app.recurringTemplates || []).find(x => x.name === 'Actual Amount Test');
+        const prefix = `recurring|${t.id}|`;
+        const key = Object.keys(app.ledgerAmountOverrides || {}).find(k => k.startsWith(prefix));
+        return key ? app.ledgerAmountOverrides[key].amount : null;
+    }""")
+    assert paid_amount == -65, f"Expected a -65 ledger override, got {paid_amount!r}"
 
 
 @pytest.mark.feature

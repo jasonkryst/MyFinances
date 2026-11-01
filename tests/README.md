@@ -93,6 +93,7 @@ tests/
 │   ├── test_bills.py           # Bill data model, sanitization, calculation integration
 │   ├── test_recurring.py       # Recurring transactions (CRUD, mark-as-paid, validation)
 │   ├── test_recurring_occurrences.py # Frequency-edge-case occurrence generation
+│   ├── test_recurring_paid_ledger_sync.py # #434 Mark-as-paid ↔ Ledger Cleared/override two-way sync, per occurrence date
 │   ├── test_ledger.py          # Ledger filters, amount-override modal, cleared-checkbox tracking, CSV export column picker
 │   ├── test_reports.py         # Reports functionality, tab grouping, date-boundary handling
 │   ├── test_reports_nav_groups.py # Reports tab grouping structure
