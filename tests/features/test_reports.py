@@ -252,6 +252,11 @@ def test_variance_report_range_sums_actuals_across_months(app_page):
 
     page.click('[data-rptab="variance"]')
     page.wait_for_selector('#rptPanel-variance.rpt-tab-panel--active', timeout=5000)
+    # The variance sub-module is lazy-loaded, so the panel goes active before it renders.
+    page.wait_for_function(
+        "() => (document.querySelector('#reportsVariance')?.textContent || '').includes('Period-to-Period Comparison')",
+        timeout=5000,
+    )
 
     variance_text = page.query_selector('#reportsVariance').text_content()
     assert 'Period-to-Period Comparison' in variance_text, \
