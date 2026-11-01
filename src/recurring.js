@@ -704,7 +704,7 @@ export function pauseRecurringTemplate(app, id, paused, pauseUntil = null) {
 /**
  * Pause action gains an optional "resume on" date (issue #299) — collected
  * via this modal instead of pausing immediately, mirroring
- * openRecurringMarkPaidModal's optional-extra-input pattern below.
+ * the Mark-as-paid modal's pattern (recurringPaid.js).
  */
 export function openRecurringPauseModal(app, id) {
     const t = app.recurringTemplates?.find(x => x.id === id);
