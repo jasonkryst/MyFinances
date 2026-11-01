@@ -353,7 +353,7 @@ src/
   ├─ ledgerOverrides.js    — Per-transaction manual amount overrides
   ├─ ledgerCleared.js      — Per-transaction cleared/posted tracking with timestamp
   ├─ reconciliation.js     — Account statement reconciliation
-  ├─ retirement.js         — Retirement page rendering (account cards, snapshot log, charts, projection)
+  ├─ retirement.js         — Retirement page rendering (account cards, snapshot log, charts, projection, Coast FIRE date)
   ├─ health.js             — Financial health dashboard (DTI, savings rate, runway)
   ├─ spending.js           — Spending analysis (category breakdowns, trends)
   ├─ reports.js            — Reports page orchestrator (month nav)
@@ -374,7 +374,7 @@ src/
   ├─ pgMigrationModal.js   — One-time local→Postgres migration modal
   ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only)
   ├─ debtCalculator.js     — Pure calculation engine (no side effects, no DOM access)
-  ├─ retirementCalculator.js — Pure retirement projection engine (future-value projection, growth/contribution split)
+  ├─ retirementCalculator.js — Pure retirement projection engine (future-value projection, growth/contribution split, Coast FIRE)
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   ├─ guideNav.js           — In-app guide navigation helpers
   └─ utils.js              — Formatting, date utilities, sanitization, chart tables

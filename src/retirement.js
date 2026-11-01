@@ -4,13 +4,14 @@ import {
     computeRetirementProjection, computePensionContributionProjection, splitGrowthFromContribution,
     getContributionLimit, computeYtdContributions, computeMonthlyWithdrawal,
     computeScenarioRates, computeRetirementProjectionScenarios, computeRetirementProjectionSeries,
-    DEFAULT_CONSERVATIVE_DELTA, DEFAULT_AGGRESSIVE_DELTA
+    computeCoastFire, DEFAULT_CONSERVATIVE_DELTA, DEFAULT_AGGRESSIVE_DELTA
 } from './retirementCalculator.js';
 import { pgPost, pgDelete, pgPatch } from './postgresSync.js';
-import { formatCurrency, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
+import { formatCurrency, formatMonthYear, formatShortDate, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
 import {
     getSetting, setSetting, RETIREMENT_WITHDRAWAL_RATE,
-    RETIREMENT_SCENARIO_CONSERVATIVE_DELTA, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA
+    RETIREMENT_SCENARIO_CONSERVATIVE_DELTA, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA,
+    RETIREMENT_COAST_TARGET, COAST_FIRE_TARGET_MAX, getCoastFireTarget, computeFireNumber, getFireMultiplier
 } from './settings.js';
 import { t } from './i18n.js';
 
@@ -668,6 +669,120 @@ function renderProjectionPanel(app, accounts) {
     };
     document.getElementById('retireAggressiveDeltaInput').onchange = (event) => {
         setSetting(app, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA, clampAggressiveDelta(event.target.value));
+        app.renderRetirementPage();
+    };
+
+    renderCoastFireSection(app, accounts, conservativeDelta, aggressiveDelta);
+}
+
+// ── Coast FIRE (issue #346) ─────────────────────────────────────────────────
+// Aggregate across non-pension accounts, one result per scenario (each
+// account at its own scenario rate, same as the table above). The target is
+// an independent nest egg -- the user's input, else Health's FIRE number --
+// never the contribution-inclusive projection itself (see #346's comment).
+export function computeCoastFireScenarios(app, accounts, conservativeDelta, aggressiveDelta) {
+    const investment = accounts.filter(a => a.retirementSubtype !== 'Pension');
+    const customTarget = getCoastFireTarget(app);
+    const fireNumber = computeFireNumber(app);
+    const target = customTarget ?? (fireNumber > 0 ? fireNumber : null);
+    const monthsUntilTarget = DebtCalculator.calculateMonthsBetweenDates(
+        new Date(),
+        new Date(`${app.retirementTargetDate}T12:00:00`)
+    );
+    const inputs = investment.map(a => ({
+        ...getAccountProjectionInputs(app, a),
+        rates: computeScenarioRates(Number(a.rateOfReturn) || 0, conservativeDelta, aggressiveDelta)
+    }));
+    const forScenario = key => computeCoastFire(
+        inputs.map(i => ({ currentBalance: i.currentBalance, monthlyContribution: i.monthlyContribution, annualRatePct: i.rates[key] })),
+        target ?? NaN,
+        monthsUntilTarget
+    );
+    return {
+        investmentCount: investment.length,
+        hasPension: investment.length < accounts.length,
+        customTarget, fireNumber, target,
+        conservative: forScenario('conservative'),
+        moderate: forScenario('moderate'),
+        aggressive: forScenario('aggressive'),
+    };
+}
+
+function coastResultText(result) {
+    switch (result.status) {
+        case 'reached': return t('retirement.coastReached');
+        case 'coast': {
+            const now = new Date();
+            const date = formatMonthYear(new Date(now.getFullYear(), now.getMonth() + result.months, 1));
+            return t('retirement.coastDate', { date: escapeHtml(date), months: result.months });
+        }
+        case 'throughRetirement': return t('retirement.coastThroughRetirement');
+        case 'shortfall': return t('retirement.coastShortfall', { projected: formatCurrency(result.valueWithContributions) });
+        default: return '';
+    }
+}
+
+function renderCoastFireSection(app, accounts, conservativeDelta, aggressiveDelta) {
+    const panel = document.getElementById('retireProjectionPanel');
+    if (!panel) return;
+    const c = computeCoastFireScenarios(app, accounts, conservativeDelta, aggressiveDelta);
+    const section = document.createElement('div');
+    section.className = 'retire-coast';
+    section.id = 'retireCoastFire';
+
+    if (c.investmentCount === 0) {
+        section.innerHTML = `
+            <h4 class="rpt-chart-title">${t('retirement.coastTitle')}</h4>
+            <p class="retire-empty-msg" id="retireCoastMsg">${t('retirement.coastNoInvestmentAccounts')}</p>`;
+        panel.appendChild(section);
+        return;
+    }
+
+    const hint = c.customTarget != null ? t('retirement.coastTargetHintCustom')
+        : c.target != null ? t('retirement.coastTargetHintFire', { amount: formatCurrency(c.fireNumber), mult: getFireMultiplier(app) })
+        : t('retirement.coastTargetHintNone');
+    const row = key => `
+        <li class="retire-coast-row"><span class="retire-coast-label">${t('retirement.scenario' + key)}</span><span class="retire-coast-value" id="retireCoast${key}Val" data-coast-status="${c[key.toLowerCase()].status}">${coastResultText(c[key.toLowerCase()])}</span></li>`;
+
+    section.innerHTML = `
+        <h4 class="rpt-chart-title">${t('retirement.coastTitle')}</h4>
+        <p class="rpt-chart-sub">${t('retirement.coastSub', { date: escapeHtml(formatShortDate(app.retirementTargetDate)) })}</p>
+        <div class="form-group retire-coast-target-row">
+            <label for="retireCoastTargetInput">${t('retirement.coastTargetLabel')}</label>
+            <input type="number" id="retireCoastTargetInput" min="0" step="1000" inputmode="decimal"
+                value="${c.customTarget != null ? c.customTarget : ''}"
+                placeholder="${c.fireNumber > 0 ? Math.round(c.fireNumber) : ''}"
+                aria-describedby="retireCoastTargetHint retireCoastTargetError">
+            <p class="retire-coast-hint" id="retireCoastTargetHint">${hint}</p>
+            <p class="retire-coast-error hidden" id="retireCoastTargetError" role="alert"></p>
+        </div>
+        ${c.target != null ? `<ul class="retire-coast-results">
+            ${row('Conservative')}${row('Moderate')}${row('Aggressive')}
+        </ul>` : ''}
+        ${c.hasPension ? `<p class="retire-coast-hint" id="retireCoastPensionNote">${t('retirement.coastPensionNote')}</p>` : ''}`;
+    panel.appendChild(section);
+
+    // Commit on change: blank clears the custom target (stored as 0 -> FIRE
+    // number); an invalid amount is never saved -- the field reverts and an
+    // inline error explains why (same pattern as Health's FIRE inputs, #361).
+    const input = section.querySelector('#retireCoastTargetInput');
+    const errorEl = section.querySelector('#retireCoastTargetError');
+    input.onchange = () => {
+        const raw = input.value.trim();
+        if (raw === '') {
+            setSetting(app, RETIREMENT_COAST_TARGET, 0);
+            app.renderRetirementPage();
+            return;
+        }
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n <= 0 || n > COAST_FIRE_TARGET_MAX) {
+            input.value = c.customTarget != null ? String(c.customTarget) : '';
+            errorEl.textContent = t('retirement.coastTargetInvalid', { max: formatCurrency(COAST_FIRE_TARGET_MAX) });
+            errorEl.classList.remove('hidden');
+            input.setAttribute('aria-invalid', 'true');
+            return;
+        }
+        setSetting(app, RETIREMENT_COAST_TARGET, n);
         app.renderRetirementPage();
     };
 }

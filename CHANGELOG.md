@@ -4,6 +4,23 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.59.0] — 2026-11-01
+
+### Added
+- **Coast FIRE date on the Retirement page** (issue #346). The projection panel now shows the earliest month you could stop contributing and let investment growth alone reach a target balance by your retirement date.
+  - **Target:** a new "Target balance" input (generic setting `retirementCoastTarget`, so it reaches Postgres and export/import with no migration). When blank, it uses Health's FIRE number (annual bills + expenses × the FIRE multiplier from #361). It is never derived from the contribution-inclusive projection, which was why #346 was blocked.
+  - **Results:** one aggregate result across all non-pension retirement accounts for each scenario (conservative / moderate / aggressive), each account at its own scenario rate. Possible results:
+    - "You've reached Coast FIRE!"
+    - a month and year, with the months remaining
+    - "Contributions required through retirement"
+    - the same, with the projected shortfall.
+  - **Pensions:** pension accounts are excluded, with a note.
+  - **Validation:** an invalid target (≤ 0 or above $1T) is rejected inline and not saved. Clearing the field goes back to the FIRE number.
+  - **Implementation:** a new pure function, `computeCoastFire()` in `retirementCalculator.js`. It scans each month and checks "contribute until month t, then only compound"; at t = N the value equals the existing projection. It has Jest unit tests and is in Stryker's mutation scope. `computeFireNumber()` (`settings.js`) is now shared by Health's FIRE card and this feature.
+
+### Fixed
+- Stryker's `splitGrowthFromContribution` line range in `stryker.config.mjs` now matches the function's new position in `retirementCalculator.js`.
+
 ## [6.58.0] — 2026-11-01
 
 ### Added

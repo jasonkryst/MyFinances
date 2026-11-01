@@ -15,6 +15,10 @@ export const AUTO_NW_SNAPSHOT = 'autoNwSnapshot';
 export const RETIREMENT_WITHDRAWAL_RATE = 'retirementWithdrawalRate';
 export const RETIREMENT_SCENARIO_CONSERVATIVE_DELTA = 'retirementScenarioConservativeDelta';
 export const RETIREMENT_SCENARIO_AGGRESSIVE_DELTA = 'retirementScenarioAggressiveDelta';
+// #346: Coast FIRE target nest egg. 0 / unset means "use the FIRE number"
+// (stored as 0 rather than null, since sanitizeSetting() drops null values).
+export const RETIREMENT_COAST_TARGET = 'retirementCoastTarget';
+export const COAST_FIRE_TARGET_MAX = 1e12;
 // #361: FIRE target as a multiple of annual expenses (25 == the 4% rule).
 // The withdrawal rate shown in the UI is derived (100 / multiplier).
 export const FIRE_MULTIPLIER = 'fireMultiplier';
@@ -57,6 +61,19 @@ export function getFireMultiplier(app) {
     const v = getSetting(app, FIRE_MULTIPLIER, FIRE_MULTIPLIER_DEFAULT);
     return (typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= FIRE_MULTIPLIER_MAX)
         ? v : FIRE_MULTIPLIER_DEFAULT;
+}
+// The FIRE number: annual bills + budgeted expenses x getFireMultiplier().
+// Shared by Health's FIRE card and the Retirement page's Coast FIRE default.
+export function computeFireNumber(app) {
+    const monthlyBills = (app.bills || []).reduce((s, b) => s + (Number(b?.amount) || 0), 0);
+    const monthlyExpenses = (app.expenses || []).reduce((s, e) => s + (Number(e?.budgetAmount) || 0), 0);
+    return (monthlyBills + monthlyExpenses) * 12 * getFireMultiplier(app);
+}
+// Stored Coast FIRE target, or null when unset/0/invalid (caller falls back
+// to computeFireNumber()).
+export function getCoastFireTarget(app) {
+    const v = getSetting(app, RETIREMENT_COAST_TARGET, null);
+    return (typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= COAST_FIRE_TARGET_MAX) ? v : null;
 }
 // Returns 'allow' for a missing/unknown stored value so a bad import can
 // never silently turn into a stricter policy.

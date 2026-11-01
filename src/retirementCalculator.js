@@ -157,6 +157,53 @@ export function computeMonthlyWithdrawal(projectedBalance, withdrawalRatePct) {
     return balance * (rate / 100) / 12;
 }
 
+// Coast FIRE (issue #346): the earliest month `t` (0..monthsUntilTarget) at
+// which you could stop contributing to every account and still have growth
+// alone carry the combined balance to `targetBalance` by the target date.
+// Each account keeps contributing through month t, then only compounds:
+//   value(t) = sum_i FV_i(t) * (1 + r_i/12)^(N - t)
+// value(N) is exactly the existing contribution-inclusive projection, so a
+// target that only value(N) reaches means "contribute through retirement".
+// A linear scan (N <= ~600 months) keeps this correct without assuming
+// value(t) is monotonic. Statuses:
+//   noTarget          -- target missing / non-positive / non-finite
+//   reached           -- t = 0: today's balances already coast to the target
+//   coast             -- 0 < t < N
+//   throughRetirement -- only t = N reaches it
+//   shortfall         -- even contributing every month misses the target
+export function computeCoastFire(accounts, targetBalance, monthsUntilTarget) {
+    const target = typeof targetBalance === 'number' ? targetBalance : NaN;
+    if (!Number.isFinite(target) || !(target > 0)) {
+        return { status: 'noTarget', months: null, valueWithoutContributions: null, valueWithContributions: null };
+    }
+    const n = Number.isFinite(Number(monthsUntilTarget)) ? Math.max(0, Math.floor(Number(monthsUntilTarget))) : 0;
+    const list = (accounts || []).map(a => ({
+        balance: Number(a?.currentBalance) || 0,
+        contribution: Number(a?.monthlyContribution) || 0,
+        monthlyRate: (Number(a?.annualRatePct) || 0) / 100 / 12
+    }));
+
+    const valueIfStoppedNow = (remaining) =>
+        list.reduce((sum, a) => sum + a.balance * Math.pow(1 + a.monthlyRate, remaining), 0);
+
+    let months = null;
+    let valueWithoutContributions = 0;
+    let valueWithContributions = 0;
+    for (let t = 0; t <= n; t++) {
+        const value = valueIfStoppedNow(n - t);
+        if (t === 0) valueWithoutContributions = value;
+        if (t === n) valueWithContributions = value;
+        if (months === null && value >= target) months = t;
+        for (const a of list) a.balance = a.balance * (1 + a.monthlyRate) + a.contribution;
+    }
+
+    const status = months === null ? 'shortfall'
+        : months === 0 ? 'reached'
+        : months < n ? 'coast'
+        : 'throughRetirement';
+    return { status, months, valueWithoutContributions, valueWithContributions };
+}
+
 export function splitGrowthFromContribution(snapshotsForOneAccount) {
     const sorted = [...(snapshotsForOneAccount || [])].sort((a, b) => a.date.localeCompare(b.date));
     return sorted.map((snap, i) => {

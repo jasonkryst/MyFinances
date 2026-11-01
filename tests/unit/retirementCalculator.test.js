@@ -8,9 +8,103 @@ const {
     computeScenarioRates,
     computeRetirementProjectionScenarios,
     computeRetirementProjectionSeries,
+    computeCoastFire,
     DEFAULT_CONSERVATIVE_DELTA,
     DEFAULT_AGGRESSIVE_DELTA,
 } = require('../../src/retirementCalculator.js');
+
+// ── Coast FIRE (issue #346) ──────────────────────────────────────────────────
+describe('computeCoastFire', () => {
+    const acct = (currentBalance, monthlyContribution, annualRatePct) => ({ currentBalance, monthlyContribution, annualRatePct });
+
+    test('reached now when today\'s balance alone grows to the target', () => {
+        // 100k at 12%/yr (1%/mo) for 12 months = 112,682.50 >= 110k
+        const r = computeCoastFire([acct(100000, 500, 12)], 110000, 12);
+        expect(r.status).toBe('reached');
+        expect(r.months).toBe(0);
+        expect(r.valueWithoutContributions).toBeCloseTo(100000 * Math.pow(1.01, 12), 2);
+    });
+
+    test('exact boundary counts as reached', () => {
+        const target = 100000 * Math.pow(1.01, 12);
+        expect(computeCoastFire([acct(100000, 0, 12)], target, 12).status).toBe('reached');
+    });
+
+    test('coast date is the first month where stopping still reaches the target', () => {
+        // 0% growth: stopping after t months leaves 1000 + 100t. Target 1500 -> t = 5.
+        const r = computeCoastFire([acct(1000, 100, 0)], 1500, 24);
+        expect(r.status).toBe('coast');
+        expect(r.months).toBe(5);
+    });
+
+    test('stopping one month before the coast date falls short (minimality)', () => {
+        const accounts = [acct(50000, 1000, 7)];
+        const r = computeCoastFire(accounts, 600000, 360);
+        expect(r.status).toBe('coast');
+        const m = 0.07 / 12;
+        const valueIfStopAt = t => computeRetirementProjection(50000, 1000, 7, t) * Math.pow(1 + m, 360 - t);
+        expect(valueIfStopAt(r.months)).toBeGreaterThanOrEqual(600000);
+        expect(valueIfStopAt(r.months - 1)).toBeLessThan(600000);
+    });
+
+    test('contributions required through retirement when only the full projection reaches it', () => {
+        // 0% growth: 1000 + 100*12 = 2200 only at t = 12.
+        const r = computeCoastFire([acct(1000, 100, 0)], 2200, 12);
+        expect(r.status).toBe('throughRetirement');
+        expect(r.months).toBe(12);
+    });
+
+    test('shortfall when even contributing every month misses the target', () => {
+        const r = computeCoastFire([acct(1000, 100, 0)], 5000, 12);
+        expect(r.status).toBe('shortfall');
+        expect(r.months).toBeNull();
+        expect(r.valueWithContributions).toBeCloseTo(2200, 5);
+    });
+
+    test('valueWithContributions equals the existing projection summed across accounts', () => {
+        const accounts = [acct(20000, 300, 6), acct(5000, 100, 9)];
+        const r = computeCoastFire(accounts, 1e9, 120);
+        const expected = computeRetirementProjection(20000, 300, 6, 120) + computeRetirementProjection(5000, 100, 9, 120);
+        expect(r.valueWithContributions).toBeCloseTo(expected, 4);
+        expect(r.status).toBe('shortfall');
+    });
+
+    test('aggregates accounts with different rates (neither alone reaches the target)', () => {
+        // 60k@1%/mo + 60k@0% over 12 months, no contributions: 67,609.50 + 60,000 = 127,609.50
+        const accounts = [acct(60000, 0, 12), acct(60000, 0, 0)];
+        expect(computeCoastFire(accounts, 125000, 12).status).toBe('reached');
+        expect(computeCoastFire([accounts[0]], 125000, 12).status).toBe('shortfall');
+    });
+
+    test('target date already passed: reached if balance covers target, else shortfall', () => {
+        expect(computeCoastFire([acct(5000, 100, 7)], 4000, 0).status).toBe('reached');
+        expect(computeCoastFire([acct(5000, 100, 7)], 6000, 0).status).toBe('shortfall');
+        expect(computeCoastFire([acct(5000, 100, 7)], 6000, -3).status).toBe('shortfall');
+    });
+
+    test.each([0, -100, NaN, Infinity, null, undefined, 'abc'])('invalid target %p -> noTarget', (target) => {
+        const r = computeCoastFire([acct(1000, 100, 7)], target, 12);
+        expect(r.status).toBe('noTarget');
+        expect(r.months).toBeNull();
+    });
+
+    test('no accounts -> shortfall for a positive target, never throws', () => {
+        expect(computeCoastFire([], 1000, 12).status).toBe('shortfall');
+        expect(computeCoastFire(null, 1000, 12).status).toBe('shortfall');
+    });
+
+    test('non-numeric account fields are treated as zero', () => {
+        const r = computeCoastFire([{ currentBalance: 'x', monthlyContribution: null, annualRatePct: undefined }], 1, 12);
+        expect(r.status).toBe('shortfall');
+        expect(r.valueWithContributions).toBe(0);
+    });
+
+    test('fractional months are floored', () => {
+        const r = computeCoastFire([acct(1000, 100, 0)], 2200, 12.9);
+        expect(r.status).toBe('throughRetirement');
+        expect(r.months).toBe(12);
+    });
+});
 
 describe('computeRetirementProjection', () => {
     test('returns currentBalance unchanged when monthsUntilTarget is zero or negative', () => {
