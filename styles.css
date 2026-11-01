@@ -3227,6 +3227,7 @@ body.dark-mode .empty-state__heading { color: #f1f5f9; }
     opacity: 0.7;
 }
 .ledger-nav-btn:hover { opacity: 1; background: var(--bg-hover, #f1f5f9); }
+body.dark-mode .ledger-nav-btn { color: #cbd5e1; }
 body.dark-mode .ledger-nav-btn:hover { background: #334155; }
 @keyframes ledger-nav-flash {
     0%   { outline: 2px solid #3b82f6; outline-offset: 2px; background: rgba(59,130,246,0.08); }
@@ -8714,6 +8715,7 @@ body.dark-mode .settings-danger-title { color: #f87171; }
 /* C4: confirmation dialogs must sit above Settings (Clear All Data is launched from it) */
 #deleteConfirmModal { z-index: 10010; }
 
+/* ═══════════════════════════════════════════════════════════════════════════
    UX C (#428) — mobile density: filter disclosures, collapsible add forms,
    2-line Ledger rows, tap-target floor, account-card actions, report-tab
    strip, Reconcile accordion.
