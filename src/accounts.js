@@ -331,7 +331,7 @@ export function renderAccountsList(app) {
                 <div class="debt-actions acct-card-actions">
                     ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}" aria-label="History for ${escapeHtml(a.name)}">History</button>` : ''}
                     ${a.type === 'Retirement' ? '' : `<button class="btn btn-secondary btn-small" data-account-action="transfer" data-account-id="${a.id}" aria-label="Transfer from ${escapeHtml(a.name)}">⇄ Transfer</button>`}
-                    <button class="btn-edit" data-account-action="edit" data-account-id="${a.id}" aria-label="Edit ${escapeHtml(a.name)}">Edit</button>
+                    <button class="btn btn-secondary btn-small" data-account-action="edit" data-account-id="${a.id}" aria-label="Edit ${escapeHtml(a.name)}">Edit</button>
                     <button class="btn btn-secondary btn-small" data-account-action="${a.archived ? 'unarchive' : 'archive'}" data-account-id="${a.id}" title="${a.archived ? 'Unarchive account' : 'Archive account'}" aria-label="${a.archived ? 'Unarchive' : 'Archive'} ${escapeHtml(a.name)}">${a.archived ? 'Unarchive' : 'Archive'}</button>
                     <button class="btn btn-danger btn-small" data-account-action="delete" data-account-id="${a.id}" aria-label="Delete ${escapeHtml(a.name)}">Delete</button>
                 </div>

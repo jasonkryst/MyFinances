@@ -162,7 +162,7 @@
             <!-- Ledger Section                                            -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="ledger-section page-section" id="ledgerSection">
-                <div class="page-header-row">
+                <div class="page-header-row page-header">
                     <h2>📒 Ledger</h2>
                     <button type="button" class="page-print-btn" id="ledgerPrintBtn" title="Print this page" aria-label="Print the Ledger page">🖨️ Print</button>
                 </div>
@@ -180,7 +180,7 @@
             <!-- Accounts Section                                            -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="accounts-section page-section" id="accountsSection">
-                <div class="page-header-row">
+                <div class="page-header-row page-header">
                     <h2>🏦 Accounts</h2>
                     <button type="button" class="page-print-btn" id="accountsPrintBtn" title="Print this page" aria-label="Print the Accounts page">🖨️ Print</button>
                 </div>
@@ -324,7 +324,7 @@
 
             <!-- Liabilities Section (Debts & Expenses combined with subtabs) -->
             <section class="liabilities-section page-section" id="liabilitiesSection">
-                <div class="page-header-row">
+                <div class="page-header-row page-header">
                     <h2>💳 Liabilities</h2>
                     <button type="button" class="page-print-btn" id="liabilitiesPrintBtn" title="Print this page" aria-label="Print the Liabilities page">🖨️ Print</button>
                 </div>
@@ -619,7 +619,7 @@
 
             <!-- Income Section -->
             <section class="income-section page-section active" id="incomeSection">
-                <div class="page-header-row">
+                <div class="page-header-row page-header">
                     <h2>💰 Income Sources</h2>
                     <button type="button" class="page-print-btn" id="incomePrintBtn" title="Print this page" aria-label="Print the Income page">🖨️ Print</button>
                 </div>
@@ -800,7 +800,7 @@
 
             <!-- People Section -->
             <section class="income-section page-section" id="peopleSection">
-                <div class="page-header-row">
+                <div class="page-header-row page-header">
                     <h2>👨‍👩‍👧‍👦 Family Members</h2>
                 </div>
                 <div class="income-form-card">
@@ -825,7 +825,7 @@
 
             <!-- Plan Section (Strategy + Results combined) -->
             <section class="strategy-section page-section" id="strategySection">
-                <div class="page-header-row">
+                <div class="page-header-row page-header">
                     <h2>Payment Plan</h2>
                     <button type="button" class="page-print-btn" id="strategyPrintBtn" title="Print this page" aria-label="Print the Payment Plan page">🖨️ Print</button>
                 </div>
@@ -851,7 +851,6 @@
                     </div>
 
                     <button id="calculateBtn" class="btn btn-success">Calculate Payment Plan</button>
-                    <button id="clearDataBtn" class="btn btn-danger">Clear All Data</button>
 
                     <!-- Income context widget shown only when income sources exist -->
                     <div id="strategyIncomeWidget" class="strategy-income-widget"></div>
@@ -1134,7 +1133,7 @@
             <!-- Recurring Templates Section                                 -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="recurring-section page-section" id="recurringSection">
-                <div class="page-header-row">
+                <div class="page-header-row page-header">
                     <h2>🔁 Recurring Templates</h2>
                     <button type="button" class="page-print-btn" id="recurringPrintBtn" title="Print this page" aria-label="Print the Recurring Templates page">🖨️ Print</button>
                 </div>
@@ -1804,6 +1803,11 @@
                     </select>
                     <p class="modal-helper-text" data-i18n="settings.dataStorageHelp">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
                     <p id="settingsStoragePostgresNote" class="modal-helper-text hidden" data-i18n="settings.storagePostgresNote">You are using PostgreSQL. Switching back to local or session storage is not supported.</p>
+                </div>
+                <div class="form-group modal-form-group settings-danger-zone">
+                    <h4 class="settings-danger-title">Danger zone</h4>
+                    <p class="modal-helper-text">Permanently remove every account, debt, income, expense, plan and setting stored in this browser. Export a backup first.</p>
+                    <button type="button" id="clearDataBtn" class="btn btn-danger btn-small">Clear All Data</button>
                 </div>
             </div>
             <div id="settingsPanel-notifications" class="settings-tab-panel" role="tabpanel">

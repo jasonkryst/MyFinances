@@ -11,6 +11,7 @@ that confirmation actually performs the delete.
 """
 
 import pytest
+from tests.conftest import open_settings, switch_settings_tab
 
 
 @pytest.mark.ui
@@ -146,8 +147,9 @@ def test_clear_all_data_uses_themed_modal(app_page):
     """Clear All Data on the Strategy page opens the themed modal, not a native dialog."""
     page = app_page
 
-    page.click('button[data-page="strategy"]')
-    page.wait_for_selector('#clearDataBtn', timeout=10000)
+    open_settings(page)
+    switch_settings_tab(page, 'data')
+    page.wait_for_selector('#clearDataBtn', state='visible', timeout=10000)
 
     dialog_triggered = []
     page.once('dialog', lambda d: (dialog_triggered.append(True), d.dismiss()))

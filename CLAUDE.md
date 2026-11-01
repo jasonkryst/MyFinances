@@ -180,6 +180,13 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
   - **Payoff progress.** It is clamped to 0–100. A balance above `originalBalance` adds a `.debt-progress-note` instead of showing a negative percentage.
   - **Tests.** `tests/ui/test_debt_card_layout.py` checks the geometry.
 
+- **Design-system consistency (#429)**
+  - **Page titles.** Every page title uses the shared `section h2` rule. The per-page `.recurring-section`, `.savings-section` and `.ledger-section` h2 overrides were removed. `.page-header` is a class on the row that holds the h2 and the Print button.
+  - **Nav toggle and account menu.** `#navToggle` is a 44px button at z-index 10. `.account-menu-dropdown` is at z-index 1100, so the open menu is never covered.
+  - **Clear All Data.** `#clearDataBtn` now lives in a "Danger zone" block in Settings → Data & Storage; it is no longer on the Plan page. Confirming it closes Settings first. `#deleteConfirmModal` is at z-index 10010 so it renders above Settings.
+  - **Header chrome.** The toolbar sits on the title row: about 56px on phone and about 130px on desktop.
+  - **Dark mode.** Dark `--text-muted` is `#a8b3c7`, which gives at least 4.5:1 contrast on cards. `.btn-secondary` has a visible border in dark mode.
+  - **Tests.** `tests/ui/test_design_consistency.py` covers these.
 - **Mobile density (issue #428)** — below 768px, long filter bars and add forms collapse behind toggles. Desktop is unchanged.
   - **Toggle mechanism.** One delegated `[data-collapse-toggle="<bodyId>"]` handler (in `ui.js`, `initializeEventListeners`) flips `.is-open` on the target body, and sets `.is-open` and `aria-expanded` on its button.
   - **Persisted open state.** Open state lives in `utils.js` (`isCollapsibleOpen(id, default)` / `setCollapsibleOpen`), so markup that is rebuilt on every render keeps its state. The Ledger filter bar relies on this.

@@ -557,6 +557,7 @@ jobs:
             tests/ui/test_login_gate_theme.py \
             tests/ui/test_reduced_motion.py \
             tests/ui/test_guide_theme.py \
+            tests/ui/test_design_consistency.py \
             -v
 
   # D: UI files that were never listed in any shard until #415 (~36 tests).

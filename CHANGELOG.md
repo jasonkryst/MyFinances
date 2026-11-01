@@ -4,6 +4,30 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.56.0] — 2026-10-28
+
+### Changed
+- **More consistent look across pages** (issue #429).
+  - **Page titles:** every page uses one title style. The blue per-page overrides on Recurring, Savings and Ledger are gone. Savings and Recurring no longer sit inside an extra outer card, so their margins match the other pages.
+  - **Header:** it is slimmer. On phones the logo and toolbar share one ~56px row; on desktop the header is ~130px tall. Nav items are larger (13px), with left-aligned group labels.
+  - **Mobile menu:** the ☰ button is now a styled 44px button, and the account menu opens above it instead of being covered by it.
+  - **Buttons:** the account card's Edit button uses the shared secondary style. A new `.btn-ghost` variant is available.
+  - **Plan inputs:** on desktop they are capped at 480px wide.
+  - **Dark mode:** muted text is raised to at least 4.5:1 contrast, and secondary buttons get a visible border.
+  - **Clear All Data:** moved from the Plan page, where it sat beside "Calculate Payment Plan", to a Danger zone in Settings → Data & Storage. The confirm dialog now appears above Settings, and Settings closes once the data is cleared.
+  - **Account menu:** for local-storage users it no longer shows an empty email row and divider.
+
+### Tests
+- New `tests/ui/test_design_consistency.py` (13 tests) checks the following:
+  - every page title shares one size and colour;
+  - Savings has no outer card;
+  - the ☰ button is at least 44px and never covers the open account menu (verified with `elementFromPoint`);
+  - Clear All Data is gone from Plan and present in Settings, where Cancel does nothing and confirming clears the data;
+  - dark-mode muted text contrast is at least 4.5:1;
+  - header height stays within bounds at phone and desktop widths;
+  - the email row is hidden when there is no email.
+- Updated the existing tests that clicked Clear All Data so they open Settings first.
+
 ## [6.55.0] — 2026-10-28
 
 ### Changed
