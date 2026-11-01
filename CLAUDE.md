@@ -251,3 +251,11 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
 - **Strict CSP** in `index.html`: `script-src 'self' https://cdn.jsdelivr.net`, `style-src 'self'` — no inline `<script>`, no inline `style="..."`, no `eval`/`Function()`. All dynamic styling must use CSS classes/variables (see `styles-csp-classes.css`) toggled via `classList`.
 - **All user-supplied data rendered via `innerHTML` must go through `escapeHtml()`** (from `utils.js`). Prefer `textContent` where possible.
 - **All persisted/imported fields must be sanitized** via the `sanitize*` functions in `sanitizers.js` / `utils.js` — never trust raw `localStorage` or imported JSON.
+- **Never interpolate raw DOM input text into `innerHTML`**, even from `<input type="date">`. Format the parsed value and `escapeHtml()` it. CodeQL `js/xss-through-dom` flags this; alert #172 was fixed in #380 with a guard in `tests/security/test_target_payoff_xss.py`.
+
+## Branch protection and merging (issue #380)
+
+- **Rulesets on `main`.** No force-push or deletion, for anyone. Every change goes through a PR; the admin bypass is **pull-request only**, so direct pushes are rejected. Required checks: `ci-complete`, `Analyze JavaScript`, `trivy`, `dependency-review`, plus the CodeQL/Trivy code-scanning gate (high or above). Approvals required: 0, since the owner is the sole maintainer and reviews each PR before merging. Details are in `SECURITY.md`.
+- **Never use the override to merge a red PR, or one with a missing required check.** Fix it or leave it unmerged. Commits land under the owner's identity, so this binds every session.
+- **`ci-complete` is the only required `ci.yml` check.** A new job must be added to its `needs:`, or `tests/features/test_ci_shard_coverage.py` fails. A job that can never run on a PR (only `mutation-testing` today) goes in that test's `NOT_GATING` set instead.
+- **Don't merge PRs yourself**; open them and mark them ready once CI is green. The owner merges.

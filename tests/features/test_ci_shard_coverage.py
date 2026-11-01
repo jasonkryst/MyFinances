@@ -68,3 +68,76 @@ def test_guard_detects_an_unlisted_file(tmp_path):
     referenced = _ci_referenced_paths()
     assert 'tests/features/test_definitely_not_a_real_file.py' not in referenced
     assert 'tests/features/test_debts.py' in referenced
+
+
+# ── Single required check (issue #380) ───────────────────────────────────────
+# The main-branch ruleset requires the `ci-complete` job instead of every job
+# name. That only works if `ci-complete` waits on every other job here --
+# otherwise a new job runs but can fail without blocking a merge (the required
+# list had drifted by 9 jobs before #380). Jobs that can never gate a PR are
+# exempt and must be listed here explicitly.
+AGGREGATOR = 'ci-complete'
+NOT_GATING = {'mutation-testing'}  # post-merge only: `if: github.event_name == 'push'`
+
+
+def _ci_jobs():
+    """Top-level job ids under `jobs:` (two-space indented `name:` keys)."""
+    text = CI_YML.read_text(encoding='utf-8')
+    body = text.split('\njobs:\n', 1)[1]
+    return re.findall(r'^  ([A-Za-z0-9_-]+):\s*$', body, re.MULTILINE)
+
+
+def _aggregator_needs():
+    text = CI_YML.read_text(encoding='utf-8')
+    block = re.search(rf'^  {AGGREGATOR}:\s*\n(.*?)(?=^  \S|\Z)', text, re.MULTILINE | re.DOTALL)
+    assert block, f'ci.yml has no `{AGGREGATOR}` job'
+    needs = re.search(r'^    needs:\s*\n((?:      - [\w-]+\s*\n)+)', block.group(1), re.MULTILINE)
+    assert needs, f'`{AGGREGATOR}` must list its dependencies as a `needs:` block list'
+    return re.findall(r'- ([\w-]+)', needs.group(1))
+
+
+@pytest.mark.feature
+def test_ci_complete_needs_every_gating_job():
+    jobs = set(_ci_jobs())
+    needs = set(_aggregator_needs())
+    missing = sorted(jobs - needs - NOT_GATING - {AGGREGATOR})
+    assert not missing, (
+        f'These ci.yml jobs are not in `{AGGREGATOR}.needs`, so a failure in them would not '
+        'block merging (the ruleset only requires ci-complete):\n  ' + '\n  '.join(missing)
+    )
+
+
+@pytest.mark.feature
+def test_ci_complete_needs_only_real_jobs():
+    """Negative: a renamed/removed job left in `needs` makes the whole workflow invalid."""
+    stale = sorted(set(_aggregator_needs()) - set(_ci_jobs()))
+    assert not stale, f'`{AGGREGATOR}.needs` references jobs that do not exist:\n  ' + '\n  '.join(stale)
+
+
+@pytest.mark.feature
+def test_ci_complete_runs_even_when_a_dependency_fails():
+    """Without `if: always()` the aggregator is *skipped* when a dependency
+    fails -- and GitHub treats a skipped required check as passing."""
+    text = CI_YML.read_text(encoding='utf-8')
+    block = re.search(rf'^  {AGGREGATOR}:\s*\n(.*?)(?=^  \S|\Z)', text, re.MULTILINE | re.DOTALL).group(1)
+    assert re.search(r'^    if: always\(\)\s*$', block, re.MULTILINE), f'`{AGGREGATOR}` needs `if: always()`'
+    assert 'failure|cancelled' in block, f'`{AGGREGATOR}` must fail when a dependency failed or was cancelled'
+
+
+@pytest.mark.feature
+def test_not_gating_exemptions_are_still_post_merge_only():
+    """Negative: an exempt job that starts running on PRs must be gated again."""
+    text = CI_YML.read_text(encoding='utf-8')
+    for job in NOT_GATING:
+        block = re.search(rf'^  {job}:\s*\n(.*?)(?=^  \S|\Z)', text, re.MULTILINE | re.DOTALL)
+        assert block, f'exempt job {job} no longer exists -- drop it from NOT_GATING'
+        assert "github.event_name == 'push'" in block.group(1), (
+            f'{job} now runs on PRs, so it must be added to `{AGGREGATOR}.needs`')
+
+
+@pytest.mark.feature
+def test_job_parser_sees_known_jobs():
+    """Negative/sanity: prove the parser isn't silently returning nothing."""
+    jobs = _ci_jobs()
+    assert {'test-features-a', 'test-unit', 'lighthouse', AGGREGATOR} <= set(jobs)
+    assert len(jobs) == len(set(jobs))

@@ -266,7 +266,9 @@ export function calculateRequiredPayment(app) {
         ? `⚠️ You need to pay ${formatCurrency(extraNeeded)} more/month`
         : '✅ Your current payment covers this goal';
 
-    const payoffDateStr = summary ? DebtCalculator.formatDate(summary.payOffDate) : dateVal;
+    // Fallback formats the parsed target date, never the raw <input> text
+    // (CodeQL js/xss-through-dom, #380), and is escaped like any other value.
+    const payoffDateStr = escapeHtml(DebtCalculator.formatDate(summary ? summary.payOffDate : targetDate));
     const interestStr = summary ? formatCurrency(summary.totalInterest) : '—';
 
     resultEl.innerHTML = `<div class="target-result ${panelClass}">
