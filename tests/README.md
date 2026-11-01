@@ -88,6 +88,7 @@ tests/
 │   ├── test_break_even.py      # Per-debt break-even analysis (badge, accelerate modal, plan table columns)
 │   ├── test_interest_income.py # Interest income engine, compounding, accounts UI badge, Reports/Forecast integration
 │   ├── test_health.py          # Financial Health Dashboard (all six metric cards)
+│   ├── test_health_credit_factors.py # #337 "What affects your credit?" explainer (statuses, link, no score/gauge)
 │   ├── test_income.py          # Income sources, add + inline-edit negative-amount rejection
 │   ├── test_expenses.py        # Expense tracking (add/edit/delete, validation)
 │   ├── test_bills.py           # Bill data model, sanitization, calculation integration

@@ -7482,6 +7482,28 @@ body.dark-mode .health-card-util-toggle { color: #60a5fa; }
 .health-card-util-nolimit {
     font-size: 0.72rem; color: var(--text-secondary); font-style: italic;
 }
+/* #337: "What affects your credit?" explainer (education only, no score) */
+.health-credit-factors {
+    border-top: 1px solid var(--border-color); margin-top: 0.6rem; padding-top: 0.5rem;
+    font-size: 0.77rem;
+}
+.health-credit-factors-summary {
+    cursor: pointer; color: var(--primary-color); font-size: 0.78rem; padding: 0.25rem 0;
+}
+.health-credit-factors-summary:hover { text-decoration: underline; }
+body.dark-mode .health-credit-factors-summary { color: #60a5fa; }
+.health-credit-factors-intro { margin: 0.4rem 0; color: var(--text-secondary); }
+.health-credit-factors-list { list-style: none; margin: 0 0 0.5rem; padding: 0; }
+.health-credit-factor {
+    display: flex; flex-direction: column; gap: 0.1rem;
+    padding: 0.4rem 0; border-bottom: 1px solid var(--border-color); min-width: 0;
+}
+.health-credit-factor:last-child { border-bottom: none; }
+.health-credit-factor-title { font-weight: 600; }
+.health-credit-factor-desc { color: var(--text-secondary); overflow-wrap: anywhere; }
+.health-credit-factor-status { font-style: italic; overflow-wrap: anywhere; }
+.health-credit-report-link { display: inline-block; overflow-wrap: anywhere; }
+.health-credit-factors-disclaimer { margin: 0.4rem 0 0; font-size: 0.7rem; color: var(--text-secondary); }
 .health-surplus-tx-group-label--spaced { margin-top: 0.5rem; }
 .health-surplus-tx-row {
     display: grid; grid-template-columns: 1fr auto auto;

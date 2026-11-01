@@ -107,6 +107,7 @@ The app's default landing page — six at-a-glance metric cards:
 | **Emergency Fund Runway** | Months of expenses covered per fund; Critical → Excellent badge |
 | **Debt Payoff Timeline** | Years to debt-free at minimum payments (avalanche); % progress bar |
 | **Monthly Cash Flow** | Income minus all outflows; Surplus / Break Even / Deficit badge with breakdown |
+| **Credit Utilization** | Card balances ÷ credit limits, per person and per card; an expandable **"What affects your credit?"** explainer covers the five common credit factors, with a status line where the app has data and a link to AnnualCreditReport.com — education only, never a score |
 | **Budget Allocation** | Bill + expense categories as % of income with colour-coded bars; debt payments row included |
 
 Internal links on each card navigate directly to the relevant page (Savings, Liabilities, Plan).
@@ -154,7 +155,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ---
 
 ### Recurring Transaction Templates
-- **Three types** — Subscription (outflow), Reimbursement (inflow), Transfer (debit one account, credit another)
+- **Three types** — Subscription (outflow), Reimbursement (inflow), Transfer (debit one account, credit another; both Ledger legs are marked ⇄, like one-off transfers)
 - **Flexible frequency** — Weekly, bi-weekly, monthly, quarterly, yearly
 - **Start and end dates** — constrain to a specific date range
 - **Pause & skip controls** — temporarily pause a template or skip individual months without deleting

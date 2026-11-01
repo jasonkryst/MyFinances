@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { computeRecurringCashFlowForMonth } from './recurring.js';
@@ -150,6 +150,58 @@ function renderCardUtilBreakdownHtml(cardRows) {
                     ` : `<div class="health-card-util-detail-line">${formatCurrency(c.balance)} balance</div>`}
                 </div>`).join('')}
         </div>`;
+}
+
+// #337: "What affects your credit?" explainer at the foot of the Credit
+// Utilization card. Education only -- the app has no bureau data, so it never
+// shows a score, a score-like gauge, or a point estimate. Statuses are drawn
+// only from data the app already has: aggregate utilization, the oldest
+// debtStartDate, and the revolving/installment split of interest-bearing debts
+// (a card with a credit limit counts as revolving, any other non-fixed-amount
+// debt as installment). Payment history and new credit stay generic.
+function renderCreditFactorsHtml({ hasUtilData, rawUtilPct, debts }) {
+    const interestBearing = (debts || []).filter(d => !d.archived && d.debtType !== 'fixedAmount');
+    const revolving = interestBearing.filter(d => d.creditLimit != null && d.creditLimit > 0).length;
+    const installment = interestBearing.length - revolving;
+    const startDates = interestBearing
+        .map(d => d.debtStartDate)
+        .filter(s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s))
+        .sort();
+
+    const utilStatus = !hasUtilData ? t('health.creditUtilStatusNone')
+        : rawUtilPct > 30 ? t('health.creditUtilStatusHigh', { pct: rawUtilPct })
+        : t('health.creditUtilStatusOk', { pct: rawUtilPct });
+    const ageStatus = startDates.length > 0
+        ? t('health.creditAgeStatus', { date: escapeHtml(formatMonthYear(startDates[0])) })
+        : t('health.creditAgeStatusNone');
+    const mixStatus = interestBearing.length > 0
+        ? t('health.creditMixStatus', { revolving, installment })
+        : t('health.creditMixStatusNone');
+
+    const factors = [
+        { key: 'util', title: 'creditFactorUtilTitle', desc: 'creditFactorUtilDesc', status: utilStatus },
+        { key: 'payment', title: 'creditFactorPaymentTitle', desc: 'creditFactorPaymentDesc', status: t('health.creditPaymentStatus') },
+        { key: 'age', title: 'creditFactorAgeTitle', desc: 'creditFactorAgeDesc', status: ageStatus },
+        { key: 'mix', title: 'creditFactorMixTitle', desc: 'creditFactorMixDesc', status: mixStatus },
+        { key: 'new', title: 'creditFactorNewTitle', desc: 'creditFactorNewDesc', status: t('health.creditNewStatus') }
+    ];
+    return `
+        <details class="health-credit-factors" id="healthCreditFactors">
+            <summary class="health-credit-factors-summary">${t('health.creditFactorsSummary')}</summary>
+            <div class="health-credit-factors-body">
+                <p class="health-credit-factors-intro">${t('health.creditFactorsIntro')}</p>
+                <ul class="health-credit-factors-list">
+                    ${factors.map(f => `
+                        <li class="health-credit-factor" data-credit-factor="${f.key}">
+                            <span class="health-credit-factor-title">${t('health.' + f.title)}</span>
+                            <span class="health-credit-factor-desc">${t('health.' + f.desc)}</span>
+                            <span class="health-credit-factor-status">${f.status}</span>
+                        </li>`).join('')}
+                </ul>
+                <a class="health-link health-credit-report-link" id="healthCreditReportLink" href="https://www.annualcreditreport.com" target="_blank" rel="noopener noreferrer">${t('health.creditReportLink')} <span class="sr-only">${t('health.creditReportLinkNewTab')}</span></a>
+                <p class="health-credit-factors-disclaimer">${t('health.creditFactorsDisclaimer')}</p>
+            </div>
+        </details>`;
 }
 
 function surplusStatus(surplus) {
@@ -1330,6 +1382,7 @@ export function renderHealthDashboard(app) {
                     </div>
                     <a href="#" class="health-link" data-health-nav="liabilities">Set a credit limit &rarr;</a>
                     ${renderCardUtilBreakdownHtml(cardRows)}
+                    ${renderCreditFactorsHtml({ hasUtilData, rawUtilPct, debts: activeDebts })}
                 ` : `
                     <div class="health-timeline-hero">
                         <span class="health-timeline-value">${rawUtilPct}${rawUtilPct >= 100 ? '<span class="health-timeline-unit"> ⚠</span>' : ''}</span>
@@ -1364,6 +1417,7 @@ export function renderHealthDashboard(app) {
                     ` : ''}
                     ${renderCardUtilBreakdownHtml(cardRows)}
                     <a href="#" class="health-link" data-health-nav="liabilities">Manage debts &rarr;</a>
+                    ${renderCreditFactorsHtml({ hasUtilData, rawUtilPct, debts: activeDebts })}
                 `}
             </div>
 
@@ -1544,7 +1598,7 @@ export function renderHealthDashboard(app) {
 
     section.querySelectorAll('[data-card-nav]').forEach(card => {
         card.addEventListener('click', e => {
-            if (e.target.closest('a, button, input, select')) return;
+            if (e.target.closest('a, button, input, select, details')) return;
             app.switchPage(card.dataset.cardNav);
         });
     });

@@ -1015,6 +1015,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.58.0 — 2026-11-01',
+        items: [
+            '<strong>"What affects your credit?"</strong> (issue #337): open this section on the Health page\'s Credit Utilization card for a short guide to the five common credit factors. Where the app has your data it adds a note, such as how your utilization compares with 30%. It also links to AnnualCreditReport.com for your free reports. It never shows a credit score.',
+            '<strong>Recurring transfers are marked ⇄ in the Ledger</strong> (issue #399), just like one-off transfers, so both kinds are easy to spot.'
+        ]
+    },
+    {
         version: '6.57.0 — 2026-11-01',
         items: [
             '<strong>"Mark as paid" now updates your Ledger</strong> (issue #434): marking a recurring item paid marks the matching Ledger transaction Cleared. If you enter a different amount, that becomes the Ledger amount, so your balances, reports and forecast use what you actually paid.',
