@@ -266,6 +266,24 @@ pytest tests/security/ -v
 - ✓ No console errors
 - ✓ JSON format validation
 
+## Repository & CI Governance
+
+`main` is protected by two GitHub rulesets (issue #380, aligned with the BookWheel baseline):
+
+| Ruleset | Enforces | Bypass |
+|---|---|---|
+| **Protect Default Branch - Force Push** | No force-pushes, no deletion of `main` | None, not even admins |
+| **Protect Default Branch - Bypass** | Every change arrives through a pull request; required checks must pass on an up-to-date branch; CodeQL and Trivy code-scanning block new alerts of **high** or above; stale reviews are dismissed on push | Admin, **pull-request only**: an override is possible but is recorded on the PR, and direct pushes are rejected |
+
+- **Required checks:**
+  - `ci-complete`: one job in `ci.yml` that waits on every CI job and fails if any failed or was cancelled. `tests/features/test_ci_shard_coverage.py` fails CI if a job is missing from it.
+  - `Analyze JavaScript` (CodeQL).
+  - `trivy`: blocks fixable CRITICAL/HIGH image vulnerabilities and hardcoded secrets.
+  - `dependency-review`.
+- **Approvals:** the required count is 0. There is one maintainer, and GitHub doesn't allow approving your own PR. The owner reviews each PR before merging.
+- **Never use the override to merge a red PR.** Fix the failure or don't merge.
+- **Secret scanning and push protection** are enabled. Dependabot alerts and security updates are on.
+
 ## Vulnerability Reporting
 
 If you discover a security vulnerability:

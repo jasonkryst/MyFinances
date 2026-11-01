@@ -824,3 +824,53 @@ jobs:
       - name: Stop app container
         if: always()
         run: docker compose down
+
+  # ---------------------------------------------------------------------------
+  # Single required status check (issue #380). The main ruleset requires this
+  # job (plus CodeQL/Trivy/dependency-review, which live in other workflows)
+  # instead of listing every job by name, so a new job can't silently go
+  # ungated -- add it to `needs` below. tests/features/test_ci_shard_coverage.py
+  # fails CI if any job in this file is missing from `needs`.
+  # `if: always()` makes it run and report even when a dependency fails; a
+  # skipped dependency counts as success. mutation-testing is deliberately
+  # excluded: it only runs after merge to main, so it can't gate a PR.
+  # ---------------------------------------------------------------------------
+  ci-complete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - test-features-a
+      - test-features-b
+      - test-features-c
+      - test-features-d
+      - test-features-e
+      - test-features-f
+      - test-features-g
+      - test-features-h
+      - test-features-i
+      - test-features-j
+      - test-features-k
+      - test-integration
+      - test-ui-a
+      - test-ui-b
+      - test-ui-c
+      - test-ui-d
+      - test-security
+      - test-postgres
+      - test-a11y
+      - test-server
+      - test-unit
+      - docker-build
+      - lighthouse
+    steps:
+      - name: Fail if any CI job failed or was cancelled
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | grep -E '"result"' || true
+          if echo "$RESULTS" | grep -Eq '"result": *"(failure|cancelled)"'; then
+            echo "::error::One or more CI jobs failed or were cancelled -- see the list above."
+            exit 1
+          fi
+          echo "All CI jobs passed or were skipped."

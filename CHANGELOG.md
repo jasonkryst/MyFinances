@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.59.1] — 2026-11-01
+
+### Security
+- **Pipeline security baseline** (issue #380, aligned with BookWheel #257).
+  - **`ci-complete` job:** `ci.yml` gains one job that waits on every other CI job and fails if any failed or was cancelled. The `main` ruleset now requires this one check instead of listing every job by name. That list had drifted: `test-features-h/i/j/k`, `test-ui-c/d` and `test-server` ran but were never required, and `mutation-testing` was "required" but never runs on PRs.
+  - **Drift guard:** `tests/features/test_ci_shard_coverage.py` now fails CI if a job is missing from `ci-complete`'s `needs`. It also fails if a `needs` entry names a job that doesn't exist, if `if: always()` is dropped, or if an exempt job starts running on PRs.
+- **Fixed CodeQL alert #172** (`js/xss-through-dom`, high). When the target payoff date summary was unavailable, the Plan page's result fell back to the raw `#targetPayoffDate` input text inside `innerHTML`. It now formats the parsed date and escapes it. Guarded by `tests/security/test_target_payoff_xss.py`.
+- **Documentation:** the branch-protection and merge rules are now in `SECURITY.md`, `AGENTS.md` and `CLAUDE.md`: never merge a red PR with the override, and never push to `main` directly.
+
 ## [6.59.0] — 2026-11-01
 
 ### Added

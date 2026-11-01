@@ -55,3 +55,13 @@ python -m http.server 32900
 # Terminal 2 — run tests
 pytest tests/ -v
 ```
+
+## Branches, pull requests and merging (issue #380)
+
+`main` is protected by rulesets; see [SECURITY.md](SECURITY.md#repository--ci-governance).
+
+- **Never push to `main` directly.** Work on a branch and open a pull request; direct pushes are rejected.
+- **CI runs only on PRs** (and pushes to `main`). Open a **draft** PR to get CI, then mark it ready once it is green.
+- **Never use the branch-protection override to merge a PR with a failing or missing required check.** Fix it, or leave it unmerged and report it. Commits land under the owner's identity, so this rule binds agents too.
+- **Adding a job to `.github/workflows/ci.yml`?** Add it to `ci-complete`'s `needs:` list as well, or `tests/features/test_ci_shard_coverage.py` fails. The ruleset requires only `ci-complete`, so an unlisted job could fail without blocking a merge.
+- The owner reviews and merges PRs; agents do not merge.
