@@ -72,7 +72,9 @@ def test_expense_written_to_localstorage_immediately(app_page):
 def test_expense_survives_page_reload(app_page):
     """An expense added via the UI is still present after a full page reload (issue #93)."""
     page = app_page
-    _add_expense_via_ui(page, name="Utilities", amount="120.00", date="2026-10-01")
+    # Current month: the Expenses list only shows the month at _expenseMonthOffset 0,
+    # so a hardcoded past date silently drops out of view once the calendar rolls over.
+    _add_expense_via_ui(page, name="Utilities", amount="120.00", date=_this_month(1))
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
