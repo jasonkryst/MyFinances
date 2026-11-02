@@ -6,6 +6,7 @@
 // summing to 1.0 (sanitized by sanitizeOwnershipSplit in sanitizers.js).
 // Income is deliberately NOT split: each income has at most one personId.
 import { escapeHtml } from './utils.js';
+import { t } from './i18n.js';
 import { sanitizeOwnershipSplit } from './sanitizers.js';
 
 // ---- Pure share math ----------------------------------------------------
@@ -99,20 +100,20 @@ function controlInnerHtml(rootId, persons, ids, split) {
     else equalPercents(ids.length).forEach((p, i) => { pcts[ids[i]] = String(p); });
     const rows = ids.map(id => {
         const p = (persons || []).find(x => x.id === id);
-        const name = p ? p.name : 'Unknown person';
+        const name = p ? p.name : t('ownership.unknownPerson');
         return `<div class="ownership-row">
                 <label for="${rootId}-pct-${id}" class="ownership-row-label">${escapeHtml(name)}</label>
-                <input type="number" id="${rootId}-pct-${id}" class="ownership-pct-input" min="0" max="100" step="0.01" value="${pcts[id]}" data-ownership-pct data-person-id="${id}" aria-label="Ownership percent for ${escapeHtml(name)}">
+                <input type="number" id="${rootId}-pct-${id}" class="ownership-pct-input" min="0" max="100" step="0.01" value="${pcts[id]}" data-ownership-pct data-person-id="${id}" aria-label="${escapeHtml(t('ownership.percentAria', { name }))}">
                 <span aria-hidden="true">%</span>
             </div>`;
     }).join('');
     return `<fieldset class="ownership-fieldset">
-            <legend>Ownership</legend>
-            <label class="ownership-mode"><input type="radio" name="${rootId}-mode" value="equal" data-ownership-mode${custom ? '' : ' checked'}> Shared equally</label>
-            <label class="ownership-mode"><input type="radio" name="${rootId}-mode" value="custom" data-ownership-mode${custom ? ' checked' : ''}> Custom split</label>
+            <legend>${escapeHtml(t('ownership.legend'))}</legend>
+            <label class="ownership-mode"><input type="radio" name="${rootId}-mode" value="equal" data-ownership-mode${custom ? '' : ' checked'}> ${escapeHtml(t('ownership.equal'))}</label>
+            <label class="ownership-mode"><input type="radio" name="${rootId}-mode" value="custom" data-ownership-mode${custom ? ' checked' : ''}> ${escapeHtml(t('ownership.custom'))}</label>
             <div class="ownership-custom${custom ? '' : ' hidden'}" data-ownership-custom>
                 ${rows}
-                <div class="ownership-total" role="status" aria-live="polite">Total: <span data-ownership-total>100</span>%</div>
+                <div class="ownership-total" role="status" aria-live="polite">${escapeHtml(t('ownership.totalLabel'))} <span data-ownership-total>100</span>%</div>
             </div>
         </fieldset>`;
 }

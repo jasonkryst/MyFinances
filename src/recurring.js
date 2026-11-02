@@ -16,25 +16,33 @@ import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
+import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getRecurringMonthPaidStatus, buildRecurringPaidBadge, reconcileRecurringPaidState } from './recurringPaid.js';
 
 const TYPES = ['subscription', 'income', 'reimbursement', 'transfer'];
-const TYPE_LABELS = {
-    subscription: 'Subscription / Expense',
-    income: 'Income',
-    reimbursement: 'Reimbursement',
-    transfer: 'Transfer'
+// Stored values stay English ('subscription', 'monthly', ...); labels are looked up at render time.
+const TYPE_LABEL_KEYS = {
+    subscription: 'recurring.typeSubscription',
+    income: 'recurring.typeIncome',
+    reimbursement: 'recurring.typeReimbursement',
+    transfer: 'recurring.typeTransfer'
 };
+function typeLabel(type) {
+    return TYPE_LABEL_KEYS[type] ? tr(TYPE_LABEL_KEYS[type]) : String(type ?? '');
+}
 const TYPE_ICONS = { subscription: '📦', income: '💰', reimbursement: '💸', transfer: '🔄' };
 
 const FREQUENCIES = ['weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'];
-const FREQ_LABELS = {
-    weekly: 'Weekly',
-    biweekly: 'Every 2 weeks',
-    monthly: 'Monthly',
-    quarterly: 'Quarterly',
-    yearly: 'Yearly'
+const FREQ_LABEL_KEYS = {
+    weekly: 'recurring.freqWeekly',
+    biweekly: 'recurring.freqBiweekly',
+    monthly: 'recurring.freqMonthly',
+    quarterly: 'recurring.freqQuarterly',
+    yearly: 'recurring.freqYearly'
 };
+function freqLabel(freq) {
+    return FREQ_LABEL_KEYS[freq] ? tr(FREQ_LABEL_KEYS[freq]) : String(freq ?? '');
+}
 
 const CATEGORIES = [
     'Subscription', 'Insurance', 'Rent / Mortgage', 'Utilities', 'Transport',
@@ -167,11 +175,11 @@ function getUrgencyBadge(occurrences, now) {
 
     const daysUntil = daysBetweenCalendarDates(now, upcoming);
     if (daysUntil < 3) {
-        const label = daysUntil <= 0 ? 'Due today' : `Due in ${daysUntil}d`;
-        return `<span class="recurring-urgency-badge recurring-urgency-badge--red" role="status">${label}</span>`;
+        const label = daysUntil <= 0 ? tr('recurring.dueToday') : tr('recurring.dueInDays', { days: daysUntil });
+        return `<span class="recurring-urgency-badge recurring-urgency-badge--red" role="status">${escapeHtml(label)}</span>`;
     }
     if (daysUntil < 7) {
-        return `<span class="recurring-urgency-badge recurring-urgency-badge--yellow" role="status">Due in ${daysUntil}d</span>`;
+        return `<span class="recurring-urgency-badge recurring-urgency-badge--yellow" role="status">${escapeHtml(tr('recurring.dueInDays', { days: daysUntil }))}</span>`;
     }
     return '';
 }
@@ -190,7 +198,7 @@ function renderUpcomingThisMonthPanel(app) {
     const active = (app.recurringTemplates || []).filter(t => !isEffectivelyPaused(t, now) && !t.archived);
 
     if (active.length === 0) {
-        panel.innerHTML = `<div class="recurring-upcoming-panel recurring-upcoming-panel--empty" role="region" aria-label="Upcoming this month"><span class="recurring-upcoming-empty">No active recurring items this month.</span></div>`;
+        panel.innerHTML = `<div class="recurring-upcoming-panel recurring-upcoming-panel--empty" role="region" aria-label="${escapeHtml(tr('recurring.upcomingTitle'))}"><span class="recurring-upcoming-empty">${escapeHtml(tr('recurring.upcomingEmpty'))}</span></div>`;
         return;
     }
 
@@ -214,26 +222,26 @@ function renderUpcomingThisMonthPanel(app) {
     if (overdueCount === 0) app._recurringOverdueOnly = false;
     const overdueOnly = !!app._recurringOverdueOnly;
     const overdueHtml = overdueCount > 0
-        ? `<button type="button" class="recurring-upcoming-stat recurring-upcoming-stat--overdue recurring-overdue-filter-btn${overdueOnly ? ' active' : ''}" id="recurringOverdueFilterBtn" aria-pressed="${overdueOnly ? 'true' : 'false'}" aria-label="Overdue: ${overdueCount}. ${overdueOnly ? 'Showing only overdue templates, click to show all' : 'Click to show only overdue templates'}" title="Overdue: the due day has passed this month and the template is not marked paid or skipped."><span class="recurring-upcoming-label">Overdue</span><span class="recurring-upcoming-value recurring-upcoming-value--overdue">${overdueCount}</span></button>`
+        ? `<button type="button" class="recurring-upcoming-stat recurring-upcoming-stat--overdue recurring-overdue-filter-btn${overdueOnly ? ' active' : ''}" id="recurringOverdueFilterBtn" aria-pressed="${overdueOnly ? 'true' : 'false'}" aria-label="${escapeHtml(tr(overdueOnly ? 'recurring.overdueAriaOn' : 'recurring.overdueAriaOff', { count: overdueCount }))}" title="${escapeHtml(tr('recurring.overdueTitle'))}"><span class="recurring-upcoming-label">${escapeHtml(tr('recurring.overdue'))}</span><span class="recurring-upcoming-value recurring-upcoming-value--overdue">${overdueCount}</span></button>`
         : '';
     const overdueHelpHtml = overdueCount > 0
-        ? `<p class="recurring-overdue-help" id="recurringOverdueHelp">${overdueOnly ? 'Showing only overdue templates. ' : ''}Overdue means the due day has passed this month and the template isn't marked paid or skipped. ${overdueOnly ? 'Select Overdue again to show everything.' : 'Select Overdue to list just those templates.'}</p>`
+        ? `<p class="recurring-overdue-help" id="recurringOverdueHelp">${escapeHtml(tr(overdueOnly ? 'recurring.overdueHelpOn' : 'recurring.overdueHelpOff'))}</p>`
         : '';
 
     panel.innerHTML = `
-        <div class="recurring-upcoming-panel" role="region" aria-label="Upcoming this month">
-            <h3 class="recurring-upcoming-title">Upcoming this month</h3>
+        <div class="recurring-upcoming-panel" role="region" aria-label="${escapeHtml(tr('recurring.upcomingTitle'))}">
+            <h3 class="recurring-upcoming-title">${escapeHtml(tr('recurring.upcomingTitle'))}</h3>
             <div class="recurring-upcoming-stats">
                 <div class="recurring-upcoming-stat">
-                    <span class="recurring-upcoming-label">Occurrences</span>
+                    <span class="recurring-upcoming-label">${escapeHtml(tr('recurring.occurrences'))}</span>
                     <span class="recurring-upcoming-value">${totalCount}</span>
                 </div>
                 <div class="recurring-upcoming-stat">
-                    <span class="recurring-upcoming-label">Total</span>
+                    <span class="recurring-upcoming-label">${escapeHtml(tr('recurring.total'))}</span>
                     <span class="recurring-upcoming-value">${formatCurrency(totalAmount)}</span>
                 </div>
                 <div class="recurring-upcoming-stat">
-                    <span class="recurring-upcoming-label">Paid</span>
+                    <span class="recurring-upcoming-label">${escapeHtml(tr('recurring.paid'))}</span>
                     <span class="recurring-upcoming-value">${paidCount}</span>
                 </div>
                 ${overdueHtml}
@@ -297,11 +305,11 @@ export function renderRecurringPage(app) {
     const visible = showArchived ? allTemplates : active;
 
     if (allTemplates.length === 0) {
-        container.innerHTML = `<p class="recurring-empty-msg">No recurring templates yet. Add your first subscription, income, reimbursement, or transfer above.</p>`;
+        container.innerHTML = `<p class="recurring-empty-msg">${escapeHtml(tr('recurring.emptyMsg'))}</p>`;
         return;
     }
     if (active.length === 0 && !showArchived) {
-        container.innerHTML = `<p class="recurring-empty-msg">All recurring templates are archived. Enable "Show archived recurring templates" in Settings to see them.</p>`;
+        container.innerHTML = `<p class="recurring-empty-msg">${escapeHtml(tr('recurring.allArchived'))}</p>`;
         return;
     }
 
@@ -314,11 +322,11 @@ export function renderRecurringPage(app) {
     const catFilter = document.getElementById('recurringCategoryFilter');
     if (catFilter) {
         const prevCat = catFilter.value;
-        catFilter.innerHTML = '<option value="">All</option>';
+        catFilter.innerHTML = `<option value="">${escapeHtml(tr('filters.all'))}</option>`;
         const cats = Array.from(new Set(allTemplates.map(t => t.category).filter(Boolean))).sort();
         cats.forEach(c => {
             const o = document.createElement('option');
-            o.value = c; o.textContent = c;
+            o.value = c; o.textContent = categoryLabel(c);
             catFilter.appendChild(o);
         });
         if (cats.includes(prevCat)) catFilter.value = prevCat;
@@ -328,7 +336,7 @@ export function renderRecurringPage(app) {
     const acctFilter = document.getElementById('recurringAccountFilter');
     if (acctFilter) {
         const prevAcct = acctFilter.value;
-        acctFilter.innerHTML = '<option value="">All</option>';
+        acctFilter.innerHTML = `<option value="">${escapeHtml(tr('filters.all'))}</option>`;
         const acctIds = Array.from(new Set(allTemplates.flatMap(t => [t.accountId, t.targetAccountId].filter(Boolean))));
         acctIds.forEach(id => {
             const a = app.accounts?.find(a => a.id === id);
@@ -344,11 +352,11 @@ export function renderRecurringPage(app) {
     const monthFilterEl = document.getElementById('recurringMonthFilter');
     if (monthFilterEl) {
         const prevMonth = monthFilterEl.value;
-        monthFilterEl.innerHTML = '<option value="">Any</option>';
+        monthFilterEl.innerHTML = `<option value="">${escapeHtml(tr('filters.any'))}</option>`;
         for (let d = 0; d < 12; d++) {
             const ref = new Date(year, month + d, 1);
             const ky = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`;
-            const label = ref.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            const label = ref.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
             const o = document.createElement('option');
             o.value = ky; o.textContent = label;
             monthFilterEl.appendChild(o);
@@ -400,7 +408,7 @@ export function renderRecurringPage(app) {
     }).join('');
 
     const archivedNote = (archived.length > 0 && !showArchived)
-        ? `<p class="recurring-archived-note">${archived.length} archived template${archived.length !== 1 ? 's' : ''} hidden — enable "Show archived recurring templates" in Settings to view them.</p>`
+        ? `<p class="recurring-archived-note">${escapeHtml(plural('recurring.archivedNote', archived.length))}</p>`
         : '';
 
     container.innerHTML = cards + archivedNote;
@@ -416,8 +424,8 @@ export function renderRecurringPage(app) {
         if (action === 'edit') app.startEditRecurring(id);
         else if (action === 'save') app.saveEditRecurring(id);
         else if (action === 'delete') {
-            const name = app.recurringTemplates?.find(x => x.id === id)?.name || 'template';
-            if (await showDeleteConfirmModal(`Delete "${name}"? This cannot be undone.`)) {
+            const name = app.recurringTemplates?.find(x => x.id === id)?.name || tr('recurring.templateFallback');
+            if (await showDeleteConfirmModal(tr('recurring.deleteConfirm', { name }))) {
                 app.deleteRecurringTemplate(id);
             }
         }
@@ -433,9 +441,9 @@ export function renderRecurringPage(app) {
 }
 
 function _buildReadCard(app, t, year, month, monthKey) {
-    const typeLabel = TYPE_LABELS[t.type] || t.type;
+    const typeText = TYPE_LABEL_KEYS[t.type] ? typeLabel(t.type) : t.type;
     const typeIcon = TYPE_ICONS[t.type] || '📋';
-    const freqLabel = FREQ_LABELS[t.frequency] || t.frequency;
+    const freqText = FREQ_LABEL_KEYS[t.frequency] ? freqLabel(t.frequency) : t.frequency;
 
     // Reimbursements show as positive; everything else as negative
     const sign = isRecurringInflow(t) ? '+' : '-';
@@ -458,21 +466,21 @@ function _buildReadCard(app, t, year, month, monthKey) {
     let statusBadge;
     if (paused) {
         const resumeNote = t.pauseUntil
-            ? ` <span class="recurring-pause-resume-note">until ${escapeHtml(formatShortDate(t.pauseUntil))}</span>`
+            ? ` <span class="recurring-pause-resume-note">${escapeHtml(tr('recurring.pausedUntil', { date: formatShortDate(t.pauseUntil) }))}</span>`
             : '';
-        statusBadge = `<span class="recurring-badge recurring-badge--paused">⏸ Paused${resumeNote}</span>`;
+        statusBadge = `<span class="recurring-badge recurring-badge--paused">⏸ ${escapeHtml(tr('recurring.paused'))}${resumeNote}</span>`;
     } else if (isSkippedThisMonth) {
-        statusBadge = `<span class="recurring-badge recurring-badge--skipped">⏭ Skipped this month</span>`;
+        statusBadge = `<span class="recurring-badge recurring-badge--skipped">⏭ ${escapeHtml(tr('recurring.skippedThisMonth'))}</span>`;
     } else if (occurrences.length > 0 && paidBadge) {
         statusBadge = paidBadge;
     } else if (occurrences.length > 0) {
-        statusBadge = `<span class="recurring-badge recurring-badge--active">✅ Active</span>`;
+        statusBadge = `<span class="recurring-badge recurring-badge--active">✅ ${escapeHtml(tr('recurring.active'))}</span>`;
     } else {
-        statusBadge = `<span class="recurring-badge recurring-badge--pending">⏳ No hits this month</span>`;
+        statusBadge = `<span class="recurring-badge recurring-badge--pending">⏳ ${escapeHtml(tr('recurring.noHits'))}</span>`;
     }
 
     const nextDates = occurrences.slice(0, 2)
-        .map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+        .map(d => d.toLocaleDateString(getIntlLocale(), { month: 'short', day: 'numeric' }))
         .join(', ');
 
     const srcAccount = app.accounts?.find(a => a.id === t.accountId);
@@ -484,15 +492,15 @@ function _buildReadCard(app, t, year, month, monthKey) {
         : '—';
 
     const thisMonthLine = (occurrences.length > 0 && !paused && !isSkippedThisMonth)
-        ? `<span class="recurring-this-month">This month: <strong>${sign}${formatCurrency(thisMonthTotal)}</strong> (${occurrences.length}×${nextDates ? ' on ' + nextDates : ''})</span>`
+        ? `<span class="recurring-this-month">${escapeHtml(tr('recurring.thisMonth', { total: `${sign}${formatCurrency(thisMonthTotal)}`, count: occurrences.length, on: nextDates ? ' ' + tr('recurring.onDates', { dates: nextDates }) : '' }))}</span>`
         : '';
 
     const archivedBadge = t.archived
-        ? `<span class="recurring-badge recurring-badge--archived">📦 Archived</span>`
+        ? `<span class="recurring-badge recurring-badge--archived">📦 ${escapeHtml(tr('recurring.archived'))}</span>`
         : '';
 
     const overdueBadge = isOverdue(t, now)
-        ? `<span class="recurring-overdue-badge" role="status" aria-label="Overdue">Overdue</span>`
+        ? `<span class="recurring-overdue-badge" role="status" aria-label="${escapeHtml(tr('recurring.overdue'))}">${escapeHtml(tr('recurring.overdue'))}</span>`
         : '';
     const urgencyBadge = (!paused && !t.archived && !isSkippedThisMonth && !isPaidThisMonth && !isOverdue(t, now))
         ? getUrgencyBadge(occurrences, now)
@@ -503,18 +511,18 @@ function _buildReadCard(app, t, year, month, monthKey) {
             <span class="recurring-type-icon">${typeIcon}</span>
             <div class="recurring-card-info">
                 <span class="recurring-card-name">${escapeHtml(t.name)}</span>
-                <span class="recurring-type-label">${escapeHtml(typeLabel)}</span>
+                <span class="recurring-type-label">${escapeHtml(typeText)}</span>
             </div>
             <div class="recurring-card-right">
                 <span class="recurring-amount ${amountClass}">${sign}${formatCurrency(t.amount)}</span>
-                <span class="recurring-freq-badge">${escapeHtml(freqLabel)}</span>
+                <span class="recurring-freq-badge">${escapeHtml(freqText)}</span>
             </div>
         </div>
         <div class="recurring-card-meta">
             <span class="recurring-meta-item">🏦 ${accountLine}</span>
-            <span class="recurring-meta-item">🏷 ${escapeHtml(t.category || 'Other')}</span>
-            ${t.startDate ? `<span class="recurring-meta-item">📅 Since ${escapeHtml(t.startDate)}</span>` : ''}
-            ${t.endDate ? `<span class="recurring-meta-item">🔚 Until ${escapeHtml(t.endDate)}</span>` : ''}
+            <span class="recurring-meta-item">🏷 ${escapeHtml(categoryLabel(t.category || 'Other'))}</span>
+            ${t.startDate ? `<span class="recurring-meta-item">📅 ${escapeHtml(tr('recurring.since', { date: t.startDate }))}</span>` : ''}
+            ${t.endDate ? `<span class="recurring-meta-item">🔚 ${escapeHtml(tr('recurring.until', { date: t.endDate }))}</span>` : ''}
         </div>
         <div class="recurring-card-status">
             ${archivedBadge}
@@ -525,91 +533,91 @@ function _buildReadCard(app, t, year, month, monthKey) {
         </div>
         <div class="recurring-card-actions">
             ${t.archived
-                ? `<button class="btn btn-secondary btn-small" data-recurring-action="unarchive" data-recurring-id="${t.id}" aria-label="Unarchive ${escapeHtml(t.name)}">↩ Unarchive</button>
-                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}" aria-label="Delete ${escapeHtml(t.name)}">Delete</button>`
-                : `<button class="btn btn-secondary btn-small" data-recurring-action="edit" data-recurring-id="${t.id}" aria-label="Edit ${escapeHtml(t.name)}">Edit</button>
+                ? `<button class="btn btn-secondary btn-small" data-recurring-action="unarchive" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.unarchiveAria', { name: t.name }))}">↩ ${escapeHtml(tr('recurring.unarchive'))}</button>
+                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.deleteAria', { name: t.name }))}">${escapeHtml(tr('common.delete'))}</button>`
+                : `<button class="btn btn-secondary btn-small" data-recurring-action="edit" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.editAria', { name: t.name }))}">${escapeHtml(tr('common.edit'))}</button>
                    ${paused
-                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}" aria-label="Resume ${escapeHtml(t.name)}">▶ Resume</button>`
-                       : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}" aria-label="Pause ${escapeHtml(t.name)}">⏸ Pause</button>`}
+                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unpause" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.resumeAria', { name: t.name }))}">▶ ${escapeHtml(tr('recurring.resume'))}</button>`
+                       : `<button class="btn btn-secondary btn-small" data-recurring-action="pause" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.pauseAria', { name: t.name }))}">⏸ ${escapeHtml(tr('recurring.pause'))}</button>`}
                    ${(!paused && !isSkippedThisMonth && occurrences.length > 0)
                        ? (isPaidThisMonth
-                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Unmark paid ${escapeHtml(t.name)}">↩ Unmark paid</button>`
-                           : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Mark as paid ${escapeHtml(t.name)}">✅ Mark as paid</button>`)
+                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="unmark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="${escapeHtml(tr('recurring.unmarkPaidAria', { name: t.name }))}">↩ ${escapeHtml(tr('recurring.unmarkPaid'))}</button>`
+                           : `<button class="btn btn-secondary btn-small" data-recurring-action="mark-paid" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="${escapeHtml(tr('recurring.markPaidAria', { name: t.name }))}">✅ ${escapeHtml(tr('recurring.markPaid'))}</button>`)
                        : ''}
                    ${isSkippedThisMonth
-                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Unskip ${escapeHtml(t.name)}">↩ Unskip</button>`
+                       ? `<button class="btn btn-secondary btn-small" data-recurring-action="unskip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="${escapeHtml(tr('recurring.unskipAria', { name: t.name }))}">↩ ${escapeHtml(tr('recurring.unskip'))}</button>`
                        : !paused
-                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="skip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="Skip month ${escapeHtml(t.name)}">⏭ Skip month</button>`
+                           ? `<button class="btn btn-secondary btn-small" data-recurring-action="skip" data-recurring-id="${t.id}" data-recurring-monthkey="${monthKey}" aria-label="${escapeHtml(tr('recurring.skipAria', { name: t.name }))}">⏭ ${escapeHtml(tr('recurring.skip'))}</button>`
                            : ''}
-                   <button class="btn btn-secondary btn-small" data-recurring-action="archive" data-recurring-id="${t.id}" aria-label="Archive ${escapeHtml(t.name)}">Archive</button>
-                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}" aria-label="Delete ${escapeHtml(t.name)}">Delete</button>`}
+                   <button class="btn btn-secondary btn-small" data-recurring-action="archive" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.archiveAria', { name: t.name }))}">${escapeHtml(tr('recurring.archive'))}</button>
+                   <button class="btn btn-danger btn-small" data-recurring-action="delete" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.deleteAria', { name: t.name }))}">${escapeHtml(tr('common.delete'))}</button>`}
         </div>
     </div>`;
 }
 
 function _buildEditCard(app, t) {
     const accountOptions = buildAccountOptionsHtml(app.accounts, t.accountId);
-    const targetOptions = buildAccountOptionsHtml(app.accounts, t.targetAccountId, { emptyLabel: '— None —' });
+    const targetOptions = buildAccountOptionsHtml(app.accounts, t.targetAccountId, { emptyLabel: escapeHtml(tr('recurring.targetNoneShort')) });
 
     const typeOpts = TYPES.map(tp =>
-        `<option value="${tp}" ${t.type === tp ? 'selected' : ''}>${escapeHtml(TYPE_LABELS[tp])}</option>`
+        `<option value="${tp}" ${t.type === tp ? 'selected' : ''}>${escapeHtml(typeLabel(tp))}</option>`
     ).join('');
     const freqOpts = FREQUENCIES.map(f =>
-        `<option value="${f}" ${t.frequency === f ? 'selected' : ''}>${escapeHtml(FREQ_LABELS[f])}</option>`
+        `<option value="${f}" ${t.frequency === f ? 'selected' : ''}>${escapeHtml(freqLabel(f))}</option>`
     ).join('');
     const catOpts = CATEGORIES.map(c =>
-        `<option value="${c}" ${t.category === c ? 'selected' : ''}>${escapeHtml(c)}</option>`
+        `<option value="${c}" ${t.category === c ? 'selected' : ''}>${escapeHtml(categoryLabel(c))}</option>`
     ).join('');
 
     return `<div class="recurring-card recurring-card--editing">
         <div class="recurring-edit-grid">
             <div class="form-group recurring-edit-field">
-                <label>Name *</label>
+                <label>${escapeHtml(tr('recurring.nameLabel'))}</label>
                 <input type="text" id="re-name-${t.id}" value="${escapeHtml(t.name)}" maxlength="80">
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Type</label>
+                <label>${escapeHtml(tr('recurring.editType'))}</label>
                 <select id="re-type-${t.id}">${typeOpts}</select>
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Amount ($) *</label>
+                <label>${escapeHtml(tr('recurring.amountLabel'))}</label>
                 <input type="number" id="re-amount-${t.id}" value="${t.amount}" min="0" step="0.01">
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Frequency</label>
+                <label>${escapeHtml(tr('recurring.editFrequency'))}</label>
                 <select id="re-freq-${t.id}">${freqOpts}</select>
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Day of Month</label>
+                <label>${escapeHtml(tr('recurring.dayLabel'))}</label>
                 <input type="number" id="re-day-${t.id}" value="${t.dayOfMonth || ''}" min="1" max="31">
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Category</label>
+                <label>${escapeHtml(tr('recurring.categoryLabel'))}</label>
                 <input type="text" id="re-cat-${t.id}" list="categoryOptions" value="${escapeHtml(t.category || 'Other')}" autocomplete="off">
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Account</label>
+                <label>${escapeHtml(tr('recurring.editAccount'))}</label>
                 <select id="re-acct-${t.id}">
-                    <option value="">— No account —</option>
+                    <option value="">${escapeHtml(tr('accounts.noAccount'))}</option>
                     ${accountOptions}
                 </select>
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Target Account (transfers)</label>
+                <label>${escapeHtml(tr('recurring.targetLabel'))}</label>
                 <select id="re-tacct-${t.id}">${targetOptions}</select>
             </div>
             <div class="form-group recurring-edit-field">
-                <label>Start Date</label>
+                <label>${escapeHtml(tr('recurring.editStart'))}</label>
                 <input type="date" id="re-start-${t.id}" value="${t.startDate || ''}">
             </div>
             <div class="form-group recurring-edit-field">
-                <label>End Date (optional)</label>
+                <label>${escapeHtml(tr('recurring.endLabel'))}</label>
                 <input type="date" id="re-end-${t.id}" value="${t.endDate || ''}">
             </div>
         </div>
         <div class="recurring-edit-actions">
-            <button class="btn btn-primary btn-small" data-recurring-action="save" data-recurring-id="${t.id}" aria-label="Save changes to ${escapeHtml(t.name)}">Save</button>
-            <button class="btn btn-secondary btn-small" data-recurring-action="cancel" aria-label="Cancel editing ${escapeHtml(t.name)}">Cancel</button>
+            <button class="btn btn-primary btn-small" data-recurring-action="save" data-recurring-id="${t.id}" aria-label="${escapeHtml(tr('recurring.saveAria', { name: t.name }))}">${escapeHtml(tr('common.save'))}</button>
+            <button class="btn btn-secondary btn-small" data-recurring-action="cancel" aria-label="${escapeHtml(tr('recurring.cancelAria', { name: t.name }))}">${escapeHtml(tr('common.cancel'))}</button>
         </div>
     </div>`;
 }
@@ -622,12 +630,12 @@ async function validateRecurringAmount(app, rawAmount, type, name) {
     const trimmed = String(rawAmount ?? '').trim();
     const n = Number(trimmed);
     if (trimmed === '' || !Number.isFinite(n) || n < 0) {
-        await showAlertModal('Please enter a valid amount (0 or greater).');
+        await showAlertModal(tr('recurring.errAmount'));
         return false;
     }
     if (n === 0) {
         if (type === 'transfer') {
-            await showAlertModal('Transfers must have an amount greater than $0.');
+            await showAlertModal(tr('recurring.errTransferAmount'));
             return false;
         }
         return confirmZeroAmountAllowed(app, name);
@@ -648,9 +656,9 @@ export async function addRecurringTemplate(app) {
     const startDate = sanitizeDateISO(document.getElementById('recurringStartDate')?.value) || new Date().toISOString().split('T')[0];
     const endDate = sanitizeDateISO(document.getElementById('recurringEndDate')?.value) || null;
 
-    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!name) { await showAlertModal(tr('recurring.errName')); return; }
     if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
-    if (!accountId) { await showAlertModal('Please select an account.'); return; }
+    if (!accountId) { await showAlertModal(tr('recurring.errAccount')); return; }
 
     if (!app.recurringTemplates) app.recurringTemplates = [];
     const tmpl = {
@@ -707,8 +715,8 @@ export function pauseRecurringTemplate(app, id, paused, pauseUntil = null) {
  * the Mark-as-paid modal's pattern (recurringPaid.js).
  */
 export function openRecurringPauseModal(app, id) {
-    const t = app.recurringTemplates?.find(x => x.id === id);
-    if (!t) return;
+    const tmpl = app.recurringTemplates?.find(x => x.id === id);
+    if (!tmpl) return;
 
     const existing = document.getElementById('recurringPauseModal');
     if (existing) existing.remove();
@@ -721,15 +729,15 @@ export function openRecurringPauseModal(app, id) {
     modal.setAttribute('aria-labelledby', 'recurringPauseModalTitle');
     modal.setAttribute('tabindex', '-1');
     modal.innerHTML = `<div class="modal-content">
-        <h3 class="modal-subtitle" id="recurringPauseModalTitle">Pause Recurring Item</h3>
-        <p class="modal-description">Optionally pick a date to automatically resume <strong>${escapeHtml(t.name)}</strong>. Leave blank to pause indefinitely until manually resumed.</p>
+        <h3 class="modal-subtitle" id="recurringPauseModalTitle">${escapeHtml(tr('recurring.pauseTitle'))}</h3>
+        <p class="modal-description">${escapeHtml(tr('recurring.pauseDesc', { name: tmpl.name }))}</p>
         <div class="form-group">
-            <label class="label-compact" for="recurringPauseUntilInput">Resume on</label>
+            <label class="label-compact" for="recurringPauseUntilInput">${escapeHtml(tr('recurring.resumeOn'))}</label>
             <input type="date" id="recurringPauseUntilInput" class="form-control">
         </div>
         <div class="modal-actions">
-            <button class="btn btn-primary" id="recurringPauseConfirmBtn">⏸ Pause</button>
-            <button class="btn btn-secondary" id="recurringPauseCancelBtn">Cancel</button>
+            <button class="btn btn-primary" id="recurringPauseConfirmBtn">⏸ ${escapeHtml(tr('recurring.pause'))}</button>
+            <button class="btn btn-secondary" id="recurringPauseCancelBtn">${escapeHtml(tr('common.cancel'))}</button>
         </div>
     </div>`;
     document.body.appendChild(modal);
@@ -808,7 +816,7 @@ export async function saveEditRecurring(app, id) {
     const startDate = sanitizeDateISO(document.getElementById(`re-start-${id}`)?.value);
     const endDate = sanitizeDateISO(document.getElementById(`re-end-${id}`)?.value) || null;
 
-    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!name) { await showAlertModal(tr('recurring.errName')); return; }
     if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
 
     app.recurringTemplates[idx] = {
@@ -857,12 +865,12 @@ export function refreshRecurringAccountSelectors(app) {
         const current = sel.value;
         const isTarget = sel.id === 'recurringTargetAccount';
         sel.innerHTML = isTarget
-            ? `<option value="">— None (not a transfer) —</option>`
-            : `<option value="">— Select account —</option>`;
+            ? `<option value="">${escapeHtml(tr('recurring.targetNone'))}</option>`
+            : `<option value="">${escapeHtml(tr('recurring.selectAccount'))}</option>`;
         for (const acct of app.accounts || []) {
             const opt = document.createElement('option');
             opt.value = acct.id;
-            opt.textContent = `${normalizeText(acct.name, 80)} (${acct.type})`;
+            opt.textContent = `${normalizeText(acct.name, 80)} (${accountTypeLabel(acct.type)})`;
             if (String(acct.id) === String(current)) opt.selected = true;
             sel.appendChild(opt);
         }

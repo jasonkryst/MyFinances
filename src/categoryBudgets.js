@@ -10,6 +10,7 @@
 // module and sits on the ui.js import cycle - see CLAUDE.md).
 
 import { escapeHtml, formatCurrency, normalizeText, reportRangeMonthsList } from './utils.js';
+import { t, categoryLabel } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { spendingCategoryForTx, computeSpendingByCategoryRange } from './spending.js';
 import { BUDGET_CATEGORY_MAX_AMOUNT, BUDGET_CATEGORY_MAX_ENTRIES } from './sanitizers.js';
@@ -108,21 +109,21 @@ export function renderBudgetVsActualHtml(app, year, month, rangeMonths) {
 // Returns { ok: true } or { ok: false, error }.
 export function setCategoryBudget(app, rawName, mode, rawAmount) {
     const name = normalizeText(rawName, 40);
-    if (!name) return { ok: false, error: 'Enter a category name.' };
-    if (FORBIDDEN_KEYS.includes(name)) return { ok: false, error: 'That category name is not allowed.' };
-    if (mode !== 'fixed' && mode !== 'derived') return { ok: false, error: 'Choose Fixed or Derived.' };
+    if (!name) return { ok: false, error: t('catBudgets.errName') };
+    if (FORBIDDEN_KEYS.includes(name)) return { ok: false, error: t('catBudgets.errForbidden') };
+    if (mode !== 'fixed' && mode !== 'derived') return { ok: false, error: t('catBudgets.errMode') };
     let amount = 0;
     if (mode === 'fixed') {
         const text = String(rawAmount ?? '').trim();
         const n = Number(text);
-        if (text === '' || !Number.isFinite(n)) return { ok: false, error: 'Enter a budget amount (a number).' };
-        if (n < 0) return { ok: false, error: 'Budget amount cannot be negative.' };
-        if (n > BUDGET_CATEGORY_MAX_AMOUNT) return { ok: false, error: 'Budget amount is too large.' };
+        if (text === '' || !Number.isFinite(n)) return { ok: false, error: t('catBudgets.errAmount') };
+        if (n < 0) return { ok: false, error: t('catBudgets.errNegative') };
+        if (n > BUDGET_CATEGORY_MAX_AMOUNT) return { ok: false, error: t('catBudgets.errTooLarge') };
         amount = n;
     }
     const current = _configured(app);
     if (!Object.prototype.hasOwnProperty.call(current, name) && Object.keys(current).length >= BUDGET_CATEGORY_MAX_ENTRIES) {
-        return { ok: false, error: `You can configure at most ${BUDGET_CATEGORY_MAX_ENTRIES} category budgets.` };
+        return { ok: false, error: t('catBudgets.errMax', { max: BUDGET_CATEGORY_MAX_ENTRIES }) };
     }
     app.budgetCategories = { ...current, [name]: { mode, amount } };
     app.saveToStorage();
@@ -153,18 +154,19 @@ function _rowHtml(app, name, derived) {
     const entry = Object.prototype.hasOwnProperty.call(_configured(app), name) ? _configured(app)[name] : null;
     const fixed = _isFixed(entry);
     const n = escapeHtml(name);
+    const label = categoryLabel(name);
     const derivedAmt = derived.get(name) || 0;
     return `<div class="cb-row" data-category="${n}">
-        <span class="cb-name">${n}</span>
-        <select class="cb-mode select-styled" aria-label="Budget mode for ${n}">
-            <option value="derived"${fixed ? '' : ' selected'}>Derived</option>
-            <option value="fixed"${fixed ? ' selected' : ''}>Fixed</option>
+        <span class="cb-name">${escapeHtml(label)}</span>
+        <select class="cb-mode select-styled" aria-label="${escapeHtml(t('catBudgets.modeAria', { name: label }))}">
+            <option value="derived"${fixed ? '' : ' selected'}>${escapeHtml(t('catBudgets.derived'))}</option>
+            <option value="fixed"${fixed ? ' selected' : ''}>${escapeHtml(t('catBudgets.fixed'))}</option>
         </select>
-        <input type="number" class="cb-amount" step="0.01" min="0" placeholder="0.00" aria-label="Monthly budget amount for ${n}" value="${fixed ? escapeHtml(String(entry.amount)) : ''}"${fixed ? '' : ' disabled'}>
-        <span class="cb-derived">${fixed ? '' : `Derived: ${formatCurrency(derivedAmt)}/mo`}</span>
+        <input type="number" class="cb-amount" step="0.01" min="0" placeholder="0.00" aria-label="${escapeHtml(t('catBudgets.amountAria', { name: label }))}" value="${fixed ? escapeHtml(String(entry.amount)) : ''}"${fixed ? '' : ' disabled'}>
+        <span class="cb-derived">${fixed ? '' : escapeHtml(t('catBudgets.derivedAmount', { amount: formatCurrency(derivedAmt) }))}</span>
         <span class="cb-actions">
-            <button type="button" class="btn btn-small btn-success cb-save" aria-label="Save budget for ${n}">Save</button>
-            <button type="button" class="btn btn-small btn-secondary cb-reset" aria-label="Reset ${n} to derived"${entry ? '' : ' disabled'}>Reset</button>
+            <button type="button" class="btn btn-small btn-success cb-save" aria-label="${escapeHtml(t('catBudgets.saveAria', { name: label }))}">${escapeHtml(t('common.save'))}</button>
+            <button type="button" class="btn btn-small btn-secondary cb-reset" aria-label="${escapeHtml(t('catBudgets.resetAria', { name: label }))}"${entry ? '' : ' disabled'}>${escapeHtml(t('catBudgets.reset'))}</button>
         </span>
         <span class="cb-error" role="alert"></span>
     </div>`;
@@ -178,22 +180,22 @@ export function renderCategoryBudgetsPanel(app) {
     const names = getKnownBudgetCategories(app, derived);
     const rows = names.length
         ? names.map(n => _rowHtml(app, n, derived)).join('')
-        : '<p class="cb-empty">No categories yet. Add a budget below or create expenses and recurring items first.</p>';
+        : `<p class="cb-empty">${escapeHtml(t('catBudgets.empty'))}</p>`;
     container.innerHTML = `
-        <h3 class="cb-title">Category Budgets</h3>
-        <p class="cb-help">Set a fixed monthly budget per category, or leave it Derived to use this month's scheduled bills, expenses and recurring items. Budget vs. Actual appears on Reports &rarr; Variance.</p>
+        <h3 class="cb-title">${escapeHtml(t('catBudgets.title'))}</h3>
+        <p class="cb-help">${escapeHtml(t('catBudgets.help'))}</p>
         <p class="cb-status" role="status">${escapeHtml(_statusMessage)}</p>
         <div class="cb-list">${rows}</div>
         <div class="cb-add">
             <div class="form-group">
-                <label for="cbNewName">New category</label>
-                <input type="text" id="cbNewName" maxlength="40" placeholder="e.g. Housing">
+                <label for="cbNewName">${escapeHtml(t('catBudgets.newCategory'))}</label>
+                <input type="text" id="cbNewName" maxlength="40" placeholder="${escapeHtml(t('catBudgets.newCategoryPlaceholder'))}">
             </div>
             <div class="form-group">
-                <label for="cbNewAmount">Monthly budget ($)</label>
+                <label for="cbNewAmount">${escapeHtml(t('catBudgets.newAmount'))}</label>
                 <input type="number" id="cbNewAmount" step="0.01" min="0" placeholder="0.00">
             </div>
-            <button type="button" class="btn btn-success" id="cbAddBtn">Add Budget</button>
+            <button type="button" class="btn btn-success" id="cbAddBtn">${escapeHtml(t('catBudgets.addBtn'))}</button>
             <span class="cb-error" id="cbAddError" role="alert"></span>
         </div>`;
     _statusMessage = '';
@@ -211,7 +213,7 @@ export function renderCategoryBudgetsPanel(app) {
             const err = container.querySelector('#cbAddError');
             const res = setCategoryBudget(app, container.querySelector('#cbNewName').value, 'fixed', container.querySelector('#cbNewAmount').value);
             if (!res.ok) { err.textContent = res.error; return; }
-            _statusMessage = `Saved budget for ${res.name}.`;
+            _statusMessage = t('catBudgets.saved', { name: categoryLabel(res.name) });
             renderCategoryBudgetsPanel(app);
             return;
         }
@@ -221,11 +223,11 @@ export function renderCategoryBudgetsPanel(app) {
         if (e.target.closest('.cb-save')) {
             const res = setCategoryBudget(app, name, row.querySelector('.cb-mode').value, row.querySelector('.cb-amount').value);
             if (!res.ok) { row.querySelector('.cb-error').textContent = res.error; return; }
-            _statusMessage = `Saved budget for ${name}.`;
+            _statusMessage = t('catBudgets.saved', { name: categoryLabel(name) });
             renderCategoryBudgetsPanel(app);
         } else if (e.target.closest('.cb-reset')) {
             resetCategoryBudget(app, name);
-            _statusMessage = `${name} reset to derived.`;
+            _statusMessage = t('catBudgets.resetDone', { name: categoryLabel(name) });
             renderCategoryBudgetsPanel(app);
         }
     };

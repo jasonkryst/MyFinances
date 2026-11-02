@@ -1,6 +1,7 @@
 // Debt break-even analysis: badge rendering, mini chart, and the accelerate-debt modal
 import { formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
 import { computeBreakEven } from './breakEven.js';
+import { t, plural } from './i18n.js';
 
 export function renderBreakEvenBadge(app, debt, container) {
     const summaryRow = app._debtSummaryRows?.find(r => r.name === debt.name);
@@ -28,7 +29,7 @@ export function renderBreakEvenBadge(app, debt, container) {
         const s = document.createElement('div');
         s.className = 'break-even-section';
         s.dataset.revealed = 'false';
-        s.innerHTML = `<button class="btn btn-secondary btn-small break-even-show-btn" data-be-show="${debt.id}" aria-label="Show payoff estimate for ${escapeHtml(debt.name)}">Show payoff estimate</button>`;
+        s.innerHTML = `<button class="btn btn-secondary btn-small break-even-show-btn" data-be-show="${debt.id}" aria-label="${escapeHtml(t('breakEven.showAria', { name: debt.name }))}">${escapeHtml(t('breakEven.show'))}</button>`;
         container.querySelector('.debt-details').after(s);
         return;
     }
@@ -43,44 +44,44 @@ export function renderBreakEvenBadge(app, debt, container) {
 
     const toggleHTML = `
         <div class="break-even-toggle-row">
-            <select class="be-min-type" aria-label="Minimum type">
-                <option value="fixed"${minType === 'fixed' ? ' selected' : ''}>Fixed</option>
+            <select class="be-min-type" aria-label="${escapeHtml(t('breakEven.minTypeAria'))}">
+                <option value="fixed"${minType === 'fixed' ? ' selected' : ''}>${escapeHtml(t('breakEven.minTypeFixed'))}</option>
                 <option value="percent"${minType === 'percent' ? ' selected' : ''}>%</option>
             </select>
-            ${minType === 'percent' ? `<input class="be-min-pct" type="number" min="0.1" max="100" step="0.1" value="${minPct}" aria-label="Percent of balance">` : ''}
+            ${minType === 'percent' ? `<input class="be-min-pct" type="number" min="0.1" max="100" step="0.1" value="${minPct}" aria-label="${escapeHtml(t('breakEven.percentAria'))}">` : ''}
         </div>`;
 
     if (!result) {
-        s.innerHTML = `<div class="break-even-header">Payoff Analysis</div>${toggleHTML}<div class="break-even-no-plan-banner">Unable to compute — check debt settings.</div>`;
+        s.innerHTML = `<div class="break-even-header">${escapeHtml(t('breakEven.header'))}</div>${toggleHTML}<div class="break-even-no-plan-banner">${escapeHtml(t('breakEven.unable'))}</div>`;
         container.querySelector('.debt-details').after(s);
         return;
     }
 
-    const payoffMonthLabel = (n) => `${n} month${n !== 1 ? 's' : ''}`;
-    let contentHTML = `<div class="break-even-header">Payoff Analysis</div>${toggleHTML}`;
+    const payoffMonthLabel = (n) => plural('breakEven.months', n);
+    let contentHTML = `<div class="break-even-header">${escapeHtml(t('breakEven.header'))}</div>${toggleHTML}`;
 
     if (!hasPlan) {
-        contentHTML += `<div class="break-even-no-plan-banner">Estimate only — no plan calculated. Run a plan on the Strategy page to see your interest savings.</div>`;
+        contentHTML += `<div class="break-even-no-plan-banner">${escapeHtml(t('breakEven.estimateOnly'))}</div>`;
         contentHTML += `
-            <div class="break-even-row"><span class="break-even-label">Min only:</span>
-                <span class="break-even-value">${payoffMonthLabel(result.minMonths)} · ${escapeHtml(formatCurrency(result.minInterest))} interest</span></div>`;
+            <div class="break-even-row"><span class="break-even-label">${escapeHtml(t('breakEven.minOnly'))}</span>
+                <span class="break-even-value">${escapeHtml(t('breakEven.monthsInterest', { months: payoffMonthLabel(result.minMonths), interest: formatCurrency(result.minInterest) }))}</span></div>`;
     } else {
         contentHTML += `
-            <div class="break-even-row"><span class="break-even-label">Your plan:</span>
-                <span class="break-even-value">${payoffMonthLabel(result.planMonths)} · ${escapeHtml(formatCurrency(result.planInterest))} interest</span></div>
-            <div class="break-even-row"><span class="break-even-label">Min only:</span>
-                <span class="break-even-value">${payoffMonthLabel(result.minMonths)} · ${escapeHtml(formatCurrency(result.minInterest))} interest</span></div>`;
+            <div class="break-even-row"><span class="break-even-label">${escapeHtml(t('breakEven.yourPlan'))}</span>
+                <span class="break-even-value">${escapeHtml(t('breakEven.monthsInterest', { months: payoffMonthLabel(result.planMonths), interest: formatCurrency(result.planInterest) }))}</span></div>
+            <div class="break-even-row"><span class="break-even-label">${escapeHtml(t('breakEven.minOnly'))}</span>
+                <span class="break-even-value">${escapeHtml(t('breakEven.monthsInterest', { months: payoffMonthLabel(result.minMonths), interest: formatCurrency(result.minInterest) }))}</span></div>`;
 
         if (result.interestSaved > 0 || result.monthsSaved > 0) {
-            contentHTML += `<div class="break-even-savings break-even-savings--positive">You save ${escapeHtml(formatCurrency(result.interestSaved))} and ${result.monthsSaved} month${result.monthsSaved !== 1 ? 's' : ''}!</div>`;
+            contentHTML += `<div class="break-even-savings break-even-savings--positive">${escapeHtml(t('breakEven.youSave', { amount: formatCurrency(result.interestSaved), months: payoffMonthLabel(result.monthsSaved) }))}</div>`;
         } else {
-            contentHTML += `<div class="break-even-savings">No savings vs. minimum — consider a larger payment.</div>`;
+            contentHTML += `<div class="break-even-savings">${escapeHtml(t('breakEven.noSavings'))}</div>`;
         }
     }
 
     const chartId = `be-chart-${debt.id}`;
-    contentHTML += `<div class="break-even-chart-wrap"><canvas id="${chartId}" aria-label="Balance over time chart for ${escapeHtml(debt.name)}"></canvas></div>`;
-    contentHTML += `<button class="btn btn-secondary btn-small break-even-accelerate-btn" data-be-accelerate="${debt.id}" aria-label="Accelerate debt ${escapeHtml(debt.name)}">Accelerate this debt →</button>`;
+    contentHTML += `<div class="break-even-chart-wrap"><canvas id="${chartId}" aria-label="${escapeHtml(t('breakEven.chartAriaDebt', { name: debt.name }))}"></canvas></div>`;
+    contentHTML += `<button class="btn btn-secondary btn-small break-even-accelerate-btn" data-be-accelerate="${debt.id}" aria-label="${escapeHtml(t('breakEven.accelerateAria', { name: debt.name }))}">${escapeHtml(t('breakEven.accelerateBtn'))}</button>`;
 
     s.innerHTML = contentHTML;
     container.querySelector('.debt-details').after(s);
@@ -89,10 +90,10 @@ export function renderBreakEvenBadge(app, debt, container) {
     _renderBreakEvenChart(app, chartId, result, hasPlan);
 
     // Accessibility data table
-    const rows = result.planBalances.map((b, i) => [i === 0 ? 'Start' : `Mo ${i}`, formatCurrency(b), formatCurrency(result.minBalances[i] ?? 0)]);
+    const rows = result.planBalances.map((b, i) => [i === 0 ? t('breakEven.start') : t('breakEven.monthShort', { n: i }), formatCurrency(b), formatCurrency(result.minBalances[i] ?? 0)]);
     renderChartDataTable(chartId, {
-        caption: `Balance over time: ${debt.name}`,
-        columns: ['Month', 'Plan Balance', 'Min-Only Balance'],
+        caption: t('breakEven.tableCaption', { name: debt.name }),
+        columns: [t('breakEven.colMonth'), t('breakEven.colPlanBalance'), t('breakEven.colMinBalance')],
         rows
     });
 }
@@ -108,17 +109,17 @@ function _renderBreakEvenChart(app, chartId, result, hasPlan) {
     const ctx = canvas.getContext('2d');
 
     const maxLen = Math.max(result.planBalances.length, result.minBalances.length);
-    const labels = Array.from({ length: maxLen }, (_, i) => i === 0 ? 'Now' : `Mo ${i}`);
+    const labels = Array.from({ length: maxLen }, (_, i) => i === 0 ? t('breakEven.now') : t('breakEven.monthShort', { n: i }));
     const planData = [...result.planBalances, ...Array(maxLen - result.planBalances.length).fill(0)];
     const minData = [...result.minBalances, ...Array(maxLen - result.minBalances.length).fill(0)];
 
     const datasets = hasPlan
         ? [
-            { label: 'Your Plan', data: planData, borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3 },
-            { label: 'Min Only', data: minData, borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3, borderDash: [4, 4] }
+            { label: t('breakEven.seriesYourPlan'), data: planData, borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3 },
+            { label: t('breakEven.seriesMinOnly'), data: minData, borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3, borderDash: [4, 4] }
           ]
         : [
-            { label: 'Min Only', data: minData, borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3 }
+            { label: t('breakEven.seriesMinOnly'), data: minData, borderColor: '#dc2626', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3 }
           ];
 
     app._breakEvenCharts[chartId] = new Chart(ctx, {
@@ -150,7 +151,7 @@ export function showAccelerateModal(app, debtId) {
         ? (app.lastPaymentPlan?.[0]?.payments?.find(p => p.debtName === debt.name)?.payment || debt.minimumPayment)
         : debt.minimumPayment;
 
-    document.getElementById('accelerateDebtTitle').textContent = `Accelerate: ${debt.name}`;
+    document.getElementById('accelerateDebtTitle').textContent = t('breakEven.accelerateTitle', { name: debt.name });
     document.getElementById('accelerateBasePay').textContent = formatCurrency(basePay);
     const extraInput = document.getElementById('accelerateExtraPay');
     extraInput.value = '0';
@@ -165,14 +166,14 @@ export function showAccelerateModal(app, debtId) {
 
         if (!newResult) return;
 
-        document.getElementById('acceleratePayoff').textContent = `${newResult.planMonths} month${newResult.planMonths !== 1 ? 's' : ''}`;
+        document.getElementById('acceleratePayoff').textContent = plural('breakEven.months', newResult.planMonths);
         document.getElementById('accelerateInterest').textContent = formatCurrency(newResult.planInterest);
 
         const mSaved = baseResult ? Math.max(0, baseResult.planMonths - newResult.planMonths) : 0;
         const iSaved = baseResult ? Math.max(0, baseResult.planInterest - newResult.planInterest) : 0;
 
-        document.getElementById('acceleratePayoffDelta').textContent = mSaved > 0 ? `▲ ${mSaved} faster` : '';
-        document.getElementById('accelerateInterestDelta').textContent = iSaved > 0 ? `▲ ${escapeHtml(formatCurrency(iSaved))} saved` : '';
+        document.getElementById('acceleratePayoffDelta').textContent = mSaved > 0 ? `▲ ${t('breakEven.monthsFaster', { months: mSaved })}` : '';
+        document.getElementById('accelerateInterestDelta').textContent = iSaved > 0 ? `▲ ${t('breakEven.amountSaved', { amount: formatCurrency(iSaved) })}` : '';
 
         // Update chart
         if (app._accelerateChart) {
@@ -182,14 +183,14 @@ export function showAccelerateModal(app, debtId) {
         const canvas = document.getElementById('accelerateChart');
         if (canvas && typeof Chart !== 'undefined') {
             const maxLen = Math.max(newResult.planBalances.length, (baseResult?.planBalances.length || 0));
-            const labels = Array.from({ length: maxLen }, (_, i) => i === 0 ? 'Now' : `Mo ${i}`);
+            const labels = Array.from({ length: maxLen }, (_, i) => i === 0 ? t('breakEven.now') : t('breakEven.monthShort', { n: i }));
             const newData = [...newResult.planBalances, ...Array(maxLen - newResult.planBalances.length).fill(0)];
             const baseData = baseResult ? [...baseResult.planBalances, ...Array(maxLen - baseResult.planBalances.length).fill(0)] : [];
             const datasets = [
-                { label: formatCurrency(totalPay) + '/mo', data: newData, borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3 }
+                { label: t('debts.perMonth', { amount: formatCurrency(totalPay) }), data: newData, borderColor: '#2563eb', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3 }
             ];
             if (baseResult && extra > 0) {
-                datasets.push({ label: formatCurrency(basePay) + '/mo', data: baseData, borderColor: '#9ca3af', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3, borderDash: [4, 4] });
+                datasets.push({ label: t('debts.perMonth', { amount: formatCurrency(basePay) }), data: baseData, borderColor: '#9ca3af', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3, borderDash: [4, 4] });
             }
             app._accelerateChart = new Chart(canvas.getContext('2d'), {
                 type: 'line',
@@ -204,8 +205,8 @@ export function showAccelerateModal(app, debtId) {
                 }
             });
             renderChartDataTable('accelerateChart', {
-                caption: `Accelerate: ${debt.name} — balance over time`,
-                columns: ['Month', formatCurrency(totalPay) + '/mo', ...(baseResult && extra > 0 ? [formatCurrency(basePay) + '/mo'] : [])],
+                caption: t('breakEven.accelerateTableCaption', { name: debt.name }),
+                columns: [t('breakEven.colMonth'), t('debts.perMonth', { amount: formatCurrency(totalPay) }), ...(baseResult && extra > 0 ? [t('debts.perMonth', { amount: formatCurrency(basePay) })] : [])],
                 rows: labels.map((lbl, i) => [lbl, formatCurrency(newData[i] ?? 0), ...(baseResult && extra > 0 ? [formatCurrency(baseData[i] ?? 0)] : [])])
             });
         }

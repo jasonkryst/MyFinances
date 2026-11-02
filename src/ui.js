@@ -7,6 +7,7 @@ import { APP_VERSION, escapeHtml, isCollapsibleOpen, setCollapsibleOpen, refresh
 import { getZeroAmountPolicy } from './settings.js';
 import { initCommandPalette } from './commandPalette.js';
 import { installOwnershipListeners } from './debtOwnership.js';
+import { t } from './i18n.js';
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
@@ -324,7 +325,7 @@ export function initializeEventListeners(app) {
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
                 const titleEl = document.getElementById('debtFormTitle');
-                if (titleEl) titleEl.textContent = 'Add New Debt';
+                if (titleEl) titleEl.textContent = t('debts.addTitle');
                 closeForm();
             }, true);
         }
@@ -1015,6 +1016,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.62.0 — 2026-11-02',
+        items: [
+            '<strong>Debts, Budget and Recurring now speak Spanish and Polish</strong> (issue #317): debt cards, expense lists, category budgets, recurring templates and their pop-ups follow the language you pick in Settings.'
+        ]
+    },
+    {
         version: '6.61.0 — 2026-11-02',
         items: [
             '<strong>Accounts, Income and Savings now speak Spanish and Polish</strong> (issue #317): every card, form, chart and pop-up on these pages follows the language you pick in Settings, including the Bonus Advisor and the Home Purchase planner.'
@@ -1325,7 +1332,7 @@ export function showEmailTestToast(status, message) {
     }, 5000);
 }
 
-export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
+export function showDeleteConfirmModal(message, confirmLabel = t('common.delete')) {
     return new Promise((resolve) => {
         const modal = document.getElementById('deleteConfirmModal');
         const messageEl = document.getElementById('deleteConfirmMessage');
@@ -1433,7 +1440,7 @@ export function showArchiveConfirmModal(debtName) {
         const cancelBtn = document.getElementById('archiveConfirmCancelBtn');
         if (!modal) { resolve(false); return; }
 
-        if (messageEl) messageEl.textContent = `Archive "${debtName}"?`;
+        if (messageEl) messageEl.textContent = t('modals.archiveDebtMsg', { name: debtName });
 
         const lastFocused = document.activeElement;
         const dismiss = (result) => {
@@ -1623,7 +1630,7 @@ export function showPersonReplacementModal(app, personId, otherPersons, linkedDe
     });
 }
 
-export function showAlertModal(message, title = 'Notice') {
+export function showAlertModal(message, title = t('modals.notice')) {
     return new Promise((resolve) => {
         const modal = document.getElementById('alertModal');
         const messageEl = document.getElementById('alertModalMessage');
@@ -1665,8 +1672,8 @@ export async function confirmZeroAmountAllowed(app, contextLabel) {
     const policy = getZeroAmountPolicy(app);
     if (policy === 'allow') return true;
     if (policy === 'block') {
-        await showAlertModal('$0 amounts are disabled. You can change this in Settings → Advanced.');
+        await showAlertModal(t('modals.zeroBlocked'));
         return false;
     }
-    return showDeleteConfirmModal(`Save a $0 amount for ${contextLabel || 'this item'}?`, 'Save');
+    return showDeleteConfirmModal(t('modals.zeroConfirm', { label: contextLabel || t('modals.thisItem') }), t('common.save'));
 }

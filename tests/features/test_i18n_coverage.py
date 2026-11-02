@@ -124,6 +124,78 @@ BASE_SEEDED_STATE = {
 }
 _BASE_STATE_PAGES = {'retirement', 'reconcile'}
 
+
+# Liabilities (Debts + Expenses sub-tabs) and Recurring. Names/categories/notes wrapped in the pseudo-locale
+# brackets are user data; built-in categories ('Food', 'Utilities', 'Income', ...) are deliberately left
+# bare so the render guard proves they go through categoryLabel().
+_MONTH_KEY = _TODAY[:7]
+LIABILITIES_STATE = dict(SEEDED_STATE)
+LIABILITIES_STATE.update({
+    'persons': [{'id': 1, 'name': '⟦Alex⟧'}, {'id': 2, 'name': '⟦Sam⟧'}],
+    'debts': [
+        {'id': 1, 'name': '⟦Visa Card⟧', 'debtType': 'creditCard', 'accountBalance': 4000, 'originalBalance': 5000,
+         'minimumPayment': 80, 'originalMinimumPayment': 100, 'interestRate': 24, 'dueDate': 15,
+         'creditLimit': 5000, 'category': '⟦Cards⟧', 'accountId': 1, 'personIds': [1, 2],
+         'ownershipSplit': {'1': 0.7, '2': 0.3}, 'debtStartDate': '2024-01-01', 'nextPaymentDue': _TODAY,
+         'notes': '⟦Pay early⟧', 'priority': 5},
+        {'id': 2, 'name': '⟦Min Trap⟧', 'debtType': 'creditCard', 'accountBalance': 20000, 'originalBalance': 20000,
+         'minimumPayment': 400, 'interestRate': 19, 'dueDate': 1, 'category': '⟦Loans⟧', 'personIds': [1]},
+        {'id': 3, 'name': '⟦Neg Amort⟧', 'debtType': 'creditCard', 'accountBalance': 9000, 'originalBalance': 1000,
+         'minimumPayment': 50, 'interestRate': 20, 'dueDate': 22, 'creditLimit': 9000},
+        {'id': 4, 'name': '⟦Daycare⟧', 'debtType': 'fixedAmount', 'fixedAmount': 800,
+         'fixedStartDate': '2025-01-01', 'fixedEndDate': '2099-12-31', 'priority': 2, 'category': '⟦Kids⟧'},
+        {'id': 5, 'name': '⟦Old Loan⟧', 'debtType': 'creditCard', 'accountBalance': 0, 'originalBalance': 500,
+         'minimumPayment': 0, 'interestRate': 5, 'dueDate': 3, 'archived': True},
+        {'id': 6, 'name': '⟦Paid Card⟧', 'debtType': 'creditCard', 'accountBalance': 0, 'originalBalance': 300,
+         'minimumPayment': 0, 'interestRate': 5, 'dueDate': 9},
+    ],
+    'expenses': [
+        {'id': 1, 'name': '⟦Groceries⟧', 'budgetAmount': 250, 'date': _TODAY, 'category': 'Food', 'accountId': 1},
+        {'id': 2, 'name': '⟦Gym⟧', 'budgetAmount': 40, 'date': _TODAY, 'category': '⟦Fitness⟧', 'accountId': 1},
+        {'id': 3, 'name': '⟦Power⟧', 'budgetAmount': 90, 'date': _TODAY, 'category': 'Utilities'},
+    ],
+    'budgetCategories': {'Food': {'mode': 'fixed', 'amount': 500}, '⟦Fitness⟧': {'mode': 'derived', 'amount': 0}},
+    'recurringTemplates': [
+        {'id': 1, 'name': '⟦Streaming⟧', 'type': 'subscription', 'amount': 15, 'frequency': 'monthly',
+         'dayOfMonth': 1, 'category': 'Entertainment', 'accountId': 1, 'startDate': '2025-01-01',
+         'paidMonths': [_MONTH_KEY]},
+        {'id': 2, 'name': '⟦Side Pay⟧', 'type': 'income', 'amount': 200, 'frequency': 'monthly',
+         'dayOfMonth': 1, 'category': 'Income', 'accountId': 1, 'startDate': '2025-01-01'},
+        {'id': 3, 'name': '⟦Gym Refund⟧', 'type': 'reimbursement', 'amount': 30, 'frequency': 'weekly',
+         'category': 'Health', 'accountId': 1, 'startDate': '2025-01-01', 'endDate': '2099-01-01'},
+        {'id': 4, 'name': '⟦Savings Move⟧', 'type': 'transfer', 'amount': 100, 'frequency': 'biweekly',
+         'category': 'Transfer', 'accountId': 1, 'targetAccountId': 7, 'startDate': '2025-01-01'},
+        {'id': 5, 'name': '⟦Paused One⟧', 'type': 'subscription', 'amount': 9, 'frequency': 'monthly',
+         'dayOfMonth': 5, 'category': 'Utilities', 'accountId': 1, 'startDate': '2025-01-01',
+         'paused': True, 'pauseUntil': '2099-01-01'},
+        {'id': 6, 'name': '⟦Skipped One⟧', 'type': 'subscription', 'amount': 12, 'frequency': 'monthly',
+         'dayOfMonth': 20, 'category': '⟦Misc⟧', 'accountId': 1, 'startDate': '2025-01-01',
+         'skippedMonths': [_MONTH_KEY]},
+        {'id': 7, 'name': '⟦Archived One⟧', 'type': 'subscription', 'amount': 5, 'frequency': 'yearly',
+         'dayOfMonth': 2, 'category': 'Other', 'accountId': 1, 'startDate': '2024-01-01', 'archived': True},
+        {'id': 8, 'name': '⟦Quarterly One⟧', 'type': 'subscription', 'amount': 20, 'frequency': 'quarterly',
+         'dayOfMonth': 1, 'category': 'Insurance', 'accountId': 1, 'startDate': _TODAY[:7] + '-01'},
+        {'id': 9, 'name': '⟦Overdue Monthly⟧', 'type': 'subscription', 'amount': 20, 'frequency': 'monthly',
+         'dayOfMonth': 1, 'category': 'Insurance', 'accountId': 1, 'startDate': '2025-01-01'},
+    ],
+})
+_LIABILITIES_PREFIXES = ('liabilities-', 'recurring')
+
+_DEBT_NEEDED = """
+            if (!window.app.debts.length) {
+                window.app.debts.push({ id: 901, name: '⟦Seed Debt⟧', debtType: 'creditCard', accountBalance: 500,
+                    originalBalance: 500, minimumPayment: 25, interestRate: 18, dueDate: 5, creditLimit: 1000 });
+            }
+"""
+
+_RECURRING_NEEDED = """
+            if (!window.app.recurringTemplates.length) {
+                window.app.recurringTemplates.push({ id: 901, name: '⟦Seed Template⟧', type: 'subscription',
+                    amount: 10, frequency: 'monthly', dayOfMonth: 1, category: 'Other', accountId: null,
+                    startDate: '2025-01-01', skippedMonths: [], paidMonths: [], paidAmounts: {} });
+            }
+"""
+
 EMPTY_STATE = {'accounts': [], 'debts': [], 'settings': []}
 
 # page name -> (DOM roots to scan, async JS run after load to render/open everything)
@@ -230,6 +302,185 @@ TRANSLATED_PAGES = {
             window.app.switchPage('savings');
             window.app.renderSavingsPage();
             window.app.attachSavingsEventListeners();
+        }""",
+    ),
+    'liabilities-debts': (
+        ['#liabilitiesSection'],
+        """async () => {
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('debts');
+            window.openDebtForm?.();
+            document.getElementById('debtFiltersBody')?.classList.add('is-open');
+            window.app.renderDebtsList();
+            document.querySelectorAll('[data-be-shortcut]').forEach(b => b.click());
+            document.querySelectorAll('.debt-row-select').forEach(cb => { cb.checked = true; cb.dispatchEvent(new Event('change')); });
+        }""",
+    ),
+    'liabilities-debts-filtered': (
+        ['#liabilitiesSection'],
+        """async () => {
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('debts');
+            window.app.renderDebtsList();
+            document.getElementById('debtInterestFilter').value = 'noInterest';
+            document.getElementById('debtProgressFilter').value = 'paid';
+            window.app.renderDebtsList();
+        }""",
+    ),
+    'liabilities-debts-grouped': (
+        ['#liabilitiesSection'],
+        """async () => {
+            const settings = await import('/src/settings.js');
+            settings.setSetting(window.app, settings.SHOW_ARCHIVED_DEBTS, true);
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('debts');
+            document.getElementById('debtGroupBy').value = 'person';
+            window.app.renderDebtsList();
+        }""",
+    ),
+    'liabilities-debts-edit': (
+        ['#liabilitiesSection'],
+        """async () => {
+""" + _DEBT_NEEDED + """
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('debts');
+            window.app.editingDebtId = window.app.debts[0].id;
+            window.app.renderDebtsList();
+        }""",
+    ),
+    'liabilities-debts-edit-fixed': (
+        ['#liabilitiesSection'],
+        """async () => {
+            if (!window.app.debts.some(d => d.debtType === 'fixedAmount')) {
+                window.app.debts.push({ id: 902, name: '⟦Seed Fixed⟧', debtType: 'fixedAmount', fixedAmount: 100,
+                    fixedStartDate: '2025-01-01', fixedEndDate: '2099-12-31' });
+            }
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('debts');
+            window.app.editingDebtId = window.app.debts.find(d => d.debtType === 'fixedAmount').id;
+            window.app.renderDebtsList();
+        }""",
+    ),
+    'liabilities-modals': (
+        ['#alertModal', '#deleteConfirmModal', '#archiveConfirmModal', 'div[aria-labelledby="debtPaidOffTitle"]'],
+        """async () => {
+            if (!window.app.debts.some(d => d.debtType !== 'fixedAmount' && !d.archived && d.accountBalance <= 0)) {
+                window.app.debts.push({ id: 904, name: '⟦Seed Paid⟧', debtType: 'creditCard', accountBalance: 0,
+                    originalBalance: 100, minimumPayment: 0, interestRate: 5, dueDate: 5 });
+            }
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('debts');
+            window.app.renderDebtsList();
+            document.querySelector('[data-debt-action="celebrate"]').click();
+        }""",
+    ),
+    'liabilities-update-balance': (
+        ['#updateBalanceModal'],
+        """async () => {
+""" + _DEBT_NEEDED + """
+            window.app.switchPage('liabilities');
+            window.app.showUpdateBalanceModal(window.app.debts.find(d => d.debtType !== 'fixedAmount').id);
+        }""",
+    ),
+    'liabilities-accelerate': (
+        ['#accelerateDebtModal'],
+        """async () => {
+""" + _DEBT_NEEDED + """
+            window.app.switchPage('liabilities');
+            window.app.showAccelerateModal(window.app.debts.find(d => d.debtType !== 'fixedAmount').id);
+        }""",
+    ),
+    'liabilities-expenses': (
+        ['#liabilitiesSection'],
+        """async () => {
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('expenses');
+            document.getElementById('expenseFormToggle').click();
+            window.app.renderBudgetPage();
+            document.querySelector('.cashflow-tab[data-tab="charts"]')?.click();
+        }""",
+    ),
+    'liabilities-expenses-edit': (
+        ['#liabilitiesSection'],
+        """async () => {
+            if (!window.app.expenses.length) {
+                window.app.expenses.push({ id: 903, name: '⟦Seed Expense⟧', budgetAmount: 20,
+                    date: new Date().toISOString().slice(0, 10), category: 'Food', accountId: null });
+            }
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('expenses');
+            window.app.editingExpenseId = window.app.expenses[0].id;
+            window.app.renderBudgetPage();
+        }""",
+    ),
+    'liabilities-expenses-empty-month': (
+        ['#liabilitiesSection'],
+        """async () => {
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('expenses');
+            window.app._expenseMonthOffset = 3;
+            window.app.renderBudgetPage();
+            window.app._expenseMonthOffset = 0;
+        }""",
+    ),
+    'recurring': (
+        ['#recurringSection'],
+        """async () => {
+            const settings = await import('/src/settings.js');
+            settings.setSetting(window.app, settings.SHOW_ARCHIVED_RECURRING, true);
+            window.app.switchPage('recurring');
+            document.getElementById('recurringFormToggle').click();
+            document.getElementById('recurringFiltersBody')?.classList.add('is-open');
+            window.app.renderRecurringPage();
+        }""",
+    ),
+    'recurring-hidden-archived': (
+        ['#recurringSection'],
+        """async () => {
+            window.app.switchPage('recurring');
+            window.app.renderRecurringPage();
+        }""",
+    ),
+    'recurring-overdue': (
+        ['#recurringSection'],
+        """async () => {
+            window.app.switchPage('recurring');
+            window.app.renderRecurringPage();
+            document.getElementById('recurringOverdueFilterBtn')?.click();
+        }""",
+    ),
+    'recurring-edit': (
+        ['#recurringSection'],
+        """async () => {
+""" + _RECURRING_NEEDED + """
+            window.app.switchPage('recurring');
+            window.app.editingRecurringId = window.app.recurringTemplates[0].id;
+            window.app.renderRecurringPage();
+        }""",
+    ),
+    'recurring-mark-paid': (
+        ['#recurringSection', '#recurringMarkPaidModal'],
+        """async () => {
+""" + _RECURRING_NEEDED + """
+            window.app.switchPage('recurring');
+            window.app.renderRecurringPage();
+            const now = new Date();
+            const key = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            const t = window.app.recurringTemplates.find(x => x.frequency === 'weekly') || window.app.recurringTemplates[0];
+            await window.app.openRecurringMarkPaidModal(t.id, key);
+            // the error line is shown on a bad amount
+            const amt = document.querySelector('#recurringMarkPaidModal input[type="number"]');
+            if (amt) { amt.value = '-5'; document.getElementById('recurringMarkPaidConfirmBtn').click(); }
+            await new Promise(r => setTimeout(r, 100));
+        }""",
+    ),
+    'recurring-pause': (
+        ['#recurringSection', '#recurringPauseModal'],
+        """async () => {
+""" + _RECURRING_NEEDED + """
+            window.app.switchPage('recurring');
+            window.app.renderRecurringPage();
+            window.app.openRecurringPauseModal(window.app.recurringTemplates[0].id);
         }""",
     ),
     'retirement': (
@@ -373,9 +624,11 @@ def test_locale_values_are_nonempty_strings(app_page, locale):
 # an untranslated stub — #317 found 54 Retirement "stubs" hiding behind parity.
 SAME_AS_ENGLISH = {
     'es': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.sortApyAsc',
-           'accounts.sortApyDesc', 'homePurchase.pmiBelowValue', 'income.estBadge', 'savings.autoTag'},
+           'accounts.sortApyDesc', 'homePurchase.pmiBelowValue', 'income.estBadge', 'savings.autoTag',
+           'debts.updateOriginal', 'recurring.total', 'ownership.totalLabel'},
     'pl': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.apyBadge',
-           'accounts.sortApyAsc', 'accounts.sortApyDesc', 'savings.autoTag'},
+           'accounts.sortApyAsc', 'accounts.sortApyDesc', 'savings.autoTag',
+           'modals.ok', 'breakEven.start', 'category.transport'},
 }
 
 
@@ -404,7 +657,8 @@ def test_same_as_english_allowlist_has_no_stale_entries(app_page, locale):
 @pytest.mark.parametrize('page_name', sorted(TRANSLATED_PAGES))
 def test_translated_page_has_no_untranslated_text(pseudo_page, page_name, state_name):
     roots, setup = TRANSLATED_PAGES[page_name]
-    seeded = BASE_SEEDED_STATE if page_name in _BASE_STATE_PAGES else SEEDED_STATE
+    seeded = (BASE_SEEDED_STATE if page_name in _BASE_STATE_PAGES
+              else LIABILITIES_STATE if page_name.startswith(_LIABILITIES_PREFIXES) else SEEDED_STATE)
     _load_pseudo(pseudo_page, seeded if state_name == 'seeded' else EMPTY_STATE)
     pseudo_page.evaluate(setup)
     pseudo_page.wait_for_timeout(300)

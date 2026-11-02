@@ -25,6 +25,7 @@ import { isCleared, setLedgerCleared } from './ledgerCleared.js';
 import { getOverrideAmount, setLedgerAmountOverride, clearLedgerAmountOverride } from './ledgerOverrides.js';
 import { pgPatch } from './postgresSync.js';
 import { confirmZeroAmountAllowed } from './ui.js';
+import { t as tr } from './i18n.js';
 
 // Mirrors ledgerTransactions.js's private UNLINKED_KEY: a template whose
 // account doesn't exist posts under this sentinel account key.
@@ -267,11 +268,11 @@ export function buildRecurringPaidBadge(status, tmpl) {
     if (status.allPaid) {
         const total = status.occurrences.reduce((s, o) => s + o.actualAmount, 0);
         const anyOverride = status.occurrences.some(o => o.hasOverride);
-        const actualLabel = anyOverride ? ` · actual: ${formatCurrency(total)}` : '';
-        return `<span class="recurring-badge recurring-badge--paid">✅ Paid this month${escapeHtml(actualLabel)}</span>`;
+        const actualLabel = anyOverride ? ' ' + tr('recurring.paidActual', { amount: formatCurrency(total) }) : '';
+        return `<span class="recurring-badge recurring-badge--paid">✅ ${escapeHtml(tr('recurring.paidThisMonth'))}${escapeHtml(actualLabel)}</span>`;
     }
     if (status.paidCount > 0) {
-        return `<span class="recurring-badge recurring-badge--partial">◐ Paid ${status.paidCount} of ${status.total}</span>`;
+        return `<span class="recurring-badge recurring-badge--partial">◐ ${escapeHtml(tr('recurring.paidPartial', { paid: status.paidCount, total: status.total }))}</span>`;
     }
     return '';
 }
@@ -296,7 +297,7 @@ export function openRecurringMarkPaidModal(app, id, monthKey) {
                 <span>${label}</span>
             </label>
             <input type="number" id="${inputId(i)}" class="form-control recurring-paid-row-amount" data-paid-iso="${o.iso}"
-                value="${o.actualAmount}" step="0.01" min="0" aria-label="Actual amount paid on ${label}">
+                value="${o.actualAmount}" step="0.01" min="0" aria-label="${escapeHtml(tr('recurring.actualAmountAria', { date: formatShortDate(o.date) }))}">
         </div>`;
     }).join('');
 
@@ -308,13 +309,13 @@ export function openRecurringMarkPaidModal(app, id, monthKey) {
     modal.setAttribute('aria-labelledby', 'recurringMarkPaidModalTitle');
     modal.setAttribute('tabindex', '-1');
     modal.innerHTML = `<div class="modal-content">
-        <h3 class="modal-subtitle" id="recurringMarkPaidModalTitle">Mark as Paid</h3>
-        <p class="modal-description">Confirm each payment of <strong>${escapeHtml(t.name)}</strong> this month and its actual amount. This marks the matching Ledger transaction Cleared, and a different amount becomes that transaction's Ledger amount.</p>
+        <h3 class="modal-subtitle" id="recurringMarkPaidModalTitle">${escapeHtml(tr('recurring.markPaidTitle'))}</h3>
+        <p class="modal-description">${escapeHtml(tr('recurring.markPaidDesc', { name: t.name }))}</p>
         <div class="recurring-paid-rows">${rows}</div>
         <p class="recurring-paid-error hidden" id="recurringMarkPaidError" role="alert"></p>
         <div class="modal-actions">
-            <button class="btn btn-primary" id="recurringMarkPaidConfirmBtn">✅ Mark as Paid</button>
-            <button class="btn btn-secondary" id="recurringMarkPaidCancelBtn">Cancel</button>
+            <button class="btn btn-primary" id="recurringMarkPaidConfirmBtn">✅ ${escapeHtml(tr('recurring.markPaidBtn'))}</button>
+            <button class="btn btn-secondary" id="recurringMarkPaidCancelBtn">${escapeHtml(tr('common.cancel'))}</button>
         </div>
     </div>`;
     document.body.appendChild(modal);
@@ -335,7 +336,7 @@ export function openRecurringMarkPaidModal(app, id, monthKey) {
             if (paid && raw.trim() !== '') {
                 amount = sanitizeFiniteNumber(raw, null, { min: 0 });
                 if (amount === null || Number(raw) < 0) {
-                    errorEl.textContent = `Enter a valid amount (0 or more) for ${formatShortDate(o.date)}.`;
+                    errorEl.textContent = tr('recurring.errPaidAmount', { date: formatShortDate(o.date) });
                     errorEl.classList.remove('hidden');
                     return;
                 }
@@ -343,7 +344,7 @@ export function openRecurringMarkPaidModal(app, id, monthKey) {
             edits.push({ iso: o.iso, paid, amount });
         }
         if (edits.some(e => e.paid && e.amount === 0)
-            && !(await confirmZeroAmountAllowed(app, `${t.name} payment`))) {
+            && !(await confirmZeroAmountAllowed(app, tr('recurring.paymentLabel', { name: t.name })))) {
             return;
         }
         close();
