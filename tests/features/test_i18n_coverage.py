@@ -490,6 +490,12 @@ TRANSLATED_PAGES = {
         """async () => {
             document.getElementById('settingsBtn').click();
             document.querySelector('[data-settings-tab="data"]').click();
+            // #326: render the settings-backup result state (success + skipped item)
+            const sb = await import('/src/settingsBackup.js');
+            sb.importSettingsText(window.app, JSON.stringify({
+                type: 'settings', version: '1.0', preferences: {},
+                settings: { showArchivedDebts: true, mystery: 1 }
+            }));
         }""",
     ),
     'settings-notifications': (
@@ -1098,11 +1104,11 @@ SAME_AS_ENGLISH = {
     'es': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.sortApyAsc',
            'accounts.sortApyDesc', 'homePurchase.pmiBelowValue', 'income.estBadge', 'savings.autoTag',
            'debts.updateOriginal', 'recurring.total', 'ownership.totalLabel', 'reports.spendDrillTitle', 'reports.no', 'reports.spendTotal',
-           'ledger.originalAmount', 'people.dtiBadge'},
+           'ledger.originalAmount', 'people.dtiBadge', 'settings.backup.skippedItem'},
     'pl': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.apyBadge',
            'accounts.sortApyAsc', 'accounts.sortApyDesc', 'savings.autoTag',
            'modals.ok', 'breakEven.start', 'category.transport', 'reports.spendDrillTitle',
-           'ledger.statusLabel', 'people.dtiBadge'},
+           'ledger.statusLabel', 'people.dtiBadge', 'settings.backup.skippedItem'},
 }
 
 

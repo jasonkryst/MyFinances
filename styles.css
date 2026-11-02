@@ -8692,6 +8692,12 @@ body.dark-mode .btn-secondary:hover { border-color: #94a3b8; }
 }
 body.dark-mode .settings-danger-title { color: #f87171; }
 
+/* #326: settings backup block in Settings -> Data & Storage */
+.settings-backup-block { margin-top: 20px; }
+.settings-backup-title { margin: 0 0 8px; font-size: 0.9rem; }
+.settings-backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#settingsBackupStatus:not(:empty) { margin-top: 8px; }
+
 /* C3a/M1: nav toggle is a 44px icon button; the account menu dropdown sits above it */
 .account-menu-dropdown { z-index: 1100; }
 @media (max-width: 768px) {

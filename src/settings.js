@@ -2,6 +2,13 @@
 // { key, value } entries so new options can be added without a schema change.
 
 import { pgPut } from './postgresSync.js';
+import { t, LOCALES, CURRENCIES } from './i18n.js';
+
+// Order matters for cycleTheme() (commandPalette.js). Lives here, re-exported by
+// ui.js, so the settings export schema can validate themes without importing
+// the DOM-heavy ui.js.
+export const THEMES = ['light', 'dark', 'high-contrast'];
+export const THEME_PREF_KEY = 'debtTrackerTheme';
 
 export const RECONCILIATION_ADJUSTS_BALANCE = 'reconciliationAdjustsBalance';
 export const SHOW_ARCHIVED_DEBTS = 'showArchivedDebts';
@@ -53,7 +60,10 @@ export function setSetting(app, key, value) {
     }
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
-        pgPut(app, `/api/settings/${key}`, { value });
+        // Encoded: bct:<category> keys carry free-text category names, and a
+        // settings import (#326) can supply them, so a raw '/' or '?' must not
+        // be able to retarget the request. Matches postgresImport.js.
+        pgPut(app, `/api/settings/${encodeURIComponent(key)}`, { value });
     }
 }
 // Unknown/invalid stored values (non-number, <= 0, > max) fall back to 25.
@@ -80,4 +90,151 @@ export function getCoastFireTarget(app) {
 export function getZeroAmountPolicy(app) {
     const value = getSetting(app, ZERO_AMOUNT_POLICY, 'allow');
     return ZERO_AMOUNT_POLICIES.includes(value) ? value : 'allow';
+}
+
+// ---------------------------------------------------------------------------
+// #326: settings-only export/import. Pure (DOM-free, side-effect-free) so it
+// can be unit-tested; applying a parsed import lives in settingsBackup.js.
+// Only "safe prefs" are covered. Deliberately NOT in the schema: the storage
+// backend preference (importing it would reload into Postgres/the login gate),
+// SURPLUS_ACCOUNT_ID (an account id that would dangle in another dataset) and
+// Ledger filters (can hold account ids). No financial data is ever exported.
+// ---------------------------------------------------------------------------
+
+// Duplicate of dataExport.js's LEDGER_EXPORT_COLUMN_KEYS (importing it would
+// pull dataExport -> ledgerTransactions -> ... into this module's import
+// graph, a cycle risk). tests/unit/settingsExport.test.js asserts they match.
+export const LEDGER_EXPORT_COLUMN_KEYS_COPY = ['date', 'account', 'name', 'amount', 'category', 'balance', 'type', 'cleared', 'clearedAt'];
+export const LEDGER_EXPORT_COLUMNS = 'ledgerExportColumns';
+
+export const SETTINGS_EXPORT_TYPE = 'settings';
+export const SETTINGS_EXPORT_VERSION = '1.0';
+export const SETTINGS_EXPORT_MAX_BYTES = 100 * 1024;
+const BCT_CATEGORY_MAX = 60;
+
+const isBool = v => typeof v === 'boolean';
+const numberIn = (min, max, { integer = false, minExclusive = false } = {}) => v =>
+    typeof v === 'number' && Number.isFinite(v)
+    && (minExclusive ? v > min : v >= min) && v <= max
+    && (!integer || Number.isInteger(v));
+const oneOf = list => v => typeof v === 'string' && list.includes(v);
+
+// Ranges mirror each setting's real consumer (health.js / retirement.js).
+export const SETTINGS_EXPORT_SCHEMA = {
+    [RECONCILIATION_ADJUSTS_BALANCE]: isBool,
+    [SHOW_ARCHIVED_DEBTS]: isBool,
+    [SHOW_ARCHIVED_RECURRING]: isBool,
+    [SHOW_ARCHIVED_ACCOUNTS]: isBool,
+    [SHOW_ARCHIVED_SINKING_FUNDS]: isBool,
+    [AUTO_NW_SNAPSHOT]: isBool,
+    [SURPLUS_WINDOW_DAYS]: numberIn(7, 365, { integer: true }),
+    [SURPLUS_CUSHION_PCT]: numberIn(0, 100, { integer: true }),
+    [RETIREMENT_WITHDRAWAL_RATE]: numberIn(2, 8),
+    [RETIREMENT_SCENARIO_CONSERVATIVE_DELTA]: numberIn(-20, 0),
+    [RETIREMENT_SCENARIO_AGGRESSIVE_DELTA]: numberIn(0, 20),
+    [RETIREMENT_COAST_TARGET]: numberIn(0, COAST_FIRE_TARGET_MAX),
+    [FIRE_MULTIPLIER]: numberIn(0, FIRE_MULTIPLIER_MAX, { minExclusive: true }),
+    [HOUSING_COST_OVERRIDE]: numberIn(0, 1e12),
+    [ZERO_AMOUNT_POLICY]: oneOf(ZERO_AMOUNT_POLICIES),
+    // Comma-separated list of known ledger export column keys (non-empty).
+    [LEDGER_EXPORT_COLUMNS]: v => typeof v === 'string' && v.length > 0
+        && v.split(',').every(c => LEDGER_EXPORT_COLUMN_KEYS_COPY.includes(c)),
+};
+
+// `bct:<category>:healthy|warn` budget thresholds, percent 0..100. Category
+// names are user-defined, so this is pattern-based with a length cap.
+const BCT_KEY_RE = /^bct:([^:]{1,60}):(healthy|warn)$/;
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function isKnownSettingKey(key) {
+    return Object.prototype.hasOwnProperty.call(SETTINGS_EXPORT_SCHEMA, key) || BCT_KEY_RE.test(key);
+}
+
+// True when `value` is acceptable for `key`; false for unknown keys.
+export function validateExportedSetting(key, value) {
+    if (typeof key !== 'string' || FORBIDDEN_KEYS.has(key)) return false;
+    if (Object.prototype.hasOwnProperty.call(SETTINGS_EXPORT_SCHEMA, key)) {
+        return SETTINGS_EXPORT_SCHEMA[key](value);
+    }
+    const m = BCT_KEY_RE.exec(key);
+    if (m && m[1].length <= BCT_CATEGORY_MAX && !FORBIDDEN_KEYS.has(m[1].trim())) {
+        return numberIn(0, 100)(value);
+    }
+    return false;
+}
+
+const PREF_VALIDATORS = {
+    theme: v => THEMES.includes(v),
+    locale: v => LOCALES.some(l => l.code === v),
+    currency: v => CURRENCIES.some(c => c.code === v),
+};
+
+export function buildSettingsExport(app, prefs = {}) {
+    const settings = {};
+    for (const entry of (app && app.settings) || []) {
+        if (entry && validateExportedSetting(entry.key, entry.value)) settings[entry.key] = entry.value;
+    }
+    const preferences = {};
+    for (const key of Object.keys(PREF_VALIDATORS)) {
+        if (PREF_VALIDATORS[key](prefs[key])) preferences[key] = prefs[key];
+    }
+    return {
+        type: SETTINGS_EXPORT_TYPE,
+        app: 'MyFinances',
+        version: SETTINGS_EXPORT_VERSION,
+        exportedAt: new Date().toISOString(),
+        preferences,
+        settings,
+    };
+}
+
+const DATA_EXPORT_ARRAYS = ['debts', 'accounts', 'incomes', 'bills', 'expenses', 'recurringTemplates', 'emergencyFunds', 'sinkingFunds', 'monthlySnapshots', 'reconciliations'];
+
+function importFailure(error) {
+    return { ok: false, error, preferences: {}, settings: {}, skipped: [] };
+}
+
+// `json` is the raw file text (size-checked before parsing) or an already
+// parsed value. Never throws.
+export function parseSettingsImport(json) {
+    let data = json;
+    if (typeof json === 'string') {
+        if (json.length > SETTINGS_EXPORT_MAX_BYTES) return importFailure(t('settings.backup.errTooLarge'));
+        try { data = JSON.parse(json); } catch (e) {
+            return importFailure(t('settings.backup.errMalformed', { detail: e && e.message ? e.message : '' }));
+        }
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return importFailure(t('settings.backup.errNotSettings'));
+    if (data.type !== SETTINGS_EXPORT_TYPE) {
+        const looksLikeData = DATA_EXPORT_ARRAYS.some(k => Array.isArray(data[k]));
+        return importFailure(looksLikeData ? t('settings.backup.errFullExport') : t('settings.backup.errNotSettings'));
+    }
+    const major = parseInt(String(data.version ?? '').split('.')[0], 10);
+    if (!Number.isFinite(major) || major !== 1) {
+        return importFailure(t('settings.backup.errVersion', { version: String(data.version).slice(0, 20) }));
+    }
+
+    const preferences = {};
+    const settings = {};
+    const skipped = [];
+    const skip = (key, reason) => skipped.push({ key: String(key).slice(0, 80), reason });
+    const asObject = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+
+    const prefsIn = asObject(data.preferences);
+    for (const key of Object.keys(prefsIn)) {
+        if (FORBIDDEN_KEYS.has(key)) { skip(key, t('settings.backup.reasonForbidden')); continue; }
+        if (!Object.prototype.hasOwnProperty.call(PREF_VALIDATORS, key)) { skip(key, t('settings.backup.reasonUnknown')); continue; }
+        if (!PREF_VALIDATORS[key](prefsIn[key])) { skip(key, t('settings.backup.reasonInvalid')); continue; }
+        preferences[key] = prefsIn[key];
+    }
+
+    const settingsIn = asObject(data.settings);
+    for (const key of Object.keys(settingsIn)) {
+        if (FORBIDDEN_KEYS.has(key)) { skip(key, t('settings.backup.reasonForbidden')); continue; }
+        if (key === SURPLUS_ACCOUNT_ID) { skip(key, t('settings.backup.reasonAccountSpecific')); continue; }
+        if (!isKnownSettingKey(key)) { skip(key, t('settings.backup.reasonUnknown')); continue; }
+        if (!validateExportedSetting(key, settingsIn[key])) { skip(key, t('settings.backup.reasonInvalid')); continue; }
+        settings[key] = settingsIn[key];
+    }
+    return { ok: true, preferences, settings, skipped };
 }

@@ -297,6 +297,7 @@ jobs:
             tests/features/test_interest_income.py \
             tests/features/test_health.py \
             tests/features/test_settings.py \
+            tests/features/test_settings_backup.py \
             tests/features/test_validation_modals.py \
             tests/features/test_versioning.py \
             tests/features/test_savings.py \
