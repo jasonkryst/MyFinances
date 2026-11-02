@@ -4,6 +4,24 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.62.0] — 2026-11-02
+
+### Added
+- **Liabilities and Recurring are fully translated into Spanish and Polish** (issue #317, part 3).
+  - **Debts:** cards, fact tiles, payoff analysis, filters, sort and group-by, the inline edit form, the Ownership split control, and the Update Balance and Accelerate modals. Debt types get display labels; stored values stay English.
+  - **Budget / Expenses:** the expense list and inline edit, the month navigator and the Category Budgets panel. Built-in categories get display labels through the new `categoryLabel()` in `i18n.js`.
+  - **Recurring:** template cards, filters, the overdue toggle, the inline edit form, and the Mark-as-paid and Pause modals. Types and frequencies get display labels.
+  - **Shared modals:** the alert, delete, archive and paid-off confirmations, and the $0-amount policy prompt.
+  - **Plurals:** a new `plural(baseKey, count, vars)` helper in `i18n.js` picks `.one`/`.other` keys with `Intl.PluralRules`.
+
+### Changed
+- **Sentence emphasis:** a few sentences lose their inline bold (debt paid-off, minimum-payment trap, recurring "This month", and the Pause and Mark-as-paid descriptions), so each one translates as a single string.
+- **Day ordinals:** "1st/2nd/3rd" suffixes are English-only; other languages show the bare day number.
+- **Ledger:** the filter button's "Filters" label is translated too, because it shares the helper.
+
+### Tests
+- **Coverage guard:** `test_i18n_coverage.py` adds a Liabilities/Recurring seed (people, varied debts, expenses, fixed and derived category budgets, every recurring type including paused, skipped, archived and overdue templates) and 17 page entries covering each sub-tab, inline edit form and modal.
+
 ## [6.61.0] — 2026-11-02
 
 ### Added

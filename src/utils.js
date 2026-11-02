@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
-import { getIntlLocale, getCurrencyCode } from './i18n.js';
+import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '6.61.0';
+export const APP_VERSION = '6.62.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -235,6 +235,9 @@ export function renderLazyLoadError(containerId, label) {
 }
 
 export function getDayOrdinal(day) {
+    // English ordinals ("1st", "22nd") only make sense in English; other
+    // locales word the surrounding sentence around a plain number.
+    if (getCurrentLocale() !== 'en') return String(day);
     const j = day % 10;
     const k = day % 100;
 
@@ -540,7 +543,7 @@ export function setCollapsibleOpen(bodyId, open) {
 }
 
 export function buildFiltersLabel(activeCount) {
-    return activeCount > 0 ? `Filters (${activeCount} active)` : 'Filters';
+    return activeCount > 0 ? t('filters.labelActive', { count: activeCount }) : t('filters.label');
 }
 
 // Recompute the "Filters (n active)" label of every DOM-counted disclosure:
