@@ -3,6 +3,7 @@
 import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut } from './postgresSync.js';
+import { t } from './i18n.js';
 
 function toMonthKey(value) {
     return String(value || '').slice(0, 7);
@@ -171,7 +172,7 @@ export function renderNetWorthWidget(app) {
 
     const snapshots = getSnapshotSeries(app, 24);
     if (snapshots.length === 0) {
-        container.innerHTML = '<p class="nw-widget-empty">No snapshots yet. Capture your first net worth snapshot from Reports.</p>';
+        container.innerHTML = `<p class="nw-widget-empty">${t('netWorth.widgetEmpty')}</p>`;
         return;
     }
 
@@ -179,19 +180,21 @@ export function renderNetWorthWidget(app) {
     const prev = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
     const change = prev ? latest.netWorth - prev.netWorth : 0;
     const changeClass = change >= 0 ? 'nw-change--up' : 'nw-change--down';
-    const changeLabel = prev ? `${change >= 0 ? '+' : '-'}${formatCurrency(Math.abs(change))} vs last snapshot` : 'No prior snapshot yet';
+    const changeLabel = prev
+        ? t('netWorth.widgetChange', { change: `${change >= 0 ? '+' : '-'}${formatCurrency(Math.abs(change))}` })
+        : t('netWorth.widgetNoPrior');
 
     container.innerHTML = `
         <div class="nw-widget-card">
             <div class="nw-widget-head">
-                <h3>Net Worth</h3>
-                <span class="nw-widget-date" title="Snapshot value; the Health page shows live balances">Snapshot as of ${escapeHtml(formatShortDate(latest.date))}</span>
+                <h3>${t('netWorth.widgetTitle')}</h3>
+                <span class="nw-widget-date" title="${escapeHtml(t('netWorth.widgetSnapshotTitle'))}">${escapeHtml(t('netWorth.widgetSnapshotAsOf', { date: formatShortDate(latest.date) }))}</span>
             </div>
             <div class="nw-widget-main">${formatCurrency(latest.netWorth)}</div>
             <div class="nw-widget-change ${changeClass}">${changeLabel}</div>
             <div class="nw-widget-breakdown">
-                <span>Assets: <strong>${formatCurrency(latest.totalAssets)}</strong></span>
-                <span>Liabilities: <strong>${formatCurrency(latest.totalLiabilities)}</strong></span>
+                <span>${t('netWorth.widgetAssets')} <strong>${formatCurrency(latest.totalAssets)}</strong></span>
+                <span>${t('netWorth.widgetLiabilities')} <strong>${formatCurrency(latest.totalLiabilities)}</strong></span>
             </div>
         </div>`;
 }

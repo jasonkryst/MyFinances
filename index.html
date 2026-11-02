@@ -181,109 +181,109 @@
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="accounts-section page-section" id="accountsSection">
                 <div class="page-header-row page-header">
-                    <h2>🏦 Accounts</h2>
-                    <button type="button" class="page-print-btn" id="accountsPrintBtn" title="Print this page" aria-label="Print the Accounts page">🖨️ Print</button>
+                    <h2>🏦 <span data-i18n="nav.accounts">Accounts</span></h2>
+                    <button type="button" class="page-print-btn" id="accountsPrintBtn" title="Print this page" aria-label="Print the Accounts page" data-i18n-attr="title:common.printTitle,aria-label:accounts.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
-                <p class="accounts-intro">Define your bank accounts, wallets, and credit lines. Then link income, debts, bills, and expenses to specific accounts so you can track real cash flow per account.</p>
+                <p class="accounts-intro" data-i18n="accounts.intro">Define your bank accounts, wallets, and credit lines. Then link income, debts, bills, and expenses to specific accounts so you can track real cash flow per account.</p>
                 <div id="netWorthWidget" class="net-worth-widget" aria-live="polite"></div>
 
                 <!-- Add Account form -->
                 <div class="account-form-card">
-                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="accountFormToggle" data-collapse-toggle="accountFormBody" aria-expanded="false" aria-controls="accountFormBody"><span>+ Add account</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="accountFormToggle" data-collapse-toggle="accountFormBody" aria-expanded="false" aria-controls="accountFormBody"><span data-i18n="accounts.addToggle">+ Add account</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
                     <div class="mobile-collapsible-body" id="accountFormBody">
-                    <h3>Add Account</h3>
+                    <h3 data-i18n="accounts.addTitle">Add Account</h3>
                     <form id="accountForm" novalidate>
                         <div class="account-form-grid">
                             <div class="form-group">
-                                <label for="accountName">Account Name *</label>
-                                <input type="text" id="accountName" placeholder="e.g. Main Checking, Emergency Fund" required>
+                                <label for="accountName" data-i18n="accounts.nameLabel">Account Name *</label>
+                                <input type="text" id="accountName" placeholder="e.g. Main Checking, Emergency Fund" required data-i18n-attr="placeholder:accounts.namePlaceholder">
                             </div>
                             <div class="form-group">
-                                <label for="accountType">Type *</label>
+                                <label for="accountType" data-i18n="accounts.typeLabel">Type *</label>
                                 <select id="accountType" required>
-                                    <option value="Checking">Checking</option>
-                                    <option value="Savings">Savings</option>
-                                    <option value="Cash">Cash</option>
-                                    <option value="Investment">Investment</option>
-                                    <option value="Retirement">Retirement</option>
-                                    <option value="Credit Card">Credit Card</option>
-                                    <option value="Loan">Loan</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Checking" data-i18n="accountType.checking">Checking</option>
+                                    <option value="Savings" data-i18n="accountType.savings">Savings</option>
+                                    <option value="Cash" data-i18n="accountType.cash">Cash</option>
+                                    <option value="Investment" data-i18n="accountType.investment">Investment</option>
+                                    <option value="Retirement" data-i18n="accountType.retirement">Retirement</option>
+                                    <option value="Credit Card" data-i18n="accountType.creditCard">Credit Card</option>
+                                    <option value="Loan" data-i18n="accountType.loan">Loan</option>
+                                    <option value="Other" data-i18n="accountType.other">Other</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="accountStartingBalance">Starting Balance ($) *
-                                    <span class="help-icon" tabindex="0" aria-label="The current or starting balance of this account. Use a negative value for credit cards or loans.">?</span>
+                                <label for="accountStartingBalance"><span data-i18n="accounts.startingBalanceLabel">Starting Balance ($) *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The current or starting balance of this account. Use a negative value for credit cards or loans." data-i18n-attr="aria-label:accounts.startingBalanceHelp">?</span>
                                 </label>
                                 <input type="number" id="accountStartingBalance" placeholder="0.00" step="0.01" required>
                             </div>
                             <div class="form-group">
-                                <label for="accountInterestRate">Interest Rate (% APY)
-                                    <span class="help-icon" tabindex="0" aria-label="Optional annual interest rate for this account. When set above zero, a monthly interest deposit is automatically added to the Ledger on the last day of each month. You can override any month's amount in the Ledger with the true value from your statement.">?</span>
+                                <label for="accountInterestRate"><span data-i18n="accounts.interestRateLabel">Interest Rate (% APY)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional annual interest rate for this account. When set above zero, a monthly interest deposit is automatically added to the Ledger on the last day of each month. You can override any month's amount in the Ledger with the true value from your statement." data-i18n-attr="aria-label:accounts.interestRateHelp">?</span>
                                 </label>
                                 <input type="number" id="accountInterestRate" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountMinimumPaymentGroup">
-                                <label for="accountMinimumPayment">Minimum Payment ($)
-                                    <span class="help-icon" tabindex="0" aria-label="Optional. The current minimum payment due on this credit card or loan. It is recorded in the account's balance history and does not change forecasts or the ledger.">?</span>
+                                <label for="accountMinimumPayment"><span data-i18n="accounts.minPaymentLabel">Minimum Payment ($)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional. The current minimum payment due on this credit card or loan. It is recorded in the account's balance history and does not change forecasts or the ledger." data-i18n-attr="aria-label:accounts.minPaymentHelp">?</span>
                                 </label>
                                 <input type="number" id="accountMinimumPayment" placeholder="0.00" step="0.01" min="0">
                             </div>
                             <div class="form-group hidden" id="accountRetirementFieldsGroup">
-                                <label for="accountRetirementSubtype">Retirement Subtype</label>
+                                <label for="accountRetirementSubtype" data-i18n="accounts.subtypeLabel">Retirement Subtype</label>
                                 <select id="accountRetirementSubtype">
                                     <option value="401k">401k</option>
-                                    <option value="Traditional IRA">Traditional IRA</option>
+                                    <option value="Traditional IRA" data-i18n="accounts.subtypeTraditionalIra">Traditional IRA</option>
                                     <option value="Roth IRA">Roth IRA</option>
                                     <option value="HSA">HSA</option>
-                                    <option value="Pension">Pension</option>
-                                    <option value="Other" selected>Other</option>
+                                    <option value="Pension" data-i18n="accounts.subtypePension">Pension</option>
+                                    <option value="Other" selected data-i18n="accounts.subtypeOther">Other</option>
                                 </select>
                             </div>
                             <div class="form-group hidden" id="accountRateOfReturnGroup">
-                                <label for="accountRateOfReturn">Expected Rate of Return (% / yr)
-                                    <span class="help-icon" tabindex="0" aria-label="Your assumed average annual growth rate for this account, used only for the Retirement page's future-value projection.">?</span>
+                                <label for="accountRateOfReturn"><span data-i18n="accounts.rateOfReturnLabel">Expected Rate of Return (% / yr)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Your assumed average annual growth rate for this account, used only for the Retirement page's future-value projection." data-i18n-attr="aria-label:accounts.rateOfReturnHelp">?</span>
                                 </label>
                                 <input type="number" id="accountRateOfReturn" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountEmployerMatchGroup">
-                                <label for="accountEmployerMatch">Employer Match (%)
-                                    <span class="help-icon" tabindex="0" aria-label="Percent of your contribution your employer matches, e.g. 50 for a 50% match. Used in the Retirement page's projection.">?</span>
+                                <label for="accountEmployerMatch"><span data-i18n="accounts.employerMatchLabel">Employer Match (%)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Percent of your contribution your employer matches, e.g. 50 for a 50% match. Used in the Retirement page's projection." data-i18n-attr="aria-label:accounts.employerMatchHelp">?</span>
                                 </label>
                                 <input type="number" id="accountEmployerMatch" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountPensionSalaryGroup">
-                                <label for="accountPensionSalary">Annual Salary ($)
-                                    <span class="help-icon" tabindex="0" aria-label="Your current annual salary. Used to compute your monthly pension contribution amount, which is reviewed each year.">?</span>
+                                <label for="accountPensionSalary"><span data-i18n="accounts.pensionSalaryLabel">Annual Salary ($)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Your current annual salary. Used to compute your monthly pension contribution amount, which is reviewed each year." data-i18n-attr="aria-label:accounts.pensionSalaryHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionSalary" placeholder="0.00" step="0.01" min="0">
                             </div>
                             <div class="form-group hidden" id="accountPensionContributionRateGroup">
-                                <label for="accountPensionContributionRate">Contribution Rate (% of salary)
-                                    <span class="help-icon" tabindex="0" aria-label="The percentage of your salary deducted each year for pension contributions, e.g. 7 for 7%.">?</span>
+                                <label for="accountPensionContributionRate"><span data-i18n="accounts.pensionContributionRateLabel">Contribution Rate (% of salary)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The percentage of your salary deducted each year for pension contributions, e.g. 7 for 7%." data-i18n-attr="aria-label:accounts.pensionContributionRateHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionContributionRate" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountPensionVestingYearsGroup">
-                                <label for="accountPensionVestingYears">Vesting Years
-                                    <span class="help-icon" tabindex="0" aria-label="Number of years of service required to be fully vested in the pension benefit.">?</span>
+                                <label for="accountPensionVestingYears"><span data-i18n="accounts.vestingYearsLabel">Vesting Years</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Number of years of service required to be fully vested in the pension benefit." data-i18n-attr="aria-label:accounts.vestingYearsHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionVestingYears" placeholder="0" step="1" min="0">
                             </div>
                             <div class="form-group hidden" id="accountPensionMonthlyBenefitGroup">
-                                <label for="accountPensionMonthlyBenefit">Estimated Monthly Benefit ($)
-                                    <span class="help-icon" tabindex="0" aria-label="The monthly pension payout your administrator currently estimates you will receive at retirement, from your most recent statement.">?</span>
+                                <label for="accountPensionMonthlyBenefit"><span data-i18n="accounts.monthlyBenefitLabel">Estimated Monthly Benefit ($)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The monthly pension payout your administrator currently estimates you will receive at retirement, from your most recent statement." data-i18n-attr="aria-label:accounts.monthlyBenefitHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionMonthlyBenefit" placeholder="0.00" step="0.01" min="0">
                             </div>
                             <div class="form-group hidden" id="accountPensionYearsOfServiceGroup">
-                                <label for="accountPensionYearsOfService">Years of Service
-                                    <span class="help-icon" tabindex="0" aria-label="Your current credited years of service used in the pension benefit formula.">?</span>
+                                <label for="accountPensionYearsOfService"><span data-i18n="accounts.yearsOfServiceLabel">Years of Service</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Your current credited years of service used in the pension benefit formula." data-i18n-attr="aria-label:accounts.yearsOfServiceHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionYearsOfService" placeholder="0" step="1" min="0">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success" id="accountFormSubmit">Add Account</button>
+                        <button type="submit" class="btn btn-success" id="accountFormSubmit" data-i18n="accounts.addTitle">Add Account</button>
                     </form>
                     </div>
                 </div>
@@ -291,30 +291,30 @@
                 <!-- Account list controls -->
                 <div class="debts-toolbar-filter accounts-toolbar-filter filters-grid">
                     <div class="fd-field">
-                        <label for="accountSortBy" class="category-filter-label">Sort:</label>
+                        <label for="accountSortBy" class="category-filter-label" data-i18n="accounts.sortLabel">Sort:</label>
                         <select id="accountSortBy" class="category-filter">
-                        <option value="">Default</option>
-                        <option value="name-asc">Name A–Z</option>
-                        <option value="name-desc">Name Z–A</option>
-                        <option value="type-asc">Type A–Z</option>
-                        <option value="balance-desc">Balance ↓</option>
-                        <option value="balance-asc">Balance ↑</option>
-                        <option value="apy-desc">APY ↓</option>
-                        <option value="apy-asc">APY ↑</option>
+                        <option value="" data-i18n="accounts.sortDefault">Default</option>
+                        <option value="name-asc" data-i18n="accounts.sortNameAsc">Name A–Z</option>
+                        <option value="name-desc" data-i18n="accounts.sortNameDesc">Name Z–A</option>
+                        <option value="type-asc" data-i18n="accounts.sortTypeAsc">Type A–Z</option>
+                        <option value="balance-desc" data-i18n="accounts.sortBalanceDesc">Balance ↓</option>
+                        <option value="balance-asc" data-i18n="accounts.sortBalanceAsc">Balance ↑</option>
+                        <option value="apy-desc" data-i18n="accounts.sortApyDesc">APY ↓</option>
+                        <option value="apy-asc" data-i18n="accounts.sortApyAsc">APY ↑</option>
                     </select>
                     </div>
                     <div class="fd-field">
-                        <label for="accountTypeFilter" class="category-filter-label">Type:</label>
+                        <label for="accountTypeFilter" class="category-filter-label" data-i18n="accounts.typeFilterLabel">Type:</label>
                         <select id="accountTypeFilter" class="category-filter">
-                        <option value="">All</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Savings">Savings</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Retirement">Retirement</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Loan">Loan</option>
-                        <option value="Other">Other</option>
+                        <option value="" data-i18n="accounts.filterAll">All</option>
+                        <option value="Checking" data-i18n="accountType.checking">Checking</option>
+                        <option value="Savings" data-i18n="accountType.savings">Savings</option>
+                        <option value="Cash" data-i18n="accountType.cash">Cash</option>
+                        <option value="Investment" data-i18n="accountType.investment">Investment</option>
+                        <option value="Retirement" data-i18n="accountType.retirement">Retirement</option>
+                        <option value="Credit Card" data-i18n="accountType.creditCard">Credit Card</option>
+                        <option value="Loan" data-i18n="accountType.loan">Loan</option>
+                        <option value="Other" data-i18n="accountType.other">Other</option>
                     </select>
                     </div>
                 </div>
@@ -620,91 +620,91 @@
             <!-- Income Section -->
             <section class="income-section page-section active" id="incomeSection">
                 <div class="page-header-row page-header">
-                    <h2>💰 Income Sources</h2>
-                    <button type="button" class="page-print-btn" id="incomePrintBtn" title="Print this page" aria-label="Print the Income page">🖨️ Print</button>
+                    <h2>💰 <span data-i18n="income.pageTitle">Income Sources</span></h2>
+                    <button type="button" class="page-print-btn" id="incomePrintBtn" title="Print this page" aria-label="Print the Income page" data-i18n-attr="title:common.printTitle,aria-label:income.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
 
                 <!-- Add Income Form -->
                 <div class="income-form-card">
-                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="incomeFormToggle" data-collapse-toggle="incomeFormBody" aria-expanded="false" aria-controls="incomeFormBody"><span>+ Add income</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="incomeFormToggle" data-collapse-toggle="incomeFormBody" aria-expanded="false" aria-controls="incomeFormBody"><span data-i18n="income.addToggle">+ Add income</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
                     <div class="mobile-collapsible-body" id="incomeFormBody">
-                    <h3>Add Income Source</h3>
+                    <h3 data-i18n="income.addTitle">Add Income Source</h3>
                     <form id="incomeForm" novalidate>
                         <div class="income-form-grid">
                             <div class="form-group">
-                                <label for="incomeName">Name *
-                                    <span class="help-icon" tabindex="0" aria-label="A label for this income source, e.g. 'Main Job' or 'Freelance'.">?</span>
+                                <label for="incomeName"><span data-i18n="income.nameLabel">Name *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="A label for this income source, e.g. 'Main Job' or 'Freelance'." data-i18n-attr="aria-label:income.nameHelp">?</span>
                                 </label>
-                                <input type="text" id="incomeName" placeholder="e.g. Main Job, Freelance" required>
+                                <input type="text" id="incomeName" placeholder="e.g. Main Job, Freelance" required data-i18n-attr="placeholder:income.namePlaceholder">
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeAmount">Amount per Paycheck ($) *
-                                    <span class="help-icon" tabindex="0" aria-label="The gross amount before any withholding. If this is already your take-home pay, leave Tax Withholding at 0.">?</span>
+                                <label for="incomeAmount"><span data-i18n="income.amountLabel">Amount per Paycheck ($) *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The gross amount before any withholding. If this is already your take-home pay, leave Tax Withholding at 0." data-i18n-attr="aria-label:income.amountHelp">?</span>
                                 </label>
                                 <input type="number" id="incomeAmount" placeholder="0.00" step="0.01" min="0" required>
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeWithholding">Tax Withholding (%)
-                                    <span class="help-icon" tabindex="0" aria-label="Optional. Percent withheld for taxes before this paycheck hits your account — used to show your net (take-home) income instead of gross. Leave at 0 if the amount above is already your take-home pay.">?</span>
+                                <label for="incomeWithholding"><span data-i18n="income.withholdingLabel">Tax Withholding (%)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional. Percent withheld for taxes before this paycheck hits your account — used to show your net (take-home) income instead of gross. Leave at 0 if the amount above is already your take-home pay." data-i18n-attr="aria-label:income.withholdingHelp">?</span>
                                 </label>
                                 <input type="number" id="incomeWithholding" placeholder="0" step="0.1" min="0" max="99.9">
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeFirstDate">First Pay Date *
-                                    <span class="help-icon" tabindex="0" aria-label="The date of the first (or next) payday for this income source.">?</span>
+                                <label for="incomeFirstDate"><span data-i18n="income.firstDateLabel">First Pay Date *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The date of the first (or next) payday for this income source." data-i18n-attr="aria-label:income.firstDateHelp">?</span>
                                 </label>
                                 <input type="date" id="incomeFirstDate" required>
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeFrequency">Frequency *
-                                    <span class="help-icon" tabindex="0" aria-label="How often you receive this payment.">?</span>
+                                <label for="incomeFrequency"><span data-i18n="income.frequencyLabel">Frequency *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="How often you receive this payment." data-i18n-attr="aria-label:income.frequencyHelp">?</span>
                                 </label>
                                 <select id="incomeFrequency" required>
-                                    <option value="weekly">Every week</option>
-                                    <option value="biweekly">Every other week (bi-weekly)</option>
-                                    <option value="twice_monthly">Twice per month (15th &amp; last day)</option>
-                                    <option value="monthly">Once per month</option>
+                                    <option value="weekly" data-i18n="income.freqWeekly">Every week</option>
+                                    <option value="biweekly" data-i18n="income.freqBiweekly">Every other week (bi-weekly)</option>
+                                    <option value="twice_monthly" data-i18n="income.freqTwiceMonthly">Twice per month (15th &amp; last day)</option>
+                                    <option value="monthly" data-i18n="income.freqMonthly">Once per month</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="incomeAccount">Deposit to Account
-                                    <span class="help-icon" tabindex="0" aria-label="Which account does this income deposit into?">?</span>
+                                <label for="incomeAccount"><span data-i18n="income.accountLabel">Deposit to Account</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Which account does this income deposit into?" data-i18n-attr="aria-label:income.accountHelp">?</span>
                                 </label>
                                 <select id="incomeAccount">
-                                    <option value="">— No account —</option>
+                                    <option value="" data-i18n="accounts.noAccount">— No account —</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="incomePerson">Person
-                                    <span class="help-icon" tabindex="0" aria-label="Which family member earns this income?">?</span>
+                                <label for="incomePerson"><span data-i18n="income.personLabel">Person</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Which family member earns this income?" data-i18n-attr="aria-label:income.personHelp">?</span>
                                 </label>
                                 <select id="incomePerson" class="person-selector">
-                                    <option value="">— No person —</option>
+                                    <option value="" data-i18n="income.noPerson">— No person —</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="incomeCategory">Category</label>
+                                <label for="incomeCategory" data-i18n="income.categoryLabel">Category</label>
                                 <select id="incomeCategory">
-                                    <option value="Salary">Salary</option>
-                                    <option value="Freelance">Freelance</option>
-                                    <option value="Rental">Rental</option>
-                                    <option value="Investment">Investment</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Salary" data-i18n="income.catSalary">Salary</option>
+                                    <option value="Freelance" data-i18n="income.catFreelance">Freelance</option>
+                                    <option value="Rental" data-i18n="income.catRental">Rental</option>
+                                    <option value="Investment" data-i18n="income.catInvestment">Investment</option>
+                                    <option value="Other" data-i18n="income.catOther">Other</option>
                                 </select>
                             </div>
                         </div>
                         <div class="form-group income-variable-group">
                             <label class="income-variable-label">
                                 <input type="checkbox" id="incomeIsVariable">
-                                Variable / hourly amount
-                                <span class="help-icon" tabindex="0" aria-label="Check this if your paycheck amount varies (e.g. hourly pay). The amount above is treated as an estimate — update the actual amount in the Ledger when each paycheck arrives.">?</span>
+                                <span data-i18n="income.variableLabel">Variable / hourly amount</span>
+                                <span class="help-icon" tabindex="0" aria-label="Check this if your paycheck amount varies (e.g. hourly pay). The amount above is treated as an estimate — update the actual amount in the Ledger when each paycheck arrives." data-i18n-attr="aria-label:income.variableHelp">?</span>
                             </label>
                         </div>
-                        <button type="submit" class="btn btn-success" id="incomeFormSubmit">Add Income</button>
+                        <button type="submit" class="btn btn-success" id="incomeFormSubmit" data-i18n="income.addBtn">Add Income</button>
                     </form>
                     </div>
                 </div>
@@ -715,60 +715,60 @@
                 <!-- ── One-time bonuses / deposits ── -->
                 <div class="bonus-section">
                     <button class="bonus-form-toggle" id="bonusFormToggle" type="button" aria-expanded="false" aria-controls="bonusFormBody">
-                        🎁 Add a one-time bonus / deposit
+                        🎁 <span data-i18n="income.bonusToggle">Add a one-time bonus / deposit</span>
                         <span class="bonus-form-chevron">▼</span>
                     </button>
                     <div id="bonusFormBody" hidden>
                         <form id="bonusForm" novalidate class="bonus-form-inner">
                             <div class="bonus-form-grid">
                                 <div class="form-group no-margin">
-                                    <label for="bonusName">Label *</label>
-                                    <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Cash deposit, Check deposit" required>
+                                    <label for="bonusName" data-i18n="income.bonusLabelLabel">Label *</label>
+                                    <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Cash deposit, Check deposit" required data-i18n-attr="placeholder:income.bonusLabelPlaceholder">
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusAmount">Amount ($) *</label>
+                                    <label for="bonusAmount" data-i18n="income.bonusAmountLabel">Amount ($) *</label>
                                     <input type="number" id="bonusAmount" placeholder="0.00" step="0.01" min="0.01" required>
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusDate">Date received *</label>
+                                    <label for="bonusDate" data-i18n="income.bonusDateLabel">Date received *</label>
                                     <input type="date" id="bonusDate" required>
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusCategory">Category</label>
+                                    <label for="bonusCategory" data-i18n="income.categoryLabel">Category</label>
                                     <select id="bonusCategory">
-                                        <option value="Bonus">Bonus</option>
-                                        <option value="Tax Refund">Tax Refund</option>
-                                        <option value="Cash Deposit">Cash Deposit</option>
-                                        <option value="Check Deposit">Check Deposit</option>
-                                        <option value="Other">Other</option>
+                                        <option value="Bonus" data-i18n="income.bonusCatBonus">Bonus</option>
+                                        <option value="Tax Refund" data-i18n="income.bonusCatTaxRefund">Tax Refund</option>
+                                        <option value="Cash Deposit" data-i18n="income.bonusCatCashDeposit">Cash Deposit</option>
+                                        <option value="Check Deposit" data-i18n="income.bonusCatCheckDeposit">Check Deposit</option>
+                                        <option value="Other" data-i18n="income.bonusCatOther">Other</option>
                                     </select>
                                 </div>
                                 <div class="form-group form-group-no-margin">
-                                    <label for="bonusAccount">Deposit to Account</label>
+                                    <label for="bonusAccount" data-i18n="income.accountLabel">Deposit to Account</label>
                                     <select id="bonusAccount">
-                                        <option value="">— No account —</option>
+                                        <option value="" data-i18n="accounts.noAccount">— No account —</option>
                                     </select>
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusPurpose">Purpose</label>
+                                    <label for="bonusPurpose" data-i18n="income.bonusPurposeLabel">Purpose</label>
                                     <select id="bonusPurpose">
-                                        <option value="">— Not decided —</option>
-                                        <option value="cashFlow">💳 Cash Flow (pay down debt)</option>
-                                        <option value="savings">🏦 Long-term Savings</option>
+                                        <option value="" data-i18n="income.bonusPurposeNone">— Not decided —</option>
+                                        <option value="cashFlow" data-i18n="income.bonusPurposeCashFlowOpt">💳 Cash Flow (pay down debt)</option>
+                                        <option value="savings" data-i18n="income.bonusPurposeSavingsOpt">🏦 Long-term Savings</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="bonus-advice-trigger">
-                                <button type="button" id="bonusAdviceBtn" class="btn btn-secondary btn-small">💡 What should I do with this?</button>
-                                <label for="bonusAdviceInterestFilter" class="bonus-advice-filter-label">Pay Off Debts Now uses:</label>
+                                <button type="button" id="bonusAdviceBtn" class="btn btn-secondary btn-small">💡 <span data-i18n="income.bonusAdviceBtn">What should I do with this?</span></button>
+                                <label for="bonusAdviceInterestFilter" class="bonus-advice-filter-label" data-i18n="income.bonusAdviceFilterLabel">Pay Off Debts Now uses:</label>
                                 <select id="bonusAdviceInterestFilter" class="bonus-advice-filter">
-                                    <option value="">Any debt</option>
-                                    <option value="interestBearing">Interest Bearing Only</option>
-                                    <option value="noInterest">No Interest Only</option>
+                                    <option value="" data-i18n="income.bonusFilterAny">Any debt</option>
+                                    <option value="interestBearing" data-i18n="income.bonusFilterInterest">Interest Bearing Only</option>
+                                    <option value="noInterest" data-i18n="income.bonusFilterNoInterest">No Interest Only</option>
                                 </select>
                             </div>
                             <div id="bonusAdviceResult"></div>
-                            <button type="submit" class="btn btn-success submit-button-margin">Add One-time Entry</button>
+                            <button type="submit" class="btn btn-success submit-button-margin" data-i18n="income.bonusSubmit">Add One-time Entry</button>
                         </form>
                     </div>
                 </div>
@@ -780,17 +780,17 @@
                 <!-- Income Trend Chart (issue #262) -->
                 <div class="rpt-chart-card income-trend-card" id="incomeTrendCard">
                     <div class="income-trend-header">
-                        <h4 class="rpt-chart-title">Income Trend</h4>
+                        <h4 class="rpt-chart-title" data-i18n="income.trendTitle">Income Trend</h4>
                         <div class="income-trend-controls">
-                            <label for="incomeTrendRangeSelect" class="filter-label">Range:
+                            <label for="incomeTrendRangeSelect" class="filter-label"><span data-i18n="income.trendRangeLabel">Range:</span>
                                 <select id="incomeTrendRangeSelect" class="select-styled">
-                                    <option value="12">Trailing 12 months</option>
-                                    <option value="24">Trailing 24 months</option>
+                                    <option value="12" data-i18n="income.trendRange12">Trailing 12 months</option>
+                                    <option value="24" data-i18n="income.trendRange24">Trailing 24 months</option>
                                 </select>
                             </label>
                             <label class="income-trend-yoy-toggle">
                                 <input type="checkbox" id="incomeTrendYoYToggle">
-                                Compare to same month last year
+                                <span data-i18n="income.trendYoy">Compare to same month last year</span>
                             </label>
                         </div>
                     </div>
@@ -1346,27 +1346,27 @@
     <!-- Balance History Modal (top-level so position:fixed works from any page) -->
     <div id="balanceHistoryModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="balanceHistoryTitle" tabindex="-1">
         <div class="modal-content modal-content--history">
-            <button id="balanceHistoryClose" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="balanceHistoryTitle">Balance History</h3>
+            <button id="balanceHistoryClose" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
+            <h3 id="balanceHistoryTitle" data-i18n="balanceHistory.title">Balance History</h3>
             <p class="modal-subtitle"><strong id="balanceHistoryName"></strong></p>
-            <p id="balanceHistoryEmpty" class="modal-helper-text hidden">History starts here — updates you make will be recorded.</p>
+            <p id="balanceHistoryEmpty" class="modal-helper-text hidden" data-i18n="balanceHistory.empty">History starts here — updates you make will be recorded.</p>
             <div class="bh-chart-wrap" id="balanceHistoryChartWrap"><canvas id="balanceHistoryChart"></canvas></div>
             <div class="bh-table-wrap">
                 <table class="bh-table">
                     <thead>
                         <tr>
-                            <th scope="col">Date</th>
-                            <th scope="col" class="bh-col-balance">Balance</th>
-                            <th scope="col" id="bhColMin">Min. payment</th>
-                            <th scope="col">Change</th>
-                            <th scope="col"><span class="sr-only">Actions</span></th>
+                            <th scope="col" data-i18n="balanceHistory.colDate">Date</th>
+                            <th scope="col" class="bh-col-balance" data-i18n="balanceHistory.colBalance">Balance</th>
+                            <th scope="col" id="bhColMin" data-i18n="balanceHistory.colMinPayment">Min. payment</th>
+                            <th scope="col" data-i18n="balanceHistory.colChange">Change</th>
+                            <th scope="col"><span class="sr-only" data-i18n="balanceHistory.colActions">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody id="balanceHistoryRows"></tbody>
                 </table>
             </div>
             <div class="modal-actions">
-                <button id="balanceHistoryCloseBtn" class="btn btn-secondary">Close</button>
+                <button id="balanceHistoryCloseBtn" class="btn btn-secondary" data-i18n="common.close">Close</button>
             </div>
         </div>
     </div>
@@ -1478,32 +1478,32 @@
     <!-- Transfer Modal (issue #248) - add/edit a one-off transfer between two accounts -->
     <div id="transferModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="transferModalTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="transferModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="transferModalTitle">Transfer Between Accounts</h3>
+            <button id="transferModalCloseBtn" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
+            <h3 id="transferModalTitle" data-i18n="transfer.title">Transfer Between Accounts</h3>
             <div class="form-group modal-form-group">
-                <label for="transferModalFrom">From Account</label>
+                <label for="transferModalFrom" data-i18n="transfer.fromLabel">From Account</label>
                 <select id="transferModalFrom"></select>
             </div>
             <div class="form-group modal-form-group">
-                <label for="transferModalTo">To Account</label>
+                <label for="transferModalTo" data-i18n="transfer.toLabel">To Account</label>
                 <select id="transferModalTo"></select>
             </div>
             <p id="transferModalError" class="recon-range-error hidden" role="alert"></p>
             <div class="form-group modal-form-group">
-                <label for="transferModalAmount">Amount ($)</label>
+                <label for="transferModalAmount" data-i18n="transfer.amountLabel">Amount ($)</label>
                 <input type="number" id="transferModalAmount" step="0.01" placeholder="0.00">
             </div>
             <div class="form-group modal-form-group">
-                <label for="transferModalDate">Date</label>
+                <label for="transferModalDate" data-i18n="transfer.dateLabel">Date</label>
                 <input type="date" id="transferModalDate">
             </div>
             <div class="form-group modal-form-group">
-                <label for="transferModalMemo">Memo (optional)</label>
+                <label for="transferModalMemo" data-i18n="transfer.memoLabel">Memo (optional)</label>
                 <input type="text" id="transferModalMemo" maxlength="200">
             </div>
             <div class="modal-actions">
-                <button id="transferModalConfirmBtn" class="btn btn-success">Transfer</button>
-                <button id="transferModalCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="transferModalConfirmBtn" class="btn btn-success" data-i18n="transfer.confirmBtn">Transfer</button>
+                <button id="transferModalCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>

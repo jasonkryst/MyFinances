@@ -1015,6 +1015,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.61.0 — 2026-11-02',
+        items: [
+            '<strong>Accounts, Income and Savings now speak Spanish and Polish</strong> (issue #317): every card, form, chart and pop-up on these pages follows the language you pick in Settings, including the Bonus Advisor and the Home Purchase planner.'
+        ]
+    },
+    {
         version: '6.60.0 — 2026-11-01',
         items: [
             '<strong>More of the app speaks Spanish and Polish</strong> (issue #317): the Retirement and Reconcile pages, and the newer Health cards, are now fully translated. More pages will follow.',
