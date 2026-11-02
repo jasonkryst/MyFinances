@@ -7,6 +7,7 @@ import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showEmailTestToast } from './ui.js';
+import { initSettingsBackup } from './settingsBackup.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -87,6 +88,8 @@ export function initSettingsModal(app) {
     const localeSelect = document.getElementById('settingLocale');
     const currencySelect = document.getElementById('settingCurrency');
     if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect || !currencySelect) return;
+
+    initSettingsBackup(app);
 
     // #322: tabbed layout — same data-attribute/classList pattern as the
     // Data Transfer modal's Export/Import tabs, under its own class

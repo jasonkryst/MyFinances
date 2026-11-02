@@ -760,3 +760,34 @@ def test_xss_in_account_notes_is_inert(app_page):
     stored = page.evaluate("() => window.app.accounts.find(a => a.name === 'Form XSS').notes")
     assert '<' not in stored and '>' not in stored and '"' not in stored
     assert not page.evaluate('() => !!window.__xss_acct_note')
+
+
+@pytest.mark.security
+def test_xss_in_settings_import_keys_and_values_is_inert(app_page):
+    """A settings file with HTML in keys, values and preferences is only ever
+    shown as text in the skipped list and never applied (#326)."""
+    page = app_page
+    payload = '<img src=x onerror="window.__xss_settings=1"><script>window.__xss_settings=2</script>'
+    text = json.dumps({
+        'type': 'settings', 'version': '1.0',
+        'preferences': {'theme': payload, payload: 'x'},
+        'settings': {payload: payload, 'zeroAmountPolicy': payload, 'showArchivedDebts': True},
+    })
+    page.evaluate("() => document.getElementById('settingsBtn').click()")
+    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.click('[data-settings-tab="data"]')
+    page.set_input_files('#settingsImportFile', files=[
+        {'name': 'settings.json', 'mimeType': 'application/json', 'buffer': text.encode('utf-8')}
+    ])
+    page.wait_for_selector('#settingsBackupStatus li', state='attached', timeout=5000)
+    assert not page.evaluate('() => !!window.__xss_settings')
+    assert page.evaluate(
+        '() => document.querySelectorAll("#settingsBackupStatus img, #settingsBackupStatus script").length') == 0
+    # The hostile key is displayed literally, as text.
+    assert '<img' in page.evaluate('() => document.getElementById("settingsBackupStatus").textContent')
+    assert page.evaluate("""async () => {
+        const s = await import('/src/settings.js');
+        return s.getSetting(window.app, 'showArchivedDebts') === true
+            && s.getSetting(window.app, 'zeroAmountPolicy', 'allow') === 'allow'
+            && !(window.app.settings || []).some(e => /</.test(e.key));
+    }""")

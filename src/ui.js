@@ -4,16 +4,16 @@ import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from '
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
 import { APP_VERSION, escapeHtml, isCollapsibleOpen, setCollapsibleOpen, refreshFilterDisclosureCounts } from './utils.js';
-import { getZeroAmountPolicy } from './settings.js';
+import { getZeroAmountPolicy, THEMES } from './settings.js';
+export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
-// Order matters for cycleTheme() (commandPalette.js), which steps through
-// this list by index.
-export const THEMES = ['light', 'dark', 'high-contrast'];
+// THEMES (order matters for cycleTheme() in commandPalette.js) lives in
+// settings.js and is re-exported above.
 
 // High Contrast is built on top of Dark Mode (both classes applied together)
 // so it inherits dark-mode's existing surface colors and the JS chart/gauge
@@ -1024,6 +1024,12 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.66.0 — 2026-11-02',
+        items: [
+            '<strong>Settings backup</strong> (issue #326): export just your preferences (theme, language, currency and option toggles) to a small file and import them on another device. Your financial data is never included or changed. Find it in Settings → Data &amp; Storage.'
+        ]
+    },
     {
         version: '6.65.0 — 2026-11-02',
         items: [

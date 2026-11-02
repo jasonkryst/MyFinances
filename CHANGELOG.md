@@ -4,6 +4,21 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.66.0] — 2026-11-02
+
+### Added
+- **Settings-only export/import** (issue #326). Settings → Data & Storage has a new Settings backup block with Export settings and Import settings buttons.
+  - **What's in the file:** theme, language, currency, and every option setting in `src/settings.js` that is safe to move between datasets, including Health budget thresholds and the Ledger export column choice. The file looks like `{ "type": "settings", "app": "MyFinances", "version": "1.0", "preferences": {…}, "settings": {…} }`. Financial data is never in it.
+  - **Left out on purpose:** the storage backend preference (importing it would switch the browser into Postgres mode and the login gate), the surplus account (an account id that would point at nothing in another dataset), and Ledger filters (can hold account ids).
+  - **Validation:** `SETTINGS_EXPORT_SCHEMA` in `settings.js` checks every key against its real range or allowed values. Unknown, invalid or `__proto__`-style entries are skipped and listed in the result, and the valid ones still apply. A full data export is rejected with an error that points to Backup & Restore. So are files over 100 KB, malformed JSON, and any major version other than 1.
+  - **Languages:** translated in English, Spanish and Polish.
+
+### Fixed
+- **Settings PUT URL is now encoded.** `setSetting()` built `/api/settings/<key>` without encoding, so on the Postgres backend a Health budget threshold for a category containing `/` or `?` went to the wrong URL. An imported settings file could also have used this to send the PUT to another endpoint. The key is now `encodeURIComponent`-encoded, as `postgresImport.js` already did.
+
+### Tests
+- `tests/unit/settingsExport.test.js` (schema coverage, build, parse, rejections), `tests/features/test_settings_backup.py` (export contents, import applies without touching data, partial import, error cases, labels, URL encoding), plus an XSS case in `tests/security/test_xss.py` and a rendered result state in the i18n render guard.
+
 ## [6.65.0] — 2026-11-02
 
 ### Added
