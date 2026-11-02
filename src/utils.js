@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '6.62.0';
+export const APP_VERSION = '6.63.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -64,6 +64,21 @@ export function formatMonthYear(value) {
     const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
     const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
     return date.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
+}
+
+// Long-form date ("January 15, 2026") in the active locale. Matches
+// DebtCalculator.formatDate in English; the calculator itself stays
+// locale-agnostic because CSV exports reuse it.
+export function formatLongDate(date) {
+    return date.toLocaleDateString(getIntlLocale(), { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// "January 2026" for the Nth plan month (same offset convention as
+// DebtCalculator.getMonthName), in the active locale.
+export function formatPlanMonth(monthOffset) {
+    const start = DebtCalculator.getStartingMonth();
+    const target = new Date(start.getFullYear(), start.getMonth() + monthOffset, 1);
+    return target.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
 }
 
 export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {

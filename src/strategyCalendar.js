@@ -8,6 +8,7 @@ import {
     formatCurrency,
     escapeHtml
 } from './utils.js';
+import { t, getIntlLocale } from './i18n.js';
 
 /**
  * Render the payment calendar for a given page (1 month per page).
@@ -59,7 +60,8 @@ export function renderCalendarView(app, page = 0) {
     page = Math.max(0, Math.min(page, totalPages - 1));
     const pageMonths = allMonths.slice(page * MONTHS_PER_PAGE, page * MONTHS_PER_PAGE + MONTHS_PER_PAGE);
 
-    const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const DAY_LABELS = ['daySun', 'dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat']
+        .map(k => t(`strategy.${k}`));
 
     const hasIncome = (app.incomes || []).length > 0;
     const hasBills = (app.bills || []).some(b => b.dueDay);
@@ -68,21 +70,21 @@ export function renderCalendarView(app, page = 0) {
     const legendDiv = document.createElement('div');
     legendDiv.className = 'cal-legend';
     legendDiv.innerHTML = `
-        <span class="cal-legend-item"><span class="cal-legend-swatch bg-blue-debt"></span>Debt payment</span>
-        ${hasIncome ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--income"></span>Payday</span>` : ''}
-        ${hasBills ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bill"></span>Bill due</span>` : ''}
-        ${hasExpenses ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--expense"></span>Expense</span>` : ''}
-        ${hasBonuses ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bonus"></span>Bonus</span>` : ''}
-        <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--today"></span>Today</span>
+        <span class="cal-legend-item"><span class="cal-legend-swatch bg-blue-debt"></span>${escapeHtml(t('strategy.calLegendDebt'))}</span>
+        ${hasIncome ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--income"></span>${escapeHtml(t('strategy.calLegendPayday'))}</span>` : ''}
+        ${hasBills ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bill"></span>${escapeHtml(t('strategy.calLegendBill'))}</span>` : ''}
+        ${hasExpenses ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--expense"></span>${escapeHtml(t('strategy.calLegendExpense'))}</span>` : ''}
+        ${hasBonuses ? `<span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--bonus"></span>${escapeHtml(t('strategy.calLegendBonus'))}</span>` : ''}
+        <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--today"></span>${escapeHtml(t('strategy.calLegendToday'))}</span>
     `;
     container.appendChild(legendDiv);
 
     const paginationTop = document.createElement('div');
     paginationTop.className = 'cal-pagination';
     paginationTop.innerHTML = `
-        <button class="btn btn-secondary cal-prev" ${page === 0 ? 'disabled' : ''}>&#8592; Prev</button>
-        <span class="cal-page-label">${page * MONTHS_PER_PAGE + 1}–${Math.min((page + 1) * MONTHS_PER_PAGE, allMonths.length)} of ${allMonths.length} months</span>
-        <button class="btn btn-secondary cal-next" ${page >= totalPages - 1 ? 'disabled' : ''}>Next &#8594;</button>
+        <button class="btn btn-secondary cal-prev" ${page === 0 ? 'disabled' : ''}>&#8592; ${escapeHtml(t('strategy.calPrev'))}</button>
+        <span class="cal-page-label">${escapeHtml(t('strategy.calPageLabel', { from: page * MONTHS_PER_PAGE + 1, to: Math.min((page + 1) * MONTHS_PER_PAGE, allMonths.length), total: allMonths.length }))}</span>
+        <button class="btn btn-secondary cal-next" ${page >= totalPages - 1 ? 'disabled' : ''}>${escapeHtml(t('strategy.calNext'))} &#8594;</button>
     `;
     container.appendChild(paginationTop);
 
@@ -95,7 +97,7 @@ export function renderCalendarView(app, page = 0) {
     const todayDay = today.getDate();
 
     for (const { year, month, payments } of pageMonths) {
-        const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const monthLabel = new Date(year, month, 1).toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
 
         const dayPayments = {};
         for (const p of payments) {

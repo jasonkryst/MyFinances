@@ -4,6 +4,25 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.63.0] — 2026-11-02
+
+### Added
+- **The Plan page is fully translated into Spanish and Polish** (issue #317, part 4).
+  - **Covered:** payment inputs and results, the summary and schedule tables, the amortization modal, Strategy Comparison, the What-If and Refinance simulators, the target-date panel, plan history, the stale-plan and income warnings, the Calendar sub-tab, the six Plan charts (labels, axes, tooltips, screen-reader tables) and the debt-payoff milestone toast.
+  - **Stored values:** strategy names stay as stored and are translated at render time.
+  - **Dates:** long dates and month names follow the active locale via new `formatLongDate()` / `formatPlanMonth()` helpers in `utils.js`. `DebtCalculator` is unchanged, because CSV export shares it.
+
+### Changed
+- **Language switch on Plan:** switching language re-renders the calculated plan, the open chart and the calendar in place (`renderPageData('strategy')` with `resetToDefaults: false`).
+- **Sentence emphasis:** a few sentences lose their inline bold so each translates as one string. The affected sentences are "Expected income this month", "Your planned payment is X% of…", "Net after all obligations", the target-date "Payoff by…" / "Total interest" lines, and the Strategy Comparison banner.
+- **Fixed:** "1 months" now reads "1 month" in the time-to-pay-off line.
+
+### Tests
+- **Coverage guard:** `test_i18n_coverage.py` adds a `PLAN_STATE` seed and 18 Plan page entries. They cover each view, the Refinance outcomes, every target-date variant, and the warnings.
+- **Scanner:** the scan now strips whole es-ES long dates ("15 de enero de 2026"), but only around real month names.
+- **Flaky test fixed:** `test_xss.py::test_xss_in_calendar_day_modal_event_name` queried the Reports calendar before its lazy module rendered (intermittent "Expected a day cell" failure). It now awaits `renderReportsPage()` and waits for the cell.
+- **XSS guard:** `test_target_payoff_xss.py`'s static guard follows the new `formatLongDate` line, and also asserts that the whole translated sentence is escaped.
+
 ## [6.62.0] — 2026-11-02
 
 ### Added

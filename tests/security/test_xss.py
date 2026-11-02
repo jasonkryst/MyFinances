@@ -574,7 +574,9 @@ async def test_xss_in_calendar_day_modal_event_name(async_app_page):
     Calendar day-detail modal (opened by clicking a compact day cell)."""
     page = async_app_page
 
-    await page.evaluate("""() => {
+    # Reports sub-modules are lazy-loaded: switchPage() returns before the calendar renders,
+    # so await the render explicitly (see CLAUDE.md "Lazy pages render asynchronously").
+    await page.evaluate("""async () => {
         const app = window.app;
         const now = new Date();
         app.accounts = [{ id: 9102, name: 'Cal Modal XSS', type: 'Checking', startingBalance: 1000 }];
@@ -591,9 +593,10 @@ async def test_xss_in_calendar_day_modal_event_name(async_app_page):
         app.ledgerAmountOverrides = {};
         app._reportMonthOffset = 0;
         app.switchPage('reports');
+        await app.renderReportsPage();
     }""")
 
-    cell = await page.query_selector('.rpt-cal-cell.rpt-cal-has-events')
+    cell = await page.wait_for_selector('.rpt-cal-cell.rpt-cal-has-events', timeout=10000)
     assert cell, "Expected a day cell with events to open the modal"
     await cell.click()
 

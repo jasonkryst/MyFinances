@@ -826,31 +826,31 @@
             <!-- Plan Section (Strategy + Results combined) -->
             <section class="strategy-section page-section" id="strategySection">
                 <div class="page-header-row page-header">
-                    <h2>Payment Plan</h2>
-                    <button type="button" class="page-print-btn" id="strategyPrintBtn" title="Print this page" aria-label="Print the Payment Plan page">🖨️ Print</button>
+                    <h2 data-i18n="strategy.title">Payment Plan</h2>
+                    <button type="button" class="page-print-btn" id="strategyPrintBtn" title="Print this page" aria-label="Print the Payment Plan page" data-i18n-attr="title:common.printTitle,aria-label:strategy.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
 
                 <!-- ── Strategy controls ─────────────────────────────────── -->
                 <div class="strategy-controls">
                     <div class="form-group">
-                        <label for="monthlyPayment">Monthly Payment Amount ($) *</label>
+                        <label for="monthlyPayment" data-i18n="strategy.monthlyPaymentLabel">Monthly Payment Amount ($) *</label>
                         <div class="input-with-action">
                             <input type="number" id="monthlyPayment" placeholder="0.00" step="0.01" min="0" required>
-                            <button type="button" id="suggestPaymentBtn" class="btn btn-sm btn-secondary" title="Auto-fill suggested payment based on income minus bills and expenses">Suggest</button>
+                            <button type="button" id="suggestPaymentBtn" class="btn btn-sm btn-secondary" title="Auto-fill suggested payment based on income minus bills and expenses" data-i18n="strategy.suggestBtn" data-i18n-attr="title:strategy.suggestTitle">Suggest</button>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="paymentStrategy">Payment Strategy</label>
+                        <label for="paymentStrategy" data-i18n="strategy.strategyLabel">Payment Strategy</label>
                         <select id="paymentStrategy">
-                            <option value="avalanche">Avalanche (Highest Interest First)</option>
-                            <option value="snowball">Snowball (Lowest Balance First)</option>
-                            <option value="priority-lowest">Priority Lowest First</option>
-                            <option value="priority-highest">Priority Highest First</option>
+                            <option value="avalanche" data-i18n="strategy.optAvalanche">Avalanche (Highest Interest First)</option>
+                            <option value="snowball" data-i18n="strategy.optSnowball">Snowball (Lowest Balance First)</option>
+                            <option value="priority-lowest" data-i18n="strategy.optPriorityLowest">Priority Lowest First</option>
+                            <option value="priority-highest" data-i18n="strategy.optPriorityHighest">Priority Highest First</option>
                         </select>
                     </div>
 
-                    <button id="calculateBtn" class="btn btn-success">Calculate Payment Plan</button>
+                    <button id="calculateBtn" class="btn btn-success" data-i18n="strategy.calculateBtn">Calculate Payment Plan</button>
 
                     <!-- Income context widget shown only when income sources exist -->
                     <div id="strategyIncomeWidget" class="strategy-income-widget"></div>
@@ -859,27 +859,27 @@
                 <!-- ── Target Payoff Date back-calculator ─────────────────── -->
                 <div class="target-date-panel">
                     <button class="target-date-toggle" id="targetDateToggle" type="button" aria-expanded="false" aria-controls="targetDateBody">
-                        🎯 Back-calculate from a target payoff date
+                        🎯 <span data-i18n="strategy.targetToggle">Back-calculate from a target payoff date</span>
                         <span class="target-date-chevron">▼</span>
                     </button>
                     <div class="target-date-body" id="targetDateBody" hidden>
-                        <p class="target-date-desc">Enter a date and we'll calculate the monthly payment required to be debt-free by then.</p>
+                        <p class="target-date-desc" data-i18n="strategy.targetDesc">Enter a date and we'll calculate the monthly payment required to be debt-free by then.</p>
                         <div class="target-date-row">
                             <div class="form-group form-group-flex-1">
-                                <label for="targetPayoffDate">Target Payoff Date</label>
+                                <label for="targetPayoffDate" data-i18n="strategy.targetDateLabel">Target Payoff Date</label>
                                 <input type="date" id="targetPayoffDate">
                             </div>
                             <div class="form-group form-group-flex-1">
-                                <label for="targetPayoffStrategy">Strategy</label>
+                                <label for="targetPayoffStrategy" data-i18n="strategy.targetStrategyLabel">Strategy</label>
                                 <select id="targetPayoffStrategy">
-                                    <option value="avalanche">Avalanche</option>
-                                    <option value="snowball">Snowball</option>
-                                    <option value="priority-lowest">Priority (Low→High)</option>
-                                    <option value="priority-highest">Priority (High→Low)</option>
+                                    <option value="avalanche" data-i18n="strategy.avalanche">Avalanche</option>
+                                    <option value="snowball" data-i18n="strategy.snowball">Snowball</option>
+                                    <option value="priority-lowest" data-i18n="strategy.targetPriorityLow">Priority (Low→High)</option>
+                                    <option value="priority-highest" data-i18n="strategy.targetPriorityHigh">Priority (High→Low)</option>
                                 </select>
                             </div>
                             <div class="target-date-flex-row">
-                                <button id="calcTargetBtn" type="button" class="btn btn-primary">Calculate</button>
+                                <button id="calcTargetBtn" type="button" class="btn btn-primary" data-i18n="strategy.calcTargetBtn">Calculate</button>
                             </div>
                         </div>
                         <div id="targetPayoffResult"></div>
@@ -889,21 +889,21 @@
                 <!-- ── Plan History (read-only log of past submissions) ────── -->
                 <div class="target-date-panel">
                     <button class="target-date-toggle" id="planHistoryToggle" type="button" aria-expanded="false" aria-controls="planHistoryBodyWrap">
-                        📜 Plan History
+                        📜 <span data-i18n="strategy.historyToggle">Plan History</span>
                         <span class="target-date-chevron">▼</span>
                     </button>
                     <div class="target-date-body" id="planHistoryBodyWrap" hidden>
-                        <p class="target-date-desc" id="planHistoryEmpty">No plans calculated yet. Submit a payment plan below to start building history.</p>
+                        <p class="target-date-desc" id="planHistoryEmpty" data-i18n="strategy.historyEmpty">No plans calculated yet. Submit a payment plan below to start building history.</p>
                         <div class="table-wrapper">
                             <table id="planHistoryTable" class="hidden">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Monthly Payment</th>
-                                        <th>Strategy</th>
-                                        <th>Total Interest</th>
-                                        <th>Time to Pay Off</th>
-                                        <th>Payoff Date</th>
+                                        <th data-i18n="strategy.colDate">Date</th>
+                                        <th data-i18n="strategy.colMonthlyPayment">Monthly Payment</th>
+                                        <th data-i18n="strategy.colStrategy">Strategy</th>
+                                        <th data-i18n="strategy.totalInterest">Total Interest</th>
+                                        <th data-i18n="strategy.colTimeToPayOff">Time to Pay Off</th>
+                                        <th data-i18n="strategy.colPayoffDate">Payoff Date</th>
                                     </tr>
                                 </thead>
                                 <tbody id="planHistoryBody"></tbody>
@@ -915,8 +915,8 @@
                 <!-- ── Plan stale warning ──────────────────────────────────── -->
                 <div id="planStaleWarning" class="plan-stale-warning" hidden>
                     <span class="plan-stale-warning-icon" aria-hidden="true">⚠️</span>
-                    <span class="plan-stale-warning-msg">Your debt data has changed since this plan was calculated.</span>
-                    <button type="button" class="btn btn-warning btn-small" id="planStaleRecalcBtn">Recalculate</button>
+                    <span class="plan-stale-warning-msg" data-i18n="strategy.staleMsg">Your debt data has changed since this plan was calculated.</span>
+                    <button type="button" class="btn btn-warning btn-small" id="planStaleRecalcBtn" data-i18n="strategy.recalcBtn">Recalculate</button>
                 </div>
 
                 <!-- ── Results (hidden until Calculate is clicked) ────────── -->
@@ -926,28 +926,28 @@
                     <!-- Stats bar -->
                     <div class="summary">
                         <div class="summary-item">
-                            <span class="label">Total Debt:</span>
+                            <span class="label" data-i18n="strategy.lblTotalDebt">Total Debt:</span>
                             <span class="value" id="totalDebtValue">$0.00</span>
                         </div>
                         <div class="summary-item">
-                            <span class="label">Total Interest:</span>
+                            <span class="label" data-i18n="strategy.lblTotalInterest">Total Interest:</span>
                             <span class="value" id="totalInterestValue">$0.00</span>
                         </div>
                         <div class="summary-item">
-                            <span class="label">Time to Pay Off:</span>
-                            <span class="value" id="timeToPayOffValue">0 months</span>
+                            <span class="label" data-i18n="strategy.lblTimeToPayOff">Time to Pay Off:</span>
+                            <span class="value" id="timeToPayOffValue">—</span>
                         </div>
                         <div class="summary-item">
-                            <span class="label">Monthly Interest Cost:</span>
+                            <span class="label" data-i18n="strategy.lblMonthlyInterestCost">Monthly Interest Cost:</span>
                             <span class="value summary-item--alert" id="monthlyInterestCostValue">$0.00</span>
                         </div>
                     </div>
 
                     <!-- Top-level Results tabs -->
-                    <div class="results-tab-bar" role="tablist" aria-label="Results sections">
-                        <button class="results-tab-btn results-tab-btn--active" data-rtab="overview"     role="tab" aria-selected="true"  aria-controls="rPanel-overview">📊 Overview</button>
-                        <button class="results-tab-btn"                         data-rtab="debt-summary" role="tab" aria-selected="false" aria-controls="rPanel-debt-summary">📋 Debt Summary</button>
-                        <button class="results-tab-btn"                         data-rtab="schedule"     role="tab" aria-selected="false" aria-controls="rPanel-schedule">📅 Schedule</button>
+                    <div class="results-tab-bar" role="tablist" aria-label="Results sections" data-i18n-attr="aria-label:strategy.resultsTabsAria">
+                        <button class="results-tab-btn results-tab-btn--active" data-rtab="overview"     role="tab" aria-selected="true"  aria-controls="rPanel-overview">📊 <span data-i18n="strategy.tabOverview">Overview</span></button>
+                        <button class="results-tab-btn"                         data-rtab="debt-summary" role="tab" aria-selected="false" aria-controls="rPanel-debt-summary">📋 <span data-i18n="strategy.tabDebtSummary">Debt Summary</span></button>
+                        <button class="results-tab-btn"                         data-rtab="schedule"     role="tab" aria-selected="false" aria-controls="rPanel-schedule">📅 <span data-i18n="strategy.tabSchedule">Schedule</span></button>
                     </div>
 
                     <!-- Panel 1 : Overview -->
@@ -962,31 +962,31 @@
                             <table id="debtSummaryTable">
                                 <thead>
                                     <tr>
-                                        <th data-sort="name"           class="sortable">Debt Name <span class="sort-icon">↕</span></th>
-                                        <th data-sort="minDue"         class="sortable">Min Due <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestRate"   class="sortable">Interest Rate <span class="sort-icon">↕</span></th>
-                                        <th data-sort="totalPaid"      class="sortable">Total Amount Paid <span class="sort-icon">↕</span></th>
-                                        <th data-sort="principalPaid"  class="sortable">Est. Principal Paid <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestPaid"   class="sortable">Est. Interest Paid <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestToDate" class="sortable">Est. Interest Paid to Date <span class="sort-icon">↕</span></th>
-                                        <th data-sort="payoffDate"     class="sortable">Estimated Payoff Date <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestSaved"  class="sortable">Interest Saved <span class="sort-icon">↕</span></th>
-                                        <th data-sort="monthsSaved"    class="sortable">Months Saved <span class="sort-icon">↕</span></th>
-                                        <th>Amortization</th>
+                                        <th data-sort="name"           class="sortable"><span data-i18n="strategy.thDebtName">Debt Name</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="minDue"         class="sortable"><span data-i18n="strategy.thMinDue">Min Due</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestRate"   class="sortable"><span data-i18n="strategy.thInterestRate">Interest Rate</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="totalPaid"      class="sortable"><span data-i18n="strategy.thTotalAmountPaid">Total Amount Paid</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="principalPaid"  class="sortable"><span data-i18n="strategy.thEstPrincipalPaid">Est. Principal Paid</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestPaid"   class="sortable"><span data-i18n="strategy.thEstInterestPaid">Est. Interest Paid</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestToDate" class="sortable"><span data-i18n="strategy.thEstInterestToDate">Est. Interest Paid to Date</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="payoffDate"     class="sortable"><span data-i18n="strategy.thEstPayoffDate">Estimated Payoff Date</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestSaved"  class="sortable"><span data-i18n="strategy.interestSaved">Interest Saved</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="monthsSaved"    class="sortable"><span data-i18n="strategy.monthsSaved">Months Saved</span> <span class="sort-icon">↕</span></th>
+                                        <th data-i18n="strategy.thAmortization">Amortization</th>
                                     </tr>
                                 </thead>
                                 <tbody id="debtSummaryTableBody"></tbody>
                             </table>
-                            <p class="debt-summary-footnote">Interest/months saved vs. minimum-payment-only scenario.</p>
+                            <p class="debt-summary-footnote" data-i18n="strategy.summaryFootnote">Interest/months saved vs. minimum-payment-only scenario.</p>
                         </div>
                     </div>
 
                     <!-- Panel 3 : Schedule (inner sub-tabs) -->
                     <div id="rPanel-schedule" class="results-tab-panel" role="tabpanel">
-                        <div class="tabs" role="tablist" aria-label="Schedule view">
-                            <button id="scheduleTab-tabular" class="tab-button active" data-tab="tabular" role="tab" aria-selected="true" aria-controls="tabular-tab">Tabular View</button>
-                            <button id="scheduleTab-calendar" class="tab-button" data-tab="calendar" role="tab" aria-selected="false" aria-controls="calendar-tab">Calendar View</button>
-                            <button id="scheduleTab-chart" class="tab-button" data-tab="chart" role="tab" aria-selected="false" aria-controls="chart-tab">Chart View</button>
+                        <div class="tabs" role="tablist" aria-label="Schedule view" data-i18n-attr="aria-label:strategy.scheduleViewAria">
+                            <button id="scheduleTab-tabular" class="tab-button active" data-tab="tabular" role="tab" aria-selected="true" aria-controls="tabular-tab" data-i18n="strategy.tabTabular">Tabular View</button>
+                            <button id="scheduleTab-calendar" class="tab-button" data-tab="calendar" role="tab" aria-selected="false" aria-controls="calendar-tab" data-i18n="strategy.tabCalendar">Calendar View</button>
+                            <button id="scheduleTab-chart" class="tab-button" data-tab="chart" role="tab" aria-selected="false" aria-controls="chart-tab" data-i18n="strategy.tabChart">Chart View</button>
                         </div>
 
                         <div id="tabular-tab" class="tab-content active" role="tabpanel" aria-labelledby="scheduleTab-tabular">
@@ -996,7 +996,7 @@
                                     <tbody id="paymentTableBody"></tbody>
                                 </table>
                             </div>
-                            <button id="exportScheduleBtn" class="btn btn-secondary" type="button">Export Schedule as CSV</button>
+                            <button id="exportScheduleBtn" class="btn btn-secondary" type="button" data-i18n="strategy.exportScheduleBtn">Export Schedule as CSV</button>
                         </div>
 
                         <div id="calendar-tab" class="tab-content" role="tabpanel" aria-labelledby="scheduleTab-calendar">
@@ -1026,17 +1026,17 @@
                             </div>
                         </div>
 
-                        <button id="exportBtn" class="btn btn-secondary export-margin-top">Export as CSV</button>
+                        <button id="exportBtn" class="btn btn-secondary export-margin-top" data-i18n="strategy.exportCsvBtn">Export as CSV</button>
                     </div>
                 </div><!-- /#resultsSection -->
 
                 <!-- Amortization modal — position:fixed, lives outside tab panels -->
                 <div id="amortizationModal" class="amortization-modal-fixed" role="dialog" aria-modal="true" aria-labelledby="amortizationTitle" tabindex="-1">
                     <div class="amortization-modal-content">
-                        <button id="closeAmortization" aria-label="Close amortization schedule" class="amortization-close-btn">&times;</button>
-                        <h3 id="amortizationTitle">Amortization Schedule</h3>
+                        <button id="closeAmortization" aria-label="Close amortization schedule" data-i18n-attr="aria-label:strategy.closeAmortizationAria" class="amortization-close-btn">&times;</button>
+                        <h3 id="amortizationTitle" data-i18n="strategy.amortizationTitle">Amortization Schedule</h3>
                         <div id="amortizationTableWrapper"></div>
-                        <button id="exportAmortizationBtn" class="btn btn-secondary export-amortization-margin">Export as CSV</button>
+                        <button id="exportAmortizationBtn" class="btn btn-secondary export-amortization-margin" data-i18n="strategy.exportCsvBtn">Export as CSV</button>
                     </div>
                 </div>
             </section>

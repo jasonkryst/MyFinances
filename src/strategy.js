@@ -3,10 +3,12 @@
 import {
     formatCurrency,
     formatShortDate,
+    formatLongDate,
     escapeHtml,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth
 } from './utils.js';
+import { t, plural } from './i18n.js';
 
 function computeDebtFingerprint(debts) {
     return (debts || [])
@@ -32,12 +34,18 @@ function wirePlanStaleBanner(app) {
     }
 }
 
-const PLAN_STRATEGY_LABELS = {
-    avalanche: 'Avalanche',
-    snowball: 'Snowball',
-    'priority-lowest': 'Priority Lowest',
-    'priority-highest': 'Priority Highest'
+const PLAN_STRATEGY_KEYS = {
+    avalanche: 'strategy.avalanche',
+    snowball: 'strategy.snowball',
+    'priority-lowest': 'strategy.priorityLowest',
+    'priority-highest': 'strategy.priorityHighest'
 };
+
+// Stored strategy ids stay as-is; this translates them at render time.
+export function strategyLabel(strategy) {
+    const key = PLAN_STRATEGY_KEYS[strategy];
+    return key ? t(key) : String(strategy ?? '');
+}
 
 /**
  * Render the full Results page after a calculation.
@@ -55,7 +63,7 @@ export function displayPaymentPlan(app) {
     document.getElementById('totalInterestValue').textContent =
         formatCurrency(app.lastSummary.totalInterest);
     document.getElementById('timeToPayOffValue').textContent =
-        `${app.lastSummary.monthsToPayOff} months (${DebtCalculator.formatDate(app.lastSummary.payOffDate)})`;
+        plural('strategy.timeToPayOffValue', app.lastSummary.monthsToPayOff, { date: formatLongDate(app.lastSummary.payOffDate) });
 
     // Monthly interest cost: sum of all interest charges in month 1
     let monthlyInterestCost = 0;
@@ -109,8 +117,7 @@ export function renderStrategyIncomeWidget(app) {
     let ratioHtml = '';
     if (totalDebtMin > 0 && monthlyTotal > 0) {
         ratioHtml = `<div class="strategy-income-ratio${isWarn ? ' strategy-income-ratio--warn' : ''}">
-            Your planned payment is <strong>${pct.toFixed(1)}%</strong> of your expected monthly income
-            ${isWarn ? ' — that\'s a high debt-to-income ratio (>40%).' : '.'}
+            ${escapeHtml(t(isWarn ? 'strategy.ratioWarn' : 'strategy.ratioOk', { pct: pct.toFixed(1) }))}
         </div>`;
     }
 
@@ -122,21 +129,22 @@ export function renderStrategyIncomeWidget(app) {
     let netHtml = '';
     if (totalBills > 0 || totalExpenses > 0) {
         const netClass = netAfterAll >= 0 ? 'strategy-net--positive' : 'strategy-net--negative';
-        const bonusBit = bonusThisMonth > 0
-            ? ` · Bonuses: ${formatCurrency(bonusThisMonth)}` : '';
+        const breakdown = t(bonusThisMonth > 0 ? 'strategy.netBreakdownBonus' : 'strategy.netBreakdown', {
+            bills: formatCurrency(totalBills), expenses: formatCurrency(totalExpenses),
+            mins: formatCurrency(totalDebtMin), bonus: formatCurrency(bonusThisMonth)
+        });
         netHtml = `<div class="strategy-net ${netClass}">
-            Net after all obligations:
-            <strong>${formatCurrency(netAfterAll)}</strong>
-            <span class="strategy-net-breakdown">(Bills: ${formatCurrency(totalBills)} · Expenses: ${formatCurrency(totalExpenses)} · Debt mins: ${formatCurrency(totalDebtMin)}${bonusBit})</span>
+            ${escapeHtml(t('strategy.netAfter', { amount: formatCurrency(netAfterAll) }))}
+            <span class="strategy-net-breakdown">${escapeHtml(breakdown)}</span>
         </div>`;
     }
 
     const bonusChip = bonusThisMonth > 0
-        ? `<span class="strategy-bonus-chip">+${formatCurrency(bonusThisMonth)} bonus this month</span>` : '';
+        ? `<span class="strategy-bonus-chip">${escapeHtml(t('strategy.bonusChip', { amount: formatCurrency(bonusThisMonth) }))}</span>` : '';
 
     widget.classList.add('visible'); widget.classList.remove('hidden');
     widget.innerHTML = `
-        💰 Expected income this month: <strong>${formatCurrency(monthlyTotal)}</strong> ${bonusChip}
+        💰 ${escapeHtml(t('strategy.incomeExpected', { amount: formatCurrency(monthlyTotal) }))} ${bonusChip}
         ${ratioHtml}
         ${netHtml}`;
 }
@@ -168,9 +176,9 @@ export function renderPlanHistory(app) {
         <tr>
             <td>${escapeHtml(formatShortDate(entry.createdAt))}</td>
             <td>${formatCurrency(entry.monthlyPayment)}</td>
-            <td>${escapeHtml(PLAN_STRATEGY_LABELS[entry.strategy] || entry.strategy)}</td>
+            <td>${escapeHtml(strategyLabel(entry.strategy))}</td>
             <td>${formatCurrency(entry.totalInterest)}</td>
-            <td>${entry.monthsToPayOff} month${entry.monthsToPayOff !== 1 ? 's' : ''}</td>
+            <td>${escapeHtml(plural('strategy.months', entry.monthsToPayOff))}</td>
             <td>${entry.payoffDate ? escapeHtml(formatShortDate(entry.payoffDate)) : '—'}</td>
         </tr>
     `).join('');
