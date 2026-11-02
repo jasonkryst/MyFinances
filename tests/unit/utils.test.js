@@ -1,6 +1,7 @@
 const {
     formatCurrency,
     normalizeText,
+    normalizeMultilineText,
     sanitizeFiniteNumber,
     sanitizeInteger,
     parseFiniteOrNull,
@@ -201,5 +202,27 @@ describe('computeMonthlyIncomeForMonth (#251 withholding)', () => {
         const bonuses = [{ date: '2026-01-15', amount: 500 }];
         const { monthlyTotal } = computeMonthlyIncomeForMonth(incomes, bonuses, 2026, 0);
         expect(monthlyTotal).toBe(1000 + 500);
+    });
+});
+
+describe('normalizeMultilineText', () => {
+    test('keeps newlines, normalizes CRLF/CR, trims each line', () => {
+        expect(normalizeMultilineText('  a  \r\n  b\rc  ')).toBe('a\nb\nc');
+    });
+
+    test('strips tag/quote characters and control characters but not newlines', () => {
+        expect(normalizeMultilineText('<b>hi</b>\u0001 "x"\nline`2`')).toBe('bhi/b x\nline2');
+    });
+
+    test('caps length', () => {
+        expect(normalizeMultilineText('x'.repeat(900), 500)).toHaveLength(500);
+        expect(normalizeMultilineText('abcdef', 3)).toBe('abc');
+    });
+
+    test('non-strings become an empty string', () => {
+        expect(normalizeMultilineText(123)).toBe('');
+        expect(normalizeMultilineText(null)).toBe('');
+        expect(normalizeMultilineText({ a: 1 })).toBe('');
+        expect(normalizeMultilineText(['x'])).toBe('');
     });
 });

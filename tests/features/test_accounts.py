@@ -1162,3 +1162,157 @@ def test_account_breakdown_view_in_ledger_prefilters_account(app_page):
     is_hidden = page.evaluate('() => document.getElementById("acctBreakdownModal").classList.contains("hidden")')
     assert is_hidden, "Breakdown modal should be closed after navigating to the Ledger"
 
+
+# ---------------------------------------------------------------------------
+# Account notes (#286)
+# ---------------------------------------------------------------------------
+
+LONG_FIRST_LINE = 'Call the branch manager about the unusual opening balance and the waived monthly fee schedule'
+MULTILINE_NOTE = LONG_FIRST_LINE + '\nSecond line: ask for the routing number\nThird line: PIN reminder'
+
+
+def _add_account_with_note(page, name, note):
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.evaluate("() => document.getElementById('accountFormBody')?.classList.add('is-open')")
+    page.fill('#accountName', name)
+    page.fill('#accountStartingBalance', '100')
+    page.fill('#accountNotes', note)
+    page.click('#accountFormSubmit')
+    page.wait_for_selector(f'.acct-card:has-text("{name}")', timeout=10000)
+
+
+def _note_card(page, name):
+    return page.locator('.acct-card', has_text=name).first
+
+
+@pytest.mark.feature
+def test_account_note_stored_and_shown_truncated_with_full_text_in_details(app_page):
+    page = app_page
+    _add_account_with_note(page, 'Noted Checking', MULTILINE_NOTE)
+    assert page.evaluate("() => window.app.accounts.find(a => a.name === 'Noted Checking').notes") == MULTILINE_NOTE
+
+    card = _note_card(page, 'Noted Checking')
+    preview = card.locator('.acct-note-preview').inner_text()
+    assert preview.endswith('…') and len(preview) <= 81
+    assert preview.startswith('Call the branch manager')
+    assert 'Second line' not in preview
+
+    details = card.locator('details.acct-note')
+    assert details.get_attribute('open') is None
+    details.locator('summary').click()
+    full = details.locator('.acct-note-full')
+    assert full.is_visible()
+    text = full.inner_text()
+    assert 'Second line: ask for the routing number' in text and 'Third line: PIN reminder' in text
+    assert text.count('\n') >= 2, "line breaks must be preserved"
+
+
+@pytest.mark.feature
+def test_short_single_line_note_shows_in_full_without_details(app_page):
+    page = app_page
+    _add_account_with_note(page, 'Short Note Acct', 'Phone 555-0100')
+    card = _note_card(page, 'Short Note Acct')
+    assert card.locator('.acct-note-preview').inner_text() == 'Phone 555-0100'
+    assert card.locator('details.acct-note').count() == 0
+
+
+@pytest.mark.feature
+def test_inline_edit_changes_and_clears_note(app_page):
+    page = app_page
+    _add_account_with_note(page, 'Edit Note Acct', 'Original note')
+
+    _note_card(page, 'Edit Note Acct').locator('[data-account-action="edit"]').click()
+    box = page.locator('.acct-card--editing textarea[id^="ac-notes-"]')
+    assert box.input_value() == 'Original note'
+    box.fill('Updated note')
+    page.locator('.acct-card--editing [data-account-action="save"]').click()
+    page.wait_for_selector('.acct-card:has-text("Updated note")', timeout=5000)
+    assert page.evaluate("() => window.app.accounts.find(a => a.name === 'Edit Note Acct').notes") == 'Updated note'
+
+    _note_card(page, 'Edit Note Acct').locator('[data-account-action="edit"]').click()
+    page.locator('.acct-card--editing textarea[id^="ac-notes-"]').fill('')
+    page.locator('.acct-card--editing [data-account-action="save"]').click()
+    page.wait_for_selector('.acct-card--editing', state='detached', timeout=5000)
+    assert _note_card(page, 'Edit Note Acct').locator('.acct-note').count() == 0
+    assert page.evaluate("() => window.app.accounts.find(a => a.name === 'Edit Note Acct').notes") == ''
+
+
+@pytest.mark.feature
+def test_account_note_survives_json_export_import_replace_and_merge(app_page):
+    import json
+    page = app_page
+    _add_account_with_note(page, 'Roundtrip Acct', MULTILINE_NOTE)
+    with page.expect_download() as dl:
+        page.evaluate("() => window.app.exportAllJSON()")
+    with open(dl.value.path(), encoding='utf-8') as f:
+        payload = json.load(f)
+    exported = next(a for a in payload['accounts'] if a['name'] == 'Roundtrip Acct')
+    assert exported['notes'] == MULTILINE_NOTE
+
+    js = """async ({ payload, replace }) => {
+        const app = window.app;
+        const mod = await import('/src/dataExport.js');
+        const file = new File([JSON.stringify(payload)], 'n.json', { type: 'application/json' });
+        return new Promise(resolve => {
+            mod.importAllJSON(app, file, { requestImportMode: async () => replace });
+            setTimeout(() => resolve(app.accounts.find(a => a.name === 'Roundtrip Acct')?.notes), 500);
+        });
+    }"""
+    page.evaluate("() => { window.app.accounts = []; }")
+    assert page.evaluate(js, {'payload': payload, 'replace': True}) == MULTILINE_NOTE
+    page.evaluate("() => { window.app.accounts = []; }")
+    assert page.evaluate(js, {'payload': payload, 'replace': False}) == MULTILINE_NOTE
+
+
+@pytest.mark.feature
+def test_account_note_capped_at_500_in_form_and_sanitizer(app_page):
+    page = app_page
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    assert page.get_attribute('#accountNotes', 'maxlength') == '500'
+
+    # Sanitizer path (bypasses the textarea maxlength, as an import would).
+    result = page.evaluate("""async () => {
+        const { sanitizeAccount } = await import('/src/sanitizers.js');
+        return sanitizeAccount({ id: 1, name: 'X', type: 'Checking', notes: 'a'.repeat(900) }, 1).notes.length;
+    }""")
+    assert result == 500
+
+
+@pytest.mark.feature
+def test_non_string_note_sanitizes_without_crashing(app_page):
+    page = app_page
+    result = page.evaluate("""async () => {
+        const { sanitizeAccount } = await import('/src/sanitizers.js');
+        return [123, { a: 1 }, ['x'], null, true].map(n => sanitizeAccount({ id: 1, name: 'X', type: 'Checking', notes: n }, 1).notes);
+    }""")
+    assert result == ['', '', '', '', '']
+
+
+@pytest.mark.feature
+def test_legacy_account_without_notes_renders_no_preview(app_page):
+    page = app_page
+    errors = []
+    page.on('pageerror', lambda e: errors.append(str(e)))
+    page.evaluate("""() => {
+        window.app.accounts = [{ id: 9301, name: 'Legacy Acct', type: 'Checking', startingBalance: 10, interestRate: 0 }];
+        window.app.switchPage('accounts');
+        window.app.renderAccountsList();
+    }""")
+    page.wait_for_selector('.acct-card:has-text("Legacy Acct")', timeout=5000)
+    assert _note_card(page, 'Legacy Acct').locator('.acct-note').count() == 0
+    assert not errors
+
+
+@pytest.mark.feature
+def test_normalize_multiline_text_keeps_newlines_and_strips_unsafe_chars(app_page):
+    result = app_page.evaluate(r"""async () => {
+        const { normalizeMultilineText } = await import('/src/utils.js');
+        return [
+            normalizeMultilineText('  a  \r\n  b\rc\u0001<d>  '),
+            normalizeMultilineText(undefined),
+            normalizeMultilineText('x'.repeat(10), 4),
+        ];
+    }""")
+    assert result == ['a\nb\ncd', '', 'xxxx']

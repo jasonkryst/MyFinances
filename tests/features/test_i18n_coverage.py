@@ -34,7 +34,8 @@ NON_TRANSLATABLE = {'ira', 'roth', 'hsa', 'fire', 'us', 'usd',
                     'english', 'español', 'polski'}
 
 _SEED_ACCOUNTS = [
-    {'id': 1, 'name': '⟦Checking⟧', 'type': 'Checking', 'startingBalance': 2500},
+    {'id': 1, 'name': '⟦Checking⟧', 'type': 'Checking', 'startingBalance': 2500,
+     'notes': '⟦Branch phone 555-0100⟧\n⟦Ask about the waived fee⟧'},
     {'id': 2, 'name': '⟦Roth⟧', 'type': 'Retirement', 'retirementSubtype': 'Roth IRA',
      'startingBalance': 40000, 'rateOfReturn': 7},
     {'id': 3, 'name': '⟦Work Plan⟧', 'type': 'Retirement', 'retirementSubtype': '401k',
@@ -45,7 +46,8 @@ _SEED_ACCOUNTS = [
     {'id': 5, 'name': '⟦Health⟧', 'type': 'Retirement', 'retirementSubtype': 'HSA',
      'startingBalance': 3000, 'rateOfReturn': 5},
     {'id': 6, 'name': '⟦Visa⟧', 'type': 'Credit Card', 'startingBalance': -800, 'minimumPayment': 35},
-    {'id': 7, 'name': '⟦Rainy Day⟧', 'type': 'Savings', 'startingBalance': 5000, 'interestRate': 2.5},
+    {'id': 7, 'name': '⟦Rainy Day⟧', 'type': 'Savings', 'startingBalance': 5000, 'interestRate': 2.5,
+     'notes': '⟦Short note⟧'},
     {'id': 8, 'name': '⟦Old Account⟧', 'type': 'Other', 'startingBalance': 10, 'archived': True},
 ]
 
@@ -512,6 +514,7 @@ TRANSLATED_PAGES = {
             window.app.renderAccountsList();
             window.app.renderNetWorthWidget();
             document.getElementById('acctToggleArchived')?.click();
+            document.querySelectorAll('#accountsSection details.acct-note').forEach(d => { d.open = true; });
 """ + _ACCOUNT_OVERLAYS + """
         }""",
     ),

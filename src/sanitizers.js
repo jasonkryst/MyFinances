@@ -1,6 +1,6 @@
 // Sanitizers for persisted/imported record shapes — run on both load and import.
 
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
+import { normalizeText, normalizeMultilineText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
@@ -104,6 +104,7 @@ export function sanitizeAccount(record, idFallback) {
         minimumPayment: sanitizeFiniteNumber(record?.minimumPayment, 0, { min: 0 }),
         catchUpEligible: Boolean(record?.catchUpEligible ?? false),
         hsaCoverageType: ['selfOnly', 'family'].includes(record?.hsaCoverageType) ? record.hsaCoverageType : 'selfOnly',
+        notes: normalizeMultilineText(record?.notes, 500),
         archived: Boolean(record?.archived ?? false)
     };
 }

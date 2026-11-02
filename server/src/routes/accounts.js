@@ -20,6 +20,9 @@ export default createCrudResource({
         pensionEstimatedMonthlyBenefit: 'pension_estimated_monthly_benefit',
         pensionYearsOfService: 'pension_years_of_service',
         minimumPayment: 'minimum_payment',
+        catchUpEligible: 'catch_up_eligible',
+        hsaCoverageType: 'hsa_coverage_type',
+        notes: 'notes',
         archived: 'archived'
     }
 });

@@ -386,3 +386,35 @@ test('/api/debts: ownershipSplit persists as jsonb, defaults to null, and is re-
     });
     assert.equal((await patchRes.json()).ownershipSplit, null);
 });
+
+test('/api/accounts: notes, catchUpEligible and hsaCoverageType round-trip; bad values are re-sanitized (#286, #451)', async () => {
+    const mk = body => fetch(`${baseUrl}/api/accounts`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Notes Acct', type: 'Retirement', startingBalance: 100, ...body })
+    });
+
+    const plain = await (await mk({})).json();
+    assert.equal(plain.notes, '');
+    assert.equal(plain.catchUpEligible, false);
+    assert.equal(plain.hsaCoverageType, 'selfOnly');
+
+    const created = await (await mk({ notes: 'Call 555-0100\nAsk about fees', catchUpEligible: true, hsaCoverageType: 'family' })).json();
+    assert.equal(created.notes, 'Call 555-0100\nAsk about fees');
+    assert.equal(created.catchUpEligible, true);
+    assert.equal(created.hsaCoverageType, 'family');
+
+    const listed = (await (await fetch(`${baseUrl}/api/accounts`, { headers: csrfHeaders() })).json()).find(a => a.id === created.id);
+    assert.equal(listed.notes, 'Call 555-0100\nAsk about fees');
+    assert.equal(listed.catchUpEligible, true);
+    assert.equal(listed.hsaCoverageType, 'family');
+
+    // Negative: an over-long note is truncated to 500, an unknown coverage type falls back.
+    const bad = await (await mk({ notes: 'x'.repeat(900), hsaCoverageType: 'bogus' })).json();
+    assert.equal(bad.notes.length, 500);
+    assert.equal(bad.hsaCoverageType, 'selfOnly');
+
+    const patchRes = await fetch(`${baseUrl}/api/accounts/${created.id}`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ notes: '' })
+    });
+    assert.equal((await patchRes.json()).notes, '');
+});

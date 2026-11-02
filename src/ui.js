@@ -1025,6 +1025,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.65.0 — 2026-11-02',
+        items: [
+            '<strong>Account notes</strong> (issue #286): keep a phone number, a reminder or the story behind an odd starting balance right on the account. Cards show the first line; expand to read the rest.'
+        ]
+    },
+    {
         version: '6.64.0 — 2026-11-02',
         items: [
             '<strong>MyFinances now speaks Spanish and Polish everywhere</strong> (issue #317): Reports, the Ledger, People and every Settings tab are translated, including the transaction names the Ledger generates. Pick your language in Settings.'
