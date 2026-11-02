@@ -1428,36 +1428,36 @@
     </div>
     <div id="reconcileModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reconcileModalTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="reconcileModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="reconcileModalTitle">Reconcile Account</h3>
+            <button id="reconcileModalCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="reconcileModalTitle" data-i18n="reconcile.modalTitle">Reconcile Account</h3>
             <p id="reconcileModalResumeBanner" class="ledger-crossnav-banner hidden" role="status"></p>
-            <p class="modal-helper-text">Current tracked balance: <span id="reconcileModalCurrent"></span></p>
+            <p class="modal-helper-text"><span data-i18n="reconcile.modalCurrentLabel">Current tracked balance:</span> <span id="reconcileModalCurrent"></span></p>
             <div class="recon-date-range">
                 <div class="form-group modal-form-group">
-                    <label for="reconcileModalStartDate">Statement Start Date</label>
+                    <label for="reconcileModalStartDate" data-i18n="reconcile.startDateLabel">Statement Start Date</label>
                     <input type="date" id="reconcileModalStartDate">
                 </div>
                 <div class="form-group modal-form-group">
-                    <label for="reconcileModalEndDate">Statement End Date</label>
+                    <label for="reconcileModalEndDate" data-i18n="reconcile.endDateLabel">Statement End Date</label>
                     <input type="date" id="reconcileModalEndDate">
                 </div>
             </div>
             <p id="reconcileModalRangeError" class="recon-range-error hidden" role="alert"></p>
             <div class="form-group modal-form-group">
-                <label for="reconcileModalBalance">Statement Balance ($)</label>
+                <label for="reconcileModalBalance" data-i18n="reconcile.balanceLabel">Statement Balance ($)</label>
                 <input type="number" id="reconcileModalBalance" step="0.01" placeholder="0.00">
             </div>
             <div class="form-group modal-form-group">
-                <label for="reconcileModalNote">Note (optional)</label>
+                <label for="reconcileModalNote" data-i18n="reconcile.noteLabel">Note (optional)</label>
                 <input type="text" id="reconcileModalNote" maxlength="200">
             </div>
             <details class="recon-expected">
-                <summary id="reconcileModalExpectedSummary">Expected transactions</summary>
+                <summary id="reconcileModalExpectedSummary" data-i18n="reconcile.expectedSummary">Expected transactions</summary>
                 <div id="reconcileModalExpected"></div>
             </details>
             <div class="modal-actions">
-                <button id="reconcileModalConfirmBtn" class="btn btn-success">Reconcile</button>
-                <button id="reconcileModalCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="reconcileModalConfirmBtn" class="btn btn-success" data-i18n="reconcile.reconcileBtn">Reconcile</button>
+                <button id="reconcileModalCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1466,12 +1466,12 @@
     <div id="reconSaveProgressModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="reconSaveProgressTitle" tabindex="-1">
         <div class="modal-content">
-            <h3 id="reconSaveProgressTitle">Save reconciliation progress?</h3>
-            <p class="modal-description">You have unsaved changes in this reconciliation. Save your progress to resume later, or discard it.</p>
+            <h3 id="reconSaveProgressTitle" data-i18n="reconcile.saveProgressTitle">Save reconciliation progress?</h3>
+            <p class="modal-description" data-i18n="reconcile.saveProgressDesc">You have unsaved changes in this reconciliation. Save your progress to resume later, or discard it.</p>
             <div class="modal-actions">
-                <button id="reconSaveProgressSaveBtn" class="btn btn-success">Save Progress</button>
-                <button id="reconSaveProgressDiscardBtn" class="btn btn-danger">Discard</button>
-                <button id="reconSaveProgressKeepEditingBtn" class="btn btn-secondary">Keep Editing</button>
+                <button id="reconSaveProgressSaveBtn" class="btn btn-success" data-i18n="reconcile.saveProgressBtn">Save Progress</button>
+                <button id="reconSaveProgressDiscardBtn" class="btn btn-danger" data-i18n="reconcile.discardBtn">Discard</button>
+                <button id="reconSaveProgressKeepEditingBtn" class="btn btn-secondary" data-i18n="reconcile.keepEditingBtn">Keep Editing</button>
             </div>
         </div>
     </div>
@@ -1522,27 +1522,27 @@
     </div>
     <div id="retirementSnapshotModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="retirementSnapshotModalTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="retirementSnapshotModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="retirementSnapshotModalTitle">Log Balance</h3>
+            <button id="retirementSnapshotModalCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="retirementSnapshotModalTitle" data-i18n="retirement.modalLogBalance">Log Balance</h3>
             <div class="form-group modal-form-group">
-                <label for="retirementSnapshotModalDate">Date</label>
+                <label for="retirementSnapshotModalDate" data-i18n="retirement.modalDateLabel">Date</label>
                 <input type="date" id="retirementSnapshotModalDate">
             </div>
             <div class="form-group modal-form-group" id="retirementSnapshotModalBalanceGroup">
-                <label for="retirementSnapshotModalBalance">Balance ($)</label>
+                <label for="retirementSnapshotModalBalance" data-i18n="retirement.modalBalanceLabel">Balance ($)</label>
                 <input type="number" id="retirementSnapshotModalBalance" step="0.01" placeholder="0.00">
             </div>
             <div class="form-group modal-form-group" id="retirementSnapshotModalContributionGroup">
-                <label for="retirementSnapshotModalContribution">Contribution This Period ($)</label>
+                <label for="retirementSnapshotModalContribution" data-i18n="retirement.modalContributionLabel">Contribution This Period ($)</label>
                 <input type="number" id="retirementSnapshotModalContribution" step="0.01" placeholder="0.00">
             </div>
             <div class="form-group modal-form-group hidden" id="retirementSnapshotModalSalaryGroup">
-                <label for="retirementSnapshotModalAnnualSalary">Annual Salary ($)</label>
+                <label for="retirementSnapshotModalAnnualSalary" data-i18n="retirement.modalAnnualSalaryLabel">Annual Salary ($)</label>
                 <input type="number" id="retirementSnapshotModalAnnualSalary" step="0.01" placeholder="0.00" min="0">
             </div>
             <div class="modal-actions">
-                <button id="retirementSnapshotModalConfirmBtn" class="btn btn-success">Save</button>
-                <button id="retirementSnapshotModalCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="retirementSnapshotModalConfirmBtn" class="btn btn-success" data-i18n="common.save">Save</button>
+                <button id="retirementSnapshotModalCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>

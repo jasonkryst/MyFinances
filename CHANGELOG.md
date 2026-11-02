@@ -4,6 +4,24 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.60.0] — 2026-11-01
+
+### Added
+- **Retirement and Reconcile pages are fully translated into Spanish and Polish** (issue #317, part 1 of the full-coverage work).
+  - **Retirement:** 54 Spanish/Polish entries were English placeholders, so the page stayed English in every locale. They are now real translations, as are the IRS-limit progress label and the Log Balance modal. The projection chart's month labels now use the active locale instead of a hardcoded `en-US` format.
+  - **Reconcile:** the page, its history table, the Reconcile modal and the Save Progress modal, plus validation messages.
+  - **Health/Settings:** 39 keys added since the pilot (Debt-to-Asset, FIRE, auto net-worth snapshot) had no Spanish/Polish entry and fell back to English. They are translated now.
+  - **Shared pieces:** `common.*` keys for Save/Cancel/Close/Delete/Edit/Print, and `accountTypeLabel()` for account-type names (stored values stay English).
+
+### Changed
+- **Switching language re-renders the open page.** `setLocale()` used to re-render only Health; now it refreshes whichever page is open.
+
+### Tests
+- **New `tests/features/test_i18n_coverage.py`:**
+  - **Parity:** `es.js`/`pl.js` must have exactly `en.js`'s keys, with matching `{placeholders}` and no English stubs (outside a short allowlist).
+  - **Render guard:** each translated page is loaded in a pseudo-locale (every string wrapped in `⟦…⟧`) with seeded and with empty data. Any unbracketed text, `aria-label`, `title` or `placeholder` fails the test.
+  - **Negative control:** proves the scan catches an injected English string.
+
 ## [6.59.2] — 2026-11-01
 
 ### Security

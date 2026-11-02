@@ -301,7 +301,7 @@ function renderContributionLimitSection(app, account) {
                 <div class="retire-limit-bar" role="progressbar" aria-valuenow="${Math.round(pctRaw)}" aria-valuemin="0" aria-valuemax="100" aria-label="${t('retirement.ytdContribAriaLabel')}">
                     <div class="retire-limit-fill retire-limit-fill--${state}" data-progress-width="${pctClamped}"></div>
                 </div>
-                <span class="retire-limit-label">${formatCurrency(ytd)} of ${formatCurrency(limit)}</span>
+                <span class="retire-limit-label">${t('retirement.ytdOfLimit', { ytd: formatCurrency(ytd), limit: formatCurrency(limit) })}</span>
             </div>
         </div>`;
 }
@@ -540,7 +540,7 @@ function renderProjectionChart(app, accounts, conservativeDelta, aggressiveDelta
     const today = new Date();
     const labels = series.map(p => {
         const d = new Date(today.getFullYear(), today.getMonth() + p.month, 1);
-        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        return formatMonthYear(d);
     });
 
     const { grid, label } = chartColors();

@@ -113,6 +113,7 @@ tests/
 │   ├── test_validation_modals.py     # Themed #alertModal replaces native browser alert() for all form validation errors
 │   ├── test_storage_backend.py       # localStorage vs. sessionStorage adapter selection, default/compat path, switchStorageBackend migration
 │   ├── test_i18n.py            # Locale storage, t() lookup with English fallback, applyStaticTranslations(); Spanish/Polish pilot scope
+│   ├── test_i18n_coverage.py   # #317 guards: es/pl key/placeholder parity, no English stubs, pseudo-locale render scan of translated pages
 │   ├── test_pwa.py             # manifest.json validity, SW precache list vs. src/ + APP_VERSION sync, SW browser registration
 │   ├── test_pwa_icons.py       # PNG icon assets from tools/generate-icons.js: correct dimensions via IHDR chunk parse, no Pillow dep
 │   ├── test_cash_flow_trend.py # getCashFlowTrendSeries() income/outflow/net per month correctness; rendered chart widget
@@ -285,6 +286,12 @@ tests/
 #### test_i18n.py
 - **Tests:** Locale preference, `t()` lookup, and `applyStaticTranslations()` for `[data-i18n]` elements
 - **Coverage:** Default locale is English (no `debtTrackerLocale` key); Settings modal exposes en/es/pl selector; switching to Spanish/Polish changes nav and toolbar text via `[data-i18n]` without reloading; unknown key falls back to raw key string (no crash)
+- **Status:** ✅ PASSING
+
+#### test_i18n_coverage.py (issue #317)
+- **Tests:** Translation completeness guards
+- **Coverage:** `es.js`/`pl.js` have exactly `en.js`'s keys, the same `{placeholder}` tokens and no empty values; no value is identical to English unless listed in `SAME_AS_ENGLISH`. Pseudo-locale render scan: `es.js` is replaced with `en.js` wrapped in `⟦…⟧`, each page in `TRANSLATED_PAGES` is rendered with seeded and with empty data, and any text node, `aria-label`, `title` or `placeholder` outside brackets fails the test. A negative control proves the scan catches an injected English string. `setLocale` re-renders the open page.
+- **Adding a page:** convert it, then add its roots and render/open steps to `TRANSLATED_PAGES`.
 - **Status:** ✅ PASSING
 
 #### test_pwa.py

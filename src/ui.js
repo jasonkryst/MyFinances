@@ -1015,6 +1015,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.60.0 — 2026-11-01',
+        items: [
+            '<strong>More of the app speaks Spanish and Polish</strong> (issue #317): the Retirement and Reconcile pages, and the newer Health cards, are now fully translated. More pages will follow.',
+            'Changing the language in Settings now updates the page you\'re on right away.'
+        ]
+    },
+    {
         version: '6.59.0 — 2026-11-01',
         items: [
             '<strong>Coast FIRE date</strong> (issue #346): the Retirement page now shows the earliest month you could stop contributing and let investment growth alone reach your target, for conservative, moderate and aggressive returns.',

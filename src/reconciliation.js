@@ -8,6 +8,7 @@ import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showReconSaveProgressModal } from './ui.js';
+import { t, accountTypeLabel } from './i18n.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -94,8 +95,8 @@ export function getExpectedTransactionsInRange(app, accountId, startDate, endDat
 export function validateStatementRange(startDate, endDate) {
     const start = sanitizeDateISO(startDate);
     const end = sanitizeDateISO(endDate);
-    if (!start || !end) return 'Please enter valid statement start and end dates.';
-    if (end < start) return 'Statement end date must not be before the start date.';
+    if (!start || !end) return t('reconcile.errInvalidDates');
+    if (end < start) return t('reconcile.errEndBeforeStart');
     return '';
 }
 
@@ -121,15 +122,15 @@ export function getDefaultStatementRange(app, accountId) {
 // Reconcile page's inline cards call this with no `clearedIds`, so they
 // render unchanged (no checkbox column).
 function renderExpectedTransactionsHtml(expected, clearedIds) {
-    if (expected.length === 0) return `<p class="recon-expected-empty">No expected transactions in this period.</p>`;
-    const checkHeader = clearedIds ? `<th class="recon-expected-check-col"><span class="sr-only">Reviewed</span></th>` : '';
+    if (expected.length === 0) return `<p class="recon-expected-empty">${t('reconcile.noExpected')}</p>`;
+    const checkHeader = clearedIds ? `<th class="recon-expected-check-col"><span class="sr-only">${t('reconcile.reviewedCol')}</span></th>` : '';
     const rows = expected.map(tx => {
         const checkCell = clearedIds
-            ? `<td><input type="checkbox" class="recon-expected-checkbox" data-recon-expected-id="${escapeHtml(tx.transactionId)}"${clearedIds.has(tx.transactionId) ? ' checked' : ''} aria-label="Mark ${escapeHtml(tx.name)} reviewed"></td>`
+            ? `<td><input type="checkbox" class="recon-expected-checkbox" data-recon-expected-id="${escapeHtml(tx.transactionId)}"${clearedIds.has(tx.transactionId) ? ' checked' : ''} aria-label="${escapeHtml(t('reconcile.markReviewedAria', { name: tx.name }))}"></td>`
             : '';
         return `<tr>${checkCell}<td>${formatShortDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(tx.category || '')}</td></tr>`;
     }).join('');
-    return `<div class="recon-table-wrap"><table class="recon-expected-table"><thead><tr>${checkHeader}<th>Date</th><th>Name</th><th>Amount</th><th>Category</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    return `<div class="recon-table-wrap"><table class="recon-expected-table"><thead><tr>${checkHeader}<th>${t('reconcile.colDate')}</th><th>${t('reconcile.colName')}</th><th>${t('reconcile.colAmount')}</th><th>${t('reconcile.colCategory')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // Wires each rendered "reviewed" checkbox to add/remove its transactionId
@@ -146,7 +147,7 @@ function attachExpectedCheckboxEvents(bodyEl, clearedIds) {
 }
 
 function expectedSummaryText(start, end) {
-    return `Expected transactions ${formatShortDate(start)} – ${formatShortDate(end)}`;
+    return t('reconcile.expectedSummaryRange', { start: formatShortDate(start), end: formatShortDate(end) });
 }
 
 // Wires a start/end date pair to live validation and the expected-transactions
@@ -175,7 +176,7 @@ function bindStatementRange(app, accountId, { startInput, endInput, errorEl, sub
 export async function applyReconciliation(app, accountId, statementBalance, note, dates) {
     const balance = sanitizeFiniteNumber(statementBalance, NaN);
     if (!Number.isFinite(balance)) {
-        await showAlertModal('Please enter a valid statement balance.');
+        await showAlertModal(t('reconcile.errInvalidBalance'));
         return { success: false };
     }
 
@@ -276,35 +277,35 @@ function renderReconcileCard(app, acct, index = 0) {
             <span class="acct-type-icon">${ACCOUNT_TYPE_ICONS[acct.type] || '🗂️'}</span>
             <div class="recon-card-info">
                 <span class="acct-card-name">${escapeHtml(acct.name)}</span>
-                <span class="recon-current-balance">Current Tracked Balance: ${formatCurrency(acct.startingBalance)}</span>
+                <span class="recon-current-balance">${t('reconcile.currentTrackedBalance', { amount: formatCurrency(acct.startingBalance) })}</span>
             </div>
         </div>
-        <button type="button" class="recon-card-toggle${open ? ' is-open' : ''}" data-collapse-toggle="${bodyId}" aria-expanded="${open}" aria-controls="${bodyId}" aria-label="Reconcile ${escapeHtml(acct.name)}: tracked balance ${escapeHtml(formatCurrency(acct.startingBalance))}"><span>Reconcile &middot; ${escapeHtml(formatCurrency(acct.startingBalance))} tracked</span></button>
+        <button type="button" class="recon-card-toggle${open ? ' is-open' : ''}" data-collapse-toggle="${bodyId}" aria-expanded="${open}" aria-controls="${bodyId}" aria-label="${escapeHtml(t('reconcile.cardToggleAria', { name: acct.name, amount: formatCurrency(acct.startingBalance) }))}"><span>${escapeHtml(t('reconcile.cardToggle', { amount: formatCurrency(acct.startingBalance) }))}</span></button>
         <div class="recon-card-body mobile-collapsible-body${open ? ' is-open' : ''}" id="${bodyId}">
         <div class="recon-form-grid">
             <div class="form-group form-no-margin">
-                <label for="recon-start-${acct.id}" class="label-compact">Statement Start Date</label>
+                <label for="recon-start-${acct.id}" class="label-compact">${t('reconcile.startDateLabel')}</label>
                 <input type="date" id="recon-start-${acct.id}" value="${start}" class="form-full-width">
             </div>
             <div class="form-group form-no-margin">
-                <label for="recon-end-${acct.id}" class="label-compact">Statement End Date</label>
+                <label for="recon-end-${acct.id}" class="label-compact">${t('reconcile.endDateLabel')}</label>
                 <input type="date" id="recon-end-${acct.id}" value="${end}" class="form-full-width">
             </div>
             <div class="form-group form-no-margin">
-                <label for="recon-balance-${acct.id}" class="label-compact">Statement Balance ($)</label>
+                <label for="recon-balance-${acct.id}" class="label-compact">${t('reconcile.balanceLabel')}</label>
                 <input type="number" id="recon-balance-${acct.id}" step="0.01" value="${acct.startingBalance}" class="form-full-width">
             </div>
             <div class="form-group form-no-margin">
-                <label for="recon-note-${acct.id}" class="label-compact">Note (optional)</label>
+                <label for="recon-note-${acct.id}" class="label-compact">${t('reconcile.noteLabel')}</label>
                 <input type="text" id="recon-note-${acct.id}" maxlength="200" class="form-full-width">
             </div>
         </div>
         <p id="recon-range-error-${acct.id}" class="recon-range-error hidden" role="alert"></p>
         <div class="recon-diff-row">
-            <span class="recon-diff-label">Difference:</span>
+            <span class="recon-diff-label">${t('reconcile.differenceLabel')}</span>
             <span id="recon-diff-${acct.id}" class="recon-diff--zero">${formatCurrency(0)}</span>
         </div>
-        <button class="btn btn-primary" data-recon-action="reconcile" data-recon-id="${acct.id}" aria-label="Reconcile ${escapeHtml(acct.name)}">Reconcile</button>
+        <button class="btn btn-primary" data-recon-action="reconcile" data-recon-id="${acct.id}" aria-label="${escapeHtml(t('reconcile.reconcileAria', { name: acct.name }))}">${t('reconcile.reconcileBtn')}</button>
         <details class="recon-expected">
             <summary id="recon-expected-summary-${acct.id}">${expectedSummaryText(start, end)}</summary>
             <div id="recon-expected-body-${acct.id}">${renderExpectedTransactionsHtml(expected)}</div>
@@ -356,37 +357,37 @@ function renderReconciliationHistory(app) {
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const filterHtml = `<div class="filter-controls">
-        <label for="reconHistoryAccountFilter" class="filter-label">Account:</label>
+        <label for="reconHistoryAccountFilter" class="filter-label">${t('reconcile.accountFilterLabel')}</label>
         <select id="reconHistoryAccountFilter" class="select-styled">
-            <option value="all"${filter === 'all' ? ' selected' : ''}>All Accounts</option>
-            ${(app.accounts || []).map(a => `<option value="${a.id}"${String(filter) === String(a.id) ? ' selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`).join('')}
+            <option value="all"${filter === 'all' ? ' selected' : ''}>${t('reconcile.allAccounts')}</option>
+            ${(app.accounts || []).map(a => `<option value="${a.id}"${String(filter) === String(a.id) ? ' selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(accountTypeLabel(a.type))})</option>`).join('')}
         </select>
     </div>`;
 
     let rowsHtml;
     if (entries.length === 0) {
-        rowsHtml = `<tr><td colspan="5" class="text-center text-muted-secondary p-32">No reconciliation history yet.</td></tr>`;
+        rowsHtml = `<tr><td colspan="5" class="text-center text-muted-secondary p-32">${t('reconcile.noHistory')}</td></tr>`;
     } else {
         rowsHtml = entries.map(entry => {
             const account = (app.accounts || []).find(a => a.id === entry.accountId);
-            const accountName = account ? escapeHtml(account.name) : 'Unknown account';
+            const accountName = account ? escapeHtml(account.name) : escapeHtml(t('reconcile.unknownAccount'));
             const periodHtml = entry.statementStartDate && entry.statementEndDate
-                ? `<span class="recon-period">Statement: ${formatShortDate(entry.statementStartDate)} – ${formatShortDate(entry.statementEndDate)}</span>`
+                ? `<span class="recon-period">${t('reconcile.statementPeriod', { start: formatShortDate(entry.statementStartDate), end: formatShortDate(entry.statementEndDate) })}</span>`
                 : '';
             return `<tr>
                 <td>${formatShortDate(entry.date)}</td>
                 <td>${accountName}</td>
-                <td><span class="recon-badge">🔄 Balance Reconciliation</span>${entry.note ? ` ${escapeHtml(entry.note)}` : ''}${periodHtml}</td>
+                <td><span class="recon-badge">🔄 ${t('reconcile.eventBadge')}</span>${entry.note ? ` ${escapeHtml(entry.note)}` : ''}${periodHtml}</td>
                 <td class="${_diffClass(entry.difference)}">${formatCurrency(entry.previousBalance)} → ${formatCurrency(entry.statementBalance)} (${formatCurrency(entry.difference)})</td>
-                <td><button class="btn btn-danger btn-small" data-recon-action="delete-history" data-recon-history-id="${entry.id}" aria-label="Delete reconciliation for ${accountName} on ${escapeHtml(entry.date || '')}">Delete</button></td>
+                <td><button class="btn btn-danger btn-small" data-recon-action="delete-history" data-recon-history-id="${entry.id}" aria-label="${escapeHtml(t('reconcile.deleteHistoryAria', { name: account ? account.name : t('reconcile.unknownAccount'), date: entry.date || '' }))}">${t('common.delete')}</button></td>
             </tr>`;
         }).join('');
     }
 
-    return `<h3>History</h3>${filterHtml}
+    return `<h3>${t('reconcile.historyTitle')}</h3>${filterHtml}
         <div class="recon-table-wrap">
         <table class="recon-history-table ledger-table">
-            <thead><tr><th>Date</th><th>Account</th><th>Event</th><th>Previous → Statement</th><th></th></tr></thead>
+            <thead><tr><th>${t('reconcile.colDate')}</th><th>${t('reconcile.colAccount')}</th><th>${t('reconcile.colEvent')}</th><th>${t('reconcile.colPrevStatement')}</th><th><span class="sr-only">${t('reconcile.colActions')}</span></th></tr></thead>
             <tbody>${rowsHtml}</tbody>
         </table>
         </div>`;
@@ -414,12 +415,12 @@ export function renderReconciliationPage(app) {
     if (!section) return;
 
     const headerHtml = `<div class="page-header-row">
-        <h2>🔄 Reconcile</h2>
-        <button type="button" class="page-print-btn" id="reconcilePrintBtn" title="Print this page" aria-label="Print the Reconcile page">🖨️ Print</button>
+        <h2>🔄 ${t('reconcile.pageTitle')}</h2>
+        <button type="button" class="page-print-btn" id="reconcilePrintBtn" title="${t('common.printTitle')}" aria-label="${t('reconcile.printAria')}">🖨️ ${t('common.print')}</button>
     </div>`;
 
     if (!app.accounts || app.accounts.length === 0) {
-        section.innerHTML = `${headerHtml}<p class="acct-empty-msg">No accounts yet. Add an account first to reconcile its balance.</p>`;
+        section.innerHTML = `${headerHtml}<p class="acct-empty-msg">${t('reconcile.emptyMsg')}</p>`;
         attachReconcilePrintEvent();
         return;
     }
@@ -480,7 +481,7 @@ export function openReconcileModal(app, accountId) {
         resumeBanner.classList.toggle('hidden', !saved);
         if (saved) {
             const savedOn = saved.savedAt ? formatShortDate(saved.savedAt.slice(0, 10)) : '';
-            resumeBanner.textContent = `↩️ Resumed in-progress reconciliation${savedOn ? ` saved ${savedOn}` : ''}.`;
+            resumeBanner.textContent = `↩️ ${savedOn ? t('reconcile.resumedBannerOn', { date: savedOn }) : t('reconcile.resumedBanner')}`;
         }
     }
 
