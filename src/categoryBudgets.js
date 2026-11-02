@@ -76,28 +76,29 @@ export function computeCategoryBudgets(app, year, month, rangeMonths = 1) {
 // Budget vs. Actual table markup for Reports -> Variance.
 export function renderBudgetVsActualHtml(app, year, month, rangeMonths) {
     const rows = computeCategoryBudgets(app, year, month, rangeMonths);
-    const heading = `<h3 class="var-title bva-title">Budget vs. Actual</h3>
-        <p class="var-subtitle">${rangeMonths > 1 ? `Budgets are multiplied across the ${rangeMonths}-month range. ` : ''}Set fixed budgets under Liabilities &rarr; Budget &rarr; Category Budgets; categories without one use their scheduled amounts.</p>`;
+    const heading = `<h3 class="var-title bva-title">${escapeHtml(t('reports.bvaTitle'))}</h3>
+        <p class="var-subtitle">${escapeHtml(rangeMonths > 1 ? t('reports.bvaSubRange', { n: rangeMonths }) : t('reports.bvaSub'))}</p>`;
     if (rows.length === 0) {
-        return `<div class="bva-section" id="budgetVsActual">${heading}<p class="bva-empty">No spending categories to budget yet.</p></div>`;
+        return `<div class="bva-section" id="budgetVsActual">${heading}<p class="bva-empty">${escapeHtml(t('reports.bvaEmpty'))}</p></div>`;
     }
     const body = rows.map(r => {
         const name = escapeHtml(r.category);
+        const shownName = escapeHtml(categoryLabel(r.category));
         const diffCls = r.over ? 'bva-neg' : 'bva-pos';
         const diffText = `${r.difference >= 0 ? '' : '-'}${formatCurrency(Math.abs(r.difference))}`;
         const pct = r.pctUsed === null ? '—' : `${Math.round(r.pctUsed * 100)}%`;
         return `<div class="bva-row${r.over ? ' bva-row--over' : ''}" data-category="${name}">
-            <span class="bva-cell bva-cat" data-label="Category">${name} <span class="bva-mode bva-mode--${r.mode}">${r.mode === 'fixed' ? 'Fixed' : 'Derived'}</span></span>
-            <span class="bva-cell bva-budget" data-label="Budget">${formatCurrency(r.budget)}</span>
-            <span class="bva-cell bva-actual" data-label="Actual">${formatCurrency(r.actual)}</span>
-            <span class="bva-cell bva-diff ${diffCls}" data-label="Difference">${diffText}${r.over ? ' over' : ''}</span>
-            <span class="bva-cell bva-pct" data-label="% Used">${pct}</span>
+            <span class="bva-cell bva-cat" data-label="${escapeHtml(t('reports.colCategory'))}">${shownName} <span class="bva-mode bva-mode--${r.mode}">${escapeHtml(r.mode === 'fixed' ? t('catBudgets.fixed') : t('catBudgets.derived'))}</span></span>
+            <span class="bva-cell bva-budget" data-label="${escapeHtml(t('reports.bvaBudget'))}">${formatCurrency(r.budget)}</span>
+            <span class="bva-cell bva-actual" data-label="${escapeHtml(t('reports.bvaActual'))}">${formatCurrency(r.actual)}</span>
+            <span class="bva-cell bva-diff ${diffCls}" data-label="${escapeHtml(t('reports.bvaDifference'))}">${r.over ? escapeHtml(t('reports.bvaOver', { amount: diffText })) : diffText}</span>
+            <span class="bva-cell bva-pct" data-label="${escapeHtml(t('reports.bvaPctUsed'))}">${pct}</span>
         </div>`;
     }).join('');
     return `<div class="bva-section" id="budgetVsActual">${heading}
         <div class="bva-table">
             <div class="bva-header">
-                <span>Category</span><span>Budget</span><span>Actual</span><span>Difference</span><span>% Used</span>
+                <span>${escapeHtml(t('reports.colCategory'))}</span><span>${escapeHtml(t('reports.bvaBudget'))}</span><span>${escapeHtml(t('reports.bvaActual'))}</span><span>${escapeHtml(t('reports.bvaDifference'))}</span><span>${escapeHtml(t('reports.bvaPctUsed'))}</span>
             </div>
             ${body}
         </div>

@@ -1,6 +1,7 @@
 // Reports page logic: month-to-month (or range-to-range) variance comparison
 
-import { formatCurrency, getReportDate, getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel } from './utils.js';
+import { formatCurrency, getReportDate, getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel, escapeHtml } from './utils.js';
+import { t } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { renderBudgetVsActualHtml } from './categoryBudgets.js';
 
@@ -79,35 +80,35 @@ export function renderReportsVariance(app) {
     // Create variance rows
     const rows = [
         {
-            label: '💰 Income',
+            label: `💰 ${t('reports.statIncome')}`,
             current: currIncome,
             previous: prevIncome,
             delta: deltaIncome,
             isExpense: false
         },
         {
-            label: '💸 Expenses',
+            label: `💸 ${t('reports.varExpenses')}`,
             current: currExpenses,
             previous: prevExpenses,
             delta: deltaExpenses,
             isExpense: true
         },
         {
-            label: '🔄 Recurring Costs',
+            label: `🔄 ${t('reports.statRecurringCosts')}`,
             current: currRecurring,
             previous: prevRecurring,
             delta: deltaRecurring,
             isExpense: true
         },
         {
-            label: '💳 Debt Minimums',
+            label: `💳 ${t('reports.statDebtMinimums')}`,
             current: currDebtMin,
             previous: prevDebtMin,
             delta: deltaDebtMin,
             isExpense: true
         },
         {
-            label: '💰 Savings Contributions',
+            label: `💰 ${t('reports.statSavingsContrib')}`,
             current: currSavings,
             previous: prevSavings,
             delta: deltaSavings,
@@ -117,7 +118,7 @@ export function renderReportsVariance(app) {
 
     const rowsHTML = rows.map(r => `
         <div class="var-row">
-            <span class="var-label">${r.label}</span>
+            <span class="var-label">${escapeHtml(r.label)}</span>
             <span class="var-prev">
                 <span class="var-small-label">${prevLabel}</span>
                 <span class="var-value">${formatCurrency(r.previous)}</span>
@@ -139,30 +140,30 @@ export function renderReportsVariance(app) {
         <div class="var-container">
             <div class="var-header-row">
                 <div>
-                    <h3 class="var-title">${rangeMonths > 1 ? 'Period-to-Period Comparison' : 'Month-to-Month Comparison'}</h3>
-                    <p class="var-subtitle">Changes from ${prevLabel} to ${currLabel}</p>
+                    <h3 class="var-title">${escapeHtml(rangeMonths > 1 ? t('reports.varTitlePeriod') : t('reports.varTitleMonth'))}</h3>
+                    <p class="var-subtitle">${escapeHtml(t('reports.varChanges', { from: prevLabel, to: currLabel }))}</p>
                 </div>
-                <label class="var-range-toggle-label" for="varianceRangeMonths">Range:
+                <label class="var-range-toggle-label" for="varianceRangeMonths">${escapeHtml(t('reports.rangeLabel'))}
                     <select id="varianceRangeMonths" class="select-styled">
-                        <option value="1"${rangeMonths === 1 ? ' selected' : ''}>Single Month</option>
-                        <option value="3"${rangeMonths === 3 ? ' selected' : ''}>Quarter (3 mo)</option>
-                        <option value="6"${rangeMonths === 6 ? ' selected' : ''}>Half Year (6 mo)</option>
-                        <option value="12"${rangeMonths === 12 ? ' selected' : ''}>Year (12 mo)</option>
+                        <option value="1"${rangeMonths === 1 ? ' selected' : ''}>${escapeHtml(t('reports.rangeSingle'))}</option>
+                        <option value="3"${rangeMonths === 3 ? ' selected' : ''}>${escapeHtml(t('reports.rangeQuarter'))}</option>
+                        <option value="6"${rangeMonths === 6 ? ' selected' : ''}>${escapeHtml(t('reports.rangeHalf'))}</option>
+                        <option value="12"${rangeMonths === 12 ? ' selected' : ''}>${escapeHtml(t('reports.rangeYear'))}</option>
                     </select>
                 </label>
             </div>
             <div class="var-table">
                 <div class="var-header">
-                    <span class="var-label-col">Category</span>
+                    <span class="var-label-col">${escapeHtml(t('reports.colCategory'))}</span>
                     <span class="var-period-col">${prevLabel}</span>
                     <span class="var-period-col">${currLabel}</span>
-                    <span class="var-delta-col">Change</span>
+                    <span class="var-delta-col">${escapeHtml(t('reports.colChange'))}</span>
                 </div>
                 ${rowsHTML}
             </div>
             <div class="var-summary">
                 <div class="var-summary-row">
-                    <span class="var-summary-label">Net Available (Income - All Outflows)</span>
+                    <span class="var-summary-label">${escapeHtml(t('reports.varNetAvailable'))}</span>
                     <span class="var-summary-prev">${formatCurrency(prevIncome - prevExpenses - prevRecurring - prevDebtMin)}</span>
                     <span class="var-summary-curr">${formatCurrency(currIncome - currExpenses - currRecurring - currDebtMin)}</span>
                     <span class="var-summary-delta var-delta--${totalDeltaClass}">

@@ -29,7 +29,9 @@ export default out;
 
 # Proper nouns/acronyms rendered as-is in every locale. Keep this short — a
 # word belongs here only if no locale would ever translate it.
-NON_TRANSLATABLE = {'ira', 'roth', 'hsa', 'fire', 'us', 'usd'}
+NON_TRANSLATABLE = {'ira', 'roth', 'hsa', 'fire', 'us', 'usd',
+                    # language names in the Settings language picker are shown in their own language
+                    'english', 'español', 'polski'}
 
 _SEED_ACCOUNTS = [
     {'id': 1, 'name': '⟦Checking⟧', 'type': 'Checking', 'startingBalance': 2500},
@@ -107,23 +109,6 @@ SEEDED_STATE = {
          'difference': 100, 'note': '⟦Bank fee⟧', 'createdAt': '2026-03-01T00:00:00.000Z'},
     ],
 }
-
-# Retirement/Reconcile were converted against the smaller original seed. The extended seed above feeds
-# the Accounts/Income/Savings entries; its transfers, auto-contributions and categorised bonuses would
-# surface Ledger-generated English names ("Transfer to ...", "Emergency Fund Contribution", ...) in the
-# Reconcile expected-transactions table, which belongs to the Ledger conversion.
-BASE_SEEDED_STATE = {
-    'accounts': _SEED_ACCOUNTS[:5],
-    'debts': [],
-    'settings': [],
-    'incomes': [{'id': 1, 'name': '⟦Salary⟧', 'amount': 3000, 'frequency': 'biweekly',
-                 'startDate': '2026-01-02', 'accountId': 1}],
-    'retirementSnapshots': SEEDED_STATE['retirementSnapshots'],
-    'retirementTargetDate': SEEDED_STATE['retirementTargetDate'],
-    'reconciliations': SEEDED_STATE['reconciliations'],
-}
-_BASE_STATE_PAGES = {'retirement', 'reconcile'}
-
 
 # Liabilities (Debts + Expenses sub-tabs) and Recurring. Names/categories/notes wrapped in the pseudo-locale
 # brackets are user data; built-in categories ('Food', 'Utilities', 'Income', ...) are deliberately left
@@ -275,7 +260,251 @@ def _savings_setup(sub_tab, extra=''):
         }""" % (sub_tab, '', extra)
 
 
+# Reports (every sub-tab). Uses the full seed, so ledger-generated names (transfers, interest, fund
+# contributions, reconciliations) flow through every report.
+def _months_ago(n):
+    today = datetime.date.today()
+    y, m = today.year, today.month - n
+    while m < 1:
+        m += 12
+        y -= 1
+    return datetime.date(y, m, min(today.day, 28)).isoformat()
+
+
+REPORTS_STATE = dict(SEEDED_STATE)
+REPORTS_STATE.update({
+    'reconciliations': [{'id': 1, 'accountId': 1, 'date': _TODAY, 'statementStartDate': _months_ago(1),
+                         'statementEndDate': _TODAY, 'previousBalance': 2400, 'statementBalance': 2500,
+                         'difference': 100, 'note': '⟦Bank fee⟧', 'createdAt': '2026-03-01T00:00:00.000Z'}],
+    'bonuses': [{'id': 1, 'name': '⟦Refund⟧', 'amount': 2000, 'date': _TODAY, 'category': 'Tax Refund',
+                 'accountId': 1, 'purpose': 'cashFlow'}],
+    'bills': [{'id': 1, 'name': '⟦Rent⟧', 'amount': 900, 'dueDay': 1, 'category': 'Rent / Mortgage', 'accountId': 1}],
+    'expenses': [
+        {'id': 1, 'name': '⟦Groceries⟧', 'budgetAmount': 250, 'date': _TODAY, 'category': 'Food', 'accountId': 1},
+        {'id': 2, 'name': '⟦Gym⟧', 'budgetAmount': 40, 'date': _TODAY, 'category': '⟦Fitness⟧', 'accountId': 1},
+        {'id': 3, 'name': '⟦Power⟧', 'budgetAmount': 90, 'date': _TODAY, 'category': 'Utilities', 'accountId': 1},
+        {'id': 4, 'name': '⟦Old Groceries⟧', 'budgetAmount': 200, 'date': _months_ago(1), 'category': 'Food',
+         'accountId': 1},
+        {'id': 5, 'name': '⟦Last Year Food⟧', 'budgetAmount': 180, 'date': _months_ago(12), 'category': 'Food',
+         'accountId': 1},
+    ],
+    'budgetCategories': {'Food': {'mode': 'fixed', 'amount': 150}, '⟦Fitness⟧': {'mode': 'derived', 'amount': 0}},
+    'recurringTemplates': [
+        {'id': 1, 'name': '⟦Streaming⟧', 'type': 'subscription', 'amount': 15, 'frequency': 'monthly',
+         'dayOfMonth': 1, 'category': 'Entertainment', 'accountId': 1, 'startDate': '2025-01-01'},
+        {'id': 2, 'name': '⟦Side Pay⟧', 'type': 'income', 'amount': 200, 'frequency': 'monthly',
+         'dayOfMonth': 2, 'category': 'Income', 'accountId': 1, 'startDate': '2025-01-01'},
+    ],
+    'monthlySnapshots': [
+        {'date': _months_ago(2)[:8] + '28', 'totalAssets': 50000, 'totalLiabilities': 10000, 'netWorth': 40000,
+         'incomeReceived': 6000, 'debtPaymentMade': 500},
+        {'date': _months_ago(1)[:8] + '28', 'totalAssets': 52000, 'totalLiabilities': 9000, 'netWorth': 43000,
+         'incomeReceived': 6100, 'debtPaymentMade': 520},
+        {'date': _TODAY, 'totalAssets': 54000, 'totalLiabilities': 8000, 'netWorth': 46000,
+         'incomeReceived': 6200, 'debtPaymentMade': 540},
+    ],
+})
+_REPORTS_ROOTS = ['#reportsSection']
+_REPORTS_OPEN = """
+            window.app.switchPage('reports');
+            const tab = document.getElementById('rptTab-%s');
+            if (tab) tab.click();
+            await window.app.renderReportsPage();
+            await new Promise(r => setTimeout(r, 300));
+"""
+
+
+def _reports_setup(tab, extra=''):
+    return "async () => {" + (_REPORTS_OPEN % tab) + extra + "}"
+
+
+# Ledger, People, Settings and (now that generated names are translated) Reconcile. Every transaction
+# source is present: income (one variable), a bonus, debts, a bill, an expense, a one-off transfer, recurring
+# subscription/income/reimbursement/transfer templates, emergency + sinking fund contributions, interest on a
+# savings account and a reconciliation. People are linked to debts and incomes.
+LEDGER_STATE = dict(SEEDED_STATE)
+LEDGER_STATE.update({
+    'persons': [{'id': 1, 'name': '⟦Alex⟧'}, {'id': 2, 'name': '⟦Sam⟧'}],
+    'incomes': [
+        {'id': 1, 'name': '⟦Salary⟧', 'amount': 3000, 'frequency': 'biweekly', 'firstPayDate': '2026-01-02',
+         'accountId': 1, 'personId': 1},
+        {'id': 2, 'name': '⟦Side Gig⟧', 'amount': 500, 'frequency': 'monthly', 'firstPayDate': '2026-01-15',
+         'accountId': 7, 'category': 'Freelance', 'isVariable': True, 'personId': 2},
+        {'id': 3, 'name': '⟦Rental⟧', 'amount': 700, 'frequency': 'monthly', 'firstPayDate': '2026-01-20',
+         'accountId': 1, 'category': 'Rental'},
+    ],
+    'debts': [
+        {'id': 1, 'name': '⟦Visa Card⟧', 'debtType': 'creditCard', 'accountBalance': 4000, 'originalBalance': 5000,
+         'minimumPayment': 80, 'interestRate': 24, 'dueDate': 15, 'creditLimit': 5000, 'accountId': 1,
+         'personIds': [1, 2], 'ownershipSplit': {'1': 0.7, '2': 0.3}},
+        {'id': 2, 'name': '⟦Car Loan⟧', 'debtType': 'creditCard', 'accountBalance': 9000, 'originalBalance': 9000,
+         'minimumPayment': 200, 'interestRate': 8, 'dueDate': 3, 'accountId': 1, 'personIds': [1]},
+        {'id': 3, 'name': '⟦Maxed Card⟧', 'debtType': 'creditCard', 'accountBalance': 5200, 'originalBalance': 5000,
+         'minimumPayment': 120, 'interestRate': 22, 'dueDate': 9, 'creditLimit': 5000, 'accountId': 1,
+         'personIds': [2]},
+        {'id': 4, 'name': '⟦Daycare⟧', 'debtType': 'fixedAmount', 'fixedAmount': 300,
+         'fixedStartDate': '2025-01-01', 'fixedEndDate': '2099-12-31', 'dueDate': 5, 'minimumPayment': 300,
+         'personIds': [2]},
+    ],
+    'bills': [{'id': 1, 'name': '⟦Rent⟧', 'amount': 900, 'dueDay': 1, 'category': 'Rent / Mortgage',
+               'accountId': 1}],
+    'expenses': [{'id': 1, 'name': '⟦Groceries⟧', 'budgetAmount': 250, 'date': _TODAY, 'category': 'Food',
+                  'accountId': 1}],
+    'recurringTemplates': [
+        {'id': 1, 'name': '⟦Streaming⟧', 'type': 'subscription', 'amount': 15, 'frequency': 'monthly',
+         'dayOfMonth': 1, 'category': 'Entertainment', 'accountId': 1, 'startDate': '2025-01-01'},
+        {'id': 2, 'name': '⟦Side Pay⟧', 'type': 'income', 'amount': 200, 'frequency': 'monthly',
+         'dayOfMonth': 2, 'category': 'Income', 'accountId': 1, 'startDate': '2025-01-01'},
+        {'id': 3, 'name': '⟦Gym Refund⟧', 'type': 'reimbursement', 'amount': 30, 'frequency': 'monthly',
+         'dayOfMonth': 3, 'category': 'Health', 'accountId': 1, 'startDate': '2025-01-01'},
+        {'id': 4, 'name': '⟦Savings Move⟧', 'type': 'transfer', 'amount': 100, 'frequency': 'monthly',
+         'dayOfMonth': 4, 'category': 'Transfer', 'accountId': 1, 'targetAccountId': 7, 'startDate': '2025-01-01'},
+    ],
+    'reconciliations': [
+        {'id': 1, 'accountId': 1, 'date': _TODAY, 'statementStartDate': _months_ago(1), 'statementEndDate': _TODAY,
+         'previousBalance': 2400, 'statementBalance': 2500, 'difference': 100, 'note': '⟦Bank fee⟧',
+         'createdAt': '2026-03-01T00:00:00.000Z'},
+    ],
+})
+_LEDGER_PREFIXES = ('ledger', 'people', 'settings', 'reconcile')
+
+_LEDGER_SEED = """
+            const lt = await import('/src/ledgerTransactions.js');
+            const ov = await import('/src/ledgerOverrides.js');
+            const cl = await import('/src/ledgerCleared.js');
+            const app = window.app;
+            app._ledgerDateRange = 'all';
+            app._ledgerPageSize = 100;
+            app._ledgerPage = 1;
+            app._ledgerFiltersRestored = true;
+            const txs = lt.getLedgerTransactions(app).filter(tx => tx.transactionId);
+            const pickAll = (type, id) => txs.filter(tx => tx.type === type && (id === undefined || tx.sourceId === id));
+            const debt = pickAll('debt', 1)[0];
+            if (debt) ov.setLedgerAmountOverride(app, debt.transactionId, debt.originalAmount - 5,
+                { originalAmount: debt.originalAmount, transactionName: debt.name, accountId: debt.accountId,
+                  date: debt.date, memo: '⟦Late fee⟧' });
+            const gig = pickAll('income', 2);
+            if (gig[0]) ov.setLedgerAmountOverride(app, gig[0].transactionId, 480,
+                { originalAmount: gig[0].originalAmount, transactionName: gig[0].name, accountId: gig[0].accountId,
+                  date: gig[0].date });
+            const bill = pickAll('bill')[0];
+            if (bill) ov.setLedgerAmountOverride(app, bill.transactionId, bill.originalAmount - 1,
+                { originalAmount: bill.originalAmount, transactionName: bill.name, accountId: bill.accountId,
+                  date: bill.date });
+            for (const tx of [...pickAll('income', 1).slice(0, 2), ...pickAll('recurring', 1).slice(0, 1)]) {
+                cl.setLedgerCleared(app, tx.transactionId, true);
+            }
+            app.switchPage('ledger');
+            const select = document.querySelector('.ledger-row-select');
+            if (select) { select.checked = true; select.dispatchEvent(new Event('change')); }
+"""
+
+_LEDGER_ROOTS = ['#ledgerSection']
+_LEDGER_MODAL_ROOTS = ['#ledgerOverrideModal', '#ledgerExportModal', '#ledgerMarkAllClearedModal']
+
 TRANSLATED_PAGES = {
+    'ledger': (
+        _LEDGER_ROOTS + _LEDGER_MODAL_ROOTS,
+        "async () => {" + _LEDGER_SEED + "}",
+    ),
+    'ledger-filters-crossnav': (
+        _LEDGER_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            document.getElementById('ledgerFiltersBody')?.classList.add('is-open');
+            document.getElementById('ledgerFiltersToggle')?.classList.add('is-open');
+            app._ledgerPreCrossNavAccount = 'all';
+            app._ledgerPreCrossNavDateRange = 'around7';
+            app._ledgerCrossNavLabel = '⟦Food⟧';
+            app._ledgerCategoryFilter = 'Food';
+            app._ledgerClearedFilter = 'uncleared';
+            app._ledgerAccountFilter = '1';
+            app._ledgerPageSize = 10;
+            app.switchPage('ledger');
+            app.refreshCurrentPageData();
+        }""",
+    ),
+    'ledger-override-modal': (
+        _LEDGER_ROOTS + _LEDGER_MODAL_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            const tx = lt.getFilteredSortedLedgerTransactions(app).find(t => t.transactionId && t.type === 'debt');
+            if (tx) ov.openLedgerOverrideModal(app, tx, () => {});
+        }""",
+    ),
+    'ledger-export-modal': (
+        _LEDGER_ROOTS + _LEDGER_MODAL_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            document.getElementById('ledgerExportCsvBtn')?.click();
+        }""",
+    ),
+    'ledger-export-empty': (
+        _LEDGER_ROOTS + _LEDGER_MODAL_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            app._ledgerCategoryFilter = 'No Such Category';
+            app.refreshCurrentPageData();
+            document.getElementById('ledgerExportCsvBtn')?.click();
+        }""",
+    ),
+    'ledger-mark-all-cleared': (
+        _LEDGER_ROOTS + _LEDGER_MODAL_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            document.getElementById('ledgerMarkAllClearedBtn')?.click();
+        }""",
+    ),
+    'ledger-recon-info': (
+        _LEDGER_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            const settings = await import('/src/settings.js');
+            settings.setSetting(window.app, settings.RECONCILIATION_ADJUSTS_BALANCE, true);
+            window.app.refreshCurrentPageData();
+        }""",
+    ),
+    'people': (
+        ['#peopleSection', '#personReplacementModal'],
+        """async () => {
+            window.app.switchPage('people');
+            window.app.renderPeopleList();
+            // not awaited: resolves only when the modal is dismissed
+            window.app.deletePerson(1);
+            await new Promise(r => setTimeout(r, 200));
+        }""",
+    ),
+    'people-edit': (
+        ['#peopleSection'],
+        """async () => {
+            window.app.switchPage('people');
+            window.app.editingPersonId = 1;
+            window.app.renderPeopleList();
+        }""",
+    ),
+    'settings-appearance': (
+        ['#settingsModal'],
+        """async () => {
+            document.getElementById('settingsBtn').click();
+            document.querySelector('[data-settings-tab="appearance"]').click();
+        }""",
+    ),
+    'settings-data': (
+        ['#settingsModal'],
+        """async () => {
+            document.getElementById('settingsBtn').click();
+            document.querySelector('[data-settings-tab="data"]').click();
+        }""",
+    ),
+    'settings-notifications': (
+        ['#settingsModal'],
+        """async () => {
+            document.getElementById('settingsBtn').click();
+            document.querySelector('[data-settings-tab="notifications"]').click();
+            document.getElementById('settingsEmailTestGroup')?.classList.remove('hidden');
+        }""",
+    ),
+    'settings-advanced': (
+        ['#settingsModal'],
+        """async () => {
+            document.getElementById('settingsBtn').click();
+            document.querySelector('[data-settings-tab="advanced"]').click();
+        }""",
+    ),
     'accounts': (
         ['#accountsSection', '#acctBreakdownModal', '#balanceHistoryModal', '#transferModal'],
         """async () => {
@@ -687,6 +916,58 @@ TRANSLATED_PAGES = {
             await new Promise(r => setTimeout(r, 200));
         }""",
     ),
+    'reports-calendar': (
+        _REPORTS_ROOTS + ['#calendarDayModal'],
+        _reports_setup('calendar', """
+            const cell = document.querySelector('[data-cal-day]');
+            if (cell) cell.click();
+            await new Promise(r => setTimeout(r, 200));
+"""),
+    ),
+    'reports-spending': (
+        _REPORTS_ROOTS + ['#spendingDrilldownModal'],
+        _reports_setup('spending', """
+            const row = document.querySelector('#spendingRankedList [data-spending-cat]');
+            if (row) row.click();
+            await new Promise(r => setTimeout(r, 200));
+"""),
+    ),
+    'reports-spending-yoy': (
+        _REPORTS_ROOTS,
+        _reports_setup('spending', """
+            window.app._spendingYoYMode = true;
+            window.app._reportRangeMonths = 3;
+            await window.app.renderReportsPage();
+"""),
+    ),
+    'reports-incomeexp': (_REPORTS_ROOTS, _reports_setup('incomeexp')),
+    'reports-moneyflow': (_REPORTS_ROOTS, _reports_setup('moneyflow')),
+    'reports-variance': (_REPORTS_ROOTS, _reports_setup('variance')),
+    'reports-variance-range': (
+        _REPORTS_ROOTS,
+        _reports_setup('variance', """
+            window.app._reportRangeMonths = 3;
+            await window.app.renderReportsPage();
+"""),
+    ),
+    'reports-networth': (_REPORTS_ROOTS, _reports_setup('networth')),
+    'reports-forecast': (_REPORTS_ROOTS, _reports_setup('forecast')),
+    'reports-forecast-account': (
+        _REPORTS_ROOTS,
+        _reports_setup('forecast', """
+            window.app._forecastAccountId = '1';
+            window.app._forecastRangeMonths = 6;
+            await window.app.renderReportsPage();
+"""),
+    ),
+    'reports-summary': (_REPORTS_ROOTS, _reports_setup('summary')),
+    'reports-summary-year': (
+        _REPORTS_ROOTS,
+        _reports_setup('summary', """
+            window.app._reportSummaryRange = 'year';
+            await window.app.renderReportsPage();
+"""),
+    ),
 }
 
 SCAN_JS = """
@@ -813,10 +1094,12 @@ def test_locale_values_are_nonempty_strings(app_page, locale):
 SAME_AS_ENGLISH = {
     'es': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.sortApyAsc',
            'accounts.sortApyDesc', 'homePurchase.pmiBelowValue', 'income.estBadge', 'savings.autoTag',
-           'debts.updateOriginal', 'recurring.total', 'ownership.totalLabel'},
+           'debts.updateOriginal', 'recurring.total', 'ownership.totalLabel', 'reports.spendDrillTitle', 'reports.no', 'reports.spendTotal',
+           'ledger.originalAmount', 'people.dtiBadge'},
     'pl': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.apyBadge',
            'accounts.sortApyAsc', 'accounts.sortApyDesc', 'savings.autoTag',
-           'modals.ok', 'breakEven.start', 'category.transport'},
+           'modals.ok', 'breakEven.start', 'category.transport', 'reports.spendDrillTitle',
+           'ledger.statusLabel', 'people.dtiBadge'},
 }
 
 
@@ -845,9 +1128,10 @@ def test_same_as_english_allowlist_has_no_stale_entries(app_page, locale):
 @pytest.mark.parametrize('page_name', sorted(TRANSLATED_PAGES))
 def test_translated_page_has_no_untranslated_text(pseudo_page, page_name, state_name):
     roots, setup = TRANSLATED_PAGES[page_name]
-    seeded = (BASE_SEEDED_STATE if page_name in _BASE_STATE_PAGES
+    seeded = (LEDGER_STATE if page_name.startswith(_LEDGER_PREFIXES)
               else LIABILITIES_STATE if page_name.startswith(_LIABILITIES_PREFIXES)
-              else PLAN_STATE if page_name.startswith('strategy') else SEEDED_STATE)
+              else PLAN_STATE if page_name.startswith('strategy')
+              else REPORTS_STATE if page_name.startswith('reports') else SEEDED_STATE)
     _load_pseudo(pseudo_page, seeded if state_name == 'seeded' else EMPTY_STATE)
     pseudo_page.evaluate(setup)
     pseudo_page.wait_for_timeout(300)

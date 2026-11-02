@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '6.63.0';
+export const APP_VERSION = '6.64.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -166,16 +166,21 @@ export function getPriorEquivalentRangeEnd(year, month, rangeMonths) {
 // Short label for a report range: a single month name for rangeMonths===1,
 // or "<start short month> – <end short month> <year>" otherwise (crossing a
 // year boundary spells out both years, e.g. "Dec 2025 – Feb 2026").
+// "January 2026" for a Date, in the active locale.
+export function formatMonthLong(date) {
+    return date.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
+}
+
 export function formatReportRangeLabel(year, month, rangeMonths) {
     const end = new Date(year, month, 1);
     if (rangeMonths <= 1) {
-        return end.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return formatMonthLong(end);
     }
     const months = reportRangeMonthsList(year, month, rangeMonths);
     const start = new Date(months[0].year, months[0].month, 1);
     const sameYear = start.getFullYear() === end.getFullYear();
-    const startLabel = start.toLocaleDateString('en-US', sameYear ? { month: 'short' } : { month: 'short', year: 'numeric' });
-    const endLabel = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const startLabel = start.toLocaleDateString(getIntlLocale(), sameYear ? { month: 'short' } : { month: 'short', year: 'numeric' });
+    const endLabel = end.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
     return `${startLabel} – ${endLabel}`;
 }
 

@@ -8,7 +8,7 @@ import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showReconSaveProgressModal } from './ui.js';
-import { t, accountTypeLabel } from './i18n.js';
+import { t, accountTypeLabel, categoryLabel } from './i18n.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -128,7 +128,7 @@ function renderExpectedTransactionsHtml(expected, clearedIds) {
         const checkCell = clearedIds
             ? `<td><input type="checkbox" class="recon-expected-checkbox" data-recon-expected-id="${escapeHtml(tx.transactionId)}"${clearedIds.has(tx.transactionId) ? ' checked' : ''} aria-label="${escapeHtml(t('reconcile.markReviewedAria', { name: tx.name }))}"></td>`
             : '';
-        return `<tr>${checkCell}<td>${formatShortDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(tx.category || '')}</td></tr>`;
+        return `<tr>${checkCell}<td>${formatShortDate(tx.date.slice(0, 10))}</td><td>${escapeHtml(tx.name)}</td><td>${formatCurrency(tx.amount)}</td><td>${escapeHtml(categoryLabel(tx.category || ''))}</td></tr>`;
     }).join('');
     return `<div class="recon-table-wrap"><table class="recon-expected-table"><thead><tr>${checkHeader}<th>${t('reconcile.colDate')}</th><th>${t('reconcile.colName')}</th><th>${t('reconcile.colAmount')}</th><th>${t('reconcile.colCategory')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }

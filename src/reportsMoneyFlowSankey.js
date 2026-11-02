@@ -1,17 +1,18 @@
 // Reports page: single-month Money Flow Sankey diagram (issue #79)
 
-import { escapeHtml, getReportDate, formatCurrency, renderChartDataTable } from './utils.js';
+import { escapeHtml, getReportDate, formatCurrency, renderChartDataTable, formatMonthLong } from './utils.js';
+import { t, categoryLabel } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { computeMonthCashFlowTotals } from './reportsCashFlow.js';
 
 const INCOME_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669', '#047857', '#065f46'];
 
 const OUTFLOW_GROUPS = [
-    { icon: '🧾', color: '#f59e0b', match: tx => tx.type === 'bill', key: tx => tx.category || 'Other' },
-    { icon: '💸', color: '#8b5cf6', match: tx => tx.type === 'expense', key: tx => tx.category || 'Other' },
-    { icon: '🔄', color: '#06b6d4', match: tx => tx.type === 'recurring' && tx.amount < 0, key: tx => tx.category || 'Other' },
-    { icon: '💳', color: '#ef4444', match: tx => tx.type === 'debt', key: tx => tx.name || 'Debt' },
-    { icon: '💰', color: '#10b981', match: tx => tx.type === 'savings', key: tx => tx.name || 'Savings' }
+    { icon: '🧾', color: '#f59e0b', match: tx => tx.type === 'bill', key: tx => tx.category || 'Other', isCategory: true },
+    { icon: '💸', color: '#8b5cf6', match: tx => tx.type === 'expense', key: tx => tx.category || 'Other', isCategory: true },
+    { icon: '🔄', color: '#06b6d4', match: tx => tx.type === 'recurring' && tx.amount < 0, key: tx => tx.category || 'Other', isCategory: true },
+    { icon: '💳', color: '#ef4444', match: tx => tx.type === 'debt', key: tx => tx.name || t('reports.sankeyDebt') },
+    { icon: '💰', color: '#10b981', match: tx => tx.type === 'savings', key: tx => tx.name || t('reports.sankeySavings') }
 ];
 
 const ACCOUNT_COLOR = '#2563eb';
@@ -31,7 +32,7 @@ export function computeMoneyFlowSankeyData(app, year, month) {
     const nextId = () => `n${nodeSeq++}`;
 
     const accountId = nextId();
-    nodes.push({ id: accountId, label: 'Account', column: 1, amount: balancedTotal, color: ACCOUNT_COLOR });
+    nodes.push({ id: accountId, label: t('reports.sankeyAccount'), column: 1, amount: balancedTotal, color: ACCOUNT_COLOR });
 
     const incomeBySource = {};
     for (const tx of monthTxs) {
@@ -60,7 +61,7 @@ export function computeMoneyFlowSankeyData(app, year, month) {
         for (const [key, amount] of Object.entries(grouped)) {
             if (amount <= 0) continue;
             const id = nextId();
-            const label = `${group.icon} ${key}`;
+            const label = `${group.icon} ${group.isCategory ? categoryLabel(key) : key}`;
             nodes.push({ id, label, column: 2, amount, color: group.color });
             links.push({ sourceId: accountId, targetId: id, amount, color: group.color });
         }
@@ -69,12 +70,12 @@ export function computeMoneyFlowSankeyData(app, year, month) {
     const netDiff = totals.income - totals.outflow;
     if (netDiff > BALANCE_EPSILON) {
         const id = nextId();
-        nodes.push({ id, label: 'Surplus', column: 2, amount: netDiff, color: SURPLUS_COLOR });
+        nodes.push({ id, label: t('reports.sankeySurplus'), column: 2, amount: netDiff, color: SURPLUS_COLOR });
         links.push({ sourceId: accountId, targetId: id, amount: netDiff, color: SURPLUS_COLOR });
     } else if (netDiff < -BALANCE_EPSILON) {
         const id = nextId();
         const amount = Math.abs(netDiff);
-        nodes.push({ id, label: 'Shortfall', column: 0, amount, color: SHORTFALL_COLOR });
+        nodes.push({ id, label: t('reports.sankeyShortfall'), column: 0, amount, color: SHORTFALL_COLOR });
         links.push({ sourceId: id, targetId: accountId, amount, color: SHORTFALL_COLOR });
     }
 
@@ -136,14 +137,14 @@ export function renderMoneyFlowSankey(app) {
     const rptDate = getReportDate(app);
     const year = rptDate.getFullYear();
     const month = rptDate.getMonth();
-    const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthLabel = formatMonthLong(rptDate);
 
     const { nodes, links, hasData } = computeMoneyFlowSankeyData(app, year, month);
 
     if (!hasData) {
         container.innerHTML = `
-            <h3 class="rpt-section-title">🌊 Money Flow — ${escapeHtml(monthLabel)}</h3>
-            <p class="rpt-empty-msg">Add income, bills, debts, bonuses, expenses, or recurring items to see the money flow diagram.</p>`;
+            <h3 class="rpt-section-title">🌊 ${escapeHtml(t('reports.sankeyTitle', { month: monthLabel }))}</h3>
+            <p class="rpt-empty-msg">${escapeHtml(t('reports.sankeyEmpty'))}</p>`;
         return;
     }
 
@@ -202,18 +203,18 @@ export function renderMoneyFlowSankey(app) {
     }).join('');
 
     container.innerHTML = `
-        <h3 class="rpt-section-title">🌊 Money Flow — ${escapeHtml(monthLabel)}</h3>
-        <p class="rpt-chart-sub">How money flows from income sources, through your account, to where it goes.</p>
+        <h3 class="rpt-section-title">🌊 ${escapeHtml(t('reports.sankeyTitle', { month: monthLabel }))}</h3>
+        <p class="rpt-chart-sub">${escapeHtml(t('reports.sankeySub'))}</p>
         <div class="mf-sankey-wrap">
-            <svg id="reportsMoneyFlowSankeyDiagram" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="Money flow diagram for ${escapeHtml(monthLabel)}">
+            <svg id="reportsMoneyFlowSankeyDiagram" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${escapeHtml(t('reports.sankeyAria', { month: monthLabel }))}">
                 ${linkMarkup}
                 ${nodeMarkup}
             </svg>
         </div>`;
 
     renderChartDataTable('reportsMoneyFlowSankeyDiagram', {
-        caption: `Money flow — ${monthLabel}`,
-        columns: ['From', 'To', 'Amount'],
+        caption: t('reports.sankeyTitle', { month: monthLabel }),
+        columns: [t('reports.colFrom'), t('reports.colTo'), t('reports.colAmount')],
         rows: links.map(link => [nodesById[link.sourceId].label, nodesById[link.targetId].label, formatCurrency(link.amount)])
     });
 }

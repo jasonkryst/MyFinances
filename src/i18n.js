@@ -180,6 +180,18 @@ const CATEGORY_KEYS = {
     'Other': 'category.other',
     'Debt Payments': 'category.debtPayments',
     'Uncategorized': 'category.uncategorized',
+    // Ledger-generated and income/bonus categories (stored English values).
+    'Interest': 'category.interest',
+    'Reconciliation': 'category.reconciliation',
+    'Balance': 'category.balance',
+    'Bonus': 'income.bonusCatBonus',
+    'Tax Refund': 'income.bonusCatTaxRefund',
+    'Cash Deposit': 'income.bonusCatCashDeposit',
+    'Check Deposit': 'income.bonusCatCheckDeposit',
+    'Salary': 'income.catSalary',
+    'Freelance': 'income.catFreelance',
+    'Rental': 'income.catRental',
+    'Investment': 'income.catInvestment',
 };
 export function categoryLabel(category) {
     const key = CATEGORY_KEYS[category];
