@@ -16,6 +16,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Changed
 - **Switching language re-renders the open page.** `setLocale()` used to re-render only Health; now it refreshes whichever page is open.
 
+### Fixed
+- **Recurring paid state after a start-date edit** (#434 follow-up). Reconcile decided a month was "legacy" from the cleared state of the *current* occurrences only. Moving a weekly template's start date so no new date matched a cleared one made a Ledger-owned month look legacy, and every moved occurrence was auto-cleared. It now checks for any cleared key for that template and month. This surfaced as `test_new_occurrence_in_paid_month_is_not_auto_paid` failing in CI on 2 November, because the test's dates only overlap on some days. A new date-independent test covers it.
+
 ### Tests
 - **New `tests/features/test_i18n_coverage.py`:**
   - **Parity:** `es.js`/`pl.js` must have exactly `en.js`'s keys, with matching `{placeholders}` and no English stubs (outside a short allowlist).

@@ -228,16 +228,20 @@ function _syncMonths(app, months) {
  */
 export function reconcileRecurringPaidState(app) {
     const changed = new Set();
+    // Template-months with any cleared recurring key, matched by template id
+    // and month rather than by the current occurrences' dates, so a start-date
+    // or frequency edit that moves every occurrence still counts as owned.
+    const ledgerOwned = _monthsFromTxIds(Object.keys(app.ledgerClearedTransactions || {}));
     for (const tmpl of app.recurringTemplates || []) {
         for (const mk of Array.isArray(tmpl.paidMonths) ? tmpl.paidMonths : []) {
             const [y, m] = mk.split('-').map(Number);
             const status = getRecurringMonthPaidStatus(app, tmpl, y, m - 1);
-            // Only a month with no cleared leg at all is legacy (pre-#434) or
-            // had its dates moved. If any leg is cleared, the Ledger already
-            // owns the month, so a newly added occurrence (frequency or
-            // start-date edit, unskip) must not be marked paid; the
-            // re-derive below drops the month from the cache instead.
-            if (status.allPaid || status.occurrences.some(o => o.anyLegCleared)) continue;
+            // Only a month with no cleared leg at all is legacy (pre-#434).
+            // If any leg is cleared, the Ledger already owns the month, so a
+            // newly added or moved occurrence (frequency or start-date edit,
+            // unskip) must not be marked paid; the re-derive below drops the
+            // month from the cache instead.
+            if (status.allPaid || ledgerOwned.has(`${tmpl.id}|${mk}`)) continue;
             const legacy = tmpl.paidAmounts?.[mk];
             for (const occ of status.occurrences) {
                 if (occ.paid) continue;
