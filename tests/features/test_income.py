@@ -1227,3 +1227,131 @@ def test_income_trend_includes_bonus_in_data_table(app_page):
     )""")
     last_row = rows[-1]
     assert '$500.00' in last_row, f"Expected the current month's row to show the $500 bonus, got: {last_row}"
+
+
+# ── #446: inline edit keeps every frequency; annual total uses paydays/year ──
+
+ALL_INCOME_FREQUENCIES = ['weekly', 'biweekly', 'twice_monthly', 'monthly']
+
+
+def _seed_incomes(page, incomes):
+    """Inject incomes directly (bypassing the sanitizer) and render the Income page."""
+    page.evaluate("""(incomes) => {
+        const app = window.app;
+        app.incomes = incomes;
+        app.bonuses = [];
+        app.editingIncomeId = null;
+        app.switchPage('income');
+    }""", incomes)
+
+
+def _income(id_, frequency, amount=100, name=None):
+    return {'id': id_, 'name': name or f'Freq {frequency}', 'amount': amount, 'firstPayDate': '2026-01-02',
+            'frequency': frequency, 'accountId': None, 'personId': None, 'category': 'Salary',
+            'isVariable': False, 'withholdingPercent': 0}
+
+
+def _open_inline_edit(page, income_id):
+    page.click(f'[data-income-action="edit"][data-income-id="{income_id}"]')
+    page.wait_for_selector(f'#ie-freq-{income_id}', timeout=5000)
+
+
+def _annual_total_text(page):
+    return page.evaluate("""() => {
+        const item = [...document.querySelectorAll('.income-summary-item')]
+            .find(el => el.querySelector('.income-summary-label')?.textContent.trim() === 'Estimated annual');
+        return item?.querySelector('.income-summary-value')?.textContent.trim() || null;
+    }""")
+
+
+@pytest.mark.feature
+@pytest.mark.parametrize('frequency', ALL_INCOME_FREQUENCIES)
+def test_inline_edit_save_without_changes_keeps_frequency(app_page, frequency):
+    """Saving the inline edit form untouched must not rewrite the frequency (#446:
+    weekly/twice-monthly silently became biweekly because the select lacked them)."""
+    page = app_page
+    _seed_incomes(page, [_income(4461, frequency)])
+    _open_inline_edit(page, 4461)
+
+    assert page.eval_on_selector('#ie-freq-4461', 'el => el.value') == frequency
+    page.click('[data-income-action="save"][data-income-id="4461"]')
+    page.wait_for_selector('[data-income-action="edit"][data-income-id="4461"]', timeout=5000)
+
+    stored = page.evaluate("() => window.app.incomes.find(i => i.id === 4461).frequency")
+    assert stored == frequency
+
+
+@pytest.mark.feature
+def test_inline_edit_offers_all_four_frequencies(app_page):
+    page = app_page
+    _seed_incomes(page, [_income(4462, 'monthly')])
+    _open_inline_edit(page, 4462)
+
+    values = page.eval_on_selector_all('#ie-freq-4462 option', 'opts => opts.map(o => o.value)')
+    assert values == ALL_INCOME_FREQUENCIES
+
+
+@pytest.mark.feature
+@pytest.mark.parametrize('target', ALL_INCOME_FREQUENCIES)
+def test_inline_edit_can_change_to_each_frequency(app_page, target):
+    page = app_page
+    start = 'monthly' if target != 'monthly' else 'weekly'
+    _seed_incomes(page, [_income(4463, start)])
+    _open_inline_edit(page, 4463)
+
+    page.select_option('#ie-freq-4463', target)
+    page.click('[data-income-action="save"][data-income-id="4463"]')
+    page.wait_for_selector('[data-income-action="edit"][data-income-id="4463"]', timeout=5000)
+
+    stored = page.evaluate("() => window.app.incomes.find(i => i.id === 4463).frequency")
+    assert stored == target
+
+
+@pytest.mark.feature
+@pytest.mark.parametrize('frequency,payments', [('weekly', 52), ('biweekly', 26), ('twice_monthly', 24), ('monthly', 12)])
+def test_annual_total_uses_paydays_per_year(app_page, frequency, payments):
+    """Estimated annual = net amount x paydays per year (#446: weekly and twice-monthly were x12)."""
+    page = app_page
+    _seed_incomes(page, [_income(4464, frequency, amount=100)])
+    assert _annual_total_text(page) == f'${100 * payments:,.2f}'
+
+
+@pytest.mark.feature
+def test_annual_total_sums_mixed_frequencies(app_page):
+    page = app_page
+    _seed_incomes(page, [_income(4470 + i, f, amount=100) for i, f in enumerate(ALL_INCOME_FREQUENCIES)])
+    assert _annual_total_text(page) == f'${100 * (52 + 26 + 24 + 12):,.2f}'
+
+
+@pytest.mark.feature
+def test_annual_total_treats_unknown_frequency_as_monthly(app_page):
+    """Negative: an unexpected stored frequency (injected past the sanitizer) must not
+    crash rendering, and counts as monthly in the annual estimate."""
+    page = app_page
+    errors = []
+    page.on('pageerror', lambda e: errors.append(str(e)))
+    _seed_incomes(page, [_income(4465, 'fortnightly-ish', amount=100)])
+
+    assert _annual_total_text(page) == '$1,200.00'
+    assert errors == []
+
+
+@pytest.mark.feature
+def test_inline_edit_rejects_unknown_select_value(app_page):
+    """Negative: a tampered select value is never stored; the existing frequency is kept."""
+    page = app_page
+    _seed_incomes(page, [_income(4466, 'weekly')])
+    _open_inline_edit(page, 4466)
+
+    page.evaluate("""() => {
+        const sel = document.getElementById('ie-freq-4466');
+        const opt = document.createElement('option');
+        opt.value = 'yearly';
+        sel.appendChild(opt);
+        sel.value = 'yearly';
+    }""")
+    page.click('[data-income-action="save"][data-income-id="4466"]')
+    page.wait_for_selector('[data-income-action="edit"][data-income-id="4466"]', timeout=5000)
+
+    stored = page.evaluate("() => window.app.incomes.find(i => i.id === 4466).frequency")
+    assert stored == 'weekly'

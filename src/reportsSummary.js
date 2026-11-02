@@ -3,8 +3,10 @@
 import {
     formatCurrency,
     escapeHtml,
-    getReportDate
+    getReportDate,
+    formatMonthLong
 } from './utils.js';
+import { t } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { getSnapshotSeries } from './reportsNetWorth.js';
 
@@ -66,7 +68,7 @@ export function computeReportsSummaryMetrics(app, rangeType, baseDate = getRepor
 
     return {
         rangeType,
-        periodLabel: rangeType === 'year' ? String(year) : baseDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        periodLabel: rangeType === 'year' ? String(year) : formatMonthLong(baseDate),
         cashFlow: {
             income: parseFloat(income.toFixed(2)),
             bills: parseFloat(bills.toFixed(2)),
@@ -92,62 +94,62 @@ export function renderReportsSummary(app) {
     const netCls = cf.net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
     const cashFlowRows = [
-        ['Income', cf.income],
-        ['Bills', cf.bills],
-        ['Expense Budgets', cf.expenses],
-        ['Recurring Costs', cf.recurring],
-        ['Debt Minimums', cf.debtMin],
-        ['Savings Contributions', cf.savings]
+        [t('reports.statIncome'), cf.income],
+        [t('reports.statBills'), cf.bills],
+        [t('reports.statExpenseBudgets'), cf.expenses],
+        [t('reports.statRecurringCosts'), cf.recurring],
+        [t('reports.statDebtMinimums'), cf.debtMin],
+        [t('reports.statSavingsContrib'), cf.savings]
     ].map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td class="text-right">${formatCurrency(value)}</td></tr>`).join('');
 
     const accountRows = metrics.accounts.length === 0
-        ? '<tr><td colspan="4" class="text-center text-muted-secondary">No accounts yet.</td></tr>'
+        ? `<tr><td colspan="4" class="text-center text-muted-secondary">${escapeHtml(t('reports.sumNoAccounts'))}</td></tr>`
         : metrics.accounts.map(a => `
             <tr>
                 <td>${escapeHtml(a.name)}</td>
-                <td class="text-right" data-label="Start">${formatCurrency(a.startBalance)}</td>
-                <td class="text-right" data-label="End">${formatCurrency(a.endBalance)}</td>
-                <td class="text-right ${a.change >= 0 ? 'rpt-net--pos' : 'rpt-net--neg'}" data-label="Change">${a.change >= 0 ? '+' : ''}${formatCurrency(a.change)}</td>
+                <td class="text-right" data-label="${escapeHtml(t('reports.sumStart'))}">${formatCurrency(a.startBalance)}</td>
+                <td class="text-right" data-label="${escapeHtml(t('reports.sumEnd'))}">${formatCurrency(a.endBalance)}</td>
+                <td class="text-right ${a.change >= 0 ? 'rpt-net--pos' : 'rpt-net--neg'}" data-label="${escapeHtml(t('reports.colChange'))}">${a.change >= 0 ? '+' : ''}${formatCurrency(a.change)}</td>
             </tr>`).join('');
 
     const netWorthSection = metrics.netWorth ? `
-        <h4 class="rpt-section-title">Net Worth</h4>
+        <h4 class="rpt-section-title">${escapeHtml(t('reports.colNetWorth'))}</h4>
         <div class="nw-history-table-wrap">
         <table class="nw-history-table nw-history-table--compact">
-            <caption class="sr-only">Net worth details for ${escapeHtml(metrics.periodLabel)}</caption>
+            <caption class="sr-only">${escapeHtml(t('reports.sumNwCaption', { period: metrics.periodLabel }))}</caption>
             <tbody>
-                <tr><td>Net Worth</td><td class="text-right">${formatCurrency(metrics.netWorth.netWorth)}</td></tr>
-                <tr><td>Total Assets</td><td class="text-right">${formatCurrency(metrics.netWorth.totalAssets)}</td></tr>
-                <tr><td>Total Liabilities</td><td class="text-right">${formatCurrency(metrics.netWorth.totalLiabilities)}</td></tr>
-                ${metrics.netWorth.netChange !== null ? `<tr><td>Net Change</td><td class="text-right">${formatCurrency(metrics.netWorth.netChange)}</td></tr>` : ''}
-                ${metrics.netWorth.debtDrop !== null ? `<tr><td>Debt Reduction</td><td class="text-right">${formatCurrency(metrics.netWorth.debtDrop)}</td></tr>` : ''}
+                <tr><td>${escapeHtml(t('reports.colNetWorth'))}</td><td class="text-right">${formatCurrency(metrics.netWorth.netWorth)}</td></tr>
+                <tr><td>${escapeHtml(t('reports.sumTotalAssets'))}</td><td class="text-right">${formatCurrency(metrics.netWorth.totalAssets)}</td></tr>
+                <tr><td>${escapeHtml(t('reports.sumTotalLiabilities'))}</td><td class="text-right">${formatCurrency(metrics.netWorth.totalLiabilities)}</td></tr>
+                ${metrics.netWorth.netChange !== null ? `<tr><td>${escapeHtml(t('reports.sumNetChange'))}</td><td class="text-right">${formatCurrency(metrics.netWorth.netChange)}</td></tr>` : ''}
+                ${metrics.netWorth.debtDrop !== null ? `<tr><td>${escapeHtml(t('reports.nwDebtReduction'))}</td><td class="text-right">${formatCurrency(metrics.netWorth.debtDrop)}</td></tr>` : ''}
             </tbody>
         </table>
-        </div>` : '<p class="rpt-empty-msg">No net worth snapshot recorded for this period yet.</p>';
+        </div>` : `<p class="rpt-empty-msg">${escapeHtml(t('reports.sumNoSnapshot'))}</p>`;
 
     container.innerHTML = `
         <div class="nw-report-header">
-            <h3>Summary Report — ${escapeHtml(metrics.periodLabel)}</h3>
-            <div class="nw-range-buttons" role="group" aria-label="Summary report range">
-                <button class="nw-range-btn ${rangeType === 'month' ? 'active' : ''}" data-rpt-summary-range="month" type="button" aria-pressed="${rangeType === 'month' ? 'true' : 'false'}">Monthly</button>
-                <button class="nw-range-btn ${rangeType === 'year' ? 'active' : ''}" data-rpt-summary-range="year" type="button" aria-pressed="${rangeType === 'year' ? 'true' : 'false'}">Yearly</button>
+            <h3>${escapeHtml(t('reports.sumTitle', { period: metrics.periodLabel }))}</h3>
+            <div class="nw-range-buttons" role="group" aria-label="${escapeHtml(t('reports.sumRangeAria'))}">
+                <button class="nw-range-btn ${rangeType === 'month' ? 'active' : ''}" data-rpt-summary-range="month" type="button" aria-pressed="${rangeType === 'month' ? 'true' : 'false'}">${escapeHtml(t('reports.sumMonthly'))}</button>
+                <button class="nw-range-btn ${rangeType === 'year' ? 'active' : ''}" data-rpt-summary-range="year" type="button" aria-pressed="${rangeType === 'year' ? 'true' : 'false'}">${escapeHtml(t('reports.sumYearly'))}</button>
             </div>
         </div>
-        <h4 class="rpt-section-title">Cash Flow</h4>
+        <h4 class="rpt-section-title">${escapeHtml(t('reports.sumCashFlow'))}</h4>
         <div class="nw-history-table-wrap">
         <table class="nw-history-table nw-history-table--compact">
-            <caption class="sr-only">Cash flow summary for ${escapeHtml(metrics.periodLabel)}</caption>
+            <caption class="sr-only">${escapeHtml(t('reports.sumCfCaption', { period: metrics.periodLabel }))}</caption>
             <tbody>
                 ${cashFlowRows}
-                <tr class="${netCls}"><td><strong>Net Remaining</strong></td><td class="text-right"><strong>${formatCurrency(cf.net)}</strong></td></tr>
+                <tr class="${netCls}"><td><strong>${escapeHtml(t('reports.statNetRemaining'))}</strong></td><td class="text-right"><strong>${formatCurrency(cf.net)}</strong></td></tr>
             </tbody>
         </table>
         </div>
-        <h4 class="rpt-section-title">Account Balances</h4>
+        <h4 class="rpt-section-title">${escapeHtml(t('reports.sumAccountBalances'))}</h4>
         <div class="nw-history-table-wrap">
         <table class="nw-history-table nw-history-table--compact">
-            <caption class="sr-only">Account balances for ${escapeHtml(metrics.periodLabel)}</caption>
-            <thead><tr><th>Account</th><th>Start</th><th>End</th><th>Change</th></tr></thead>
+            <caption class="sr-only">${escapeHtml(t('reports.sumAcctCaption', { period: metrics.periodLabel }))}</caption>
+            <thead><tr><th>${escapeHtml(t('reports.colAccount'))}</th><th>${escapeHtml(t('reports.sumStart'))}</th><th>${escapeHtml(t('reports.sumEnd'))}</th><th>${escapeHtml(t('reports.colChange'))}</th></tr></thead>
             <tbody>${accountRows}</tbody>
         </table>
         </div>

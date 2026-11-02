@@ -1,6 +1,7 @@
 // Ledger logic: rendering, amount overrides
 
 import { formatCurrency, escapeHtml, formatShortDate, buildPersonPillsHtml, isCollapsibleOpen, buildFiltersLabel } from './utils.js';
+import { t, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getFilteredSortedLedgerTransactions, getLedgerTransactions } from './ledgerTransactions.js';
 import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
@@ -8,7 +9,8 @@ import { setLedgerCleared } from './ledgerCleared.js';
 import { LEDGER_EXPORT_COLUMN_KEYS } from './dataExport.js';
 
 const LEDGER_ALL_COLS = ['date', 'account', 'name', 'amount', 'balance', 'cleared'];
-const LEDGER_COL_LABELS = { date: 'Date', account: 'Account', name: 'Transaction', amount: 'Amount', balance: 'Running Balance', cleared: 'Cleared' };
+const LEDGER_COL_LABEL_KEYS = { date: 'ledger.colDate', account: 'ledger.colAccount', name: 'ledger.colTransaction', amount: 'ledger.colAmount', balance: 'ledger.colBalance', cleared: 'ledger.colCleared' };
+const ledgerColLabel = col => t(LEDGER_COL_LABEL_KEYS[col]);
 const LEDGER_COLS_LS_KEY = 'ledgerHiddenColumns';
 
 function loadHiddenCols() {
@@ -93,7 +95,7 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
     if (!desc || !confirmBtn || !cancelBtn || !closeBtn) return;
 
     const count = clearableTxs.length;
-    desc.textContent = `Mark ${count} transaction${count !== 1 ? 's' : ''} as cleared? This will apply to all uncleared transactions matching the current filters.`;
+    desc.textContent = plural('ledger.markAllDesc', count);
 
     const lastFocused = document.activeElement;
     const close = () => {
@@ -217,62 +219,62 @@ export function renderLedgerPage(app) {
     filterHtml += `<button type="button" class="filters-disclosure-toggle${activeFilterCount > 0 ? ' filters-disclosure-toggle--active' : ''}${filtersOpen ? ' is-open' : ''}" id="ledgerFiltersToggle" data-collapse-toggle="ledgerFiltersBody" data-filters-count="server" aria-expanded="${filtersOpen}" aria-controls="ledgerFiltersBody">${buildFiltersLabel(activeFilterCount)}</button>`;
     filterHtml += `<div class="filters-disclosure-body${filtersOpen ? ' is-open' : ''}" id="ledgerFiltersBody">`;
     if (accounts.length > 0) {
-        filterHtml += `<div class="fd-field"><label for="ledgerAccountFilter" class="filter-label">Account:</label>
+        filterHtml += `<div class="fd-field"><label for="ledgerAccountFilter" class="filter-label">${escapeHtml(t('filters.account'))}</label>
             <select id="ledgerAccountFilter" class="select-styled">
-                <option value="all">All Accounts</option>`;
+                <option value="all">${escapeHtml(t('ledger.allAccounts'))}</option>`;
         for (const acct of accounts) {
-            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)} (${escapeHtml(acct.type)})</option>`;
+            filterHtml += `<option value="${acct.id}"${selectedAccount == acct.id ? ' selected' : ''}>${escapeHtml(acct.name)} (${escapeHtml(accountTypeLabel(acct.type))})</option>`;
         }
         filterHtml += `</select></div>`;
     }
     if (allCategories.length > 0) {
-        filterHtml += `<div class="fd-field"><label for="ledgerCategoryFilter" class="filter-label">Category:</label>
+        filterHtml += `<div class="fd-field"><label for="ledgerCategoryFilter" class="filter-label">${escapeHtml(t('filters.category'))}</label>
             <select id="ledgerCategoryFilter" class="select-styled">
-                <option value="all">All Categories</option>`;
+                <option value="all">${escapeHtml(t('ledger.allCategories'))}</option>`;
         for (const cat of allCategories) {
-            filterHtml += `<option value="${escapeHtml(cat)}"${selectedCategory === cat ? ' selected' : ''}>${escapeHtml(cat)}</option>`;
+            filterHtml += `<option value="${escapeHtml(cat)}"${selectedCategory === cat ? ' selected' : ''}>${escapeHtml(categoryLabel(cat))}</option>`;
         }
         filterHtml += `</select></div>`;
     }
-    filterHtml += `<div class="fd-field"><label for="ledgerDateRange" class="filter-label">Show:</label>
+    filterHtml += `<div class="fd-field"><label for="ledgerDateRange" class="filter-label">${escapeHtml(t('ledger.showLabel'))}</label>
         <select id="ledgerDateRange" class="select-styled">
-            <option value="around7"${selectedDateRange==='around7'?' selected':''}>Around Today (±7 days)</option>
-            <option value="all"${selectedDateRange==='all'?' selected':''}>All</option>
-            <option value="past"${selectedDateRange==='past'?' selected':''}>Past &amp; Today Only</option>
-            <option value="30"${selectedDateRange==='30'?' selected':''}>Next 30 Days</option>
-            <option value="month"${selectedDateRange==='month'?' selected':''}>Through Next Month</option>
-            <option value="60"${selectedDateRange==='60'?' selected':''}>Next 60 Days</option>
-            <option value="90"${selectedDateRange==='90'?' selected':''}>Next 90 Days</option>
+            <option value="around7"${selectedDateRange==='around7'?' selected':''}>${escapeHtml(t('ledger.rangeAround7'))}</option>
+            <option value="all"${selectedDateRange==='all'?' selected':''}>${escapeHtml(t('filters.all'))}</option>
+            <option value="past"${selectedDateRange==='past'?' selected':''}>${escapeHtml(t('ledger.rangePast'))}</option>
+            <option value="30"${selectedDateRange==='30'?' selected':''}>${escapeHtml(t('ledger.range30'))}</option>
+            <option value="month"${selectedDateRange==='month'?' selected':''}>${escapeHtml(t('ledger.rangeMonth'))}</option>
+            <option value="60"${selectedDateRange==='60'?' selected':''}>${escapeHtml(t('ledger.range60'))}</option>
+            <option value="90"${selectedDateRange==='90'?' selected':''}>${escapeHtml(t('ledger.range90'))}</option>
         </select></div>`;
-    filterHtml += `<div class="fd-field"><label for="ledgerClearedFilter" class="filter-label">Status:</label>
+    filterHtml += `<div class="fd-field"><label for="ledgerClearedFilter" class="filter-label">${escapeHtml(t('ledger.statusLabel'))}</label>
         <select id="ledgerClearedFilter" class="select-styled">
-            <option value="all"${selectedClearedFilter==='all'?' selected':''}>All</option>
-            <option value="uncleared"${selectedClearedFilter==='uncleared'?' selected':''}>Uncleared Only</option>
-            <option value="cleared"${selectedClearedFilter==='cleared'?' selected':''}>Cleared Only</option>
+            <option value="all"${selectedClearedFilter==='all'?' selected':''}>${escapeHtml(t('filters.all'))}</option>
+            <option value="uncleared"${selectedClearedFilter==='uncleared'?' selected':''}>${escapeHtml(t('ledger.statusUncleared'))}</option>
+            <option value="cleared"${selectedClearedFilter==='cleared'?' selected':''}>${escapeHtml(t('ledger.statusCleared'))}</option>
         </select></div>`;
-    filterHtml += `<div class="fd-field"><label for="ledgerPageSize" class="filter-label">Rows:</label>
+    filterHtml += `<div class="fd-field"><label for="ledgerPageSize" class="filter-label">${escapeHtml(t('ledger.rowsLabel'))}</label>
         <select id="ledgerPageSize" class="select-styled">
             <option value="10"${selectedPageSize===10?' selected':''}>10</option>
             <option value="25"${selectedPageSize===25?' selected':''}>25</option>
             <option value="50"${selectedPageSize===50?' selected':''}>50</option>
             <option value="100"${selectedPageSize===100?' selected':''}>100</option>
         </select></div>`;
-    filterHtml += `<div class="fd-field fd-field--wide"><label for="ledgerColsSelect" class="filter-label">Columns:</label>
-        <select id="ledgerColsSelect" class="ledger-cols-select" multiple size="${LEDGER_ALL_COLS.length}" aria-label="Visible columns">
-            ${LEDGER_ALL_COLS.map(col => `<option value="${col}">${escapeHtml(LEDGER_COL_LABELS[col])}</option>`).join('')}
+    filterHtml += `<div class="fd-field fd-field--wide"><label for="ledgerColsSelect" class="filter-label">${escapeHtml(t('ledger.columnsLabel'))}</label>
+        <select id="ledgerColsSelect" class="ledger-cols-select" multiple size="${LEDGER_ALL_COLS.length}" aria-label="${escapeHtml(t('ledger.visibleColumnsAria'))}">
+            ${LEDGER_ALL_COLS.map(col => `<option value="${col}">${escapeHtml(ledgerColLabel(col))}</option>`).join('')}
         </select></div>`;
     filterHtml += `</div>`;
-    filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ Export CSV</button>`;
-    filterHtml += `<button id="ledgerTransferBtn" class="btn btn-secondary btn-small" type="button">⇄ Transfer</button>`;
+    filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ ${escapeHtml(t('ledger.exportCsv'))}</button>`;
+    filterHtml += `<button id="ledgerTransferBtn" class="btn btn-secondary btn-small" type="button">⇄ ${escapeHtml(t('ledger.transferBtn'))}</button>`;
     if (selectedAccount !== 'all') {
-        filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 Reconcile this account</button>`;
+        filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 ${escapeHtml(t('ledger.reconcileAccount'))}</button>`;
     }
     if (clearableUncleared.length > 0) {
-        filterHtml += `<button id="ledgerMarkAllClearedBtn" class="btn btn-secondary btn-small" type="button">✓ Mark ${clearableUncleared.length} as Cleared</button>`;
+        filterHtml += `<button id="ledgerMarkAllClearedBtn" class="btn btn-secondary btn-small" type="button">✓ ${escapeHtml(t('ledger.markAllClearedBtn', { count: clearableUncleared.length }))}</button>`;
     }
     if (activeFilterCount > 0) {
-        filterHtml += `<button id="ledgerClearFiltersBtn" class="btn btn-secondary btn-small" type="button">✕ Clear Filters</button>`;
-        filterHtml += `<span class="filter-active-badge">${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''} active</span>`;
+        filterHtml += `<button id="ledgerClearFiltersBtn" class="btn btn-secondary btn-small" type="button">✕ ${escapeHtml(t('ledger.clearFilters'))}</button>`;
+        filterHtml += `<span class="filter-active-badge">${escapeHtml(plural('ledger.filtersActive', activeFilterCount))}</span>`;
     }
     filterHtml += `</div>`;
 
@@ -290,12 +292,14 @@ export function renderLedgerPage(app) {
     const startItem = totalRows === 0 ? 0 : startIndex + 1;
     const endItem = Math.min(endIndex, totalRows);
 
-    const sortLabelNames = { date: 'Date', account: 'Account', name: 'Transaction', amount: 'Amount', balance: 'Running Balance' };
+    // Sort header names come from ledgerColLabel().
     const sortThAttrs = key => {
         const active = app._ledgerSortKey === key;
         const dirWord = app._ledgerSortDir === 'asc' ? 'ascending' : 'descending';
-        const label = `Sort by ${sortLabelNames[key]}${active ? `, ${dirWord}` : ''}`;
-        return ` tabindex="0" aria-label="${label}"${active ? ` aria-sort="${dirWord}"` : ''}`;
+        const name = ledgerColLabel(key);
+        const label = !active ? t('strategy.sortBy', { name })
+            : t(app._ledgerSortDir === 'asc' ? 'strategy.sortByAsc' : 'strategy.sortByDesc', { name });
+        return ` tabindex="0" aria-label="${escapeHtml(label)}"${active ? ` aria-sort="${dirWord}"` : ''}`;
     };
     const sortIcon = key => {
         if (app._ledgerSortKey !== key) return '<span class="sort-icon">⇅</span>';
@@ -310,45 +314,45 @@ export function renderLedgerPage(app) {
     // drill-down modal's "View in Ledger →" link.
     const crossNavBanner = app._ledgerCrossNavLabel ? `
         <div class="ledger-crossnav-banner">
-            <span>Viewing: ${escapeHtml(app._ledgerCrossNavLabel)}</span>
-            <button id="ledgerCrossNavBackBtn" class="btn btn-secondary btn-small" type="button">&larr; Back to Spending</button>
+            <span>${escapeHtml(t('ledger.viewing', { label: app._ledgerCrossNavLabel }))}</span>
+            <button id="ledgerCrossNavBackBtn" class="btn btn-secondary btn-small" type="button">&larr; ${escapeHtml(t('ledger.backToSpending'))}</button>
         </div>` : '';
 
     let html = crossNavBanner + filterHtml;
     html += `<div id="ledgerBulkBar" class="ledger-bulk-bar">
         <span id="ledgerBulkCount" class="ledger-bulk-count" aria-live="polite"></span>
-        <button id="ledgerBulkClearBtn" class="btn btn-secondary btn-small" type="button">✓ Mark Cleared</button>
-        <button id="ledgerBulkUnclearBtn" class="btn btn-secondary btn-small" type="button">✕ Mark Unclear</button>
+        <button id="ledgerBulkClearBtn" class="btn btn-secondary btn-small" type="button">✓ ${escapeHtml(t('ledger.bulkMarkCleared'))}</button>
+        <button id="ledgerBulkUnclearBtn" class="btn btn-secondary btn-small" type="button">✕ ${escapeHtml(t('ledger.bulkMarkUncleared'))}</button>
     </div>`;
     html += `<div class="table-wrapper"><table class="ledger-table">
         <thead><tr>
-            <th data-col="select" class="ledger-select-col${hiddenCols.has('cleared') ? ' ledger-col-hidden' : ''}"><input type="checkbox" id="ledgerSelectAll" aria-label="Select all rows"></th>
-            <th data-key="date" data-col="date"${ch('date')}${sortThAttrs('date')}>Date ${sortIcon('date')}</th>
-            <th data-key="account" data-col="account"${ch('account')}${sortThAttrs('account')}>Account ${sortIcon('account')}</th>
-            <th data-key="name" data-col="name"${ch('name')}${sortThAttrs('name')}>Transaction ${sortIcon('name')}</th>
-            <th data-key="amount" data-col="amount"${ch('amount')}${sortThAttrs('amount')}>Amount ${sortIcon('amount')}</th>
-            <th data-key="balance" data-col="balance"${ch('balance')}${sortThAttrs('balance')}>Running Balance ${sortIcon('balance')}</th>
-            <th data-col="cleared"${ch('cleared')}>Cleared</th>
+            <th data-col="select" class="ledger-select-col${hiddenCols.has('cleared') ? ' ledger-col-hidden' : ''}"><input type="checkbox" id="ledgerSelectAll" aria-label="${escapeHtml(t('ledger.selectAllAria'))}"></th>
+            <th data-key="date" data-col="date"${ch('date')}${sortThAttrs('date')}>${escapeHtml(ledgerColLabel('date'))} ${sortIcon('date')}</th>
+            <th data-key="account" data-col="account"${ch('account')}${sortThAttrs('account')}>${escapeHtml(ledgerColLabel('account'))} ${sortIcon('account')}</th>
+            <th data-key="name" data-col="name"${ch('name')}${sortThAttrs('name')}>${escapeHtml(ledgerColLabel('name'))} ${sortIcon('name')}</th>
+            <th data-key="amount" data-col="amount"${ch('amount')}${sortThAttrs('amount')}>${escapeHtml(ledgerColLabel('amount'))} ${sortIcon('amount')}</th>
+            <th data-key="balance" data-col="balance"${ch('balance')}${sortThAttrs('balance')}>${escapeHtml(ledgerColLabel('balance'))} ${sortIcon('balance')}</th>
+            <th data-col="cleared"${ch('cleared')}>${escapeHtml(ledgerColLabel('cleared'))}</th>
         </tr></thead>
         <tbody>`;
     const visibleColCount = LEDGER_ALL_COLS.length - hiddenCols.size + (hiddenCols.has('cleared') ? 0 : 1);
     if (pagedTransactions.length === 0) {
         let emptyIcon, emptyHeading, emptyBody;
         if (activeFilterCount > 0) {
-            emptyIcon = '🔍'; emptyHeading = 'No transactions match your filters';
-            emptyBody = 'Try adjusting the date range, account, or status filters above.';
+            emptyIcon = '🔍'; emptyHeading = t('ledger.emptyFilteredHeading');
+            emptyBody = t('ledger.emptyFilteredBody');
         } else if ((app.accounts || []).length === 0) {
-            emptyIcon = '🏦'; emptyHeading = 'No accounts yet';
-            emptyBody = 'Add a checking or savings account and link it to income or expenses to see transactions here.';
+            emptyIcon = '🏦'; emptyHeading = t('ledger.emptyNoAccountsHeading');
+            emptyBody = t('ledger.emptyNoAccountsBody');
         } else {
-            emptyIcon = '📋'; emptyHeading = 'No transactions yet';
-            emptyBody = 'Link income, debts, or expenses to an account — they will appear here as scheduled transactions.';
+            emptyIcon = '📋'; emptyHeading = t('ledger.emptyNoTxHeading');
+            emptyBody = t('ledger.emptyNoTxBody');
         }
         html += `<tr><td colspan="${visibleColCount}" class="ledger-empty-cell">
             <div class="empty-state empty-state--compact">
                 <div class="empty-state__icon">${emptyIcon}</div>
-                <h3 class="empty-state__heading">${emptyHeading}</h3>
-                <p class="empty-state__body">${emptyBody}</p>
+                <h3 class="empty-state__heading">${escapeHtml(emptyHeading)}</h3>
+                <p class="empty-state__body">${escapeHtml(emptyBody)}</p>
             </div>
         </td></tr>`;
     } else {
@@ -375,24 +379,25 @@ export function renderLedgerPage(app) {
                 : tx.hasOverride
                     ? (() => {
                         const overrideMemo = (app.ledgerAmountOverrides || {})[tx.transactionId]?.memo;
+                        const original = formatCurrency(tx.originalAmount);
                         const overrideTitle = overrideMemo
-                            ? `Overridden — original: ${formatCurrency(tx.originalAmount)} · ${overrideMemo}`
-                            : `Overridden — original: ${formatCurrency(tx.originalAmount)}`;
+                            ? t('ledger.overriddenTitleMemo', { original, memo: overrideMemo })
+                            : t('ledger.overriddenTitle', { original });
                         const overrideAriaLabel = overrideMemo
-                            ? `Amount overridden, original was ${formatCurrency(tx.originalAmount)}. Note: ${overrideMemo}`
-                            : `Amount overridden, original was ${formatCurrency(tx.originalAmount)}`;
-                        return `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-override-icon" data-ledger-edit-icon="${escapeHtml(tx.transactionId)}" title="${escapeHtml(overrideTitle)}" aria-label="${escapeHtml(overrideAriaLabel)}" role="button" tabindex="0">✎</span><span class="ledger-amount-original">Original ${formatCurrency(tx.originalAmount)}</span></div>`;
+                            ? t('ledger.overriddenAriaMemo', { original, memo: overrideMemo })
+                            : t('ledger.overriddenAria', { original });
+                        return `<div class="ledger-amount-stack"><span class="ledger-amount-effective">${formatCurrency(tx.amount)}</span><span class="ledger-override-icon" data-ledger-edit-icon="${escapeHtml(tx.transactionId)}" title="${escapeHtml(overrideTitle)}" aria-label="${escapeHtml(overrideAriaLabel)}" role="button" tabindex="0">✎</span><span class="ledger-amount-original">${escapeHtml(t('ledger.originalAmount', { amount: formatCurrency(tx.originalAmount) }))}</span></div>`;
                     })()
                     : isVariableIncome
-                        ? `<span>${formatCurrency(tx.amount)}</span><span class="ledger-est-badge" title="Estimated — enter actual amount when paycheck arrives">~ Est.</span>`
+                        ? `<span>${formatCurrency(tx.amount)}</span><span class="ledger-est-badge" title="${escapeHtml(t('ledger.estTitle'))}">${escapeHtml(t('income.estBadge'))}</span>`
                         : `<span>${formatCurrency(tx.amount)}</span>`;
 
             let reconInfoIcon = '';
             if (isReconciliation && tx.meta) {
                 const tipText = reconAdjusts
-                    ? `Running balance snaps to statement balance (${formatCurrency(tx.meta.statementBalance)}) at this row.\nTransactions after this point project forward from that balance.\n\nReconciliation Adjusts Balance: On`
-                    : `Informational only — the running balance is not changed by this row.\nEnable "Reconciliation Adjusts Balance" in Settings to have the balance snap to the statement balance at reconciliation points.\n\nReconciliation Adjusts Balance: Off`;
-                reconInfoIcon = `<span class="ledger-recon-info${reconAdjusts ? ' ledger-recon-info--active' : ''}" title="${escapeHtml(tipText)}" aria-label="Reconciliation balance info" tabindex="0">ℹ</span>`;
+                    ? t('ledger.reconTipOn', { balance: formatCurrency(tx.meta.statementBalance) })
+                    : t('ledger.reconTipOff');
+                reconInfoIcon = `<span class="ledger-recon-info${reconAdjusts ? ' ledger-recon-info--active' : ''}" title="${escapeHtml(tipText)}" aria-label="${escapeHtml(t('ledger.reconInfoAria'))}" tabindex="0">ℹ</span>`;
             }
 
             let txPersonPill = '';
@@ -408,8 +413,10 @@ export function renderLedgerPage(app) {
                 }
             }
             const navableTypes = ['debt', 'income', 'recurring'];
+            const NAV_TITLE_KEYS = { debt: 'ledger.navDebtTitle', income: 'ledger.navIncomeTitle', recurring: 'ledger.navRecurringTitle' };
+            const NAV_ARIA_KEYS = { debt: 'ledger.navDebtAria', income: 'ledger.navIncomeAria', recurring: 'ledger.navRecurringAria' };
             const navIcon = (!isReconciliation && navableTypes.includes(tx.type) && tx.sourceId)
-                ? `<button class="ledger-nav-btn" data-ledger-nav-type="${tx.type}" data-ledger-nav-id="${tx.sourceId}" title="Go to ${tx.type}" aria-label="Go to ${escapeHtml(tx.name || '')} in ${tx.type} page">↗</button>`
+                ? `<button class="ledger-nav-btn" data-ledger-nav-type="${tx.type}" data-ledger-nav-id="${tx.sourceId}" title="${escapeHtml(t(NAV_TITLE_KEYS[tx.type]))}" aria-label="${escapeHtml(t(NAV_ARIA_KEYS[tx.type], { name: tx.name || '' }))}">↗</button>`
                 : '';
             // Recurring-template transfer legs (#399) get the same ⇄ prefix as
             // one-off transfers, but stay `type: 'recurring'` rows -- they keep
@@ -423,20 +430,21 @@ export function renderLedgerPage(app) {
                     ? `⇄ ${escapeHtml(tx.name || '')}`
                     : `${isRecurringTransfer ? '⇄ ' : ''}${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
             const transferActions = isTransfer
-                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}" aria-label="Edit transfer ${escapeHtml(tx.name || '')}">Edit</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}" aria-label="Delete transfer ${escapeHtml(tx.name || '')}">Delete</button></div>`
+                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.editTransferAria', { name: tx.name || '' }))}">${escapeHtml(t('common.edit'))}</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.deleteTransferAria', { name: tx.name || '' }))}">${escapeHtml(t('common.delete'))}</button></div>`
                 : '';
-            const overrideBtnLabel = isVariableIncome && !tx.hasOverride ? null
-                : isVariableIncome && tx.hasOverride ? 'Edit actual'
-                : tx.hasOverride ? 'Edit override'
-                : 'Override';
+            const overrideKeys = isVariableIncome && !tx.hasOverride ? null
+                : isVariableIncome && tx.hasOverride ? { text: 'ledger.editActual', aria: 'ledger.editActualAria' }
+                : tx.hasOverride ? { text: 'ledger.editOverride', aria: 'ledger.editOverrideAria' }
+                : { text: 'ledger.override', aria: 'ledger.overrideAria' };
+            const txName = tx.name || '';
             const overrideActions = canOverride
-                ? `<div class="ledger-override-actions">${overrideBtnLabel === null ? `<button class="ledger-override-btn ledger-enter-actual-btn" data-ledger-override="${escapeHtml(tx.transactionId)}" aria-label="Enter actual amount for ${escapeHtml(tx.name || '')}">Enter actual</button>` : `<button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}" aria-label="${overrideBtnLabel} for ${escapeHtml(tx.name || '')}">${overrideBtnLabel}</button>`}${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}" aria-label="Reset override for ${escapeHtml(tx.name || '')}">Reset</button>` : ''}</div>`
+                ? `<div class="ledger-override-actions">${overrideKeys === null ? `<button class="ledger-override-btn ledger-enter-actual-btn" data-ledger-override="${escapeHtml(tx.transactionId)}" aria-label="${escapeHtml(t('ledger.enterActualAria', { name: txName }))}">${escapeHtml(t('ledger.enterActual'))}</button>` : `<button class="ledger-override-btn" data-ledger-override="${escapeHtml(tx.transactionId)}" aria-label="${escapeHtml(t(overrideKeys.aria, { name: txName }))}">${escapeHtml(t(overrideKeys.text))}</button>`}${tx.hasOverride ? `<button class="ledger-override-clear-btn" data-ledger-clear-override="${escapeHtml(tx.transactionId)}" aria-label="${escapeHtml(t('ledger.resetAria', { name: txName }))}">${escapeHtml(t('ledger.reset'))}</button>` : ''}</div>`
                 : '';
             const clearedCell = canClear
-                ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="Cleared ${escapeHtml(new Date(tx.clearedAt).toLocaleString())}"` : ''} aria-label="Mark ${escapeHtml(tx.name || 'transaction')} cleared">`
+                ? `<input type="checkbox" class="ledger-cleared-checkbox" data-ledger-cleared="${escapeHtml(tx.transactionId)}"${tx.cleared ? ' checked' : ''}${tx.clearedAt ? ` title="${escapeHtml(t('ledger.clearedTitle', { date: new Date(tx.clearedAt).toLocaleString(getIntlLocale()) }))}"` : ''} aria-label="${escapeHtml(t('ledger.markClearedAria', { name: tx.name || t('ledger.transactionFallback') }))}">`
                 : '';
             const selectCell = canClear
-                ? `<input type="checkbox" class="ledger-row-select" data-ledger-select="${escapeHtml(tx.transactionId)}" aria-label="Select ${escapeHtml(tx.name || 'transaction')}">`
+                ? `<input type="checkbox" class="ledger-row-select" data-ledger-select="${escapeHtml(tx.transactionId)}" aria-label="${escapeHtml(t('ledger.selectRowAria', { name: tx.name || t('ledger.transactionFallback') }))}">`
                 : '';
             html += `<tr${isReconciliation ? ' class="ledger-row--reconciliation"' : ''}>
                 <td data-col="select" class="ledger-select-col${hiddenCols.has('cleared') ? ' ledger-col-hidden' : ''}">${selectCell}</td>
@@ -451,11 +459,11 @@ export function renderLedgerPage(app) {
     }
     html += `</tbody></table></div>`;
     html += `<div class="ledger-pagination">
-        <div class="ledger-page-summary">Showing ${startItem}-${endItem} of ${totalRows}</div>
+        <div class="ledger-page-summary">${escapeHtml(t('ledger.showingRange', { start: startItem, end: endItem, total: totalRows }))}</div>
         <div class="ledger-page-controls">
-            <button id="ledgerPrevPage" class="ledger-page-btn" ${currentPage <= 1 ? 'disabled' : ''}>Previous</button>
-            <span class="ledger-page-info">Page ${currentPage} of ${totalPages}</span>
-            <button id="ledgerNextPage" class="ledger-page-btn" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+            <button id="ledgerPrevPage" class="ledger-page-btn" ${currentPage <= 1 ? 'disabled' : ''}>${escapeHtml(t('ledger.prevPage'))}</button>
+            <span class="ledger-page-info">${escapeHtml(t('ledger.pageInfo', { page: currentPage, pages: totalPages }))}</span>
+            <button id="ledgerNextPage" class="ledger-page-btn" ${currentPage >= totalPages ? 'disabled' : ''}>${escapeHtml(t('ledger.nextPage'))}</button>
         </div>
     </div>`;
     container.innerHTML = html;
@@ -654,7 +662,7 @@ export function renderLedgerPage(app) {
         const checked = container.querySelectorAll('.ledger-row-select:checked');
         const n = checked.length;
         if (bulkBar) bulkBar.classList.toggle('ledger-bulk-bar--visible', n > 0);
-        if (bulkCount) bulkCount.textContent = n > 0 ? `${n} row${n !== 1 ? 's' : ''} selected` : '';
+        if (bulkCount) bulkCount.textContent = n > 0 ? plural('ledger.rowsSelected', n) : '';
         if (selectAll) {
             const all = container.querySelectorAll('.ledger-row-select');
             selectAll.indeterminate = n > 0 && n < all.length;

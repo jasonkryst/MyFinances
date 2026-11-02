@@ -12,12 +12,13 @@ import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal } from './ui.js';
 import { renderLedgerPage } from './ledger.js';
+import { t } from './i18n.js';
 
 // Returns '' when valid, otherwise a user-facing error message.
 function validateTransferInput(fromAccountId, toAccountId, amount) {
-    if (!Number.isFinite(fromAccountId) || !Number.isFinite(toAccountId)) return 'Please select both accounts.';
-    if (fromAccountId === toAccountId) return 'From and To accounts must be different.';
-    if (!Number.isFinite(amount) || amount <= 0) return 'Please enter a valid amount greater than zero.';
+    if (!Number.isFinite(fromAccountId) || !Number.isFinite(toAccountId)) return t('transfer.errBothAccounts');
+    if (fromAccountId === toAccountId) return t('transfer.errDifferent');
+    if (!Number.isFinite(amount) || amount <= 0) return t('transfer.errAmount');
     return '';
 }
 
@@ -82,7 +83,7 @@ export async function editTransfer(app, id, { fromAccountId, toAccountId, amount
 }
 
 export async function deleteTransfer(app, id) {
-    const confirmed = await showDeleteConfirmModal('Delete this transfer? Both legs will be removed from the Ledger.', 'Delete');
+    const confirmed = await showDeleteConfirmModal(t('transfer.confirmDelete'), t('common.delete'));
     if (!confirmed) return { success: false };
 
     app.transfers = (app.transfers || []).filter(t => t.id !== id);
@@ -112,13 +113,13 @@ export function openTransferModal(app, { fromAccountId = null, editId = null } =
 
     const editing = editId !== null ? (app.transfers || []).find(t => t.id === editId) : null;
 
-    titleEl.textContent = editing ? 'Edit Transfer' : 'Transfer Between Accounts';
-    confirmBtn.textContent = editing ? 'Save Changes' : 'Transfer';
+    titleEl.textContent = editing ? t('transfer.editTitle') : t('transfer.title');
+    confirmBtn.textContent = editing ? t('transfer.saveChangesBtn') : t('transfer.confirmBtn');
     errorEl.textContent = '';
     errorEl.classList.add('hidden');
 
-    fromSelect.innerHTML = buildAccountOptionsHtml(app.accounts, editing ? editing.fromAccountId : fromAccountId, { emptyLabel: '— Select account —' });
-    toSelect.innerHTML = buildAccountOptionsHtml(app.accounts, editing ? editing.toAccountId : null, { emptyLabel: '— Select account —' });
+    fromSelect.innerHTML = buildAccountOptionsHtml(app.accounts, editing ? editing.fromAccountId : fromAccountId, { emptyLabel: t('transfer.selectAccount') });
+    toSelect.innerHTML = buildAccountOptionsHtml(app.accounts, editing ? editing.toAccountId : null, { emptyLabel: t('transfer.selectAccount') });
     amountInput.value = editing ? editing.amount : '';
     dateInput.value = editing ? editing.date : todayISO();
     memoInput.value = editing ? editing.memo : '';
@@ -131,7 +132,7 @@ export function openTransferModal(app, { fromAccountId = null, editId = null } =
         const from = parseInt(fromSelect.value, 10);
         const to = parseInt(toSelect.value, 10);
         const error = Number.isFinite(from) && Number.isFinite(to) && from === to
-            ? 'From and To accounts must be different.'
+            ? t('transfer.errDifferent')
             : '';
         errorEl.textContent = error;
         errorEl.classList.toggle('hidden', !error);

@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
-import { getIntlLocale, getCurrencyCode } from './i18n.js';
+import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '6.60.0';
+export const APP_VERSION = '6.64.1';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -64,6 +64,21 @@ export function formatMonthYear(value) {
     const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
     const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
     return date.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
+}
+
+// Long-form date ("January 15, 2026") in the active locale. Matches
+// DebtCalculator.formatDate in English; the calculator itself stays
+// locale-agnostic because CSV exports reuse it.
+export function formatLongDate(date) {
+    return date.toLocaleDateString(getIntlLocale(), { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// "January 2026" for the Nth plan month (same offset convention as
+// DebtCalculator.getMonthName), in the active locale.
+export function formatPlanMonth(monthOffset) {
+    const start = DebtCalculator.getStartingMonth();
+    const target = new Date(start.getFullYear(), start.getMonth() + monthOffset, 1);
+    return target.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
 }
 
 export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {
@@ -151,16 +166,21 @@ export function getPriorEquivalentRangeEnd(year, month, rangeMonths) {
 // Short label for a report range: a single month name for rangeMonths===1,
 // or "<start short month> – <end short month> <year>" otherwise (crossing a
 // year boundary spells out both years, e.g. "Dec 2025 – Feb 2026").
+// "January 2026" for a Date, in the active locale.
+export function formatMonthLong(date) {
+    return date.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
+}
+
 export function formatReportRangeLabel(year, month, rangeMonths) {
     const end = new Date(year, month, 1);
     if (rangeMonths <= 1) {
-        return end.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return formatMonthLong(end);
     }
     const months = reportRangeMonthsList(year, month, rangeMonths);
     const start = new Date(months[0].year, months[0].month, 1);
     const sameYear = start.getFullYear() === end.getFullYear();
-    const startLabel = start.toLocaleDateString('en-US', sameYear ? { month: 'short' } : { month: 'short', year: 'numeric' });
-    const endLabel = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const startLabel = start.toLocaleDateString(getIntlLocale(), sameYear ? { month: 'short' } : { month: 'short', year: 'numeric' });
+    const endLabel = end.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
     return `${startLabel} – ${endLabel}`;
 }
 
@@ -235,6 +255,9 @@ export function renderLazyLoadError(containerId, label) {
 }
 
 export function getDayOrdinal(day) {
+    // English ordinals ("1st", "22nd") only make sense in English; other
+    // locales word the surrounding sentence around a plain number.
+    if (getCurrentLocale() !== 'en') return String(day);
     const j = day % 10;
     const k = day % 100;
 
@@ -540,7 +563,7 @@ export function setCollapsibleOpen(bodyId, open) {
 }
 
 export function buildFiltersLabel(activeCount) {
-    return activeCount > 0 ? `Filters (${activeCount} active)` : 'Filters';
+    return activeCount > 0 ? t('filters.labelActive', { count: activeCount }) : t('filters.label');
 }
 
 // Recompute the "Filters (n active)" label of every DOM-counted disclosure:

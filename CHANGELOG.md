@@ -4,6 +4,101 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.64.1] — 2026-11-02
+
+### Fixed
+- **Income inline edit no longer changes the frequency** (issue #446). The edit form's Frequency dropdown only offered Every other week and Once per month. Saving a weekly or twice-monthly income, even without touching the field, rewrote it to bi-weekly and changed its paydays everywhere. The dropdown is now built from the same four frequencies as the card label, and an unexpected value keeps the stored frequency.
+- **Estimated annual income counts every frequency correctly** (issue #446). Weekly and twice-monthly incomes were multiplied by 12. Annual totals now use 52, 26, 24 or 12 paydays per year, and an unknown value counts as monthly.
+
+### Tests
+- **Income frequency (`test_income.py`):** seven tests in 16 cases:
+  - saving without changes keeps each frequency;
+  - the dropdown offers all four;
+  - changing to each frequency persists;
+  - per-frequency and mixed annual totals;
+  - an unknown stored frequency renders and counts as monthly;
+  - a tampered dropdown value is never stored.
+
+  Eight of these cases fail on 6.64.0.
+- **Ledger flake (`test_ledger.py::test_ledger_cleared_unchecking_clears_state_and_timestamp`):** the test intermittently failed because it clicked the Cleared checkbox again before the Ledger re-rendered, then read storage before the async save finished. It now waits for each state change.
+
+## [6.64.0] — 2026-11-02
+
+### Added
+- **The whole app is translated into Spanish and Polish** (issue #317, part 5 — completes the issue).
+  - **Reports:** every sub-tab (Calendar with its day modal, Spending with its drill-down and year-over-year mode, Income vs Expenses, Money Flow and the Sankey, Variance with Budget vs. Actual, Net Worth with its projection, Forecast, Summary), plus chart labels, screen-reader tables and the Net Worth toasts.
+  - **Ledger:** the table, filters, sort chips, toolbar, the cross-navigation breadcrumb, and the override, export and mark-all-cleared modals.
+  - **Generated transaction names:** "Transfer to/from X", "Interest", "Emergency Fund Contribution", "Balance Reconciliation", "Balance Rollover", unnamed-item fallbacks and forecast month labels follow the active language. They flow through to Reports, Forecast and Reconcile. Stored category values stay English and are labelled at render time (`categoryLabel()` gains Interest, Salary, Bonus and other built-ins).
+  - **People:** the list, inline edit and the person-replacement modal.
+  - **Settings:** the last untranslated text — tab labels, currency names and help, toggle help lines, the danger zone, and the "Clear ALL app data?" confirmation.
+  - **Dates:** Reports month labels are locale-aware via a new `formatMonthLong()` helper in `utils.js`.
+
+### Changed
+- **Settings language note:** it now reads "Choose the language used throughout the app." instead of warning that some pages may remain in English.
+- **Budget vs. Actual hint:** it pointed to "Liabilities → Budget → Category Budgets", but the sub-tab is called Expenses. It is corrected in all three languages.
+- **Calendar day modal title:** it reads "January 5, 2026" instead of "January 2026 5".
+- **Forecast warnings:** the month is no longer bolded, so each warning translates as one sentence.
+- **CSV export:** the header row deliberately stays English.
+
+### Tests
+- **Coverage guard:** `test_i18n_coverage.py` adds `REPORTS_STATE` and `LEDGER_STATE` seeds covering every transaction source (transfers, interest, fund contributions, reconciliations, balance history, recurring transfer legs, overrides and cleared rows). It also adds 25 page entries: each Reports sub-tab and modal, the Ledger and its modals, People, and the four Settings tabs.
+- **Seed workaround removed:** the `BASE_SEEDED_STATE` workaround for English ledger names is gone. Retirement and Reconcile now scan the full seeds.
+- **Language names:** English/Español/Polski are added to `NON_TRANSLATABLE`, because the language picker shows each language in its own name.
+
+## [6.63.0] — 2026-11-02
+
+### Added
+- **The Plan page is fully translated into Spanish and Polish** (issue #317, part 4).
+  - **Covered:** payment inputs and results, the summary and schedule tables, the amortization modal, Strategy Comparison, the What-If and Refinance simulators, the target-date panel, plan history, the stale-plan and income warnings, the Calendar sub-tab, the six Plan charts (labels, axes, tooltips, screen-reader tables) and the debt-payoff milestone toast.
+  - **Stored values:** strategy names stay as stored and are translated at render time.
+  - **Dates:** long dates and month names follow the active locale via new `formatLongDate()` / `formatPlanMonth()` helpers in `utils.js`. `DebtCalculator` is unchanged, because CSV export shares it.
+
+### Changed
+- **Language switch on Plan:** switching language re-renders the calculated plan, the open chart and the calendar in place (`renderPageData('strategy')` with `resetToDefaults: false`).
+- **Sentence emphasis:** a few sentences lose their inline bold so each translates as one string. The affected sentences are "Expected income this month", "Your planned payment is X% of…", "Net after all obligations", the target-date "Payoff by…" / "Total interest" lines, and the Strategy Comparison banner.
+- **Fixed:** "1 months" now reads "1 month" in the time-to-pay-off line.
+
+### Tests
+- **Coverage guard:** `test_i18n_coverage.py` adds a `PLAN_STATE` seed and 18 Plan page entries. They cover each view, the Refinance outcomes, every target-date variant, and the warnings.
+- **Scanner:** the scan now strips whole es-ES long dates ("15 de enero de 2026"), but only around real month names.
+- **Flaky test fixed:** `test_xss.py::test_xss_in_calendar_day_modal_event_name` queried the Reports calendar before its lazy module rendered (intermittent "Expected a day cell" failure). It now awaits `renderReportsPage()` and waits for the cell.
+- **XSS guard:** `test_target_payoff_xss.py`'s static guard follows the new `formatLongDate` line, and also asserts that the whole translated sentence is escaped.
+
+## [6.62.0] — 2026-11-02
+
+### Added
+- **Liabilities and Recurring are fully translated into Spanish and Polish** (issue #317, part 3).
+  - **Debts:** cards, fact tiles, payoff analysis, filters, sort and group-by, the inline edit form, the Ownership split control, and the Update Balance and Accelerate modals. Debt types get display labels; stored values stay English.
+  - **Budget / Expenses:** the expense list and inline edit, the month navigator and the Category Budgets panel. Built-in categories get display labels through the new `categoryLabel()` in `i18n.js`.
+  - **Recurring:** template cards, filters, the overdue toggle, the inline edit form, and the Mark-as-paid and Pause modals. Types and frequencies get display labels.
+  - **Shared modals:** the alert, delete, archive and paid-off confirmations, and the $0-amount policy prompt.
+  - **Plurals:** a new `plural(baseKey, count, vars)` helper in `i18n.js` picks `.one`/`.other` keys with `Intl.PluralRules`.
+
+### Changed
+- **Sentence emphasis:** a few sentences lose their inline bold (debt paid-off, minimum-payment trap, recurring "This month", and the Pause and Mark-as-paid descriptions), so each one translates as a single string.
+- **Day ordinals:** "1st/2nd/3rd" suffixes are English-only; other languages show the bare day number.
+- **Ledger:** the filter button's "Filters" label is translated too, because it shares the helper.
+
+### Tests
+- **Coverage guard:** `test_i18n_coverage.py` adds a Liabilities/Recurring seed (people, varied debts, expenses, fixed and derived category budgets, every recurring type including paused, skipped, archived and overdue templates) and 17 page entries covering each sub-tab, inline edit form and modal.
+
+## [6.61.0] — 2026-11-02
+
+### Added
+- **Accounts, Income and Savings are fully translated into Spanish and Polish** (issue #317, part 2).
+  - **Accounts:** cards, filters, sort, the inline edit form, the net-worth widget, and the account breakdown, balance history and transfer modals. Account types and retirement subtypes get display labels; stored values stay English.
+  - **Income:** income and bonus lists, edit forms, the Income Trend chart, and the Bonus Advisor. Frequencies and categories get display labels.
+  - **Savings:** the Emergency Fund, Sinking Funds (including archived funds and the Goal Complete modal) and Home Purchase sub-tabs.
+  - **Shared:** alerts, confirmations, chart labels and captions, and per-item aria-labels (new shared `entity.*` keys).
+  - **Dates:** month labels use the active locale instead of a hardcoded `en-US` format.
+
+### Changed
+- **Income card frequency label:** weekly and twice-monthly incomes now read "Every week" and "Twice per month (15th & last day)" instead of the raw stored value.
+- **People:** the person picker's "— No person —" option is translated.
+
+### Tests
+- **Wider coverage guard:** `test_i18n_coverage.py` adds 10 page entries (accounts, accounts edit and filter, income and income edit, each Savings sub-tab, archived sinking funds, the home-purchase variants) and a much larger seed. Retirement and Reconcile keep the original small seed, because Ledger-generated transaction names are translated in a later part.
+
 ## [6.60.0] — 2026-11-01
 
 ### Added

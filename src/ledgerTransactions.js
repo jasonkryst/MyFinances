@@ -1,6 +1,7 @@
 // Ledger transaction aggregation: pure computation, no DOM.
 
-import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurringInflow } from './utils.js';
+import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurringInflow, formatMonthYear } from './utils.js';
+import { t } from './i18n.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getOverrideAmount, getEffectiveAmount } from './ledgerOverrides.js';
@@ -99,7 +100,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                 addTx({
                     accountId: inc.accountId,
                     date: payDate,
-                    name: inc.name || 'Income',
+                    name: inc.name || t('ledger.txIncome'),
                     // #251: posted/projected amount is net of withholding —
                     // a 0% (or unset) withholdingPercent leaves this equal
                     // to the raw gross amount, same as before.
@@ -118,7 +119,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                     addTx({
                         accountId: bonus.accountId,
                         date: bonusDate,
-                        name: bonus.name || 'Bonus',
+                        name: bonus.name || t('ledger.txBonus'),
                         amount: Number(bonus.amount),
                         type: 'bonus',
                         sourceId: bonus.id,
@@ -134,7 +135,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                 addTx({
                     accountId: debt.accountId,
                     date: due,
-                    name: debt.name || 'Debt Payment',
+                    name: debt.name || t('ledger.txDebtPayment'),
                     amount: -Math.abs(Number(debt.minimumPayment)),
                     type: 'debt',
                     sourceId: debt.id,
@@ -149,7 +150,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                 addTx({
                     accountId: bill.accountId,
                     date: due,
-                    name: bill.name || 'Bill',
+                    name: bill.name || t('ledger.txBill'),
                     amount: -Math.abs(Number(bill.amount)),
                     type: 'bill',
                     sourceId: bill.id,
@@ -165,7 +166,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                     addTx({
                         accountId: exp.accountId,
                         date: expDate,
-                        name: exp.name || 'Expense',
+                        name: exp.name || t('ledger.txExpense'),
                         amount: -Math.abs(Number(exp.budgetAmount)),
                         type: 'expense',
                         sourceId: exp.id,
@@ -181,40 +182,40 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
         // addTx() for both legs is what makes computeAccountBalance() and
         // every Reports/Forecast consumer correct for transfers automatically:
         // they already just sum whatever this generator produces per account.
-        for (const t of app.transfers || []) {
-            if (!t.date) continue;
-            const tDate = new Date(String(t.date).includes('T') ? t.date : t.date + 'T00:00:00');
+        for (const xfer of app.transfers || []) {
+            if (!xfer.date) continue;
+            const tDate = new Date(String(xfer.date).includes('T') ? xfer.date : xfer.date + 'T00:00:00');
             if (tDate.getFullYear() !== year || tDate.getMonth() !== month) continue;
-            const toAcct = (app.accounts || []).find(a => a.id === t.toAccountId);
-            const fromAcct = (app.accounts || []).find(a => a.id === t.fromAccountId);
+            const toAcct = (app.accounts || []).find(a => a.id === xfer.toAccountId);
+            const fromAcct = (app.accounts || []).find(a => a.id === xfer.fromAccountId);
             addTx({
-                accountId: t.fromAccountId,
+                accountId: xfer.fromAccountId,
                 date: tDate,
-                name: `Transfer to ${toAcct?.name || 'account'}`,
-                amount: -Math.abs(Number(t.amount)),
+                name: t('ledger.txTransferTo', { name: toAcct?.name || t('ledger.txAccountFallback') }),
+                amount: -Math.abs(Number(xfer.amount)),
                 type: 'transfer',
-                sourceId: t.id,
+                sourceId: xfer.id,
                 category: 'Transfer'
             });
             addTx({
-                accountId: t.toAccountId,
+                accountId: xfer.toAccountId,
                 date: tDate,
-                name: `Transfer from ${fromAcct?.name || 'account'}`,
-                amount: Math.abs(Number(t.amount)),
+                name: t('ledger.txTransferFrom', { name: fromAcct?.name || t('ledger.txAccountFallback') }),
+                amount: Math.abs(Number(xfer.amount)),
                 type: 'transfer',
-                sourceId: t.id,
+                sourceId: xfer.id,
                 category: 'Transfer'
             });
         }
 
-        for (const tmpl of (app.recurringTemplates || []).filter(t => !t.archived)) {
+        for (const tmpl of (app.recurringTemplates || []).filter(r => !r.archived)) {
             const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
             for (const occDate of occurrences) {
                 if (isRecurringInflow(tmpl)) {
                     addTx({
                         accountId: tmpl.accountId,
                         date: occDate,
-                        name: tmpl.name || 'Recurring',
+                        name: tmpl.name || t('ledger.txRecurring'),
                         amount: Math.abs(Number(tmpl.amount)),
                         type: 'recurring',
                         sourceId: tmpl.id,
@@ -224,7 +225,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                     addTx({
                         accountId: tmpl.accountId,
                         date: occDate,
-                        name: tmpl.name || 'Transfer (out)',
+                        name: tmpl.name || t('ledger.txTransferOut'),
                         amount: -Math.abs(Number(tmpl.amount)),
                         type: 'recurring',
                         sourceId: tmpl.id,
@@ -233,7 +234,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                     addTx({
                         accountId: tmpl.targetAccountId,
                         date: occDate,
-                        name: tmpl.name || 'Transfer (in)',
+                        name: tmpl.name || t('ledger.txTransferIn'),
                         amount: Math.abs(Number(tmpl.amount)),
                         type: 'recurring',
                         sourceId: tmpl.id,
@@ -243,7 +244,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                     addTx({
                         accountId: tmpl.accountId,
                         date: occDate,
-                        name: tmpl.name || 'Recurring',
+                        name: tmpl.name || t('ledger.txRecurring'),
                         amount: -Math.abs(Number(tmpl.amount)),
                         type: 'recurring',
                         sourceId: tmpl.id,
@@ -260,7 +261,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                 addTx({
                     accountId: fund.accountId,
                     date: savingDate,
-                    name: 'Emergency Fund Contribution',
+                    name: t('ledger.txEmergencyFund'),
                     amount: -Math.abs(Number(fund.monthlyContribution)),
                     type: 'savings',
                     sourceId: fund.id,
@@ -275,7 +276,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                 addTx({
                     accountId: fund.accountId,
                     date: savingDate,
-                    name: fund.name || 'Sinking Fund',
+                    name: fund.name || t('ledger.txSinkingFund'),
                     amount: -Math.abs(Number(fund.monthlyAllocation)),
                     type: 'savings',
                     sourceId: fund.id,
@@ -301,7 +302,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
                     addTx({
                         accountId: acct.id,
                         date: new Date(year, month + 1, 0),
-                        name: 'Interest',
+                        name: t('ledger.txInterest'),
                         amount: interest,
                         type: 'interest',
                         sourceId: acct.id,
@@ -330,7 +331,7 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
         if (!windowMonths.has(`${reconDate.getFullYear()}-${reconDate.getMonth()}`)) continue;
         accountMap[recon.accountId].txs.push({
             date: reconDate,
-            name: 'Balance Reconciliation',
+            name: t('ledger.txReconciliation'),
             originalAmount: 0,
             type: 'reconciliation',
             sourceId: recon.id,
@@ -394,7 +395,7 @@ export function getAccountForecastSeries(app, accountId, monthsAhead) {
     const startingBalance = account ? (account.startingBalance || 0) : 0;
 
     const series = [{
-        label: 'Now',
+        label: t('reports.fcNow'),
         income: 0,
         outflow: 0,
         net: 0,
@@ -448,7 +449,7 @@ export function getAccountForecastSeries(app, accountId, monthsAhead) {
 
         balance += net;
 
-        const label = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const label = formatMonthYear(new Date(year, month, 1));
 
         series.push({
             year,
@@ -499,7 +500,7 @@ export function getLedgerTransactions(app) {
                     date: new Date(tx.date.getFullYear(), tx.date.getMonth(), 1),
                     account: acct.name,
                     accountId: acctId,
-                    name: 'Balance Rollover',
+                    name: t('ledger.txRollover'),
                     originalAmount: 0,
                     balance: running,
                     type: 'rollover',

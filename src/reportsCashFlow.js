@@ -4,8 +4,10 @@ import {
     formatCurrency,
     escapeHtml,
     getReportDate,
-    renderChartDataTable
+    renderChartDataTable,
+    formatMonthLong
 } from './utils.js';
+import { t, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 
@@ -66,7 +68,7 @@ export function getCashFlowTrendSeries(app, months) {
         const year = d.getFullYear();
         const month = d.getMonth();
         const totals = computeMonthCashFlowTotals(app, year, month);
-        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        const label = d.toLocaleDateString(getIntlLocale(), { month: 'short', year: '2-digit' });
         series.push({ year, month, label, income: totals.income, outflow: totals.outflow, net: totals.net });
     }
     return series;
@@ -92,18 +94,18 @@ export function renderReportsIncomeExp(app) {
     const net = totals.net;
     const netCls = net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
-    const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthLabel = formatMonthLong(rptDate);
 
     const stats = [
-        { label: `Income (${monthLabel})`, value: totalIncome, cls: 'rpt-stat--income' },
-        { label: 'Bills', value: totalBills, cls: 'rpt-stat--bills' },
-        { label: 'Expense Budgets', value: totalExpenses, cls: 'rpt-stat--exp' },
-        { label: 'Recurring Costs', value: totalRecurring, cls: 'rpt-stat--recurring' },
-        { label: 'Savings Contributions', value: totalSavings, cls: 'rpt-stat--savings' },
-        { label: 'Debt Minimums', value: totalDebtMin, cls: 'rpt-stat--debt' },
-        { label: 'Net Remaining', value: net, cls: netCls }
+        { label: t('reports.statIncomeMonth', { month: monthLabel }), value: totalIncome, cls: 'rpt-stat--income' },
+        { label: t('reports.statBills'), value: totalBills, cls: 'rpt-stat--bills' },
+        { label: t('reports.statExpenseBudgets'), value: totalExpenses, cls: 'rpt-stat--exp' },
+        { label: t('reports.statRecurringCosts'), value: totalRecurring, cls: 'rpt-stat--recurring' },
+        { label: t('reports.statSavingsContrib'), value: totalSavings, cls: 'rpt-stat--savings' },
+        { label: t('reports.statDebtMinimums'), value: totalDebtMin, cls: 'rpt-stat--debt' },
+        { label: t('reports.statNetRemaining'), value: net, cls: netCls }
     ];
-    const statsHTML = stats.map(s => `<div class="rpt-stat ${s.cls}"><span class="rpt-stat-label">${s.label}</span><span class="rpt-stat-value">${formatCurrency(s.value)}</span></div>`).join('');
+    const statsHTML = stats.map(s => `<div class="rpt-stat ${s.cls}"><span class="rpt-stat-label">${escapeHtml(s.label)}</span><span class="rpt-stat-value">${formatCurrency(s.value)}</span></div>`).join('');
 
     const incomeBySource = {};
     for (const tx of monthTxs) {
@@ -125,7 +127,7 @@ export function renderReportsIncomeExp(app) {
         billCats[cat] = (billCats[cat] || 0) + Math.abs(tx.amount || 0);
     }
     for (const [cat, amt] of Object.entries(billCats)) {
-        outflowLabels.push(`🧾 ${escapeHtml(cat)}`);
+        outflowLabels.push(`🧾 ${escapeHtml(categoryLabel(cat))}`);
         outflowData.push(amt);
         outflowColors.push('#f59e0b');
     }
@@ -137,7 +139,7 @@ export function renderReportsIncomeExp(app) {
         expCats[cat] = (expCats[cat] || 0) + Math.abs(tx.amount || 0);
     }
     for (const [cat, amt] of Object.entries(expCats)) {
-        outflowLabels.push(`💸 ${escapeHtml(cat)}`);
+        outflowLabels.push(`💸 ${escapeHtml(categoryLabel(cat))}`);
         outflowData.push(amt);
         outflowColors.push('#8b5cf6');
     }
@@ -149,7 +151,7 @@ export function renderReportsIncomeExp(app) {
         recCats[cat] = (recCats[cat] || 0) + Math.abs(tx.amount);
     }
     for (const [cat, amt] of Object.entries(recCats)) {
-        outflowLabels.push(`🔄 ${escapeHtml(cat)}`);
+        outflowLabels.push(`🔄 ${escapeHtml(categoryLabel(cat))}`);
         outflowData.push(amt);
         outflowColors.push('#06b6d4');
     }
@@ -168,7 +170,7 @@ export function renderReportsIncomeExp(app) {
     const savingsCats = {};
     for (const tx of monthTxs) {
         if (tx.type !== 'savings') continue;
-        const cat = tx.name || 'Savings';
+        const cat = tx.name || t('reports.sankeySavings');
         savingsCats[cat] = (savingsCats[cat] || 0) + Math.abs(tx.amount || 0);
     }
     for (const [cat, amt] of Object.entries(savingsCats)) {
@@ -181,16 +183,16 @@ export function renderReportsIncomeExp(app) {
 
     container.innerHTML = `
         <div class="rpt-stats-strip">${statsHTML}</div>
-        ${!hasData ? '<p class="rpt-empty-msg">Add income sources, bills, expenses, recurring items, or debts to see charts.</p>' : `
+        ${!hasData ? `<p class="rpt-empty-msg">${escapeHtml(t('reports.ieEmpty'))}</p>` : `
         <div class="rpt-charts-row">
             <div class="rpt-chart-card">
-                <h4 class="rpt-chart-title">💰 Income This Month</h4>
-                <p class="rpt-chart-sub">By source</p>
+                <h4 class="rpt-chart-title">💰 ${escapeHtml(t('reports.ieIncomeTitle'))}</h4>
+                <p class="rpt-chart-sub">${escapeHtml(t('reports.ieIncomeSub'))}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="rptIncomeChart"></canvas></div>
             </div>
             <div class="rpt-chart-card">
-                <h4 class="rpt-chart-title">📤 Outflow This Month</h4>
-                <p class="rpt-chart-sub">Bills, expenses &amp; debt minimums by category</p>
+                <h4 class="rpt-chart-title">📤 ${escapeHtml(t('reports.ieOutflowTitle'))}</h4>
+                <p class="rpt-chart-sub">${escapeHtml(t('reports.ieOutflowSub'))}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="rptOutflowChart"></canvas></div>
             </div>
         </div>`}`;
@@ -225,8 +227,8 @@ export function renderReportsIncomeExp(app) {
                 }
             });
             renderChartDataTable('rptIncomeChart', {
-                caption: 'Income by source',
-                columns: ['Source', 'Amount'],
+                caption: t('reports.ieIncomeCaption'),
+                columns: [t('reports.colSource'), t('reports.colAmount')],
                 rows: incomeLabels.map((label, i) => [label, fmt(incomeData[i])])
             });
         }
@@ -258,8 +260,8 @@ export function renderReportsIncomeExp(app) {
             });
         }
         renderChartDataTable('rptOutflowChart', {
-            caption: 'Outflow by category',
-            columns: ['Category', 'Amount'],
+            caption: t('reports.ieOutflowCaption'),
+            columns: [t('reports.colCategory'), t('reports.colAmount')],
             rows: outflowLabels.map((label, i) => [label, fmt(outflowData[i])])
         });
     }
@@ -276,7 +278,7 @@ export function renderReportsMoneyFlow(app) {
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const todayDay = isCurrentMonth ? now.getDate() : null;
-    const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthLabel = formatMonthLong(rptDate);
 
     const dailyIn = new Array(daysInMonth + 1).fill(0);
     const dailyOut = new Array(daysInMonth + 1).fill(0);
@@ -316,22 +318,22 @@ export function renderReportsMoneyFlow(app) {
             const diff = proj - a.startingBalance;
             const diffClass = diff >= 0 ? 'acct-mf-diff--pos' : 'acct-mf-diff--neg';
             const diffSign = diff >= 0 ? '+' : '';
-            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${escapeHtml(a.name)}</span><span class="acct-mf-type" data-label="Type">${escapeHtml(a.type)}</span><span class="acct-mf-start" data-label="Starting">${formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj" data-label="Projected">${formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}" data-label="Change">${diffSign}${formatCurrency(diff)}</span></div>`;
+            return `<div class="acct-mf-row"><span class="acct-mf-icon">${typeIcon[a.type] || '🗂️'}</span><span class="acct-mf-name">${escapeHtml(a.name)}</span><span class="acct-mf-type" data-label="${escapeHtml(t('reports.colType'))}">${escapeHtml(accountTypeLabel(a.type))}</span><span class="acct-mf-start" data-label="${escapeHtml(t('reports.colStarting'))}">${formatCurrency(a.startingBalance)}</span><span class="acct-mf-proj" data-label="${escapeHtml(t('reports.colProjectedBal'))}">${formatCurrency(proj)}</span><span class="acct-mf-diff ${diffClass}" data-label="${escapeHtml(t('reports.colChange'))}">${diffSign}${formatCurrency(diff)}</span></div>`;
         }).join('');
 
         acctSectionHTML = `
             <div class="acct-mf-section">
-                <h4 class="acct-mf-title">🏦 Account Balances — ${monthLabel}</h4>
-                <p class="rpt-chart-sub">Starting balance vs. projected end-of-month after all linked income, debts, bills, expenses, and recurring items.</p>
-                <div class="acct-mf-header"><span></span><span>Account</span><span>Type</span><span>Starting</span><span>Projected</span><span>Change</span></div>
+                <h4 class="acct-mf-title">🏦 ${escapeHtml(t('reports.acctBalTitle', { month: monthLabel }))}</h4>
+                <p class="rpt-chart-sub">${escapeHtml(t('reports.acctBalSub'))}</p>
+                <div class="acct-mf-header"><span></span><span>${escapeHtml(t('reports.colAccount'))}</span><span>${escapeHtml(t('reports.colType'))}</span><span>${escapeHtml(t('reports.colStarting'))}</span><span>${escapeHtml(t('reports.colProjectedBal'))}</span><span>${escapeHtml(t('reports.colChange'))}</span></div>
                 ${acctRows}
             </div>`;
     }
 
     container.innerHTML = `
-        <h3 class="rpt-section-title">💰 Money Flow — ${monthLabel}</h3>
-        <p class="rpt-chart-sub">Cumulative income, outflow, and net balance day by day through the month. Vertical dashed line = today. Includes recurring transactions.</p>
-        ${!hasAnyData ? '<p class="rpt-empty-msg">Add income, bills, debts, bonuses, expenses, or recurring items to see the money flow chart.</p>' : '<div class="rpt-moneyflow-wrap"><canvas id="rptMoneyFlowChart"></canvas></div>'}
+        <h3 class="rpt-section-title">💰 ${escapeHtml(t('reports.sankeyTitle', { month: monthLabel }))}</h3>
+        <p class="rpt-chart-sub">${escapeHtml(t('reports.mfSub'))}</p>
+        ${!hasAnyData ? `<p class="rpt-empty-msg">${escapeHtml(t('reports.mfEmpty'))}</p>` : '<div class="rpt-moneyflow-wrap"><canvas id="rptMoneyFlowChart"></canvas></div>'}
         ${acctSectionHTML}`;
 
     if (!hasAnyData) return;
@@ -353,9 +355,9 @@ export function renderReportsMoneyFlow(app) {
         data: {
             labels,
             datasets: [
-                { label: 'Cumulative Income', data: cumInData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
-                { label: 'Cumulative Outflow', data: cumOutData, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.06)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
-                { label: 'Net Balance', data: netData, borderColor: '#2563eb', backgroundColor: 'transparent', fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2.5, borderDash: [] }
+                { label: t('reports.mfCumIncome'), data: cumInData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+                { label: t('reports.mfCumOutflow'), data: cumOutData, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.06)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+                { label: t('reports.mfNetBalance'), data: netData, borderColor: '#2563eb', backgroundColor: 'transparent', fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2.5, borderDash: [] }
             ]
         },
         options: {
@@ -368,8 +370,8 @@ export function renderReportsMoneyFlow(app) {
                 annotation: undefined
             },
             scales: {
-                x: { title: { display: true, text: `Day of ${monthLabel}`, color: labelColor, font: { size: 11 } }, ticks: { color: labelColor, maxTicksLimit: 16 }, grid: { color: gridColor } },
-                y: { title: { display: true, text: 'Amount ($)', color: labelColor, font: { size: 11 } }, ticks: { color: labelColor, callback: v => fmt(v) }, grid: { color: gridColor } }
+                x: { title: { display: true, text: t('reports.mfDayOf', { month: monthLabel }), color: labelColor, font: { size: 11 } }, ticks: { color: labelColor, maxTicksLimit: 16 }, grid: { color: gridColor } },
+                y: { title: { display: true, text: t('reports.mfAmountAxis'), color: labelColor, font: { size: 11 } }, ticks: { color: labelColor, callback: v => fmt(v) }, grid: { color: gridColor } }
             }
         },
         plugins: [{
@@ -393,8 +395,8 @@ export function renderReportsMoneyFlow(app) {
         }]
     });
     renderChartDataTable('rptMoneyFlowChart', {
-        caption: 'Cumulative money flow by day',
-        columns: ['Day', 'Cumulative Income', 'Cumulative Outflow', 'Net Balance'],
+        caption: t('reports.mfCaption'),
+        columns: [t('reports.colDay'), t('reports.mfCumIncome'), t('reports.mfCumOutflow'), t('reports.mfNetBalance')],
         rows: labels.map((d, i) => [d, fmt(cumInData[i]), fmt(cumOutData[i]), fmt(netData[i])])
     });
 }
@@ -410,20 +412,20 @@ export function renderReportsCashFlowTrend(app) {
     const hasData = series.some(m => m.income !== 0 || m.outflow !== 0);
 
     const rangeButtonsHTML = `
-        <div class="nw-range-buttons" role="group" aria-label="Cash flow trend range">
-            <button class="nw-range-btn ${horizon === 1 ? 'active' : ''}" data-cashflow-range="1" type="button" aria-pressed="${horizon === 1 ? 'true' : 'false'}" aria-label="Next 1 month (1M)">1M</button>
-            <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-cashflow-range="3" type="button" aria-pressed="${horizon === 3 ? 'true' : 'false'}" aria-label="Next 3 months (3M)">3M</button>
-            <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-cashflow-range="6" type="button" aria-pressed="${horizon === 6 ? 'true' : 'false'}" aria-label="Next 6 months (6M)">6M</button>
-            <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-cashflow-range="12" type="button" aria-pressed="${horizon === 12 ? 'true' : 'false'}" aria-label="Next 12 months (12M)">12M</button>
+        <div class="nw-range-buttons" role="group" aria-label="${escapeHtml(t('reports.cftRangeAria'))}">
+            <button class="nw-range-btn ${horizon === 1 ? 'active' : ''}" data-cashflow-range="1" type="button" aria-pressed="${horizon === 1 ? 'true' : 'false'}" aria-label="${escapeHtml(plural('reports.cftNextAria', 1))}">1M</button>
+            <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-cashflow-range="3" type="button" aria-pressed="${horizon === 3 ? 'true' : 'false'}" aria-label="${escapeHtml(plural('reports.cftNextAria', 3))}">3M</button>
+            <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-cashflow-range="6" type="button" aria-pressed="${horizon === 6 ? 'true' : 'false'}" aria-label="${escapeHtml(plural('reports.cftNextAria', 6))}">6M</button>
+            <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-cashflow-range="12" type="button" aria-pressed="${horizon === 12 ? 'true' : 'false'}" aria-label="${escapeHtml(plural('reports.cftNextAria', 12))}">12M</button>
         </div>`;
 
     if (!hasData) {
         container.innerHTML = `
             <div class="nw-report-header">
-                <h3>📈 Cash Flow Trend</h3>
+                <h3>📈 ${escapeHtml(t('reports.cftTitle'))}</h3>
                 ${rangeButtonsHTML}
             </div>
-            <p class="rpt-empty-msg">Add income, bills, debts, bonuses, expenses, or recurring items to see the cash flow trend.</p>`;
+            <p class="rpt-empty-msg">${escapeHtml(t('reports.cftEmpty'))}</p>`;
         return;
     }
 
@@ -431,18 +433,18 @@ export function renderReportsCashFlowTrend(app) {
     const avgOutflow = series.reduce((sum, m) => sum + m.outflow, 0) / series.length;
     const avgNet = series.reduce((sum, m) => sum + m.net, 0) / series.length;
     const avgNetCls = avgNet >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
-    const horizonLabel = horizon === 1 ? '1 month' : `${horizon} months`;
+    const horizonLabel = plural('reports.monthsCount', horizon);
 
     container.innerHTML = `
         <div class="nw-report-header">
-            <h3>📈 Cash Flow Trend</h3>
+            <h3>📈 ${escapeHtml(t('reports.cftTitle'))}</h3>
             ${rangeButtonsHTML}
         </div>
-        <p class="rpt-chart-sub">Income vs. outflow per month over the last ${horizonLabel}, with net balance overlaid.</p>
+        <p class="rpt-chart-sub">${escapeHtml(t('reports.cftSub', { range: horizonLabel }))}</p>
         <div class="rpt-stats-strip">
-            <div class="rpt-stat rpt-stat--income"><span class="rpt-stat-label">Avg Monthly Income</span><span class="rpt-stat-value">${formatCurrency(avgIncome)}</span></div>
-            <div class="rpt-stat rpt-stat--debt"><span class="rpt-stat-label">Avg Monthly Outflow</span><span class="rpt-stat-value">${formatCurrency(avgOutflow)}</span></div>
-            <div class="rpt-stat ${avgNetCls}"><span class="rpt-stat-label">Avg Monthly Net</span><span class="rpt-stat-value">${formatCurrency(avgNet)}</span></div>
+            <div class="rpt-stat rpt-stat--income"><span class="rpt-stat-label">${escapeHtml(t('reports.cftAvgIncome'))}</span><span class="rpt-stat-value">${formatCurrency(avgIncome)}</span></div>
+            <div class="rpt-stat rpt-stat--debt"><span class="rpt-stat-label">${escapeHtml(t('reports.cftAvgOutflow'))}</span><span class="rpt-stat-value">${formatCurrency(avgOutflow)}</span></div>
+            <div class="rpt-stat ${avgNetCls}"><span class="rpt-stat-label">${escapeHtml(t('reports.cftAvgNet'))}</span><span class="rpt-stat-value">${formatCurrency(avgNet)}</span></div>
         </div>
         <div class="rpt-chart-canvas-wrap"><canvas id="rptCashFlowTrendChart"></canvas></div>`;
 
@@ -464,9 +466,9 @@ export function renderReportsCashFlowTrend(app) {
         data: {
             labels,
             datasets: [
-                { type: 'bar', label: 'Income', data: series.map(m => m.income), backgroundColor: '#10b981', borderRadius: 4, order: 2 },
-                { type: 'bar', label: 'Outflow', data: series.map(m => m.outflow), backgroundColor: '#ef4444', borderRadius: 4, order: 2 },
-                { type: 'line', label: 'Net', data: series.map(m => m.net), borderColor: '#2563eb', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 2.5, order: 1 }
+                { type: 'bar', label: t('reports.statIncome'), data: series.map(m => m.income), backgroundColor: '#10b981', borderRadius: 4, order: 2 },
+                { type: 'bar', label: t('reports.cftOutflow'), data: series.map(m => m.outflow), backgroundColor: '#ef4444', borderRadius: 4, order: 2 },
+                { type: 'line', label: t('reports.cftNet'), data: series.map(m => m.net), borderColor: '#2563eb', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 2.5, order: 1 }
             ]
         },
         options: {
@@ -485,8 +487,8 @@ export function renderReportsCashFlowTrend(app) {
     });
 
     renderChartDataTable('rptCashFlowTrendChart', {
-        caption: `Cash flow trend — income, outflow, and net per month over the last ${horizonLabel}`,
-        columns: ['Month', 'Income', 'Outflow', 'Net'],
+        caption: t('reports.cftCaption', { range: horizonLabel }),
+        columns: [t('reports.colMonth'), t('reports.statIncome'), t('reports.cftOutflow'), t('reports.cftNet')],
         rows: series.map(m => [m.label, fmt(m.income), fmt(m.outflow), fmt(m.net)])
     });
 }

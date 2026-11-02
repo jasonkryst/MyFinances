@@ -291,7 +291,7 @@ tests/
 #### test_i18n_coverage.py (issue #317)
 - **Tests:** Translation completeness guards
 - **Coverage:** `es.js`/`pl.js` have exactly `en.js`'s keys, the same `{placeholder}` tokens and no empty values; no value is identical to English unless listed in `SAME_AS_ENGLISH`. Pseudo-locale render scan: `es.js` is replaced with `en.js` wrapped in `⟦…⟧`, each page in `TRANSLATED_PAGES` is rendered with seeded and with empty data, and any text node, `aria-label`, `title` or `placeholder` outside brackets fails the test. A negative control proves the scan catches an injected English string. `setLocale` re-renders the open page.
-- **Adding a page:** convert it, then add its roots and render/open steps to `TRANSLATED_PAGES`.
+- **Adding a page:** convert it, then add its roots and render/open steps to `TRANSLATED_PAGES`. Every page and modal is covered as of 6.64.0, with seeds `SEEDED_STATE`, `LIABILITIES_STATE`, `PLAN_STATE`, `REPORTS_STATE` and `LEDGER_STATE` (the last two cover every Ledger transaction source).
 - **Status:** ✅ PASSING
 
 #### test_pwa.py

@@ -163,8 +163,8 @@
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="ledger-section page-section" id="ledgerSection">
                 <div class="page-header-row page-header">
-                    <h2>📒 Ledger</h2>
-                    <button type="button" class="page-print-btn" id="ledgerPrintBtn" title="Print this page" aria-label="Print the Ledger page">🖨️ Print</button>
+                    <h2>📒 <span data-i18n="ledger.pageTitle">Ledger</span></h2>
+                    <button type="button" class="page-print-btn" id="ledgerPrintBtn" title="Print this page" aria-label="Print the Ledger page" data-i18n-attr="title:common.printTitle,aria-label:ledger.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
                 <div id="ledgerTableContainer"></div>
             </section>
@@ -181,109 +181,109 @@
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="accounts-section page-section" id="accountsSection">
                 <div class="page-header-row page-header">
-                    <h2>🏦 Accounts</h2>
-                    <button type="button" class="page-print-btn" id="accountsPrintBtn" title="Print this page" aria-label="Print the Accounts page">🖨️ Print</button>
+                    <h2>🏦 <span data-i18n="nav.accounts">Accounts</span></h2>
+                    <button type="button" class="page-print-btn" id="accountsPrintBtn" title="Print this page" aria-label="Print the Accounts page" data-i18n-attr="title:common.printTitle,aria-label:accounts.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
-                <p class="accounts-intro">Define your bank accounts, wallets, and credit lines. Then link income, debts, bills, and expenses to specific accounts so you can track real cash flow per account.</p>
+                <p class="accounts-intro" data-i18n="accounts.intro">Define your bank accounts, wallets, and credit lines. Then link income, debts, bills, and expenses to specific accounts so you can track real cash flow per account.</p>
                 <div id="netWorthWidget" class="net-worth-widget" aria-live="polite"></div>
 
                 <!-- Add Account form -->
                 <div class="account-form-card">
-                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="accountFormToggle" data-collapse-toggle="accountFormBody" aria-expanded="false" aria-controls="accountFormBody"><span>+ Add account</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="accountFormToggle" data-collapse-toggle="accountFormBody" aria-expanded="false" aria-controls="accountFormBody"><span data-i18n="accounts.addToggle">+ Add account</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
                     <div class="mobile-collapsible-body" id="accountFormBody">
-                    <h3>Add Account</h3>
+                    <h3 data-i18n="accounts.addTitle">Add Account</h3>
                     <form id="accountForm" novalidate>
                         <div class="account-form-grid">
                             <div class="form-group">
-                                <label for="accountName">Account Name *</label>
-                                <input type="text" id="accountName" placeholder="e.g. Main Checking, Emergency Fund" required>
+                                <label for="accountName" data-i18n="accounts.nameLabel">Account Name *</label>
+                                <input type="text" id="accountName" placeholder="e.g. Main Checking, Emergency Fund" required data-i18n-attr="placeholder:accounts.namePlaceholder">
                             </div>
                             <div class="form-group">
-                                <label for="accountType">Type *</label>
+                                <label for="accountType" data-i18n="accounts.typeLabel">Type *</label>
                                 <select id="accountType" required>
-                                    <option value="Checking">Checking</option>
-                                    <option value="Savings">Savings</option>
-                                    <option value="Cash">Cash</option>
-                                    <option value="Investment">Investment</option>
-                                    <option value="Retirement">Retirement</option>
-                                    <option value="Credit Card">Credit Card</option>
-                                    <option value="Loan">Loan</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Checking" data-i18n="accountType.checking">Checking</option>
+                                    <option value="Savings" data-i18n="accountType.savings">Savings</option>
+                                    <option value="Cash" data-i18n="accountType.cash">Cash</option>
+                                    <option value="Investment" data-i18n="accountType.investment">Investment</option>
+                                    <option value="Retirement" data-i18n="accountType.retirement">Retirement</option>
+                                    <option value="Credit Card" data-i18n="accountType.creditCard">Credit Card</option>
+                                    <option value="Loan" data-i18n="accountType.loan">Loan</option>
+                                    <option value="Other" data-i18n="accountType.other">Other</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="accountStartingBalance">Starting Balance ($) *
-                                    <span class="help-icon" tabindex="0" aria-label="The current or starting balance of this account. Use a negative value for credit cards or loans.">?</span>
+                                <label for="accountStartingBalance"><span data-i18n="accounts.startingBalanceLabel">Starting Balance ($) *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The current or starting balance of this account. Use a negative value for credit cards or loans." data-i18n-attr="aria-label:accounts.startingBalanceHelp">?</span>
                                 </label>
                                 <input type="number" id="accountStartingBalance" placeholder="0.00" step="0.01" required>
                             </div>
                             <div class="form-group">
-                                <label for="accountInterestRate">Interest Rate (% APY)
-                                    <span class="help-icon" tabindex="0" aria-label="Optional annual interest rate for this account. When set above zero, a monthly interest deposit is automatically added to the Ledger on the last day of each month. You can override any month's amount in the Ledger with the true value from your statement.">?</span>
+                                <label for="accountInterestRate"><span data-i18n="accounts.interestRateLabel">Interest Rate (% APY)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional annual interest rate for this account. When set above zero, a monthly interest deposit is automatically added to the Ledger on the last day of each month. You can override any month's amount in the Ledger with the true value from your statement." data-i18n-attr="aria-label:accounts.interestRateHelp">?</span>
                                 </label>
                                 <input type="number" id="accountInterestRate" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountMinimumPaymentGroup">
-                                <label for="accountMinimumPayment">Minimum Payment ($)
-                                    <span class="help-icon" tabindex="0" aria-label="Optional. The current minimum payment due on this credit card or loan. It is recorded in the account's balance history and does not change forecasts or the ledger.">?</span>
+                                <label for="accountMinimumPayment"><span data-i18n="accounts.minPaymentLabel">Minimum Payment ($)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional. The current minimum payment due on this credit card or loan. It is recorded in the account's balance history and does not change forecasts or the ledger." data-i18n-attr="aria-label:accounts.minPaymentHelp">?</span>
                                 </label>
                                 <input type="number" id="accountMinimumPayment" placeholder="0.00" step="0.01" min="0">
                             </div>
                             <div class="form-group hidden" id="accountRetirementFieldsGroup">
-                                <label for="accountRetirementSubtype">Retirement Subtype</label>
+                                <label for="accountRetirementSubtype" data-i18n="accounts.subtypeLabel">Retirement Subtype</label>
                                 <select id="accountRetirementSubtype">
                                     <option value="401k">401k</option>
-                                    <option value="Traditional IRA">Traditional IRA</option>
+                                    <option value="Traditional IRA" data-i18n="accounts.subtypeTraditionalIra">Traditional IRA</option>
                                     <option value="Roth IRA">Roth IRA</option>
                                     <option value="HSA">HSA</option>
-                                    <option value="Pension">Pension</option>
-                                    <option value="Other" selected>Other</option>
+                                    <option value="Pension" data-i18n="accounts.subtypePension">Pension</option>
+                                    <option value="Other" selected data-i18n="accounts.subtypeOther">Other</option>
                                 </select>
                             </div>
                             <div class="form-group hidden" id="accountRateOfReturnGroup">
-                                <label for="accountRateOfReturn">Expected Rate of Return (% / yr)
-                                    <span class="help-icon" tabindex="0" aria-label="Your assumed average annual growth rate for this account, used only for the Retirement page's future-value projection.">?</span>
+                                <label for="accountRateOfReturn"><span data-i18n="accounts.rateOfReturnLabel">Expected Rate of Return (% / yr)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Your assumed average annual growth rate for this account, used only for the Retirement page's future-value projection." data-i18n-attr="aria-label:accounts.rateOfReturnHelp">?</span>
                                 </label>
                                 <input type="number" id="accountRateOfReturn" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountEmployerMatchGroup">
-                                <label for="accountEmployerMatch">Employer Match (%)
-                                    <span class="help-icon" tabindex="0" aria-label="Percent of your contribution your employer matches, e.g. 50 for a 50% match. Used in the Retirement page's projection.">?</span>
+                                <label for="accountEmployerMatch"><span data-i18n="accounts.employerMatchLabel">Employer Match (%)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Percent of your contribution your employer matches, e.g. 50 for a 50% match. Used in the Retirement page's projection." data-i18n-attr="aria-label:accounts.employerMatchHelp">?</span>
                                 </label>
                                 <input type="number" id="accountEmployerMatch" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountPensionSalaryGroup">
-                                <label for="accountPensionSalary">Annual Salary ($)
-                                    <span class="help-icon" tabindex="0" aria-label="Your current annual salary. Used to compute your monthly pension contribution amount, which is reviewed each year.">?</span>
+                                <label for="accountPensionSalary"><span data-i18n="accounts.pensionSalaryLabel">Annual Salary ($)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Your current annual salary. Used to compute your monthly pension contribution amount, which is reviewed each year." data-i18n-attr="aria-label:accounts.pensionSalaryHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionSalary" placeholder="0.00" step="0.01" min="0">
                             </div>
                             <div class="form-group hidden" id="accountPensionContributionRateGroup">
-                                <label for="accountPensionContributionRate">Contribution Rate (% of salary)
-                                    <span class="help-icon" tabindex="0" aria-label="The percentage of your salary deducted each year for pension contributions, e.g. 7 for 7%.">?</span>
+                                <label for="accountPensionContributionRate"><span data-i18n="accounts.pensionContributionRateLabel">Contribution Rate (% of salary)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The percentage of your salary deducted each year for pension contributions, e.g. 7 for 7%." data-i18n-attr="aria-label:accounts.pensionContributionRateHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionContributionRate" placeholder="0.00" step="0.01" min="0" max="100">
                             </div>
                             <div class="form-group hidden" id="accountPensionVestingYearsGroup">
-                                <label for="accountPensionVestingYears">Vesting Years
-                                    <span class="help-icon" tabindex="0" aria-label="Number of years of service required to be fully vested in the pension benefit.">?</span>
+                                <label for="accountPensionVestingYears"><span data-i18n="accounts.vestingYearsLabel">Vesting Years</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Number of years of service required to be fully vested in the pension benefit." data-i18n-attr="aria-label:accounts.vestingYearsHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionVestingYears" placeholder="0" step="1" min="0">
                             </div>
                             <div class="form-group hidden" id="accountPensionMonthlyBenefitGroup">
-                                <label for="accountPensionMonthlyBenefit">Estimated Monthly Benefit ($)
-                                    <span class="help-icon" tabindex="0" aria-label="The monthly pension payout your administrator currently estimates you will receive at retirement, from your most recent statement.">?</span>
+                                <label for="accountPensionMonthlyBenefit"><span data-i18n="accounts.monthlyBenefitLabel">Estimated Monthly Benefit ($)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The monthly pension payout your administrator currently estimates you will receive at retirement, from your most recent statement." data-i18n-attr="aria-label:accounts.monthlyBenefitHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionMonthlyBenefit" placeholder="0.00" step="0.01" min="0">
                             </div>
                             <div class="form-group hidden" id="accountPensionYearsOfServiceGroup">
-                                <label for="accountPensionYearsOfService">Years of Service
-                                    <span class="help-icon" tabindex="0" aria-label="Your current credited years of service used in the pension benefit formula.">?</span>
+                                <label for="accountPensionYearsOfService"><span data-i18n="accounts.yearsOfServiceLabel">Years of Service</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Your current credited years of service used in the pension benefit formula." data-i18n-attr="aria-label:accounts.yearsOfServiceHelp">?</span>
                                 </label>
                                 <input type="number" id="accountPensionYearsOfService" placeholder="0" step="1" min="0">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success" id="accountFormSubmit">Add Account</button>
+                        <button type="submit" class="btn btn-success" id="accountFormSubmit" data-i18n="accounts.addTitle">Add Account</button>
                     </form>
                     </div>
                 </div>
@@ -291,30 +291,30 @@
                 <!-- Account list controls -->
                 <div class="debts-toolbar-filter accounts-toolbar-filter filters-grid">
                     <div class="fd-field">
-                        <label for="accountSortBy" class="category-filter-label">Sort:</label>
+                        <label for="accountSortBy" class="category-filter-label" data-i18n="accounts.sortLabel">Sort:</label>
                         <select id="accountSortBy" class="category-filter">
-                        <option value="">Default</option>
-                        <option value="name-asc">Name A–Z</option>
-                        <option value="name-desc">Name Z–A</option>
-                        <option value="type-asc">Type A–Z</option>
-                        <option value="balance-desc">Balance ↓</option>
-                        <option value="balance-asc">Balance ↑</option>
-                        <option value="apy-desc">APY ↓</option>
-                        <option value="apy-asc">APY ↑</option>
+                        <option value="" data-i18n="accounts.sortDefault">Default</option>
+                        <option value="name-asc" data-i18n="accounts.sortNameAsc">Name A–Z</option>
+                        <option value="name-desc" data-i18n="accounts.sortNameDesc">Name Z–A</option>
+                        <option value="type-asc" data-i18n="accounts.sortTypeAsc">Type A–Z</option>
+                        <option value="balance-desc" data-i18n="accounts.sortBalanceDesc">Balance ↓</option>
+                        <option value="balance-asc" data-i18n="accounts.sortBalanceAsc">Balance ↑</option>
+                        <option value="apy-desc" data-i18n="accounts.sortApyDesc">APY ↓</option>
+                        <option value="apy-asc" data-i18n="accounts.sortApyAsc">APY ↑</option>
                     </select>
                     </div>
                     <div class="fd-field">
-                        <label for="accountTypeFilter" class="category-filter-label">Type:</label>
+                        <label for="accountTypeFilter" class="category-filter-label" data-i18n="accounts.typeFilterLabel">Type:</label>
                         <select id="accountTypeFilter" class="category-filter">
-                        <option value="">All</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Savings">Savings</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Retirement">Retirement</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Loan">Loan</option>
-                        <option value="Other">Other</option>
+                        <option value="" data-i18n="accounts.filterAll">All</option>
+                        <option value="Checking" data-i18n="accountType.checking">Checking</option>
+                        <option value="Savings" data-i18n="accountType.savings">Savings</option>
+                        <option value="Cash" data-i18n="accountType.cash">Cash</option>
+                        <option value="Investment" data-i18n="accountType.investment">Investment</option>
+                        <option value="Retirement" data-i18n="accountType.retirement">Retirement</option>
+                        <option value="Credit Card" data-i18n="accountType.creditCard">Credit Card</option>
+                        <option value="Loan" data-i18n="accountType.loan">Loan</option>
+                        <option value="Other" data-i18n="accountType.other">Other</option>
                     </select>
                     </div>
                 </div>
@@ -325,13 +325,13 @@
             <!-- Liabilities Section (Debts & Expenses combined with subtabs) -->
             <section class="liabilities-section page-section" id="liabilitiesSection">
                 <div class="page-header-row page-header">
-                    <h2>💳 Liabilities</h2>
-                    <button type="button" class="page-print-btn" id="liabilitiesPrintBtn" title="Print this page" aria-label="Print the Liabilities page">🖨️ Print</button>
+                    <h2>💳 <span data-i18n="nav.liabilities">Liabilities</span></h2>
+                    <button type="button" class="page-print-btn" id="liabilitiesPrintBtn" title="Print this page" aria-label="Print the Liabilities page" data-i18n-attr="title:common.printTitle,aria-label:liabilities.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
                 <div class="liabilities-container">
                     <div class="liabilities-subtabs">
-                        <button class="liabilities-subtab-btn active" data-liabilities-subtab="debts" aria-pressed="true">💳 Debts</button>
-                        <button class="liabilities-subtab-btn" data-liabilities-subtab="expenses" aria-pressed="false">📊 Expenses</button>
+                        <button class="liabilities-subtab-btn active" data-liabilities-subtab="debts" aria-pressed="true">💳 <span data-i18n="liabilities.tabDebts">Debts</span></button>
+                        <button class="liabilities-subtab-btn" data-liabilities-subtab="expenses" aria-pressed="false">📊 <span data-i18n="liabilities.tabExpenses">Expenses</span></button>
                     </div>
 
                     <div class="liabilities-content">
@@ -342,106 +342,106 @@
                                 <div class="debts-form-col" id="debtFormCol">
                                     <div class="debts-form-card">
                                         <button class="debt-form-toggle" id="debtFormToggle" aria-expanded="false" aria-controls="debtFormBody" type="button">
-                                            <span id="debtFormTitle">Add New Debt</span>
+                                            <span id="debtFormTitle" data-i18n="debts.addTitle">Add New Debt</span>
                                             <svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                                         </button>
                                         <div class="debt-form-body" id="debtFormBody" hidden>
                                         <form id="debtForm" novalidate>
                                 <div class="form-group">
-                                    <label for="debtName">Debt Name *
-                                        <span class="help-icon" tabindex="0" aria-label="Enter a descriptive name for this debt, e.g., 'Credit Card' or 'Student Loan'.">?</span>
+                                    <label for="debtName"><span data-i18n="debts.nameLabel">Debt Name *</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Enter a descriptive name for this debt, e.g., 'Credit Card' or 'Student Loan'." data-i18n-attr="aria-label:debts.nameHelp">?</span>
                                     </label>
-                                    <input type="text" id="debtName" placeholder="e.g., Credit Card, Student Loan" required aria-required="true">
+                                    <input type="text" id="debtName" placeholder="e.g., Credit Card, Student Loan" required aria-required="true" data-i18n-attr="placeholder:debts.namePlaceholder">
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="debtCategory">Category
-                                        <span class="help-icon" tabindex="0" aria-label="Assign a category to this debt, e.g., Credit Card, Loan, Medical, etc.">?</span>
+                                    <label for="debtCategory"><span data-i18n="debts.categoryLabel">Category</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Assign a category to this debt, e.g., Credit Card, Loan, Medical, etc." data-i18n-attr="aria-label:debts.categoryHelp">?</span>
                                     </label>
-                                    <input type="text" id="debtCategory" placeholder="e.g., Credit Card, Loan, Medical">
+                                    <input type="text" id="debtCategory" placeholder="e.g., Credit Card, Loan, Medical" data-i18n-attr="placeholder:debts.categoryPlaceholder">
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="debtType">Debt Type *
-                                        <span class="help-icon" tabindex="0" aria-label="Select Credit Card for debts with interest, or Fixed Amount for fixed-payment obligations like daycare.">?</span>
+                                    <label for="debtType"><span data-i18n="debts.typeLabel">Debt Type *</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Select Credit Card for debts with interest, or Fixed Amount for fixed-payment obligations like daycare." data-i18n-attr="aria-label:debts.typeHelp">?</span>
                                     </label>
                                     <select id="debtType" required aria-required="true">
-                                        <option value="creditCard">Credit Card / Interest-bearing</option>
-                                        <option value="fixedAmount">Fixed Amount (e.g., Daycare)</option>
+                                        <option value="creditCard" data-i18n="debts.typeCreditCard">Credit Card / Interest-bearing</option>
+                                        <option value="fixedAmount" data-i18n="debts.typeFixed">Fixed Amount (e.g., Daycare)</option>
                                     </select>
                                 </div>
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="accountBalance">Account Balance ($) *
-                                            <span class="help-icon" tabindex="0" aria-label="Enter the current balance for this debt.">?</span>
+                                        <label for="accountBalance"><span data-i18n="debts.balanceLabel">Account Balance ($) *</span>
+                                            <span class="help-icon" tabindex="0" aria-label="Enter the current balance for this debt." data-i18n-attr="aria-label:debts.balanceHelp">?</span>
                                         </label>
                                         <input type="number" id="accountBalance" placeholder="0.00" step="0.01" min="0" required aria-required="true" class="credit-card-field">
                                     </div>
                                     <div class="form-group">
-                                        <label for="interestRate">Interest Rate (%) *
-                                            <span class="help-icon" tabindex="0" aria-label="Enter the annual interest rate for this debt.">?</span>
+                                        <label for="interestRate"><span data-i18n="debts.interestLabel">Interest Rate (%) *</span>
+                                            <span class="help-icon" tabindex="0" aria-label="Enter the annual interest rate for this debt." data-i18n-attr="aria-label:debts.interestHelp">?</span>
                                         </label>
                                         <input type="number" id="interestRate" placeholder="0.00" step="0.01" min="0" max="100" required aria-required="true" class="credit-card-field">
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="priority">Priority (1–100) — Optional
-                                        <span class="help-icon" tabindex="0" aria-label="Set a custom priority for this debt. 1 is lowest, 100 is highest.">?</span>
+                                    <label for="priority"><span data-i18n="debts.priorityLabel">Priority (1–100) — Optional</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Set a custom priority for this debt. 1 is lowest, 100 is highest." data-i18n-attr="aria-label:debts.priorityHelp">?</span>
                                     </label>
-                                    <input type="number" id="priority" placeholder="1 (lowest) – 100 (highest)" min="1" max="100" class="credit-card-field">
+                                    <input type="number" id="priority" placeholder="1 (lowest) – 100 (highest)" min="1" max="100" class="credit-card-field" data-i18n-attr="placeholder:debts.priorityPlaceholder">
                                 </div>
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="minimumPayment">Min. Monthly Payment ($) *
-                                            <span class="help-icon" tabindex="0" aria-label="Enter the minimum required monthly payment for this debt.">?</span>
+                                        <label for="minimumPayment"><span data-i18n="debts.minPaymentLabel">Min. Monthly Payment ($) *</span>
+                                            <span class="help-icon" tabindex="0" aria-label="Enter the minimum required monthly payment for this debt." data-i18n-attr="aria-label:debts.minPaymentHelp">?</span>
                                         </label>
                                         <input type="number" id="minimumPayment" placeholder="0.00" step="0.01" min="0" required aria-required="true" class="credit-card-field">
                                     </div>
                                     <div class="form-group">
-                                        <label for="dueDate">Due Date (Day of Month) *
-                                            <span class="help-icon" tabindex="0" aria-label="Enter the day of the month this payment is due (1-31).">?</span>
+                                        <label for="dueDate"><span data-i18n="debts.dueDateLabel">Due Date (Day of Month) *</span>
+                                            <span class="help-icon" tabindex="0" aria-label="Enter the day of the month this payment is due (1-31)." data-i18n-attr="aria-label:debts.dueDateHelp">?</span>
                                         </label>
                                         <input type="number" id="dueDate" placeholder="1–31" min="1" max="31" required aria-required="true" class="credit-card-field">
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="debtNextPaymentDue">Next Payment Due Date
-                                        <span class="help-icon" tabindex="0" aria-label="Optional: the specific date your next payment is due.">?</span>
+                                    <label for="debtNextPaymentDue"><span data-i18n="debts.nextDueLabel">Next Payment Due Date</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Optional: the specific date your next payment is due." data-i18n-attr="aria-label:debts.nextDueHelp">?</span>
                                     </label>
                                     <input type="date" id="debtNextPaymentDue" name="debtNextPaymentDue">
-                                    <small class="form-hint">Optional — the specific date of your next payment</small>
+                                    <small class="form-hint" data-i18n="debts.nextDueHint">Optional — the specific date of your next payment</small>
                                 </div>
 
                                 <div class="form-group credit-card-field-container">
-                                    <label for="creditLimit">Credit Limit (optional)
-                                        <span class="help-icon" tabindex="0" aria-label="Enter the total credit limit for this card. Used to calculate utilization percentage.">?</span>
+                                    <label for="creditLimit"><span data-i18n="debts.creditLimitLabel">Credit Limit (optional)</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Enter the total credit limit for this card. Used to calculate utilization percentage." data-i18n-attr="aria-label:debts.creditLimitHelp">?</span>
                                     </label>
                                     <input type="number" id="creditLimit" placeholder="0.00" step="0.01" min="0" class="credit-card-field">
                                 </div>
 
                                 <div class="form-group credit-card-field-container">
-                                    <label for="debtStartDate">Date Debt Was Opened (optional)
-                                        <span class="help-icon" tabindex="0" aria-label="When did you first open or take on this debt? Used to calculate real interest paid to date.">?</span>
+                                    <label for="debtStartDate"><span data-i18n="debts.startDateLabel">Date Debt Was Opened (optional)</span>
+                                        <span class="help-icon" tabindex="0" aria-label="When did you first open or take on this debt? Used to calculate real interest paid to date." data-i18n-attr="aria-label:debts.startDateHelp">?</span>
                                     </label>
                                     <input type="date" id="debtStartDate" class="credit-card-field">
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="debtAccount">Pay from Account
-                                        <span class="help-icon" tabindex="0" aria-label="Which account do payments for this debt come from?">?</span>
+                                    <label for="debtAccount"><span data-i18n="debts.accountLabel">Pay from Account</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Which account do payments for this debt come from?" data-i18n-attr="aria-label:debts.accountHelp">?</span>
                                     </label>
                                     <select id="debtAccount">
-                                        <option value="">— No account —</option>
+                                        <option value="" data-i18n="accounts.noAccount">— No account —</option>
                                     </select>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="debtPersons">Family Member(s)
-                                        <span class="help-icon" tabindex="0" aria-label="Which family member(s) own this debt? Hold Ctrl/Cmd to select multiple.">?</span>
+                                    <label for="debtPersons"><span data-i18n="debts.personsLabel">Family Member(s)</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Which family member(s) own this debt? Hold Ctrl/Cmd to select multiple." data-i18n-attr="aria-label:debts.personsHelp">?</span>
                                     </label>
                                     <select id="debtPersons" multiple class="form-control" data-ownership-for="debtOwnership">
                                     </select>
@@ -451,36 +451,36 @@
                                 <!-- Fixed-Amount Debt Fields -->
                                 <div class="form-row fixed-amount-fields" id="fixedAmountFieldsContainer">
                                     <div class="form-group">
-                                        <label for="fixedAmount">Monthly Amount ($) *
-                                            <span class="help-icon" tabindex="0" aria-label="Enter the fixed monthly payment amount for this obligation.">?</span>
+                                        <label for="fixedAmount"><span data-i18n="debts.fixedAmountLabel">Monthly Amount ($) *</span>
+                                            <span class="help-icon" tabindex="0" aria-label="Enter the fixed monthly payment amount for this obligation." data-i18n-attr="aria-label:debts.fixedAmountHelp">?</span>
                                         </label>
                                         <input type="number" id="fixedAmount" placeholder="0.00" step="0.01" min="0">
                                     </div>
                                     <div class="form-group">
-                                        <label for="fixedStartDate">Start Date *
-                                            <span class="help-icon" tabindex="0" aria-label="Enter the date when this obligation starts.">?</span>
+                                        <label for="fixedStartDate"><span data-i18n="debts.fixedStartLabel">Start Date *</span>
+                                            <span class="help-icon" tabindex="0" aria-label="Enter the date when this obligation starts." data-i18n-attr="aria-label:debts.fixedStartHelp">?</span>
                                         </label>
                                         <input type="date" id="fixedStartDate">
                                     </div>
                                 </div>
 
                                 <div class="form-group fixed-end-date-container" id="fixedEndDateContainer">
-                                    <label for="fixedEndDate">End Date *
-                                        <span class="help-icon" tabindex="0" aria-label="Enter the date when this obligation ends.">?</span>
+                                    <label for="fixedEndDate"><span data-i18n="debts.fixedEndLabel">End Date *</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Enter the date when this obligation ends." data-i18n-attr="aria-label:debts.fixedEndHelp">?</span>
                                     </label>
                                     <input type="date" id="fixedEndDate">
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="debtNotes">Notes
-                                        <span class="help-icon" tabindex="0" aria-label="Optional free-text notes about this debt (up to 500 characters).">?</span>
+                                    <label for="debtNotes"><span data-i18n="debts.notesLabel">Notes</span>
+                                        <span class="help-icon" tabindex="0" aria-label="Optional free-text notes about this debt (up to 500 characters)." data-i18n-attr="aria-label:debts.notesHelp">?</span>
                                     </label>
-                                    <textarea id="debtNotes" rows="3" maxlength="500" placeholder="Optional notes…" class="form-full-width"></textarea>
+                                    <textarea id="debtNotes" rows="3" maxlength="500" placeholder="Optional notes…" class="form-full-width" data-i18n-attr="placeholder:debts.notesPlaceholder"></textarea>
                                 </div>
 
                                 <div class="debt-form-actions">
-                                    <button type="submit" id="debtFormSubmit" class="btn btn-primary">Add Debt</button>
-                                    <button type="button" id="cancelEditBtn" class="btn hidden">Cancel</button>
+                                    <button type="submit" id="debtFormSubmit" class="btn btn-primary" data-i18n="debts.addBtn">Add Debt</button>
+                                    <button type="button" id="cancelEditBtn" class="btn hidden" data-i18n="common.cancel">Cancel</button>
                                 </div>
                             </form>
                                         </div><!-- /debt-form-body -->
@@ -490,71 +490,71 @@
                                 <!-- ── Right: Debt list ── -->
                                 <div class="debts-list-col">
                                     <div class="debts-list-header">
-                                        <h2>Your Debts</h2>
-                                        <button type="button" class="filters-disclosure-toggle" id="debtFiltersToggle" data-collapse-toggle="debtFiltersBody" data-filters-count="dom" aria-expanded="false" aria-controls="debtFiltersBody">Filters</button>
+                                        <h2 data-i18n="debts.listTitle">Your Debts</h2>
+                                        <button type="button" class="filters-disclosure-toggle" id="debtFiltersToggle" data-collapse-toggle="debtFiltersBody" data-filters-count="dom" aria-expanded="false" aria-controls="debtFiltersBody" data-i18n="filters.label">Filters</button>
                                         <div class="debts-toolbar-filter filters-disclosure-body" id="debtFiltersBody">
                                             <div class="filter-pair">
-                                                <label for="debtSortBy" class="category-filter-label">Sort:</label>
+                                                <label for="debtSortBy" class="category-filter-label" data-i18n="filters.sort">Sort:</label>
                                                 <select id="debtSortBy" class="category-filter" data-no-count>
-                                                    <option value="">Default</option>
-                                                    <option value="balance-desc">Balance ↓</option>
-                                                    <option value="balance-asc">Balance ↑</option>
-                                                    <option value="interest-desc">Interest Rate ↓</option>
-                                                    <option value="interest-asc">Interest Rate ↑</option>
-                                                    <option value="minpay-desc">Min Payment ↓</option>
-                                                    <option value="minpay-asc">Min Payment ↑</option>
-                                                    <option value="progress-desc">Payoff Progress ↓</option>
-                                                    <option value="progress-asc">Payoff Progress ↑</option>
-                                                    <option value="utilization-desc">Utilization ↓</option>
-                                                    <option value="utilization-asc">Utilization ↑</option>
-                                                    <option value="due-asc">Due Soonest</option>
+                                                    <option value="" data-i18n="debts.sortDefault">Default</option>
+                                                    <option value="balance-desc" data-i18n="debts.sortBalanceDesc">Balance ↓</option>
+                                                    <option value="balance-asc" data-i18n="debts.sortBalanceAsc">Balance ↑</option>
+                                                    <option value="interest-desc" data-i18n="debts.sortInterestDesc">Interest Rate ↓</option>
+                                                    <option value="interest-asc" data-i18n="debts.sortInterestAsc">Interest Rate ↑</option>
+                                                    <option value="minpay-desc" data-i18n="debts.sortMinPayDesc">Min Payment ↓</option>
+                                                    <option value="minpay-asc" data-i18n="debts.sortMinPayAsc">Min Payment ↑</option>
+                                                    <option value="progress-desc" data-i18n="debts.sortProgressDesc">Payoff Progress ↓</option>
+                                                    <option value="progress-asc" data-i18n="debts.sortProgressAsc">Payoff Progress ↑</option>
+                                                    <option value="utilization-desc" data-i18n="debts.sortUtilDesc">Utilization ↓</option>
+                                                    <option value="utilization-asc" data-i18n="debts.sortUtilAsc">Utilization ↑</option>
+                                                    <option value="due-asc" data-i18n="debts.sortDueAsc">Due Soonest</option>
                                                 </select>
                                             </div>
                                             <div class="filter-pair">
-                                                <label for="debtGroupBy" class="category-filter-label">Group by:</label>
+                                                <label for="debtGroupBy" class="category-filter-label" data-i18n="debts.groupLabel">Group by:</label>
                                                 <select id="debtGroupBy" class="category-filter" data-no-count>
-                                                    <option value="">None</option>
-                                                    <option value="person">Person</option>
-                                                    <option value="institution">Institution</option>
+                                                    <option value="" data-i18n="debts.groupNone">None</option>
+                                                    <option value="person" data-i18n="debts.groupPerson">Person</option>
+                                                    <option value="institution" data-i18n="debts.groupInstitution">Institution</option>
                                                 </select>
                                             </div>
                                             <div class="filter-pair">
-                                                <label for="categoryFilter" class="category-filter-label">Category:</label>
+                                                <label for="categoryFilter" class="category-filter-label" data-i18n="filters.category">Category:</label>
                                                 <select id="categoryFilter" class="category-filter">
-                                                    <option value="">All</option>
+                                                    <option value="" data-i18n="filters.all">All</option>
                                                 </select>
                                             </div>
                                             <div class="filter-pair">
-                                                <label for="debtAccountFilter" class="category-filter-label">Account:</label>
+                                                <label for="debtAccountFilter" class="category-filter-label" data-i18n="filters.account">Account:</label>
                                                 <select id="debtAccountFilter" class="category-filter">
-                                                    <option value="">All</option>
+                                                    <option value="" data-i18n="filters.all">All</option>
                                                 </select>
                                             </div>
                                             <div class="filter-pair">
-                                                <label for="debtInterestFilter" class="category-filter-label">Interest:</label>
+                                                <label for="debtInterestFilter" class="category-filter-label" data-i18n="debts.interestFilterLabel">Interest:</label>
                                                 <select id="debtInterestFilter" class="category-filter">
-                                                    <option value="">Any</option>
-                                                    <option value="interestBearing">Interest Bearing</option>
-                                                    <option value="noInterest">No Interest</option>
+                                                    <option value="" data-i18n="filters.any">Any</option>
+                                                    <option value="interestBearing" data-i18n="debts.interestBearing">Interest Bearing</option>
+                                                    <option value="noInterest" data-i18n="debts.noInterest">No Interest</option>
                                                 </select>
                                             </div>
                                             <div class="filter-pair">
-                                                <label for="debtProgressFilter" class="category-filter-label">Progress:</label>
+                                                <label for="debtProgressFilter" class="category-filter-label" data-i18n="debts.progressFilterLabel">Progress:</label>
                                                 <select id="debtProgressFilter" class="category-filter">
-                                                    <option value="">Any</option>
-                                                    <option value="inprogress">In Progress</option>
-                                                    <option value="half">≥50% Paid</option>
-                                                    <option value="most">≥75% Paid</option>
-                                                    <option value="paid">Paid Off</option>
+                                                    <option value="" data-i18n="filters.any">Any</option>
+                                                    <option value="inprogress" data-i18n="debts.progressInProgress">In Progress</option>
+                                                    <option value="half" data-i18n="debts.progressHalf">≥50% Paid</option>
+                                                    <option value="most" data-i18n="debts.progressMost">≥75% Paid</option>
+                                                    <option value="paid" data-i18n="debts.progressPaid">Paid Off</option>
                                                 </select>
                                             </div>
                                             <div class="filter-pair">
-                                                <label for="debtUtilizationFilter" class="category-filter-label">Utilization:</label>
+                                                <label for="debtUtilizationFilter" class="category-filter-label" data-i18n="debts.utilFilterLabel">Utilization:</label>
                                                 <select id="debtUtilizationFilter" class="category-filter">
-                                                    <option value="">Any</option>
-                                                    <option value="low">Low (&lt;30%)</option>
-                                                    <option value="medium">Medium (30–70%)</option>
-                                                    <option value="high">High (&gt;70%)</option>
+                                                    <option value="" data-i18n="filters.any">Any</option>
+                                                    <option value="low" data-i18n="debts.utilLow">Low (&lt;30%)</option>
+                                                    <option value="medium" data-i18n="debts.utilMedium">Medium (30–70%)</option>
+                                                    <option value="high" data-i18n="debts.utilHigh">High (&gt;70%)</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -567,40 +567,40 @@
 
                         <!-- ═════════════════ EXPENSES SUBTAB ═════════════════ -->
                         <div class="liabilities-subtab-panel liabilities-panel-hidden" id="expensesPanel" data-subtab="expenses">
-                            <h3 class="heading-no-margin">Expenses</h3>
+                            <h3 class="heading-no-margin" data-i18n="liabilities.tabExpenses">Expenses</h3>
                             <div class="budget-col">
                                 <div class="budget-form-card">
                                     <button class="budget-form-toggle" id="expenseFormToggle" aria-expanded="false" aria-controls="expenseFormBody" type="button">
-                                        <span>Add Expense Budget</span>
+                                        <span data-i18n="expenses.addToggle">Add Expense Budget</span>
                                         <svg class="budget-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                                     </button>
                                     <div class="budget-form-body" id="expenseFormBody" hidden>
                                     <form id="expenseForm" novalidate>
                                         <div class="budget-form-grid">
                                             <div class="form-group">
-                                                <label for="expenseName">Name *</label>
-                                                <input type="text" id="expenseName" placeholder="e.g. Groceries, Dining Out" required>
+                                                <label for="expenseName" data-i18n="expenses.nameLabel">Name *</label>
+                                                <input type="text" id="expenseName" placeholder="e.g. Groceries, Dining Out" required data-i18n-attr="placeholder:expenses.namePlaceholder">
                                             </div>
                                             <div class="form-group">
-                                                <label for="expenseBudget">Cost *</label>
+                                                <label for="expenseBudget" data-i18n="expenses.costLabel">Cost *</label>
                                                 <input type="number" id="expenseBudget" placeholder="0.00" step="0.01" min="0" required>
                                             </div>
                                             <div class="form-group">
-                                                <label for="expenseDate">Date</label>
+                                                <label for="expenseDate" data-i18n="expenses.dateLabel">Date</label>
                                                 <input type="date" id="expenseDate" required>
                                             </div>
                                             <div class="form-group">
-                                                <label for="expenseCategory">Category</label>
-                                                <input type="text" id="expenseCategory" list="categoryOptions" placeholder="e.g. Utilities, Food…" autocomplete="off">
+                                                <label for="expenseCategory" data-i18n="expenses.categoryLabel">Category</label>
+                                                <input type="text" id="expenseCategory" list="categoryOptions" placeholder="e.g. Utilities, Food…" autocomplete="off" data-i18n-attr="placeholder:expenses.categoryPlaceholder">
                                             </div>
                                             <div class="form-group">
-                                                <label for="expenseAccount">Pay from Account</label>
+                                                <label for="expenseAccount" data-i18n="expenses.accountLabel">Pay from Account</label>
                                                 <select id="expenseAccount">
-                                                    <option value="">— No account —</option>
+                                                    <option value="" data-i18n="accounts.noAccount">— No account —</option>
                                                 </select>
                                             </div>
                                         </div>
-                                        <button type="submit" class="btn btn-primary" id="expenseFormSubmit">Add Expense</button>
+                                        <button type="submit" class="btn btn-primary" id="expenseFormSubmit" data-i18n="expenses.addBtn">Add Expense</button>
                                     </form>
                                     </div><!-- /expenseFormBody -->
                                 </div>
@@ -620,91 +620,91 @@
             <!-- Income Section -->
             <section class="income-section page-section active" id="incomeSection">
                 <div class="page-header-row page-header">
-                    <h2>💰 Income Sources</h2>
-                    <button type="button" class="page-print-btn" id="incomePrintBtn" title="Print this page" aria-label="Print the Income page">🖨️ Print</button>
+                    <h2>💰 <span data-i18n="income.pageTitle">Income Sources</span></h2>
+                    <button type="button" class="page-print-btn" id="incomePrintBtn" title="Print this page" aria-label="Print the Income page" data-i18n-attr="title:common.printTitle,aria-label:income.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
 
                 <!-- Add Income Form -->
                 <div class="income-form-card">
-                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="incomeFormToggle" data-collapse-toggle="incomeFormBody" aria-expanded="false" aria-controls="incomeFormBody"><span>+ Add income</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+                    <button type="button" class="debt-form-toggle mobile-collapse-toggle" id="incomeFormToggle" data-collapse-toggle="incomeFormBody" aria-expanded="false" aria-controls="incomeFormBody"><span data-i18n="income.addToggle">+ Add income</span><svg class="debt-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
                     <div class="mobile-collapsible-body" id="incomeFormBody">
-                    <h3>Add Income Source</h3>
+                    <h3 data-i18n="income.addTitle">Add Income Source</h3>
                     <form id="incomeForm" novalidate>
                         <div class="income-form-grid">
                             <div class="form-group">
-                                <label for="incomeName">Name *
-                                    <span class="help-icon" tabindex="0" aria-label="A label for this income source, e.g. 'Main Job' or 'Freelance'.">?</span>
+                                <label for="incomeName"><span data-i18n="income.nameLabel">Name *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="A label for this income source, e.g. 'Main Job' or 'Freelance'." data-i18n-attr="aria-label:income.nameHelp">?</span>
                                 </label>
-                                <input type="text" id="incomeName" placeholder="e.g. Main Job, Freelance" required>
+                                <input type="text" id="incomeName" placeholder="e.g. Main Job, Freelance" required data-i18n-attr="placeholder:income.namePlaceholder">
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeAmount">Amount per Paycheck ($) *
-                                    <span class="help-icon" tabindex="0" aria-label="The gross amount before any withholding. If this is already your take-home pay, leave Tax Withholding at 0.">?</span>
+                                <label for="incomeAmount"><span data-i18n="income.amountLabel">Amount per Paycheck ($) *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The gross amount before any withholding. If this is already your take-home pay, leave Tax Withholding at 0." data-i18n-attr="aria-label:income.amountHelp">?</span>
                                 </label>
                                 <input type="number" id="incomeAmount" placeholder="0.00" step="0.01" min="0" required>
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeWithholding">Tax Withholding (%)
-                                    <span class="help-icon" tabindex="0" aria-label="Optional. Percent withheld for taxes before this paycheck hits your account — used to show your net (take-home) income instead of gross. Leave at 0 if the amount above is already your take-home pay.">?</span>
+                                <label for="incomeWithholding"><span data-i18n="income.withholdingLabel">Tax Withholding (%)</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional. Percent withheld for taxes before this paycheck hits your account — used to show your net (take-home) income instead of gross. Leave at 0 if the amount above is already your take-home pay." data-i18n-attr="aria-label:income.withholdingHelp">?</span>
                                 </label>
                                 <input type="number" id="incomeWithholding" placeholder="0" step="0.1" min="0" max="99.9">
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeFirstDate">First Pay Date *
-                                    <span class="help-icon" tabindex="0" aria-label="The date of the first (or next) payday for this income source.">?</span>
+                                <label for="incomeFirstDate"><span data-i18n="income.firstDateLabel">First Pay Date *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="The date of the first (or next) payday for this income source." data-i18n-attr="aria-label:income.firstDateHelp">?</span>
                                 </label>
                                 <input type="date" id="incomeFirstDate" required>
                             </div>
 
                             <div class="form-group">
-                                <label for="incomeFrequency">Frequency *
-                                    <span class="help-icon" tabindex="0" aria-label="How often you receive this payment.">?</span>
+                                <label for="incomeFrequency"><span data-i18n="income.frequencyLabel">Frequency *</span>
+                                    <span class="help-icon" tabindex="0" aria-label="How often you receive this payment." data-i18n-attr="aria-label:income.frequencyHelp">?</span>
                                 </label>
                                 <select id="incomeFrequency" required>
-                                    <option value="weekly">Every week</option>
-                                    <option value="biweekly">Every other week (bi-weekly)</option>
-                                    <option value="twice_monthly">Twice per month (15th &amp; last day)</option>
-                                    <option value="monthly">Once per month</option>
+                                    <option value="weekly" data-i18n="income.freqWeekly">Every week</option>
+                                    <option value="biweekly" data-i18n="income.freqBiweekly">Every other week (bi-weekly)</option>
+                                    <option value="twice_monthly" data-i18n="income.freqTwiceMonthly">Twice per month (15th &amp; last day)</option>
+                                    <option value="monthly" data-i18n="income.freqMonthly">Once per month</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="incomeAccount">Deposit to Account
-                                    <span class="help-icon" tabindex="0" aria-label="Which account does this income deposit into?">?</span>
+                                <label for="incomeAccount"><span data-i18n="income.accountLabel">Deposit to Account</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Which account does this income deposit into?" data-i18n-attr="aria-label:income.accountHelp">?</span>
                                 </label>
                                 <select id="incomeAccount">
-                                    <option value="">— No account —</option>
+                                    <option value="" data-i18n="accounts.noAccount">— No account —</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="incomePerson">Person
-                                    <span class="help-icon" tabindex="0" aria-label="Which family member earns this income?">?</span>
+                                <label for="incomePerson"><span data-i18n="income.personLabel">Person</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Which family member earns this income?" data-i18n-attr="aria-label:income.personHelp">?</span>
                                 </label>
                                 <select id="incomePerson" class="person-selector">
-                                    <option value="">— No person —</option>
+                                    <option value="" data-i18n="income.noPerson">— No person —</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="incomeCategory">Category</label>
+                                <label for="incomeCategory" data-i18n="income.categoryLabel">Category</label>
                                 <select id="incomeCategory">
-                                    <option value="Salary">Salary</option>
-                                    <option value="Freelance">Freelance</option>
-                                    <option value="Rental">Rental</option>
-                                    <option value="Investment">Investment</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Salary" data-i18n="income.catSalary">Salary</option>
+                                    <option value="Freelance" data-i18n="income.catFreelance">Freelance</option>
+                                    <option value="Rental" data-i18n="income.catRental">Rental</option>
+                                    <option value="Investment" data-i18n="income.catInvestment">Investment</option>
+                                    <option value="Other" data-i18n="income.catOther">Other</option>
                                 </select>
                             </div>
                         </div>
                         <div class="form-group income-variable-group">
                             <label class="income-variable-label">
                                 <input type="checkbox" id="incomeIsVariable">
-                                Variable / hourly amount
-                                <span class="help-icon" tabindex="0" aria-label="Check this if your paycheck amount varies (e.g. hourly pay). The amount above is treated as an estimate — update the actual amount in the Ledger when each paycheck arrives.">?</span>
+                                <span data-i18n="income.variableLabel">Variable / hourly amount</span>
+                                <span class="help-icon" tabindex="0" aria-label="Check this if your paycheck amount varies (e.g. hourly pay). The amount above is treated as an estimate — update the actual amount in the Ledger when each paycheck arrives." data-i18n-attr="aria-label:income.variableHelp">?</span>
                             </label>
                         </div>
-                        <button type="submit" class="btn btn-success" id="incomeFormSubmit">Add Income</button>
+                        <button type="submit" class="btn btn-success" id="incomeFormSubmit" data-i18n="income.addBtn">Add Income</button>
                     </form>
                     </div>
                 </div>
@@ -715,60 +715,60 @@
                 <!-- ── One-time bonuses / deposits ── -->
                 <div class="bonus-section">
                     <button class="bonus-form-toggle" id="bonusFormToggle" type="button" aria-expanded="false" aria-controls="bonusFormBody">
-                        🎁 Add a one-time bonus / deposit
+                        🎁 <span data-i18n="income.bonusToggle">Add a one-time bonus / deposit</span>
                         <span class="bonus-form-chevron">▼</span>
                     </button>
                     <div id="bonusFormBody" hidden>
                         <form id="bonusForm" novalidate class="bonus-form-inner">
                             <div class="bonus-form-grid">
                                 <div class="form-group no-margin">
-                                    <label for="bonusName">Label *</label>
-                                    <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Cash deposit, Check deposit" required>
+                                    <label for="bonusName" data-i18n="income.bonusLabelLabel">Label *</label>
+                                    <input type="text" id="bonusName" placeholder="e.g. Year-end bonus, Cash deposit, Check deposit" required data-i18n-attr="placeholder:income.bonusLabelPlaceholder">
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusAmount">Amount ($) *</label>
+                                    <label for="bonusAmount" data-i18n="income.bonusAmountLabel">Amount ($) *</label>
                                     <input type="number" id="bonusAmount" placeholder="0.00" step="0.01" min="0.01" required>
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusDate">Date received *</label>
+                                    <label for="bonusDate" data-i18n="income.bonusDateLabel">Date received *</label>
                                     <input type="date" id="bonusDate" required>
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusCategory">Category</label>
+                                    <label for="bonusCategory" data-i18n="income.categoryLabel">Category</label>
                                     <select id="bonusCategory">
-                                        <option value="Bonus">Bonus</option>
-                                        <option value="Tax Refund">Tax Refund</option>
-                                        <option value="Cash Deposit">Cash Deposit</option>
-                                        <option value="Check Deposit">Check Deposit</option>
-                                        <option value="Other">Other</option>
+                                        <option value="Bonus" data-i18n="income.bonusCatBonus">Bonus</option>
+                                        <option value="Tax Refund" data-i18n="income.bonusCatTaxRefund">Tax Refund</option>
+                                        <option value="Cash Deposit" data-i18n="income.bonusCatCashDeposit">Cash Deposit</option>
+                                        <option value="Check Deposit" data-i18n="income.bonusCatCheckDeposit">Check Deposit</option>
+                                        <option value="Other" data-i18n="income.bonusCatOther">Other</option>
                                     </select>
                                 </div>
                                 <div class="form-group form-group-no-margin">
-                                    <label for="bonusAccount">Deposit to Account</label>
+                                    <label for="bonusAccount" data-i18n="income.accountLabel">Deposit to Account</label>
                                     <select id="bonusAccount">
-                                        <option value="">— No account —</option>
+                                        <option value="" data-i18n="accounts.noAccount">— No account —</option>
                                     </select>
                                 </div>
                                 <div class="form-group no-margin">
-                                    <label for="bonusPurpose">Purpose</label>
+                                    <label for="bonusPurpose" data-i18n="income.bonusPurposeLabel">Purpose</label>
                                     <select id="bonusPurpose">
-                                        <option value="">— Not decided —</option>
-                                        <option value="cashFlow">💳 Cash Flow (pay down debt)</option>
-                                        <option value="savings">🏦 Long-term Savings</option>
+                                        <option value="" data-i18n="income.bonusPurposeNone">— Not decided —</option>
+                                        <option value="cashFlow" data-i18n="income.bonusPurposeCashFlowOpt">💳 Cash Flow (pay down debt)</option>
+                                        <option value="savings" data-i18n="income.bonusPurposeSavingsOpt">🏦 Long-term Savings</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="bonus-advice-trigger">
-                                <button type="button" id="bonusAdviceBtn" class="btn btn-secondary btn-small">💡 What should I do with this?</button>
-                                <label for="bonusAdviceInterestFilter" class="bonus-advice-filter-label">Pay Off Debts Now uses:</label>
+                                <button type="button" id="bonusAdviceBtn" class="btn btn-secondary btn-small">💡 <span data-i18n="income.bonusAdviceBtn">What should I do with this?</span></button>
+                                <label for="bonusAdviceInterestFilter" class="bonus-advice-filter-label" data-i18n="income.bonusAdviceFilterLabel">Pay Off Debts Now uses:</label>
                                 <select id="bonusAdviceInterestFilter" class="bonus-advice-filter">
-                                    <option value="">Any debt</option>
-                                    <option value="interestBearing">Interest Bearing Only</option>
-                                    <option value="noInterest">No Interest Only</option>
+                                    <option value="" data-i18n="income.bonusFilterAny">Any debt</option>
+                                    <option value="interestBearing" data-i18n="income.bonusFilterInterest">Interest Bearing Only</option>
+                                    <option value="noInterest" data-i18n="income.bonusFilterNoInterest">No Interest Only</option>
                                 </select>
                             </div>
                             <div id="bonusAdviceResult"></div>
-                            <button type="submit" class="btn btn-success submit-button-margin">Add One-time Entry</button>
+                            <button type="submit" class="btn btn-success submit-button-margin" data-i18n="income.bonusSubmit">Add One-time Entry</button>
                         </form>
                     </div>
                 </div>
@@ -780,17 +780,17 @@
                 <!-- Income Trend Chart (issue #262) -->
                 <div class="rpt-chart-card income-trend-card" id="incomeTrendCard">
                     <div class="income-trend-header">
-                        <h4 class="rpt-chart-title">Income Trend</h4>
+                        <h4 class="rpt-chart-title" data-i18n="income.trendTitle">Income Trend</h4>
                         <div class="income-trend-controls">
-                            <label for="incomeTrendRangeSelect" class="filter-label">Range:
+                            <label for="incomeTrendRangeSelect" class="filter-label"><span data-i18n="income.trendRangeLabel">Range:</span>
                                 <select id="incomeTrendRangeSelect" class="select-styled">
-                                    <option value="12">Trailing 12 months</option>
-                                    <option value="24">Trailing 24 months</option>
+                                    <option value="12" data-i18n="income.trendRange12">Trailing 12 months</option>
+                                    <option value="24" data-i18n="income.trendRange24">Trailing 24 months</option>
                                 </select>
                             </label>
                             <label class="income-trend-yoy-toggle">
                                 <input type="checkbox" id="incomeTrendYoYToggle">
-                                Compare to same month last year
+                                <span data-i18n="income.trendYoy">Compare to same month last year</span>
                             </label>
                         </div>
                     </div>
@@ -801,18 +801,18 @@
             <!-- People Section -->
             <section class="income-section page-section" id="peopleSection">
                 <div class="page-header-row page-header">
-                    <h2>👨‍👩‍👧‍👦 Family Members</h2>
+                    <h2>👨‍👩‍👧‍👦 <span data-i18n="people.pageTitle">Family Members</span></h2>
                 </div>
                 <div class="income-form-card">
-                    <h3>Add Family Member</h3>
+                    <h3 data-i18n="people.addTitle">Add Family Member</h3>
                     <form id="personForm" novalidate>
                         <div class="income-form-grid">
                             <div class="form-group">
-                                <label for="personName">Name *</label>
-                                <input type="text" id="personName" placeholder="e.g. Alice, Bob" required>
+                                <label for="personName" data-i18n="people.nameLabel">Name *</label>
+                                <input type="text" id="personName" placeholder="e.g. Alice, Bob" data-i18n-attr="placeholder:people.namePlaceholder" required>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success" id="personFormSubmit">Add Person</button>
+                        <button type="submit" class="btn btn-success" id="personFormSubmit" data-i18n="people.addBtn">Add Person</button>
                     </form>
                 </div>
                 <div id="peopleList" class="income-list"></div>
@@ -826,31 +826,31 @@
             <!-- Plan Section (Strategy + Results combined) -->
             <section class="strategy-section page-section" id="strategySection">
                 <div class="page-header-row page-header">
-                    <h2>Payment Plan</h2>
-                    <button type="button" class="page-print-btn" id="strategyPrintBtn" title="Print this page" aria-label="Print the Payment Plan page">🖨️ Print</button>
+                    <h2 data-i18n="strategy.title">Payment Plan</h2>
+                    <button type="button" class="page-print-btn" id="strategyPrintBtn" title="Print this page" aria-label="Print the Payment Plan page" data-i18n-attr="title:common.printTitle,aria-label:strategy.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
 
                 <!-- ── Strategy controls ─────────────────────────────────── -->
                 <div class="strategy-controls">
                     <div class="form-group">
-                        <label for="monthlyPayment">Monthly Payment Amount ($) *</label>
+                        <label for="monthlyPayment" data-i18n="strategy.monthlyPaymentLabel">Monthly Payment Amount ($) *</label>
                         <div class="input-with-action">
                             <input type="number" id="monthlyPayment" placeholder="0.00" step="0.01" min="0" required>
-                            <button type="button" id="suggestPaymentBtn" class="btn btn-sm btn-secondary" title="Auto-fill suggested payment based on income minus bills and expenses">Suggest</button>
+                            <button type="button" id="suggestPaymentBtn" class="btn btn-sm btn-secondary" title="Auto-fill suggested payment based on income minus bills and expenses" data-i18n="strategy.suggestBtn" data-i18n-attr="title:strategy.suggestTitle">Suggest</button>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="paymentStrategy">Payment Strategy</label>
+                        <label for="paymentStrategy" data-i18n="strategy.strategyLabel">Payment Strategy</label>
                         <select id="paymentStrategy">
-                            <option value="avalanche">Avalanche (Highest Interest First)</option>
-                            <option value="snowball">Snowball (Lowest Balance First)</option>
-                            <option value="priority-lowest">Priority Lowest First</option>
-                            <option value="priority-highest">Priority Highest First</option>
+                            <option value="avalanche" data-i18n="strategy.optAvalanche">Avalanche (Highest Interest First)</option>
+                            <option value="snowball" data-i18n="strategy.optSnowball">Snowball (Lowest Balance First)</option>
+                            <option value="priority-lowest" data-i18n="strategy.optPriorityLowest">Priority Lowest First</option>
+                            <option value="priority-highest" data-i18n="strategy.optPriorityHighest">Priority Highest First</option>
                         </select>
                     </div>
 
-                    <button id="calculateBtn" class="btn btn-success">Calculate Payment Plan</button>
+                    <button id="calculateBtn" class="btn btn-success" data-i18n="strategy.calculateBtn">Calculate Payment Plan</button>
 
                     <!-- Income context widget shown only when income sources exist -->
                     <div id="strategyIncomeWidget" class="strategy-income-widget"></div>
@@ -859,27 +859,27 @@
                 <!-- ── Target Payoff Date back-calculator ─────────────────── -->
                 <div class="target-date-panel">
                     <button class="target-date-toggle" id="targetDateToggle" type="button" aria-expanded="false" aria-controls="targetDateBody">
-                        🎯 Back-calculate from a target payoff date
+                        🎯 <span data-i18n="strategy.targetToggle">Back-calculate from a target payoff date</span>
                         <span class="target-date-chevron">▼</span>
                     </button>
                     <div class="target-date-body" id="targetDateBody" hidden>
-                        <p class="target-date-desc">Enter a date and we'll calculate the monthly payment required to be debt-free by then.</p>
+                        <p class="target-date-desc" data-i18n="strategy.targetDesc">Enter a date and we'll calculate the monthly payment required to be debt-free by then.</p>
                         <div class="target-date-row">
                             <div class="form-group form-group-flex-1">
-                                <label for="targetPayoffDate">Target Payoff Date</label>
+                                <label for="targetPayoffDate" data-i18n="strategy.targetDateLabel">Target Payoff Date</label>
                                 <input type="date" id="targetPayoffDate">
                             </div>
                             <div class="form-group form-group-flex-1">
-                                <label for="targetPayoffStrategy">Strategy</label>
+                                <label for="targetPayoffStrategy" data-i18n="strategy.targetStrategyLabel">Strategy</label>
                                 <select id="targetPayoffStrategy">
-                                    <option value="avalanche">Avalanche</option>
-                                    <option value="snowball">Snowball</option>
-                                    <option value="priority-lowest">Priority (Low→High)</option>
-                                    <option value="priority-highest">Priority (High→Low)</option>
+                                    <option value="avalanche" data-i18n="strategy.avalanche">Avalanche</option>
+                                    <option value="snowball" data-i18n="strategy.snowball">Snowball</option>
+                                    <option value="priority-lowest" data-i18n="strategy.targetPriorityLow">Priority (Low→High)</option>
+                                    <option value="priority-highest" data-i18n="strategy.targetPriorityHigh">Priority (High→Low)</option>
                                 </select>
                             </div>
                             <div class="target-date-flex-row">
-                                <button id="calcTargetBtn" type="button" class="btn btn-primary">Calculate</button>
+                                <button id="calcTargetBtn" type="button" class="btn btn-primary" data-i18n="strategy.calcTargetBtn">Calculate</button>
                             </div>
                         </div>
                         <div id="targetPayoffResult"></div>
@@ -889,21 +889,21 @@
                 <!-- ── Plan History (read-only log of past submissions) ────── -->
                 <div class="target-date-panel">
                     <button class="target-date-toggle" id="planHistoryToggle" type="button" aria-expanded="false" aria-controls="planHistoryBodyWrap">
-                        📜 Plan History
+                        📜 <span data-i18n="strategy.historyToggle">Plan History</span>
                         <span class="target-date-chevron">▼</span>
                     </button>
                     <div class="target-date-body" id="planHistoryBodyWrap" hidden>
-                        <p class="target-date-desc" id="planHistoryEmpty">No plans calculated yet. Submit a payment plan below to start building history.</p>
+                        <p class="target-date-desc" id="planHistoryEmpty" data-i18n="strategy.historyEmpty">No plans calculated yet. Submit a payment plan below to start building history.</p>
                         <div class="table-wrapper">
                             <table id="planHistoryTable" class="hidden">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Monthly Payment</th>
-                                        <th>Strategy</th>
-                                        <th>Total Interest</th>
-                                        <th>Time to Pay Off</th>
-                                        <th>Payoff Date</th>
+                                        <th data-i18n="strategy.colDate">Date</th>
+                                        <th data-i18n="strategy.colMonthlyPayment">Monthly Payment</th>
+                                        <th data-i18n="strategy.colStrategy">Strategy</th>
+                                        <th data-i18n="strategy.totalInterest">Total Interest</th>
+                                        <th data-i18n="strategy.colTimeToPayOff">Time to Pay Off</th>
+                                        <th data-i18n="strategy.colPayoffDate">Payoff Date</th>
                                     </tr>
                                 </thead>
                                 <tbody id="planHistoryBody"></tbody>
@@ -915,8 +915,8 @@
                 <!-- ── Plan stale warning ──────────────────────────────────── -->
                 <div id="planStaleWarning" class="plan-stale-warning" hidden>
                     <span class="plan-stale-warning-icon" aria-hidden="true">⚠️</span>
-                    <span class="plan-stale-warning-msg">Your debt data has changed since this plan was calculated.</span>
-                    <button type="button" class="btn btn-warning btn-small" id="planStaleRecalcBtn">Recalculate</button>
+                    <span class="plan-stale-warning-msg" data-i18n="strategy.staleMsg">Your debt data has changed since this plan was calculated.</span>
+                    <button type="button" class="btn btn-warning btn-small" id="planStaleRecalcBtn" data-i18n="strategy.recalcBtn">Recalculate</button>
                 </div>
 
                 <!-- ── Results (hidden until Calculate is clicked) ────────── -->
@@ -926,28 +926,28 @@
                     <!-- Stats bar -->
                     <div class="summary">
                         <div class="summary-item">
-                            <span class="label">Total Debt:</span>
+                            <span class="label" data-i18n="strategy.lblTotalDebt">Total Debt:</span>
                             <span class="value" id="totalDebtValue">$0.00</span>
                         </div>
                         <div class="summary-item">
-                            <span class="label">Total Interest:</span>
+                            <span class="label" data-i18n="strategy.lblTotalInterest">Total Interest:</span>
                             <span class="value" id="totalInterestValue">$0.00</span>
                         </div>
                         <div class="summary-item">
-                            <span class="label">Time to Pay Off:</span>
-                            <span class="value" id="timeToPayOffValue">0 months</span>
+                            <span class="label" data-i18n="strategy.lblTimeToPayOff">Time to Pay Off:</span>
+                            <span class="value" id="timeToPayOffValue">—</span>
                         </div>
                         <div class="summary-item">
-                            <span class="label">Monthly Interest Cost:</span>
+                            <span class="label" data-i18n="strategy.lblMonthlyInterestCost">Monthly Interest Cost:</span>
                             <span class="value summary-item--alert" id="monthlyInterestCostValue">$0.00</span>
                         </div>
                     </div>
 
                     <!-- Top-level Results tabs -->
-                    <div class="results-tab-bar" role="tablist" aria-label="Results sections">
-                        <button class="results-tab-btn results-tab-btn--active" data-rtab="overview"     role="tab" aria-selected="true"  aria-controls="rPanel-overview">📊 Overview</button>
-                        <button class="results-tab-btn"                         data-rtab="debt-summary" role="tab" aria-selected="false" aria-controls="rPanel-debt-summary">📋 Debt Summary</button>
-                        <button class="results-tab-btn"                         data-rtab="schedule"     role="tab" aria-selected="false" aria-controls="rPanel-schedule">📅 Schedule</button>
+                    <div class="results-tab-bar" role="tablist" aria-label="Results sections" data-i18n-attr="aria-label:strategy.resultsTabsAria">
+                        <button class="results-tab-btn results-tab-btn--active" data-rtab="overview"     role="tab" aria-selected="true"  aria-controls="rPanel-overview">📊 <span data-i18n="strategy.tabOverview">Overview</span></button>
+                        <button class="results-tab-btn"                         data-rtab="debt-summary" role="tab" aria-selected="false" aria-controls="rPanel-debt-summary">📋 <span data-i18n="strategy.tabDebtSummary">Debt Summary</span></button>
+                        <button class="results-tab-btn"                         data-rtab="schedule"     role="tab" aria-selected="false" aria-controls="rPanel-schedule">📅 <span data-i18n="strategy.tabSchedule">Schedule</span></button>
                     </div>
 
                     <!-- Panel 1 : Overview -->
@@ -962,31 +962,31 @@
                             <table id="debtSummaryTable">
                                 <thead>
                                     <tr>
-                                        <th data-sort="name"           class="sortable">Debt Name <span class="sort-icon">↕</span></th>
-                                        <th data-sort="minDue"         class="sortable">Min Due <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestRate"   class="sortable">Interest Rate <span class="sort-icon">↕</span></th>
-                                        <th data-sort="totalPaid"      class="sortable">Total Amount Paid <span class="sort-icon">↕</span></th>
-                                        <th data-sort="principalPaid"  class="sortable">Est. Principal Paid <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestPaid"   class="sortable">Est. Interest Paid <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestToDate" class="sortable">Est. Interest Paid to Date <span class="sort-icon">↕</span></th>
-                                        <th data-sort="payoffDate"     class="sortable">Estimated Payoff Date <span class="sort-icon">↕</span></th>
-                                        <th data-sort="interestSaved"  class="sortable">Interest Saved <span class="sort-icon">↕</span></th>
-                                        <th data-sort="monthsSaved"    class="sortable">Months Saved <span class="sort-icon">↕</span></th>
-                                        <th>Amortization</th>
+                                        <th data-sort="name"           class="sortable"><span data-i18n="strategy.thDebtName">Debt Name</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="minDue"         class="sortable"><span data-i18n="strategy.thMinDue">Min Due</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestRate"   class="sortable"><span data-i18n="strategy.thInterestRate">Interest Rate</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="totalPaid"      class="sortable"><span data-i18n="strategy.thTotalAmountPaid">Total Amount Paid</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="principalPaid"  class="sortable"><span data-i18n="strategy.thEstPrincipalPaid">Est. Principal Paid</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestPaid"   class="sortable"><span data-i18n="strategy.thEstInterestPaid">Est. Interest Paid</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestToDate" class="sortable"><span data-i18n="strategy.thEstInterestToDate">Est. Interest Paid to Date</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="payoffDate"     class="sortable"><span data-i18n="strategy.thEstPayoffDate">Estimated Payoff Date</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="interestSaved"  class="sortable"><span data-i18n="strategy.interestSaved">Interest Saved</span> <span class="sort-icon">↕</span></th>
+                                        <th data-sort="monthsSaved"    class="sortable"><span data-i18n="strategy.monthsSaved">Months Saved</span> <span class="sort-icon">↕</span></th>
+                                        <th data-i18n="strategy.thAmortization">Amortization</th>
                                     </tr>
                                 </thead>
                                 <tbody id="debtSummaryTableBody"></tbody>
                             </table>
-                            <p class="debt-summary-footnote">Interest/months saved vs. minimum-payment-only scenario.</p>
+                            <p class="debt-summary-footnote" data-i18n="strategy.summaryFootnote">Interest/months saved vs. minimum-payment-only scenario.</p>
                         </div>
                     </div>
 
                     <!-- Panel 3 : Schedule (inner sub-tabs) -->
                     <div id="rPanel-schedule" class="results-tab-panel" role="tabpanel">
-                        <div class="tabs" role="tablist" aria-label="Schedule view">
-                            <button id="scheduleTab-tabular" class="tab-button active" data-tab="tabular" role="tab" aria-selected="true" aria-controls="tabular-tab">Tabular View</button>
-                            <button id="scheduleTab-calendar" class="tab-button" data-tab="calendar" role="tab" aria-selected="false" aria-controls="calendar-tab">Calendar View</button>
-                            <button id="scheduleTab-chart" class="tab-button" data-tab="chart" role="tab" aria-selected="false" aria-controls="chart-tab">Chart View</button>
+                        <div class="tabs" role="tablist" aria-label="Schedule view" data-i18n-attr="aria-label:strategy.scheduleViewAria">
+                            <button id="scheduleTab-tabular" class="tab-button active" data-tab="tabular" role="tab" aria-selected="true" aria-controls="tabular-tab" data-i18n="strategy.tabTabular">Tabular View</button>
+                            <button id="scheduleTab-calendar" class="tab-button" data-tab="calendar" role="tab" aria-selected="false" aria-controls="calendar-tab" data-i18n="strategy.tabCalendar">Calendar View</button>
+                            <button id="scheduleTab-chart" class="tab-button" data-tab="chart" role="tab" aria-selected="false" aria-controls="chart-tab" data-i18n="strategy.tabChart">Chart View</button>
                         </div>
 
                         <div id="tabular-tab" class="tab-content active" role="tabpanel" aria-labelledby="scheduleTab-tabular">
@@ -996,7 +996,7 @@
                                     <tbody id="paymentTableBody"></tbody>
                                 </table>
                             </div>
-                            <button id="exportScheduleBtn" class="btn btn-secondary" type="button">Export Schedule as CSV</button>
+                            <button id="exportScheduleBtn" class="btn btn-secondary" type="button" data-i18n="strategy.exportScheduleBtn">Export Schedule as CSV</button>
                         </div>
 
                         <div id="calendar-tab" class="tab-content" role="tabpanel" aria-labelledby="scheduleTab-calendar">
@@ -1026,17 +1026,17 @@
                             </div>
                         </div>
 
-                        <button id="exportBtn" class="btn btn-secondary export-margin-top">Export as CSV</button>
+                        <button id="exportBtn" class="btn btn-secondary export-margin-top" data-i18n="strategy.exportCsvBtn">Export as CSV</button>
                     </div>
                 </div><!-- /#resultsSection -->
 
                 <!-- Amortization modal — position:fixed, lives outside tab panels -->
                 <div id="amortizationModal" class="amortization-modal-fixed" role="dialog" aria-modal="true" aria-labelledby="amortizationTitle" tabindex="-1">
                     <div class="amortization-modal-content">
-                        <button id="closeAmortization" aria-label="Close amortization schedule" class="amortization-close-btn">&times;</button>
-                        <h3 id="amortizationTitle">Amortization Schedule</h3>
+                        <button id="closeAmortization" aria-label="Close amortization schedule" data-i18n-attr="aria-label:strategy.closeAmortizationAria" class="amortization-close-btn">&times;</button>
+                        <h3 id="amortizationTitle" data-i18n="strategy.amortizationTitle">Amortization Schedule</h3>
                         <div id="amortizationTableWrapper"></div>
-                        <button id="exportAmortizationBtn" class="btn btn-secondary export-amortization-margin">Export as CSV</button>
+                        <button id="exportAmortizationBtn" class="btn btn-secondary export-amortization-margin" data-i18n="strategy.exportCsvBtn">Export as CSV</button>
                     </div>
                 </div>
             </section>
@@ -1045,47 +1045,47 @@
             <!-- Reports Section                                             -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="reports-section page-section" id="reportsSection">
-                <h2>📈 Reports</h2>
+                <h2>📈 <span data-i18n="nav.reports">Reports</span></h2>
 
                 <!-- Month pagination -->
                 <div class="rpt-month-nav">
-                    <button class="rpt-month-btn" id="rptPrevMonth" title="Previous month" aria-label="Previous month">&#8249;</button>
+                    <button class="rpt-month-btn" id="rptPrevMonth" title="Previous month" aria-label="Previous month" data-i18n-attr="title:reports.prevMonth,aria-label:reports.prevMonth">&#8249;</button>
                     <span class="rpt-month-label" id="rptMonthLabel"></span>
-                    <button class="rpt-month-btn" id="rptNextMonth" title="Next month" aria-label="Next month">&#8250;</button>
-                    <button class="rpt-month-btn rpt-print-btn" id="rptPrintBtn" type="button" title="Print or save this report as a PDF" aria-label="Print or save this report as a PDF">🖨️ Print</button>
+                    <button class="rpt-month-btn" id="rptNextMonth" title="Next month" aria-label="Next month" data-i18n-attr="title:reports.nextMonth,aria-label:reports.nextMonth">&#8250;</button>
+                    <button class="rpt-month-btn rpt-print-btn" id="rptPrintBtn" type="button" title="Print or save this report as a PDF" aria-label="Print or save this report as a PDF" data-i18n-attr="title:reports.printAria,aria-label:reports.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
 
                 <!-- Tab bar -->
-                <div class="rpt-tab-bar" role="tablist" aria-label="Report sections">
+                <div class="rpt-tab-bar" role="tablist" aria-label="Report sections" data-i18n-attr="aria-label:reports.sectionsAria">
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Activity</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupActivity">Activity</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-calendar" class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" role="tab" aria-selected="true" aria-controls="rptPanel-calendar">📅 Calendar</button>
-                            <button id="rptTab-spending" class="rpt-tab-btn" data-rptab="spending" role="tab" aria-selected="false" aria-controls="rptPanel-spending">🏷️ Spending</button>
-                            <button id="rptTab-incomeexp" class="rpt-tab-btn" data-rptab="incomeexp" role="tab" aria-selected="false" aria-controls="rptPanel-incomeexp">📊 Income vs Expenses</button>
+                            <button id="rptTab-calendar" class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" role="tab" aria-selected="true" aria-controls="rptPanel-calendar">📅 <span data-i18n="reports.tabCalendar">Calendar</span></button>
+                            <button id="rptTab-spending" class="rpt-tab-btn" data-rptab="spending" role="tab" aria-selected="false" aria-controls="rptPanel-spending">🏷️ <span data-i18n="reports.tabSpending">Spending</span></button>
+                            <button id="rptTab-incomeexp" class="rpt-tab-btn" data-rptab="incomeexp" role="tab" aria-selected="false" aria-controls="rptPanel-incomeexp">📊 <span data-i18n="reports.tabIncomeExp">Income vs Expenses</span></button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Trends</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupTrends">Trends</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-moneyflow" class="rpt-tab-btn" data-rptab="moneyflow" role="tab" aria-selected="false" aria-controls="rptPanel-moneyflow">💰 Money Flow</button>
-                            <button id="rptTab-variance" class="rpt-tab-btn" data-rptab="variance" role="tab" aria-selected="false" aria-controls="rptPanel-variance">📈 What Changed</button>
-                            <button id="rptTab-networth" class="rpt-tab-btn" data-rptab="networth" role="tab" aria-selected="false" aria-controls="rptPanel-networth">📉 Net Worth</button>
+                            <button id="rptTab-moneyflow" class="rpt-tab-btn" data-rptab="moneyflow" role="tab" aria-selected="false" aria-controls="rptPanel-moneyflow">💰 <span data-i18n="reports.tabMoneyFlow">Money Flow</span></button>
+                            <button id="rptTab-variance" class="rpt-tab-btn" data-rptab="variance" role="tab" aria-selected="false" aria-controls="rptPanel-variance">📈 <span data-i18n="reports.tabVariance">What Changed</span></button>
+                            <button id="rptTab-networth" class="rpt-tab-btn" data-rptab="networth" role="tab" aria-selected="false" aria-controls="rptPanel-networth">📉 <span data-i18n="reports.tabNetWorth">Net Worth</span></button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Planning</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupPlanning">Planning</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-forecast" class="rpt-tab-btn" data-rptab="forecast" role="tab" aria-selected="false" aria-controls="rptPanel-forecast">🔮 Forecast</button>
+                            <button id="rptTab-forecast" class="rpt-tab-btn" data-rptab="forecast" role="tab" aria-selected="false" aria-controls="rptPanel-forecast">🔮 <span data-i18n="reports.tabForecast">Forecast</span></button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Print</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupPrint">Print</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-summary" class="rpt-tab-btn" data-rptab="summary" role="tab" aria-selected="false" aria-controls="rptPanel-summary">🖨️ Summary</button>
+                            <button id="rptTab-summary" class="rpt-tab-btn" data-rptab="summary" role="tab" aria-selected="false" aria-controls="rptPanel-summary">🖨️ <span data-i18n="reports.tabSummary">Summary</span></button>
                         </div>
                     </div>
                 </div>
@@ -1134,111 +1134,111 @@
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="recurring-section page-section" id="recurringSection">
                 <div class="page-header-row page-header">
-                    <h2>🔁 Recurring Templates</h2>
-                    <button type="button" class="page-print-btn" id="recurringPrintBtn" title="Print this page" aria-label="Print the Recurring Templates page">🖨️ Print</button>
+                    <h2>🔁 <span data-i18n="recurring.pageTitle">Recurring Templates</span></h2>
+                    <button type="button" class="page-print-btn" id="recurringPrintBtn" title="Print this page" aria-label="Print the Recurring Templates page" data-i18n-attr="title:common.printTitle,aria-label:recurring.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
-                <p class="recurring-intro">Track recurring non-debt entries — subscriptions, income, reimbursements, and transfers. Each template generates projected ledger entries each month. You can pause a template or skip a specific month at any time.</p>
+                <p class="recurring-intro" data-i18n="recurring.intro">Track recurring non-debt entries — subscriptions, income, reimbursements, and transfers. Each template generates projected ledger entries each month. You can pause a template or skip a specific month at any time.</p>
 
                 <!-- Add Template Form -->
                 <div class="recurring-form-card">
                     <button class="recurring-form-toggle" id="recurringFormToggle" type="button" aria-expanded="false" aria-controls="recurringFormBody">
-                        <span>Add Recurring Template</span>
+                        <span data-i18n="recurring.addToggle">Add Recurring Template</span>
                         <svg class="recurring-form-toggle-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="recurring-form-body" id="recurringFormBody" hidden>
                         <form id="recurringForm" novalidate>
                             <div class="recurring-form-grid">
                                 <div class="form-group">
-                                    <label for="recurringName">Name *</label>
-                                    <input type="text" id="recurringName" placeholder="e.g. Netflix, Gym reimbursement" required maxlength="80">
+                                    <label for="recurringName" data-i18n="recurring.nameLabel">Name *</label>
+                                    <input type="text" id="recurringName" placeholder="e.g. Netflix, Gym reimbursement" required maxlength="80" data-i18n-attr="placeholder:recurring.namePlaceholder">
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringType">Type *</label>
+                                    <label for="recurringType" data-i18n="recurring.typeLabel">Type *</label>
                                     <select id="recurringType" required>
-                                        <option value="subscription">Subscription / Expense</option>
-                                        <option value="income">Income</option>
-                                        <option value="reimbursement">Reimbursement</option>
-                                        <option value="transfer">Transfer</option>
+                                        <option value="subscription" data-i18n="recurring.typeSubscription">Subscription / Expense</option>
+                                        <option value="income" data-i18n="recurring.typeIncome">Income</option>
+                                        <option value="reimbursement" data-i18n="recurring.typeReimbursement">Reimbursement</option>
+                                        <option value="transfer" data-i18n="recurring.typeTransfer">Transfer</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringAmount">Amount ($) *</label>
+                                    <label for="recurringAmount" data-i18n="recurring.amountLabel">Amount ($) *</label>
                                     <input type="number" id="recurringAmount" placeholder="0.00" step="0.01" min="0" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringFrequency">Frequency *</label>
+                                    <label for="recurringFrequency" data-i18n="recurring.frequencyLabel">Frequency *</label>
                                     <select id="recurringFrequency" required>
-                                        <option value="weekly">Weekly</option>
-                                        <option value="biweekly">Every 2 weeks</option>
-                                        <option value="monthly" selected>Monthly</option>
-                                        <option value="quarterly">Quarterly</option>
-                                        <option value="yearly">Yearly</option>
+                                        <option value="weekly" data-i18n="recurring.freqWeekly">Weekly</option>
+                                        <option value="biweekly" data-i18n="recurring.freqBiweekly">Every 2 weeks</option>
+                                        <option value="monthly" selected data-i18n="recurring.freqMonthly">Monthly</option>
+                                        <option value="quarterly" data-i18n="recurring.freqQuarterly">Quarterly</option>
+                                        <option value="yearly" data-i18n="recurring.freqYearly">Yearly</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringDayOfMonth">Day of Month</label>
+                                    <label for="recurringDayOfMonth" data-i18n="recurring.dayLabel">Day of Month</label>
                                     <input type="number" id="recurringDayOfMonth" placeholder="1–31" min="1" max="31">
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringCategory">Category</label>
-                                    <input type="text" id="recurringCategory" list="categoryOptions" placeholder="e.g. Utilities, Food…" autocomplete="off">
+                                    <label for="recurringCategory" data-i18n="recurring.categoryLabel">Category</label>
+                                    <input type="text" id="recurringCategory" list="categoryOptions" placeholder="e.g. Utilities, Food…" autocomplete="off" data-i18n-attr="placeholder:expenses.categoryPlaceholder">
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringAccount">Account *</label>
+                                    <label for="recurringAccount" data-i18n="recurring.accountLabel">Account *</label>
                                     <select id="recurringAccount" required>
-                                        <option value="">— Select account —</option>
+                                        <option value="" data-i18n="recurring.selectAccount">— Select account —</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringTargetAccount">Target Account (transfers)</label>
+                                    <label for="recurringTargetAccount" data-i18n="recurring.targetLabel">Target Account (transfers)</label>
                                     <select id="recurringTargetAccount">
-                                        <option value="">— None (not a transfer) —</option>
+                                        <option value="" data-i18n="recurring.targetNone">— None (not a transfer) —</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringStartDate">Start Date *</label>
+                                    <label for="recurringStartDate" data-i18n="recurring.startLabel">Start Date *</label>
                                     <input type="date" id="recurringStartDate" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurringEndDate">End Date (optional)</label>
+                                    <label for="recurringEndDate" data-i18n="recurring.endLabel">End Date (optional)</label>
                                     <input type="date" id="recurringEndDate">
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary" id="recurringFormSubmit">Add Template</button>
+                            <button type="submit" class="btn btn-primary" id="recurringFormSubmit" data-i18n="recurring.addBtn">Add Template</button>
                         </form>
                     </div>
                 </div>
 
                 <!-- Template List controls -->
-                <button type="button" class="filters-disclosure-toggle" id="recurringFiltersToggle" data-collapse-toggle="recurringFiltersBody" data-filters-count="dom" aria-expanded="false" aria-controls="recurringFiltersBody">Filters</button>
+                <button type="button" class="filters-disclosure-toggle" id="recurringFiltersToggle" data-collapse-toggle="recurringFiltersBody" data-filters-count="dom" aria-expanded="false" aria-controls="recurringFiltersBody" data-i18n="filters.label">Filters</button>
                 <div class="debts-toolbar-filter recurring-toolbar-filter filters-disclosure-body" id="recurringFiltersBody">
                     <div class="fd-field">
-                        <label for="recurringSortBy" class="category-filter-label">Sort:</label>
+                        <label for="recurringSortBy" class="category-filter-label" data-i18n="filters.sort">Sort:</label>
                         <select id="recurringSortBy" class="category-filter" data-no-count>
-                        <option value="">Default</option>
-                        <option value="amount-desc">Amount ↓</option>
-                        <option value="amount-asc">Amount ↑</option>
-                        <option value="due-asc">Due Soonest</option>
-                        <option value="due-desc">Due Latest</option>
-                        <option value="name-asc">Name A–Z</option>
+                        <option value="" data-i18n="recurring.sortDefault">Default</option>
+                        <option value="amount-desc" data-i18n="recurring.sortAmountDesc">Amount ↓</option>
+                        <option value="amount-asc" data-i18n="recurring.sortAmountAsc">Amount ↑</option>
+                        <option value="due-asc" data-i18n="recurring.sortDueAsc">Due Soonest</option>
+                        <option value="due-desc" data-i18n="recurring.sortDueDesc">Due Latest</option>
+                        <option value="name-asc" data-i18n="recurring.sortNameAsc">Name A–Z</option>
                     </select>
                     </div>
                     <div class="fd-field">
-                        <label for="recurringCategoryFilter" class="category-filter-label">Category:</label>
+                        <label for="recurringCategoryFilter" class="category-filter-label" data-i18n="filters.category">Category:</label>
                         <select id="recurringCategoryFilter" class="category-filter">
-                        <option value="">All</option>
+                        <option value="" data-i18n="filters.all">All</option>
                     </select>
                     </div>
                     <div class="fd-field">
-                        <label for="recurringAccountFilter" class="category-filter-label">Account:</label>
+                        <label for="recurringAccountFilter" class="category-filter-label" data-i18n="filters.account">Account:</label>
                         <select id="recurringAccountFilter" class="category-filter">
-                        <option value="">All</option>
+                        <option value="" data-i18n="filters.all">All</option>
                     </select>
                     </div>
                     <div class="fd-field">
-                        <label for="recurringMonthFilter" class="category-filter-label">Month:</label>
+                        <label for="recurringMonthFilter" class="category-filter-label" data-i18n="filters.month">Month:</label>
                         <select id="recurringMonthFilter" class="category-filter">
-                        <option value="">Any</option>
+                        <option value="" data-i18n="filters.any">Any</option>
                     </select>
                     </div>
                 </div>
@@ -1288,141 +1288,141 @@
     <!-- Accelerate Debt Modal -->
     <div id="accelerateDebtModal" class="accelerate-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="accelerateDebtTitle" tabindex="-1">
         <div class="accelerate-modal-content">
-            <button id="accelerateCloseBtn" class="accelerate-modal-close" aria-label="Close">&times;</button>
-            <h3 id="accelerateDebtTitle">Accelerate: Debt</h3>
+            <button id="accelerateCloseBtn" class="accelerate-modal-close" aria-label="Close" data-i18n-attr="aria-label:common.close">&times;</button>
+            <h3 id="accelerateDebtTitle" data-i18n="breakEven.accelerateDefaultTitle">Accelerate: Debt</h3>
             <div class="accelerate-row">
-                <label>Current plan payment</label>
+                <label data-i18n="breakEven.currentPlanPayment">Current plan payment</label>
                 <span id="accelerateBasePay">—</span>
             </div>
             <div class="accelerate-row">
-                <label for="accelerateExtraPay">Extra payment /mo</label>
-                <input type="number" id="accelerateExtraPay" min="0" step="1" value="0" aria-label="Extra monthly payment">
+                <label for="accelerateExtraPay" data-i18n="breakEven.extraPayment">Extra payment /mo</label>
+                <input type="number" id="accelerateExtraPay" min="0" step="1" value="0" aria-label="Extra monthly payment" data-i18n-attr="aria-label:breakEven.extraPaymentAria">
             </div>
             <hr class="accelerate-divider">
-            <div class="accelerate-total">New total: <span id="accelerateNewTotal">—</span></div>
+            <div class="accelerate-total"><span data-i18n="breakEven.newTotal">New total:</span> <span id="accelerateNewTotal">—</span></div>
             <div class="accelerate-preview" id="acceleratePreviewBox">
                 <div class="accelerate-preview-row">
-                    <span>Payoff</span>
+                    <span data-i18n="breakEven.payoff">Payoff</span>
                     <span><span id="acceleratePayoff">—</span> <span class="accelerate-preview-delta" id="acceleratePayoffDelta"></span></span>
                 </div>
                 <div class="accelerate-preview-row">
-                    <span>Interest</span>
+                    <span data-i18n="breakEven.interest">Interest</span>
                     <span><span id="accelerateInterest">—</span> <span class="accelerate-preview-delta" id="accelerateInterestDelta"></span></span>
                 </div>
             </div>
             <div class="accelerate-chart-wrap">
-                <canvas id="accelerateChart" aria-label="Accelerated vs current payoff balance chart"></canvas>
+                <canvas id="accelerateChart" aria-label="Accelerated vs current payoff balance chart" data-i18n-attr="aria-label:breakEven.chartAria"></canvas>
             </div>
             <div class="accelerate-actions">
-                <button id="accelerateApplyBtn" class="btn btn-primary btn-small">Apply to Plan</button>
-                <button id="accelerateCloseBtnFooter" class="btn btn-secondary btn-small">Close</button>
+                <button id="accelerateApplyBtn" class="btn btn-primary btn-small" data-i18n="breakEven.applyToPlan">Apply to Plan</button>
+                <button id="accelerateCloseBtnFooter" class="btn btn-secondary btn-small" data-i18n="common.close">Close</button>
             </div>
         </div>
     </div>
     <!-- Update Balance Modal (top-level so position:fixed works from any page) -->
     <div id="updateBalanceModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="updateBalanceTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="cancelUpdateBalance" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="updateBalanceTitle">Update Balance &amp; Minimum</h3>
-            <p class="modal-subtitle">Debt: <strong id="updateBalanceDebtName"></strong></p>
+            <button id="cancelUpdateBalance" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
+            <h3 id="updateBalanceTitle" data-i18n="debts.updateTitle">Update Balance &amp; Minimum</h3>
+            <p class="modal-subtitle"><span data-i18n="debts.updateDebtLabel">Debt:</span> <strong id="updateBalanceDebtName"></strong></p>
             <div class="modal-form-grid">
                 <div class="form-group">
-                    <label for="updateBalanceInput">New Balance ($)</label>
-                    <div class="modal-helper-text">Current: <span id="updateBalanceCurrent"></span></div>
+                    <label for="updateBalanceInput" data-i18n="debts.updateNewBalance">New Balance ($)</label>
+                    <div class="modal-helper-text"><span data-i18n="debts.updateCurrent">Current:</span> <span id="updateBalanceCurrent"></span></div>
                     <input type="number" id="updateBalanceInput" step="0.01" min="0" placeholder="0.00">
                 </div>
                 <div class="form-group">
-                    <label for="updateMinPaymentInput">New Minimum Due ($)</label>
-                    <div class="modal-helper-text">Original: <span id="updateMinPaymentOriginal"></span></div>
+                    <label for="updateMinPaymentInput" data-i18n="debts.updateNewMin">New Minimum Due ($)</label>
+                    <div class="modal-helper-text"><span data-i18n="debts.updateOriginal">Original:</span> <span id="updateMinPaymentOriginal"></span></div>
                     <input type="number" id="updateMinPaymentInput" step="0.01" min="0" placeholder="0.00">
                 </div>
             </div>
             <div class="modal-actions">
-                <button id="confirmUpdateBalance" class="btn btn-success">Update &amp; Recalculate</button>
-                <button id="cancelUpdateBalanceBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmUpdateBalance" class="btn btn-success" data-i18n="debts.updateConfirm">Update &amp; Recalculate</button>
+                <button id="cancelUpdateBalanceBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
     <!-- Balance History Modal (top-level so position:fixed works from any page) -->
     <div id="balanceHistoryModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="balanceHistoryTitle" tabindex="-1">
         <div class="modal-content modal-content--history">
-            <button id="balanceHistoryClose" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="balanceHistoryTitle">Balance History</h3>
+            <button id="balanceHistoryClose" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
+            <h3 id="balanceHistoryTitle" data-i18n="balanceHistory.title">Balance History</h3>
             <p class="modal-subtitle"><strong id="balanceHistoryName"></strong></p>
-            <p id="balanceHistoryEmpty" class="modal-helper-text hidden">History starts here — updates you make will be recorded.</p>
+            <p id="balanceHistoryEmpty" class="modal-helper-text hidden" data-i18n="balanceHistory.empty">History starts here — updates you make will be recorded.</p>
             <div class="bh-chart-wrap" id="balanceHistoryChartWrap"><canvas id="balanceHistoryChart"></canvas></div>
             <div class="bh-table-wrap">
                 <table class="bh-table">
                     <thead>
                         <tr>
-                            <th scope="col">Date</th>
-                            <th scope="col" class="bh-col-balance">Balance</th>
-                            <th scope="col" id="bhColMin">Min. payment</th>
-                            <th scope="col">Change</th>
-                            <th scope="col"><span class="sr-only">Actions</span></th>
+                            <th scope="col" data-i18n="balanceHistory.colDate">Date</th>
+                            <th scope="col" class="bh-col-balance" data-i18n="balanceHistory.colBalance">Balance</th>
+                            <th scope="col" id="bhColMin" data-i18n="balanceHistory.colMinPayment">Min. payment</th>
+                            <th scope="col" data-i18n="balanceHistory.colChange">Change</th>
+                            <th scope="col"><span class="sr-only" data-i18n="balanceHistory.colActions">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody id="balanceHistoryRows"></tbody>
                 </table>
             </div>
             <div class="modal-actions">
-                <button id="balanceHistoryCloseBtn" class="btn btn-secondary">Close</button>
+                <button id="balanceHistoryCloseBtn" class="btn btn-secondary" data-i18n="common.close">Close</button>
             </div>
         </div>
     </div>
     <div id="ledgerOverrideModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="ledgerOverrideCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="ledgerOverrideTitle">Override Ledger Amount</h3>
-            <p class="modal-description">Use a replacement amount while preserving the original value for history.</p>
+            <button id="ledgerOverrideCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="ledgerOverrideTitle" data-i18n="ledger.overrideTitle">Override Ledger Amount</h3>
+            <p class="modal-description" data-i18n="ledger.overrideDesc">Use a replacement amount while preserving the original value for history.</p>
             <p class="modal-tx-name"><strong id="ledgerOverrideTxName"></strong></p>
-            <p class="modal-helper-text">Account: <span id="ledgerOverrideAccount"></span></p>
-            <p class="modal-helper-text">Date: <span id="ledgerOverrideDate"></span></p>
+            <p class="modal-helper-text"><span data-i18n="ledger.overrideAccount">Account:</span> <span id="ledgerOverrideAccount"></span></p>
+            <p class="modal-helper-text"><span data-i18n="ledger.overrideDate">Date:</span> <span id="ledgerOverrideDate"></span></p>
             <div class="form-group modal-form-group">
-                <label for="ledgerOverrideAmountInput">Replacement Amount ($)</label>
+                <label for="ledgerOverrideAmountInput" data-i18n="ledger.overrideAmountLabel">Replacement Amount ($)</label>
                 <input type="number" id="ledgerOverrideAmountInput" step="0.01" placeholder="0.00">
-                <div class="modal-helper-text">Original amount: <span id="ledgerOverrideOriginal"></span></div>
-                <label for="ledgerOverrideMemoInput">Memo (optional)</label>
-                <textarea id="ledgerOverrideMemoInput" rows="2" maxlength="500" placeholder="e.g. split with roommate, refund received…" class="ledger-memo-textarea"></textarea>
+                <div class="modal-helper-text"><span data-i18n="ledger.overrideOriginal">Original amount:</span> <span id="ledgerOverrideOriginal"></span></div>
+                <label for="ledgerOverrideMemoInput" data-i18n="ledger.overrideMemoLabel">Memo (optional)</label>
+                <textarea id="ledgerOverrideMemoInput" rows="2" maxlength="500" placeholder="e.g. split with roommate, refund received…" data-i18n-attr="placeholder:ledger.overrideMemoPlaceholder" class="ledger-memo-textarea"></textarea>
             </div>
             <div class="modal-actions">
-                <button id="ledgerOverrideConfirmBtn" class="btn btn-success">Save Override</button>
-                <button id="ledgerOverrideCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="ledgerOverrideConfirmBtn" class="btn btn-success" data-i18n="ledger.overrideSave">Save Override</button>
+                <button id="ledgerOverrideCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
 
     <div id="ledgerExportModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerExportTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="ledgerExportCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="ledgerExportTitle">Export Ledger to CSV</h3>
-            <p class="modal-description">Choose which columns to include. Exports the currently filtered and sorted view.</p>
+            <button id="ledgerExportCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="ledgerExportTitle" data-i18n="ledger.exportTitle">Export Ledger to CSV</h3>
+            <p class="modal-description" data-i18n="ledger.exportDesc">Choose which columns to include. Exports the currently filtered and sorted view.</p>
             <div class="form-group modal-form-group" id="ledgerExportColumnList">
-                <label><input type="checkbox" id="ledgerExportCol-date" value="date" checked> Date</label>
-                <label><input type="checkbox" id="ledgerExportCol-account" value="account" checked> Account</label>
-                <label><input type="checkbox" id="ledgerExportCol-name" value="name" checked> Transaction Name</label>
-                <label><input type="checkbox" id="ledgerExportCol-amount" value="amount" checked> Amount</label>
-                <label><input type="checkbox" id="ledgerExportCol-category" value="category" checked> Category</label>
-                <label><input type="checkbox" id="ledgerExportCol-balance" value="balance" checked> Running Balance</label>
-                <label><input type="checkbox" id="ledgerExportCol-type" value="type" checked> Type</label>
-                <label><input type="checkbox" id="ledgerExportCol-cleared" value="cleared" checked> Cleared</label>
-                <label><input type="checkbox" id="ledgerExportCol-clearedAt" value="clearedAt" checked> Cleared At</label>
+                <label><input type="checkbox" id="ledgerExportCol-date" value="date" checked> <span data-i18n="ledger.colDate">Date</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-account" value="account" checked> <span data-i18n="ledger.colAccount">Account</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-name" value="name" checked> <span data-i18n="ledger.exportColName">Transaction Name</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-amount" value="amount" checked> <span data-i18n="ledger.colAmount">Amount</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-category" value="category" checked> <span data-i18n="ledger.exportColCategory">Category</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-balance" value="balance" checked> <span data-i18n="ledger.colBalance">Running Balance</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-type" value="type" checked> <span data-i18n="ledger.exportColType">Type</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-cleared" value="cleared" checked> <span data-i18n="ledger.colCleared">Cleared</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-clearedAt" value="clearedAt" checked> <span data-i18n="ledger.exportColClearedAt">Cleared At</span></label>
             </div>
-            <p class="modal-helper-text" id="ledgerExportEmptyWarning" hidden>No transactions match the current filters — nothing to export.</p>
+            <p class="modal-helper-text" id="ledgerExportEmptyWarning" data-i18n="ledger.exportEmpty" hidden>No transactions match the current filters — nothing to export.</p>
             <div class="modal-actions">
-                <button id="ledgerExportConfirmBtn" class="btn btn-success">Export CSV</button>
-                <button id="ledgerExportCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="ledgerExportConfirmBtn" class="btn btn-success" data-i18n="ledger.exportCsv">Export CSV</button>
+                <button id="ledgerExportCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
     <div id="ledgerMarkAllClearedModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerMarkAllClearedTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="ledgerMarkAllClearedCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="ledgerMarkAllClearedTitle">Mark All Visible as Cleared</h3>
+            <button id="ledgerMarkAllClearedCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="ledgerMarkAllClearedTitle" data-i18n="ledger.markAllTitle">Mark All Visible as Cleared</h3>
             <p class="modal-description" id="ledgerMarkAllClearedDesc"></p>
             <div class="modal-actions">
-                <button id="ledgerMarkAllClearedConfirmBtn" class="btn btn-success">Mark as Cleared</button>
-                <button id="ledgerMarkAllClearedCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="ledgerMarkAllClearedConfirmBtn" class="btn btn-success" data-i18n="ledger.markAllConfirm">Mark as Cleared</button>
+                <button id="ledgerMarkAllClearedCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1478,32 +1478,32 @@
     <!-- Transfer Modal (issue #248) - add/edit a one-off transfer between two accounts -->
     <div id="transferModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="transferModalTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="transferModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="transferModalTitle">Transfer Between Accounts</h3>
+            <button id="transferModalCloseBtn" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
+            <h3 id="transferModalTitle" data-i18n="transfer.title">Transfer Between Accounts</h3>
             <div class="form-group modal-form-group">
-                <label for="transferModalFrom">From Account</label>
+                <label for="transferModalFrom" data-i18n="transfer.fromLabel">From Account</label>
                 <select id="transferModalFrom"></select>
             </div>
             <div class="form-group modal-form-group">
-                <label for="transferModalTo">To Account</label>
+                <label for="transferModalTo" data-i18n="transfer.toLabel">To Account</label>
                 <select id="transferModalTo"></select>
             </div>
             <p id="transferModalError" class="recon-range-error hidden" role="alert"></p>
             <div class="form-group modal-form-group">
-                <label for="transferModalAmount">Amount ($)</label>
+                <label for="transferModalAmount" data-i18n="transfer.amountLabel">Amount ($)</label>
                 <input type="number" id="transferModalAmount" step="0.01" placeholder="0.00">
             </div>
             <div class="form-group modal-form-group">
-                <label for="transferModalDate">Date</label>
+                <label for="transferModalDate" data-i18n="transfer.dateLabel">Date</label>
                 <input type="date" id="transferModalDate">
             </div>
             <div class="form-group modal-form-group">
-                <label for="transferModalMemo">Memo (optional)</label>
+                <label for="transferModalMemo" data-i18n="transfer.memoLabel">Memo (optional)</label>
                 <input type="text" id="transferModalMemo" maxlength="200">
             </div>
             <div class="modal-actions">
-                <button id="transferModalConfirmBtn" class="btn btn-success">Transfer</button>
-                <button id="transferModalCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="transferModalConfirmBtn" class="btn btn-success" data-i18n="transfer.confirmBtn">Transfer</button>
+                <button id="transferModalCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1666,10 +1666,10 @@
     <div id="alertModal" class="modal modal-overlay hidden"
          role="alertdialog" aria-modal="true" aria-labelledby="alertModalTitle" tabindex="-1">
         <div class="modal-content">
-            <h3 id="alertModalTitle">Notice</h3>
+            <h3 id="alertModalTitle" data-i18n="modals.notice">Notice</h3>
             <p id="alertModalMessage" class="modal-description"></p>
             <div class="modal-actions">
-                <button id="alertModalOkBtn" class="btn btn-primary">OK</button>
+                <button id="alertModalOkBtn" class="btn btn-primary" data-i18n="modals.ok">OK</button>
             </div>
         </div>
     </div>
@@ -1696,18 +1696,18 @@
     <div id="personReplacementModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="personReplacementTitle" tabindex="-1">
         <div class="modal-content">
-            <h3 id="personReplacementTitle">Delete Family Member</h3>
+            <h3 id="personReplacementTitle" data-i18n="people.replaceTitle">Delete Family Member</h3>
             <p id="personReplacementInfo" class="modal-description"></p>
             <div id="personReplacementLinks" class="account-replacement-links"></div>
             <div class="form-group modal-form-group">
-                <label for="personReplacementSelect">Reassign debts to</label>
+                <label for="personReplacementSelect" data-i18n="people.replaceLabel">Reassign debts to</label>
                 <select id="personReplacementSelect">
-                    <option value="">— Unassign (no owner) —</option>
+                    <option value="" data-i18n="people.replaceUnassignModal">— Unassign (no owner) —</option>
                 </select>
             </div>
             <div class="modal-actions">
-                <button id="personReplacementConfirmBtn" class="btn btn-danger">Delete</button>
-                <button id="personReplacementCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="personReplacementConfirmBtn" class="btn btn-danger" data-i18n="common.delete">Delete</button>
+                <button id="personReplacementCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1715,11 +1715,11 @@
     <div id="deleteConfirmModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle" tabindex="-1">
         <div class="modal-content">
-            <h3 id="deleteConfirmTitle">Confirm</h3>
+            <h3 id="deleteConfirmTitle" data-i18n="modals.confirm">Confirm</h3>
             <p id="deleteConfirmMessage" class="modal-description"></p>
             <div class="modal-actions">
-                <button id="deleteConfirmBtn" class="btn btn-danger">Confirm</button>
-                <button id="deleteConfirmCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="deleteConfirmBtn" class="btn btn-danger" data-i18n="modals.confirm">Confirm</button>
+                <button id="deleteConfirmCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1727,12 +1727,12 @@
     <div id="archiveConfirmModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="archiveConfirmTitle" tabindex="-1">
         <div class="modal-content">
-            <h3 id="archiveConfirmTitle">Archive Debt</h3>
+            <h3 id="archiveConfirmTitle" data-i18n="debts.archiveDebt">Archive Debt</h3>
             <p id="archiveConfirmMessage" class="modal-description"></p>
-            <p class="modal-helper-text">Archived debts are hidden from the list and excluded from all calculations. You can show them again via Settings → Show archived debts.</p>
+            <p class="modal-helper-text" data-i18n="modals.archiveDebtHelp">Archived debts are hidden from the list and excluded from all calculations. You can show them again via Settings → Show archived debts.</p>
             <div class="modal-actions">
-                <button id="archiveConfirmBtn" class="btn btn-secondary">Archive</button>
-                <button id="archiveConfirmCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="archiveConfirmBtn" class="btn btn-secondary" data-i18n="debts.bulkArchive">Archive</button>
+                <button id="archiveConfirmCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1741,11 +1741,11 @@
         <div class="modal-content">
             <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="settingsModalTitle" data-i18n="settings.title">Settings</h3>
-            <div class="settings-tabs" role="tablist" aria-label="Settings sections">
-                <button type="button" class="settings-tab-btn settings-tab-btn--active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="settingsPanel-appearance">Appearance</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="settingsPanel-data">Data &amp; Storage</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="notifications" role="tab" aria-selected="false" aria-controls="settingsPanel-notifications">Notifications</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="advanced" role="tab" aria-selected="false" aria-controls="settingsPanel-advanced">Advanced</button>
+            <div class="settings-tabs" role="tablist" aria-label="Settings sections" data-i18n-attr="aria-label:settings.tabsAria">
+                <button type="button" class="settings-tab-btn settings-tab-btn--active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="settingsPanel-appearance" data-i18n="settings.tabAppearance">Appearance</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="settingsPanel-data" data-i18n="settings.tabData">Data &amp; Storage</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="notifications" role="tab" aria-selected="false" aria-controls="settingsPanel-notifications" data-i18n="settings.tabNotifications">Notifications</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="advanced" role="tab" aria-selected="false" aria-controls="settingsPanel-advanced" data-i18n="settings.tabAdvanced">Advanced</button>
             </div>
             <div id="settingsPanel-appearance" class="settings-tab-panel settings-tab-panel--active" role="tabpanel">
                 <div class="form-group modal-form-group">
@@ -1764,33 +1764,33 @@
                         <option value="es">Español</option>
                         <option value="pl">Polski</option>
                     </select>
-                    <p class="modal-helper-text" data-i18n="settings.languageHelp">Translation is still expanding — some pages may remain in English.</p>
+                    <p class="modal-helper-text" data-i18n="settings.languageHelp">Choose the language used throughout the app.</p>
                 </div>
                 <div class="form-group modal-form-group">
-                    <label for="settingCurrency">Currency</label>
+                    <label for="settingCurrency" data-i18n="settings.currencyLabel">Currency</label>
                     <select id="settingCurrency">
-                        <option value="USD">USD — US Dollar</option>
-                        <option value="EUR">EUR — Euro</option>
-                        <option value="GBP">GBP — British Pound</option>
-                        <option value="JPY">JPY — Japanese Yen</option>
-                        <option value="CAD">CAD — Canadian Dollar</option>
-                        <option value="AUD">AUD — Australian Dollar</option>
-                        <option value="CHF">CHF — Swiss Franc</option>
-                        <option value="CNY">CNY — Chinese Yuan</option>
-                        <option value="INR">INR — Indian Rupee</option>
-                        <option value="MXN">MXN — Mexican Peso</option>
-                        <option value="BRL">BRL — Brazilian Real</option>
-                        <option value="KRW">KRW — South Korean Won</option>
-                        <option value="SEK">SEK — Swedish Krona</option>
-                        <option value="NOK">NOK — Norwegian Krone</option>
-                        <option value="DKK">DKK — Danish Krone</option>
-                        <option value="SGD">SGD — Singapore Dollar</option>
-                        <option value="HKD">HKD — Hong Kong Dollar</option>
-                        <option value="NZD">NZD — New Zealand Dollar</option>
-                        <option value="ZAR">ZAR — South African Rand</option>
-                        <option value="PLN">PLN — Polish Zloty</option>
+                        <option value="USD" data-i18n="settings.cur.USD">USD — US Dollar</option>
+                        <option value="EUR" data-i18n="settings.cur.EUR">EUR — Euro</option>
+                        <option value="GBP" data-i18n="settings.cur.GBP">GBP — British Pound</option>
+                        <option value="JPY" data-i18n="settings.cur.JPY">JPY — Japanese Yen</option>
+                        <option value="CAD" data-i18n="settings.cur.CAD">CAD — Canadian Dollar</option>
+                        <option value="AUD" data-i18n="settings.cur.AUD">AUD — Australian Dollar</option>
+                        <option value="CHF" data-i18n="settings.cur.CHF">CHF — Swiss Franc</option>
+                        <option value="CNY" data-i18n="settings.cur.CNY">CNY — Chinese Yuan</option>
+                        <option value="INR" data-i18n="settings.cur.INR">INR — Indian Rupee</option>
+                        <option value="MXN" data-i18n="settings.cur.MXN">MXN — Mexican Peso</option>
+                        <option value="BRL" data-i18n="settings.cur.BRL">BRL — Brazilian Real</option>
+                        <option value="KRW" data-i18n="settings.cur.KRW">KRW — South Korean Won</option>
+                        <option value="SEK" data-i18n="settings.cur.SEK">SEK — Swedish Krona</option>
+                        <option value="NOK" data-i18n="settings.cur.NOK">NOK — Norwegian Krone</option>
+                        <option value="DKK" data-i18n="settings.cur.DKK">DKK — Danish Krone</option>
+                        <option value="SGD" data-i18n="settings.cur.SGD">SGD — Singapore Dollar</option>
+                        <option value="HKD" data-i18n="settings.cur.HKD">HKD — Hong Kong Dollar</option>
+                        <option value="NZD" data-i18n="settings.cur.NZD">NZD — New Zealand Dollar</option>
+                        <option value="ZAR" data-i18n="settings.cur.ZAR">ZAR — South African Rand</option>
+                        <option value="PLN" data-i18n="settings.cur.PLN">PLN — Polish Zloty</option>
                     </select>
-                    <p class="modal-helper-text">Currency used to display all monetary amounts in the app.</p>
+                    <p class="modal-helper-text" data-i18n="settings.currencyHelp">Currency used to display all monetary amounts in the app.</p>
                 </div>
             </div>
             <div id="settingsPanel-data" class="settings-tab-panel" role="tabpanel">
@@ -1805,15 +1805,15 @@
                     <p id="settingsStoragePostgresNote" class="modal-helper-text hidden" data-i18n="settings.storagePostgresNote">You are using PostgreSQL. Switching back to local or session storage is not supported.</p>
                 </div>
                 <div class="form-group modal-form-group settings-danger-zone">
-                    <h4 class="settings-danger-title">Danger zone</h4>
-                    <p class="modal-helper-text">Permanently remove every account, debt, income, expense, plan and setting stored in this browser. Export a backup first.</p>
-                    <button type="button" id="clearDataBtn" class="btn btn-danger btn-small">Clear All Data</button>
+                    <h4 class="settings-danger-title" data-i18n="settings.dangerTitle">Danger zone</h4>
+                    <p class="modal-helper-text" data-i18n="settings.dangerHelp">Permanently remove every account, debt, income, expense, plan and setting stored in this browser. Export a backup first.</p>
+                    <button type="button" id="clearDataBtn" class="btn btn-danger btn-small" data-i18n="settings.clearAllData">Clear All Data</button>
                 </div>
             </div>
             <div id="settingsPanel-notifications" class="settings-tab-panel" role="tabpanel">
                 <div class="form-group modal-form-group hidden" id="settingsEmailTestGroup">
                     <button type="button" id="settingsSendTestEmailBtn" class="btn btn-secondary" data-i18n="settings.sendTestEmail">Send test email</button>
-                    <p class="modal-helper-text">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
+                    <p class="modal-helper-text" data-i18n="settings.testEmailHelp">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
                 </div>
             </div>
             <div id="settingsPanel-advanced" class="settings-tab-panel" role="tabpanel">
@@ -1829,21 +1829,21 @@
                         <input type="checkbox" id="settingShowArchivedDebts">
                         <span data-i18n="settings.showArchivedDebts">Show archived debts</span>
                     </label>
-                    <p class="modal-helper-text">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
+                    <p class="modal-helper-text" data-i18n="settings.showArchivedDebtsHelp">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingShowArchivedRecurring">
                         <input type="checkbox" id="settingShowArchivedRecurring">
                         <span data-i18n="settings.showArchivedRecurring">Show archived recurring templates</span>
                     </label>
-                    <p class="modal-helper-text">When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.</p>
+                    <p class="modal-helper-text" data-i18n="settings.showArchivedRecurringHelp">When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingAutoNwSnapshot">
                         <input type="checkbox" id="settingAutoNwSnapshot">
                         <span data-i18n="settings.autoNwSnapshot">Auto-capture monthly net worth snapshot</span>
                     </label>
-                    <p class="modal-helper-text">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>
+                    <p class="modal-helper-text" data-i18n="settings.autoNwSnapshotHelp">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label for="settingZeroAmountPolicy" data-i18n="settings.zeroAmountLabel">$0 ledger amounts</label>
@@ -1908,7 +1908,7 @@
     <!-- Reports Calendar day detail -->
     <div id="calendarDayModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="calendarDayModalTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="calendarDayModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <button id="calendarDayModalCloseBtn" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
             <h3 id="calendarDayModalTitle"></h3>
             <div id="calendarDayModalBody" class="rpt-cal-modal-body"></div>
         </div>
