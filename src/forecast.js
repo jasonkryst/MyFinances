@@ -2,6 +2,7 @@
 // notable months, negative-balance warnings, and lowest/highest points.
 
 import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate } from './utils.js';
+import { t, plural } from './i18n.js';
 import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 
 const LIABILITY_TYPES = ['Credit Card', 'Loan'];
@@ -158,7 +159,7 @@ function renderForecastChart(app, series, stats) {
         data: {
             labels,
             datasets: [{
-                label: 'Projected Balance',
+                label: t('reports.fcProjectedBalance'),
                 data: balances,
                 borderColor: '#2563eb',
                 backgroundColor: 'rgba(37, 99, 235, 0.1)',
@@ -187,8 +188,8 @@ function renderForecastChart(app, series, stats) {
 
 
     renderChartDataTable('cfForecastChart', {
-        caption: 'Projected cash flow balance forecast',
-        columns: ['Month', 'Projected Balance'],
+        caption: t('reports.fcCaption'),
+        columns: [t('reports.colMonth'), t('reports.fcProjectedBalance')],
         rows: series.map(entry => [entry.label, formatCurrency(entry.balance)])
     });
 }
@@ -207,10 +208,10 @@ export function renderCashFlowForecast(app) {
     if (assetAccounts.length === 0) {
         container.innerHTML = `
             <div class="health-empty-state">
-                <span class="health-empty-value">No forecast available</span>
+                <span class="health-empty-value">${escapeHtml(t('reports.fcEmptyTitle'))}</span>
                 <span class="health-empty-sub">
-                    Add a Checking, Savings, Cash, or Investment account to see your cash flow forecast.
-                    <a href="#" data-forecast-nav="accounts" class="health-link">Go to Accounts</a>
+                    ${escapeHtml(t('reports.fcEmptySub'))}
+                    <a href="#" data-forecast-nav="accounts" class="health-link">${escapeHtml(t('reports.fcGoAccounts'))}</a>
                 </span>
             </div>
         `;
@@ -241,10 +242,10 @@ export function renderCashFlowForecast(app) {
     const notableMonths = findNotableMonths(app, accountId, stats.projected, thresholdPct);
 
     const horizonButtonsHtml = HORIZON_OPTIONS.map(months => `
-        <button class="nw-range-btn ${months === rangeMonths ? 'active' : ''}" data-forecast-range="${months}" type="button" aria-pressed="${months === rangeMonths ? 'true' : 'false'}" aria-label="Next ${months} months (${months}M)">${months}M</button>
+        <button class="nw-range-btn ${months === rangeMonths ? 'active' : ''}" data-forecast-range="${months}" type="button" aria-pressed="${months === rangeMonths ? 'true' : 'false'}" aria-label="${escapeHtml(plural('reports.cftNextAria', months))}">${months}M</button>
     `).join('');
 
-    const accountOptionsHtml = [`<option value="total" ${accountId === 'total' ? 'selected' : ''}>Total Cash Position</option>`]
+    const accountOptionsHtml = [`<option value="total" ${accountId === 'total' ? 'selected' : ''}>${escapeHtml(t('reports.fcTotalCash'))}</option>`]
         .concat(assetAccounts.map(acct =>
             `<option value="${acct.id}" ${String(accountId) === String(acct.id) ? 'selected' : ''}>${escapeHtml(acct.name)}</option>`
         ))
@@ -254,9 +255,9 @@ export function renderCashFlowForecast(app) {
     if (stats.negativeMonth) {
         const entry = stats.negativeMonth;
         if (entry.balance < 0) {
-            warningHtml = `<div class="cf-warning-banner">⚠️ Projected to go negative in <strong>${escapeHtml(entry.label)}</strong>: ${formatCurrency(entry.balance)}</div>`;
+            warningHtml = `<div class="cf-warning-banner">⚠️ ${escapeHtml(t('reports.fcGoNegative', { month: entry.label, amount: formatCurrency(entry.balance) }))}</div>`;
         } else if (entry.lowBalance < 0 && entry.lowDate) {
-            warningHtml = `<div class="cf-warning-banner">⚠️ Projected to dip negative in <strong>${escapeHtml(entry.label)}</strong> on ${escapeHtml(formatShortDate(entry.lowDate))}: as low as ${formatCurrency(entry.lowBalance)} before recovering to ${formatCurrency(entry.balance)}</div>`;
+            warningHtml = `<div class="cf-warning-banner">⚠️ ${escapeHtml(t('reports.fcDipNegative', { month: entry.label, date: formatShortDate(entry.lowDate), low: formatCurrency(entry.lowBalance), balance: formatCurrency(entry.balance) }))}</div>`;
         }
     }
 
@@ -273,23 +274,23 @@ export function renderCashFlowForecast(app) {
         if (retirementAccts.length > 0) {
             const retirementBalance = retirementAccts.reduce(
                 (sum, a) => sum + getAccountForecastSeries(app, a.id, 0)[0].balance, 0);
-            retirementNoteHtml = `<small class="cf-retirement-note" id="cfRetirementNote">Includes ${formatCurrency(retirementBalance)} in retirement accounts (not spendable cash)</small>`;
+            retirementNoteHtml = `<small class="cf-retirement-note" id="cfRetirementNote">${escapeHtml(t('reports.fcRetirementNote', { amount: formatCurrency(retirementBalance) }))}</small>`;
         }
     }
 
     const summaryHtml = `
         <div class="nw-report-summary">
             <div class="nw-report-stat">
-                <span>Current Balance${accountId === 'total' ? ' (all asset accounts)' : ''}</span>
+                <span>${escapeHtml(accountId === 'total' ? t('reports.fcCurrentAll') : t('reports.fcCurrent'))}</span>
                 <strong>${formatCurrency(stats.current)}</strong>
                 ${retirementNoteHtml}
             </div>
             <div class="nw-report-stat">
-                <span>Lowest Projected (${escapeHtml(lowestLabel)})</span>
+                <span>${escapeHtml(t('reports.fcLowest', { label: lowestLabel }))}</span>
                 <strong class="${lowestBalance < 0 ? 'acct-balance--neg' : 'acct-balance--pos'}">${formatCurrency(lowestBalance)}</strong>
             </div>
             <div class="nw-report-stat">
-                <span>Highest Projected (${escapeHtml(stats.highest.label)})</span>
+                <span>${escapeHtml(t('reports.fcHighest', { label: stats.highest.label }))}</span>
                 <strong class="acct-balance--pos">${formatCurrency(stats.highest.balance)}</strong>
             </div>
         </div>
@@ -309,17 +310,17 @@ export function renderCashFlowForecast(app) {
         `;
         const drivers = notableMonths.get(`${entry.year}-${entry.month}`);
         if (drivers && drivers.length > 0) {
-            const driversText = drivers.map(d => `${escapeHtml(d.name)} (${formatCurrency(d.amount)})`).join(', ');
+            const driversText = drivers.map(d => `${d.name} (${formatCurrency(d.amount)})`).join(', ');
             rowsHtml += `
                 <tr class="cf-notable-row${negative ? ' cf-row--negative' : ''}">
-                    <td colspan="5">⚠️ Driven by: ${driversText}</td>
+                    <td colspan="5">⚠️ ${escapeHtml(t('reports.fcDrivenBy', { drivers: driversText }))}</td>
                 </tr>
             `;
         }
         if (entry.lowDate && entry.lowBalance < 0 && entry.lowBalance < entry.balance - 1e-9) {
             rowsHtml += `
                 <tr class="cf-notable-row cf-row--negative">
-                    <td colspan="5">⚠️ Dips to ${formatCurrency(entry.lowBalance)} on ${escapeHtml(formatShortDate(entry.lowDate))} before recovering</td>
+                    <td colspan="5">⚠️ ${escapeHtml(t('reports.fcDips', { amount: formatCurrency(entry.lowBalance), date: formatShortDate(entry.lowDate) }))}</td>
                 </tr>
             `;
         }
@@ -328,22 +329,22 @@ export function renderCashFlowForecast(app) {
     container.innerHTML = `
         <div class="cf-controls">
             <div class="cf-control-group">
-                <span class="cf-control-label">Horizon</span>
-                <div class="nw-range-buttons" role="group" aria-label="Forecast horizon">
+                <span class="cf-control-label">${escapeHtml(t('reports.fcHorizon'))}</span>
+                <div class="nw-range-buttons" role="group" aria-label="${escapeHtml(t('reports.fcHorizonAria'))}">
                     ${horizonButtonsHtml}
                 </div>
             </div>
             <div class="cf-control-group">
-                <label for="forecastAccountSelect" class="cf-control-label">Account</label>
+                <label for="forecastAccountSelect" class="cf-control-label">${escapeHtml(t('reports.colAccount'))}</label>
                 <select id="forecastAccountSelect" class="cf-account-select select-styled">
                     ${accountOptionsHtml}
                 </select>
             </div>
             <div class="cf-control-group">
-                <label for="forecastThresholdInput" class="cf-control-label">Flag months with outflow above</label>
+                <label for="forecastThresholdInput" class="cf-control-label">${escapeHtml(t('reports.fcFlagLabel'))}</label>
                 <input type="number" id="forecastThresholdInput" class="cf-threshold-input"
                        value="${thresholdPct}" min="100" max="500" step="5">
-                <span class="cf-control-suffix">% of average</span>
+                <span class="cf-control-suffix">${escapeHtml(t('reports.fcOfAverage'))}</span>
             </div>
         </div>
         ${warningHtml}
@@ -356,7 +357,7 @@ export function renderCashFlowForecast(app) {
         <div class="nw-history-table-wrap">
             <table class="nw-history-table">
                 <thead>
-                    <tr><th>Month</th><th>Income</th><th>Outflow</th><th>Net</th><th>Ending Balance</th></tr>
+                    <tr><th>${escapeHtml(t('reports.colMonth'))}</th><th>${escapeHtml(t('reports.statIncome'))}</th><th>${escapeHtml(t('reports.cftOutflow'))}</th><th>${escapeHtml(t('reports.cftNet'))}</th><th>${escapeHtml(t('reports.fcEndingBalance'))}</th></tr>
                 </thead>
                 <tbody>
                     ${rowsHtml}

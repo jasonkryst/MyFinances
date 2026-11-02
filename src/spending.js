@@ -1,8 +1,10 @@
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import {
     escapeHtml, formatCurrency, renderChartDataTable, getReportDate, PINNED_COLORS,
-    getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel
+    getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel,
+    formatMonthLong, formatMonthYear
 } from './utils.js';
+import { t, plural, categoryLabel, getIntlLocale } from './i18n.js';
 import { loadLedgerFilters } from './ledger.js';
 
 export const PALETTE = [
@@ -86,7 +88,7 @@ function _changeBadgeHTML(change, prevLabel, cls) {
     if (change === null || change === undefined) return '<span></span>';
     const pct = Math.round(Math.abs(change) * 100);
     const dir = change >= 0 ? '↑' : '↓';
-    return `<span class="spending-change-badge ${cls}">${dir} ${pct}% vs ${escapeHtml(prevLabel)}</span>`;
+    return `<span class="spending-change-badge ${cls}">${dir} ${escapeHtml(t('reports.spendChangeVs', { pct, label: prevLabel }))}</span>`;
 }
 
 function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
@@ -95,8 +97,8 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     if (!modal || !content) return;
     let py = year, pm = month - 1;
     if (pm < 0) { pm = 11; py--; }
-    const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const prevLabel = new Date(py, pm, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const monthLabel = formatMonthLong(new Date(year, month, 1));
+    const prevLabel = formatMonthYear(new Date(py, pm, 1));
     const typeIcons = { expense: '💸', bill: '🧾', recurring: '🔄', debt: '💳', savings: '💰' };
     const badgeHTML = _changeBadgeHTML(
         catData.changeVsLastMonth, prevLabel,
@@ -104,7 +106,7 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     );
     const txRows = catData.transactions.map(tx => {
         const d = new Date(tx.date);
-        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const dateStr = d.toLocaleDateString(getIntlLocale(), { month: 'short', day: 'numeric' });
         const icon = typeIcons[tx.type] || '•';
         return `<div class="spending-modal-tx-row">
             <span class="spending-modal-tx-name">${escapeHtml(tx.name)}</span>
@@ -115,15 +117,15 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     content.innerHTML = `
         <div class="spending-modal-header">
             <div>
-                <h3 class="spending-modal-title" id="spendingDrilldownTitle">${escapeHtml(catData.category)} — ${escapeHtml(monthLabel)}</h3>
-                <p class="spending-modal-subtitle">${catData.transactions.length} transaction${catData.transactions.length !== 1 ? 's' : ''} · ${formatCurrency(catData.total)}</p>
+                <h3 class="spending-modal-title" id="spendingDrilldownTitle">${escapeHtml(t('reports.spendDrillTitle', { category: categoryLabel(catData.category), month: monthLabel }))}</h3>
+                <p class="spending-modal-subtitle">${escapeHtml(plural('reports.spendTxCount', catData.transactions.length))} · ${formatCurrency(catData.total)}</p>
             </div>
             ${badgeHTML}
         </div>
-        <div class="spending-modal-tx-list">${txRows || '<p class="spending-empty-detail">No transactions.</p>'}</div>
+        <div class="spending-modal-tx-list">${txRows || `<p class="spending-empty-detail">${escapeHtml(t('reports.spendNoTx'))}</p>`}</div>
         <div class="spending-modal-footer">
-            ${catData.category === 'Debt Payments' ? '' : `<button class="btn btn-secondary" id="spendingDrilldownViewLedgerBtn" aria-label="View ${escapeHtml(catData.category)} transactions in Ledger">View in Ledger &rarr;</button>`}
-            <button class="btn btn-secondary" id="spendingDrilldownClose" aria-label="Close drill-down">Close</button>
+            ${catData.category === 'Debt Payments' ? '' : `<button class="btn btn-secondary" id="spendingDrilldownViewLedgerBtn" aria-label="${escapeHtml(t('reports.spendViewLedgerAria', { category: categoryLabel(catData.category) }))}">${escapeHtml(t('reports.spendViewLedger'))} &rarr;</button>`}
+            <button class="btn btn-secondary" id="spendingDrilldownClose" aria-label="${escapeHtml(t('reports.spendCloseAria'))}">${escapeHtml(t('common.close'))}</button>
         </div>`;
     modal.classList.remove('hidden');
 
@@ -176,7 +178,7 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
             app._ledgerFiltersRestored = true;
             // Shows every month for this category (dateRange is 'all', not
             // scoped to monthLabel) — the label must not imply otherwise.
-            app._ledgerCrossNavLabel = catData.category;
+            app._ledgerCrossNavLabel = categoryLabel(catData.category);
             app.switchPage('ledger');
         };
     }
@@ -219,7 +221,7 @@ export function renderReportsSpending(app) {
     const categories = computeSpendingByCategoryRange(app, year, month, rangeMonths);
 
     if (categories.length === 0) {
-        container.innerHTML = `<p class="spending-empty">No spending data for ${escapeHtml(monthLabel)}. Add expenses, bills, or recurring templates.</p>`;
+        container.innerHTML = `<p class="spending-empty">${escapeHtml(t('reports.spendEmpty', { label: monthLabel }))}</p>`;
         return;
     }
 
@@ -251,9 +253,9 @@ export function renderReportsSpending(app) {
         const change = _changeVsBaseline(cat.total, baselineTotals, cat.category);
         const changeHTML = _changeBadgeHTML(change, baselineLabel,
             change !== null && change >= 0 ? 'spending-ranked-change--up' : 'spending-ranked-change--down');
-        return `<div class="spending-ranked-row" data-spending-cat="${escapeHtml(cat.category)}" role="button" tabindex="0" aria-label="View ${escapeHtml(cat.category)} transactions">
+        return `<div class="spending-ranked-row" data-spending-cat="${escapeHtml(cat.category)}" role="button" tabindex="0" aria-label="${escapeHtml(t('reports.spendViewTxAria', { category: categoryLabel(cat.category) }))}">
             <span class="spending-ranked-rank">${i + 1}.</span>
-            <span class="spending-ranked-name">${escapeHtml(cat.category)}</span>
+            <span class="spending-ranked-name">${escapeHtml(categoryLabel(cat.category))}</span>
             <span class="spending-ranked-total">${formatCurrency(cat.total)}</span>
             ${changeHTML}
             <span class="spending-ranked-chevron" aria-hidden="true">›</span>
@@ -262,20 +264,20 @@ export function renderReportsSpending(app) {
 
     container.innerHTML = `
         <div class="spending-summary-strip">
-            <span>Total: <strong>${formatCurrency(total)}</strong> · ${escapeHtml(monthLabel)}</span>
+            <span>${escapeHtml(t('reports.spendTotal'))} <strong>${formatCurrency(total)}</strong> · ${escapeHtml(monthLabel)}</span>
             ${totalBadge}
-            <label class="spending-range-toggle-label" for="spendingRangeMonths">Range:
+            <label class="spending-range-toggle-label" for="spendingRangeMonths">${escapeHtml(t('reports.rangeLabel'))}
                 <select id="spendingRangeMonths" class="select-styled">
-                    <option value="1"${rangeMonths === 1 ? ' selected' : ''}>Single Month</option>
-                    <option value="3"${rangeMonths === 3 ? ' selected' : ''}>Quarter (3 mo)</option>
-                    <option value="6"${rangeMonths === 6 ? ' selected' : ''}>Half Year (6 mo)</option>
-                    <option value="12"${rangeMonths === 12 ? ' selected' : ''}>Year (12 mo)</option>
+                    <option value="1"${rangeMonths === 1 ? ' selected' : ''}>${escapeHtml(t('reports.rangeSingle'))}</option>
+                    <option value="3"${rangeMonths === 3 ? ' selected' : ''}>${escapeHtml(t('reports.rangeQuarter'))}</option>
+                    <option value="6"${rangeMonths === 6 ? ' selected' : ''}>${escapeHtml(t('reports.rangeHalf'))}</option>
+                    <option value="12"${rangeMonths === 12 ? ' selected' : ''}>${escapeHtml(t('reports.rangeYear'))}</option>
                 </select>
             </label>
-            <label class="spending-yoy-toggle-label" for="spendingComparisonMode">Compare:
+            <label class="spending-yoy-toggle-label" for="spendingComparisonMode">${escapeHtml(t('reports.spendCompare'))}
                 <select id="spendingComparisonMode" class="select-styled">
-                    <option value="month"${yoyMode ? '' : ' selected'}>vs. ${rangeMonths > 1 ? 'prior period' : 'last month'}</option>
-                    <option value="year"${yoyMode ? ' selected' : ''}>vs. same ${rangeMonths > 1 ? 'period' : 'month'} last year</option>
+                    <option value="month"${yoyMode ? '' : ' selected'}>${escapeHtml(rangeMonths > 1 ? t('reports.spendVsPriorPeriod') : t('reports.spendVsLastMonth'))}</option>
+                    <option value="year"${yoyMode ? ' selected' : ''}>${escapeHtml(rangeMonths > 1 ? t('reports.spendVsSamePeriod') : t('reports.spendVsSameMonth'))}</option>
                 </select>
             </label>
         </div>
@@ -284,7 +286,7 @@ export function renderReportsSpending(app) {
             <div class="spending-ranked-list" id="spendingRankedList">${rankedRows}</div>
         </div>
         <div class="spending-bar-section">
-            <h4 class="spending-bar-title">6-Month Trend by Category</h4>
+            <h4 class="spending-bar-title">${escapeHtml(t('reports.spendTrendTitle'))}</h4>
             <div class="spending-bar-wrap"><canvas id="rptSpendingBarChart"></canvas></div>
         </div>`;
 
@@ -328,7 +330,7 @@ export function renderReportsSpending(app) {
         app._rptSpendingPieChart = new Chart(pieCvs, {
             type: 'doughnut',
             data: {
-                labels: categories.map(c => c.category),
+                labels: categories.map(c => categoryLabel(c.category)),
                 datasets: [{
                     data: categories.map(c => c.total),
                     backgroundColor: categories.map(c => categoryColor(c.category)),
@@ -357,9 +359,9 @@ export function renderReportsSpending(app) {
 
 
         renderChartDataTable('rptSpendingPieChart', {
-            caption: `Spending by category — ${monthLabel}`,
-            columns: ['Category', 'Amount'],
-            rows: categories.map(c => [c.category, formatCurrency(c.total)])
+            caption: t('reports.spendPieCaption', { label: monthLabel }),
+            columns: [t('reports.colCategory'), t('reports.colAmount')],
+            rows: categories.map(c => [categoryLabel(c.category), formatCurrency(c.total)])
         });
     }
 
@@ -370,7 +372,7 @@ export function renderReportsSpending(app) {
         for (let i = 5; i >= 0; i--) {
             let bm = month - i, by = year;
             if (bm < 0) { bm += 12; by--; }
-            months.push({ year: by, month: bm, label: new Date(by, bm, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) });
+            months.push({ year: by, month: bm, label: new Date(by, bm, 1).toLocaleDateString(getIntlLocale(), { month: 'short', year: '2-digit' }) });
         }
         const monthCats = months.map(({ year: by, month: bm }) => computeSpendingByCategory(app, by, bm));
         const allCatNames = [...new Set(monthCats.flatMap(mc => mc.map(c => c.category)))];
@@ -378,7 +380,7 @@ export function renderReportsSpending(app) {
         const barDatasets = allCatNames.map(cat => {
             const color = categoryColor(cat);
             return {
-                label: cat,
+                label: categoryLabel(cat),
                 data: monthCats.map(mc => { const found = mc.find(c => c.category === cat); return found ? found.total : 0; }),
                 backgroundColor: monthCats.map((_, idx) => idx === 5 ? color : _hexToRgba(color, 0.5)),
                 borderWidth: 0
@@ -404,8 +406,8 @@ export function renderReportsSpending(app) {
 
 
         renderChartDataTable('rptSpendingBarChart', {
-            caption: '6-month spending trend by category',
-            columns: ['Month', ...barDatasets.map(ds => ds.label)],
+            caption: t('reports.spendBarCaption'),
+            columns: [t('reports.colMonth'), ...barDatasets.map(ds => ds.label)],
             rows: months.map((m, idx) => [m.label, ...barDatasets.map(ds => formatCurrency(ds.data[idx]))])
         });
     }

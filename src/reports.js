@@ -1,7 +1,7 @@
 // Reports page logic: month navigation, calendar, charts
 
 import {
-    getReportDate, renderLazyLoadError
+    getReportDate, renderLazyLoadError, formatMonthLong
 } from './utils.js';
 import { renderCashFlowForecast } from './forecast.js';
 import { renderReportsSpending } from './spending.js';
@@ -22,7 +22,7 @@ export function nextReportMonth(app) {
 
 export function updateReportMonthNav(app) {
     const d = getReportDate(app);
-    const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const label = formatMonthLong(d);
     const el = document.getElementById('rptMonthLabel');
     if (el) el.textContent = label;
 

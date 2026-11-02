@@ -163,8 +163,8 @@
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="ledger-section page-section" id="ledgerSection">
                 <div class="page-header-row page-header">
-                    <h2>📒 Ledger</h2>
-                    <button type="button" class="page-print-btn" id="ledgerPrintBtn" title="Print this page" aria-label="Print the Ledger page">🖨️ Print</button>
+                    <h2>📒 <span data-i18n="ledger.pageTitle">Ledger</span></h2>
+                    <button type="button" class="page-print-btn" id="ledgerPrintBtn" title="Print this page" aria-label="Print the Ledger page" data-i18n-attr="title:common.printTitle,aria-label:ledger.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
                 <div id="ledgerTableContainer"></div>
             </section>
@@ -801,18 +801,18 @@
             <!-- People Section -->
             <section class="income-section page-section" id="peopleSection">
                 <div class="page-header-row page-header">
-                    <h2>👨‍👩‍👧‍👦 Family Members</h2>
+                    <h2>👨‍👩‍👧‍👦 <span data-i18n="people.pageTitle">Family Members</span></h2>
                 </div>
                 <div class="income-form-card">
-                    <h3>Add Family Member</h3>
+                    <h3 data-i18n="people.addTitle">Add Family Member</h3>
                     <form id="personForm" novalidate>
                         <div class="income-form-grid">
                             <div class="form-group">
-                                <label for="personName">Name *</label>
-                                <input type="text" id="personName" placeholder="e.g. Alice, Bob" required>
+                                <label for="personName" data-i18n="people.nameLabel">Name *</label>
+                                <input type="text" id="personName" placeholder="e.g. Alice, Bob" data-i18n-attr="placeholder:people.namePlaceholder" required>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success" id="personFormSubmit">Add Person</button>
+                        <button type="submit" class="btn btn-success" id="personFormSubmit" data-i18n="people.addBtn">Add Person</button>
                     </form>
                 </div>
                 <div id="peopleList" class="income-list"></div>
@@ -1045,47 +1045,47 @@
             <!-- Reports Section                                             -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="reports-section page-section" id="reportsSection">
-                <h2>📈 Reports</h2>
+                <h2>📈 <span data-i18n="nav.reports">Reports</span></h2>
 
                 <!-- Month pagination -->
                 <div class="rpt-month-nav">
-                    <button class="rpt-month-btn" id="rptPrevMonth" title="Previous month" aria-label="Previous month">&#8249;</button>
+                    <button class="rpt-month-btn" id="rptPrevMonth" title="Previous month" aria-label="Previous month" data-i18n-attr="title:reports.prevMonth,aria-label:reports.prevMonth">&#8249;</button>
                     <span class="rpt-month-label" id="rptMonthLabel"></span>
-                    <button class="rpt-month-btn" id="rptNextMonth" title="Next month" aria-label="Next month">&#8250;</button>
-                    <button class="rpt-month-btn rpt-print-btn" id="rptPrintBtn" type="button" title="Print or save this report as a PDF" aria-label="Print or save this report as a PDF">🖨️ Print</button>
+                    <button class="rpt-month-btn" id="rptNextMonth" title="Next month" aria-label="Next month" data-i18n-attr="title:reports.nextMonth,aria-label:reports.nextMonth">&#8250;</button>
+                    <button class="rpt-month-btn rpt-print-btn" id="rptPrintBtn" type="button" title="Print or save this report as a PDF" aria-label="Print or save this report as a PDF" data-i18n-attr="title:reports.printAria,aria-label:reports.printAria">🖨️ <span data-i18n="common.print">Print</span></button>
                 </div>
 
                 <!-- Tab bar -->
-                <div class="rpt-tab-bar" role="tablist" aria-label="Report sections">
+                <div class="rpt-tab-bar" role="tablist" aria-label="Report sections" data-i18n-attr="aria-label:reports.sectionsAria">
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Activity</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupActivity">Activity</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-calendar" class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" role="tab" aria-selected="true" aria-controls="rptPanel-calendar">📅 Calendar</button>
-                            <button id="rptTab-spending" class="rpt-tab-btn" data-rptab="spending" role="tab" aria-selected="false" aria-controls="rptPanel-spending">🏷️ Spending</button>
-                            <button id="rptTab-incomeexp" class="rpt-tab-btn" data-rptab="incomeexp" role="tab" aria-selected="false" aria-controls="rptPanel-incomeexp">📊 Income vs Expenses</button>
+                            <button id="rptTab-calendar" class="rpt-tab-btn rpt-tab-btn--active" data-rptab="calendar" role="tab" aria-selected="true" aria-controls="rptPanel-calendar">📅 <span data-i18n="reports.tabCalendar">Calendar</span></button>
+                            <button id="rptTab-spending" class="rpt-tab-btn" data-rptab="spending" role="tab" aria-selected="false" aria-controls="rptPanel-spending">🏷️ <span data-i18n="reports.tabSpending">Spending</span></button>
+                            <button id="rptTab-incomeexp" class="rpt-tab-btn" data-rptab="incomeexp" role="tab" aria-selected="false" aria-controls="rptPanel-incomeexp">📊 <span data-i18n="reports.tabIncomeExp">Income vs Expenses</span></button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Trends</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupTrends">Trends</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-moneyflow" class="rpt-tab-btn" data-rptab="moneyflow" role="tab" aria-selected="false" aria-controls="rptPanel-moneyflow">💰 Money Flow</button>
-                            <button id="rptTab-variance" class="rpt-tab-btn" data-rptab="variance" role="tab" aria-selected="false" aria-controls="rptPanel-variance">📈 What Changed</button>
-                            <button id="rptTab-networth" class="rpt-tab-btn" data-rptab="networth" role="tab" aria-selected="false" aria-controls="rptPanel-networth">📉 Net Worth</button>
+                            <button id="rptTab-moneyflow" class="rpt-tab-btn" data-rptab="moneyflow" role="tab" aria-selected="false" aria-controls="rptPanel-moneyflow">💰 <span data-i18n="reports.tabMoneyFlow">Money Flow</span></button>
+                            <button id="rptTab-variance" class="rpt-tab-btn" data-rptab="variance" role="tab" aria-selected="false" aria-controls="rptPanel-variance">📈 <span data-i18n="reports.tabVariance">What Changed</span></button>
+                            <button id="rptTab-networth" class="rpt-tab-btn" data-rptab="networth" role="tab" aria-selected="false" aria-controls="rptPanel-networth">📉 <span data-i18n="reports.tabNetWorth">Net Worth</span></button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Planning</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupPlanning">Planning</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-forecast" class="rpt-tab-btn" data-rptab="forecast" role="tab" aria-selected="false" aria-controls="rptPanel-forecast">🔮 Forecast</button>
+                            <button id="rptTab-forecast" class="rpt-tab-btn" data-rptab="forecast" role="tab" aria-selected="false" aria-controls="rptPanel-forecast">🔮 <span data-i18n="reports.tabForecast">Forecast</span></button>
                         </div>
                     </div>
                     <div class="rpt-tab-group-sep" aria-hidden="true"></div>
                     <div class="rpt-tab-group">
-                        <span class="rpt-tab-group-label">Print</span>
+                        <span class="rpt-tab-group-label" data-i18n="reports.groupPrint">Print</span>
                         <div class="rpt-tab-group-tabs">
-                            <button id="rptTab-summary" class="rpt-tab-btn" data-rptab="summary" role="tab" aria-selected="false" aria-controls="rptPanel-summary">🖨️ Summary</button>
+                            <button id="rptTab-summary" class="rpt-tab-btn" data-rptab="summary" role="tab" aria-selected="false" aria-controls="rptPanel-summary">🖨️ <span data-i18n="reports.tabSummary">Summary</span></button>
                         </div>
                     </div>
                 </div>
@@ -1372,57 +1372,57 @@
     </div>
     <div id="ledgerOverrideModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="ledgerOverrideCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="ledgerOverrideTitle">Override Ledger Amount</h3>
-            <p class="modal-description">Use a replacement amount while preserving the original value for history.</p>
+            <button id="ledgerOverrideCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="ledgerOverrideTitle" data-i18n="ledger.overrideTitle">Override Ledger Amount</h3>
+            <p class="modal-description" data-i18n="ledger.overrideDesc">Use a replacement amount while preserving the original value for history.</p>
             <p class="modal-tx-name"><strong id="ledgerOverrideTxName"></strong></p>
-            <p class="modal-helper-text">Account: <span id="ledgerOverrideAccount"></span></p>
-            <p class="modal-helper-text">Date: <span id="ledgerOverrideDate"></span></p>
+            <p class="modal-helper-text"><span data-i18n="ledger.overrideAccount">Account:</span> <span id="ledgerOverrideAccount"></span></p>
+            <p class="modal-helper-text"><span data-i18n="ledger.overrideDate">Date:</span> <span id="ledgerOverrideDate"></span></p>
             <div class="form-group modal-form-group">
-                <label for="ledgerOverrideAmountInput">Replacement Amount ($)</label>
+                <label for="ledgerOverrideAmountInput" data-i18n="ledger.overrideAmountLabel">Replacement Amount ($)</label>
                 <input type="number" id="ledgerOverrideAmountInput" step="0.01" placeholder="0.00">
-                <div class="modal-helper-text">Original amount: <span id="ledgerOverrideOriginal"></span></div>
-                <label for="ledgerOverrideMemoInput">Memo (optional)</label>
-                <textarea id="ledgerOverrideMemoInput" rows="2" maxlength="500" placeholder="e.g. split with roommate, refund received…" class="ledger-memo-textarea"></textarea>
+                <div class="modal-helper-text"><span data-i18n="ledger.overrideOriginal">Original amount:</span> <span id="ledgerOverrideOriginal"></span></div>
+                <label for="ledgerOverrideMemoInput" data-i18n="ledger.overrideMemoLabel">Memo (optional)</label>
+                <textarea id="ledgerOverrideMemoInput" rows="2" maxlength="500" placeholder="e.g. split with roommate, refund received…" data-i18n-attr="placeholder:ledger.overrideMemoPlaceholder" class="ledger-memo-textarea"></textarea>
             </div>
             <div class="modal-actions">
-                <button id="ledgerOverrideConfirmBtn" class="btn btn-success">Save Override</button>
-                <button id="ledgerOverrideCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="ledgerOverrideConfirmBtn" class="btn btn-success" data-i18n="ledger.overrideSave">Save Override</button>
+                <button id="ledgerOverrideCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
 
     <div id="ledgerExportModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerExportTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="ledgerExportCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="ledgerExportTitle">Export Ledger to CSV</h3>
-            <p class="modal-description">Choose which columns to include. Exports the currently filtered and sorted view.</p>
+            <button id="ledgerExportCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="ledgerExportTitle" data-i18n="ledger.exportTitle">Export Ledger to CSV</h3>
+            <p class="modal-description" data-i18n="ledger.exportDesc">Choose which columns to include. Exports the currently filtered and sorted view.</p>
             <div class="form-group modal-form-group" id="ledgerExportColumnList">
-                <label><input type="checkbox" id="ledgerExportCol-date" value="date" checked> Date</label>
-                <label><input type="checkbox" id="ledgerExportCol-account" value="account" checked> Account</label>
-                <label><input type="checkbox" id="ledgerExportCol-name" value="name" checked> Transaction Name</label>
-                <label><input type="checkbox" id="ledgerExportCol-amount" value="amount" checked> Amount</label>
-                <label><input type="checkbox" id="ledgerExportCol-category" value="category" checked> Category</label>
-                <label><input type="checkbox" id="ledgerExportCol-balance" value="balance" checked> Running Balance</label>
-                <label><input type="checkbox" id="ledgerExportCol-type" value="type" checked> Type</label>
-                <label><input type="checkbox" id="ledgerExportCol-cleared" value="cleared" checked> Cleared</label>
-                <label><input type="checkbox" id="ledgerExportCol-clearedAt" value="clearedAt" checked> Cleared At</label>
+                <label><input type="checkbox" id="ledgerExportCol-date" value="date" checked> <span data-i18n="ledger.colDate">Date</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-account" value="account" checked> <span data-i18n="ledger.colAccount">Account</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-name" value="name" checked> <span data-i18n="ledger.exportColName">Transaction Name</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-amount" value="amount" checked> <span data-i18n="ledger.colAmount">Amount</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-category" value="category" checked> <span data-i18n="ledger.exportColCategory">Category</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-balance" value="balance" checked> <span data-i18n="ledger.colBalance">Running Balance</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-type" value="type" checked> <span data-i18n="ledger.exportColType">Type</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-cleared" value="cleared" checked> <span data-i18n="ledger.colCleared">Cleared</span></label>
+                <label><input type="checkbox" id="ledgerExportCol-clearedAt" value="clearedAt" checked> <span data-i18n="ledger.exportColClearedAt">Cleared At</span></label>
             </div>
-            <p class="modal-helper-text" id="ledgerExportEmptyWarning" hidden>No transactions match the current filters — nothing to export.</p>
+            <p class="modal-helper-text" id="ledgerExportEmptyWarning" data-i18n="ledger.exportEmpty" hidden>No transactions match the current filters — nothing to export.</p>
             <div class="modal-actions">
-                <button id="ledgerExportConfirmBtn" class="btn btn-success">Export CSV</button>
-                <button id="ledgerExportCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="ledgerExportConfirmBtn" class="btn btn-success" data-i18n="ledger.exportCsv">Export CSV</button>
+                <button id="ledgerExportCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
     <div id="ledgerMarkAllClearedModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerMarkAllClearedTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="ledgerMarkAllClearedCloseBtn" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="ledgerMarkAllClearedTitle">Mark All Visible as Cleared</h3>
+            <button id="ledgerMarkAllClearedCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
+            <h3 id="ledgerMarkAllClearedTitle" data-i18n="ledger.markAllTitle">Mark All Visible as Cleared</h3>
             <p class="modal-description" id="ledgerMarkAllClearedDesc"></p>
             <div class="modal-actions">
-                <button id="ledgerMarkAllClearedConfirmBtn" class="btn btn-success">Mark as Cleared</button>
-                <button id="ledgerMarkAllClearedCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="ledgerMarkAllClearedConfirmBtn" class="btn btn-success" data-i18n="ledger.markAllConfirm">Mark as Cleared</button>
+                <button id="ledgerMarkAllClearedCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1696,18 +1696,18 @@
     <div id="personReplacementModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="personReplacementTitle" tabindex="-1">
         <div class="modal-content">
-            <h3 id="personReplacementTitle">Delete Family Member</h3>
+            <h3 id="personReplacementTitle" data-i18n="people.replaceTitle">Delete Family Member</h3>
             <p id="personReplacementInfo" class="modal-description"></p>
             <div id="personReplacementLinks" class="account-replacement-links"></div>
             <div class="form-group modal-form-group">
-                <label for="personReplacementSelect">Reassign debts to</label>
+                <label for="personReplacementSelect" data-i18n="people.replaceLabel">Reassign debts to</label>
                 <select id="personReplacementSelect">
-                    <option value="">— Unassign (no owner) —</option>
+                    <option value="" data-i18n="people.replaceUnassignModal">— Unassign (no owner) —</option>
                 </select>
             </div>
             <div class="modal-actions">
-                <button id="personReplacementConfirmBtn" class="btn btn-danger">Delete</button>
-                <button id="personReplacementCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="personReplacementConfirmBtn" class="btn btn-danger" data-i18n="common.delete">Delete</button>
+                <button id="personReplacementCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1741,11 +1741,11 @@
         <div class="modal-content">
             <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="settingsModalTitle" data-i18n="settings.title">Settings</h3>
-            <div class="settings-tabs" role="tablist" aria-label="Settings sections">
-                <button type="button" class="settings-tab-btn settings-tab-btn--active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="settingsPanel-appearance">Appearance</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="settingsPanel-data">Data &amp; Storage</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="notifications" role="tab" aria-selected="false" aria-controls="settingsPanel-notifications">Notifications</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="advanced" role="tab" aria-selected="false" aria-controls="settingsPanel-advanced">Advanced</button>
+            <div class="settings-tabs" role="tablist" aria-label="Settings sections" data-i18n-attr="aria-label:settings.tabsAria">
+                <button type="button" class="settings-tab-btn settings-tab-btn--active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="settingsPanel-appearance" data-i18n="settings.tabAppearance">Appearance</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="settingsPanel-data" data-i18n="settings.tabData">Data &amp; Storage</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="notifications" role="tab" aria-selected="false" aria-controls="settingsPanel-notifications" data-i18n="settings.tabNotifications">Notifications</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="advanced" role="tab" aria-selected="false" aria-controls="settingsPanel-advanced" data-i18n="settings.tabAdvanced">Advanced</button>
             </div>
             <div id="settingsPanel-appearance" class="settings-tab-panel settings-tab-panel--active" role="tabpanel">
                 <div class="form-group modal-form-group">
@@ -1764,33 +1764,33 @@
                         <option value="es">Español</option>
                         <option value="pl">Polski</option>
                     </select>
-                    <p class="modal-helper-text" data-i18n="settings.languageHelp">Translation is still expanding — some pages may remain in English.</p>
+                    <p class="modal-helper-text" data-i18n="settings.languageHelp">Choose the language used throughout the app.</p>
                 </div>
                 <div class="form-group modal-form-group">
-                    <label for="settingCurrency">Currency</label>
+                    <label for="settingCurrency" data-i18n="settings.currencyLabel">Currency</label>
                     <select id="settingCurrency">
-                        <option value="USD">USD — US Dollar</option>
-                        <option value="EUR">EUR — Euro</option>
-                        <option value="GBP">GBP — British Pound</option>
-                        <option value="JPY">JPY — Japanese Yen</option>
-                        <option value="CAD">CAD — Canadian Dollar</option>
-                        <option value="AUD">AUD — Australian Dollar</option>
-                        <option value="CHF">CHF — Swiss Franc</option>
-                        <option value="CNY">CNY — Chinese Yuan</option>
-                        <option value="INR">INR — Indian Rupee</option>
-                        <option value="MXN">MXN — Mexican Peso</option>
-                        <option value="BRL">BRL — Brazilian Real</option>
-                        <option value="KRW">KRW — South Korean Won</option>
-                        <option value="SEK">SEK — Swedish Krona</option>
-                        <option value="NOK">NOK — Norwegian Krone</option>
-                        <option value="DKK">DKK — Danish Krone</option>
-                        <option value="SGD">SGD — Singapore Dollar</option>
-                        <option value="HKD">HKD — Hong Kong Dollar</option>
-                        <option value="NZD">NZD — New Zealand Dollar</option>
-                        <option value="ZAR">ZAR — South African Rand</option>
-                        <option value="PLN">PLN — Polish Zloty</option>
+                        <option value="USD" data-i18n="settings.cur.USD">USD — US Dollar</option>
+                        <option value="EUR" data-i18n="settings.cur.EUR">EUR — Euro</option>
+                        <option value="GBP" data-i18n="settings.cur.GBP">GBP — British Pound</option>
+                        <option value="JPY" data-i18n="settings.cur.JPY">JPY — Japanese Yen</option>
+                        <option value="CAD" data-i18n="settings.cur.CAD">CAD — Canadian Dollar</option>
+                        <option value="AUD" data-i18n="settings.cur.AUD">AUD — Australian Dollar</option>
+                        <option value="CHF" data-i18n="settings.cur.CHF">CHF — Swiss Franc</option>
+                        <option value="CNY" data-i18n="settings.cur.CNY">CNY — Chinese Yuan</option>
+                        <option value="INR" data-i18n="settings.cur.INR">INR — Indian Rupee</option>
+                        <option value="MXN" data-i18n="settings.cur.MXN">MXN — Mexican Peso</option>
+                        <option value="BRL" data-i18n="settings.cur.BRL">BRL — Brazilian Real</option>
+                        <option value="KRW" data-i18n="settings.cur.KRW">KRW — South Korean Won</option>
+                        <option value="SEK" data-i18n="settings.cur.SEK">SEK — Swedish Krona</option>
+                        <option value="NOK" data-i18n="settings.cur.NOK">NOK — Norwegian Krone</option>
+                        <option value="DKK" data-i18n="settings.cur.DKK">DKK — Danish Krone</option>
+                        <option value="SGD" data-i18n="settings.cur.SGD">SGD — Singapore Dollar</option>
+                        <option value="HKD" data-i18n="settings.cur.HKD">HKD — Hong Kong Dollar</option>
+                        <option value="NZD" data-i18n="settings.cur.NZD">NZD — New Zealand Dollar</option>
+                        <option value="ZAR" data-i18n="settings.cur.ZAR">ZAR — South African Rand</option>
+                        <option value="PLN" data-i18n="settings.cur.PLN">PLN — Polish Zloty</option>
                     </select>
-                    <p class="modal-helper-text">Currency used to display all monetary amounts in the app.</p>
+                    <p class="modal-helper-text" data-i18n="settings.currencyHelp">Currency used to display all monetary amounts in the app.</p>
                 </div>
             </div>
             <div id="settingsPanel-data" class="settings-tab-panel" role="tabpanel">
@@ -1805,15 +1805,15 @@
                     <p id="settingsStoragePostgresNote" class="modal-helper-text hidden" data-i18n="settings.storagePostgresNote">You are using PostgreSQL. Switching back to local or session storage is not supported.</p>
                 </div>
                 <div class="form-group modal-form-group settings-danger-zone">
-                    <h4 class="settings-danger-title">Danger zone</h4>
-                    <p class="modal-helper-text">Permanently remove every account, debt, income, expense, plan and setting stored in this browser. Export a backup first.</p>
-                    <button type="button" id="clearDataBtn" class="btn btn-danger btn-small">Clear All Data</button>
+                    <h4 class="settings-danger-title" data-i18n="settings.dangerTitle">Danger zone</h4>
+                    <p class="modal-helper-text" data-i18n="settings.dangerHelp">Permanently remove every account, debt, income, expense, plan and setting stored in this browser. Export a backup first.</p>
+                    <button type="button" id="clearDataBtn" class="btn btn-danger btn-small" data-i18n="settings.clearAllData">Clear All Data</button>
                 </div>
             </div>
             <div id="settingsPanel-notifications" class="settings-tab-panel" role="tabpanel">
                 <div class="form-group modal-form-group hidden" id="settingsEmailTestGroup">
                     <button type="button" id="settingsSendTestEmailBtn" class="btn btn-secondary" data-i18n="settings.sendTestEmail">Send test email</button>
-                    <p class="modal-helper-text">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
+                    <p class="modal-helper-text" data-i18n="settings.testEmailHelp">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
                 </div>
             </div>
             <div id="settingsPanel-advanced" class="settings-tab-panel" role="tabpanel">
@@ -1829,21 +1829,21 @@
                         <input type="checkbox" id="settingShowArchivedDebts">
                         <span data-i18n="settings.showArchivedDebts">Show archived debts</span>
                     </label>
-                    <p class="modal-helper-text">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
+                    <p class="modal-helper-text" data-i18n="settings.showArchivedDebtsHelp">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingShowArchivedRecurring">
                         <input type="checkbox" id="settingShowArchivedRecurring">
                         <span data-i18n="settings.showArchivedRecurring">Show archived recurring templates</span>
                     </label>
-                    <p class="modal-helper-text">When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.</p>
+                    <p class="modal-helper-text" data-i18n="settings.showArchivedRecurringHelp">When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingAutoNwSnapshot">
                         <input type="checkbox" id="settingAutoNwSnapshot">
                         <span data-i18n="settings.autoNwSnapshot">Auto-capture monthly net worth snapshot</span>
                     </label>
-                    <p class="modal-helper-text">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>
+                    <p class="modal-helper-text" data-i18n="settings.autoNwSnapshotHelp">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label for="settingZeroAmountPolicy" data-i18n="settings.zeroAmountLabel">$0 ledger amounts</label>
@@ -1908,7 +1908,7 @@
     <!-- Reports Calendar day detail -->
     <div id="calendarDayModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="calendarDayModalTitle" tabindex="-1">
         <div class="modal-content">
-            <button id="calendarDayModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
+            <button id="calendarDayModalCloseBtn" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
             <h3 id="calendarDayModalTitle"></h3>
             <div id="calendarDayModalBody" class="rpt-cal-modal-body"></div>
         </div>

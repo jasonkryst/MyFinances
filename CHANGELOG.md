@@ -4,6 +4,29 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.64.0] — 2026-11-02
+
+### Added
+- **The whole app is translated into Spanish and Polish** (issue #317, part 5 — completes the issue).
+  - **Reports:** every sub-tab (Calendar with its day modal, Spending with its drill-down and year-over-year mode, Income vs Expenses, Money Flow and the Sankey, Variance with Budget vs. Actual, Net Worth with its projection, Forecast, Summary), plus chart labels, screen-reader tables and the Net Worth toasts.
+  - **Ledger:** the table, filters, sort chips, toolbar, the cross-navigation breadcrumb, and the override, export and mark-all-cleared modals.
+  - **Generated transaction names:** "Transfer to/from X", "Interest", "Emergency Fund Contribution", "Balance Reconciliation", "Balance Rollover", unnamed-item fallbacks and forecast month labels follow the active language. They flow through to Reports, Forecast and Reconcile. Stored category values stay English and are labelled at render time (`categoryLabel()` gains Interest, Salary, Bonus and other built-ins).
+  - **People:** the list, inline edit and the person-replacement modal.
+  - **Settings:** the last untranslated text — tab labels, currency names and help, toggle help lines, the danger zone, and the "Clear ALL app data?" confirmation.
+  - **Dates:** Reports month labels are locale-aware via a new `formatMonthLong()` helper in `utils.js`.
+
+### Changed
+- **Settings language note:** it now reads "Choose the language used throughout the app." instead of warning that some pages may remain in English.
+- **Budget vs. Actual hint:** it pointed to "Liabilities → Budget → Category Budgets", but the sub-tab is called Expenses. It is corrected in all three languages.
+- **Calendar day modal title:** it reads "January 5, 2026" instead of "January 2026 5".
+- **Forecast warnings:** the month is no longer bolded, so each warning translates as one sentence.
+- **CSV export:** the header row deliberately stays English.
+
+### Tests
+- **Coverage guard:** `test_i18n_coverage.py` adds `REPORTS_STATE` and `LEDGER_STATE` seeds covering every transaction source (transfers, interest, fund contributions, reconciliations, balance history, recurring transfer legs, overrides and cleared rows). It also adds 25 page entries: each Reports sub-tab and modal, the Ledger and its modals, People, and the four Settings tabs.
+- **Seed workaround removed:** the `BASE_SEEDED_STATE` workaround for English ledger names is gone. Retirement and Reconcile now scan the full seeds.
+- **Language names:** English/Español/Polski are added to `NON_TRANSLATABLE`, because the language picker shows each language in its own name.
+
 ## [6.63.0] — 2026-11-02
 
 ### Added

@@ -3,8 +3,11 @@
 import {
     formatCurrency,
     escapeHtml,
-    getReportDate
+    getReportDate,
+    formatMonthLong,
+    formatLongDate
 } from './utils.js';
+import { t, plural } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 
 export function renderReportsCalendar(app) {
@@ -19,8 +22,8 @@ export function renderReportsCalendar(app) {
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
     const today = isCurrentMonth ? now.getDate() : -1;
 
-    const monthLabel = rptDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthLabel = formatMonthLong(rptDate);
+    const DAY_LABELS = ['daySun', 'dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat'].map(k => t(`strategy.${k}`));
 
     const monthTxs = getLedgerTransactionsForMonth(app, year, month);
     const dayIncome = {};
@@ -71,13 +74,13 @@ export function renderReportsCalendar(app) {
     }
 
     const legendItems = [
-        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--income"></span>Payday</span>',
-        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bill"></span>Bill due</span>',
-        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--expense"></span>Expense</span>',
-        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--recurring"></span>Recurring</span>',
-        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--debt"></span>Debt payment</span>',
-        '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bonus"></span>Bonus/Windfall</span>',
-        isCurrentMonth ? '<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--today"></span>Today</span>' : ''
+        `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--income"></span>${escapeHtml(t('reports.calLegendPayday'))}</span>`,
+        `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bill"></span>${escapeHtml(t('reports.calLegendBill'))}</span>`,
+        `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--expense"></span>${escapeHtml(t('reports.calLegendExpense'))}</span>`,
+        `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--recurring"></span>${escapeHtml(t('reports.calLegendRecurring'))}</span>`,
+        `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--debt"></span>${escapeHtml(t('reports.calLegendDebt'))}</span>`,
+        `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--bonus"></span>${escapeHtml(t('reports.calLegendBonus'))}</span>`,
+        isCurrentMonth ? `<span class="rpt-cal-legend-item"><span class="rpt-cal-swatch rpt-cal-swatch--today"></span>${escapeHtml(t('reports.calLegendToday'))}</span>` : ''
     ].filter(Boolean);
 
     const firstDay = new Date(year, month, 1).getDay();
@@ -122,8 +125,8 @@ export function renderReportsCalendar(app) {
         ].filter(Boolean);
         const eventCount = incomes.length + bills.length + expenses.length + recurring.length + debts.length + bonuses.length;
 
-        const dotsHTML = dotTypes.map(t => `<span class="rpt-cal-dot rpt-cal-dot--${t}"></span>`).join('');
-        const clickableAttrs = hasEvts ? ` data-cal-day="${day}" tabindex="0" role="button" aria-label="${eventCount} event${eventCount === 1 ? '' : 's'} on ${escapeHtml(monthLabel)} ${day}"` : '';
+        const dotsHTML = dotTypes.map(dt => `<span class="rpt-cal-dot rpt-cal-dot--${dt}"></span>`).join('');
+        const clickableAttrs = hasEvts ? ` data-cal-day="${day}" tabindex="0" role="button" aria-label="${escapeHtml(plural('reports.calEventsAria', eventCount, { date: formatLongDate(new Date(year, month, day)) }))}"` : '';
 
         gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"${clickableAttrs}>
             <span class="rpt-cal-day-num">${day}</span>
@@ -135,7 +138,7 @@ export function renderReportsCalendar(app) {
 
     container.innerHTML = `<h3 class="rpt-cal-month-title">${monthLabel}</h3><div class="rpt-cal-legend">${legendItems.join('')}</div>${gridHTML}`;
 
-    app._reportsCalendarDayData = { monthLabel, dayDataMap };
+    app._reportsCalendarDayData = { monthLabel, year, month, dayDataMap };
 
     const openDay = (day) => openCalendarDayModal(app, day);
     container.querySelectorAll('[data-cal-day]').forEach(el => {
@@ -161,7 +164,7 @@ export function openCalendarDayModal(app, day) {
     if (!modal || !titleEl || !bodyEl || !closeBtn || !data || !data.dayDataMap[day]) return;
 
     const { incomes, bills, expenses, recurring, debts, bonuses } = data.dayDataMap[day];
-    titleEl.textContent = `${data.monthLabel} ${day}`;
+    titleEl.textContent = formatLongDate(new Date(data.year, data.month, day));
 
     let html = '';
     for (const inc of incomes) {
@@ -182,7 +185,7 @@ export function openCalendarDayModal(app, day) {
     for (const debt of debts) {
         const amount = Math.abs(debt.amount || 0);
         const debtColor = debt._color ? debt._color.replace(/'/g, '') : '#2563eb';
-        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--debt-dynamic" data-debt-color="${debtColor}"><span class="rpt-cal-evt-name">💳 ${escapeHtml(debt.name)}</span><span class="rpt-cal-evt-amt">min ${formatCurrency(amount)}</span></div>`;
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--debt-dynamic" data-debt-color="${debtColor}"><span class="rpt-cal-evt-name">💳 ${escapeHtml(debt.name)}</span><span class="rpt-cal-evt-amt">${escapeHtml(t('reports.calMinAmount', { amount: formatCurrency(amount) }))}</span></div>`;
     }
     for (const b of bonuses) {
         html += `<div class="rpt-cal-modal-evt rpt-cal-evt--bonus"><span class="rpt-cal-evt-name">🎁 ${escapeHtml(b.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(b.amount)}</span></div>`;
