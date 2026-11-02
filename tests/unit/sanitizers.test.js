@@ -62,12 +62,19 @@ describe('sanitizePerson', () => {
 describe('sanitizeAccount', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizeAccount({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 }, 1);
-        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false });
+        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false, notes: '' });
     });
 
     test('applies fallbacks for an empty record', () => {
         const result = sanitizeAccount({}, 42);
-        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false });
+        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false, notes: '' });
+    });
+
+    test('keeps multi-line notes, strips markup, caps at 500 and rejects non-strings (#286)', () => {
+        expect(sanitizeAccount({ notes: ' Call <bank>\r\nRef 42 ' }, 1).notes).toBe('Call bank\nRef 42');
+        expect(sanitizeAccount({ notes: 'n'.repeat(900) }, 1).notes).toHaveLength(500);
+        expect(sanitizeAccount({ notes: 12345 }, 1).notes).toBe('');
+        expect(sanitizeAccount({ notes: { x: 1 } }, 1).notes).toBe('');
     });
 
     test('strips markup from name and clamps interestRate to 100', () => {

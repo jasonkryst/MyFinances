@@ -398,16 +398,13 @@ test('/api/accounts: notes, catchUpEligible and hsaCoverageType round-trip; bad 
     assert.equal(plain.catchUpEligible, false);
     assert.equal(plain.hsaCoverageType, 'selfOnly');
 
-    const created = await (await mk({ notes: 'Call 555-0100
-Ask about fees', catchUpEligible: true, hsaCoverageType: 'family' })).json();
-    assert.equal(created.notes, 'Call 555-0100
-Ask about fees');
+    const created = await (await mk({ notes: 'Call 555-0100\nAsk about fees', catchUpEligible: true, hsaCoverageType: 'family' })).json();
+    assert.equal(created.notes, 'Call 555-0100\nAsk about fees');
     assert.equal(created.catchUpEligible, true);
     assert.equal(created.hsaCoverageType, 'family');
 
     const listed = (await (await fetch(`${baseUrl}/api/accounts`, { headers: csrfHeaders() })).json()).find(a => a.id === created.id);
-    assert.equal(listed.notes, 'Call 555-0100
-Ask about fees');
+    assert.equal(listed.notes, 'Call 555-0100\nAsk about fees');
     assert.equal(listed.catchUpEligible, true);
     assert.equal(listed.hsaCoverageType, 'family');
 
