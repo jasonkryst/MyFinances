@@ -394,9 +394,21 @@ def test_ledger_cleared_unchecking_clears_state_and_timestamp(app_page):
     checkbox = page.query_selector('[data-ledger-cleared]')
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     checkbox.click()
+    # The click re-renders the Ledger and saves asynchronously: wait for the re-rendered,
+    # checked row before clicking again, or the second click can hit the detached element.
+    page.wait_for_function(
+        """(txId) => document.querySelector(`[data-ledger-cleared="${txId}"]`)?.checked === true""",
+        arg=tx_id, timeout=5000
+    )
 
-    checkbox_again = page.query_selector(f'[data-ledger-cleared="{tx_id}"]')
-    checkbox_again.click()
+    page.click(f'[data-ledger-cleared="{tx_id}"]')
+    page.wait_for_function(
+        """(txId) => {
+            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
+            return !(txId in (JSON.parse(raw).ledgerClearedTransactions || {}));
+        }""",
+        arg=tx_id, timeout=5000
+    )
 
     stored = page.evaluate(
         """() => {

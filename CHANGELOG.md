@@ -4,6 +4,24 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.64.1] — 2026-11-02
+
+### Fixed
+- **Income inline edit no longer changes the frequency** (issue #446). The edit form's Frequency dropdown only offered Every other week and Once per month. Saving a weekly or twice-monthly income, even without touching the field, rewrote it to bi-weekly and changed its paydays everywhere. The dropdown is now built from the same four frequencies as the card label, and an unexpected value keeps the stored frequency.
+- **Estimated annual income counts every frequency correctly** (issue #446). Weekly and twice-monthly incomes were multiplied by 12. Annual totals now use 52, 26, 24 or 12 paydays per year, and an unknown value counts as monthly.
+
+### Tests
+- **Income frequency (`test_income.py`):** seven tests in 16 cases:
+  - saving without changes keeps each frequency;
+  - the dropdown offers all four;
+  - changing to each frequency persists;
+  - per-frequency and mixed annual totals;
+  - an unknown stored frequency renders and counts as monthly;
+  - a tampered dropdown value is never stored.
+
+  Eight of these cases fail on 6.64.0.
+- **Ledger flake (`test_ledger.py::test_ledger_cleared_unchecking_clears_state_and_timestamp`):** the test intermittently failed because it clicked the Cleared checkbox again before the Ledger re-rendered, then read storage before the async save finished. It now waits for each state change.
+
 ## [6.64.0] — 2026-11-02
 
 ### Added

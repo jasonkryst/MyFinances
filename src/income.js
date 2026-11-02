@@ -29,6 +29,8 @@ const INCOME_FREQ_KEYS = {
     twice_monthly: 'income.freqTwiceMonthly',
     monthly: 'income.freqMonthly'
 };
+// Paydays per year for each stored frequency (#446). Unknown values count as monthly.
+const INCOME_PAYMENTS_PER_YEAR = { weekly: 52, biweekly: 26, twice_monthly: 24, monthly: 12 };
 const INCOME_CATEGORY_KEYS = {
     Salary: 'income.catSalary',
     Freelance: 'income.catFreelance',
@@ -100,8 +102,8 @@ export function renderIncomeList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editFrequency')}</label>
                                 <select id="ie-freq-${inc.id}" class="form-control form-full-width">
-                                    <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>${t('income.freqBiweeklyShort')}</option>
-                                    <option value="monthly"  ${inc.frequency === 'monthly' ? 'selected' : ''}>${t('income.freqMonthly')}</option>
+                                    ${Object.entries(INCOME_FREQ_KEYS).map(([value, key]) =>
+                                        `<option value="${value}" ${inc.frequency === value ? 'selected' : ''}>${escapeHtml(t(key))}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="form-group form-no-margin">
@@ -204,7 +206,7 @@ export function renderIncomeList(app) {
         // #251: net, matching the net "Expected this month"/"Regular pay" figures above.
         const totalAnnual = app.incomes.reduce((s, i) => {
             const net = computeNetIncomeAmount(i);
-            return s + (i.frequency === 'biweekly' ? net * 26 : net * 12);
+            return s + net * (INCOME_PAYMENTS_PER_YEAR[i.frequency] || 12);
         }, 0);
 
         const bonusRow = bonusThisMonth > 0
@@ -316,7 +318,10 @@ export async function saveEditIncome(app, incomeId) {
     const rawAmount   = amountEl.value;
     const amount      = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const firstPayDate = sanitizeDateISO(dateEl.value);
-    const frequency   = freqEl.value;
+    // Never silently rewrite the frequency: an unexpected select value keeps the stored one (#446).
+    const frequency   = Object.hasOwn(INCOME_FREQ_KEYS, freqEl.value)
+        ? freqEl.value
+        : app.incomes.find(i => i.id === incomeId)?.frequency;
     const accountId   = accountEl?.value ? parseInt(accountEl.value) : null;
     const personId    = personEl?.value ? parseInt(personEl.value, 10) : null;
     const category    = categoryEl?.value || 'Salary';
