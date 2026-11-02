@@ -81,5 +81,7 @@ def test_html_in_target_date_is_never_rendered(app_page, payload):
 def test_source_has_no_raw_date_fallback():
     """Static guard: the fallback must not interpolate the raw input value again."""
     src = SRC.read_text(encoding='utf-8')
-    line = next(l for l in src.splitlines() if 'const payoffDateStr = escapeHtml(' in l)
+    # The date is formatted from the parsed Date; the whole translated sentence is escaped when interpolated.
+    line = next(l for l in src.splitlines() if 'const payoffDateStr = formatLongDate(summary ? summary.payOffDate : targetDate)' in l)
     assert 'dateVal' not in line
+    assert "escapeHtml(t('strategy.payoffBy', { date: payoffDateStr }))" in src

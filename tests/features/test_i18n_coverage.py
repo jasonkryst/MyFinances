@@ -196,6 +196,54 @@ _RECURRING_NEEDED = """
             }
 """
 
+# Plan (strategy) page: two interest-bearing debts (one without a start date), a fixed-amount debt that ends
+# soon, a bill/expense/bonus so the calendar legend shows every event type, and prior plan history.
+_PLAN_FIXED_END = (datetime.date.today() + datetime.timedelta(days=400)).isoformat()
+PLAN_STATE = dict(SEEDED_STATE)
+PLAN_STATE.update({
+    'persons': [{'id': 1, 'name': '⟦Alex⟧'}],
+    'debts': [
+        {'id': 1, 'name': '⟦Visa Card⟧', 'debtType': 'creditCard', 'accountBalance': 4000, 'originalBalance': 5000,
+         'minimumPayment': 80, 'interestRate': 24, 'dueDate': 15, 'creditLimit': 5000, 'personIds': [1],
+         'debtStartDate': '2024-01-01'},
+        {'id': 2, 'name': '⟦Car Loan⟧', 'debtType': 'creditCard', 'accountBalance': 9000, 'originalBalance': 9000,
+         'minimumPayment': 200, 'interestRate': 8, 'dueDate': 3},
+        {'id': 3, 'name': '⟦Daycare⟧', 'debtType': 'fixedAmount', 'fixedAmount': 300,
+         'fixedStartDate': '2025-01-01', 'fixedEndDate': _PLAN_FIXED_END},
+    ],
+    'bills': [{'id': 1, 'name': '⟦Rent⟧', 'amount': 900, 'dueDay': 1, 'category': 'Housing', 'accountId': 1}],
+    'expenses': [{'id': 1, 'name': '⟦Groceries⟧', 'budgetAmount': 250, 'date': _TODAY, 'category': 'Food',
+                  'accountId': 1}],
+    'planHistory': [
+        {'id': 1, 'monthlyPayment': 600, 'strategy': 'avalanche', 'totalInterest': 1500, 'monthsToPayOff': 1,
+         'payoffDate': '2027-01-15T00:00:00.000Z', 'totalDebt': 13000, 'createdAt': '2026-01-01T00:00:00.000Z'},
+        {'id': 2, 'monthlyPayment': 650, 'strategy': 'priority-highest', 'totalInterest': 1400, 'monthsToPayOff': 24,
+         'payoffDate': '2028-01-15T00:00:00.000Z', 'totalDebt': 13000, 'createdAt': '2026-02-01T00:00:00.000Z'},
+    ],
+})
+
+_PLAN_CALC = """
+            window.app.switchPage('strategy');
+            document.getElementById('monthlyPayment').value = '700';
+            document.getElementById('paymentStrategy').value = 'snowball';
+            // not awaited: with no debts this opens the alert modal, which only resolves on OK
+            window.app.calculatePaymentPlanFromInputs();
+            await new Promise(r => setTimeout(r, 500));
+"""
+
+_PLAN_ROOTS = ['#strategySection', '#alertModal']
+
+
+def _plan_refi(apr):
+    return _PLAN_CALC + """
+            const rd = document.getElementById('refiDetails'); if (rd) rd.open = true;
+            const sel = document.getElementById('refiDebtSelect');
+            if (sel && sel.options.length > 1) sel.value = sel.options[1].value;
+            if (sel) sel.dispatchEvent(new Event('change'));
+            const apr = document.getElementById('refiAprInput');
+            if (apr) { apr.value = '%s'; apr.dispatchEvent(new Event('input')); }
+""" % apr
+
 EMPTY_STATE = {'accounts': [], 'debts': [], 'settings': []}
 
 # page name -> (DOM roots to scan, async JS run after load to render/open everything)
@@ -502,6 +550,143 @@ TRANSLATED_PAGES = {
             }
         }""",
     ),
+    'strategy': (
+        _PLAN_ROOTS + ['.milestone-host'],
+        """async () => {
+""" + _PLAN_CALC + """
+            document.getElementById('targetDateToggle').click();
+            document.getElementById('planHistoryToggle').click();
+            window.app.showMilestone('⟦Paid Debt⟧');
+        }""",
+    ),
+    'strategy-overview': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            const slider = document.getElementById('whatifSlider');
+            if (slider) { slider.value = '150'; slider.dispatchEvent(new Event('input')); }
+            await new Promise(r => setTimeout(r, 400));
+        }""",
+    ),
+    'strategy-refi': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('5') + "}"),
+    'strategy-refi-worse': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('30') + "}"),
+    'strategy-refi-nochange': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('24') + "}"),
+    'strategy-refi-invalid': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('500') + "}"),
+    'strategy-summary': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            document.querySelector('[data-rtab="debt-summary"]').click();
+            document.querySelector('#debtSummaryTable th[data-sort="minDue"]').click();
+            document.querySelector('#debtSummaryTable th[data-sort="minDue"]').click();
+            document.querySelector('[data-amortization]')?.click();
+        }""",
+    ),
+    'strategy-schedule': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            document.querySelector('[data-rtab="schedule"]').click();
+            document.querySelector('button[data-tab="tabular"]').click();
+        }""",
+    ),
+    'strategy-calendar': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            document.querySelector('[data-rtab="schedule"]').click();
+            document.querySelector('button[data-tab="calendar"]').click();
+            await window.app.renderCalendarView(0);
+            document.querySelector('.cal-next')?.click();
+            await new Promise(r => setTimeout(r, 300));
+        }""",
+    ),
+    'strategy-charts': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            document.querySelector('[data-rtab="schedule"]').click();
+            document.querySelector('button[data-tab="chart"]').click();
+            await new Promise(r => setTimeout(r, 300));
+        }""",
+    ),
+    'strategy-target': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            document.getElementById('targetDateToggle').click();
+            const d = new Date(); d.setFullYear(d.getFullYear() + 2);
+            document.getElementById('targetPayoffDate').value = d.toISOString().slice(0, 10);
+            document.getElementById('calcTargetBtn').click();
+            await new Promise(r => setTimeout(r, 300));
+        }""",
+    ),
+    'strategy-target-nodate': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            document.getElementById('targetDateToggle').click();
+            document.getElementById('targetPayoffDate').value = '';
+            document.getElementById('calcTargetBtn').click();
+            await new Promise(r => setTimeout(r, 300));
+        }""",
+    ),
+    'strategy-target-past': (
+        _PLAN_ROOTS,
+        """async () => {
+            window.app.switchPage('strategy');
+            document.getElementById('targetDateToggle').click();
+            document.getElementById('targetPayoffDate').value = '2020-01-01';
+            document.getElementById('calcTargetBtn').click();
+        }""",
+    ),
+    'strategy-target-soon': (
+        _PLAN_ROOTS,
+        """async () => {
+            window.app.switchPage('strategy');
+            document.getElementById('targetDateToggle').click();
+            const d = new Date(); d.setDate(d.getDate() + 2);
+            document.getElementById('targetPayoffDate').value = d.toISOString().slice(0, 10);
+            document.getElementById('calcTargetBtn').click();
+        }""",
+    ),
+    'strategy-target-unreachable': (
+        _PLAN_ROOTS,
+        """async () => {
+            window.app.switchPage('strategy');
+            document.getElementById('monthlyPayment').value = '1';
+            document.getElementById('targetDateToggle').click();
+            const d = new Date(); d.setMonth(d.getMonth() + 2);
+            document.getElementById('targetPayoffDate').value = d.toISOString().slice(0, 10);
+            window.app.debts.forEach(x => { if (x.debtType !== 'fixedAmount') x.accountBalance = 1e9; });
+            document.getElementById('calcTargetBtn').click();
+        }""",
+    ),
+    'strategy-stale': (
+        _PLAN_ROOTS,
+        """async () => {
+""" + _PLAN_CALC + """
+            window.app.debts.forEach(x => { x.accountBalance = (x.accountBalance || 0) + 1; });
+            window.app.renderStrategyIncomeWidget();
+        }""",
+    ),
+    'strategy-income-warn': (
+        _PLAN_ROOTS,
+        """async () => {
+            window.app.switchPage('strategy');
+            window.app.debts.forEach(x => { x.minimumPayment = 9000; });
+            window.app.renderStrategyIncomeWidget();
+        }""",
+    ),
+    'strategy-alert-invalid': (
+        _PLAN_ROOTS,
+        """async () => {
+            window.app.switchPage('strategy');
+            document.getElementById('monthlyPayment').value = '';
+            window.app.calculatePaymentPlanFromInputs();
+            await new Promise(r => setTimeout(r, 200));
+        }""",
+    ),
 }
 
 SCAN_JS = """
@@ -523,8 +708,11 @@ SCAN_JS = """
         : el.tagName.toLowerCase() + (el.className && typeof el.className === 'string'
             ? '.' + el.className.trim().split(/\\s+/).join('.') : '');
     const bad = [];
+    // es-ES long dates ("15 de enero de 2026", "enero de 2026") carry the connector "de"; it is part of the
+    // locale's own date format (month names above are already allowed), so strip whole month-anchored dates.
+    const dateRe = new RegExp(String.raw`(?<!\\p{L})(?:\\d{1,2} de )?(?:` + [...months].join('|') + String.raw`)(?: de \\d{4})?(?!\\p{L})`, 'giu');
     const check = (text, where) => {
-        const words = strip(text).match(/\\p{L}{2,}/gu) || [];
+        const words = strip(text).replace(dateRe, ' ').match(/\\p{L}{2,}/gu) || [];
         const left = words.filter(w => !allowSet.has(w.toLowerCase()) && !months.has(w.toLowerCase()));
         if (left.length) bad.push(where + ' :: ' + text.trim().replace(/\\s+/g, ' ').slice(0, 140));
     };
@@ -658,7 +846,8 @@ def test_same_as_english_allowlist_has_no_stale_entries(app_page, locale):
 def test_translated_page_has_no_untranslated_text(pseudo_page, page_name, state_name):
     roots, setup = TRANSLATED_PAGES[page_name]
     seeded = (BASE_SEEDED_STATE if page_name in _BASE_STATE_PAGES
-              else LIABILITIES_STATE if page_name.startswith(_LIABILITIES_PREFIXES) else SEEDED_STATE)
+              else LIABILITIES_STATE if page_name.startswith(_LIABILITIES_PREFIXES)
+              else PLAN_STATE if page_name.startswith('strategy') else SEEDED_STATE)
     _load_pseudo(pseudo_page, seeded if state_name == 'seeded' else EMPTY_STATE)
     pseudo_page.evaluate(setup)
     pseudo_page.wait_for_timeout(300)

@@ -1,5 +1,6 @@
 // Charts and visualizations
-import { computeMonthlyIncomeForMonth, formatCurrency, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, formatCurrency, formatMonthYear, formatPlanMonth, renderChartDataTable } from './utils.js';
+import { t } from './i18n.js';
 
 // Shared per-debt color assignment for every chart on the Plan page's
 // Chart View tab, so the same debt always gets the same color across
@@ -29,7 +30,7 @@ export function renderBalanceChart(app) {
     }
 
     for (const monthData of app.lastPaymentPlan) {
-        months.push(DebtCalculator.getMonthName(monthData.month - 1));
+        months.push(formatPlanMonth(monthData.month - 1));
         const paymentMap = {};
         for (const payment of monthData.payments) {
             paymentMap[payment.debtName] = payment.balance;
@@ -60,7 +61,7 @@ export function renderBalanceChart(app) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
-                title: { display: true, text: 'Payoff Timeline — Balance per Debt', font: { size: 13 } },
+                title: { display: true, text: t('strategy.chartBalanceTitle'), font: { size: 13 } },
                 tooltip: {
                     mode: 'index', intersect: false,
                     callbacks: {
@@ -72,16 +73,16 @@ export function renderBalanceChart(app) {
                 y: {
                     beginAtZero: true,
                     ticks: { callback: v => '$' + v.toLocaleString() },
-                    title: { display: true, text: 'Balance ($)' }
+                    title: { display: true, text: t('strategy.chartBalanceAxis') }
                 },
-                x: { title: { display: true, text: 'Month' } }
+                x: { title: { display: true, text: t('strategy.chartMonthAxis') } }
             }
         }
     });
 
     renderChartDataTable('balanceChart', {
-        caption: 'Payoff timeline — balance per debt',
-        columns: ['Month', ...debtNames],
+        caption: t('strategy.chartBalanceCaption'),
+        columns: [t('strategy.colMonth'), ...debtNames],
         rows: months.map((m, i) => [m, ...debtNames.map(name => formatCurrency(debtBalances[name][i]))])
     });
 }
@@ -123,7 +124,7 @@ export function renderPayoffGanttChart(app) {
 
     const monthLabel = (monthNum) => {
         const monthData = plan[monthNum - 1];
-        return monthData ? monthData.date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+        return monthData ? formatMonthYear(monthData.date) : '';
     };
 
     const colors = debtNames.map((_, i) => palette[i % palette.length]);
@@ -135,7 +136,7 @@ export function renderPayoffGanttChart(app) {
         data: {
             labels: debtNames,
             datasets: [{
-                label: 'Months to payoff',
+                label: t('strategy.chartGanttDataset'),
                 data: debtNames.map(name => payoffMonth[name]),
                 backgroundColor: colors,
                 borderRadius: 4
@@ -147,19 +148,19 @@ export function renderPayoffGanttChart(app) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                title: { display: true, text: 'Debt Elimination Timeline', font: { size: 13 } },
+                title: { display: true, text: t('strategy.chartGanttTitle'), font: { size: 13 } },
                 tooltip: {
                     callbacks: {
                         title: items => items[0]?.label || '',
-                        label: ctx => `Paid off: ${monthLabel(payoffMonth[ctx.label])}`,
-                        afterLabel: ctx => `Total interest: ${formatCurrency(totalInterest[ctx.label] || 0)}`
+                        label: ctx => t('strategy.chartGanttPaidOff', { date: monthLabel(payoffMonth[ctx.label]) }),
+                        afterLabel: ctx => t('strategy.totalInterestIs', { amount: formatCurrency(totalInterest[ctx.label] || 0) })
                     }
                 }
             },
             scales: {
                 x: {
                     beginAtZero: true,
-                    title: { display: true, text: 'Payoff date' },
+                    title: { display: true, text: t('strategy.chartGanttAxis') },
                     ticks: { callback: v => monthLabel(v) }
                 },
                 y: { title: { display: false } }
@@ -168,8 +169,8 @@ export function renderPayoffGanttChart(app) {
     });
 
     renderChartDataTable('payoffGanttChart', {
-        caption: 'Debt elimination timeline',
-        columns: ['Debt', 'Payoff month', 'Total interest paid'],
+        caption: t('strategy.chartGanttCaption'),
+        columns: [t('strategy.colDebt'), t('strategy.chartGanttColMonth'), t('strategy.chartGanttColInterest')],
         rows: debtNames.map(name => [name, monthLabel(payoffMonth[name]), formatCurrency(totalInterest[name])])
     });
 }
@@ -183,7 +184,7 @@ export function renderPieChart(app) {
     app.pieChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: ['Principal (Debt)', 'Total Interest'],
+            labels: [t('strategy.chartPrincipalDebt'), t('strategy.totalInterest')],
             datasets: [{
                 data: [parseFloat(principal.toFixed(2)), parseFloat(interest.toFixed(2))],
                 backgroundColor: ['#059669', '#dc2626'],
@@ -197,7 +198,7 @@ export function renderPieChart(app) {
             cutout: '60%',
             plugins: {
                 legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 14, font: { size: 12 } } },
-                title: { display: true, text: 'Total Interest vs. Principal Paid', font: { size: 13 } },
+                title: { display: true, text: t('strategy.chartPieTitle'), font: { size: 13 } },
                 tooltip: {
                     callbacks: {
                         label: ctx => {
@@ -212,11 +213,11 @@ export function renderPieChart(app) {
     });
 
     renderChartDataTable('pieChart', {
-        caption: 'Total interest vs. principal paid',
-        columns: ['Category', 'Amount'],
+        caption: t('strategy.chartPieCaption'),
+        columns: [t('strategy.colCategory'), t('strategy.colAmount')],
         rows: [
-            ['Principal (Debt)', formatCurrency(principal)],
-            ['Total Interest', formatCurrency(interest)]
+            [t('strategy.chartPrincipalDebt'), formatCurrency(principal)],
+            [t('strategy.totalInterest'), formatCurrency(interest)]
         ]
     });
 }
@@ -234,7 +235,7 @@ export function renderProgressChart(app) {
     let runningInterest = 0;
 
     for (const monthData of app.lastPaymentPlan) {
-        const monthName = DebtCalculator.getMonthName(monthData.month - 1);
+        const monthName = formatPlanMonth(monthData.month - 1);
         months.push(monthName);
 
         let monthPrincipal = 0;
@@ -261,7 +262,7 @@ export function renderProgressChart(app) {
             labels: months,
             datasets: [
                 {
-                    label: 'Total Paid',
+                    label: t('strategy.chartTotalPaid'),
                     data: totalPaid,
                     borderColor: '#2563eb',
                     backgroundColor: '#2563eb20',
@@ -271,7 +272,7 @@ export function renderProgressChart(app) {
                     pointHoverRadius: 5
                 },
                 {
-                    label: 'Principal Paid',
+                    label: t('strategy.chartPrincipalPaid'),
                     data: principalPaid,
                     borderColor: '#059669',
                     backgroundColor: '#05966920',
@@ -281,7 +282,7 @@ export function renderProgressChart(app) {
                     pointHoverRadius: 5
                 },
                 {
-                    label: 'Interest Paid',
+                    label: t('strategy.chartInterestPaid'),
                     data: interestPaid,
                     borderColor: '#dc2626',
                     backgroundColor: '#dc262620',
@@ -330,13 +331,13 @@ export function renderProgressChart(app) {
                     },
                     title: {
                         display: true,
-                        text: 'Amount ($)'
+                        text: t('strategy.chartAmountAxis')
                     }
                 },
                 x: {
                     title: {
                         display: true,
-                        text: 'Month'
+                        text: t('strategy.chartMonthAxis')
                     }
                 }
             }
@@ -344,8 +345,8 @@ export function renderProgressChart(app) {
     });
 
     renderChartDataTable('progressChart', {
-        caption: 'Payment progress — total, principal, and interest paid',
-        columns: ['Month', 'Total Paid', 'Principal Paid', 'Interest Paid'],
+        caption: t('strategy.chartProgressCaption'),
+        columns: [t('strategy.colMonth'), t('strategy.chartTotalPaid'), t('strategy.chartPrincipalPaid'), t('strategy.chartInterestPaid')],
         rows: months.map((m, i) => [m, formatCurrency(totalPaid[i]), formatCurrency(principalPaid[i]), formatCurrency(interestPaid[i])])
     });
 }
@@ -399,7 +400,7 @@ export function renderDebtDistributionChart(app) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
-                title: { display: true, text: 'Monthly Payment Distribution', font: { size: 13 } },
+                title: { display: true, text: t('strategy.chartDistTitle'), font: { size: 13 } },
                 tooltip: {
                     callbacks: {
                         label: ctx => {
@@ -413,8 +414,8 @@ export function renderDebtDistributionChart(app) {
     });
 
     renderChartDataTable('debtDistributionChart', {
-        caption: 'Monthly payment distribution',
-        columns: ['Debt', 'Monthly Payment'],
+        caption: t('strategy.chartDistCaption'),
+        columns: [t('strategy.colDebt'), t('strategy.chartDistCol')],
         rows: labels.map((l, i) => [l, fmt(data[i])])
     });
 }
@@ -437,7 +438,7 @@ export function renderDebtToIncomeChart(app) {
         ctx.textBaseline = 'middle';
         ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted') || '#6b7280';
         ctx.font = '13px sans-serif';
-        ctx.fillText('Add income sources to see debt-to-income ratio', canvas.width / 2, canvas.height / 2);
+        ctx.fillText(t('strategy.chartDtiEmpty'), canvas.width / 2, canvas.height / 2);
         ctx.restore();
         return;
     }
@@ -450,7 +451,7 @@ export function renderDebtToIncomeChart(app) {
     app.debtToIncomeChart = new Chart(canvas.getContext('2d'), {
         type: 'pie',
         data: {
-            labels: ['Debt Payments', 'Remaining Income'],
+            labels: [t('strategy.chartDebtPayments'), t('strategy.chartRemainingIncome')],
             datasets: [{
                 data: [parseFloat(debtPmt.toFixed(2)), parseFloat(remaining.toFixed(2))],
                 backgroundColor: ['#dc2626', '#059669'],
@@ -463,7 +464,7 @@ export function renderDebtToIncomeChart(app) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
-                title: { display: true, text: 'Monthly Debt-to-Income', font: { size: 13 } },
+                title: { display: true, text: t('strategy.chartDtiTitle'), font: { size: 13 } },
                 tooltip: {
                     callbacks: {
                         label: ctx => {
@@ -478,11 +479,11 @@ export function renderDebtToIncomeChart(app) {
     });
 
     renderChartDataTable('debtToIncomeChart', {
-        caption: 'Monthly debt-to-income',
-        columns: ['Category', 'Amount'],
+        caption: t('strategy.chartDtiCaption'),
+        columns: [t('strategy.colCategory'), t('strategy.colAmount')],
         rows: [
-            ['Debt Payments', fmt(debtPmt)],
-            ['Remaining Income', fmt(remaining)]
+            [t('strategy.chartDebtPayments'), fmt(debtPmt)],
+            [t('strategy.chartRemainingIncome'), fmt(remaining)]
         ]
     });
 }

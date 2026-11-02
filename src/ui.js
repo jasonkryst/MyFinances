@@ -826,6 +826,15 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     if (pageName === 'strategy') {
         app.renderStrategyIncomeWidget(); app.renderPlanHistory();
         if (resetToDefaults) app.resetRefinanceScenario();
+        else if (app.lastPaymentPlan && app.lastSummary) {
+            // In-place refresh (locale switch, import): re-render the results so their text follows
+            // the active locale, plus whichever chart/calendar sub-tab is showing.
+            try {
+                app.displayPaymentPlan();
+                const activeTab = document.querySelector('.tab-button.active')?.getAttribute('data-tab');
+                if (activeTab === 'chart' || activeTab === 'calendar') app.switchTab(activeTab);
+            } catch (err) { console.error('Plan refresh failed', err); }
+        }
     }
     if (pageName === 'reports') {
         if (resetToDefaults) { app._reportMonthOffset = 0; app._reportRangeMonths = 1; }
@@ -879,7 +888,7 @@ export function showMilestone(debtName) {
 
     const toast = document.createElement('div');
     toast.className = 'milestone-toast';
-    toast.textContent = `${debtName} paid off today`;
+    toast.textContent = t('strategy.milestoneToast', { name: debtName });
     host.appendChild(toast);
 
     const colors = ['#2563eb', '#059669', '#f59e0b', '#dc2626', '#7c3aed'];
@@ -1015,6 +1024,12 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.63.0 — 2026-11-02',
+        items: [
+            '<strong>The Plan page now speaks Spanish and Polish</strong> (issue #317): payoff results, tables, charts, the calendar and the What-If and Refinance tools follow the language you pick in Settings.'
+        ]
+    },
     {
         version: '6.62.0 — 2026-11-02',
         items: [

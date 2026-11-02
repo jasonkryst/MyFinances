@@ -3,8 +3,10 @@
 import {
     formatCurrency,
     escapeHtml,
-    buildPersonPillsHtml
+    buildPersonPillsHtml,
+    formatPlanMonth
 } from './utils.js';
+import { t } from './i18n.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 
 /**
@@ -41,14 +43,14 @@ export function displayPaymentSchedule(app) {
     const thead = document.getElementById('paymentTableHead');
     thead.innerHTML = '';
     const headerRow = document.createElement('tr');
-    headerRow.innerHTML = '<th>Month</th>';
+    headerRow.innerHTML = `<th>${escapeHtml(t('strategy.colMonth'))}</th>`;
     for (const debtName of debtNames) {
         const debt = app.debts.find(d => d.name === debtName);
         const pills = debt ? buildPersonPillsHtml(debt.personIds, app.persons) : '';
         headerRow.innerHTML += `<th>${escapeHtml(debtName)}${pills ? `<div class="person-pills">${pills}</div>` : ''}</th>`;
     }
-    headerRow.innerHTML += '<th>Stimulus ($)</th>';
-    headerRow.innerHTML += '<th>Total Paid</th>';
+    headerRow.innerHTML += `<th>${escapeHtml(t('strategy.colStimulus'))}</th>`;
+    headerRow.innerHTML += `<th>${escapeHtml(t('strategy.colTotalPaid'))}</th>`;
     thead.appendChild(headerRow);
 
     // Build body with one row per month
@@ -60,7 +62,7 @@ export function displayPaymentSchedule(app) {
 
     for (let mi = 0; mi < app.lastPaymentPlan.length; mi++) {
         const monthData = app.lastPaymentPlan[mi];
-        const monthName = DebtCalculator.getMonthName(monthData.month - 1);
+        const monthName = formatPlanMonth(monthData.month - 1);
 
         const monthPaymentMap = {};
         const monthOverageMap = {};
@@ -101,7 +103,7 @@ export function displayPaymentSchedule(app) {
                     paymentStr += `<br><small>(+${formatCurrency(overage)})</small>`;
                 }
                 if (monthData.stimulusApplied && monthData.stimulusApplied[debtName]) {
-                    paymentStr += `<br><span class="stimulus-badge">(Stimulus: ${formatCurrency(monthData.stimulusApplied[debtName])})</span>`;
+                    paymentStr += `<br><span class="stimulus-badge">${escapeHtml(t('strategy.stimulusBadge', { amount: formatCurrency(monthData.stimulusApplied[debtName]) }))}</span>`;
                 }
             }
             row.innerHTML += `<td class="amount">${paymentStr}</td>`;
