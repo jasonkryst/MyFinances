@@ -7,6 +7,7 @@ import { APP_VERSION, escapeHtml, isCollapsibleOpen, setCollapsibleOpen, refresh
 import { getZeroAmountPolicy } from './settings.js';
 import { initCommandPalette } from './commandPalette.js';
 import { installOwnershipListeners } from './debtOwnership.js';
+import { t } from './i18n.js';
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
@@ -206,8 +207,8 @@ export function initializeEventListeners(app) {
     if (clearDataBtn) {
         clearDataBtn.addEventListener('click', async () => {
             const confirmed = await showDeleteConfirmModal(
-                'Clear ALL app data? This will permanently remove accounts, debts, income, bonuses, bills, expenses, plans, ledger overrides, and theme preference.',
-                'Clear All Data'
+                t('settings.clearConfirm'),
+                t('settings.clearAllData')
             );
             if (confirmed) {
                 // The button lives in Settings (#429); close it so the
@@ -324,7 +325,7 @@ export function initializeEventListeners(app) {
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
                 const titleEl = document.getElementById('debtFormTitle');
-                if (titleEl) titleEl.textContent = 'Add New Debt';
+                if (titleEl) titleEl.textContent = t('debts.addTitle');
                 closeForm();
             }, true);
         }
@@ -825,6 +826,15 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     if (pageName === 'strategy') {
         app.renderStrategyIncomeWidget(); app.renderPlanHistory();
         if (resetToDefaults) app.resetRefinanceScenario();
+        else if (app.lastPaymentPlan && app.lastSummary) {
+            // In-place refresh (locale switch, import): re-render the results so their text follows
+            // the active locale, plus whichever chart/calendar sub-tab is showing.
+            try {
+                app.displayPaymentPlan();
+                const activeTab = document.querySelector('.tab-button.active')?.getAttribute('data-tab');
+                if (activeTab === 'chart' || activeTab === 'calendar') app.switchTab(activeTab);
+            } catch (err) { console.error('Plan refresh failed', err); }
+        }
     }
     if (pageName === 'reports') {
         if (resetToDefaults) { app._reportMonthOffset = 0; app._reportRangeMonths = 1; }
@@ -878,7 +888,7 @@ export function showMilestone(debtName) {
 
     const toast = document.createElement('div');
     toast.className = 'milestone-toast';
-    toast.textContent = `${debtName} paid off today`;
+    toast.textContent = t('strategy.milestoneToast', { name: debtName });
     host.appendChild(toast);
 
     const colors = ['#2563eb', '#059669', '#f59e0b', '#dc2626', '#7c3aed'];
@@ -1014,6 +1024,30 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '6.64.0 — 2026-11-02',
+        items: [
+            '<strong>MyFinances now speaks Spanish and Polish everywhere</strong> (issue #317): Reports, the Ledger, People and every Settings tab are translated, including the transaction names the Ledger generates. Pick your language in Settings.'
+        ]
+    },
+    {
+        version: '6.63.0 — 2026-11-02',
+        items: [
+            '<strong>The Plan page now speaks Spanish and Polish</strong> (issue #317): payoff results, tables, charts, the calendar and the What-If and Refinance tools follow the language you pick in Settings.'
+        ]
+    },
+    {
+        version: '6.62.0 — 2026-11-02',
+        items: [
+            '<strong>Debts, Budget and Recurring now speak Spanish and Polish</strong> (issue #317): debt cards, expense lists, category budgets, recurring templates and their pop-ups follow the language you pick in Settings.'
+        ]
+    },
+    {
+        version: '6.61.0 — 2026-11-02',
+        items: [
+            '<strong>Accounts, Income and Savings now speak Spanish and Polish</strong> (issue #317): every card, form, chart and pop-up on these pages follows the language you pick in Settings, including the Bonus Advisor and the Home Purchase planner.'
+        ]
+    },
     {
         version: '6.60.0 — 2026-11-01',
         items: [
@@ -1319,7 +1353,7 @@ export function showEmailTestToast(status, message) {
     }, 5000);
 }
 
-export function showDeleteConfirmModal(message, confirmLabel = 'Delete') {
+export function showDeleteConfirmModal(message, confirmLabel = t('common.delete')) {
     return new Promise((resolve) => {
         const modal = document.getElementById('deleteConfirmModal');
         const messageEl = document.getElementById('deleteConfirmMessage');
@@ -1427,7 +1461,7 @@ export function showArchiveConfirmModal(debtName) {
         const cancelBtn = document.getElementById('archiveConfirmCancelBtn');
         if (!modal) { resolve(false); return; }
 
-        if (messageEl) messageEl.textContent = `Archive "${debtName}"?`;
+        if (messageEl) messageEl.textContent = t('modals.archiveDebtMsg', { name: debtName });
 
         const lastFocused = document.activeElement;
         const dismiss = (result) => {
@@ -1563,8 +1597,8 @@ export function showPersonReplacementModal(app, personId, otherPersons, linkedDe
         if (!modal) { resolve(null); return; }
 
         const person = (app.persons || []).find(p => p.id === personId);
-        if (titleEl) titleEl.textContent = `Delete Person: ${person?.name ?? ''}`;
-        if (infoEl) infoEl.textContent = 'This person has linked debts. Choose a replacement (or leave blank to unassign).';
+        if (titleEl) titleEl.textContent = t('people.replaceTitleNamed', { name: person?.name ?? '' });
+        if (infoEl) infoEl.textContent = t('people.replaceInfo');
 
         if (linksEl) {
             linksEl.innerHTML = linkedDebts.map(d =>
@@ -1574,7 +1608,7 @@ export function showPersonReplacementModal(app, personId, otherPersons, linkedDe
 
         if (select) {
             select.innerHTML = [
-                `<option value="">— Unassign these debts —</option>`,
+                `<option value="">${escapeHtml(t('people.replaceUnassign'))}</option>`,
                 ...otherPersons.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`),
             ].join('');
         }
@@ -1617,7 +1651,7 @@ export function showPersonReplacementModal(app, personId, otherPersons, linkedDe
     });
 }
 
-export function showAlertModal(message, title = 'Notice') {
+export function showAlertModal(message, title = t('modals.notice')) {
     return new Promise((resolve) => {
         const modal = document.getElementById('alertModal');
         const messageEl = document.getElementById('alertModalMessage');
@@ -1659,8 +1693,8 @@ export async function confirmZeroAmountAllowed(app, contextLabel) {
     const policy = getZeroAmountPolicy(app);
     if (policy === 'allow') return true;
     if (policy === 'block') {
-        await showAlertModal('$0 amounts are disabled. You can change this in Settings → Advanced.');
+        await showAlertModal(t('modals.zeroBlocked'));
         return false;
     }
-    return showDeleteConfirmModal(`Save a $0 amount for ${contextLabel || 'this item'}?`, 'Save');
+    return showDeleteConfirmModal(t('modals.zeroConfirm', { label: contextLabel || t('modals.thisItem') }), t('common.save'));
 }

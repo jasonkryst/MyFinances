@@ -4,6 +4,7 @@ import { buildAccountOptionsHtml } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
 import { renderCategoryBudgetsPanel } from './categoryBudgets.js';
+import { t, categoryLabel, getIntlLocale, plural } from './i18n.js';
 
 
 // Render the full Budget page: bill cards, expense cards, cashflow summary.
@@ -25,7 +26,8 @@ export function renderExpenseList(app) {
     const base = new Date(now.getFullYear(), now.getMonth() + offset, 1);
     const targetYear = base.getFullYear();
     const targetMonth = base.getMonth(); // 0-indexed
-    const monthLabel = base.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    // month name + year composed separately: es/pl 'long+year' formats embed words like "de" that can't be translated as one unit
+    const monthLabel = `${base.toLocaleDateString(getIntlLocale(), { month: 'long' })} ${targetYear}`;
 
     const filtered = app.expenses.filter(exp => {
         if (!exp.date) return false;
@@ -35,13 +37,13 @@ export function renderExpenseList(app) {
     });
 
     const navHtml = `<div class="expense-month-nav">
-        <button class="btn btn-secondary btn-small" data-expense-month-nav="prev" aria-label="Previous month">&#8249;</button>
+        <button class="btn btn-secondary btn-small" data-expense-month-nav="prev" aria-label="${escapeHtml(t('expenses.prevMonth'))}">&#8249;</button>
         <span class="expense-month-label">${escapeHtml(monthLabel)}</span>
-        <button class="btn btn-secondary btn-small" data-expense-month-nav="next" aria-label="Next month">&#8250;</button>
+        <button class="btn btn-secondary btn-small" data-expense-month-nav="next" aria-label="${escapeHtml(t('expenses.nextMonth'))}">&#8250;</button>
     </div>`;
 
     if (filtered.length === 0) {
-        container.innerHTML = navHtml + `<p class="empty-budget-msg">No expenses for ${escapeHtml(monthLabel)}.</p>`;
+        container.innerHTML = navHtml + `<p class="empty-budget-msg">${escapeHtml(t('expenses.noneForMonth', { month: monthLabel }))}</p>`;
         container.onclick = (event) => {
             const nav = event.target.closest('[data-expense-month-nav]');
             if (nav) { app._expenseMonthOffset = (app._expenseMonthOffset ?? 0) + (nav.dataset.expenseMonthNav === 'prev' ? -1 : 1); app.renderBudgetPage(); }
@@ -53,24 +55,24 @@ export function renderExpenseList(app) {
         if (app.editingExpenseId === exp.id) {
             return `<div class="budget-card budget-card--editing">
                 <div class="budget-edit-grid">
-                    <div class="form-group form-no-margin"><label class="label-compact">Name</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">${escapeHtml(t('expenses.editName'))}</label>
                         <input type="text" id="ee-name-${exp.id}" value="${escapeHtml(exp.name)}" class="form-control"></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Cost</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">${escapeHtml(t('expenses.editCost'))}</label>
                         <input type="number" id="ee-amount-${exp.id}" value="${exp.budgetAmount}" step="0.01" min="0" class="form-control"></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Date</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">${escapeHtml(t('expenses.editDate'))}</label>
                         <input type="date" id="ee-date-${exp.id}" value="${exp.date instanceof Date ? exp.date.toISOString().split('T')[0] : (exp.date ? new Date(exp.date).toISOString().split('T')[0] : '')}" class="form-control"></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Category</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">${escapeHtml(t('expenses.editCategory'))}</label>
                         <select id="ee-cat-${exp.id}" class="form-control">
-                            ${EXP_CATS.map(c => `<option value="${c}" ${exp.category===c?'selected':''}>${c}</option>`).join('')}
+                            ${EXP_CATS.map(c => `<option value="${c}" ${exp.category===c?'selected':''}>${escapeHtml(categoryLabel(c))}</option>`).join('')}
                         </select></div>
-                    <div class="form-group form-no-margin"><label class="label-compact">Account</label>
+                    <div class="form-group form-no-margin"><label class="label-compact">${escapeHtml(t('expenses.editAccount'))}</label>
                         <select id="ee-acct-${exp.id}" class="form-control">
-                            ${buildAccountOptionsHtml(app.accounts, exp.accountId, { emptyLabel: '— No account —' })}
+                            ${buildAccountOptionsHtml(app.accounts, exp.accountId, { emptyLabel: escapeHtml(t('accounts.noAccount')) })}
                         </select></div>
                 </div>
                 <div class="budget-edit-actions">
-                    <button class="btn btn-primary btn-small" data-expense-action="save" data-expense-id="${exp.id}" aria-label="Save changes to ${escapeHtml(exp.name)}">Save</button>
-                    <button class="btn btn-secondary btn-small" data-expense-action="cancel" aria-label="Cancel editing ${escapeHtml(exp.name)}">Cancel</button>
+                    <button class="btn btn-primary btn-small" data-expense-action="save" data-expense-id="${exp.id}" aria-label="${escapeHtml(t('expenses.saveAria', { name: exp.name }))}">${escapeHtml(t('common.save'))}</button>
+                    <button class="btn btn-secondary btn-small" data-expense-action="cancel" aria-label="${escapeHtml(t('expenses.cancelAria', { name: exp.name }))}">${escapeHtml(t('common.cancel'))}</button>
                 </div>
             </div>`;
         }
@@ -78,11 +80,11 @@ export function renderExpenseList(app) {
             <div class="budget-card-info">
                 <span class="budget-card-name">${escapeHtml(exp.name)}</span>
                 <span class="budget-card-amount">${formatCurrency(exp.budgetAmount)}</span>
-                <span class="budget-card-meta">${escapeHtml(exp.category)} • ${escapeHtml(exp.date instanceof Date ? exp.date.toLocaleDateString() : new Date(exp.date).toLocaleDateString())}</span>
+                <span class="budget-card-meta">${escapeHtml(categoryLabel(exp.category))} • ${escapeHtml(exp.date instanceof Date ? exp.date.toLocaleDateString(getIntlLocale()) : new Date(exp.date).toLocaleDateString(getIntlLocale()))}</span>
             </div>
             <div class="budget-card-actions">
-                <button class="btn-edit" data-expense-action="edit" data-expense-id="${exp.id}" aria-label="Edit ${escapeHtml(exp.name)}">Edit</button>
-                <button class="btn btn-danger btn-small" data-expense-action="delete" data-expense-id="${exp.id}" aria-label="Delete ${escapeHtml(exp.name)}">Delete</button>
+                <button class="btn-edit" data-expense-action="edit" data-expense-id="${exp.id}" aria-label="${escapeHtml(t('expenses.editAria', { name: exp.name }))}">${escapeHtml(t('common.edit'))}</button>
+                <button class="btn btn-danger btn-small" data-expense-action="delete" data-expense-id="${exp.id}" aria-label="${escapeHtml(t('expenses.deleteAria', { name: exp.name }))}">${escapeHtml(t('common.delete'))}</button>
             </div>
         </div>`;
     }).join('');
@@ -99,16 +101,16 @@ export function renderExpenseList(app) {
         .sort((a, b) => b[1].total - a[1].total)
         .map(([cat, v]) => `
             <div class="budget-cat-row budget-cat-row--expense">
-                <span class="budget-cat-name">${escapeHtml(cat)}</span>
-                <span class="budget-cat-count">${v.count} item${v.count !== 1 ? 's' : ''}</span>
+                <span class="budget-cat-name">${escapeHtml(categoryLabel(cat))}</span>
+                <span class="budget-cat-count">${escapeHtml(plural('expenses.itemCount', v.count))}</span>
                 <span class="budget-cat-amount">${formatCurrency(v.total)}</span>
             </div>`).join('');
 
     const summaryHTML = `
         <div class="budget-cat-summary budget-cat-summary--expense">
             <div class="budget-cat-summary-header">
-                <span>Expenses by Category</span>
-                <span class="budget-cat-summary-total">${formatCurrency(totalExp)} total</span>
+                <span>${escapeHtml(t('expenses.byCategory'))}</span>
+                <span class="budget-cat-summary-total">${escapeHtml(t('expenses.total', { amount: formatCurrency(totalExp) }))}</span>
             </div>
             ${catRows}
         </div>`;
@@ -178,7 +180,7 @@ export function renderCashFlowSummary(app) {
         }
         billCatRows = Object.entries(billCats)
             .sort((a, b) => b[1] - a[1])
-            .map(([cat, amt]) => subRow(cat, amt, 'cashflow-subrow--bill'))
+            .map(([cat, amt]) => subRow(categoryLabel(cat), amt, 'cashflow-subrow--bill'))
             .join('');
     }
 
@@ -191,7 +193,7 @@ export function renderCashFlowSummary(app) {
         }
         expCatRows = Object.entries(expCats)
             .sort((a, b) => b[1] - a[1])
-            .map(([cat, amt]) => subRow(cat, amt, 'cashflow-subrow--expense'))
+            .map(([cat, amt]) => subRow(categoryLabel(cat), amt, 'cashflow-subrow--expense'))
             .join('');
     }
 
@@ -206,27 +208,27 @@ export function renderCashFlowSummary(app) {
 
     el.innerHTML = `
         <div class="cashflow-tab-bar">
-            <button class="cashflow-tab cashflow-tab--active" data-tab="summary" aria-pressed="true">📋 Summary</button>
-            <button class="cashflow-tab" data-tab="charts" aria-pressed="false">📊 Charts</button>
+            <button class="cashflow-tab cashflow-tab--active" data-tab="summary" aria-pressed="true">📋 ${escapeHtml(t('cashflow.tabSummary'))}</button>
+            <button class="cashflow-tab" data-tab="charts" aria-pressed="false">📊 ${escapeHtml(t('cashflow.tabCharts'))}</button>
         </div>
 
         <div class="cashflow-tab-panel cashflow-tab-panel--active" id="cashflowPanelSummary">
-            <h4>📈 Monthly Cash Flow</h4>
+            <h4>📈 ${escapeHtml(t('cashflow.title'))}</h4>
             <div class="cashflow-grid">
                 <div class="cashflow-inflow">
-                    <div class="cashflow-section-title">Income</div>
-                    ${row('Expected this month', monthlyIncome, 'cashflow-row--income')}
+                    <div class="cashflow-section-title">${escapeHtml(t('cashflow.income'))}</div>
+                    ${row(t('cashflow.expectedThisMonth'), monthlyIncome, 'cashflow-row--income')}
                 </div>
                 <div class="cashflow-outflow">
-                    <div class="cashflow-section-title">Outflows</div>
-                    ${totalDebtMin > 0 ? row('Debt minimums', totalDebtMin, 'cashflow-row--debt') + debtSubRows : ''}
-                    ${totalBills > 0 ? row('Bills', totalBills, 'cashflow-row--bills') + billCatRows : ''}
-                    ${totalExpenses > 0 ? row('Budgeted expenses', totalExpenses, 'cashflow-row--expenses') + expCatRows : ''}
-                    ${row('Total outflow', totalOutflow, 'cashflow-row--total')}
+                    <div class="cashflow-section-title">${escapeHtml(t('cashflow.outflows'))}</div>
+                    ${totalDebtMin > 0 ? row(t('cashflow.debtMinimums'), totalDebtMin, 'cashflow-row--debt') + debtSubRows : ''}
+                    ${totalBills > 0 ? row(t('cashflow.bills'), totalBills, 'cashflow-row--bills') + billCatRows : ''}
+                    ${totalExpenses > 0 ? row(t('cashflow.budgetedExpenses'), totalExpenses, 'cashflow-row--expenses') + expCatRows : ''}
+                    ${row(t('cashflow.totalOutflow'), totalOutflow, 'cashflow-row--total')}
                 </div>
             </div>
             <div class="cashflow-net ${netClass}">
-                <span>Net remaining</span>
+                <span>${escapeHtml(t('cashflow.netRemaining'))}</span>
                 <span>${formatCurrency(net)}</span>
             </div>
         </div>
@@ -234,15 +236,15 @@ export function renderCashFlowSummary(app) {
         <div class="cashflow-tab-panel" id="cashflowPanelCharts">
             <div class="cashflow-charts-top">
                 <div class="cashflow-chart-wrap cashflow-chart-wrap--donut">
-                    <h5 class="cashflow-chart-title">Where Does My Money Go?</h5>
-                    <p class="cashflow-chart-sub">Monthly income allocation</p>
+                    <h5 class="cashflow-chart-title">${escapeHtml(t('cashflow.donutTitle'))}</h5>
+                    <p class="cashflow-chart-sub">${escapeHtml(t('cashflow.donutSub'))}</p>
                     <canvas id="cashflowDonutChart"></canvas>
                 </div>
             </div>
             <div class="cashflow-charts-bottom">
                 <div class="cashflow-chart-wrap cashflow-chart-wrap--bar">
-                    <h5 class="cashflow-chart-title">Outflow Breakdown</h5>
-                    <p class="cashflow-chart-sub">Amount per category / debt</p>
+                    <h5 class="cashflow-chart-title">${escapeHtml(t('cashflow.barTitle'))}</h5>
+                    <p class="cashflow-chart-sub">${escapeHtml(t('cashflow.barSub'))}</p>
                     <div class="cashflow-bar-container">
                         <canvas id="cashflowBarChart"></canvas>
                     </div>
@@ -271,10 +273,10 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
         const donutData = [];
         const donutLabels = [];
         const donutColors = [];
-        if (totalDebtMin > 0) { donutData.push(totalDebtMin); donutLabels.push('Debt Minimums'); donutColors.push('#ef4444'); }
-        if (totalBills > 0)   { donutData.push(totalBills);   donutLabels.push('Bills');          donutColors.push('#f59e0b'); }
-        if (totalExpenses > 0){ donutData.push(totalExpenses);donutLabels.push('Expenses');        donutColors.push('#8b5cf6'); }
-        if (net > 0)          { donutData.push(net);          donutLabels.push('Net Remaining');   donutColors.push('#10b981'); }
+        if (totalDebtMin > 0) { donutData.push(totalDebtMin); donutLabels.push(t('cashflow.debtMinimumsChart')); donutColors.push('#ef4444'); }
+        if (totalBills > 0)   { donutData.push(totalBills);   donutLabels.push(t('cashflow.bills'));          donutColors.push('#f59e0b'); }
+        if (totalExpenses > 0){ donutData.push(totalExpenses);donutLabels.push(t('cashflow.expenses'));        donutColors.push('#8b5cf6'); }
+        if (net > 0)          { donutData.push(net);          donutLabels.push(t('cashflow.netRemainingShort'));   donutColors.push('#10b981'); }
         else if (donutData.length === 0) return;
 
         app._cashflowDonutChart = new Chart(donutCanvas, {
@@ -290,8 +292,8 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
         });
 
         renderChartDataTable('cashflowDonutChart', {
-            caption: 'Monthly cash flow breakdown',
-            columns: ['Category', 'Amount'],
+            caption: t('cashflow.donutCaption'),
+            columns: [t('cashflow.colCategory'), t('cashflow.colAmount')],
             rows: donutLabels.map((l, i) => [l, formatCurrency(donutData[i])])
         });
     }
@@ -311,12 +313,12 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
         const billCats = {};
         for (const b of app.bills) { const c = b.category || 'Other'; billCats[c] = (billCats[c] || 0) + b.amount; }
         Object.entries(billCats).sort((a, b) => b[1] - a[1])
-            .forEach(([cat, amt]) => { labels.push(cat); values.push(amt); colors.push('#f59e0b'); });
+            .forEach(([cat, amt]) => { labels.push(categoryLabel(cat)); values.push(amt); colors.push('#f59e0b'); });
 
         const expCats = {};
         for (const e of (filteredExpenses ?? app.expenses)) { const c = e.category || 'Other'; expCats[c] = (expCats[c] || 0) + e.budgetAmount; }
         Object.entries(expCats).sort((a, b) => b[1] - a[1])
-            .forEach(([cat, amt]) => { labels.push(cat); values.push(amt); colors.push('#8b5cf6'); });
+            .forEach(([cat, amt]) => { labels.push(categoryLabel(cat)); values.push(amt); colors.push('#8b5cf6'); });
 
         if (labels.length === 0) return;
 
@@ -327,7 +329,7 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                 responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: ctx => ` ${formatCurrency(ctx.parsed.y)}/mo` } }
+                    tooltip: { callbacks: { label: ctx => ` ${t('debts.perMonth', { amount: formatCurrency(ctx.parsed.y) })}` } }
                 },
                 scales: {
                     x: { ticks: { font: { size: 11 }, maxRotation: 35, minRotation: 20 } },
@@ -337,8 +339,8 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
         });
 
         renderChartDataTable('cashflowBarChart', {
-            caption: 'Monthly obligations by debt, bill, and expense category',
-            columns: ['Item', 'Amount'],
+            caption: t('cashflow.barCaption'),
+            columns: [t('cashflow.colItem'), t('cashflow.colAmount')],
             rows: labels.map((l, i) => [l, formatCurrency(values[i])])
         });
     }
@@ -352,7 +354,7 @@ export async function addBill(app) {
     const category = normalizeText(document.getElementById('billCategory').value, 40);
     const accountId = parseInt(document.getElementById('billAccount')?.value) || null;
     if (!name || isNaN(amount) || amount < 0) {
-        await showAlertModal('Please enter a valid bill name and amount.');
+        await showAlertModal(t('expenses.errBill'));
         return;
     }
     const bill = { id: Date.now(), name, amount, dueDay, category, accountId };
@@ -395,7 +397,7 @@ export async function saveEditBill(app, id) {
     const category  = normalizeText(document.getElementById(`be-cat-${id}`).value, 40);
     const acctEl    = document.getElementById(`be-acct-${id}`);
     const accountId = acctEl?.value ? parseInt(acctEl.value) : null;
-    if (!name || isNaN(amount) || amount < 0) { await showAlertModal('Invalid bill data.'); return; }
+    if (!name || isNaN(amount) || amount < 0) { await showAlertModal(t('expenses.errBillInvalid')); return; }
     app.bills[idx] = { ...app.bills[idx], name, amount, dueDay, category, accountId };
     app.editingBillId = null;
     app.saveToStorage();
@@ -418,7 +420,7 @@ export async function addExpense(app) {
     const category = normalizeText(document.getElementById('expenseCategory').value, 40);
     const accountId = parseInt(document.getElementById('expenseAccount')?.value) || null;
     if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) {
-        await showAlertModal('Please enter a valid expense name, amount, and date.');
+        await showAlertModal(t('expenses.errExpense'));
         return;
     }
     const expense = { id: Date.now(), name, budgetAmount, date: dateStr, category, accountId };
@@ -462,7 +464,7 @@ export async function saveEditExpense(app, id) {
     const category     = normalizeText(document.getElementById(`ee-cat-${id}`).value, 40);
     const acctEl       = document.getElementById(`ee-acct-${id}`);
     const accountId    = acctEl?.value ? parseInt(acctEl.value) : null;
-    if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) { await showAlertModal('Invalid expense data.'); return; }
+    if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) { await showAlertModal(t('expenses.errExpenseInvalid')); return; }
     app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date: dateStr, category, accountId };
     app.editingExpenseId = null;
     app.saveToStorage();

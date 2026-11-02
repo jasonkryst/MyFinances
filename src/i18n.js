@@ -158,3 +158,51 @@ export function accountTypeLabel(type) {
     const key = ACCOUNT_TYPE_KEYS[type];
     return key ? t(key) : String(type ?? '');
 }
+
+// Display label for a built-in spending/budget category. Stored category
+// strings stay English ('Rent / Mortgage', 'Debt Payments', …) because they
+// are data (user-editable, keyed in budgetCategories); only the rendering is
+// localized. A custom or unknown category is shown as typed.
+const CATEGORY_KEYS = {
+    'Subscription': 'category.subscription',
+    'Insurance': 'category.insurance',
+    'Rent / Mortgage': 'category.rentMortgage',
+    'Utilities': 'category.utilities',
+    'Transport': 'category.transport',
+    'Food': 'category.food',
+    'Entertainment': 'category.entertainment',
+    'Health': 'category.health',
+    'Education': 'category.education',
+    'Savings': 'category.savings',
+    'Transfer': 'category.transfer',
+    'Income': 'category.income',
+    'Reimbursement': 'category.reimbursement',
+    'Other': 'category.other',
+    'Debt Payments': 'category.debtPayments',
+    'Uncategorized': 'category.uncategorized',
+    // Ledger-generated and income/bonus categories (stored English values).
+    'Interest': 'category.interest',
+    'Reconciliation': 'category.reconciliation',
+    'Balance': 'category.balance',
+    'Bonus': 'income.bonusCatBonus',
+    'Tax Refund': 'income.bonusCatTaxRefund',
+    'Cash Deposit': 'income.bonusCatCashDeposit',
+    'Check Deposit': 'income.bonusCatCheckDeposit',
+    'Salary': 'income.catSalary',
+    'Freelance': 'income.catFreelance',
+    'Rental': 'income.catRental',
+    'Investment': 'income.catInvestment',
+};
+export function categoryLabel(category) {
+    const key = CATEGORY_KEYS[category];
+    return key ? t(key) : String(category ?? '');
+}
+
+// "1 debt" / "3 debts": a count noun with an `…One` and `…Other` key pair,
+// chosen with Intl.PluralRules so Polish/Spanish pick the right form.
+export function plural(baseKey, count, vars = {}) {
+    const cat = new Intl.PluralRules(getIntlLocale()).select(count);
+    const dict = DICTIONARIES[currentLocale] || DICTIONARIES[DEFAULT_LOCALE];
+    const key = dict[`${baseKey}.${cat}`] !== undefined ? `${baseKey}.${cat}` : `${baseKey}.other`;
+    return t(key, { count, ...vars });
+}

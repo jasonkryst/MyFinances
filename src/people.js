@@ -3,20 +3,21 @@ import { normalizeText, escapeHtml, formatCurrency } from './utils.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
 import { renderOwnershipControl, getDebtShare, removePersonFromDebt } from './debtOwnership.js';
+import { t, plural } from './i18n.js';
 
 // Cycle member: ui.js → people.js → postgresSync.js → ui.js (safe: all exports are hoisted function declarations)
 
 function _dtiStatus(dtiPct) {
-    if (dtiPct < 28) return { cls: 'health-status--green', label: 'Healthy' };
-    if (dtiPct < 40) return { cls: 'health-status--yellow', label: 'Moderate' };
-    return { cls: 'health-status--red', label: 'High Risk' };
+    if (dtiPct < 28) return { cls: 'health-status--green', label: t('health.status.healthy') };
+    if (dtiPct < 40) return { cls: 'health-status--yellow', label: t('health.status.moderate') };
+    return { cls: 'health-status--red', label: t('health.status.highRisk') };
 }
 
 function _utilStatus(utilPct) {
-    if (utilPct <= 10) return { cls: 'health-status--green', label: 'Good' };
-    if (utilPct <= 30) return { cls: 'health-status--yellow', label: 'Fair' };
-    if (utilPct <= 50) return { cls: 'health-status--orange', label: 'High' };
-    return { cls: 'health-status--red', label: utilPct >= 100 ? 'Maxed' : 'Critical' };
+    if (utilPct <= 10) return { cls: 'health-status--green', label: t('debts.utilStatusGood') };
+    if (utilPct <= 30) return { cls: 'health-status--yellow', label: t('debts.utilStatusFair') };
+    if (utilPct <= 50) return { cls: 'health-status--orange', label: t('debts.utilStatusHigh') };
+    return { cls: 'health-status--red', label: utilPct >= 100 ? t('debts.utilStatusMaxed') : t('debts.utilStatusCritical') };
 }
 
 export function buildPersonOptionsHtml(persons, selectedId, { emptyLabel } = {}) {
@@ -31,7 +32,7 @@ export function refreshPersonSelectors(app) {
     // Single-person selects (income form)
     for (const el of document.querySelectorAll('.person-selector')) {
         const val = el.value;
-        el.innerHTML = buildPersonOptionsHtml(app.persons, null, { emptyLabel: '— No person —' });
+        el.innerHTML = buildPersonOptionsHtml(app.persons, null, { emptyLabel: escapeHtml(t('income.noPerson')) });
         el.value = val;
     }
     // Debt multi-select
@@ -62,7 +63,7 @@ export function renderPeopleList(app) {
     if (!listEl) return;
 
     if ((app.persons || []).length === 0) {
-        listEl.innerHTML = '<p class="empty-income-msg text-muted-secondary">No family members added yet.</p>';
+        listEl.innerHTML = `<p class="empty-income-msg text-muted-secondary">${escapeHtml(t('people.emptyList'))}</p>`;
         return;
     }
 
@@ -73,13 +74,13 @@ export function renderPeopleList(app) {
                     <div class="income-edit-form">
                         <div class="income-edit-grid">
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Name *</label>
+                                <label class="label-compact">${escapeHtml(t('people.nameLabel'))}</label>
                                 <input type="text" id="pe-name-${p.id}" value="${escapeHtml(p.name)}" class="form-control form-full-width">
                             </div>
                         </div>
                         <div class="income-edit-actions">
-                            <button class="btn btn-primary btn-small" data-person-action="save" data-person-id="${p.id}" aria-label="Save changes to ${escapeHtml(p.name)}">Save</button>
-                            <button class="btn btn-secondary btn-small" data-person-action="cancel" aria-label="Cancel editing ${escapeHtml(p.name)}">Cancel</button>
+                            <button class="btn btn-primary btn-small" data-person-action="save" data-person-id="${p.id}" aria-label="${escapeHtml(t('entity.saveChangesAria', { name: p.name }))}">${escapeHtml(t('common.save'))}</button>
+                            <button class="btn btn-secondary btn-small" data-person-action="cancel" aria-label="${escapeHtml(t('entity.cancelEditAria', { name: p.name }))}">${escapeHtml(t('common.cancel'))}</button>
                         </div>
                     </div>
                 </div>`;
@@ -106,18 +107,18 @@ export function renderPeopleList(app) {
 
         const hasLinked = linkedIncomes.length > 0 || linkedDebts.length > 0;
         const linkedSummary = [
-            linkedIncomes.length ? `${linkedIncomes.length} income` : '',
-            linkedDebts.length ? `${linkedDebts.length} debt${linkedDebts.length !== 1 ? 's' : ''}` : '',
+            linkedIncomes.length ? plural('people.linkedIncomes', linkedIncomes.length) : '',
+            linkedDebts.length ? plural('people.linkedDebts', linkedDebts.length) : '',
         ].filter(Boolean).join(' · ');
 
         const utilTile = utilSt
-            ? `<div class="person-kpi-tile" role="group" aria-label="Credit utilization for ${escapeHtml(p.name)}: ${utilPct}%">
-                    <span class="person-kpi-label">Credit Util</span>
+            ? `<div class="person-kpi-tile" role="group" aria-label="${escapeHtml(t('people.creditUtilAria', { name: p.name, pct: utilPct }))}">
+                    <span class="person-kpi-label">${escapeHtml(t('people.creditUtil'))}</span>
                     <span class="person-kpi-value health-badge ${utilSt.cls}">${utilPct}% <span class="person-kpi-status-label">${utilSt.label}</span></span>
                </div>`
-            : `<div class="person-kpi-tile" role="group" aria-label="Credit utilization for ${escapeHtml(p.name)}: N/A">
-                    <span class="person-kpi-label">Credit Util</span>
-                    <span class="person-kpi-value person-kpi--na">N/A</span>
+            : `<div class="person-kpi-tile" role="group" aria-label="${escapeHtml(t('people.creditUtilNaAria', { name: p.name }))}">
+                    <span class="person-kpi-label">${escapeHtml(t('people.creditUtil'))}</span>
+                    <span class="person-kpi-value person-kpi--na">${escapeHtml(t('people.notAvailable'))}</span>
                </div>`;
 
         return `
@@ -125,19 +126,19 @@ export function renderPeopleList(app) {
                 <div class="income-card-info">
                     <div class="person-card-header">
                         <span class="income-card-name">${escapeHtml(p.name)}</span>
-                        ${dtiSt ? `<span class="health-badge health-badge--sm ${dtiSt.cls}" aria-label="Debt-to-income ratio for ${escapeHtml(p.name)}: ${dtiPct}%, ${dtiSt.label}">DTI ${dtiPct}%</span>` : ''}
+                        ${dtiSt ? `<span class="health-badge health-badge--sm ${dtiSt.cls}" aria-label="${escapeHtml(t('people.dtiAria', { name: p.name, pct: dtiPct, status: dtiSt.label }))}">${escapeHtml(t('people.dtiBadge', { pct: dtiPct }))}</span>` : ''}
                     </div>
                     <div class="person-summary-card">
-                        <div class="person-kpi-tile" role="group" aria-label="Total annual income for ${escapeHtml(p.name)}: ${formatCurrency(annualIncome)}">
-                            <span class="person-kpi-label">Annual Income</span>
+                        <div class="person-kpi-tile" role="group" aria-label="${escapeHtml(t('people.annualIncomeAria', { name: p.name, amount: formatCurrency(annualIncome) }))}">
+                            <span class="person-kpi-label">${escapeHtml(t('people.annualIncome'))}</span>
                             <span class="person-kpi-value">${formatCurrency(annualIncome)}</span>
                         </div>
-                        <div class="person-kpi-tile" role="group" aria-label="Total linked debt for ${escapeHtml(p.name)}: ${formatCurrency(totalDebt)}">
-                            <span class="person-kpi-label">Total Debt</span>
+                        <div class="person-kpi-tile" role="group" aria-label="${escapeHtml(t('people.totalDebtAria', { name: p.name, amount: formatCurrency(totalDebt) }))}">
+                            <span class="person-kpi-label">${escapeHtml(t('people.totalDebt'))}</span>
                             <span class="person-kpi-value">${formatCurrency(totalDebt)}</span>
                         </div>
-                        <div class="person-kpi-tile" role="group" aria-label="Monthly net for ${escapeHtml(p.name)}: ${formatCurrency(monthlyNet)}">
-                            <span class="person-kpi-label">Monthly Net</span>
+                        <div class="person-kpi-tile" role="group" aria-label="${escapeHtml(t('people.monthlyNetAria', { name: p.name, amount: formatCurrency(monthlyNet) }))}">
+                            <span class="person-kpi-label">${escapeHtml(t('people.monthlyNet'))}</span>
                             <span class="person-kpi-value ${monthlyNet >= 0 ? 'person-kpi--positive' : 'person-kpi--negative'}">${formatCurrency(monthlyNet)}</span>
                         </div>
                         ${utilTile}
@@ -148,7 +149,7 @@ export function renderPeopleList(app) {
                         <div class="person-linked-body">
                             ${linkedIncomes.length ? `
                             <div class="person-linked-section">
-                                <div class="person-linked-label">Income sources</div>
+                                <div class="person-linked-label">${escapeHtml(t('people.incomeSources'))}</div>
                                 ${linkedIncomes.map(inc => `
                                 <button class="person-link-btn" data-person-nav="income" data-person-nav-id="${inc.id}">
                                     ${escapeHtml(inc.name)} &mdash; ${formatCurrency(inc.amount)}
@@ -156,7 +157,7 @@ export function renderPeopleList(app) {
                             </div>` : ''}
                             ${linkedDebts.length ? `
                             <div class="person-linked-section">
-                                <div class="person-linked-label">Liabilities</div>
+                                <div class="person-linked-label">${escapeHtml(t('nav.liabilities'))}</div>
                                 ${linkedDebts.map(d => `
                                 <button class="person-link-btn" data-person-nav="liabilities" data-person-nav-id="${d.id}">
                                     ${escapeHtml(d.name)} &mdash; ${formatCurrency(d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0))}
@@ -166,8 +167,8 @@ export function renderPeopleList(app) {
                     </details>` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" data-person-action="edit" data-person-id="${p.id}" aria-label="Edit ${escapeHtml(p.name)}">Edit</button>
-                    <button class="btn btn-danger btn-small" data-person-action="delete" data-person-id="${p.id}" aria-label="Delete ${escapeHtml(p.name)}">Delete</button>
+                    <button class="btn-edit" data-person-action="edit" data-person-id="${p.id}" aria-label="${escapeHtml(t('entity.editAria', { name: p.name }))}">${escapeHtml(t('common.edit'))}</button>
+                    <button class="btn btn-danger btn-small" data-person-action="delete" data-person-id="${p.id}" aria-label="${escapeHtml(t('entity.deleteAria', { name: p.name }))}">${escapeHtml(t('common.delete'))}</button>
                 </div>
             </div>`;
     }).join('');
@@ -200,7 +201,7 @@ export function renderPeopleList(app) {
 
 export async function addPerson(app) {
     const name = normalizeText(document.getElementById('personName')?.value, 80);
-    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!name) { await showAlertModal(t('people.errName')); return; }
 
     const person = { id: Date.now(), name };
     app.persons.push(person);
@@ -237,7 +238,7 @@ export async function deletePerson(app, personId) {
         if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[i].id}`, app.incomes[i]);
     }
 
-    const confirmed = await showDeleteConfirmModal(`Delete "${(app.persons.find(p => p.id === personId) || {}).name}"?`);
+    const confirmed = await showDeleteConfirmModal(t('people.deleteConfirm', { name: (app.persons.find(p => p.id === personId) || {}).name }));
     if (!confirmed) return;
 
     app.persons = app.persons.filter(p => p.id !== personId);
@@ -264,7 +265,7 @@ export async function saveEditPerson(app, personId) {
     const nameEl = document.getElementById(`pe-name-${personId}`);
     if (!nameEl) return;
     const name = normalizeText(nameEl.value, 80);
-    if (!name) { await showAlertModal('Please enter a name.'); return; }
+    if (!name) { await showAlertModal(t('people.errName')); return; }
 
     const idx = app.persons.findIndex(p => p.id === personId);
     if (idx === -1) return;

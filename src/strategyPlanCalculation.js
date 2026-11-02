@@ -1,6 +1,7 @@
 // Payment plan calculation: DOM-input-driven entry points plus a shared recalculate core.
 
-import { formatCurrency, escapeHtml } from './utils.js';
+import { formatCurrency, formatLongDate, escapeHtml } from './utils.js';
+import { t, plural } from './i18n.js';
 import { showAlertModal } from './ui.js';
 import { pgPost, pgDelete } from './postgresSync.js';
 
@@ -102,13 +103,13 @@ export async function calculatePaymentPlanFromInputs(app) {
     const strategy = document.getElementById('paymentStrategy').value;
 
     if (!monthlyPayment || isNaN(monthlyPayment) || monthlyPayment <= 0) {
-        await showAlertModal('Please enter a valid monthly payment amount greater than 0.');
+        await showAlertModal(t('strategy.alertInvalidPayment'));
         return;
     }
 
     const activeDebts = app.debts.filter(d => !d.archived);
     if (!activeDebts.length) {
-        await showAlertModal('Please add at least one active (non-archived) debt before calculating.');
+        await showAlertModal(t('strategy.alertNoDebts'));
         return;
     }
 
@@ -128,7 +129,7 @@ export async function calculatePaymentPlanFromInputs(app) {
             app.saveToStorage();
         },
         onError: (err) => {
-            showAlertModal(err && err.message ? err.message : 'Unable to calculate payment plan.');
+            showAlertModal(err && err.message ? err.message : t('strategy.alertCalcFailed'));
         }
     });
 }
@@ -153,7 +154,7 @@ export function calculateRequiredPayment(app) {
     // If no date provided, just calculate plan with current payment and show results
     if (!dateVal) {
         if (activeDebts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
-            resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">No interest-bearing debts to calculate for.</div></div>`;
+            resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">${escapeHtml(t('strategy.noInterestDebts'))}</div></div>`;
             return;
         }
 
@@ -167,16 +168,16 @@ export function calculateRequiredPayment(app) {
             app._planFingerprint = computeDebtFingerprint(app.debts);
 
             const actualMonths = r.paymentPlan.length;
-            const payoffDateStr = summary ? DebtCalculator.formatDate(summary.payOffDate) : '—';
+            const payoffDateStr = summary ? formatLongDate(summary.payOffDate) : '—';
             const interestStr = summary ? formatCurrency(summary.totalInterest) : '—';
 
             resultEl.innerHTML = `<div class="target-result">
-                <div class="target-result-headline">✅ Payment Plan</div>
-                <span class="target-result-payment">${formatCurrency(monthlyPayment)}<span class="result-payment"> / month</span></span>
+                <div class="target-result-headline">✅ ${escapeHtml(t('strategy.title'))}</div>
+                <span class="target-result-payment">${formatCurrency(monthlyPayment)}<span class="result-payment"> ${escapeHtml(t('strategy.perMonth'))}</span></span>
                 <div class="target-result-meta">
-                    <span>📅 Payoff by <strong>${payoffDateStr}</strong></span>
-                    <span>⏱ ${actualMonths} month${actualMonths !== 1 ? 's' : ''}</span>
-                    <span>💸 Total interest: <strong>${interestStr}</strong></span>
+                    <span>📅 ${escapeHtml(t('strategy.payoffBy', { date: payoffDateStr }))}</span>
+                    <span>⏱ ${escapeHtml(plural('strategy.months', actualMonths))}</span>
+                    <span>💸 ${escapeHtml(t('strategy.totalInterestIs', { amount: interestStr }))}</span>
                 </div>
             </div>`;
 
@@ -185,7 +186,7 @@ export function calculateRequiredPayment(app) {
             app.switchPage('strategy');
         } catch (e) {
             console.error('calculateRequiredPayment: ERROR', e);
-            resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">Error calculating payment plan: ${escapeHtml(e && e.message ? e.message : String(e))}</div></div>`;
+            resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">${escapeHtml(t('strategy.errorCalculating', { message: e && e.message ? e.message : String(e) }))}</div></div>`;
         }
         return;
     }
@@ -193,13 +194,13 @@ export function calculateRequiredPayment(app) {
     const targetDate = new Date(dateVal + 'T12:00:00');
     const today = new Date();
     if (targetDate <= today) {
-        resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">Target date must be in the future.</div></div>`;
+        resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">${escapeHtml(t('strategy.targetFuture'))}</div></div>`;
         return;
     }
 
     if (activeDebts.filter(d => d.debtType !== 'fixedAmount').length === 0) {
         console.warn('No interest-bearing debts found');
-        resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">No interest-bearing debts to calculate for.</div></div>`;
+        resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">${escapeHtml(t('strategy.noInterestDebts'))}</div></div>`;
         return;
     }
 
@@ -208,7 +209,7 @@ export function calculateRequiredPayment(app) {
         + (targetDate.getMonth() - today.getMonth());
 
     if (targetMonths < 1) {
-        resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">Target date must be at least one month away.</div></div>`;
+        resultEl.innerHTML = `<div class="target-result target-result--error"><div class="target-result-headline">${escapeHtml(t('strategy.targetOneMonth'))}</div></div>`;
         return;
     }
 
@@ -237,8 +238,8 @@ export function calculateRequiredPayment(app) {
 
     if (!found) {
         resultEl.innerHTML = `<div class="target-result target-result--error">
-            <div class="target-result-headline">❌ Unable to calculate</div>
-            <p class="margin-bottom-6">This target date may be unreachable. Try a later date.</p>
+            <div class="target-result-headline">❌ ${escapeHtml(t('strategy.unableToCalculate'))}</div>
+            <p class="margin-bottom-6">${escapeHtml(t('strategy.targetUnreachable'))}</p>
         </div>`;
         return;
     }
@@ -263,24 +264,24 @@ export function calculateRequiredPayment(app) {
     const isHigher = requiredPayment > currentPayment + 0.5;
     const panelClass = isHigher ? 'target-result--warn' : 'target-result';
     const headline = isHigher
-        ? `⚠️ You need to pay ${formatCurrency(extraNeeded)} more/month`
-        : '✅ Your current payment covers this goal';
+        ? `⚠️ ${escapeHtml(t('strategy.needMore', { amount: formatCurrency(extraNeeded) }))}`
+        : `✅ ${escapeHtml(t('strategy.currentCovers'))}`;
 
     // Fallback formats the parsed target date, never the raw <input> text
     // (CodeQL js/xss-through-dom, #380), and is escaped like any other value.
-    const payoffDateStr = escapeHtml(DebtCalculator.formatDate(summary ? summary.payOffDate : targetDate));
+    const payoffDateStr = formatLongDate(summary ? summary.payOffDate : targetDate);
     const interestStr = summary ? formatCurrency(summary.totalInterest) : '—';
 
     resultEl.innerHTML = `<div class="target-result ${panelClass}">
         <div class="target-result-headline">${headline}</div>
-        <span class="target-result-payment">${formatCurrency(requiredPayment)}<span class="result-payment"> / month</span></span>
+        <span class="target-result-payment">${formatCurrency(requiredPayment)}<span class="result-payment"> ${escapeHtml(t('strategy.perMonth'))}</span></span>
         <div class="target-result-meta">
-            <span>📅 Payoff by <strong>${payoffDateStr}</strong></span>
-            <span>⏱ ${actualMonths} month${actualMonths !== 1 ? 's' : ''}</span>
-            <span>💸 Total interest: <strong>${interestStr}</strong></span>
+            <span>📅 ${escapeHtml(t('strategy.payoffBy', { date: payoffDateStr }))}</span>
+            <span>⏱ ${escapeHtml(plural('strategy.months', actualMonths))}</span>
+            <span>💸 ${escapeHtml(t('strategy.totalInterestIs', { amount: interestStr }))}</span>
         </div>
         ${isHigher ? `<div class="target-result-action">
-            <button class="btn btn-primary btn-small" id="applyTargetPayment">Use this amount ↗</button>
+            <button class="btn btn-primary btn-small" id="applyTargetPayment">${escapeHtml(t('strategy.useAmount'))} ↗</button>
         </div>` : ''}
     </div>`;
 

@@ -3,6 +3,7 @@
 import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut } from './postgresSync.js';
+import { t, getIntlLocale } from './i18n.js';
 
 function toMonthKey(value) {
     return String(value || '').slice(0, 7);
@@ -109,7 +110,7 @@ export function computeNetWorthProjection(app, horizonMonths) {
         const d = new Date(year, month + i, 1);
         points.push({
             year: d.getFullYear(), month: d.getMonth(),
-            label: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            label: d.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' }),
             netWorth: parseFloat(netWorth.toFixed(2)),
             liabilities: liabilities !== null ? parseFloat(liabilities.toFixed(2)) : null,
             isYearEnd: (i % 12) === 0
@@ -153,13 +154,13 @@ export function captureNetWorthSnapshot(app, options = {}) {
             const alreadyAwarded = app.netWorthMilestonesAwarded.includes(threshold);
             if (alreadyAwarded || gainPrev >= threshold) continue;
             app.netWorthMilestonesAwarded.push(threshold);
-            app.showNetWorthMilestone(`Net worth milestone reached: +${formatCurrency(threshold)} from your first snapshot`);
+            app.showNetWorthMilestone(t('reports.nwMilestoneReached', { amount: formatCurrency(threshold) }));
             app.saveToStorage();
         }
     }
 
     if (options.source === 'manual' && !options.silent) {
-        app.showNetWorthMilestone(`Snapshot captured: net worth ${formatCurrency(snapshot.netWorth)}`);
+        app.showNetWorthMilestone(t('reports.nwSnapshotCaptured', { amount: formatCurrency(snapshot.netWorth) }));
     }
 
     return snapshot;
@@ -171,7 +172,7 @@ export function renderNetWorthWidget(app) {
 
     const snapshots = getSnapshotSeries(app, 24);
     if (snapshots.length === 0) {
-        container.innerHTML = '<p class="nw-widget-empty">No snapshots yet. Capture your first net worth snapshot from Reports.</p>';
+        container.innerHTML = `<p class="nw-widget-empty">${t('netWorth.widgetEmpty')}</p>`;
         return;
     }
 
@@ -179,19 +180,21 @@ export function renderNetWorthWidget(app) {
     const prev = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
     const change = prev ? latest.netWorth - prev.netWorth : 0;
     const changeClass = change >= 0 ? 'nw-change--up' : 'nw-change--down';
-    const changeLabel = prev ? `${change >= 0 ? '+' : '-'}${formatCurrency(Math.abs(change))} vs last snapshot` : 'No prior snapshot yet';
+    const changeLabel = prev
+        ? t('netWorth.widgetChange', { change: `${change >= 0 ? '+' : '-'}${formatCurrency(Math.abs(change))}` })
+        : t('netWorth.widgetNoPrior');
 
     container.innerHTML = `
         <div class="nw-widget-card">
             <div class="nw-widget-head">
-                <h3>Net Worth</h3>
-                <span class="nw-widget-date" title="Snapshot value; the Health page shows live balances">Snapshot as of ${escapeHtml(formatShortDate(latest.date))}</span>
+                <h3>${t('netWorth.widgetTitle')}</h3>
+                <span class="nw-widget-date" title="${escapeHtml(t('netWorth.widgetSnapshotTitle'))}">${escapeHtml(t('netWorth.widgetSnapshotAsOf', { date: formatShortDate(latest.date) }))}</span>
             </div>
             <div class="nw-widget-main">${formatCurrency(latest.netWorth)}</div>
             <div class="nw-widget-change ${changeClass}">${changeLabel}</div>
             <div class="nw-widget-breakdown">
-                <span>Assets: <strong>${formatCurrency(latest.totalAssets)}</strong></span>
-                <span>Liabilities: <strong>${formatCurrency(latest.totalLiabilities)}</strong></span>
+                <span>${t('netWorth.widgetAssets')} <strong>${formatCurrency(latest.totalAssets)}</strong></span>
+                <span>${t('netWorth.widgetLiabilities')} <strong>${formatCurrency(latest.totalLiabilities)}</strong></span>
             </div>
         </div>`;
 }
@@ -210,10 +213,10 @@ export function renderReportsNetWorth(app) {
     if (series.length === 0) {
         container.innerHTML = `
             <div class="nw-report-header">
-                <h3>Net Worth Timeline</h3>
-                <button class="btn btn-primary" id="captureSnapshotBtn" type="button">Capture Snapshot Now</button>
+                <h3>${escapeHtml(t('reports.nwTitle'))}</h3>
+                <button class="btn btn-primary" id="captureSnapshotBtn" type="button">${escapeHtml(t('reports.nwCapture'))}</button>
             </div>
-            <p class="rpt-empty-msg">No net worth snapshots yet. Capture one to start your trend line.</p>`;
+            <p class="rpt-empty-msg">${escapeHtml(t('reports.nwEmpty'))}</p>`;
         return;
     }
 
@@ -227,14 +230,14 @@ export function renderReportsNetWorth(app) {
     const yearEndMilestones = projection.filter(p => p.isYearEnd);
     const milestonesHtml = yearEndMilestones.length > 0
         ? `<div class="nw-projection-milestones-list">${yearEndMilestones.map((m, i) =>
-            `<div class="nw-projection-milestone-item"><span class="nw-projection-milestone-label">Year ${i + 1} (${escapeHtml(m.label)})</span><span class="nw-projection-milestone-value">${formatCurrency(m.netWorth)}</span></div>`
+            `<div class="nw-projection-milestone-item"><span class="nw-projection-milestone-label">${escapeHtml(t('reports.nwYearMilestone', { n: i + 1, label: m.label }))}</span><span class="nw-projection-milestone-value">${formatCurrency(m.netWorth)}</span></div>`
           ).join('')}</div>`
         : '';
 
     const historyRows = [...series]
         .reverse()
         .map(snapshot => {
-            const displayDate = new Date(`${snapshot.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+            const displayDate = new Date(`${snapshot.date}T12:00:00`).toLocaleDateString(getIntlLocale(), { month: 'short', day: '2-digit', year: 'numeric' });
             return `
                 <tr>
                     <td>${displayDate}</td>
@@ -249,53 +252,53 @@ export function renderReportsNetWorth(app) {
 
     container.innerHTML = `
         <div class="nw-report-header">
-            <h3>Net Worth Timeline</h3>
+            <h3>${escapeHtml(t('reports.nwTitle'))}</h3>
             <div class="nw-report-actions">
-                <div class="nw-range-buttons" role="group" aria-label="Net worth range">
-                    <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-networth-range="3" type="button" aria-pressed="${horizon === 3 ? 'true' : 'false'}" aria-label="Last 3 months (3M)">3M</button>
-                    <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-networth-range="6" type="button" aria-pressed="${horizon === 6 ? 'true' : 'false'}" aria-label="Last 6 months (6M)">6M</button>
-                    <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-networth-range="12" type="button" aria-pressed="${horizon === 12 ? 'true' : 'false'}" aria-label="Last 12 months (12M)">12M</button>
+                <div class="nw-range-buttons" role="group" aria-label="${escapeHtml(t('reports.nwRangeAria'))}">
+                    <button class="nw-range-btn ${horizon === 3 ? 'active' : ''}" data-networth-range="3" type="button" aria-pressed="${horizon === 3 ? 'true' : 'false'}" aria-label="${escapeHtml(t('reports.nwLastMonthsAria', { n: 3 }))}">3M</button>
+                    <button class="nw-range-btn ${horizon === 6 ? 'active' : ''}" data-networth-range="6" type="button" aria-pressed="${horizon === 6 ? 'true' : 'false'}" aria-label="${escapeHtml(t('reports.nwLastMonthsAria', { n: 6 }))}">6M</button>
+                    <button class="nw-range-btn ${horizon === 12 ? 'active' : ''}" data-networth-range="12" type="button" aria-pressed="${horizon === 12 ? 'true' : 'false'}" aria-label="${escapeHtml(t('reports.nwLastMonthsAria', { n: 12 }))}">12M</button>
                 </div>
-                <div class="nw-range-buttons" role="group" aria-label="Net worth projection horizon">
-                    <button class="nw-range-btn ${projectionYears === 1 ? 'active' : ''}" data-networth-projection="1" type="button" aria-pressed="${projectionYears === 1 ? 'true' : 'false'}">Project 1Y</button>
-                    <button class="nw-range-btn ${projectionYears === 3 ? 'active' : ''}" data-networth-projection="3" type="button" aria-pressed="${projectionYears === 3 ? 'true' : 'false'}">Project 3Y</button>
-                    <button class="nw-range-btn ${projectionYears === 5 ? 'active' : ''}" data-networth-projection="5" type="button" aria-pressed="${projectionYears === 5 ? 'true' : 'false'}">Project 5Y</button>
+                <div class="nw-range-buttons" role="group" aria-label="${escapeHtml(t('reports.nwProjAria'))}">
+                    <button class="nw-range-btn ${projectionYears === 1 ? 'active' : ''}" data-networth-projection="1" type="button" aria-pressed="${projectionYears === 1 ? 'true' : 'false'}">${escapeHtml(t('reports.nwProjectBtn', { n: 1 }))}</button>
+                    <button class="nw-range-btn ${projectionYears === 3 ? 'active' : ''}" data-networth-projection="3" type="button" aria-pressed="${projectionYears === 3 ? 'true' : 'false'}">${escapeHtml(t('reports.nwProjectBtn', { n: 3 }))}</button>
+                    <button class="nw-range-btn ${projectionYears === 5 ? 'active' : ''}" data-networth-projection="5" type="button" aria-pressed="${projectionYears === 5 ? 'true' : 'false'}">${escapeHtml(t('reports.nwProjectBtn', { n: 5 }))}</button>
                 </div>
-                <button class="btn btn-primary" id="captureSnapshotBtn" type="button">Capture Snapshot Now</button>
+                <button class="btn btn-primary" id="captureSnapshotBtn" type="button">${escapeHtml(t('reports.nwCapture'))}</button>
             </div>
         </div>
         <div class="nw-report-summary">
-            <div class="nw-report-stat"><span>Current Net Worth <small class="nw-snapshot-note">(snapshot, ${escapeHtml(formatShortDate(latest.date))})</small></span><strong>${formatCurrency(latest.netWorth)}</strong></div>
-            <div class="nw-report-stat"><span>Net Change (${horizon}M)</span><strong class="${netChange >= 0 ? 'nw-change--up' : 'nw-change--down'}">${netChange >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netChange))}</strong></div>
-            <div class="nw-report-stat"><span>Asset Growth</span><strong class="${assetGrowth >= 0 ? 'nw-change--up' : 'nw-change--down'}">${assetGrowth >= 0 ? '+' : '-'}${formatCurrency(Math.abs(assetGrowth))}</strong></div>
-            <div class="nw-report-stat"><span>Debt Reduction</span><strong>${formatCurrency(debtDrop)}</strong></div>
+            <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwCurrent'))} <small class="nw-snapshot-note">${escapeHtml(t('reports.nwSnapshotNote', { date: formatShortDate(latest.date) }))}</small></span><strong>${formatCurrency(latest.netWorth)}</strong></div>
+            <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwNetChange', { n: horizon }))}</span><strong class="${netChange >= 0 ? 'nw-change--up' : 'nw-change--down'}">${netChange >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netChange))}</strong></div>
+            <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwAssetGrowth'))}</span><strong class="${assetGrowth >= 0 ? 'nw-change--up' : 'nw-change--down'}">${assetGrowth >= 0 ? '+' : '-'}${formatCurrency(Math.abs(assetGrowth))}</strong></div>
+            <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwDebtReduction'))}</span><strong>${formatCurrency(debtDrop)}</strong></div>
         </div>
         <div class="rpt-charts-row">
             <div class="rpt-chart-card">
-                <h4 class="rpt-chart-title">Net Worth vs Debt Payoff</h4>
-                <p class="rpt-chart-sub">Net worth growth and falling liabilities across snapshots, with a ${projectionYears}-year dashed forward projection</p>
+                <h4 class="rpt-chart-title">${escapeHtml(t('reports.nwTrendTitle'))}</h4>
+                <p class="rpt-chart-sub">${escapeHtml(t('reports.nwTrendSub', { years: projectionYears }))}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="rptNetWorthTrendChart"></canvas></div>
                 ${milestonesHtml}
             </div>
             <div class="rpt-chart-card">
-                <h4 class="rpt-chart-title">Asset Growth vs Debt Reduction</h4>
-                <p class="rpt-chart-sub">Monthly change composition</p>
+                <h4 class="rpt-chart-title">${escapeHtml(t('reports.nwCompTitle'))}</h4>
+                <p class="rpt-chart-sub">${escapeHtml(t('reports.nwCompSub'))}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="rptNetWorthCompositionChart"></canvas></div>
             </div>
         </div>
         <div class="nw-history-card">
-            <h4 class="rpt-chart-title">Snapshot History</h4>
-            <p class="rpt-chart-sub">Quick audit table for each recorded month.</p>
+            <h4 class="rpt-chart-title">${escapeHtml(t('reports.nwHistTitle'))}</h4>
+            <p class="rpt-chart-sub">${escapeHtml(t('reports.nwHistSub'))}</p>
             <div class="nw-history-table-wrap">
                 <table class="nw-history-table" id="netWorthHistoryTable">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Assets</th>
-                            <th>Liabilities</th>
-                            <th>Net Worth</th>
-                            <th>Income</th>
-                            <th>Debt Paid</th>
+                            <th>${escapeHtml(t('reports.colDate'))}</th>
+                            <th>${escapeHtml(t('reports.colAssets'))}</th>
+                            <th>${escapeHtml(t('reports.colLiabilities'))}</th>
+                            <th>${escapeHtml(t('reports.colNetWorth'))}</th>
+                            <th>${escapeHtml(t('reports.colIncome'))}</th>
+                            <th>${escapeHtml(t('reports.colDebtPaid'))}</th>
                         </tr>
                     </thead>
                     <tbody>${historyRows}</tbody>
@@ -303,7 +306,7 @@ export function renderReportsNetWorth(app) {
             </div>
         </div>`;
 
-    const labels = series.map(s => new Date(`${s.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+    const labels = series.map(s => new Date(`${s.date}T12:00:00`).toLocaleDateString(getIntlLocale(), { month: 'short', year: '2-digit' }));
     const netWorthData = series.map(s => s.netWorth);
     const debtData = series.map(s => s.totalLiabilities);
 
@@ -343,7 +346,7 @@ export function renderReportsNetWorth(app) {
                 labels: allLabels,
                 datasets: [
                     {
-                        label: 'Net Worth',
+                        label: t('reports.colNetWorth'),
                         data: netWorthHistorical,
                         borderColor: '#2563eb',
                         backgroundColor: 'rgba(37,99,235,0.12)',
@@ -354,7 +357,7 @@ export function renderReportsNetWorth(app) {
                         spanGaps: false
                     },
                     {
-                        label: 'Liabilities',
+                        label: t('reports.colLiabilities'),
                         data: [...debtData, ...projection.map(() => null)],
                         borderColor: '#dc2626',
                         backgroundColor: 'rgba(220,38,38,0.08)',
@@ -364,7 +367,7 @@ export function renderReportsNetWorth(app) {
                         borderWidth: 2.2
                     },
                     {
-                        label: 'Net Worth (projected)',
+                        label: t('reports.nwProjectedLabel'),
                         data: netWorthProjected,
                         borderColor: '#2563eb',
                         backgroundColor: 'transparent',
@@ -392,11 +395,11 @@ export function renderReportsNetWorth(app) {
         });
 
         renderChartDataTable('rptNetWorthTrendChart', {
-            caption: `Net worth trend over time, with a ${projectionYears}-year forward projection`,
-            columns: ['Month', 'Net Worth', 'Liabilities', 'Projected'],
+            caption: t('reports.nwTrendCaption', { years: projectionYears }),
+            columns: [t('reports.colMonth'), t('reports.colNetWorth'), t('reports.colLiabilities'), t('reports.colProjected')],
             rows: [
-                ...labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx]), 'No']),
-                ...projection.map(p => [p.label, formatCurrency(p.netWorth), p.liabilities !== null ? formatCurrency(p.liabilities) : '—', 'Yes'])
+                ...labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx]), t('reports.no')]),
+                ...projection.map(p => [p.label, formatCurrency(p.netWorth), p.liabilities !== null ? formatCurrency(p.liabilities) : '—', t('reports.yes')])
             ]
         });
     }
@@ -409,8 +412,8 @@ export function renderReportsNetWorth(app) {
             data: {
                 labels: compLabels,
                 datasets: [
-                    { label: 'Asset Growth', data: growthData, backgroundColor: '#10b981', borderRadius: 5 },
-                    { label: 'Debt Reduction', data: reductionData, backgroundColor: '#f59e0b', borderRadius: 5 }
+                    { label: t('reports.nwAssetGrowth'), data: growthData, backgroundColor: '#10b981', borderRadius: 5 },
+                    { label: t('reports.nwDebtReduction'), data: reductionData, backgroundColor: '#f59e0b', borderRadius: 5 }
                 ]
             },
             options: {
@@ -427,8 +430,8 @@ export function renderReportsNetWorth(app) {
             }
         });
         renderChartDataTable('rptNetWorthCompositionChart', {
-            caption: 'Asset growth and debt reduction by month',
-            columns: ['Month', 'Asset Growth', 'Debt Reduction'],
+            caption: t('reports.nwCompCaption'),
+            columns: [t('reports.colMonth'), t('reports.nwAssetGrowth'), t('reports.nwDebtReduction')],
             rows: compLabels.map((label, i) => [label, formatCurrency(growthData[i]), formatCurrency(reductionData[i])])
         });
     }

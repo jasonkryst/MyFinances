@@ -6,14 +6,15 @@ import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showArchiveConfirmModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
+import { t, plural, accountTypeLabel, categoryLabel } from './i18n.js';
 import { renderOwnershipControl, readOwnershipSplit, buildOwnershipSplitHtml } from './debtOwnership.js';
 import { sanitizeOwnershipSplit } from './sanitizers.js';
 
 function utilizationStatus(pct) {
-    if (pct <= 10) return { cls: 'health-status--green',  label: 'Good' };
-    if (pct <= 30) return { cls: 'health-status--yellow', label: 'Fair' };
-    if (pct <= 50) return { cls: 'health-status--orange', label: 'High' };
-    return { cls: 'health-status--red', label: pct >= 100 ? 'Maxed' : 'Critical' };
+    if (pct <= 10) return { cls: 'health-status--green',  label: t('debts.utilStatusGood') };
+    if (pct <= 30) return { cls: 'health-status--yellow', label: t('debts.utilStatusFair') };
+    if (pct <= 50) return { cls: 'health-status--orange', label: t('debts.utilStatusHigh') };
+    return { cls: 'health-status--red', label: pct >= 100 ? t('debts.utilStatusMaxed') : t('debts.utilStatusCritical') };
 }
 
 function debtBalance(d) {
@@ -38,13 +39,13 @@ export function groupByPerson(debts, app) {
         for (const personId of personIds) {
             if (!groups.has(personId)) {
                 const person = (app.persons || []).find(p => p.id === personId);
-                groups.set(personId, { key: `person-${personId}`, name: person ? person.name : 'Unknown Person', debts: [] });
+                groups.set(personId, { key: `person-${personId}`, name: person ? person.name : t('debts.unknownPerson'), debts: [] });
             }
             groups.get(personId).debts.push(d);
         }
     }
     const sections = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
-    if (unassigned.length > 0) sections.push({ key: 'unassigned', name: 'Unassigned', debts: unassigned });
+    if (unassigned.length > 0) sections.push({ key: 'unassigned', name: t('debts.unassigned'), debts: unassigned });
     return sections;
 }
 
@@ -87,7 +88,7 @@ export async function addDebt(app) {
     const accountId = accountIdValue ? parseInt(accountIdValue) : null;
 
     if (!name) {
-        await showAlertModal('Please enter a debt name.');
+        await showAlertModal(t('debts.errName'));
         return;
     }
 
@@ -121,7 +122,7 @@ export async function addDebt(app) {
         const fixedEndDate = sanitizeDateISO(document.getElementById('fixedEndDate').value);
 
         if (!rawFixedAmount || isNaN(Number(rawFixedAmount)) || Number(rawFixedAmount) <= 0 || !fixedStartDate || !fixedEndDate) {
-            await showAlertModal('Please fill in all required fixed-amount debt fields.');
+            await showAlertModal(t('debts.errFixedFields'));
             return;
         }
 
@@ -137,7 +138,7 @@ export async function addDebt(app) {
         const debtStartDate = sanitizeDateISO(document.getElementById('debtStartDate').value);
 
         if (isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
-            await showAlertModal('Please fill in all required credit card debt fields.');
+            await showAlertModal(t('debts.errCardFields'));
             return;
         }
 
@@ -167,7 +168,7 @@ export async function addDebt(app) {
 }
 
 export async function deleteDebt(app, debtId) {
-    const confirmed = await showDeleteConfirmModal('Delete this debt?');
+    const confirmed = await showDeleteConfirmModal(t('debts.deleteConfirm'));
     if (!confirmed) return;
 
     app.debts = app.debts.filter(d => d.id !== debtId);
@@ -203,12 +204,12 @@ async function openDebtPaidOffModal(app, debtId) {
     modal.tabIndex = -1;  // lets modal.focus() succeed so Escape works before the button focus timer fires
     modal.innerHTML = `
       <div class="modal-card">
-        <h3 class="modal-title" id="debtPaidOffTitle">🎉 Debt paid off!</h3>
-        <p class="modal-message"><strong>${escapeHtml(debt.name)}</strong> is paid off. Congratulations!</p>
-        <p class="modal-message">What would you like to do with it?</p>
+        <h3 class="modal-title" id="debtPaidOffTitle">🎉 ${escapeHtml(t('debts.paidOffTitle'))}</h3>
+        <p class="modal-message">${escapeHtml(t('debts.paidOffMsg', { name: debt.name }))}</p>
+        <p class="modal-message">${escapeHtml(t('debts.paidOffQuestion'))}</p>
         <div class="modal-actions">
-          <button class="btn btn-primary" id="dpoArchiveBtn">Archive Debt</button>
-          <button class="btn btn-secondary" id="dpoKeepBtn">Keep Active</button>
+          <button class="btn btn-primary" id="dpoArchiveBtn">${escapeHtml(t('debts.archiveDebt'))}</button>
+          <button class="btn btn-secondary" id="dpoKeepBtn">${escapeHtml(t('debts.keepActive'))}</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
@@ -289,9 +290,9 @@ export function showUpdateBalanceModal(app, debtId) {
     };
     document.getElementById('confirmUpdateBalance').onclick = async () => {
         const newBal = parseFloat(balInput.value);
-        if (isNaN(newBal) || newBal < 0) { await showAlertModal('Please enter a valid balance (0 or more).'); return; }
+        if (isNaN(newBal) || newBal < 0) { await showAlertModal(t('debts.errBalance')); return; }
         const newMin = parseFloat(minInput.value);
-        if (isNaN(newMin) || newMin < 0) { await showAlertModal('Please enter a valid minimum payment (0 or more).'); return; }
+        if (isNaN(newMin) || newMin < 0) { await showAlertModal(t('debts.errMinPayment')); return; }
         updateDebtBalance(app, id, newBal, newMin);
         close();
     };
@@ -353,7 +354,7 @@ export async function saveEdit(app) {
     const dueDate = sanitizeInteger(document.getElementById('dueDate').value, NaN, { min: 1, max: 31 });
 
     if (!name || isNaN(accountBalance) || isNaN(interestRate) || isNaN(minimumPayment) || isNaN(dueDate)) {
-        await showAlertModal('Please fill in all required fields');
+        await showAlertModal(t('debts.errRequired'));
         return;
     }
 
@@ -406,7 +407,7 @@ export function cancelEdit(app) {
     app.editingDebtId = null;
     document.getElementById('debtForm').reset();
     const submitBtn = document.getElementById('debtFormSubmit');
-    if (submitBtn) submitBtn.textContent = 'Add Debt';
+    if (submitBtn) submitBtn.textContent = t('debts.addBtn');
     const cancelBtn = document.getElementById('cancelEditBtn');
     if (cancelBtn) { cancelBtn.classList.add('hidden'); cancelBtn.classList.remove('visible'); }
     if (typeof window.closeDebtForm === 'function') window.closeDebtForm();
@@ -473,42 +474,42 @@ export function renderDebtsList(app) {
                 .sort((a, b) => b[1].total - a[1].total)
                 .map(([cat, v]) => `
                     <div class="debt-overview-cat-row">
-                        <span class="debt-overview-cat-name">${escapeHtml(cat)}</span>
-                        <span class="debt-overview-cat-count" data-label="Debts">${v.count} debt${v.count !== 1 ? 's' : ''}</span>
-                        <span class="debt-overview-cat-min" data-label="Min/mo">${formatCurrency(v.minTotal)}/mo</span>
-                        <span class="debt-overview-cat-total" data-label="Balance">${formatCurrency(v.total)}</span>
+                        <span class="debt-overview-cat-name">${escapeHtml(categoryLabel(cat))}</span>
+                        <span class="debt-overview-cat-count" data-label="${escapeHtml(t('debts.colDebts'))}">${escapeHtml(plural('debts.countLabel', v.count))}</span>
+                        <span class="debt-overview-cat-min" data-label="${escapeHtml(t('debts.colMinPerMonth'))}">${escapeHtml(t('debts.perMonth', { amount: formatCurrency(v.minTotal) }))}</span>
+                        <span class="debt-overview-cat-total" data-label="${escapeHtml(t('debts.colBalance'))}">${formatCurrency(v.total)}</span>
                     </div>`).join('');
 
             const interestHTML = totalInterest !== null
                 ? `<div class="debt-overview-stat">
-                        <span class="debt-overview-stat-label">Total Interest (projected)</span>
+                        <span class="debt-overview-stat-label">${escapeHtml(t('debts.overviewInterest'))}</span>
                         <span class="debt-overview-stat-value debt-overview-stat-value--interest">${formatCurrency(totalInterest)}</span>
                     </div>`
                 : `<div class="debt-overview-stat">
-                        <span class="debt-overview-stat-label">Total Interest (projected)</span>
-                        <span class="debt-overview-stat-value debt-overview-stat-value--muted">Run a plan to see</span>
+                        <span class="debt-overview-stat-label">${escapeHtml(t('debts.overviewInterest'))}</span>
+                        <span class="debt-overview-stat-value debt-overview-stat-value--muted">${escapeHtml(t('debts.runPlanToSee'))}</span>
                     </div>`;
 
             categorySummary.innerHTML = `
                 <div class="debt-overview-card">
-                    <div class="debt-overview-header">📊 Debt Overview</div>
+                    <div class="debt-overview-header">📊 ${escapeHtml(t('debts.overviewTitle'))}</div>
                     <div class="debt-overview-stats">
                         <div class="debt-overview-stat">
-                            <span class="debt-overview-stat-label">Total Overall Debt</span>
+                            <span class="debt-overview-stat-label">${escapeHtml(t('debts.overviewTotal'))}</span>
                             <span class="debt-overview-stat-value">${formatCurrency(totalDebt)}</span>
                         </div>
                         <div class="debt-overview-stat">
-                            <span class="debt-overview-stat-label">Monthly Minimums</span>
+                            <span class="debt-overview-stat-label">${escapeHtml(t('debts.overviewMinimums'))}</span>
                             <span class="debt-overview-stat-value">${formatCurrency(totalMin)}</span>
                         </div>
                         ${interestHTML}
                     </div>
                     <div class="debt-overview-cats">
                         <div class="debt-overview-cats-header">
-                            <span>Category</span>
-                            <span>Count</span>
-                            <span>Min/mo</span>
-                            <span>Balance</span>
+                            <span>${escapeHtml(t('debts.colCategory'))}</span>
+                            <span>${escapeHtml(t('debts.colCount'))}</span>
+                            <span>${escapeHtml(t('debts.colMinPerMonth'))}</span>
+                            <span>${escapeHtml(t('debts.colBalance'))}</span>
                         </div>
                         ${catRows}
                     </div>
@@ -526,7 +527,7 @@ export function renderDebtsList(app) {
         const visibleForFilter = showArchived ? app.debts : app.debts.filter(d => !d.archived);
         const categories = Array.from(new Set(visibleForFilter.map(d => d.category).filter(Boolean)));
         const prevValue = categoryFilter.value;
-        categoryFilter.innerHTML = '<option value="">All</option>';
+        categoryFilter.innerHTML = `<option value="">${escapeHtml(t('filters.all'))}</option>`;
         categories.forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat;
@@ -542,7 +543,7 @@ export function renderDebtsList(app) {
     const accountFilter = document.getElementById('debtAccountFilter');
     if (accountFilter) {
         const prevAcct = accountFilter.value;
-        accountFilter.innerHTML = '<option value="">All</option>';
+        accountFilter.innerHTML = `<option value="">${escapeHtml(t('filters.all'))}</option>`;
         const linkedAccounts = Array.from(new Set(
             (showArchived ? app.debts : app.debts.filter(d => !d.archived))
                 .map(d => d.accountId).filter(Boolean)
@@ -652,9 +653,9 @@ export function renderDebtsList(app) {
         bulkBar.id = 'debtBulkBar';
         bulkBar.className = 'debt-bulk-bar';
         bulkBar.innerHTML = `<span id="debtBulkCount" class="debt-bulk-count" aria-live="polite"></span>
-            <button id="debtBulkArchiveBtn" class="btn btn-secondary btn-small">📦 Archive</button>
-            <button id="debtBulkExportBtn" class="btn btn-secondary btn-small">⬇️ Export CSV</button>
-            <button id="debtBulkDeleteBtn" class="btn btn-danger btn-small">🗑️ Delete</button>`;
+            <button id="debtBulkArchiveBtn" class="btn btn-secondary btn-small">📦 ${escapeHtml(t('debts.bulkArchive'))}</button>
+            <button id="debtBulkExportBtn" class="btn btn-secondary btn-small">⬇️ ${escapeHtml(t('debts.bulkExport'))}</button>
+            <button id="debtBulkDeleteBtn" class="btn btn-danger btn-small">🗑️ ${escapeHtml(t('common.delete'))}</button>`;
         debtsList.appendChild(bulkBar);
     }
 
@@ -668,9 +669,7 @@ export function renderDebtsList(app) {
             header.innerHTML = `
                 <span class="debt-group-header-name">${escapeHtml(section.name)}</span>
                 <span class="debt-group-header-summary">
-                    ${section.debts.length} debt${section.debts.length !== 1 ? 's' : ''} &middot;
-                    ${formatCurrency(groupTotal)} balance &middot;
-                    ${formatCurrency(groupMin)}/mo min
+                    ${escapeHtml(t('debts.groupSummary', { count: plural('debts.countLabel', section.debts.length), balance: formatCurrency(groupTotal), min: formatCurrency(groupMin) }))}
                 </span>`;
             debtsList.appendChild(header);
         }
@@ -688,8 +687,8 @@ export function renderDebtsList(app) {
 
         const summaryRow = app._debtSummaryRows?.find(r => r.name === debt.name);
         const payoffDetailHTML = (summaryRow && summaryRow.payoffDate)
-            ? debtDetailTile('📅 Payoff Date', escapeHtml(String(summaryRow.payoffDate)), 'debt-payoff-detail')
-            : debtDetailTile('📅 Payoff Date', '<span class="text-muted">Run a plan to see</span>', 'debt-payoff-detail debt-payoff-detail--muted');
+            ? debtDetailTile(`📅 ${escapeHtml(t('debts.tilePayoffDate'))}`, escapeHtml(String(summaryRow.payoffDate)), 'debt-payoff-detail')
+            : debtDetailTile(`📅 ${escapeHtml(t('debts.tilePayoffDate'))}`, `<span class="text-muted">${escapeHtml(t('debts.runPlanToSee'))}</span>`, 'debt-payoff-detail debt-payoff-detail--muted');
 
         if (app.editingDebtId === debt.id) {
             let editHTML = `
@@ -699,61 +698,61 @@ export function renderDebtsList(app) {
 
             if (debt.debtType === 'fixedAmount') {
                 editHTML += `
-                        <div class="debt-detail"><strong>Amount:</strong> <input id="inline-fixed-amount-${debt.id}" type="number" step="0.01" value="${debt.fixedAmount}"></div>
-                        <div class="debt-detail"><strong>Start Date:</strong> <input id="inline-start-date-${debt.id}" type="date" value="${debt.fixedStartDate}"></div>
-                        <div class="debt-detail"><strong>End Date:</strong> <input id="inline-end-date-${debt.id}" type="date" value="${debt.fixedEndDate}"></div>
-                        <div class="debt-detail"><strong>Priority:</strong> <input id="inline-priority-${debt.id}" type="number" min="1" max="100" value="${debt.priority || ''}"></div>`;
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editAmount'))}</strong> <input id="inline-fixed-amount-${debt.id}" type="number" step="0.01" value="${debt.fixedAmount}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editStartDate'))}</strong> <input id="inline-start-date-${debt.id}" type="date" value="${debt.fixedStartDate}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editEndDate'))}</strong> <input id="inline-end-date-${debt.id}" type="date" value="${debt.fixedEndDate}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editPriority'))}</strong> <input id="inline-priority-${debt.id}" type="number" min="1" max="100" value="${debt.priority || ''}"></div>`;
             } else {
                 editHTML += `
-                        <div class="debt-detail"><strong>Balance:</strong> <input id="inline-balance-${debt.id}" type="number" step="0.01" value="${debt.accountBalance}"></div>
-                        <div class="debt-detail"><strong>Interest:</strong> <input id="inline-interest-${debt.id}" type="number" step="0.01" value="${debt.interestRate}">% </div>
-                        <div class="debt-detail"><strong>Min Payment:</strong> <input id="inline-min-${debt.id}" type="number" step="0.01" value="${debt.minimumPayment}"></div>
-                        <div class="debt-detail"><strong>Due Date:</strong> <input id="inline-due-${debt.id}" type="number" min="1" max="31" value="${debt.dueDate}"></div>
-                        <div class="debt-detail"><strong>Priority:</strong> <input id="inline-priority-${debt.id}" type="number" min="1" max="100" value="${debt.priority || ''}"></div>
-                        <div class="debt-detail"><strong>Date Opened:</strong> <input id="inline-start-date-cc-${debt.id}" type="date" value="${debt.debtStartDate || ''}"></div>
-                        <div class="debt-detail"><strong>Credit Limit:</strong> <input id="inline-credit-limit-${debt.id}" type="number" step="0.01" min="0" placeholder="optional" value="${debt.creditLimit != null ? debt.creditLimit : ''}"></div>`;
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editBalance'))}</strong> <input id="inline-balance-${debt.id}" type="number" step="0.01" value="${debt.accountBalance}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editInterest'))}</strong> <input id="inline-interest-${debt.id}" type="number" step="0.01" value="${debt.interestRate}">% </div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editMinPayment'))}</strong> <input id="inline-min-${debt.id}" type="number" step="0.01" value="${debt.minimumPayment}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editDueDate'))}</strong> <input id="inline-due-${debt.id}" type="number" min="1" max="31" value="${debt.dueDate}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editPriority'))}</strong> <input id="inline-priority-${debt.id}" type="number" min="1" max="100" value="${debt.priority || ''}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editDateOpened'))}</strong> <input id="inline-start-date-cc-${debt.id}" type="date" value="${debt.debtStartDate || ''}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editCreditLimit'))}</strong> <input id="inline-credit-limit-${debt.id}" type="number" step="0.01" min="0" placeholder="${escapeHtml(t('debts.creditLimitOptional'))}" value="${debt.creditLimit != null ? debt.creditLimit : ''}"></div>`;
             }
 
             editHTML += `
-                        <div class="debt-detail"><strong>Category:</strong> <input id="inline-category-${debt.id}" type="text" value="${escapeHtml(debt.category || '')}"></div>
-                        <div class="debt-detail"><strong>Account:</strong>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editCategory'))}</strong> <input id="inline-category-${debt.id}" type="text" value="${escapeHtml(debt.category || '')}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editAccount'))}</strong>
                             <select id="inline-account-${debt.id}">
-                                <option value="">— No account —</option>
-                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`).join('')}
+                                <option value="">${escapeHtml(t('accounts.noAccount'))}</option>
+                                ${app.accounts.map(a => `<option value="${a.id}" ${debt.accountId === a.id ? 'selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(accountTypeLabel(a.type))})</option>`).join('')}
                             </select>
                         </div>
                         ${(app.persons || []).length > 0 ? `
-                        <div class="debt-detail"><strong>People:</strong>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editPeople'))}</strong>
                             <select id="inline-persons-${debt.id}" multiple data-ownership-for="inline-ownership-${debt.id}">
                                 ${(app.persons).map(p => `<option value="${p.id}"${(debt.personIds || []).includes(p.id) ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
                             </select>
                             <div id="inline-ownership-${debt.id}" class="ownership-control hidden"></div>
                         </div>` : ''}
-                        <div class="debt-detail debt-detail--notes"><strong>Notes:</strong>
-                            <textarea id="inline-notes-${debt.id}" rows="2" maxlength="500" placeholder="Optional notes…">${escapeHtml(debt.notes || '')}</textarea>
+                        <div class="debt-detail debt-detail--notes"><strong>${escapeHtml(t('debts.editNotes'))}</strong>
+                            <textarea id="inline-notes-${debt.id}" rows="2" maxlength="500" placeholder="${escapeHtml(t('debts.notesPlaceholder'))}">${escapeHtml(debt.notes || '')}</textarea>
                         </div>
-                        <div class="debt-detail"><strong>Next Payment Due:</strong> <input id="inline-next-due-${debt.id}" type="date" value="${debt.nextPaymentDue || ''}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editNextDue'))}</strong> <input id="inline-next-due-${debt.id}" type="date" value="${debt.nextPaymentDue || ''}"></div>
                     </div>
                 </div>
                 <div class="debt-actions">
-                    <button class="btn btn-success btn-save" data-debt-action="save-inline" data-debt-id="${debt.id}" aria-label="Save changes to ${escapeHtml(debt.name)}">Save</button>
-                    <button class="btn btn-secondary btn-cancel" data-debt-action="cancel-inline" aria-label="Cancel editing ${escapeHtml(debt.name)}">Cancel</button>
+                    <button class="btn btn-success btn-save" data-debt-action="save-inline" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.saveAria', { name: debt.name }))}">${escapeHtml(t('common.save'))}</button>
+                    <button class="btn btn-secondary btn-cancel" data-debt-action="cancel-inline" aria-label="${escapeHtml(t('debts.cancelAria', { name: debt.name }))}">${escapeHtml(t('common.cancel'))}</button>
                 </div>
             `;
             card.innerHTML = editHTML;
             renderOwnershipControl(app, card.querySelector(`#inline-ownership-${debt.id}`), card.querySelector(`#inline-persons-${debt.id}`), debt.ownershipSplit || null);
         } else {
-            let cardHTML = `<label class="debt-select-label"><input type="checkbox" class="debt-row-select" data-debt-select="${debt.id}" aria-label="Select ${escapeHtml(debt.name)}"></label>
+            let cardHTML = `<label class="debt-select-label"><input type="checkbox" class="debt-row-select" data-debt-select="${debt.id}" aria-label="${escapeHtml(t('debts.selectAria', { name: debt.name }))}"></label>
                 <div class="debt-info">
                     <div class="debt-name">${escapeHtml(debt.name)}`;
             if (debt.debtType === 'fixedAmount') {
-                cardHTML += ` <span class="debt-type-badge">Fixed Amount</span>`;
+                cardHTML += ` <span class="debt-type-badge">${escapeHtml(t('debts.fixedBadge'))}</span>`;
             }
             const personPills = buildPersonPillsHtml(debt.personIds, app.persons);
             const splitHtml = buildOwnershipSplitHtml(debt, app.persons);
             cardHTML += `</div>
                     ${personPills ? `<div class="person-pills debt-person-pills">${personPills}</div>` : ''}
-                    ${splitHtml ? `<div class="debt-ownership-split text-muted-secondary" data-ownership-split>Ownership: ${splitHtml}</div>` : ''}
+                    ${splitHtml ? `<div class="debt-ownership-split text-muted-secondary" data-ownership-split>${escapeHtml(t('debts.ownershipPrefix'))} ${splitHtml}</div>` : ''}
                     <div class="debt-details debt-details--tiles">`;
 
             if (debt.debtType === 'fixedAmount') {
@@ -765,14 +764,14 @@ export function renderDebtsList(app) {
                 const fixedPct = total > 0 ? Math.min(100, Math.round(elapsed / total * 100)) : 0;
 
                 cardHTML += `
-                        ${debtDetailTile('Monthly Amount', formatCurrency(debt.fixedAmount), 'debt-detail--primary')}
-                        ${debtDetailTile('Period', `${formatShortDate(debt.fixedStartDate)} – ${formatShortDate(debt.fixedEndDate)}`)}
+                        ${debtDetailTile(escapeHtml(t('debts.tileMonthlyAmount')), formatCurrency(debt.fixedAmount), 'debt-detail--primary')}
+                        ${debtDetailTile(escapeHtml(t('debts.tilePeriod')), `${formatShortDate(debt.fixedStartDate)} – ${formatShortDate(debt.fixedEndDate)}`)}
                         ${payoffDetailHTML}
-                        ${debt.priority ? debtDetailTile('Priority', `${debt.priority}/100`) : ''}`;
+                        ${debt.priority ? debtDetailTile(escapeHtml(t('debts.tilePriority')), `${debt.priority}/100`) : ''}`;
                 cardHTML += `</div>
                     <div class="debt-progress-group">
                     <div class="debt-progress-wrap">
-                        <div class="debt-progress-label"><span>Time elapsed</span><span>${fixedPct}%</span></div>
+                        <div class="debt-progress-label"><span>${escapeHtml(t('debts.timeElapsed'))}</span><span>${fixedPct}%</span></div>
                         <div class="debt-progress-bar"><div class="debt-progress-fill${fixedPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${fixedPct}"></div></div>
                     </div>
                     </div>`;
@@ -799,32 +798,32 @@ export function renderDebtsList(app) {
                 const iptd = computeInterestPaidToDate(debt);
 
                 cardHTML += `
-                        ${debtDetailTile('Balance', `${formatCurrency(debt.accountBalance)}
-                            ${origBal > debt.accountBalance ? `<span class="amount-secondary">was ${formatCurrency(origBal)}</span>` : ''}`, 'debt-detail--primary')}
-                        ${debtDetailTile('Min Payment', `${formatCurrency(debt.minimumPayment)}
+                        ${debtDetailTile(escapeHtml(t('debts.tileBalance')), `${formatCurrency(debt.accountBalance)}
+                            ${origBal > debt.accountBalance ? `<span class="amount-secondary">${escapeHtml(t('debts.was', { amount: formatCurrency(origBal) }))}</span>` : ''}`, 'debt-detail--primary')}
+                        ${debtDetailTile(escapeHtml(t('debts.tileMinPayment')), `${formatCurrency(debt.minimumPayment)}
                             ${debt.originalMinimumPayment !== undefined && debt.originalMinimumPayment !== debt.minimumPayment
-                                ? `<span class="amount-secondary">originally ${formatCurrency(debt.originalMinimumPayment)}</span>`
+                                ? `<span class="amount-secondary">${escapeHtml(t('debts.originally', { amount: formatCurrency(debt.originalMinimumPayment) }))}</span>`
                                 : ''}
-                            ${negAmortRisk ? `<span class="neg-amort-badge" title="Your minimum payment barely covers interest — the balance may never decrease!">⚠️ Neg. amortization risk</span>` : ''}`, 'debt-detail--primary')}
-                        ${debtDetailTile('Interest', `${debt.interestRate.toFixed(2)}%
-                            <span class="text-monthly-interest">≈ ${formatCurrency(monthlyInterest)}/mo</span>`)}
-                        ${debtDetailTile('Due Date', `${getDayOrdinal(debt.dueDate)} of month`)}
-                        ${debt.nextPaymentDue ? debtDetailTile('Next Payment Due', formatShortDate(debt.nextPaymentDue)) : ''}
-                        ${debt.debtStartDate ? debtDetailTile('Opened', formatShortDate(debt.debtStartDate)) : ''}
+                            ${negAmortRisk ? `<span class="neg-amort-badge" title="${escapeHtml(t('debts.negAmortTitle'))}">⚠️ ${escapeHtml(t('debts.negAmortBadge'))}</span>` : ''}`, 'debt-detail--primary')}
+                        ${debtDetailTile(escapeHtml(t('debts.tileInterest')), `${debt.interestRate.toFixed(2)}%
+                            <span class="text-monthly-interest">≈ ${escapeHtml(t('debts.perMonth', { amount: formatCurrency(monthlyInterest) }))}</span>`)}
+                        ${debtDetailTile(escapeHtml(t('debts.tileDueDate')), escapeHtml(t('debts.dueDayValue', { day: getDayOrdinal(debt.dueDate) })))}
+                        ${debt.nextPaymentDue ? debtDetailTile(escapeHtml(t('debts.tileNextDue')), formatShortDate(debt.nextPaymentDue)) : ''}
+                        ${debt.debtStartDate ? debtDetailTile(escapeHtml(t('debts.tileOpened')), formatShortDate(debt.debtStartDate)) : ''}
                         ${iptd ? `
                         <div class="debt-detail iptd-detail">
-                            <strong>Est. interest paid to date:</strong>
+                            <strong>${escapeHtml(t('debts.iptdLabel'))}</strong>
                             <span class="iptd-value">${formatCurrency(iptd.interestPaid)}</span>
-                            <span class="iptd-sub">over ${iptd.days} days since ${formatMonthYear(iptd.start)}</span>
+                            <span class="iptd-sub">${escapeHtml(t('debts.iptdSub', { days: iptd.days, date: formatMonthYear(iptd.start) }))}</span>
                         </div>` : ''}
                         ${payoffDetailHTML}
                         ${minPayTrapMonths ? `
                         <div class="debt-detail debt-min-trap-warn">
-                            <span class="debt-min-trap-badge">⚠️ Min. payment trap</span>
-                            At this rate: <strong>${(minPayTrapMonths / 12).toFixed(1)} years</strong> to pay off
-                            ${minPayTrapInterest !== null ? `— costing <strong>${formatCurrency(minPayTrapInterest)}</strong> in interest` : ''}
+                            <span class="debt-min-trap-badge">⚠️ ${escapeHtml(t('debts.trapBadge'))}</span>
+                            ${escapeHtml(t('debts.trapText', { years: t('debts.trapYears', { years: (minPayTrapMonths / 12).toFixed(1) }) }))}
+                            ${minPayTrapInterest !== null ? escapeHtml(t('debts.trapCost', { amount: formatCurrency(minPayTrapInterest) })) : ''}
                         </div>` : ''}
-                        ${debt.priority ? debtDetailTile('Priority', `${debt.priority}/100`) : ''}`;
+                        ${debt.priority ? debtDetailTile(escapeHtml(t('debts.tilePriority')), `${debt.priority}/100`) : ''}`;
                 let utilHTML = '';
                 if (debt.creditLimit != null && debt.creditLimit > 0) {
                     const rawUtilPct = Math.round((debt.accountBalance / debt.creditLimit) * 100);
@@ -837,20 +836,20 @@ export function renderDebtsList(app) {
                     utilHTML = `
                     <div class="debt-progress-wrap">
                         <div class="debt-progress-label">
-                            <span>Credit utilization</span>
-                            <span class="debt-util-badge health-badge ${utilSt.cls}">${utilSt.label} &mdash; ${rawUtilPct}%${rawUtilPct >= 100 ? ' ⚠' : ''}</span>
+                            <span>${escapeHtml(t('debts.creditUtilization'))}</span>
+                            <span class="debt-util-badge health-badge ${utilSt.cls}">${escapeHtml(utilSt.label)} &mdash; ${rawUtilPct}%${rawUtilPct >= 100 ? ' ⚠' : ''}</span>
                         </div>
                         <div class="debt-progress-bar"><div class="debt-progress-fill ${fillCls}" data-progress-width="${utilPct}"></div></div>
-                        <div class="debt-util-detail">${formatCurrency(debt.accountBalance)} of ${formatCurrency(debt.creditLimit)} limit</div>
+                        <div class="debt-util-detail">${escapeHtml(t('debts.utilDetail', { balance: formatCurrency(debt.accountBalance), limit: formatCurrency(debt.creditLimit) }))}</div>
                     </div>`;
                 }
 
                 cardHTML += `</div>
                     <div class="debt-progress-group">
                     <div class="debt-progress-wrap">
-                        <div class="debt-progress-label"><span>Payoff progress</span><span>${progressPct}%</span></div>
+                        <div class="debt-progress-label"><span>${escapeHtml(t('debts.payoffProgress'))}</span><span>${progressPct}%</span></div>
                         <div class="debt-progress-bar"><div class="debt-progress-fill${progressPct >= 100 ? ' debt-progress-fill--complete' : ''}" data-progress-width="${progressPct}"></div></div>
-                        ${balanceGrowthPct > 0 ? `<div class="debt-progress-note">Balance is up ${balanceGrowthPct}% from its starting ${formatCurrency(origBal)}</div>` : ''}
+                        ${balanceGrowthPct > 0 ? `<div class="debt-progress-note">${escapeHtml(t('debts.balanceUp', { pct: balanceGrowthPct, amount: formatCurrency(origBal) }))}</div>` : ''}
                     </div>${utilHTML}
                     </div>`;
             }
@@ -863,21 +862,21 @@ export function renderDebtsList(app) {
                         ` : ''}
                         ${debt.category || debt.updatedAt ? `
                         <div class="debt-meta">
-                            ${debt.category ? `<span class="debt-meta-item"><span class="debt-meta-label">Category</span> ${escapeHtml(debt.category)}</span>` : ''}
-                            ${debt.updatedAt ? `<span class="debt-meta-item"><span class="debt-meta-label">Last updated</span> ${formatShortDate(debt.updatedAt)}</span>` : ''}
+                            ${debt.category ? `<span class="debt-meta-item"><span class="debt-meta-label">${escapeHtml(t('debts.metaCategory'))}</span> ${escapeHtml(debt.category)}</span>` : ''}
+                            ${debt.updatedAt ? `<span class="debt-meta-item"><span class="debt-meta-label">${escapeHtml(t('debts.metaLastUpdated'))}</span> ${formatShortDate(debt.updatedAt)}</span>` : ''}
                         </div>` : ''}
                 </div>
                 <div class="debt-actions">
                     ${debt.archived
-                        ? `<span class="debt-archived-badge">Archived</span>
-                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}" aria-label="History for ${escapeHtml(debt.name)}">History</button>
-                           <button class="btn btn-secondary btn-small" data-debt-action="unarchive" data-debt-id="${debt.id}" aria-label="Unarchive ${escapeHtml(debt.name)}">Unarchive</button>`
-                        : `<button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}" aria-label="Edit ${escapeHtml(debt.name)}">Edit</button>
-                           ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}" aria-label="Update Balance for ${escapeHtml(debt.name)}">Update Balance</button>` : ''}
-                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}" aria-label="History for ${escapeHtml(debt.name)}">History</button>
-                           ${debt.debtType !== 'fixedAmount' && debt.accountBalance > 0 && debt.interestRate > 0 ? `<button class="btn btn-secondary btn-small debt-breakeven-btn" data-be-shortcut="${debt.id}" aria-label="Run break-even analysis for ${escapeHtml(debt.name)}">Break-even</button>` : ''}
-                           ${isDebtPaidOff(debt) ? `<button class="btn btn-primary btn-small debt-paid-off-btn" data-debt-action="celebrate" data-debt-id="${debt.id}" aria-label="Debt paid off: ${escapeHtml(debt.name)}">🎉 Debt Paid Off!</button>` : ''}
-                           <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}" aria-label="Delete ${escapeHtml(debt.name)}">Delete</button>`
+                        ? `<span class="debt-archived-badge">${escapeHtml(t('debts.archivedBadge'))}</span>
+                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.historyAria', { name: debt.name }))}">${escapeHtml(t('debts.history'))}</button>
+                           <button class="btn btn-secondary btn-small" data-debt-action="unarchive" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.unarchiveAria', { name: debt.name }))}">${escapeHtml(t('debts.unarchive'))}</button>`
+                        : `<button class="btn-edit" data-debt-action="edit" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.editAria', { name: debt.name }))}">${escapeHtml(t('common.edit'))}</button>
+                           ${debt.debtType !== 'fixedAmount' ? `<button class="btn btn-secondary btn-small" data-debt-action="update-balance" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.updateBalanceAria', { name: debt.name }))}">${escapeHtml(t('debts.updateBalance'))}</button>` : ''}
+                           <button class="btn btn-secondary btn-small" data-debt-action="history" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.historyAria', { name: debt.name }))}">${escapeHtml(t('debts.history'))}</button>
+                           ${debt.debtType !== 'fixedAmount' && debt.accountBalance > 0 && debt.interestRate > 0 ? `<button class="btn btn-secondary btn-small debt-breakeven-btn" data-be-shortcut="${debt.id}" aria-label="${escapeHtml(t('debts.breakEvenAria', { name: debt.name }))}">${escapeHtml(t('debts.breakEven'))}</button>` : ''}
+                           ${isDebtPaidOff(debt) ? `<button class="btn btn-primary btn-small debt-paid-off-btn" data-debt-action="celebrate" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.paidOffAria', { name: debt.name }))}">🎉 ${escapeHtml(t('debts.paidOffBtn'))}</button>` : ''}
+                           <button class="btn-delete" data-debt-action="delete" data-debt-id="${debt.id}" aria-label="${escapeHtml(t('debts.deleteAria', { name: debt.name }))}">${escapeHtml(t('common.delete'))}</button>`
                     }
                 </div>
             `;
@@ -900,13 +899,13 @@ export function renderDebtsList(app) {
         emptyDiv.className = 'empty-state';
         if (app.debts.length === 0) {
             emptyDiv.innerHTML = `<div class="empty-state__icon">💳</div>
-                <h3 class="empty-state__heading">No debts tracked yet</h3>
-                <p class="empty-state__body">Add a debt to start calculating your payoff plan and see how quickly you can become debt-free.</p>
-                <button class="btn btn-primary empty-state__cta" id="debtEmptyStateCta">Add Your First Debt</button>`;
+                <h3 class="empty-state__heading">${escapeHtml(t('debts.emptyHeading'))}</h3>
+                <p class="empty-state__body">${escapeHtml(t('debts.emptyBody'))}</p>
+                <button class="btn btn-primary empty-state__cta" id="debtEmptyStateCta">${escapeHtml(t('debts.emptyCta'))}</button>`;
         } else {
             emptyDiv.innerHTML = `<div class="empty-state__icon">🔍</div>
-                <h3 class="empty-state__heading">No debts match your filters</h3>
-                <p class="empty-state__body">Try adjusting the filters above to see more debts.</p>`;
+                <h3 class="empty-state__heading">${escapeHtml(t('debts.noMatchHeading'))}</h3>
+                <p class="empty-state__body">${escapeHtml(t('debts.noMatchBody'))}</p>`;
         }
         debtsList.appendChild(emptyDiv);
         document.getElementById('debtEmptyStateCta')?.addEventListener('click', () => {
@@ -921,7 +920,7 @@ export function renderDebtsList(app) {
         const bar = document.getElementById('debtBulkBar');
         if (bar) bar.classList.toggle('debt-bulk-bar--visible', n > 0);
         const countEl = document.getElementById('debtBulkCount');
-        if (countEl) countEl.textContent = n > 0 ? `${n} debt${n !== 1 ? 's' : ''} selected` : '';
+        if (countEl) countEl.textContent = n > 0 ? plural('debts.selectedCount', n) : '';
     }
     debtsList.querySelectorAll('.debt-row-select').forEach(cb => { cb.onchange = _updateDebtBulkBar; });
 
@@ -929,7 +928,7 @@ export function renderDebtsList(app) {
         const ids = Array.from(debtsList.querySelectorAll('.debt-row-select:checked'))
             .map(cb => parseInt(cb.dataset.debtSelect, 10));
         if (!ids.length) return;
-        const ok = await showDeleteConfirmModal(`Archive ${ids.length} debt${ids.length !== 1 ? 's' : ''}?`);
+        const ok = await showDeleteConfirmModal(plural('debts.bulkArchiveConfirm', ids.length));
         if (!ok) return;
         for (const id of ids) {
             const d = app.debts.find(x => x.id === id);
@@ -961,7 +960,7 @@ export function renderDebtsList(app) {
         const ids = Array.from(debtsList.querySelectorAll('.debt-row-select:checked'))
             .map(cb => parseInt(cb.dataset.debtSelect, 10));
         if (!ids.length) return;
-        const ok = await showDeleteConfirmModal(`Delete ${ids.length} debt${ids.length !== 1 ? 's' : ''}? This cannot be undone.`);
+        const ok = await showDeleteConfirmModal(plural('debts.bulkDeleteConfirm', ids.length));
         if (!ok) return;
         if (app._storageBackendKind === 'postgres') for (const id of ids) pgDelete(app, `/api/debts/${id}`);
         app.debts = app.debts.filter(d => !ids.includes(d.id));
@@ -1111,7 +1110,7 @@ export async function saveInlineEdit(app, debtId) {
         if (nextDueEl) debt.nextPaymentDue = sanitizeDateISO(nextDueEl.value);
 
         if (!debt.name) {
-            await showAlertModal('Please enter a name for the debt.');
+            await showAlertModal(t('debts.errInlineName'));
             return;
         }
 
@@ -1124,6 +1123,6 @@ export async function saveInlineEdit(app, debtId) {
         app.updateUI();
     } catch (err) {
         console.error('saveInlineEdit error', err);
-        showAlertModal('Error saving debt: ' + (err && err.message ? err.message : String(err)));
+        showAlertModal(t('debts.errSaving', { message: err && err.message ? err.message : String(err) }));
     }
 }

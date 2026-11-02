@@ -4,6 +4,7 @@
 import { formatCurrency, formatShortDate, renderChartDataTable } from './utils.js';
 import { getBalanceHistory, deleteBalanceHistoryEntry } from './balanceHistory.js';
 import { computeHistoryDeltas } from './balanceHistoryCore.js';
+import { t } from './i18n.js';
 
 const CHART_KEY = '_balanceHistoryChart';
 
@@ -43,7 +44,7 @@ function renderHistoryChart(app, entries, isFixed, minLabel) {
 
     const datasets = [];
     if (!isFixed) {
-        datasets.push({ label: 'Balance', data: entries.map(e => e.balance), borderColor: '#dc2626', yAxisID: 'y', tension: 0.3, pointRadius: 3 });
+        datasets.push({ label: t('balanceHistory.colBalance'), data: entries.map(e => e.balance), borderColor: '#dc2626', yAxisID: 'y', tension: 0.3, pointRadius: 3 });
     }
     datasets.push({ label: minLabel, data: entries.map(e => e.minimumPayment), borderColor: '#2563eb', yAxisID: isFixed ? 'y' : 'y1', tension: 0.3, pointRadius: 3 });
 
@@ -67,8 +68,8 @@ function renderHistoryChart(app, entries, isFixed, minLabel) {
     });
 
     renderChartDataTable('balanceHistoryChart', {
-        caption: isFixed ? 'Monthly amount over time' : 'Balance and minimum payment over time',
-        columns: isFixed ? ['Date', minLabel] : ['Date', 'Balance', minLabel],
+        caption: isFixed ? t('balanceHistory.captionFixed') : t('balanceHistory.captionBalance'),
+        columns: isFixed ? [t('balanceHistory.colDate'), minLabel] : [t('balanceHistory.colDate'), t('balanceHistory.colBalance'), minLabel],
         rows: entries.map(e => isFixed
             ? [e.date, formatCurrency(e.minimumPayment)]
             : [e.date, formatCurrency(e.balance), formatCurrency(e.minimumPayment)])
@@ -89,30 +90,30 @@ function renderHistoryRows(app, owner, entries, isFixed, minLabel) {
     const withDeltas = computeHistoryDeltas(entries);
     for (const entry of [...withDeltas].reverse()) {
         const tr = document.createElement('tr');
-        tr.appendChild(makeCell(formatShortDate(entry.date), 'Date'));
-        tr.appendChild(makeCell(entry.balance === null ? '—' : formatCurrency(entry.balance), 'Balance', 'bh-col-balance'));
+        tr.appendChild(makeCell(formatShortDate(entry.date), t('balanceHistory.colDate')));
+        tr.appendChild(makeCell(entry.balance === null ? '—' : formatCurrency(entry.balance), t('balanceHistory.colBalance'), 'bh-col-balance'));
         tr.appendChild(makeCell(formatCurrency(entry.minimumPayment), minLabel));
         const change = entry.minimumPaymentDelta === null
             ? '—'
             : isFixed
                 ? formatDelta(entry.minimumPaymentDelta)
-                : `Bal ${formatDelta(entry.balanceDelta)} · Min ${formatDelta(entry.minimumPaymentDelta)}`;
-        tr.appendChild(makeCell(change, 'Change'));
+                : t('balanceHistory.changeBalMin', { balance: formatDelta(entry.balanceDelta), min: formatDelta(entry.minimumPaymentDelta) });
+        tr.appendChild(makeCell(change, t('balanceHistory.colChange')));
 
         const actionTd = makeCell('', '');
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn btn-secondary btn-small';
-        btn.textContent = 'Delete';
+        btn.textContent = t('common.delete');
         btn.dataset.bhDelete = String(entry.id);
-        btn.setAttribute('aria-label', `Delete entry from ${entry.date}`);
+        btn.setAttribute('aria-label', t('balanceHistory.deleteEntryAria', { date: entry.date }));
         btn.onclick = () => {
             if (btn.dataset.armed !== 'true') {
                 btn.dataset.armed = 'true';
-                btn.textContent = 'Confirm';
+                btn.textContent = t('balanceHistory.confirmBtn');
                 btn.classList.remove('btn-secondary');
                 btn.classList.add('btn-danger');
-                btn.setAttribute('aria-label', `Confirm delete entry from ${entry.date}`);
+                btn.setAttribute('aria-label', t('balanceHistory.confirmDeleteEntryAria', { date: entry.date }));
                 return;
             }
             deleteBalanceHistoryEntry(app, entry.id);
@@ -128,7 +129,7 @@ function renderBalanceHistoryContent(app, owner) {
     const record = findOwnerRecord(app, owner);
     if (!record) return;
     const isFixed = owner.kind === 'debt' && record.debtType === 'fixedAmount';
-    const minLabel = isFixed ? 'Monthly amount' : 'Min. payment';
+    const minLabel = isFixed ? t('balanceHistory.colMonthlyAmount') : t('balanceHistory.colMinPayment');
     const entries = getBalanceHistory(app, owner);
 
     document.getElementById('balanceHistoryName').textContent = record.name;

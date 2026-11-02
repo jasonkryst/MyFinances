@@ -3,6 +3,7 @@
 import { formatCurrency, parseFiniteOrNull, formatShortDate } from './utils.js';
 import { pgPut, pgDelete } from './postgresSync.js';
 import { showAlertModal, confirmZeroAmountAllowed } from './ui.js';
+import { t } from './i18n.js';
 
 export function getOverrideAmount(app, txId) {
     if (!txId) return null;
@@ -81,7 +82,7 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
         const rawValue = String(input.value ?? '').trim();
         const parsed = rawValue === '' ? null : parseFiniteOrNull(rawValue);
         if (parsed === null) {
-            await showAlertModal('Please enter a valid number.');
+            await showAlertModal(t('ledger.errInvalidNumber'));
             return;
         }
         if (parsed === 0 && !(await confirmZeroAmountAllowed(app, tx.name))) return;
