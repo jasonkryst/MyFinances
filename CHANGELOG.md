@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.66.1] — 2026-11-02
+
+### Fixed
+- **Mutation testing was scoring the wrong code** (issue #452). `stryker.config.mjs` scoped Stryker with hand-written line ranges that had drifted as `utils.js`, `sanitizers.js` and `retirementCalculator.js` grew; most no longer pointed at the functions their comments named. The ranges are now generated at config-load time from function names (`MUTATE_SCOPE` in the new `tools/strykerScope.mjs`, parsed with Babel), so they can't drift.
+  - **Scope** is now exactly the functions `tests/unit` imports from those files, which adds the ones tested since the ranges were written (`normalizeMultilineText`, `computeNetIncomeAmount`, `sanitizePerson`, the person-remap helpers and others). `sanitizeParsedState` is excluded with a recorded reason.
+  - **Thresholds** are recalibrated from the first accurate run, a score of 64.56% (was 48.77% against the wrong code): high 69, low 64, break 54.
+
+### Tests
+- `tests/unit/strykerScope.test.js` runs on PRs and fails when a scoped name doesn't resolve to exactly one declaration, or when a unit test imports a function from a scoped file without it being mutated or explicitly excluded.
+
 ## [6.66.0] — 2026-11-02
 
 ### Added
