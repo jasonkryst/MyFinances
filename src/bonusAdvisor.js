@@ -5,6 +5,7 @@
 
 import { dailyCompoundInterest, formatCurrency, escapeHtml, sanitizeFiniteNumber } from './utils.js';
 import { showAlertModal } from './ui.js';
+import { t } from './i18n.js';
 
 /**
  * Pure calculation — no DOM/app access.
@@ -30,13 +31,13 @@ function calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy, e
     const hasInterestBearingDebt = hasDebts && debts.some(d => d.debtType !== 'fixedAmount');
 
     if (!hasDebts) {
-        return { applicable: false, reason: 'Add a debt first to see the cash flow impact.' };
+        return { applicable: false, reason: t('bonusAdvisor.reasonNoDebt') };
     }
     if (!hasInterestBearingDebt) {
-        return { applicable: false, reason: 'All current debts are fixed-amount and never receive extra payments.' };
+        return { applicable: false, reason: t('bonusAdvisor.reasonAllFixed') };
     }
     if (!(bonusAmount > 0)) {
-        return { applicable: false, reason: 'Enter a bonus amount to see the cash flow impact.' };
+        return { applicable: false, reason: t('bonusAdvisor.reasonEnterAmount') };
     }
 
     try {
@@ -65,7 +66,7 @@ function calculateCashFlowAdvice(bonusAmount, debts, monthlyPayment, strategy, e
             eliminationPlan: calculateEliminationPlan(bonusAmount, debts, eliminationFilter)
         };
     } catch (err) {
-        return { applicable: false, reason: 'Unable to calculate a payment plan for your current debts.' };
+        return { applicable: false, reason: t('bonusAdvisor.reasonUnable') };
     }
 }
 
@@ -156,7 +157,7 @@ export async function showBonusAdvice(app) {
     const rawAmount = document.getElementById('bonusAmount')?.value;
     const bonusAmount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
-        await showAlertModal('Please enter a valid amount before requesting advice.');
+        await showAlertModal(t('bonusAdvisor.errAmount'));
         return;
     }
 
@@ -192,26 +193,26 @@ function renderEliminationPlanHtml(plan) {
     if (plan.noCandidates) {
         return `
         <div class="bonus-advice-subsection">
-            <h6 class="bonus-advice-subtitle">🎯 Pay Off Debts Now</h6>
-            <div class="bonus-advice-stat">No debts match the selected filter</div>
+            <h6 class="bonus-advice-subtitle">🎯 ${t('bonusAdvisor.payOffTitle')}</h6>
+            <div class="bonus-advice-stat">${t('bonusAdvisor.noMatch')}</div>
         </div>`;
     }
 
     const eliminatedNames = plan.eliminatedDebts.map(d => escapeHtml(d.name));
     const eliminatedLine = eliminatedNames.length > 0
-        ? `<div class="bonus-advice-stat">✅ Eliminates: ${eliminatedNames.join(', ')}</div>`
-        : `<div class="bonus-advice-stat">No debts fully paid off by this amount yet</div>`;
+        ? `<div class="bonus-advice-stat">✅ ${t('bonusAdvisor.eliminates', { names: eliminatedNames.join(', ') })}</div>`
+        : `<div class="bonus-advice-stat">${t('bonusAdvisor.noneEliminated')}</div>`;
 
     const remainderLine = plan.remainderTargetName
-        ? `<div class="bonus-advice-stat">+ ${formatCurrency(plan.remainderApplied)} extra toward ${escapeHtml(plan.remainderTargetName)} (highest rate) → ~${formatCurrency(plan.monthlyInterestReduction)}/mo less interest</div>`
+        ? `<div class="bonus-advice-stat">${t('bonusAdvisor.remainder', { amount: formatCurrency(plan.remainderApplied), name: escapeHtml(plan.remainderTargetName), reduction: formatCurrency(plan.monthlyInterestReduction) })}</div>`
         : '';
 
     return `
         <div class="bonus-advice-subsection">
-            <h6 class="bonus-advice-subtitle">🎯 Pay Off Debts Now</h6>
+            <h6 class="bonus-advice-subtitle">🎯 ${t('bonusAdvisor.payOffTitle')}</h6>
             ${eliminatedLine}
             ${remainderLine}
-            <div class="bonus-advice-stat"><strong>${formatCurrency(plan.freedMonthly)}/mo</strong> freed up immediately</div>
+            <div class="bonus-advice-stat"><strong>${t('bonusAdvisor.perMonth', { amount: formatCurrency(plan.freedMonthly) })}</strong> ${t('bonusAdvisor.freedUp')}</div>
         </div>`;
 }
 
@@ -220,26 +221,26 @@ function renderAdviceHtml(advice) {
     const sv = advice.savings;
 
     const cashFlowBody = cf.applicable
-        ? `<div class="bonus-advice-stat"><strong>${formatCurrency(cf.interestSaved)}</strong> interest saved</div>
-           <div class="bonus-advice-stat">${cf.monthsSaved} month${cf.monthsSaved === 1 ? '' : 's'} sooner payoff</div>
-           <div class="bonus-advice-stat">${formatCurrency(cf.freedMonthly)}/mo freed up sooner</div>
+        ? `<div class="bonus-advice-stat"><strong>${formatCurrency(cf.interestSaved)}</strong> ${t('bonusAdvisor.interestSaved')}</div>
+           <div class="bonus-advice-stat">${cf.monthsSaved === 1 ? t('bonusAdvisor.monthOne') : t('bonusAdvisor.monthsMany', { count: cf.monthsSaved })}</div>
+           <div class="bonus-advice-stat">${t('bonusAdvisor.freedSooner', { amount: formatCurrency(cf.freedMonthly) })}</div>
            ${renderEliminationPlanHtml(cf.eliminationPlan)}`
-        : `<div class="bonus-advice-na">N/A — ${escapeHtml(cf.reason)}</div>`;
+        : `<div class="bonus-advice-na">${t('bonusAdvisor.naPrefix', { reason: escapeHtml(cf.reason) })}</div>`;
 
     const savingsBody = sv.rate > 0
-        ? `<div class="bonus-advice-stat">${formatCurrency(sv.growth1yr)} in 1 year</div>
-           <div class="bonus-advice-stat">${formatCurrency(sv.growth5yr)} in 5 years</div>
-           <div class="bonus-advice-stat">at ${sv.rate.toFixed(2)}% APY</div>`
-        : `<div class="bonus-advice-na">No interest-bearing account linked — link this bonus to an account with an APY to see growth projections.</div>`;
+        ? `<div class="bonus-advice-stat">${t('bonusAdvisor.growth1', { amount: formatCurrency(sv.growth1yr) })}</div>
+           <div class="bonus-advice-stat">${t('bonusAdvisor.growth5', { amount: formatCurrency(sv.growth5yr) })}</div>
+           <div class="bonus-advice-stat">${t('bonusAdvisor.atApy', { rate: sv.rate.toFixed(2) })}</div>`
+        : `<div class="bonus-advice-na">${t('bonusAdvisor.noRateAccount')}</div>`;
 
     return `
         <div class="bonus-advice">
             <div class="bonus-advice-card">
-                <h5 class="bonus-advice-title">💳 Cash Flow — pay down debt</h5>
+                <h5 class="bonus-advice-title">💳 ${t('bonusAdvisor.cashFlowTitle')}</h5>
                 ${cashFlowBody}
             </div>
             <div class="bonus-advice-card">
-                <h5 class="bonus-advice-title">🏦 Savings — grow long-term</h5>
+                <h5 class="bonus-advice-title">🏦 ${t('bonusAdvisor.savingsTitle')}</h5>
                 ${savingsBody}
             </div>
         </div>`;

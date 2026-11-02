@@ -20,6 +20,33 @@ import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
+import { t, getIntlLocale } from './i18n.js';
+
+// Display labels for stored values (the stored English values never change).
+const INCOME_FREQ_KEYS = {
+    weekly: 'income.freqWeekly',
+    biweekly: 'income.freqBiweeklyShort',
+    twice_monthly: 'income.freqTwiceMonthly',
+    monthly: 'income.freqMonthly'
+};
+const INCOME_CATEGORY_KEYS = {
+    Salary: 'income.catSalary',
+    Freelance: 'income.catFreelance',
+    Rental: 'income.catRental',
+    Investment: 'income.catInvestment',
+    Other: 'income.catOther'
+};
+const BONUS_CATEGORY_KEYS = {
+    'Bonus': 'income.bonusCatBonus',
+    'Tax Refund': 'income.bonusCatTaxRefund',
+    'Cash Deposit': 'income.bonusCatCashDeposit',
+    'Check Deposit': 'income.bonusCatCheckDeposit',
+    'Other': 'income.bonusCatOther'
+};
+function labelFor(map, value) {
+    const key = map[value];
+    return key ? t(key) : String(value ?? '');
+}
 
 
 // Module-level filter state for the bonus list (null = all time).
@@ -34,9 +61,9 @@ export function renderIncomeList(app) {
     if (app.incomes.length === 0) {
         container.innerHTML = `<div class="empty-state">
             <div class="empty-state__icon">💰</div>
-            <h3 class="empty-state__heading">No income sources yet</h3>
-            <p class="empty-state__body">Add a salary, freelance income, or any regular paycheck to see payday forecasts and cash flow projections.</p>
-            <button class="btn btn-primary empty-state__cta" id="incomeEmptyStateCta">Add Your First Income</button>
+            <h3 class="empty-state__heading">${t('income.emptyHeading')}</h3>
+            <p class="empty-state__body">${t('income.emptyBody')}</p>
+            <button class="btn btn-primary empty-state__cta" id="incomeEmptyStateCta">${t('income.emptyCta')}</button>
         </div>`;
         document.getElementById('incomeEmptyStateCta')?.addEventListener('click', () => {
             setCollapsibleOpen('incomeFormBody', true);
@@ -48,8 +75,6 @@ export function renderIncomeList(app) {
         return;
     }
 
-    const freqLabel = { biweekly: 'Every other week', monthly: 'Once per month' };
-
     container.innerHTML = app.incomes.map(inc => {
         if (app.editingIncomeId === inc.id) {
             return `
@@ -57,56 +82,56 @@ export function renderIncomeList(app) {
                     <div class="income-edit-form">
                         <div class="income-edit-grid">
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Name</label>
+                                <label class="label-compact">${t('income.editName')}</label>
                                 <input type="text" id="ie-name-${inc.id}" value="${escapeHtml(inc.name)}" class="form-control form-full-width">
                             </div>
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Amount per paycheck ($)</label>
+                                <label class="label-compact">${t('income.editAmount')}</label>
                                 <input type="number" id="ie-amount-${inc.id}" value="${inc.amount}" min="0.01" step="0.01" class="form-control form-full-width">
                             </div>
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Tax withholding (%)</label>
+                                <label class="label-compact">${t('income.editWithholding')}</label>
                                 <input type="number" id="ie-withholding-${inc.id}" value="${inc.withholdingPercent || 0}" min="0" max="99.9" step="0.1" class="form-control form-full-width">
                             </div>
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">First pay date</label>
+                                <label class="label-compact">${t('income.editFirstDate')}</label>
                                 <input type="date" id="ie-date-${inc.id}" value="${inc.firstPayDate}" class="form-control form-full-width">
                             </div>
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Frequency</label>
+                                <label class="label-compact">${t('income.editFrequency')}</label>
                                 <select id="ie-freq-${inc.id}" class="form-control form-full-width">
-                                    <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>Every other week</option>
-                                    <option value="monthly"  ${inc.frequency === 'monthly' ? 'selected' : ''}>Once per month</option>
+                                    <option value="biweekly" ${inc.frequency === 'biweekly' ? 'selected' : ''}>${t('income.freqBiweeklyShort')}</option>
+                                    <option value="monthly"  ${inc.frequency === 'monthly' ? 'selected' : ''}>${t('income.freqMonthly')}</option>
                                 </select>
                             </div>
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Account</label>
+                                <label class="label-compact">${t('income.editAccount')}</label>
                                 <select id="ie-account-${inc.id}" class="form-control form-full-width">
-                                    ${buildAccountOptionsHtml(app.accounts, inc.accountId, { emptyLabel: '— No account —' })}
+                                    ${buildAccountOptionsHtml(app.accounts, inc.accountId, { emptyLabel: escapeHtml(t('accounts.noAccount')) })}
                                 </select>
                             </div>
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Person</label>
+                                <label class="label-compact">${t('income.editPerson')}</label>
                                 <select id="ie-person-${inc.id}" class="form-control form-full-width">
-                                    ${buildPersonOptionsHtml(app.persons, inc.personId, { emptyLabel: '— No person —' })}
+                                    ${buildPersonOptionsHtml(app.persons, inc.personId, { emptyLabel: escapeHtml(t('income.noPerson')) })}
                                 </select>
                             </div>
                             <div class="form-group form-no-margin">
-                                <label class="label-compact">Category</label>
+                                <label class="label-compact">${t('income.editCategory')}</label>
                                 <select id="ie-category-${inc.id}" class="form-control form-full-width">
-                                    ${['Salary','Freelance','Rental','Investment','Other'].map(c => `<option value="${c}"${inc.category === c ? ' selected' : ''}>${c}</option>`).join('')}
+                                    ${['Salary','Freelance','Rental','Investment','Other'].map(c => `<option value="${c}"${inc.category === c ? ' selected' : ''}>${escapeHtml(labelFor(INCOME_CATEGORY_KEYS, c))}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="form-group form-no-margin income-variable-edit-group">
                                 <label class="income-variable-label">
                                     <input type="checkbox" id="ie-variable-${inc.id}"${inc.isVariable ? ' checked' : ''}>
-                                    Variable / hourly amount
+                                    ${t('income.variableLabel')}
                                 </label>
                             </div>
                         </div>
                         <div class="income-edit-actions">
-                            <button class="btn btn-primary btn-small" data-income-action="save" data-income-id="${inc.id}" aria-label="Save changes to ${escapeHtml(inc.name)}">Save</button>
-                            <button class="btn btn-secondary btn-small" data-income-action="cancel" aria-label="Cancel editing ${escapeHtml(inc.name)}">Cancel</button>
+                            <button class="btn btn-primary btn-small" data-income-action="save" data-income-id="${inc.id}" aria-label="${escapeHtml(t('entity.saveChangesAria', { name: inc.name }))}">${t('common.save')}</button>
+                            <button class="btn btn-secondary btn-small" data-income-action="cancel" aria-label="${escapeHtml(t('entity.cancelEditAria', { name: inc.name }))}">${t('common.cancel')}</button>
                         </div>
                     </div>
                 </div>`;
@@ -115,7 +140,7 @@ export function renderIncomeList(app) {
         const dateStr = formatShortDate(inc.firstPayDate);
         const now = new Date();
         const pdays = countIncomePaydaysInMonth(inc, now.getFullYear(), now.getMonth());
-        const pdayLabel = pdays === 1 ? '1 payday this month' : `${pdays} paydays this month`;
+        const pdayLabel = pdays === 1 ? t('income.paydayOne') : t('income.paydaysMany', { count: pdays });
 
         const upcomingDates = getNextIncomePayDates(inc, 3);
         const upcomingHTML = upcomingDates.length
@@ -132,24 +157,24 @@ export function renderIncomeList(app) {
         const netAmount = computeNetIncomeAmount(inc);
         const hasWithholding = (inc.withholdingPercent || 0) > 0;
         const grossNote = hasWithholding
-            ? `Gross: ${formatCurrency(inc.amount)} (${inc.withholdingPercent}% withheld)`
+            ? t('income.grossNote', { gross: formatCurrency(inc.amount), pct: inc.withholdingPercent })
             : '';
         return `
             <div class="income-card" id="income-card-${inc.id}">
                 <div class="income-card-info">
                     <span class="income-card-name">${escapeHtml(inc.name)}</span>
-                    ${inc.isVariable ? `<span class="income-variable-badge" title="Amount varies — update the actual amount in the Ledger each pay period">~ Est.</span>` : ''}
-                    ${inc.category && inc.category !== 'Salary' ? `<span class="income-category-badge">${escapeHtml(inc.category)}</span>` : ''}
+                    ${inc.isVariable ? `<span class="income-variable-badge" title="${escapeHtml(t('income.estBadgeTitle'))}">${t('income.estBadge')}</span>` : ''}
+                    ${inc.category && inc.category !== 'Salary' ? `<span class="income-category-badge">${escapeHtml(labelFor(INCOME_CATEGORY_KEYS, inc.category))}</span>` : ''}
                     ${linkedPerson ? `<span class="income-card-detail"><span class="person-pill">${escapeHtml(linkedPerson.name)}</span></span>` : ''}
                     <span class="income-card-amount"${grossNote ? ` title="${escapeHtml(grossNote)}"` : ''}>${formatCurrency(netAmount)}</span>
                     ${grossNote ? `<span class="income-card-gross-note">${escapeHtml(grossNote)}</span>` : ''}
-                    <span class="income-card-detail">First pay: ${dateStr}</span>
-                    <span class="income-card-freq">${escapeHtml(freqLabel[inc.frequency] || inc.frequency)} &mdash; ${escapeHtml(pdayLabel)}</span>
-                    ${upcomingHTML ? `<span class="income-card-upcoming-label">Next paydays:</span>${upcomingHTML}` : ''}
+                    <span class="income-card-detail">${escapeHtml(t('income.firstPay', { date: dateStr }))}</span>
+                    <span class="income-card-freq">${escapeHtml(labelFor(INCOME_FREQ_KEYS, inc.frequency))} &mdash; ${escapeHtml(pdayLabel)}</span>
+                    ${upcomingHTML ? `<span class="income-card-upcoming-label">${t('income.nextPaydays')}</span>${upcomingHTML}` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" data-income-action="edit" data-income-id="${inc.id}" aria-label="Edit ${escapeHtml(inc.name)}">Edit</button>
-                    <button class="btn btn-danger btn-small" data-income-action="delete" data-income-id="${inc.id}" aria-label="Delete ${escapeHtml(inc.name)}">Delete</button>
+                    <button class="btn-edit" data-income-action="edit" data-income-id="${inc.id}" aria-label="${escapeHtml(t('entity.editAria', { name: inc.name }))}">${t('common.edit')}</button>
+                    <button class="btn btn-danger btn-small" data-income-action="delete" data-income-id="${inc.id}" aria-label="${escapeHtml(t('entity.deleteAria', { name: inc.name }))}">${t('common.delete')}</button>
                 </div>
             </div>`;
     }).join('');
@@ -184,30 +209,30 @@ export function renderIncomeList(app) {
 
         const bonusRow = bonusThisMonth > 0
             ? `<div class="income-summary-item">
-                   <span class="income-summary-label">One-time entries this month</span>
+                   <span class="income-summary-label">${t('income.summaryOneTime')}</span>
                    <span class="income-summary-value income-summary-value--bonus">${formatCurrency(bonusThisMonth)}</span>
                </div>`
             : '';
 
         summaryEl.classList.add('visible'); summaryEl.classList.remove('hidden');
         summaryEl.innerHTML = `
-            <h4>📅 Estimated Income Summary</h4>
+            <h4>📅 ${t('income.summaryTitle')}</h4>
             <div class="income-summary-grid">
                 <div class="income-summary-item">
-                    <span class="income-summary-label">Expected this month</span>
+                    <span class="income-summary-label">${t('income.summaryExpected')}</span>
                     <span class="income-summary-value">${formatCurrency(monthlyTotal)}</span>
                 </div>
                 <div class="income-summary-item">
-                    <span class="income-summary-label">Regular pay this month</span>
+                    <span class="income-summary-label">${t('income.summaryRegular')}</span>
                     <span class="income-summary-value">${formatCurrency(regularThisMonth)}</span>
                 </div>
                 ${bonusRow}
                 <div class="income-summary-item">
-                    <span class="income-summary-label">Income sources</span>
+                    <span class="income-summary-label">${t('income.summarySources')}</span>
                     <span class="income-summary-value">${app.incomes.length}</span>
                 </div>
                 <div class="income-summary-item">
-                    <span class="income-summary-label">Estimated annual</span>
+                    <span class="income-summary-label">${t('income.summaryAnnual')}</span>
                     <span class="income-summary-value">${formatCurrency(totalAnnual)}</span>
                 </div>
             </div>`;
@@ -230,12 +255,12 @@ export async function addIncome(app) {
     const rawWithholding = document.getElementById('incomeWithholding')?.value;
     const withholdingPercent = sanitizeFiniteNumber(rawWithholding, 0, { min: 0, max: 99.9 });
 
-    if (!name) { await showAlertModal('Please enter a name for this income source.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
-    if (!firstPayDate) { await showAlertModal('Please enter the first pay date.'); return; }
-    if (!accountId || isNaN(accountId)) { await showAlertModal('Please select an account for this income source.'); return; }
+    if (!name) { await showAlertModal(t('income.errName')); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errAmountGreater')); return; }
+    if (!firstPayDate) { await showAlertModal(t('income.errFirstDate')); return; }
+    if (!accountId || isNaN(accountId)) { await showAlertModal(t('income.errAccount')); return; }
     if (rawWithholding && (isNaN(Number(rawWithholding)) || Number(rawWithholding) < 0 || Number(rawWithholding) > 99.9)) {
-        await showAlertModal('Please enter a tax withholding percent between 0 and 99.9.'); return;
+        await showAlertModal(t('income.errWithholding')); return;
     }
 
     const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
@@ -299,11 +324,11 @@ export async function saveEditIncome(app, incomeId) {
     const rawWithholding = withholdingEl?.value;
     const withholdingPercent = sanitizeFiniteNumber(rawWithholding, 0, { min: 0, max: 99.9 });
 
-    if (!name)                        { await showAlertModal('Please enter a name.');            return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount.');     return; }
-    if (!firstPayDate)                { await showAlertModal('Please select a first pay date.');  return; }
+    if (!name)                        { await showAlertModal(t('income.errEditName'));            return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errEditAmount'));     return; }
+    if (!firstPayDate)                { await showAlertModal(t('income.errEditDate'));  return; }
     if (rawWithholding && (isNaN(Number(rawWithholding)) || Number(rawWithholding) < 0 || Number(rawWithholding) > 99.9)) {
-        await showAlertModal('Please enter a tax withholding percent between 0 and 99.9.'); return;
+        await showAlertModal(t('income.errWithholding')); return;
     }
 
     const idx = app.incomes.findIndex(i => i.id === incomeId);
@@ -328,9 +353,9 @@ export async function addBonus(app) {
     const rawPurpose = document.getElementById('bonusPurpose')?.value;
     const purpose   = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
 
-    if (!name)                        { await showAlertModal('Please enter a label for this one-time entry.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
-    if (!date)                        { await showAlertModal('Please enter the date received.'); return; }
+    if (!name)                        { await showAlertModal(t('income.bonusErrName')); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errAmountGreater')); return; }
+    if (!date)                        { await showAlertModal(t('income.bonusErrDate')); return; }
 
     const bonus = { id: Date.now(), name, amount, date, category, accountId, purpose };
     app.bonuses.push(bonus);
@@ -386,9 +411,9 @@ export async function saveEditBonus(app, bonusId) {
     const rawPurpose = purposeEl?.value;
     const purpose = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
 
-    if (!name) { await showAlertModal('Please enter a name for this one-time entry.'); return; }
-    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal('Please enter a valid amount greater than 0.'); return; }
-    if (!date) { await showAlertModal('Please enter the date received.'); return; }
+    if (!name) { await showAlertModal(t('income.bonusErrName')); return; }
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errAmountGreater')); return; }
+    if (!date) { await showAlertModal(t('income.bonusErrDate')); return; }
 
     const idx = app.bonuses.findIndex(b => b.id === bonusId);
     if (idx === -1) return;
@@ -439,25 +464,25 @@ export function renderBonusList(app) {
         Other: 'bonus-cat--other'
     };
     const purposeBadgeMeta = {
-        cashFlow: { cls: 'bonus-purpose--cashflow', label: '💳 Cash Flow' },
-        savings:  { cls: 'bonus-purpose--savings',  label: '🏦 Savings' }
+        cashFlow: { cls: 'bonus-purpose--cashflow', label: `💳 ${t('income.bonusPurposeCashFlow')}` },
+        savings:  { cls: 'bonus-purpose--savings',  label: `🏦 ${t('income.bonusPurposeSavings')}` }
     };
 
     const filterHtml = `
         <div class="bonus-filter-row">
             <button class="bonus-filter-nav" data-bonus-year-nav="prev"
-                aria-label="${prevYear === null ? 'Previous year (none available)' : `Show ${prevYear}`}"${prevYear === null ? ' disabled aria-disabled="true"' : ''}>&#8249;</button>
-            <span class="bonus-filter-label">${_bonusFilterYear ?? 'All time'}</span>
+                aria-label="${prevYear === null ? t('income.bonusPrevNone') : t('income.bonusShowYear', { year: prevYear })}"${prevYear === null ? ' disabled aria-disabled="true"' : ''}>&#8249;</button>
+            <span class="bonus-filter-label">${_bonusFilterYear ?? t('income.bonusAllTime')}</span>
             <button class="bonus-filter-nav" data-bonus-year-nav="next"
-                aria-label="${nextYear === null ? 'Next year (none available)' : `Show ${nextYear}`}"${nextYear === null ? ' disabled aria-disabled="true"' : ''}>&#8250;</button>
+                aria-label="${nextYear === null ? t('income.bonusNextNone') : t('income.bonusShowYear', { year: nextYear })}"${nextYear === null ? ' disabled aria-disabled="true"' : ''}>&#8250;</button>
             ${_bonusFilterYear !== null
-                ? `<button class="bonus-filter-all" data-bonus-show-all>All time</button>`
-                : `<button class="bonus-filter-all" data-bonus-show-year="${currentYear}">This year</button>`
+                ? `<button class="bonus-filter-all" data-bonus-show-all>${t('income.bonusAllTime')}</button>`
+                : `<button class="bonus-filter-all" data-bonus-show-year="${currentYear}">${t('income.bonusThisYear')}</button>`
             }
         </div>`;
 
     const cardsHtml = filtered.length === 0
-        ? `<p class="text-muted-secondary" style="padding:12px 0;font-size:0.9rem;">No entries for ${_bonusFilterYear ?? 'this period'}.</p>`
+        ? `<p class="text-muted-secondary" style="padding:12px 0;font-size:0.9rem;">${_bonusFilterYear !== null ? t('income.bonusNoEntriesYear', { year: _bonusFilterYear }) : t('income.bonusNoEntriesPeriod')}</p>`
         : filtered.map(b => {
             const d = new Date(b.date + 'T12:00:00');
             const isThisMonth = d.getFullYear() === currentYear && d.getMonth() === currentMonth;
@@ -469,45 +494,45 @@ export function renderBonusList(app) {
                 <div class="bonus-card bonus-card--editing">
                     <div class="bonus-edit-grid">
                         <div class="form-group form-no-margin">
-                            <label class="label-compact">Label</label>
+                            <label class="label-compact">${t('income.bonusEditLabel')}</label>
                             <input type="text" id="be-name-${b.id}" value="${escapeHtml(b.name)}" class="form-full-width">
                         </div>
                         <div class="form-group form-no-margin">
-                            <label class="label-compact">Amount ($)</label>
+                            <label class="label-compact">${t('income.bonusEditAmount')}</label>
                             <input type="number" id="be-amount-${b.id}" value="${b.amount}" min="0.01" step="0.01" class="form-full-width">
                         </div>
                         <div class="form-group form-no-margin">
-                            <label class="label-compact">Date received</label>
+                            <label class="label-compact">${t('income.bonusEditDate')}</label>
                             <input type="date" id="be-date-${b.id}" value="${b.date}" class="form-full-width">
                         </div>
                         <div class="form-group form-no-margin">
-                            <label class="label-compact">Category</label>
+                            <label class="label-compact">${t('income.bonusEditCategory')}</label>
                             <select id="be-category-${b.id}" class="form-full-width">
-                                <option value="Bonus"        ${b.category==='Bonus'        ?'selected':''}>Bonus</option>
-                                <option value="Tax Refund"   ${b.category==='Tax Refund'   ?'selected':''}>Tax Refund</option>
-                                <option value="Cash Deposit" ${b.category==='Cash Deposit' ?'selected':''}>Cash Deposit</option>
-                                <option value="Check Deposit"${b.category==='Check Deposit'?'selected':''}>Check Deposit</option>
-                                <option value="Other"        ${b.category==='Other'        ?'selected':''}>Other</option>
+                                <option value="Bonus"        ${b.category==='Bonus'        ?'selected':''}>${t('income.bonusCatBonus')}</option>
+                                <option value="Tax Refund"   ${b.category==='Tax Refund'   ?'selected':''}>${t('income.bonusCatTaxRefund')}</option>
+                                <option value="Cash Deposit" ${b.category==='Cash Deposit' ?'selected':''}>${t('income.bonusCatCashDeposit')}</option>
+                                <option value="Check Deposit"${b.category==='Check Deposit'?'selected':''}>${t('income.bonusCatCheckDeposit')}</option>
+                                <option value="Other"        ${b.category==='Other'        ?'selected':''}>${t('income.bonusCatOther')}</option>
                             </select>
                         </div>
                         <div class="form-group form-no-margin">
-                            <label class="label-compact">Account</label>
+                            <label class="label-compact">${t('income.bonusEditAccount')}</label>
                             <select id="be-account-${b.id}" class="form-full-width">
-                                ${buildAccountOptionsHtml(app.accounts, b.accountId, { emptyLabel: '— No account —' })}
+                                ${buildAccountOptionsHtml(app.accounts, b.accountId, { emptyLabel: escapeHtml(t('accounts.noAccount')) })}
                             </select>
                         </div>
                         <div class="form-group form-no-margin">
-                            <label class="label-compact">Purpose</label>
+                            <label class="label-compact">${t('income.bonusEditPurpose')}</label>
                             <select id="be-purpose-${b.id}" class="form-full-width">
-                                <option value=""         ${!b.purpose             ?'selected':''}>— Not decided —</option>
-                                <option value="cashFlow" ${b.purpose==='cashFlow' ?'selected':''}>💳 Cash Flow</option>
-                                <option value="savings"  ${b.purpose==='savings'  ?'selected':''}>🏦 Savings</option>
+                                <option value=""         ${!b.purpose             ?'selected':''}>${t('income.bonusPurposeNone')}</option>
+                                <option value="cashFlow" ${b.purpose==='cashFlow' ?'selected':''}>💳 ${t('income.bonusPurposeCashFlow')}</option>
+                                <option value="savings"  ${b.purpose==='savings'  ?'selected':''}>🏦 ${t('income.bonusPurposeSavings')}</option>
                             </select>
                         </div>
                     </div>
                     <div class="income-edit-actions margin-top-auto">
-                        <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}" aria-label="Save changes to ${escapeHtml(b.name)}">Save</button>
-                        <button class="btn btn-secondary btn-small" data-bonus-action="cancel" aria-label="Cancel editing ${escapeHtml(b.name)}">Cancel</button>
+                        <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}" aria-label="${escapeHtml(t('entity.saveChangesAria', { name: b.name }))}">${t('common.save')}</button>
+                        <button class="btn btn-secondary btn-small" data-bonus-action="cancel" aria-label="${escapeHtml(t('entity.cancelEditAria', { name: b.name }))}">${t('common.cancel')}</button>
                     </div>
                 </div>`;
             }
@@ -522,19 +547,19 @@ export function renderBonusList(app) {
                 <div class="bonus-card-info">
                     <span class="bonus-card-name">${escapeHtml(b.name)}</span>
                     <span class="bonus-card-amount">${formatCurrency(b.amount)}</span>
-                    <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(b.category)}</span>${purposeBadge ? ' ' + purposeBadge : ''}</span>
-                    ${isThisMonth ? '<span class="bonus-this-month-tag">✅ Included in this month\'s income</span>' : ''}
+                    <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(labelFor(BONUS_CATEGORY_KEYS, b.category))}</span>${purposeBadge ? ' ' + purposeBadge : ''}</span>
+                    ${isThisMonth ? `<span class="bonus-this-month-tag">✅ ${t('income.bonusIncludedThisMonth')}</span>` : ''}
                 </div>
                 <div class="debt-actions">
-                    <button class="btn-edit" data-bonus-action="edit" data-bonus-id="${b.id}" aria-label="Edit ${escapeHtml(b.name)}">Edit</button>
-                    <button class="btn btn-danger btn-small" data-bonus-action="delete" data-bonus-id="${b.id}" aria-label="Delete ${escapeHtml(b.name)}">Delete</button>
+                    <button class="btn-edit" data-bonus-action="edit" data-bonus-id="${b.id}" aria-label="${escapeHtml(t('entity.editAria', { name: b.name }))}">${t('common.edit')}</button>
+                    <button class="btn btn-danger btn-small" data-bonus-action="delete" data-bonus-id="${b.id}" aria-label="${escapeHtml(t('entity.deleteAria', { name: b.name }))}">${t('common.delete')}</button>
                 </div>
             </div>`;
         }).join('');
 
     container.innerHTML = `
         <div class="bonus-list-wrap">
-            <h4 class="bonus-list-title">One-time Bonuses &amp; Deposits</h4>
+            <h4 class="bonus-list-title">${t('income.bonusListTitle')}</h4>
             ${filterHtml}
             ${cardsHtml}
         </div>`;
@@ -608,7 +633,7 @@ export function renderIncomeTrendChart(app) {
     for (let i = rangeMonths - 1; i >= 0; i--) {
         let m = now.getMonth() - i, y = now.getFullYear();
         while (m < 0) { m += 12; y--; }
-        months.push({ year: y, month: m, label: new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) });
+        months.push({ year: y, month: m, label: new Date(y, m, 1).toLocaleDateString(getIntlLocale(), { month: 'short', year: '2-digit' }) });
     }
 
     // #251: net, consistent with the net figures shown everywhere else on this page.
@@ -621,12 +646,12 @@ export function renderIncomeTrendChart(app) {
 
     const { grid, label } = _incomeTrendChartColors();
     const datasets = [
-        { label: 'Regular Income', data: regularTotals, backgroundColor: '#2563eb', stack: 'income', borderRadius: 4 },
-        { label: 'Bonuses', data: bonusTotals, backgroundColor: '#f59e0b', stack: 'income', borderRadius: 4 }
+        { label: t('income.chartRegular'), data: regularTotals, backgroundColor: '#2563eb', stack: 'income', borderRadius: 4 },
+        { label: t('income.chartBonuses'), data: bonusTotals, backgroundColor: '#f59e0b', stack: 'income', borderRadius: 4 }
     ];
     if (showYoY) {
         datasets.push({
-            type: 'line', label: 'Same month last year', data: priorYearTotals,
+            type: 'line', label: t('income.chartLastYear'), data: priorYearTotals,
             borderColor: '#64748b', borderDash: [5, 5], borderWidth: 2, pointRadius: 2,
             backgroundColor: 'transparent', fill: false
         });
@@ -648,14 +673,14 @@ export function renderIncomeTrendChart(app) {
         }
     });
 
-    const columns = ['Month', 'Regular Income', 'Bonuses'];
+    const columns = [t('income.chartMonth'), t('income.chartRegular'), t('income.chartBonuses')];
     const rows = months.map((m, i) => [m.label, formatCurrency(regularTotals[i]), formatCurrency(bonusTotals[i])]);
     if (showYoY) {
-        columns.push('Same month last year');
+        columns.push(t('income.chartLastYear'));
         rows.forEach((row, i) => row.push(formatCurrency(priorYearTotals[i])));
     }
     renderChartDataTable('incomeTrendChart', {
-        caption: `Income trend — trailing ${rangeMonths} months`,
+        caption: t('income.chartCaption', { months: rangeMonths }),
         columns, rows
     });
 

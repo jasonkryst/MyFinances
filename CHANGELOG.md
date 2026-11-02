@@ -4,6 +4,23 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.61.0] — 2026-11-02
+
+### Added
+- **Accounts, Income and Savings are fully translated into Spanish and Polish** (issue #317, part 2).
+  - **Accounts:** cards, filters, sort, the inline edit form, the net-worth widget, and the account breakdown, balance history and transfer modals. Account types and retirement subtypes get display labels; stored values stay English.
+  - **Income:** income and bonus lists, edit forms, the Income Trend chart, and the Bonus Advisor. Frequencies and categories get display labels.
+  - **Savings:** the Emergency Fund, Sinking Funds (including archived funds and the Goal Complete modal) and Home Purchase sub-tabs.
+  - **Shared:** alerts, confirmations, chart labels and captions, and per-item aria-labels (new shared `entity.*` keys).
+  - **Dates:** month labels use the active locale instead of a hardcoded `en-US` format.
+
+### Changed
+- **Income card frequency label:** weekly and twice-monthly incomes now read "Every week" and "Twice per month (15th & last day)" instead of the raw stored value.
+- **People:** the person picker's "— No person —" option is translated.
+
+### Tests
+- **Wider coverage guard:** `test_i18n_coverage.py` adds 10 page entries (accounts, accounts edit and filter, income and income edit, each Savings sub-tab, archived sinking funds, the home-purchase variants) and a much larger seed. Retirement and Reconcile keep the original small seed, because Ledger-generated transaction names are translated in a later part.
+
 ## [6.60.0] — 2026-11-01
 
 ### Added

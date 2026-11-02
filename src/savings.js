@@ -1,4 +1,5 @@
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, computeSavingsRate } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate } from './utils.js';
+import { t } from './i18n.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
@@ -20,11 +21,11 @@ function renderSavingsRateSummary(app) {
   return `
     <div class="savings-rate-summary">
       <div class="savings-rate-summary-main">
-        <span class="savings-rate-summary-label">Savings Rate</span>
+        <span class="savings-rate-summary-label">${t('savings.rateTitle')}</span>
         <span class="savings-rate-summary-value health-badge ${status.cls}">${pct.toFixed(1)}%</span>
       </div>
       <div class="savings-rate-summary-detail">
-        Saving ${formatCurrency(totalSavingsContrib)} of ${formatCurrency(monthlyIncome)}/mo income
+        ${t('savings.rateDetail', { saved: formatCurrency(totalSavingsContrib), income: formatCurrency(monthlyIncome) })}
       </div>
     </div>
   `;
@@ -41,15 +42,15 @@ export function renderSavingsPage(app) {
 
   let html = `
     <div class="page-header-row page-header">
-      <h2>💰 Savings</h2>
-      <button type="button" class="page-print-btn" id="savingsPrintBtn" title="Print this page" aria-label="Print the Savings page">🖨️ Print</button>
+      <h2>💰 ${t('nav.savings')}</h2>
+      <button type="button" class="page-print-btn" id="savingsPrintBtn" title="${t('common.printTitle')}" aria-label="${t('savings.printAria')}">🖨️ ${t('common.print')}</button>
     </div>
     <div class="savings-container">
       ${renderSavingsRateSummary(app)}
       <div class="savings-subtabs">
-        <button class="savings-subtab-btn ${currentSubTab === 'emergency' ? 'active' : ''}" data-savings-subtab="emergency" aria-pressed="${currentSubTab === 'emergency' ? 'true' : 'false'}">🏦 Emergency Fund</button>
-        <button class="savings-subtab-btn ${currentSubTab === 'sinking' ? 'active' : ''}" data-savings-subtab="sinking" aria-pressed="${currentSubTab === 'sinking' ? 'true' : 'false'}">🎯 Sinking Funds</button>
-        <button class="savings-subtab-btn ${currentSubTab === 'home' ? 'active' : ''}" data-savings-subtab="home" aria-pressed="${currentSubTab === 'home' ? 'true' : 'false'}">🏠 Home Purchase</button>
+        <button class="savings-subtab-btn ${currentSubTab === 'emergency' ? 'active' : ''}" data-savings-subtab="emergency" aria-pressed="${currentSubTab === 'emergency' ? 'true' : 'false'}">🏦 ${t('savings.tabEmergency')}</button>
+        <button class="savings-subtab-btn ${currentSubTab === 'sinking' ? 'active' : ''}" data-savings-subtab="sinking" aria-pressed="${currentSubTab === 'sinking' ? 'true' : 'false'}">🎯 ${t('savings.tabSinking')}</button>
+        <button class="savings-subtab-btn ${currentSubTab === 'home' ? 'active' : ''}" data-savings-subtab="home" aria-pressed="${currentSubTab === 'home' ? 'true' : 'false'}">🏠 ${t('savings.tabHome')}</button>
       </div>
 
       <div class="savings-content">
@@ -76,53 +77,53 @@ export function renderSavingsPage(app) {
 function renderEmergencyFundContent(app) {
   let html = `
     <div class="savings-section emergency-fund-section">
-      <h2>Emergency Fund</h2>
-      <p class="section-description">Track your emergency fund target and progress for each account.</p>
+      <h2>${t('savings.tabEmergency')}</h2>
+      <p class="section-description">${t('savings.emergencyDesc')}</p>
 
       <div class="emergency-form-card">
-        <button class="emergency-form-toggle" id="emergencyFormToggle">➕ Add/Edit Emergency Fund</button>
+        <button class="emergency-form-toggle" id="emergencyFormToggle">➕ ${t('savings.emergencyToggle')}</button>
         <div class="emergency-form-body hidden" id="emergencyFormBody">
           <form id="emergencyForm">
             <div class="emergency-form-grid">
               <div class="form-group">
-                <label for="emergencyAccount">Account</label>
+                <label for="emergencyAccount">${t('savings.accountLabel')}</label>
                 <select id="emergencyAccount" required>
-                  ${buildAccountOptionsHtml(app.accounts, null, { emptyLabel: '-- Select Account --' })}
+                  ${buildAccountOptionsHtml(app.accounts, null, { emptyLabel: escapeHtml(t('savings.selectAccount')) })}
                 </select>
               </div>
               <div class="form-group">
-                <label for="emergencyTarget">Target Amount ($)</label>
+                <label for="emergencyTarget">${t('savings.targetAmountLabel')}</label>
                 <input type="number" id="emergencyTarget" min="0" step="0.01" placeholder="5000" required />
               </div>
               <div class="form-group">
-                <label for="emergencyCurrent">Current Amount ($)</label>
+                <label for="emergencyCurrent">${t('savings.currentAmountLabel')}</label>
                 <input type="number" id="emergencyCurrent" min="0" step="0.01" placeholder="0" required />
               </div>
               <div class="form-group ef-auto-sync-row">
                 <label class="ef-auto-sync-label">
                   <input type="checkbox" id="emergencyAutoSync" />
-                  Auto-sync balance from linked account
+                  ${t('savings.autoSyncLabel')}
                 </label>
-                <span class="ef-auto-sync-hint">When enabled, the current amount reflects the linked account's projected balance.</span>
+                <span class="ef-auto-sync-hint">${t('savings.autoSyncHint')}</span>
               </div>
               <div class="form-group">
-                <label for="emergencyContribution">Monthly Contribution ($)</label>
+                <label for="emergencyContribution">${t('savings.monthlyContributionLabel')}</label>
                 <input type="number" id="emergencyContribution" min="0" step="0.01" placeholder="250" required />
               </div>
               <div class="form-group">
                 <label for="emergencyAuto">
                   <input type="checkbox" id="emergencyAuto" />
-                  Auto-contribute monthly
+                  ${t('savings.autoContributeLabel')}
                 </label>
               </div>
               <div class="form-group">
-                <label for="emergencyNotes">Notes</label>
-                <textarea id="emergencyNotes" placeholder="e.g., 3-6 months of expenses"></textarea>
+                <label for="emergencyNotes">${t('savings.notesLabel')}</label>
+                <textarea id="emergencyNotes" placeholder="${t('savings.emergencyNotesPlaceholder')}"></textarea>
               </div>
             </div>
             <div class="emergency-form-actions">
-              <button type="submit" class="btn btn-primary" id="emergencyFormSubmit">Save Emergency Fund</button>
-              <button type="button" class="btn btn-secondary" id="emergencyCancelBtn">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="emergencyFormSubmit">${t('savings.emergencySave')}</button>
+              <button type="button" class="btn btn-secondary" id="emergencyCancelBtn">${t('common.cancel')}</button>
             </div>
           </form>
         </div>
@@ -139,11 +140,11 @@ function renderEmergencyFundContent(app) {
   });
 
   if (sortedFunds.length === 0) {
-    html += '<p class="empty-message">No emergency funds created yet. Add one to get started.</p>';
+    html += `<p class="empty-message">${t('savings.emergencyEmpty')}</p>`;
   } else {
     sortedFunds.forEach(fund => {
       const account = app.accounts.find(ac => ac.id === fund.accountId);
-      const accountName = account?.name || 'Unknown Account';
+      const accountName = account?.name || t('savings.unknownAccount');
       const displayAmount = fund.autoSyncBalance && fund.accountId
         ? computeAccountBalance(app, fund.accountId)
         : fund.currentAmount;
@@ -160,7 +161,7 @@ function renderEmergencyFundContent(app) {
           <div class="emergency-card-header">
             <div>
               <div class="emergency-account">${escapeHtml(accountName)}</div>
-              <div class="emergency-target">${formatCurrency(displayAmount)} / ${formatCurrency(fund.targetAmount)}${fund.autoSyncBalance ? ' <span class="ef-sync-badge" title="Balance is auto-synced from linked account">⟳ synced</span>' : ''}</div>
+              <div class="emergency-target">${formatCurrency(displayAmount)} / ${formatCurrency(fund.targetAmount)}${fund.autoSyncBalance ? ` <span class="ef-sync-badge" title="${t('savings.syncedTitle')}">⟳ ${t('savings.syncedBadge')}</span>` : ''}</div>
             </div>
             <div class="emergency-badge ${badgeClass}">${progressPercent}%</div>
           </div>
@@ -169,23 +170,23 @@ function renderEmergencyFundContent(app) {
           </div>
           <div class="emergency-card-details">
             <div class="detail-row">
-              <span>Monthly Contribution:</span>
-              <span>${formatCurrency(fund.monthlyContribution)} ${fund.autoContribute ? '(auto)' : ''}</span>
+              <span>${t('savings.monthlyContribution')}</span>
+              <span>${formatCurrency(fund.monthlyContribution)} ${fund.autoContribute ? t('savings.autoTag') : ''}</span>
             </div>
             <div class="detail-row">
-              <span>Remaining:</span>
+              <span>${t('savings.remaining')}</span>
               <span>${formatCurrency(remaining)}</span>
             </div>
             <div class="detail-row">
-              <span>Projected Completion:</span>
-              <span>${monthsToComplete >= 999 ? 'N/A' : projectedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+              <span>${t('savings.projectedCompletion')}</span>
+              <span>${monthsToComplete >= 999 ? t('savings.notAvailable') : formatMonthYear(projectedDate)}</span>
             </div>
-            ${fund.notes ? `<div class="detail-row"><span>Notes:</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
+            ${fund.notes ? `<div class="detail-row"><span>${t('savings.notes')}</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
           </div>
           <div class="emergency-card-actions">
-            <button class="btn btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="Edit ${escapeHtml(accountName)}">Edit</button>
-            ${fund.autoSyncBalance ? '' : `<button class="btn btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="Contribute to ${escapeHtml(accountName)}">+ Contribute</button>`}
-            <button class="btn btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="Delete ${escapeHtml(accountName)}">Delete</button>
+            <button class="btn btn-small btn-secondary" data-emergency-action="edit" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('entity.editAria', { name: accountName }))}">${t('common.edit')}</button>
+            ${fund.autoSyncBalance ? '' : `<button class="btn btn-small btn-primary" data-emergency-action="contribute" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('entity.contributeAria', { name: accountName }))}">${t('entity.contributeBtn')}</button>`}
+            <button class="btn btn-small btn-danger" data-emergency-action="delete" data-emergency-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('entity.deleteAria', { name: accountName }))}">${t('common.delete')}</button>
           </div>
         </div>
       `;
@@ -213,70 +214,70 @@ function renderSinkingFundsContent(app) {
 
   let html = `
     <div class="savings-section sinking-funds-section">
-      <h2>Sinking Funds</h2>
-      <p class="section-description">Create goals for planned expenses (car repairs, vacation, insurance, etc.) and track monthly allocations.</p>
+      <h2>${t('savings.tabSinking')}</h2>
+      <p class="section-description">${t('savings.sinkingDesc')}</p>
 
       <div class="sinking-form-card">
-        <button class="sinking-form-toggle" id="sinkingFormToggle">➕ Add/Edit Sinking Fund</button>
+        <button class="sinking-form-toggle" id="sinkingFormToggle">➕ ${t('savings.sinkingToggle')}</button>
         <div class="sinking-form-body hidden" id="sinkingFormBody">
           <form id="sinkingForm">
             <div class="sinking-form-grid">
               <div class="form-group">
-                <label for="sinkingName">Goal Name</label>
-                <input type="text" id="sinkingName" placeholder="e.g., Car Repairs, Vacation" required />
+                <label for="sinkingName">${t('savings.sinkingNameLabel')}</label>
+                <input type="text" id="sinkingName" placeholder="${t('savings.sinkingNamePlaceholder')}" required />
               </div>
               <div class="form-group">
-                <label for="sinkingAllocationMethod">Allocation Method</label>
+                <label for="sinkingAllocationMethod">${t('savings.allocationMethodLabel')}</label>
                 <select id="sinkingAllocationMethod" required>
-                  <option value="fixed">Fixed Monthly Amount</option>
-                  <option value="annual">Annual Cost ÷ 12</option>
-                  <option value="target_date">Target Date Planning</option>
+                  <option value="fixed">${t('savings.allocFixed')}</option>
+                  <option value="annual">${t('savings.allocAnnual')}</option>
+                  <option value="target_date">${t('savings.allocTargetDate')}</option>
                 </select>
               </div>
               <div class="form-group" id="fixedAmountGroup">
-                <label for="sinkingMonthlyAllocation">Monthly Allocation ($)</label>
+                <label for="sinkingMonthlyAllocation">${t('savings.monthlyAllocationLabel')}</label>
                 <input type="number" id="sinkingMonthlyAllocation" min="0" step="0.01" placeholder="100" />
               </div>
               <div class="form-group hidden" id="annualCostGroup">
-                <label for="sinkingAnnualCost">Annual Cost ($)</label>
+                <label for="sinkingAnnualCost">${t('savings.annualCostLabel')}</label>
                 <input type="number" id="sinkingAnnualCost" min="0" step="0.01" placeholder="1200" />
               </div>
               <div class="form-group hidden" id="targetAmountGroup">
-                <label for="sinkingTargetAmount">Target Amount ($)</label>
+                <label for="sinkingTargetAmount">${t('savings.targetAmountLabel')}</label>
                 <input type="number" id="sinkingTargetAmount" min="0" step="0.01" placeholder="5000" />
               </div>
               <div class="form-group hidden" id="targetDateGroup">
-                <label for="sinkingTargetDate">Target Date</label>
+                <label for="sinkingTargetDate">${t('savings.targetDateLabel')}</label>
                 <input type="date" id="sinkingTargetDate" />
               </div>
               <div class="form-group">
-                <label for="sinkingCurrentAmount">Current Amount ($)</label>
+                <label for="sinkingCurrentAmount">${t('savings.currentAmountLabel')}</label>
                 <input type="number" id="sinkingCurrentAmount" min="0" step="0.01" placeholder="0" required />
               </div>
               <div class="form-group">
-                <label for="sinkingAccount">Account</label>
+                <label for="sinkingAccount">${t('savings.accountLabel')}</label>
                 <select id="sinkingAccount" required>
-                  ${buildAccountOptionsHtml(app.accounts, null, { emptyLabel: '-- Select Account --' })}
+                  ${buildAccountOptionsHtml(app.accounts, null, { emptyLabel: escapeHtml(t('savings.selectAccount')) })}
                 </select>
               </div>
               <div class="form-group">
-                <label for="sinkingOrder">Priority (order)</label>
-                <input type="number" id="sinkingOrder" min="1" step="1" placeholder="Leave blank for default" />
+                <label for="sinkingOrder">${t('savings.priorityLabel')}</label>
+                <input type="number" id="sinkingOrder" min="1" step="1" placeholder="${t('savings.priorityPlaceholder')}" />
               </div>
               <div class="form-group">
                 <label for="sinkingAuto">
                   <input type="checkbox" id="sinkingAuto" />
-                  Auto-contribute monthly
+                  ${t('savings.autoContributeLabel')}
                 </label>
               </div>
               <div class="form-group">
-                <label for="sinkingNotes">Notes</label>
-                <textarea id="sinkingNotes" placeholder="Optional notes"></textarea>
+                <label for="sinkingNotes">${t('savings.notesLabel')}</label>
+                <textarea id="sinkingNotes" placeholder="${t('savings.sinkingNotesPlaceholder')}"></textarea>
               </div>
             </div>
             <div class="sinking-form-actions">
-              <button type="submit" class="btn btn-primary" id="sinkingFormSubmit">Save Sinking Fund</button>
-              <button type="button" class="btn btn-secondary" id="sinkingCancelBtn">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="sinkingFormSubmit">${t('savings.sinkingSave')}</button>
+              <button type="button" class="btn btn-secondary" id="sinkingCancelBtn">${t('common.cancel')}</button>
             </div>
           </form>
         </div>
@@ -285,7 +286,7 @@ function renderSinkingFundsContent(app) {
   if (archivedCount > 0) {
     html += `<div class="savings-archived-row">
       <button class="btn btn-small btn-secondary" id="toggleArchivedSinkingFunds" aria-pressed="${showArchived ? 'true' : 'false'}">
-        ${showArchived ? 'Hide Archived' : `Show Archived (${archivedCount})`}
+        ${showArchived ? t('savings.hideArchived') : t('savings.showArchived', { count: archivedCount })}
       </button>
     </div>`;
   }
@@ -295,14 +296,14 @@ function renderSinkingFundsContent(app) {
   if (visibleFunds.length === 0 && allFunds.filter(f => !f.archived).length === 0) {
     html += `<div class="empty-state">
       <div class="empty-state__icon">🎯</div>
-      <h3 class="empty-state__heading">No sinking funds yet</h3>
-      <p class="empty-state__body">Create goals for planned expenses — car repairs, vacations, insurance — and track your monthly progress toward each one.</p>
-      <button class="btn btn-primary empty-state__cta" id="sinkingEmptyStateCta">Add Your First Fund</button>
+      <h3 class="empty-state__heading">${t('savings.sinkingEmptyHeading')}</h3>
+      <p class="empty-state__body">${t('savings.sinkingEmptyBody')}</p>
+      <button class="btn btn-primary empty-state__cta" id="sinkingEmptyStateCta">${t('savings.sinkingEmptyCta')}</button>
     </div>`;
   } else {
     visibleFunds.forEach(fund => {
       const account = app.accounts.find(ac => ac.id === fund.accountId);
-      const accountName = account?.name || 'Unknown Account';
+      const accountName = account?.name || t('savings.unknownAccount');
       const progressPercent = fund.targetAmount > 0 ? Math.min(100, Math.round((fund.currentAmount / fund.targetAmount) * 100)) : 0;
       const remaining = Math.max(0, fund.targetAmount - fund.currentAmount);
       const isFullyFunded = fund.targetAmount > 0 && fund.currentAmount >= fund.targetAmount;
@@ -318,38 +319,38 @@ function renderSinkingFundsContent(app) {
               <div class="sinking-name">${escapeHtml(fund.name)}${orderLabel}</div>
               <div class="sinking-account">${escapeHtml(accountName)}</div>
             </div>
-            <div class="sinking-badge ${badgeClass}">${isFullyFunded ? '✓ Funded' : `${progressPercent}%`}</div>
+            <div class="sinking-badge ${badgeClass}">${isFullyFunded ? `✓ ${t('savings.funded')}` : `${progressPercent}%`}</div>
           </div>
           <div class="progress-bar">
             <div class="progress-fill${isFullyFunded ? ' progress-fill--funded' : ''}" data-progress-width="${Math.min(100, progressPercent)}"></div>
           </div>
           <div class="sinking-card-details">
             <div class="detail-row">
-              <span>Progress:</span>
+              <span>${t('savings.progress')}</span>
               <span>${formatCurrency(fund.currentAmount)} / ${formatCurrency(fund.targetAmount)}</span>
             </div>
             ${!fund.archived ? `<div class="detail-row">
-              <span>Monthly Allocation:</span>
-              <span>${formatCurrency(fund.monthlyAllocation)} ${fund.autoContribute ? '(auto)' : ''}</span>
+              <span>${t('savings.monthlyAllocation')}</span>
+              <span>${formatCurrency(fund.monthlyAllocation)} ${fund.autoContribute ? t('savings.autoTag') : ''}</span>
             </div>` : ''}
             ${!isFullyFunded && !fund.archived ? `<div class="detail-row">
-              <span>Remaining:</span>
+              <span>${t('savings.remaining')}</span>
               <span>${formatCurrency(remaining)}</span>
             </div>` : ''}
             ${fund.completedDate ? `<div class="detail-row">
-              <span>Completed:</span>
+              <span>${t('savings.completed')}</span>
               <span>${escapeHtml(fund.completedDate)}</span>
             </div>` : ''}
-            ${fund.notes ? `<div class="detail-row"><span>Notes:</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
+            ${fund.notes ? `<div class="detail-row"><span>${t('savings.notes')}</span><span>${escapeHtml(fund.notes)}</span></div>` : ''}
           </div>
           <div class="sinking-card-actions">
             ${fund.archived
-              ? `<button class="btn btn-small btn-secondary" data-sinking-action="unarchive" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Unarchive ${escapeHtml(fund.name)}">Unarchive</button>
-                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Delete ${escapeHtml(fund.name)}">Delete</button>`
-              : `<button class="btn btn-small btn-secondary" data-sinking-action="edit" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Edit ${escapeHtml(fund.name)}">Edit</button>
-                 ${!isFullyFunded ? `<button class="btn btn-small btn-primary" data-sinking-action="contribute" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Contribute to ${escapeHtml(fund.name)}">+ Contribute</button>` : ''}
-                 ${isFullyFunded ? `<button class="btn btn-small btn-primary sinking-complete-btn" data-sinking-action="complete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Complete this goal: ${escapeHtml(fund.name)}">Complete this goal</button>` : ''}
-                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="Delete ${escapeHtml(fund.name)}">Delete</button>`
+              ? `<button class="btn btn-small btn-secondary" data-sinking-action="unarchive" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('savings.unarchiveAria', { name: fund.name }))}">${t('savings.unarchiveBtn')}</button>
+                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('entity.deleteAria', { name: fund.name }))}">${t('common.delete')}</button>`
+              : `<button class="btn btn-small btn-secondary" data-sinking-action="edit" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('entity.editAria', { name: fund.name }))}">${t('common.edit')}</button>
+                 ${!isFullyFunded ? `<button class="btn btn-small btn-primary" data-sinking-action="contribute" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('entity.contributeAria', { name: fund.name }))}">${t('entity.contributeBtn')}</button>` : ''}
+                 ${isFullyFunded ? `<button class="btn btn-small btn-primary sinking-complete-btn" data-sinking-action="complete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('savings.completeGoalAria', { name: fund.name }))}">${t('savings.completeGoalBtn')}</button>` : ''}
+                 <button class="btn btn-small btn-danger" data-sinking-action="delete" data-sinking-id="${escapeHtml(String(fund.id))}" aria-label="${escapeHtml(t('entity.deleteAria', { name: fund.name }))}">${t('common.delete')}</button>`
             }
           </div>
         </div>
@@ -529,7 +530,7 @@ async function addEmergencyFund(app) {
   const notes = normalizeText(document.getElementById('emergencyNotes').value);
 
   if (!accountId || targetAmount <= 0 || monthlyContribution < 0) {
-    await showAlertModal('Please fill all required fields with valid values.');
+    await showAlertModal(t('savings.errEmergency'));
     return;
   }
 
@@ -556,7 +557,7 @@ async function addEmergencyFund(app) {
  * Delete Emergency Fund
  */
 async function deleteEmergencyFund(app, fundId) {
-  if (!await showDeleteConfirmModal('Delete this emergency fund?')) return;
+  if (!await showDeleteConfirmModal(t('savings.confirmDeleteEmergency'))) return;
   const fund = app.emergencyFunds.find(f => String(f.id) === String(fundId));
   const numericId = fund?.id ?? fundId;
   app.emergencyFunds = app.emergencyFunds.filter(f => String(f.id) !== String(fundId));
@@ -570,11 +571,11 @@ async function deleteEmergencyFund(app, fundId) {
  * Open contribute dialog for Emergency Fund
  */
 async function openContributeEmergency(app, fundId) {
-  const amount = prompt('Enter contribution amount:');
+  const amount = prompt(t('savings.promptContribution'));
   if (!amount) return;
   const contrib = sanitizeFiniteNumber(amount);
   if (contrib <= 0) {
-    await showAlertModal('Please enter a valid amount.');
+    await showAlertModal(t('savings.errAmount'));
     return;
   }
 
@@ -620,7 +621,7 @@ async function addSinkingFund(app) {
   const notes = normalizeText(document.getElementById('sinkingNotes').value);
 
   if (!name || !accountId) {
-    await showAlertModal('Please fill all required fields.');
+    await showAlertModal(t('savings.errSinkingFields'));
     return;
   }
 
@@ -630,14 +631,14 @@ async function addSinkingFund(app) {
   if (allocationMethod === 'fixed') {
     monthlyAllocation = sanitizeFiniteNumber(document.getElementById('sinkingMonthlyAllocation').value);
     if (monthlyAllocation <= 0) {
-      await showAlertModal('Monthly allocation must be greater than 0.');
+      await showAlertModal(t('savings.errMonthlyAllocation'));
       return;
     }
     targetAmount = monthlyAllocation * 12;
   } else if (allocationMethod === 'annual') {
     const annualCost = sanitizeFiniteNumber(document.getElementById('sinkingAnnualCost').value);
     if (annualCost <= 0) {
-      await showAlertModal('Annual cost must be greater than 0.');
+      await showAlertModal(t('savings.errAnnualCost'));
       return;
     }
     monthlyAllocation = annualCost / 12;
@@ -646,7 +647,7 @@ async function addSinkingFund(app) {
     const targetAmount2 = sanitizeFiniteNumber(document.getElementById('sinkingTargetAmount').value);
     const targetDateStr = document.getElementById('sinkingTargetDate').value;
     if (targetAmount2 <= 0 || !targetDateStr) {
-      await showAlertModal('Please enter target amount and date.');
+      await showAlertModal(t('savings.errTargetAmountDate'));
       return;
     }
     targetAmount = targetAmount2;
@@ -696,13 +697,13 @@ async function openSinkingCompleteModal(app, fundId) {
   modal.setAttribute('aria-labelledby', 'sinkingCompleteTitle');
   modal.innerHTML = `
     <div class="modal-card">
-      <h3 class="modal-title" id="sinkingCompleteTitle">🎉 Goal Complete!</h3>
-      <p class="modal-message"><strong>${escapeHtml(fund.name)}</strong> is fully funded at ${escapeHtml(formatCurrency(fund.currentAmount))}.</p>
-      <p class="modal-message">What would you like to do with it?</p>
+      <h3 class="modal-title" id="sinkingCompleteTitle">🎉 ${t('savings.goalCompleteTitle')}</h3>
+      <p class="modal-message">${`<strong>${escapeHtml(fund.name)}</strong> ${t('savings.goalFunded', { amount: escapeHtml(formatCurrency(fund.currentAmount)) })}`}</p>
+      <p class="modal-message">${t('savings.goalWhatNext')}</p>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="scArchiveBtn">Archive Goal</button>
-        <button class="btn btn-danger" id="scDeleteBtn">Delete Goal</button>
-        <button class="btn btn-secondary" id="scKeepBtn">Keep Active</button>
+        <button class="btn btn-primary" id="scArchiveBtn">${t('savings.archiveGoal')}</button>
+        <button class="btn btn-danger" id="scDeleteBtn">${t('savings.deleteGoal')}</button>
+        <button class="btn btn-secondary" id="scKeepBtn">${t('savings.keepActive')}</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -764,7 +765,7 @@ function unarchiveSinkingFund(app, fundId) {
  * Delete Sinking Fund
  */
 async function deleteSinkingFund(app, fundId) {
-  if (!await showDeleteConfirmModal('Delete this sinking fund?')) return;
+  if (!await showDeleteConfirmModal(t('savings.confirmDeleteSinking'))) return;
   app.sinkingFunds = app.sinkingFunds.filter(f => f.id !== fundId);
   app.saveToStorage();
   if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/sinking-funds/${fundId}`);
@@ -776,11 +777,11 @@ async function deleteSinkingFund(app, fundId) {
  * Open contribute dialog for Sinking Fund
  */
 async function openContributeSinking(app, fundId) {
-  const amount = prompt('Enter contribution amount:');
+  const amount = prompt(t('savings.promptContribution'));
   if (!amount) return;
   const contrib = sanitizeFiniteNumber(amount);
   if (contrib <= 0) {
-    await showAlertModal('Please enter a valid amount.');
+    await showAlertModal(t('savings.errAmount'));
     return;
   }
 

@@ -10,6 +10,8 @@
 import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml, computeMonthlyIncomeForMonth } from './utils.js';
 import { mortgageFrontEndStatus, mortgageBackEndStatus } from './health.js';
 import { showAlertModal, showDeleteConfirmModal } from './ui.js';
+import { t } from './i18n.js';
+import { formatMonthYear } from './utils.js';
 
 // Midpoint of the 0.5%-1.5% typical annual PMI-rate range (see issue notes).
 const PMI_ANNUAL_RATE = 0.01;
@@ -64,7 +66,7 @@ export function computeDebtsToClearForQualifying(app, housingCost, monthlyIncome
     const activeDebts = (app.debts || [])
         .filter(d => !d.archived && (d.minimumPayment || 0) > 0)
         .map(d => ({
-            name: d.name || 'Debt',
+            name: d.name || t('homePurchase.debtFallback'),
             balance: d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0),
             minimumPayment: d.minimumPayment || 0
         }))
@@ -95,33 +97,33 @@ function planFormHtml(plan) {
             <form id="hpForm">
                 <div class="emergency-form-grid">
                     <div class="form-group">
-                        <label for="hpTargetPrice">Target Home Price</label>
+                        <label for="hpTargetPrice">${t('homePurchase.targetPriceLabel')}</label>
                         <input type="number" id="hpTargetPrice" min="0" step="1000" value="${v('targetHomePrice', '')}" required>
                     </div>
                     <div class="form-group">
-                        <label for="hpDownPaymentPct">Target Down Payment %</label>
+                        <label for="hpDownPaymentPct">${t('homePurchase.downPaymentPctLabel')}</label>
                         <input type="number" id="hpDownPaymentPct" min="0" max="100" step="0.5" value="${v('targetDownPaymentPct', 20)}">
                     </div>
                     <div class="form-group">
-                        <label for="hpCurrentSavings">Current Savings Toward Down Payment</label>
+                        <label for="hpCurrentSavings">${t('homePurchase.currentSavingsLabel')}</label>
                         <input type="number" id="hpCurrentSavings" min="0" step="100" value="${v('currentSavings', 0)}">
                     </div>
                     <div class="form-group">
-                        <label for="hpMonthlyContribution">Monthly Contribution</label>
+                        <label for="hpMonthlyContribution">${t('homePurchase.monthlyContributionLabel')}</label>
                         <input type="number" id="hpMonthlyContribution" min="0" step="10" value="${v('monthlyContribution', 0)}">
                     </div>
                     <div class="form-group">
-                        <label for="hpHousingCostEstimate">Est. Monthly Housing Cost (P&amp;I + tax + insurance)</label>
+                        <label for="hpHousingCostEstimate">${t('homePurchase.housingCostLabel')}</label>
                         <input type="number" id="hpHousingCostEstimate" min="0" step="10" value="${v('housingCostEstimate', 0)}">
                     </div>
                     <div class="form-group">
-                        <label for="hpNotes">Notes</label>
+                        <label for="hpNotes">${t('homePurchase.notesLabel')}</label>
                         <textarea id="hpNotes">${plan ? escapeHtml(plan.notes || '') : ''}</textarea>
                     </div>
                 </div>
                 <div class="emergency-form-actions">
-                    <button type="submit" class="btn btn-primary" id="hpSaveBtn">Save Plan</button>
-                    ${plan ? '<button type="button" class="btn btn-secondary" id="hpCancelBtn">Cancel</button>' : ''}
+                    <button type="submit" class="btn btn-primary" id="hpSaveBtn">${t('homePurchase.savePlan')}</button>
+                    ${plan ? `<button type="button" class="btn btn-secondary" id="hpCancelBtn">${t('common.cancel')}</button>` : ''}
                 </div>
             </form>
         </div>
@@ -133,16 +135,16 @@ export function renderHomePurchaseContent(app) {
 
     let html = `
     <div class="hp-header">
-        <h3>🏠 Home Purchase Planning</h3>
+        <h3>🏠 ${t('homePurchase.title')}</h3>
         <div class="hp-header-actions">
-            <button type="button" class="emergency-form-toggle" id="hpFormToggle">${plan ? '✏️ Edit Plan' : '➕ Set Up Plan'}</button>
-            ${plan ? '<button type="button" class="btn btn-secondary btn-small" id="hpClearBtn">Clear Plan</button>' : ''}
+            <button type="button" class="emergency-form-toggle" id="hpFormToggle">${plan ? `✏️ ${t('homePurchase.editPlan')}` : `➕ ${t('homePurchase.setUpPlan')}`}</button>
+            ${plan ? `<button type="button" class="btn btn-secondary btn-small" id="hpClearBtn">${t('homePurchase.clearPlan')}</button>` : ''}
         </div>
     </div>
     ${planFormHtml(plan)}`;
 
     if (!plan) {
-        html += '<p class="empty-message">No home purchase plan yet. Set one up to get started.</p>';
+        html += `<p class="empty-message">${t('homePurchase.empty')}</p>`;
         return html;
     }
 
@@ -157,45 +159,45 @@ export function renderHomePurchaseContent(app) {
 
     html += `
     <div class="hp-card">
-        <h4>Down Payment Goal</h4>
+        <h4>${t('homePurchase.downPaymentGoal')}</h4>
         <div class="detail-row">
             <span>${formatCurrency(plan.currentSavings)} / ${formatCurrency(progress.targetDownPayment)}</span>
             <span class="emergency-badge ${progressBadgeCls}">${progress.progressPercent}%</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" data-progress-width="${Math.min(100, progress.progressPercent)}"></div></div>
-        <div class="detail-row"><span>Remaining:</span><span>${formatCurrency(progress.remaining)}</span></div>
-        <div class="detail-row"><span>Monthly Contribution:</span><span>${formatCurrency(plan.monthlyContribution)}</span></div>
-        <div class="detail-row"><span>Projected Completion:</span><span>${progress.projectedDate ? progress.projectedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span></div>
+        <div class="detail-row"><span>${t('homePurchase.remaining')}</span><span>${formatCurrency(progress.remaining)}</span></div>
+        <div class="detail-row"><span>${t('homePurchase.monthlyContribution')}</span><span>${formatCurrency(plan.monthlyContribution)}</span></div>
+        <div class="detail-row"><span>${t('homePurchase.projectedCompletion')}</span><span>${progress.projectedDate ? formatMonthYear(progress.projectedDate) : t('homePurchase.notAvailable')}</span></div>
     </div>
 
     <div class="hp-card">
-        <h4>Mortgage Affordability</h4>
+        <h4>${t('homePurchase.affordability')}</h4>
         <div class="detail-row">
-            <span>Front-End (housing &divide; income)</span>
+            <span>${t('homePurchase.frontEnd')}</span>
             <span class="health-badge ${afford.frontEndStatus.cls}">${(afford.frontEndRatio * 100).toFixed(1)}%</span>
         </div>
         <div class="detail-row">
-            <span>Back-End (all debt + housing &divide; income)</span>
+            <span>${t('homePurchase.backEnd')}</span>
             <span class="health-badge ${afford.backEndStatus.cls}">${(afford.backEndRatio * 100).toFixed(1)}%</span>
         </div>
     </div>
 
     <div class="hp-card">
-        <h4>PMI Threshold</h4>
+        <h4>${t('homePurchase.pmiTitle')}</h4>
         ${pmi.needsPmi ? `
-            <div class="detail-row"><span>Below 20% down by:</span><span>${pmi.pctBelowTwenty.toFixed(1)} pts (${formatCurrency(pmi.dollarsToTwentyPct)})</span></div>
-            <div class="detail-row"><span>Est. Monthly PMI:</span><span>${formatCurrency(pmi.estimatedMonthlyPmi)}</span></div>
-        ` : `<p class="hp-pmi-clear">✅ No PMI required at ${plan.targetDownPaymentPct}% down.</p>`}
+            <div class="detail-row"><span>${t('homePurchase.pmiBelow')}</span><span>${t('homePurchase.pmiBelowValue', { pts: pmi.pctBelowTwenty.toFixed(1), amount: formatCurrency(pmi.dollarsToTwentyPct) })}</span></div>
+            <div class="detail-row"><span>${t('homePurchase.pmiMonthly')}</span><span>${formatCurrency(pmi.estimatedMonthlyPmi)}</span></div>
+        ` : `<p class="hp-pmi-clear">✅ ${t('homePurchase.pmiNone', { pct: plan.targetDownPaymentPct })}</p>`}
     </div>
 
     <div class="hp-card" id="hpQualifyingCard">
-        <h4>Debts to Clear Before Qualifying</h4>
+        <h4>${t('homePurchase.qualifyingTitle')}</h4>
         ${qualifying.alreadyQualifies
-            ? '<p class="hp-pmi-clear">✅ You already qualify under the 43% conventional back-end threshold.</p>'
+            ? `<p class="hp-pmi-clear">✅ ${t('homePurchase.alreadyQualify')}</p>`
             : qualifying.steps.map(s => `
                 <div class="detail-row">
                     <span>${escapeHtml(s.debtName)} (${formatCurrency(s.balance)})</span>
-                    <span class="${s.qualifies ? 'hp-qualifies' : ''}">New back-end: ${(s.newRatio * 100).toFixed(1)}%${s.qualifies ? ' ✅' : ''}</span>
+                    <span class="${s.qualifies ? 'hp-qualifies' : ''}">${t('homePurchase.newBackEnd', { pct: (s.newRatio * 100).toFixed(1) })}${s.qualifies ? ' ✅' : ''}</span>
                 </div>`).join('')}
     </div>`;
 
@@ -205,7 +207,7 @@ export function renderHomePurchaseContent(app) {
 async function saveHomePurchasePlan(app) {
     const targetHomePrice = sanitizeFiniteNumber(document.getElementById('hpTargetPrice').value, NaN, { min: 0 });
     if (!Number.isFinite(targetHomePrice) || targetHomePrice <= 0) {
-        await showAlertModal('Please enter a target home price.');
+        await showAlertModal(t('homePurchase.errTargetPrice'));
         return;
     }
     app.homePurchasePlan = {
@@ -222,7 +224,7 @@ async function saveHomePurchasePlan(app) {
 }
 
 async function clearHomePurchasePlan(app) {
-    if (!await showDeleteConfirmModal('Clear your home purchase plan? This cannot be undone.')) return;
+    if (!await showDeleteConfirmModal(t('homePurchase.confirmClear'))) return;
     app.homePurchasePlan = null;
     app.saveToStorage();
     app.renderSavingsPage();

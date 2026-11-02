@@ -3,6 +3,7 @@ import { normalizeText, escapeHtml, formatCurrency } from './utils.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
 import { renderOwnershipControl, getDebtShare, removePersonFromDebt } from './debtOwnership.js';
+import { t } from './i18n.js';
 
 // Cycle member: ui.js → people.js → postgresSync.js → ui.js (safe: all exports are hoisted function declarations)
 
@@ -31,7 +32,7 @@ export function refreshPersonSelectors(app) {
     // Single-person selects (income form)
     for (const el of document.querySelectorAll('.person-selector')) {
         const val = el.value;
-        el.innerHTML = buildPersonOptionsHtml(app.persons, null, { emptyLabel: '— No person —' });
+        el.innerHTML = buildPersonOptionsHtml(app.persons, null, { emptyLabel: escapeHtml(t('income.noPerson')) });
         el.value = val;
     }
     // Debt multi-select

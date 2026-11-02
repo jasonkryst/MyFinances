@@ -11,6 +11,7 @@ i18n coverage guards (issue #317).
    went through t() or data-i18n. Grow TRANSLATED_PAGES as pages convert.
 """
 
+import datetime
 import json
 
 import pytest
@@ -41,14 +42,57 @@ _SEED_ACCOUNTS = [
      'pensionEstimatedMonthlyBenefit': 1800, 'pensionYearsOfService': 3},
     {'id': 5, 'name': '⟦Health⟧', 'type': 'Retirement', 'retirementSubtype': 'HSA',
      'startingBalance': 3000, 'rateOfReturn': 5},
+    {'id': 6, 'name': '⟦Visa⟧', 'type': 'Credit Card', 'startingBalance': -800, 'minimumPayment': 35},
+    {'id': 7, 'name': '⟦Rainy Day⟧', 'type': 'Savings', 'startingBalance': 5000, 'interestRate': 2.5},
+    {'id': 8, 'name': '⟦Old Account⟧', 'type': 'Other', 'startingBalance': 10, 'archived': True},
 ]
+
+_TODAY = datetime.date.today().isoformat()
 
 SEEDED_STATE = {
     'accounts': _SEED_ACCOUNTS,
-    'debts': [],
     'settings': [],
-    'incomes': [{'id': 1, 'name': '⟦Salary⟧', 'amount': 3000, 'frequency': 'biweekly',
-                 'startDate': '2026-01-02', 'accountId': 1}],
+    'incomes': [
+        {'id': 1, 'name': '⟦Salary⟧', 'amount': 3000, 'frequency': 'biweekly',
+         'firstPayDate': '2026-01-02', 'accountId': 7},
+        {'id': 2, 'name': '⟦Side Gig⟧', 'amount': 5000, 'frequency': 'monthly', 'firstPayDate': '2026-01-15',
+         'accountId': 7, 'category': 'Freelance', 'isVariable': True, 'withholdingPercent': 20},
+    ],
+    'debts': [{'id': 1, 'name': '⟦Car Loan⟧', 'debtType': 'creditCard', 'accountBalance': 9000,
+               'minimumPayment': 3000, 'interestRate': 6}],
+    'bonuses': [
+        {'id': 1, 'name': '⟦Refund⟧', 'amount': 2000, 'date': _TODAY, 'category': 'Tax Refund',
+         'accountId': 1, 'purpose': 'cashFlow'},
+        {'id': 2, 'name': '⟦Gift⟧', 'amount': 100, 'date': '2025-06-01', 'category': '⟦Gift⟧', 'purpose': 'savings'},
+    ],
+    'emergencyFunds': [
+        {'id': 1, 'accountId': 7, 'targetAmount': 15000, 'currentAmount': 5000, 'monthlyContribution': 250,
+         'autoContribute': True, 'notes': '⟦Three months⟧'},
+        {'id': 2, 'accountId': 1, 'targetAmount': 3000, 'currentAmount': 0, 'monthlyContribution': 50,
+         'autoSyncBalance': True},
+    ],
+    'sinkingFunds': [
+        {'id': 1, 'name': '⟦Vacation⟧', 'allocationMethod': 'fixed', 'monthlyAllocation': 100,
+         'targetAmount': 1200, 'currentAmount': 300, 'autoContribute': True, 'accountId': 7,
+         'notes': '⟦Beach⟧', 'order': 1},
+        {'id': 2, 'name': '⟦Car Repairs⟧', 'allocationMethod': 'annual', 'monthlyAllocation': 50,
+         'targetAmount': 600, 'currentAmount': 600, 'accountId': 7},
+        {'id': 3, 'name': '⟦Old Goal⟧', 'allocationMethod': 'fixed', 'monthlyAllocation': 10,
+         'targetAmount': 100, 'currentAmount': 100, 'accountId': 7, 'archived': True,
+         'completedDate': '2026-01-15'},
+    ],
+    'homePurchasePlan': {'targetHomePrice': 400000, 'targetDownPaymentPct': 10, 'currentSavings': 15000,
+                         'monthlyContribution': 500, 'housingCostEstimate': 2500, 'notes': '⟦Dream house⟧'},
+    'transfers': [{'id': 1, 'fromAccountId': 7, 'toAccountId': 6, 'amount': 200, 'date': _TODAY,
+                   'memo': '⟦Savings top-up⟧'}],
+    'balanceHistory': [
+        {'id': 1, 'accountId': 6, 'date': '2026-01-31', 'balance': -900, 'minimumPayment': 30},
+        {'id': 2, 'accountId': 6, 'date': '2026-02-28', 'balance': -800, 'minimumPayment': 35},
+    ],
+    'monthlySnapshots': [
+        {'date': '2026-01-31', 'totalAssets': 50000, 'totalLiabilities': 10000, 'netWorth': 40000},
+        {'date': '2026-02-28', 'totalAssets': 52000, 'totalLiabilities': 9000, 'netWorth': 43000},
+    ],
     'retirementSnapshots': [
         {'id': 1, 'accountId': 2, 'date': '2026-01-31', 'balance': 41000, 'contribution': 500},
         {'id': 2, 'accountId': 2, 'date': '2026-02-28', 'balance': 42100, 'contribution': 500},
@@ -64,10 +108,130 @@ SEEDED_STATE = {
     ],
 }
 
+# Retirement/Reconcile were converted against the smaller original seed. The extended seed above feeds
+# the Accounts/Income/Savings entries; its transfers, auto-contributions and categorised bonuses would
+# surface Ledger-generated English names ("Transfer to ...", "Emergency Fund Contribution", ...) in the
+# Reconcile expected-transactions table, which belongs to the Ledger conversion.
+BASE_SEEDED_STATE = {
+    'accounts': _SEED_ACCOUNTS[:5],
+    'debts': [],
+    'settings': [],
+    'incomes': [{'id': 1, 'name': '⟦Salary⟧', 'amount': 3000, 'frequency': 'biweekly',
+                 'startDate': '2026-01-02', 'accountId': 1}],
+    'retirementSnapshots': SEEDED_STATE['retirementSnapshots'],
+    'retirementTargetDate': SEEDED_STATE['retirementTargetDate'],
+    'reconciliations': SEEDED_STATE['reconciliations'],
+}
+_BASE_STATE_PAGES = {'retirement', 'reconcile'}
+
 EMPTY_STATE = {'accounts': [], 'debts': [], 'settings': []}
 
 # page name -> (DOM roots to scan, async JS run after load to render/open everything)
+_ACCOUNT_OVERLAYS = """
+            window.app.showAccountBalanceBreakdown(1, null);
+            window.app.showBalanceHistoryModal({ kind: 'account', id: 6 });
+            await window.app.openTransferModal({ fromAccountId: 1 });
+"""
+
+_ADVICE = """
+            document.getElementById('bonusFormToggle').click();
+            document.getElementById('bonusAmount').value = '500';
+            document.getElementById('bonusAccount').value = '7';
+            document.getElementById('bonusAdviceBtn').click();
+            await new Promise(r => setTimeout(r, 200));
+"""
+
+_SAVINGS_ROOTS = ['#savingsSection']
+
+
+def _savings_setup(sub_tab, extra=''):
+    return """async () => {
+            window.app.savingsSubTab = '%s';
+            %s
+            window.app.switchPage('savings');
+            window.app.renderSavingsPage();
+            window.app.attachSavingsEventListeners();
+            %s
+        }""" % (sub_tab, '', extra)
+
+
 TRANSLATED_PAGES = {
+    'accounts': (
+        ['#accountsSection', '#acctBreakdownModal', '#balanceHistoryModal', '#transferModal'],
+        """async () => {
+            window.app.switchPage('accounts');
+            window.app.renderAccountsList();
+            window.app.renderNetWorthWidget();
+            document.getElementById('acctToggleArchived')?.click();
+""" + _ACCOUNT_OVERLAYS + """
+        }""",
+    ),
+    'accounts-edit': (
+        ['#accountsSection'],
+        """async () => {
+            window.app.switchPage('accounts');
+            window.app.editingAccountId = 3;
+            window.app.renderAccountsList();
+        }""",
+    ),
+    'accounts-filter': (
+        ['#accountsSection'],
+        """async () => {
+            window.app.switchPage('accounts');
+            document.getElementById('accountTypeFilter').value = 'Cash';
+            window.app.renderAccountsList();
+        }""",
+    ),
+    'income': (
+        ['#incomeSection'],
+        """async () => {
+            window.app.switchPage('income');
+            window.app.renderIncomeList();
+            window.app.renderBonusList();
+            const yoy = document.getElementById('incomeTrendYoYToggle');
+            if (yoy) { yoy.checked = true; if (yoy.onchange) yoy.onchange(); }
+""" + _ADVICE + """
+        }""",
+    ),
+    'income-edit': (
+        ['#incomeSection'],
+        """async () => {
+            window.app.switchPage('income');
+            window.app.editingIncomeId = 1;
+            window.app.editingBonusId = 1;
+            window.app.renderIncomeList();
+            window.app.renderBonusList();
+        }""",
+    ),
+    'savings-emergency': (_SAVINGS_ROOTS, _savings_setup('emergency')),
+    'savings-sinking': (
+        _SAVINGS_ROOTS + ['div[aria-labelledby="sinkingCompleteTitle"]'],
+        _savings_setup('sinking', """if (!document.querySelector('[data-sinking-action="complete"]')) {
+                window.app.sinkingFunds.push({ id: 99, name: '⟦Funded Goal⟧', allocationMethod: 'fixed',
+                    monthlyAllocation: 10, targetAmount: 100, currentAmount: 100, accountId: 1 });
+                window.app.renderSavingsPage();
+                window.app.attachSavingsEventListeners();
+            }
+            document.querySelector('[data-sinking-action="complete"]')?.click();
+            await new Promise(r => setTimeout(r, 100));"""),
+    ),
+    'savings-sinking-archived': (
+        _SAVINGS_ROOTS,
+        _savings_setup('sinking', "document.getElementById('toggleArchivedSinkingFunds')?.click();"),
+    ),
+    'savings-home': (_SAVINGS_ROOTS, _savings_setup('home')),
+    'savings-home-ok': (
+        _SAVINGS_ROOTS,
+        """async () => {
+            window.app.savingsSubTab = 'home';
+            window.app.homePurchasePlan = { targetHomePrice: 400000, targetDownPaymentPct: 25,
+                currentSavings: 100000, monthlyContribution: 0, housingCostEstimate: 0, notes: '' };
+            window.app.debts = [];
+            window.app.switchPage('savings');
+            window.app.renderSavingsPage();
+            window.app.attachSavingsEventListeners();
+        }""",
+    ),
     'retirement': (
         ['#retirementSection', '#retirementSnapshotModal'],
         """async () => {
@@ -208,8 +372,10 @@ def test_locale_values_are_nonempty_strings(app_page, locale):
 # proper nouns, words spelled the same). Anything else identical to en.js is
 # an untranslated stub — #317 found 54 Retirement "stubs" hiding behind parity.
 SAME_AS_ENGLISH = {
-    'es': {'nav.strategy', 'health.personDti', 'retirement.coastTitle'},
-    'pl': {'nav.strategy', 'health.personDti', 'retirement.coastTitle'},
+    'es': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.sortApyAsc',
+           'accounts.sortApyDesc', 'homePurchase.pmiBelowValue', 'income.estBadge', 'savings.autoTag'},
+    'pl': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.apyBadge',
+           'accounts.sortApyAsc', 'accounts.sortApyDesc', 'savings.autoTag'},
 }
 
 
@@ -238,7 +404,8 @@ def test_same_as_english_allowlist_has_no_stale_entries(app_page, locale):
 @pytest.mark.parametrize('page_name', sorted(TRANSLATED_PAGES))
 def test_translated_page_has_no_untranslated_text(pseudo_page, page_name, state_name):
     roots, setup = TRANSLATED_PAGES[page_name]
-    _load_pseudo(pseudo_page, SEEDED_STATE if state_name == 'seeded' else EMPTY_STATE)
+    seeded = BASE_SEEDED_STATE if page_name in _BASE_STATE_PAGES else SEEDED_STATE
+    _load_pseudo(pseudo_page, seeded if state_name == 'seeded' else EMPTY_STATE)
     pseudo_page.evaluate(setup)
     pseudo_page.wait_for_timeout(300)
     bad = pseudo_page.evaluate(SCAN_JS, {'roots': roots, 'allow': sorted(NON_TRANSLATABLE)})
