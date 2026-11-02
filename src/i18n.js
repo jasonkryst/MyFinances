@@ -128,16 +128,33 @@ export function applyStaticTranslations(root = document) {
 }
 
 // Persists the new locale, re-applies static translations, and re-renders
-// the Health page (the only dynamic pilot content) if it's currently the
-// active section.
+// the currently visible page in place (its JS-rendered strings were built
+// with t() at render time) when the locale actually changed.
 export function setLocale(app, code) {
+    const previous = currentLocale;
     currentLocale = LOCALE_CODES.includes(code) ? code : DEFAULT_LOCALE;
     setLocalePreference(currentLocale);
     applyStaticTranslations();
-    const healthSection = document.getElementById('healthSection');
-    if (app && healthSection && healthSection.classList.contains('active')
-        && typeof app.renderHealthDashboard === 'function') {
-        app.renderHealthDashboard();
+    if (previous !== currentLocale && app && typeof app.refreshCurrentPageData === 'function') {
+        app.refreshCurrentPageData();
     }
     return currentLocale;
+}
+
+// Display label for a stored account `type` (stored values stay English —
+// 'Checking', 'Credit Card', … — so only the rendering is localized). An
+// unknown/custom type is shown as-is.
+const ACCOUNT_TYPE_KEYS = {
+    'Checking': 'accountType.checking',
+    'Savings': 'accountType.savings',
+    'Cash': 'accountType.cash',
+    'Investment': 'accountType.investment',
+    'Retirement': 'accountType.retirement',
+    'Credit Card': 'accountType.creditCard',
+    'Loan': 'accountType.loan',
+    'Other': 'accountType.other',
+};
+export function accountTypeLabel(type) {
+    const key = ACCOUNT_TYPE_KEYS[type];
+    return key ? t(key) : String(type ?? '');
 }

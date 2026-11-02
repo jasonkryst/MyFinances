@@ -321,6 +321,33 @@ def test_new_occurrence_in_paid_month_is_not_auto_paid(app_page):
 
 
 @pytest.mark.feature
+def test_moved_occurrences_in_paid_month_are_not_auto_paid(app_page):
+    """Date-independent variant of the test above: weekly from the 2nd, then
+    moved to the 1st, so no new occurrence shares a date with a cleared leg.
+    The month is still Ledger-owned (a leg for this template/month is
+    cleared), so reconcile must not clear the moved occurrences. Before the
+    fix this failed whenever the dates didn't overlap."""
+    page = app_page
+    t = date.today()
+    tmpl = _tmpl(frequency="weekly", startDate=f"{t.year}-{t.month:02d}-02")
+    _seed(page, [tmpl])
+    _open_modal(page)
+    page.click('#recurringMarkPaidConfirmBtn')
+    assert _mk() in _state(page)['paidMonths']
+    before = set(_state(page)['cleared'])
+    assert before, "marking paid should clear at least one leg"
+
+    page.evaluate(f"""() => {{
+        const t = window.app.recurringTemplates.find(x => x.id === {TID});
+        t.startDate = '{t.year}-{t.month:02d}-01';
+        window.app.renderRecurringPage();
+    }}""")
+    s = _state(page)
+    assert set(s['cleared']) == before, "moved occurrences must stay unpaid"
+    assert _mk() not in s['paidMonths']
+
+
+@pytest.mark.feature
 def test_paused_template_keeps_paid_history(app_page):
     """A paused template has no occurrences right now; its paid months must not be dropped."""
     page = app_page

@@ -254,6 +254,7 @@ jobs:
           pytest \
             tests/features/test_storage_import.py \
             tests/features/test_i18n.py \
+            tests/features/test_i18n_coverage.py \
             tests/features/test_pwa.py \
             tests/features/test_issue_93_expense_save.py \
             tests/features/test_storage_backend.py \
