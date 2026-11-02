@@ -726,3 +726,37 @@ def test_xss_in_balance_history_modal_names(app_page):
     page.evaluate("() => window.app.showBalanceHistoryModal({ kind: 'account', id: 9602 })")
     assert not page.evaluate('() => !!window.__xss_bh'), "XSS payload executed via balance history modal"
     assert page.evaluate('() => document.querySelectorAll("#balanceHistoryModal img").length') == 0
+
+
+@pytest.mark.security
+def test_xss_in_account_notes_is_inert(app_page):
+    """Account notes render as text on the card (preview + details body) and in
+    the inline edit textarea; a payload never becomes live markup (#286)."""
+    page = app_page
+    payload = '</textarea><img src=x onerror="window.__xss_acct_note=1"><script>window.__xss_acct_note=2</script>' + ('A' * 90)
+    page.evaluate("""(payload) => {
+        const app = window.app;
+        app.accounts = [{ id: 9601, name: 'Note XSS', type: 'Checking', startingBalance: 1, notes: payload }];
+        app.switchPage('accounts');
+        app.renderAccountsList();
+    }""", payload)
+    page.wait_for_selector('.acct-card:has-text("Note XSS")', timeout=5000)
+    page.click('.acct-card:has-text("Note XSS") details.acct-note summary')
+    assert not page.evaluate('() => !!window.__xss_acct_note')
+    assert page.evaluate('() => document.querySelectorAll("#accountsSection .acct-note img, #accountsSection .acct-note script").length') == 0
+
+    # Edit mode puts the (escaped) note into a textarea without breaking out.
+    page.evaluate("() => { window.app.editingAccountId = 9601; window.app.renderAccountsList(); }")
+    assert page.evaluate('() => document.querySelectorAll("#accountsSection .acct-card--editing img").length') == 0
+    assert not page.evaluate('() => !!window.__xss_acct_note')
+
+    # Typed through the add form: tag characters are stripped before storage.
+    page.evaluate("() => { window.app.editingAccountId = null; window.app.renderAccountsList(); document.getElementById('accountFormBody')?.classList.add('is-open'); }")
+    page.fill('#accountName', 'Form XSS')
+    page.fill('#accountStartingBalance', '5')
+    page.fill('#accountNotes', payload)
+    page.click('#accountFormSubmit')
+    page.wait_for_selector('.acct-card:has-text("Form XSS")', timeout=5000)
+    stored = page.evaluate("() => window.app.accounts.find(a => a.name === 'Form XSS').notes")
+    assert '<' not in stored and '>' not in stored and '"' not in stored
+    assert not page.evaluate('() => !!window.__xss_acct_note')

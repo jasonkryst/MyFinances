@@ -1,6 +1,6 @@
 // Account management
 
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, escapeHtml, setCollapsibleOpen } from './utils.js';
+import { formatCurrency, normalizeText, normalizeMultilineText, sanitizeFiniteNumber, escapeHtml, setCollapsibleOpen } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
@@ -298,6 +298,10 @@ export function renderAccountsList(app) {
                         <input type="number" id="ac-pension-service-${a.id}" value="${Number(a.pensionYearsOfService) || 0}" step="1" min="0" class="form-full-width">
                     </div>
                 </div>
+                <div class="form-group form-no-margin acct-edit-notes">
+                    <label class="label-compact" for="ac-notes-${a.id}">${t('accounts.notesLabel')}</label>
+                    <textarea id="ac-notes-${a.id}" rows="3" maxlength="500" class="form-full-width" placeholder="${escapeHtml(t('accounts.notesPlaceholder'))}">${escapeHtml(a.notes || '')}</textarea>
+                </div>
                 <div class="acct-edit-actions">
                     <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}" aria-label="${escapeHtml(t('entity.saveChangesAria', { name: a.name }))}">${t('common.save')}</button>
                     <button class="btn btn-secondary btn-small" data-account-action="cancel" aria-label="${escapeHtml(t('entity.cancelEditAria', { name: a.name }))}">${t('common.cancel')}</button>
@@ -327,6 +331,15 @@ export function renderAccountsList(app) {
                 ${typeGroups.map(g => `<button class="acct-link ${escapeHtml(g.cls)} acct-link--nav" data-account-nav-page="${escapeHtml(g.page)}" title="${escapeHtml(t('accounts.goTo', { label: g.label }))}" aria-label="${escapeHtml(t('accounts.goToLinkedAria', { label: g.label, name: a.name }))}">${escapeHtml(g.label)} (${g.count})</button>`).join('')}
             </div>`;
 
+        const noteText = typeof a.notes === 'string' ? a.notes : '';
+        const noteFirstLine = noteText.split('\n')[0];
+        const noteIsMultiline = noteText.includes('\n');
+        const noteIsTruncated = noteFirstLine.length > 80 || noteIsMultiline;
+        const notePreview = noteFirstLine.length > 80 ? `${noteFirstLine.slice(0, 80).trimEnd()}…` : (noteIsMultiline ? `${noteFirstLine}…` : noteFirstLine);
+        const noteHtml = !noteText ? '' : (noteIsTruncated
+            ? `<details class="acct-note"><summary class="acct-note-summary" aria-label="${escapeHtml(t('accounts.noteShowAria', { name: a.name }))}"><span class="acct-note-preview">${escapeHtml(notePreview)}</span></summary><div class="acct-note-full">${escapeHtml(noteText)}</div></details>`
+            : `<div class="acct-note"><span class="acct-note-preview">${escapeHtml(noteText)}</span></div>`);
+
         return `<div class="acct-card${a.archived ? ' acct-card--archived' : ''}">
             <div class="acct-card-header">
                 <span class="acct-type-icon">${typeIcon[a.type] || '🗂️'}</span>
@@ -348,6 +361,7 @@ export function renderAccountsList(app) {
                         <button type="button" class="acct-balance-breakdown-btn" data-account-action="breakdown" data-account-id="${a.id}" aria-label="${escapeHtml(t('accounts.seeBreakdownAria', { name: a.name }))}">${t('accounts.seeBreakdown')}</button>
                     </div>
                 </div>
+                ${noteHtml}
                 <div class="debt-actions acct-card-actions">
                     ${isHistoryTrackedAccount(a) ? `<button class="btn btn-secondary btn-small" data-account-action="history" data-account-id="${a.id}" aria-label="${escapeHtml(t('accounts.historyAria', { name: a.name }))}">${t('accounts.historyBtn')}</button>` : ''}
                     ${a.type === 'Retirement' ? '' : `<button class="btn btn-secondary btn-small" data-account-action="transfer" data-account-id="${a.id}" aria-label="${escapeHtml(t('accounts.transferAria', { name: a.name }))}">⇄ ${t('accounts.transferBtn')}</button>`}
@@ -437,11 +451,12 @@ export async function addAccount(app) {
     const pensionEstimatedMonthlyBenefit = sanitizeFiniteNumber(document.getElementById('accountPensionMonthlyBenefit')?.value, 0, { min: 0 });
     const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById('accountPensionYearsOfService')?.value, 0, { min: 0 });
     const minimumPayment = sanitizeFiniteNumber(document.getElementById('accountMinimumPayment')?.value, 0, { min: 0 });
+    const notes = normalizeMultilineText(document.getElementById('accountNotes')?.value, 500);
 
     if (!name) { await showAlertModal(t('accounts.errName')); return; }
     if (isNaN(startingBalance)) { await showAlertModal(t('accounts.errStartingBalance')); return; }
 
-    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment };
+    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes };
     app.accounts.push(account);
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') {
@@ -556,9 +571,10 @@ export async function saveEditAccount(app, id) {
     const pensionEstimatedMonthlyBenefit = sanitizeFiniteNumber(document.getElementById(`ac-pension-benefit-${id}`)?.value, 0, { min: 0 });
     const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById(`ac-pension-service-${id}`)?.value, 0, { min: 0 });
     const minimumPayment = sanitizeFiniteNumber(document.getElementById(`ac-minpay-${id}`)?.value, 0, { min: 0 });
+    const notes = normalizeMultilineText(document.getElementById(`ac-notes-${id}`)?.value, 500);
     if (!name) { await showAlertModal(t('accounts.errName')); return; }
     if (isNaN(startingBalance)) { await showAlertModal(t('accounts.errValidStartingBalance')); return; }
-    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment };
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes };
     app.editingAccountId = null;
     app.saveToStorage();
     if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);

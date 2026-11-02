@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '6.64.1';
+export const APP_VERSION = '6.65.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -31,6 +31,22 @@ export function normalizeText(value, maxLen = 120) {
     return raw
         .replace(/[<>"`]/g, '')
         .replace(/[\u0000-\u001F\u007F]/g, '')
+        .trim()
+        .slice(0, maxLen);
+}
+
+// Multi-line free text (account notes). Same character stripping as
+// normalizeText, but newlines survive: CRLF/CR become LF, each line is trimmed,
+// and the whole value is trimmed and capped.
+export function normalizeMultilineText(value, maxLen = 500) {
+    const raw = typeof value === 'string' ? value : '';
+    return raw
+        .replace(/\r\n?/g, '\n')
+        .replace(/[<>"`]/g, '')
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '')
+        .split('\n')
+        .map(line => line.trim())
+        .join('\n')
         .trim()
         .slice(0, maxLen);
 }

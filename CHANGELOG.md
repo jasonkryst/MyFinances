@@ -4,6 +4,32 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.65.0] — 2026-11-02
+
+### Added
+- **Account notes** (issue #286). Each account can hold an optional free-text note: up to 500 characters, multi-line.
+  - **Where to edit:** a Notes box on the Add Account form and on the inline edit form.
+  - **On the card:** the card shows the first line, cut at about 80 characters. A longer or multi-line note opens with a native expandable section.
+  - **Sanitizing:** notes use the new `normalizeMultilineText()` in `utils.js`, which strips the same characters as `normalizeText` but keeps line breaks.
+  - **Storage:** notes survive JSON export/import (replace and merge) and are stored on the Postgres backend.
+  - **Languages:** translated in English, Spanish and Polish.
+
+### Fixed
+- **Postgres dropped two Retirement settings** (issue #451). A retirement account's "catch-up eligible" flag and HSA coverage type had no database columns, so on the self-hosted backend they reset to their defaults on every reload. Migration `1755600000030` adds them, along with `notes`.
+
+### Tests
+- **Notes (`test_accounts.py`):**
+  - preview vs. expandable note
+  - edit and clear
+  - export/import in replace and merge modes
+  - the 500-character cap, in both the form and the sanitizer
+  - non-string notes from an import
+  - legacy accounts without notes
+- **XSS (`test_xss.py`):** note text stays inert on the card, in the expanded note and in the edit form.
+- **Server (`crudResources.test.js`):** an `/api/accounts` test covers the notes, catch-up and HSA round-trip, truncation, and the invalid-HSA fallback.
+- **Unit (Jest):** tests for `normalizeMultilineText`.
+- **i18n:** the i18n render guard seeds account notes and opens them.
+
 ## [6.64.1] — 2026-11-02
 
 ### Fixed

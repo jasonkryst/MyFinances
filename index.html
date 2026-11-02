@@ -282,6 +282,12 @@
                                 </label>
                                 <input type="number" id="accountPensionYearsOfService" placeholder="0" step="1" min="0">
                             </div>
+                            <div class="form-group account-notes-group">
+                                <label for="accountNotes"><span data-i18n="accounts.notesLabel">Notes</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional. Context for this account, such as an institution phone number or why the starting balance is unusual. Up to 500 characters." data-i18n-attr="aria-label:accounts.notesHelp">?</span>
+                                </label>
+                                <textarea id="accountNotes" rows="2" maxlength="500" placeholder="e.g. Branch phone number, reminder about an automatic transfer" data-i18n-attr="placeholder:accounts.notesPlaceholder"></textarea>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="accountFormSubmit" data-i18n="accounts.addTitle">Add Account</button>
                     </form>

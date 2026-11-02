@@ -9052,3 +9052,24 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
     .nw-report-stat { min-width: 0; }
     .nw-report-stat strong { overflow-wrap: anywhere; }
 }
+
+/* ── Account notes (#286) ──────────────────────────────────────────────── */
+.account-notes-group { grid-column: 1 / -1; }
+.account-notes-group textarea,
+.acct-edit-notes textarea { width: 100%; resize: vertical; box-sizing: border-box; }
+.acct-edit-notes { margin-bottom: 12px; }
+.acct-note {
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+.acct-note-summary { cursor: pointer; }
+.acct-note-preview { overflow-wrap: anywhere; }
+.acct-note-full {
+    margin-top: 6px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--text-color);
+}

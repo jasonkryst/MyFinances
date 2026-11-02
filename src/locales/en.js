@@ -484,6 +484,10 @@ export default {
     'accounts.viewInLedger': 'View in Ledger →',
     'accounts.viewInLedgerAria': 'View {name} transactions in Ledger',
     'accounts.closeBreakdownAria': 'Close balance breakdown',
+    'accounts.notesLabel': 'Notes',
+    'accounts.notesHelp': 'Optional. Context for this account, such as an institution phone number or why the starting balance is unusual. Up to 500 characters.',
+    'accounts.notesPlaceholder': 'e.g. Branch phone number, reminder about an automatic transfer',
+    'accounts.noteShowAria': 'Show full note for {name}',
 
     'netWorth.widgetEmpty': 'No snapshots yet. Capture your first net worth snapshot from Reports.',
     'netWorth.widgetTitle': 'Net Worth',
