@@ -27,6 +27,8 @@ export default createCrudResource({
         personIds: 'person_ids',
         ownershipSplit: 'ownership_split',
         updatedAt: 'updated_at',
-        archived: 'archived'
+        archived: 'archived',
+        notes: 'notes',
+        nextPaymentDue: 'next_payment_due'
     }
 });

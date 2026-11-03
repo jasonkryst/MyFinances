@@ -15,6 +15,9 @@ export default createCrudResource({
         currentAmount: 'current_amount',
         autoContribute: 'auto_contribute',
         accountId: 'account_id',
-        notes: 'notes'
+        notes: 'notes',
+        order: 'sort_order',
+        archived: 'archived',
+        completedDate: 'completed_date'
     }
 });
