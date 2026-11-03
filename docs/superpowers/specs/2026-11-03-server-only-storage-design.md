@@ -53,15 +53,20 @@ Anything else is a violation caught by the static scan (§7).
 
 ## 5. Boot flow (`app.js` `init()`)
 
-1. **Probe.** `probeServer()` (new, `storage.js`) → `GET /auth/setup-status`. Returns `{ reachable: true, needsSetup }` on a 2xx JSON body with a boolean `needsSetup`; `{ reachable: false }` on network error, timeout, non-JSON, or any non-2xx (incl. nginx 502). Unreachable → `showServerUnreachable(app)` (new `src/serverUnreachableGate.js`): full-page `#serverUnreachableGate` overlay (same pattern as `#loginGate`), translated text, a Retry button that re-runs the probe and resumes `init()` on success. `init()` renders no data while the gate is up.
-2. **Auth.** `needsSetup` → login gate in setup mode (exists). Else `checkPostgresSession()`; no session → login gate (exists).
+1. **Probe.** `probeServer()` (new, `storage.js`). `/auth/setup-status` is rate-limited to 20 requests / 15 min (`server/src/routes/auth.js` `setupStatusLimiter`), so it must **not** be hit on every page load. Instead:
+   - `GET /api/plan-settings` → 200: `{ reachable: true, hasSession: true }`; 401: reachable, no session.
+   - Only when there is no session: `GET /auth/setup-status` → 2xx JSON with boolean `needsSetup` gives `{ reachable: true, hasSession: false, needsSetup }`; a **429** is treated as reachable with `needsSetup: false` (show sign-in, never the unreachable gate).
+   - Network error, timeout, non-JSON body, or any other non-2xx (incl. nginx 502) on either request: `{ reachable: false }`.
+   
+   Unreachable → `showServerUnreachable(app)` (new `src/serverUnreachableGate.js`): full-page `#serverUnreachableGate` overlay (same pattern as `#loginGate`), translated text, a Retry button that re-runs the probe and resumes `init()` on success. `init()` renders no data while the gate is up.
+2. **Auth.** `hasSession` → continue. Else `needsSetup` → login gate in setup mode (exists); otherwise login gate in sign-in mode (exists). `checkPostgresSession()` is folded into `probeServer()`.
 3. **Load.** `loadFromPostgres(app)`. A throw → unreachable gate.
 4. **Legacy browser data.** If `localStorage.debtTrackerData` exists:
    - Postgres dataset empty → existing `pgMigrationModal` (import into Postgres). Import success **or** decline → `localStorage.removeItem('debtTrackerData')`.
    - Postgres dataset non-empty → `pgMigrationModal` variant: "Older browser-only data found on this device." Buttons **Download as JSON backup** (downloads the raw JSON as `myfinances-browser-backup-YYYY-MM-DD.json`, then removes the key) and **Remove it** (removes the key). Either path removes the key; closing via Escape does not remove it (prompt reappears next load).
    - An import failure keeps the key and shows the error, so no data is lost.
 5. **Stale preference.** `localStorage.removeItem('debtTrackerStorageBackend')` unconditionally.
-6. **Onboarding.** If the loaded dataset is empty and no legacy prompt was shown, run the existing setup wizard (`maybeShowSetupWizard(app, true)`).
+6. **Onboarding.** First run is defined as "the `reconciliationAdjustsBalance` setting is absent after load" (the wizard persists a default for it immediately — `setupWizard.js`), replacing the old "no local key" test. If first run and no legacy prompt was shown, call `maybeShowSetupWizard(app, true)`. The test harness's reset seeds this setting so the wizard doesn't block tests.
 7. Remainder unchanged (What's New, auto NW snapshot, `seedMissingBalanceHistory`, modal init, `updateUI`, `switchPage('health')`). Always set `data-app-ready="true"` (also when stopped at a gate), per issue #422.
 
 ## 6. Runtime error handling
