@@ -655,7 +655,9 @@ def test_delete_account_with_linked_items_reassigns_all_types(app_page):
         "() => window.app.accounts.find(a => a.name === 'Replacement Account').id")
     page.evaluate("() => window.app.switchPage('accounts')")
 
-    page.locator('[data-account-action="delete"]').first.click()
+    primary_id = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Primary Account').id")
+    page.click(f'[data-account-action="delete"][data-account-id="{primary_id}"]')
 
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
     page.click('#accountReplacementConfirmBtn')

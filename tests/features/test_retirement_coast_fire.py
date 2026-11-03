@@ -8,10 +8,11 @@ Health's FIRE number when blank -- never the contribution-inclusive projection.
 
 import json
 import re
+from datetime import date
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, seed_state, wait_for_api
 
 SECTION = '#retireCoastFire'
 INPUT = '#retireCoastTargetInput'
@@ -144,10 +145,19 @@ def test_clearing_target_reverts_to_fire_number(app_page):
 
 @pytest.mark.feature
 def test_target_persists_across_reload(app_page):
-    _seed(app_page, [_investment()], [_snap()])
+    # Server-backed seed (the target setting must round-trip through the real API).
+    seed_state(app_page, {
+        'accounts': [_investment()],
+        'retirementSnapshots': [_snap()],
+        'bills': [{"id": 1, "name": "Rent", "amount": 1000, "category": "Housing", "dueDate": 1}],
+        'retirementTargetDate': f"{date.today().year + 30}-01-01",
+    })
+    app_page.evaluate("async () => { window.app.switchPage('retirement'); await window.app.renderRetirementPage(); }")
+    app_page.wait_for_selector(INPUT, timeout=5000)
     _commit(app_page, '750000')
     app_page.wait_for_function("() => document.getElementById('retireCoastTargetInput')?.value === '750000'")
-    app_page.wait_for_timeout(500)  # saveToStorage is debounced
+    wait_for_api(app_page, '/api/settings',
+                 lambda rows: any(r['key'] == 'retirementCoastTarget' and r['value'] == 750000 for r in rows))
     app_page.reload()
     app_page.evaluate("async () => { window.app.switchPage('retirement'); await window.app.renderRetirementPage(); }")
     app_page.wait_for_selector(INPUT, timeout=5000)
