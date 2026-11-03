@@ -193,6 +193,9 @@ def _seed_debt_with_updated_at(page, *, days_ago):
     # Local-date ISO, matching health.js's local-midnight math.
     iso = (date.today() - timedelta(days=days_ago)).isoformat()
     seed_state(page, {'debts': [_stale_debt(9501, 'Stale Test Debt', iso)], 'incomes': []})
+    # The server owns debts' updatedAt (it stamps "now" on write), so backdate it in memory
+    # (no write) before Health renders.
+    page.evaluate("(iso) => { window.app.debts.forEach(d => { d.updatedAt = iso; }); }", iso)
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
@@ -222,6 +225,8 @@ def test_stale_banner_absent_for_legacy_data_with_no_timestamps(app_page):
     """#383 — No false-positive stale banner for legacy debts that predate updatedAt tracking."""
     page = app_page
     seed_state(page, {'debts': [_stale_debt(9502, 'Legacy Debt', None)], 'incomes': []})
+    # Server stamps updatedAt on write; drop it in memory to model a pre-tracking legacy debt.
+    page.evaluate("() => { window.app.debts.forEach(d => { d.updatedAt = null; }); }")
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
