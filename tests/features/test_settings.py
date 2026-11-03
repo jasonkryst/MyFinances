@@ -8,6 +8,8 @@ the data format version bump to 4.0.0.
 
 import pytest
 
+from tests.conftest import seed_state, wait_for_api
+
 
 @pytest.mark.feature
 def test_get_setting_returns_default_when_absent(app_page):
@@ -62,29 +64,23 @@ def test_set_setting_updates_existing_entry_in_place(app_page):
 
 @pytest.mark.feature
 def test_sanitize_setting_drops_invalid_entries_keeps_valid(app_page):
-    """sanitizeSetting (via loadFromStorage) drops entries with empty keys
+    """sanitizeSetting (via the seed/import path) drops entries with empty keys
     or non-primitive values, keeping valid boolean/number/string entries."""
     page = app_page
 
-    result = page.evaluate("""() => {
-        const app = window.app;
-        const data = {
-            accounts: [], debts: [], incomes: [], bonuses: [], bills: [], expenses: [],
-            recurringTemplates: [], emergencyFunds: [], sinkingFunds: [],
-            settings: [
-                { key: '', value: true },
-                { key: 'validBool', value: true },
-                { key: 'validNumber', value: 42 },
-                { key: 'validString', value: 'hello' },
-                { key: 'invalidObject', value: { nested: 1 } },
-                { key: 'invalidFunction', value: () => {} },
-                { value: true }
-            ]
-        };
-        localStorage.setItem(app.storageKey, JSON.stringify(data));
-        app.loadFromStorage();
-        return app.settings;
-    }""")
+    # JSON has no functions: the function-valued entry reaches the importer as {key} with no value.
+    seed_state(page, {
+        'settings': [
+            {'key': '', 'value': True},
+            {'key': 'validBool', 'value': True},
+            {'key': 'validNumber', 'value': 42},
+            {'key': 'validString', 'value': 'hello'},
+            {'key': 'invalidObject', 'value': {'nested': 1}},
+            {'key': 'invalidFunction'},
+            {'value': True},
+        ],
+    })
+    result = page.evaluate("() => window.app.settings.filter(s => s.key !== 'reconciliationAdjustsBalance')")
 
     keys = sorted(s['key'] for s in result)
     assert keys == ['validBool', 'validNumber', 'validString']
@@ -95,18 +91,8 @@ def test_sanitize_setting_truncates_oversized_string_value(app_page):
     """An oversized string setting value is truncated rather than rejected."""
     page = app_page
 
-    result = page.evaluate("""() => {
-        const app = window.app;
-        const longValue = 'x'.repeat(500);
-        const data = {
-            accounts: [], debts: [], incomes: [], bonuses: [], bills: [], expenses: [],
-            recurringTemplates: [], emergencyFunds: [], sinkingFunds: [],
-            settings: [{ key: 'longSetting', value: longValue }]
-        };
-        localStorage.setItem(app.storageKey, JSON.stringify(data));
-        app.loadFromStorage();
-        return app.settings[0].value.length;
-    }""")
+    seed_state(page, {'settings': [{'key': 'longSetting', 'value': 'x' * 500}]})
+    result = page.evaluate("() => window.app.settings.find(s => s.key === 'longSetting').value.length")
 
     assert result <= 200
 
@@ -215,14 +201,11 @@ def test_ledger_export_columns_setting_round_trips_through_storage(app_page):
     string). It must survive a save/reload round-trip intact."""
     page = app_page
 
-    result = page.evaluate("""() => {
-        const app = window.app;
-        app.settings = [];
-        app.setSetting('ledgerExportColumns', 'date,account,amount');
-        app.saveToStorage();
-        app.loadFromStorage();
-        return app.getSetting('ledgerExportColumns', null);
-    }""")
+    page.evaluate("() => window.app.setSetting('ledgerExportColumns', 'date,account,amount')")
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(r['key'] == 'ledgerExportColumns' for r in rows))
+    page.reload()
+    result = page.evaluate("() => window.app.getSetting('ledgerExportColumns', null)")
 
     assert result == 'date,account,amount'
 
@@ -236,13 +219,8 @@ def test_ledger_export_columns_setting_with_garbage_value_is_bounded_string(app_
     the known column keys."""
     page = app_page
 
-    result = page.evaluate("""() => {
-        const app = window.app;
-        app.settings = [{ key: 'ledgerExportColumns', value: 'bogus,columns,not,real' }];
-        app.saveToStorage();
-        app.loadFromStorage();
-        return app.getSetting('ledgerExportColumns', null);
-    }""")
+    seed_state(page, {'settings': [{'key': 'ledgerExportColumns', 'value': 'bogus,columns,not,real'}]})
+    result = page.evaluate("() => window.app.getSetting('ledgerExportColumns', null)")
 
     # sanitizeSetting accepts any bounded string value at the storage layer;
     # the column whitelist is enforced at read-time in openLedgerExportModal.
@@ -338,6 +316,9 @@ def test_settings_modal_focus_falls_back_when_first_control_is_hidden(app_page):
     from tests.conftest import open_settings, close_settings, switch_settings_tab
     open_settings(page)
     switch_settings_tab(page, 'notifications')
+    # The button is only shown when the server has email configured; force the "its only
+    # control is hidden" situation this regression test is about, whatever the stack's SMTP state.
+    page.evaluate("() => document.getElementById('settingsSendTestEmailBtn').classList.add('hidden')")
     assert page.is_hidden('#settingsSendTestEmailBtn')
     close_settings(page)
 

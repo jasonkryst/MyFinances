@@ -7,7 +7,7 @@ settles, and the app_page fixture waits for it, so tests stop racing app startup
 
 import pytest
 
-from tests.conftest import BASE_URL, SKIP_FIRST_RUN_WIZARD_SCRIPT, wait_for_app_ready
+from tests.conftest import BASE_URL, ensure_session, seed_state, wait_for_app_ready
 
 
 @pytest.mark.feature
@@ -21,11 +21,7 @@ def test_app_page_fixture_returns_initialized_app(app_page):
 @pytest.mark.feature
 def test_reload_waits_for_init(app_page):
     page = app_page
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        d.accounts = [{ id: 4220, name: 'Ready Check', type: 'Checking', startingBalance: 10 }];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
+    seed_state(page, {'accounts': [{'id': 4220, 'name': 'Ready Check', 'type': 'Checking', 'startingBalance': 10}]}, reload=False)
     page.reload()
     # No explicit wait: the fixture's reload wrapper must already have waited for init.
     assert page.get_attribute('html', 'data-app-ready') == 'true'
@@ -35,7 +31,6 @@ def test_reload_waits_for_init(app_page):
 @pytest.mark.feature
 def test_marker_absent_until_app_script_runs(page):
     """Negative: the marker is set by the app, not present in the static HTML."""
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
     page.route('**/src/app.js', lambda route: route.abort())
     page.goto(BASE_URL, wait_until='domcontentloaded')
     page.wait_for_timeout(500)
@@ -45,7 +40,7 @@ def test_marker_absent_until_app_script_runs(page):
 @pytest.mark.feature
 def test_marker_still_set_when_init_throws(page):
     """Negative: a failing init() must not leave waiters hanging until timeout."""
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
+    ensure_session(page.context)
     page.add_init_script("""
         Storage.prototype.getItem = function () { throw new Error('storage unavailable (test)'); };
     """)

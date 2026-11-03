@@ -12,11 +12,10 @@ i18n coverage guards (issue #317).
 """
 
 import datetime
-import json
 
 import pytest
 
-from tests.conftest import BASE_URL, SKIP_FIRST_RUN_WIZARD_SCRIPT, wait_for_app_ready
+from tests.conftest import BASE_URL, ensure_session, seed_state, wait_for_app_ready
 
 LOCALES_URL = BASE_URL.rstrip('/') + '/src/locales/'
 
@@ -526,7 +525,6 @@ TRANSLATED_PAGES = {
     'settings-security-postgres': (
         ['#settingsModal'],
         """async () => {
-            localStorage.setItem('debtTrackerStorageBackend', 'postgres');
             document.getElementById('settingsBtn').click();
             document.querySelector('[data-settings-tab="security"]').click();
             document.getElementById('settingsSecurityBreachNote').classList.remove('hidden');
@@ -534,7 +532,6 @@ TRANSLATED_PAGES = {
             pw.value = 'short';
             pw.dispatchEvent(new Event('input'));
             document.getElementById('settingsChangePasswordBtn').click();
-            localStorage.removeItem('debtTrackerStorageBackend');
         }""",
     ),
     # #456: login gate in first-run setup mode (meter + client error). The
@@ -1086,7 +1083,7 @@ SCAN_JS = """
 
 
 @pytest.fixture
-def pseudo_page(browser):
+def pseudo_page(browser, stack_user):
     """A page whose 'es' dictionary is pseudo-localised en.js. Service workers
     are blocked so the route always serves the pseudo module."""
     context = browser.new_context(service_workers='block')
@@ -1096,18 +1093,17 @@ def pseudo_page(browser):
     page.on('dialog', lambda d: d.accept())
     page.route(LOCALES_URL + 'es.js', lambda route: route.fulfill(
         status=200, content_type='application/javascript', body=PSEUDO_ES_MODULE))
-    page.route(BASE_URL, lambda route: route.fulfill(status=200)
-               if route.request.method == 'HEAD' else route.continue_())
+    ensure_session(context)
     yield page
     context.close()
 
 
 def _load_pseudo(page, state):
-    page.add_init_script(
-        "try { localStorage.setItem('debtTrackerLocale', 'es');"
-        f" localStorage.setItem('debtTrackerData', {json.dumps(json.dumps(state))}); }} catch (e) {{}}")
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
+    page.add_init_script("try { localStorage.setItem('debtTrackerLocale', 'es'); } catch (e) {}")
     page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
+    wait_for_app_ready(page)
+    seed_state(page, state, reload=False)
+    page.reload()
     wait_for_app_ready(page)
 
 

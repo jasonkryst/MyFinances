@@ -19,6 +19,32 @@ were deliberately kept static.
 
 import pytest
 
+from tests.conftest import BASE_URL, ensure_session, reset_server_state, wait_for_app_ready
+
+
+@pytest.fixture
+def app_page(browser, stack_user):
+    """Signed-in page on an empty server, with service workers blocked.
+
+    The app's own service worker takes control of the page after the fixture's reload and
+    serves module requests itself, which bypasses page.route(): the `route.abort()` calls
+    below would never fire. Blocking it keeps those routes in charge of the module fetches.
+    """
+    context = browser.new_context(service_workers='block')
+    page = context.new_page()
+    page.console_errors = []
+    page.page_errors = []
+    page.on('console', lambda m: page.console_errors.append(m.text or '')
+            if m.type == 'error' and 'favicon' not in (m.text or '').lower() else None)
+    page.on('pageerror', lambda e: page.page_errors.append(str(e)))
+    page.on('dialog', lambda d: d.accept())
+    ensure_session(context)
+    page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
+    wait_for_app_ready(page)
+    reset_server_state(page)
+    yield page
+    context.close()
+
 
 LAZY_MODULE_PATHS = [
     'src/retirement.js',

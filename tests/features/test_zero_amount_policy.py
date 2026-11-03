@@ -9,7 +9,7 @@ amounts are always rejected; transfer-type recurring templates always need > 0.
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, wait_for_api
 
 
 # --- helpers ---------------------------------------------------------------
@@ -384,12 +384,11 @@ def test_inline_edit_zero_policy_and_blank(app_page):
 @pytest.mark.feature
 def test_policy_persists_across_reload_and_is_in_export(app_page):
     page = app_page
-    _set_policy(page, 'warn')
-    page.evaluate("() => { window.app.saveToStorage(); window.flushStorageSave && window.flushStorageSave(); }")
-    stored = page.evaluate(
-        """() => JSON.parse(localStorage.getItem(window.app.storageKey || 'debtTrackerData')).settings"""
-    )
-    assert {'key': 'zeroAmountPolicy', 'value': 'warn'} in stored
+    page.evaluate("() => window.app.setSetting('zeroAmountPolicy', 'warn')")
+    stored = wait_for_api(page, '/api/settings',
+                          lambda rows: any(r['key'] == 'zeroAmountPolicy' and r['value'] == 'warn' for r in rows))
+    assert {'key': 'zeroAmountPolicy', 'value': 'warn'} in [
+        {'key': r['key'], 'value': r['value']} for r in stored]
     # exportAllJSON serializes app.settings verbatim
     exported = page.evaluate("() => window.app.settings")
     assert {'key': 'zeroAmountPolicy', 'value': 'warn'} in exported

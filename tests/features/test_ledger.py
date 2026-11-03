@@ -6,6 +6,9 @@ Tests transaction history, filtering, and overrides.
 
 import pytest
 
+from tests.conftest import wait_for_api
+
+
 @pytest.mark.feature
 def test_ledger_navigation(app_page):
     """Test navigation to ledger/transaction history."""
@@ -117,6 +120,22 @@ def test_get_filtered_sorted_ledger_transactions_category_all_returns_everything
     assert any(tx['name'] == 'Groceries' for tx in txs)
 
 
+def _server_overrides(page, *keys):
+    """Wait until every override key is on the server; return {overrideKey: row}."""
+    rows = wait_for_api(
+        page, '/api/ledger-overrides',
+        lambda rows: all(any(r['overrideKey'] == k for r in rows) for k in keys))
+    return {r['overrideKey']: r for r in rows}
+
+
+def _server_cleared(page, *keys):
+    """Wait until every cleared key is on the server; return {clearedKey: row}."""
+    rows = wait_for_api(
+        page, '/api/ledger-cleared',
+        lambda rows: all(any(r['clearedKey'] == k for r in rows) for k in keys))
+    return {r['clearedKey']: r for r in rows}
+
+
 def _seed_income_for_ledger(page, name="Override Salary", amount=4000):
     """Create an account, then an income source linked to it, via the UI so
     the ledger has at least one overridable transaction (income paydays
@@ -191,7 +210,7 @@ def test_ledger_override_modal_updates_row_amount(app_page):
 
 @pytest.mark.feature
 def test_ledger_override_persists_after_reload(app_page):
-    """An override saved via the modal must be written to localStorage
+    """An override saved via the modal must be written to the server
     (via sanitizeLedgerOverrides round-trip) and still be in effect after a
     fresh page load, not just held in in-memory app state."""
     page = app_page
@@ -215,16 +234,9 @@ def test_ledger_override_persists_after_reload(app_page):
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
     page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
-    # Confirm it actually landed in localStorage before reloading.
-    stored_overrides = page.evaluate(
-        """() => {
-            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
-            if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            return parsed.ledgerAmountOverrides || null;
-        }"""
-    )
-    assert stored_overrides, "ledgerAmountOverrides should be persisted to localStorage"
+    # Confirm it actually landed on the server before reloading.
+    stored_overrides = _server_overrides(page, tx_id)
+    assert stored_overrides, "ledgerAmountOverrides should be persisted to the server"
     assert tx_id in stored_overrides, "the specific transactionId key should be present in storage"
     assert abs(float(stored_overrides[tx_id]['amount']) - 777.77) < 0.01
 
@@ -289,13 +301,7 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
     page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
-    stored_overrides = page.evaluate(
-        """() => {
-            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
-            const parsed = JSON.parse(raw);
-            return parsed.ledgerAmountOverrides || {};
-        }"""
-    )
+    stored_overrides = _server_overrides(page, tx_id_1, tx_id_2)
 
     assert tx_id_1 in stored_overrides and tx_id_2 in stored_overrides, (
         "Both override keys should be present in storage independently"
@@ -341,7 +347,7 @@ def test_ledger_cleared_checkbox_marks_row_and_records_timestamp(app_page):
 
 @pytest.mark.feature
 def test_ledger_cleared_persists_after_reload(app_page):
-    """A cleared transaction must be written to localStorage (via
+    """A cleared transaction must be written to the server (via
     sanitizeLedgerClearedTransactions round-trip) and still be checked after
     reloading the page."""
     page = app_page
@@ -356,14 +362,8 @@ def test_ledger_cleared_persists_after_reload(app_page):
     checkbox.click()
     page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
-    stored = page.evaluate(
-        """() => {
-            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
-            const parsed = JSON.parse(raw);
-            return parsed.ledgerClearedTransactions || null;
-        }"""
-    )
-    assert stored, "ledgerClearedTransactions should be persisted to localStorage"
+    stored = _server_cleared(page, tx_id)
+    assert stored, "ledgerClearedTransactions should be persisted to the server"
     assert tx_id in stored, "the specific transactionId key should be present in storage"
     assert stored[tx_id].get('clearedAt'), "a clearedAt timestamp should be stored"
 
@@ -402,21 +402,9 @@ def test_ledger_cleared_unchecking_clears_state_and_timestamp(app_page):
     )
 
     page.click(f'[data-ledger-cleared="{tx_id}"]')
-    page.wait_for_function(
-        """(txId) => {
-            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
-            return !(txId in (JSON.parse(raw).ledgerClearedTransactions || {}));
-        }""",
-        arg=tx_id, timeout=5000
-    )
+    wait_for_api(page, '/api/ledger-cleared', lambda rows: all(r['clearedKey'] != tx_id for r in rows))
 
-    stored = page.evaluate(
-        """() => {
-            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
-            const parsed = JSON.parse(raw);
-            return parsed.ledgerClearedTransactions || {};
-        }"""
-    )
+    stored = {r['clearedKey']: r for r in wait_for_api(page, '/api/ledger-cleared', lambda rows: True)}
     assert tx_id not in stored, "Unchecking should remove the entry, not just flip a flag"
 
     is_checked = page.evaluate(
@@ -1673,17 +1661,10 @@ def test_ledger_override_memo_persists_after_storage_reload(app_page):
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
     page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
-    stored = page.evaluate(
-        """(txId) => {
-            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
-            const parsed = JSON.parse(raw);
-            return (parsed.ledgerAmountOverrides || {})[txId] || null;
-        }""",
-        tx_id
-    )
-    assert stored, "Override should be persisted to localStorage"
+    stored = _server_overrides(page, tx_id).get(tx_id)
+    assert stored, "Override should be persisted to the server"
     assert stored.get('memo') == 'refund received', \
-        f"Memo should survive localStorage round-trip, got: {stored.get('memo')}"
+        f"Memo should survive the server round-trip, got: {stored.get('memo')}"
 
 
 @pytest.mark.feature
@@ -1710,14 +1691,7 @@ def test_ledger_override_memo_empty_when_not_entered(app_page):
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
     page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
-    stored = page.evaluate(
-        """(txId) => {
-            const raw = localStorage.getItem(window.app?.storageKey || 'debtTrackerData');
-            const parsed = JSON.parse(raw);
-            return (parsed.ledgerAmountOverrides || {})[txId] || null;
-        }""",
-        tx_id
-    )
+    stored = _server_overrides(page, tx_id).get(tx_id)
     assert stored, "Override should be persisted"
     assert stored.get('memo') == '' or stored.get('memo') is None, \
         f"Memo should be empty when not entered, got: {stored.get('memo')!r}"
@@ -1879,7 +1853,7 @@ def test_ledger_bulk_selection_resets_after_action(app_page):
 
 @pytest.mark.feature
 def test_ledger_bulk_clear_persists_after_reload(app_page):
-    """Bulk-cleared rows survive a page reload (written to localStorage)."""
+    """Bulk-cleared rows survive a page reload (written to the server)."""
     page = app_page
     _seed_income_for_ledger(page, name='PersistBulk', amount=3000)
 
@@ -1896,6 +1870,7 @@ def test_ledger_bulk_clear_persists_after_reload(app_page):
     page.click('#ledgerBulkClearBtn')
     page.wait_for_selector('[data-ledger-cleared]', timeout=5000)
     page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
+    _server_cleared(page, *tx_ids)
 
     page.reload()
     page.wait_for_selector('#app, body', timeout=10000)

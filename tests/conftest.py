@@ -228,6 +228,26 @@ def seed_state(page, state: dict, *, reload=True) -> None:
         page.reload()
 
 
+def wait_for_api(page, path, check, timeout=10.0):
+    """Poll an authenticated GET `path` from the page until `check(json)` is truthy.
+
+    Mutations are fire-and-forget PUT/PATCH calls; a test that reloads right after
+    one can race it. Call this first to be sure the server holds the change (the
+    predicate runs in Python because the app's CSP forbids eval in the page).
+    Returns the matching payload.
+    """
+    import time
+    deadline = time.monotonic() + timeout
+    data = None
+    while time.monotonic() < deadline:
+        data = page.evaluate(
+            "async (p) => { const r = await fetch(p); return r.ok ? await r.json() : null; }", path)
+        if data is not None and check(data):
+            return data
+        page.wait_for_timeout(100)
+    raise AssertionError(f"{path} never satisfied the expected condition; last response: {data!r}")
+
+
 def _wrap_reload(page):
     # ~100 tests reload after seeding; make every reload wait for init too,
     # rather than patching each call site.

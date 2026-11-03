@@ -10,36 +10,39 @@ Coverage:
 
 import pytest
 
+from tests.conftest import reset_server_state, seed_state
+
 BASE_URL = "http://localhost:32900/"
 
 # ─── #294 Debt payoff celebration modal ──────────────────────────────────────
 
 
+def _paid_off_debt(debt_id, name, archived=False):
+    return {
+        'id': debt_id, 'name': name, 'category': '', 'debtType': 'creditCard',
+        'accountBalance': 0, 'originalBalance': 1000, 'interestRate': 18,
+        'minimumPayment': 25, 'originalMinimumPayment': 25, 'dueDate': 15,
+        'debtStartDate': None, 'fixedAmount': 0, 'fixedStartDate': None, 'fixedEndDate': None,
+        'updatedAt': None, 'priority': None, 'accountId': None, 'archived': archived,
+    }
+
+
 def _seed_paid_off_debt(page, *, debt_id=9301, name='Celebration Card'):
-    page.evaluate(f"""() => {{
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{{}}');
-        d.debts = [{{
-            id: {debt_id}, name: '{name}', category: '', debtType: 'creditCard',
-            accountBalance: 0, originalBalance: 1000, interestRate: 18,
-            minimumPayment: 25, originalMinimumPayment: 25, dueDate: 15,
-            debtStartDate: null, fixedAmount: 0, fixedStartDate: null, fixedEndDate: null,
-            updatedAt: null, priority: null, accountId: null, archived: false
-        }}];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }}""")
-    page.reload(wait_until="networkidle")
+    """Seed a paid-off debt through the server; returns the id the server assigned."""
+    seed_state(page, {'debts': [_paid_off_debt(debt_id, name)]})
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('#debtsList .debt-card', timeout=5000)
+    return page.evaluate("() => window.app.debts[0].id")
 
 
 @pytest.mark.feature
 def test_celebration_modal_shows_debt_name_and_message(app_page):
     """#294 — Celebration modal shows the paid-off debt's name and congratulatory copy."""
     page = app_page
-    _seed_paid_off_debt(page)
+    debt_id = _seed_paid_off_debt(page)
 
-    page.click('[data-debt-action="celebrate"][data-debt-id="9301"]')
+    page.click(f'[data-debt-action="celebrate"][data-debt-id="{debt_id}"]')
     page.wait_for_selector('#debtPaidOffTitle', timeout=5000)
 
     assert page.query_selector('text=🎉 Debt paid off!') is not None
@@ -52,15 +55,15 @@ def test_celebration_modal_shows_debt_name_and_message(app_page):
 def test_celebration_modal_escape_closes_without_archiving(app_page):
     """#294 — Pressing Escape closes the celebration modal and leaves the debt untouched."""
     page = app_page
-    _seed_paid_off_debt(page)
+    debt_id = _seed_paid_off_debt(page)
 
-    page.click('[data-debt-action="celebrate"][data-debt-id="9301"]')
+    page.click(f'[data-debt-action="celebrate"][data-debt-id="{debt_id}"]')
     page.wait_for_selector('#debtPaidOffTitle', timeout=5000)
     page.wait_for_selector('#dpoArchiveBtn:focus', timeout=5000)  # modal auto-focuses via setTimeout
     page.keyboard.press('Escape')
     page.wait_for_selector('#debtPaidOffTitle', state='hidden', timeout=5000)
 
-    archived = page.evaluate("() => window.app.debts.find(d => d.id === 9301)?.archived")
+    archived = page.evaluate("(id) => window.app.debts.find(d => d.id === id)?.archived", debt_id)
     assert archived is False
 
 
@@ -68,18 +71,7 @@ def test_celebration_modal_escape_closes_without_archiving(app_page):
 def test_celebration_button_absent_for_archived_debt(app_page):
     """#294 — An already-archived paid-off debt does not show the celebration button."""
     page = app_page
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        d.debts = [{
-            id: 9302, name: 'Already Archived Paid Off', category: '', debtType: 'creditCard',
-            accountBalance: 0, originalBalance: 1000, interestRate: 18,
-            minimumPayment: 25, originalMinimumPayment: 25, dueDate: 15,
-            debtStartDate: null, fixedAmount: 0, fixedStartDate: null, fixedEndDate: null,
-            updatedAt: null, priority: null, accountId: null, archived: true
-        }];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    seed_state(page, {'debts': [_paid_off_debt(9302, 'Already Archived Paid Off', archived=True)]})
     from tests.conftest import open_settings, close_settings
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -99,23 +91,21 @@ def _seed_recurring_template(page, *, template_id, day_of_month, name='Streaming
                               paused=False, archived=False, skipped_months=None, paid_months=None):
     skipped_months = skipped_months or []
     paid_months = paid_months or []
-    page.evaluate(f"""() => {{
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{{}}');
-        const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-        d.recurringTemplates = [{{
-            id: {template_id}, name: '{name}', type: 'subscription', amount: 15,
-            frequency: 'monthly', dayOfMonth: {day_of_month}, category: 'Subscription',
-            accountId: null, startDate, endDate: null, paused: {str(paused).lower()},
-            archived: {str(archived).lower()}, skippedMonths: {skipped_months},
-            paidMonths: {paid_months}, paidAmounts: {{}}
-        }}];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }}""")
-    page.reload(wait_until="networkidle")
+    from datetime import date
+    start_date = date.today().replace(day=1).isoformat()
+    seed_state(page, {'recurringTemplates': [{
+        'id': template_id, 'name': name, 'type': 'subscription', 'amount': 15,
+        'frequency': 'monthly', 'dayOfMonth': day_of_month, 'category': 'Subscription',
+        'accountId': None, 'startDate': start_date, 'endDate': None, 'paused': paused,
+        'archived': archived, 'skippedMonths': skipped_months,
+        'paidMonths': paid_months, 'paidAmounts': {},
+    }]})
     page.click('button[data-page="recurring"]')
     page.wait_for_selector('#recurringSection.active', timeout=5000)
-    page.wait_for_selector(f'#recurring-card-{template_id}', timeout=5000)
+    # The server assigns the id; return it so callers can target the card.
+    real_id = page.evaluate("() => window.app.recurringTemplates[0].id")
+    page.wait_for_selector(f'#recurring-card-{real_id}', timeout=5000)
+    return real_id
 
 
 def _due_day_in(offset_days):
@@ -136,9 +126,9 @@ def test_urgency_badge_red_when_due_within_two_days(app_page):
     """#382 — Red urgency badge shown when the next occurrence is due in < 3 days."""
     page = app_page
     dom = _due_day_in(2)
-    _seed_recurring_template(page, template_id=9401, day_of_month=dom)
+    tid = _seed_recurring_template(page, template_id=9401, day_of_month=dom)
 
-    badge = page.query_selector('#recurring-card-9401 .recurring-urgency-badge--red')
+    badge = page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge--red')
     assert badge is not None, "Expected red urgency badge for occurrence due within 2 days"
 
 
@@ -147,9 +137,9 @@ def test_urgency_badge_yellow_when_due_within_six_days(app_page):
     """#382 — Yellow urgency badge shown when the next occurrence is due in 3-6 days."""
     page = app_page
     dom = _due_day_in(5)
-    _seed_recurring_template(page, template_id=9402, day_of_month=dom)
+    tid = _seed_recurring_template(page, template_id=9402, day_of_month=dom)
 
-    badge = page.query_selector('#recurring-card-9402 .recurring-urgency-badge--yellow')
+    badge = page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge--yellow')
     assert badge is not None, "Expected yellow urgency badge for occurrence due within 5 days"
 
 
@@ -158,9 +148,9 @@ def test_urgency_badge_absent_when_due_far_out(app_page):
     """#382 — No urgency badge when the next occurrence is more than 6 days away."""
     page = app_page
     dom = _due_day_in(10)
-    _seed_recurring_template(page, template_id=9403, day_of_month=dom)
+    tid = _seed_recurring_template(page, template_id=9403, day_of_month=dom)
 
-    assert page.query_selector('#recurring-card-9403 .recurring-urgency-badge') is None
+    assert page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge') is None
 
 
 @pytest.mark.feature
@@ -168,9 +158,9 @@ def test_urgency_badge_absent_when_paused(app_page):
     """#382 — No urgency badge on a paused template even if the occurrence is due soon."""
     page = app_page
     dom = _due_day_in(1)
-    _seed_recurring_template(page, template_id=9404, day_of_month=dom, paused=True)
+    tid = _seed_recurring_template(page, template_id=9404, day_of_month=dom, paused=True)
 
-    assert page.query_selector('#recurring-card-9404 .recurring-urgency-badge') is None
+    assert page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge') is None
 
 
 @pytest.mark.feature
@@ -180,32 +170,29 @@ def test_urgency_badge_absent_when_paid_this_month(app_page):
     from datetime import date
     month_key = date.today().strftime('%Y-%m')
     dom = _due_day_in(1)
-    _seed_recurring_template(page, template_id=9405, day_of_month=dom, paid_months=[month_key])
+    tid = _seed_recurring_template(page, template_id=9405, day_of_month=dom, paid_months=[month_key])
 
-    assert page.query_selector('#recurring-card-9405 .recurring-urgency-badge') is None
+    assert page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge') is None
 
 
 # ─── #383 Health page stale-plan nudge banner ────────────────────────────────
 
 
+def _stale_debt(debt_id, name, updated_at):
+    return {
+        'id': debt_id, 'name': name, 'category': '', 'debtType': 'creditCard',
+        'accountBalance': 500, 'originalBalance': 1000, 'interestRate': 18,
+        'minimumPayment': 25, 'originalMinimumPayment': 25, 'dueDate': 15,
+        'debtStartDate': None, 'fixedAmount': 0, 'fixedStartDate': None, 'fixedEndDate': None,
+        'updatedAt': updated_at, 'priority': None, 'accountId': None, 'archived': False,
+    }
+
+
 def _seed_debt_with_updated_at(page, *, days_ago):
-    page.evaluate(f"""() => {{
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{{}}');
-        const dt = new Date();
-        dt.setDate(dt.getDate() - {days_ago});
-        // Local-date ISO: toISOString() is UTC and can be off by a day vs. health.js's local-midnight math.
-        const iso = [dt.getFullYear(), String(dt.getMonth() + 1).padStart(2, '0'), String(dt.getDate()).padStart(2, '0')].join('-');
-        d.debts = [{{
-            id: 9501, name: 'Stale Test Debt', category: '', debtType: 'creditCard',
-            accountBalance: 500, originalBalance: 1000, interestRate: 18,
-            minimumPayment: 25, originalMinimumPayment: 25, dueDate: 15,
-            debtStartDate: null, fixedAmount: 0, fixedStartDate: null, fixedEndDate: null,
-            updatedAt: iso, priority: null, accountId: null, archived: false
-        }}];
-        d.incomes = [];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }}""")
-    page.reload(wait_until="networkidle")
+    from datetime import date, timedelta
+    # Local-date ISO, matching health.js's local-midnight math.
+    iso = (date.today() - timedelta(days=days_ago)).isoformat()
+    seed_state(page, {'debts': [_stale_debt(9501, 'Stale Test Debt', iso)], 'incomes': []})
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
@@ -234,19 +221,7 @@ def test_stale_banner_absent_when_recently_edited(app_page):
 def test_stale_banner_absent_for_legacy_data_with_no_timestamps(app_page):
     """#383 — No false-positive stale banner for legacy debts that predate updatedAt tracking."""
     page = app_page
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        d.debts = [{
-            id: 9502, name: 'Legacy Debt', category: '', debtType: 'creditCard',
-            accountBalance: 500, originalBalance: 1000, interestRate: 18,
-            minimumPayment: 25, originalMinimumPayment: 25, dueDate: 15,
-            debtStartDate: null, fixedAmount: 0, fixedStartDate: null, fixedEndDate: null,
-            updatedAt: null, priority: null, accountId: null, archived: false
-        }];
-        d.incomes = [];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    seed_state(page, {'debts': [_stale_debt(9502, 'Legacy Debt', None)], 'incomes': []})
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
@@ -257,12 +232,7 @@ def test_stale_banner_absent_for_legacy_data_with_no_timestamps(app_page):
 def test_stale_banner_absent_when_no_data_at_all(app_page):
     """#383 — Empty-state banner (not the stale-plan nudge) shows when there's no data at all."""
     page = app_page
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        d.accounts = []; d.debts = []; d.incomes = []; d.emergencyFunds = [];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    reset_server_state(page)  # nothing on the server
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
 
