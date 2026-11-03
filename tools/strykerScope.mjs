@@ -44,6 +44,8 @@ export const MUTATE_SCOPE = {
         'computeRetirementProjectionScenarios', 'computeRetirementProjectionSeries', 'computeCoastFire',
     ],
     'src/balanceHistoryCore.js': true,
+    // #456: shared new-password rules (browser meter + server enforcement).
+    'src/passwordPolicy.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

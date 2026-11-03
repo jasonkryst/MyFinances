@@ -4,6 +4,28 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [6.67.0] — 2026-11-03
+
+### Added
+- **Password security** (issue #456), for the optional self-hosted PostgreSQL server. It follows NIST SP 800-63B rev 4 and applies wherever a password is set: first-run setup, the reset link, the new change-password form and `create-user.js`. Login is unchanged, so an existing shorter password still signs in.
+  - **Rules:** 15–128 characters counted as Unicode code points; spaces and any character allowed; no composition rules. Rejected: repetitive or sequential passwords (`aaaa…`, `12345…`, `qwerty…`, a block typed twice), the bundled SecLists 10,000 most common passwords (MIT, see `docs/third-party-notices.md`), and passwords containing the app name or the email name. The shared rules are the new pure `src/passwordPolicy.js`, used by both the browser and the server.
+  - **Optional breach check:** `SECURITY_CHECK_BREACHED_PASSWORDS=true` (the issue's `Security:CheckBreachedPasswords`, off by default) checks new passwords against Have I Been Pwned with a k-anonymity range query. Only a 5-character SHA-1 prefix leaves the server, with response padding requested. It fails open on a timeout or network error, so a server with no internet access never blocks a password change. `SECURITY_BREACH_CHECK_URL` can point at a self-hosted mirror.
+  - **Localized rejections:** the server returns a `reason` code and the app shows its own English, Spanish or Polish explanation.
+  - **Strength meter** on setup, reset and change-password (never on sign-in). The level is written out in a polite live region linked to the field ("Password strength: Fair") with a hint, so colour is never the only signal; the bar is decorative. It is advisory and never blocks a submit.
+  - **Settings → Security** (new fifth tab): change your password while signed in, with current password, new password and confirmation. On success every other session is signed out, any outstanding reset link stops working, and the calendar feed link must be regenerated. In Local/Session Storage mode the tab explains that there is no account.
+  - **New endpoints:** `POST /auth/change-password` (session + CSRF, rate-limited on failures) and anonymous `GET /auth/password-policy`.
+- **Login gate translated** into Spanish and Polish (all labels, buttons and messages).
+
+### Changed
+- **Minimum new-password length is 15** (was 12), per NIST for a password used as the only factor.
+- **A successful password reset now signs out every session** and spends any other outstanding reset link for the account.
+- **Hardening:** the breach lookup refuses redirects and stops reading a response over 512 KB (both fail open); `POST /auth/register` answers 409 before any policy work once an account exists; `POST /auth/login` answers a non-string password with the generic 401 instead of a 500.
+- **Reset checks the link before the password**, so an invalid or expired link always answers "invalid or expired", and an unauthenticated request never triggers a breach lookup. A rejected password leaves the link usable for another try.
+
+### Tests
+- `server/test/passwordSecurity.test.js` (33 tests): each rule and its boundaries (14/15, 128/129, code-point counting), the HIBP check against a local stub (hit, miss, zero-count padding, prefix-only request, HTTP error, timeout, unreachable, flag off), change-password (session, CSRF, wrong current, unchanged, policy, success with session revocation, rate limit), reset (policy with token retry, invalid token, sign-out), and login with an existing 12-character password, plus the hardening below.
+- `tests/unit/passwordPolicy.test.js` (Jest; `src/passwordPolicy.js` added to the Stryker scope) and `tests/ui/test_password_security.py` (Security tab in both modes, meter accessibility, localized errors in English/Spanish/Polish, login gate setup/sign-in/reset). The i18n render guard now scans the Security tab and the login gate's setup and reset modes.
+
 ## [6.66.1] — 2026-11-02
 
 ### Fixed

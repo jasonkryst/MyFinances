@@ -126,7 +126,7 @@ def test_savings_subtabs_fit_row_on_phone(seeded):
 
 
 @pytest.mark.ui
-def test_settings_tabs_equal_2x2_on_phone(seeded):
+def test_settings_tabs_equal_grid_on_phone(seeded):
     page = seeded
     page.set_viewport_size(PHONE)
     page.evaluate("() => document.getElementById('accountMenuBtn').click()")
@@ -135,9 +135,12 @@ def test_settings_tabs_equal_2x2_on_phone(seeded):
     res = page.evaluate("""() => [...document.querySelectorAll('.settings-tab-btn')].map(b => {
         const r = b.getBoundingClientRect(); return { top: Math.round(r.top), w: Math.round(r.width), h: r.height };
     })""")
-    assert len(res) == 4
-    assert len({b["top"] for b in res}) == 2, res          # exactly two rows
-    assert len({b["w"] for b in res}) == 1, res            # all equal width
+    # #456 added Security as a fifth tab: two equal-width rows of two, and
+    # the odd last tab spans the full third row instead of sitting at half width.
+    assert len(res) == 5
+    assert len({b["top"] for b in res}) == 3, res          # exactly three rows
+    assert len({b["w"] for b in res[:4]}) == 1, res        # first four equal width
+    assert res[4]["w"] > res[0]["w"] * 1.8, res            # Security spans the row
     assert all(b["h"] >= 40 for b in res), res
 
 

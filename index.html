@@ -1557,7 +1557,7 @@
         <div class="login-gate-card">
             <div class="login-gate-header">
                 <span class="logo-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" class="logo-svg">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" aria-label="Goal logo" data-i18n-attr="aria-label:login.logoAria" class="logo-svg">
                         <circle cx="16" cy="16" r="15" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
                         <circle cx="16" cy="16" r="8" fill="none" stroke="#2563eb" stroke-width="2"/>
                         <circle cx="16" cy="16" r="3" fill="#2563eb"/>
@@ -1570,53 +1570,54 @@
                 <h1 id="loginGateTitle" class="login-gate-title">MyFinances</h1>
             </div>
             <div class="login-gate-body">
-                <p id="loginGateSubtitle" class="login-gate-subtitle">Sign in to your account</p>
+                <p id="loginGateSubtitle" class="login-gate-subtitle" data-i18n="login.subtitleSignIn">Sign in to your account</p>
                 <form id="loginGateForm" class="login-gate-form" novalidate>
                     <div class="form-group">
-                        <label for="loginGateEmail">Email</label>
+                        <label for="loginGateEmail" data-i18n="login.email">Email</label>
                         <input type="email" id="loginGateEmail" class="form-control" autocomplete="email" required>
                     </div>
                     <div class="form-group">
-                        <label for="loginGatePassword">Password</label>
+                        <label for="loginGatePassword" data-i18n="login.password">Password</label>
                         <input type="password" id="loginGatePassword" class="form-control" autocomplete="current-password" required>
                     </div>
                     <div id="loginGateConfirmGroup" class="form-group hidden">
-                        <label for="loginGateConfirm">Confirm Password</label>
+                        <label for="loginGateConfirm" data-i18n="login.confirmPassword">Confirm Password</label>
                         <input type="password" id="loginGateConfirm" class="form-control" autocomplete="new-password">
                     </div>
+                    <p id="loginGateSetupBreachNote" class="modal-helper-text hidden" data-i18n="password.breachNote">New passwords are checked against known data breaches. Only an anonymous fragment of the password's hash leaves the server.</p>
                     <p id="loginGateError" class="login-gate-error" role="alert" aria-live="polite"></p>
-                    <button type="submit" id="loginGateSubmit" class="btn btn-primary login-gate-submit">Sign In</button>
+                    <button type="submit" id="loginGateSubmit" class="btn btn-primary login-gate-submit" data-i18n="login.signIn">Sign In</button>
                 </form>
                 <p id="loginGateForgotLink" class="login-gate-forgot-link">
-                    <button type="button" id="loginGateForgotBtn" class="link-btn">Forgot password?</button>
+                    <button type="button" id="loginGateForgotBtn" class="link-btn" data-i18n="login.forgot">Forgot password?</button>
                 </p>
                 <!-- Forgot-password mode: enter email to receive reset link -->
                 <form id="loginGateForgotForm" class="login-gate-form hidden" novalidate>
-                    <p class="login-gate-subtitle">Enter your email and we'll send a reset link.</p>
+                    <p class="login-gate-subtitle" data-i18n="login.forgotIntro">Enter your email and we'll send a reset link.</p>
                     <div class="form-group">
-                        <label for="loginGateForgotEmail">Email</label>
+                        <label for="loginGateForgotEmail" data-i18n="login.email">Email</label>
                         <input type="email" id="loginGateForgotEmail" class="form-control" autocomplete="email" required>
                     </div>
                     <p id="loginGateForgotError" class="login-gate-error" role="alert" aria-live="polite"></p>
-                    <button type="submit" class="btn btn-primary login-gate-submit">Send Reset Link</button>
-                    <button type="button" id="loginGateForgotBack" class="link-btn login-gate-back-btn">Back to sign in</button>
+                    <button type="submit" class="btn btn-primary login-gate-submit" data-i18n="login.sendResetLink">Send Reset Link</button>
+                    <button type="button" id="loginGateForgotBack" class="link-btn login-gate-back-btn" data-i18n="login.backToSignIn">Back to sign in</button>
                 </form>
                 <!-- Reset-password mode: shown when ?reset_token=... is present in URL -->
                 <form id="loginGateResetForm" class="login-gate-form hidden" novalidate>
-                    <p class="login-gate-subtitle">Enter your new password.</p>
+                    <p class="login-gate-subtitle" data-i18n="login.resetIntro">Enter your new password.</p>
                     <div class="form-group">
-                        <label for="loginGateResetPassword">New Password</label>
+                        <label for="loginGateResetPassword" data-i18n="login.newPassword">New Password</label>
                         <input type="password" id="loginGateResetPassword" class="form-control"
-                               autocomplete="new-password" required minlength="12"
-                               placeholder="At least 12 characters">
+                               autocomplete="new-password" required>
                     </div>
                     <div class="form-group">
-                        <label for="loginGateResetConfirm">Confirm New Password</label>
+                        <label for="loginGateResetConfirm" data-i18n="login.confirmNewPassword">Confirm New Password</label>
                         <input type="password" id="loginGateResetConfirm" class="form-control"
-                               autocomplete="new-password" required minlength="12">
+                               autocomplete="new-password" required>
                     </div>
+                    <p id="loginGateResetBreachNote" class="modal-helper-text hidden" data-i18n="password.breachNote">New passwords are checked against known data breaches. Only an anonymous fragment of the password's hash leaves the server.</p>
                     <p id="loginGateResetError" class="login-gate-error" role="alert" aria-live="polite"></p>
-                    <button type="submit" class="btn btn-primary login-gate-submit">Set New Password</button>
+                    <button type="submit" class="btn btn-primary login-gate-submit" data-i18n="login.setNewPassword">Set New Password</button>
                 </form>
             </div>
         </div>
@@ -1752,6 +1753,7 @@
                 <button type="button" class="settings-tab-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="settingsPanel-data" data-i18n="settings.tabData">Data &amp; Storage</button>
                 <button type="button" class="settings-tab-btn" data-settings-tab="notifications" role="tab" aria-selected="false" aria-controls="settingsPanel-notifications" data-i18n="settings.tabNotifications">Notifications</button>
                 <button type="button" class="settings-tab-btn" data-settings-tab="advanced" role="tab" aria-selected="false" aria-controls="settingsPanel-advanced" data-i18n="settings.tabAdvanced">Advanced</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="security" role="tab" aria-selected="false" aria-controls="settingsPanel-security" data-i18n="settings.tabSecurity">Security</button>
             </div>
             <div id="settingsPanel-appearance" class="settings-tab-panel settings-tab-panel--active" role="tabpanel">
                 <div class="form-group modal-form-group">
@@ -1870,6 +1872,31 @@
                     </select>
                     <p class="modal-helper-text" data-i18n="settings.zeroAmountHelp">$0 entries are useful for tracking a transaction (for example, one made on a credit card) without moving a balance. Applies to ledger overrides and recurring templates; transfers always need an amount above $0.</p>
                 </div>
+            </div>
+            <div id="settingsPanel-security" class="settings-tab-panel" role="tabpanel">
+                <p id="settingsSecurityLocalNote" class="modal-helper-text" data-i18n="settings.security.localNote">Password settings are available when you use the self-hosted PostgreSQL server. Local and Session Storage have no account or password.</p>
+                <form id="settingsChangePasswordForm" class="settings-change-password hidden" novalidate>
+                    <h4 class="settings-security-title" data-i18n="settings.security.title">Change password</h4>
+                    <!-- Lets password managers pair the new password with the account. -->
+                    <input type="email" id="settingsSecurityUsername" autocomplete="username" hidden>
+                    <div class="form-group modal-form-group">
+                        <label for="settingsCurrentPassword" data-i18n="settings.security.current">Current password</label>
+                        <input type="password" id="settingsCurrentPassword" class="form-control" autocomplete="current-password" required>
+                    </div>
+                    <div class="form-group modal-form-group">
+                        <label for="settingsNewPassword" data-i18n="settings.security.new">New password</label>
+                        <input type="password" id="settingsNewPassword" class="form-control" autocomplete="new-password" required>
+                    </div>
+                    <div class="form-group modal-form-group">
+                        <label for="settingsConfirmPassword" data-i18n="settings.security.confirm">Confirm new password</label>
+                        <input type="password" id="settingsConfirmPassword" class="form-control" autocomplete="new-password" required>
+                    </div>
+                    <p id="settingsSecurityBreachNote" class="modal-helper-text hidden" data-i18n="password.breachNote">New passwords are checked against known data breaches. Only an anonymous fragment of the password's hash leaves the server.</p>
+                    <p class="modal-helper-text" data-i18n="settings.security.help">After the change, your other devices are signed out and any calendar feed link must be regenerated.</p>
+                    <p id="settingsChangePasswordError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <p id="settingsChangePasswordStatus" class="settings-security-status" role="status" aria-live="polite"></p>
+                    <button type="submit" id="settingsChangePasswordBtn" class="btn btn-primary btn-small" data-i18n="settings.security.submit">Change password</button>
+                </form>
             </div>
             <div class="modal-actions">
                 <button id="settingsModalDoneBtn" class="btn btn-success" data-i18n="settings.done">Done</button>

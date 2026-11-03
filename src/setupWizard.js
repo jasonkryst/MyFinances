@@ -8,6 +8,7 @@ import { getCsrfCookie } from './storage.js';
 import { showLoginGate } from './loginGate.js';
 import { showEmailTestToast } from './ui.js';
 import { initSettingsBackup } from './settingsBackup.js';
+import { initSecuritySettings, refreshSecuritySettingsPanel } from './securitySettings.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -90,6 +91,7 @@ export function initSettingsModal(app) {
     if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect || !currencySelect) return;
 
     initSettingsBackup(app);
+    initSecuritySettings(app);
 
     // #322: tabbed layout — same data-attribute/classList pattern as the
     // Data Transfer modal's Export/Import tabs, under its own class
@@ -139,6 +141,7 @@ export function initSettingsModal(app) {
             if (postgresLockNote) postgresLockNote.classList.add('hidden');
             if (emailTestGroup) emailTestGroup.classList.add('hidden');
         }
+        refreshSecuritySettingsPanel(app);
         localeSelect.value = getCurrentLocale();
         currencySelect.value = getCurrencyCode();
         modal.classList.add('flex-visible');

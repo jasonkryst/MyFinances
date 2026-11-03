@@ -85,6 +85,11 @@ services:
       # Set ALLOW_SETUP=true in the environment ONLY during initial account creation.
       # Remove it (or restart the server without it) after setup is complete.
       ALLOW_SETUP: "${ALLOW_SETUP:-}"
+      # Issue #456: check new passwords against Have I Been Pwned (k-anonymity;
+      # only a 5-character hash prefix leaves the server). Off by default; it
+      # fails open, so it is safe to enable on a box with flaky egress.
+      SECURITY_CHECK_BREACHED_PASSWORDS: "${SECURITY_CHECK_BREACHED_PASSWORDS:-false}"
+      SECURITY_BREACH_CHECK_URL: "${SECURITY_BREACH_CHECK_URL:-}"
     secrets:
       - postgres_password
       - smtp_password

@@ -252,12 +252,13 @@ def test_ledger_export_columns_setting_with_garbage_value_is_bounded_string(app_
 # ── Settings modal tabbed layout (#322) ─────────────────────────────────────────
 
 @pytest.mark.feature
-def test_settings_modal_has_four_tabs(app_page):
+def test_settings_modal_has_five_tabs(app_page):
+    # #456 added Security as the fifth tab.
     page = app_page
     from tests.conftest import open_settings
     open_settings(page)
     labels = page.eval_on_selector_all('.settings-tab-btn', 'els => els.map(e => e.getAttribute("data-settings-tab"))')
-    assert labels == ['appearance', 'data', 'notifications', 'advanced']
+    assert labels == ['appearance', 'data', 'notifications', 'advanced', 'security']
 
 
 @pytest.mark.feature

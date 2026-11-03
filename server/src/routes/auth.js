@@ -4,7 +4,8 @@ import { randomBytes, createHash } from 'node:crypto';
 import { query } from '../db.js';
 import { hashPassword, verifyPassword } from '../auth/argon2.js';
 import { createSession, destroySession } from '../auth/sessions.js';
-import { generateToken, requireCsrf } from '../auth/middleware.js';
+import { generateToken, hashToken, requireCsrf, requireSession } from '../auth/middleware.js';
+import { checkNewPassword, passwordProblemResponse, passwordPolicySummary } from '../auth/passwordCheck.js';
 import { sendTemplatedEmail } from '../email/send.js';
 
 // `secure` is derived per-request from `req.secure` rather than a static
@@ -81,12 +82,24 @@ export function createAuthRouter() {
             if (!email || !password) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Email and password are required' } });
             }
+            if (typeof email !== 'string' || typeof password !== 'string') {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Email and password are required' } });
+            }
             if (!email.includes('@')) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Invalid email address' } });
             }
-            if (password.length < 12) {
-                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Password must be at least 12 characters' } });
+            // Once setup is done, answer 409 before any policy work, so a late
+            // caller can't make this server query the breach service. The
+            // atomic INSERT below still guards the race.
+            const existing = await query('SELECT 1 FROM users LIMIT 1');
+            if (existing.rows.length > 0) {
+                return res.status(409).json({ error: { code: 'SETUP_COMPLETE', message: 'Setup is already complete. Please sign in.' } });
             }
+            // #456: setup is one of the three places a password is set, so it
+            // gets the full new-password policy (length, common, context,
+            // optional breach check). Login deliberately does not.
+            const problem = await checkNewPassword(password, { email });
+            if (problem) return passwordProblemResponse(res, problem);
 
             const hash = await hashPassword(password);
             const { rows } = await query(
@@ -118,7 +131,7 @@ export function createAuthRouter() {
         try {
             const { email, password } = req.body || {};
             const reject = () => res.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' } });
-            if (!email || !password) return reject();
+            if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) return reject();
 
             const { rows } = await query('SELECT id, password_hash FROM users WHERE email = $1', [email]);
             if (rows.length === 0) return reject();
@@ -201,25 +214,83 @@ export function createAuthRouter() {
             const { token, newPassword } = req.body || {};
             const invalid = () => res.status(400).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired reset link.' } });
 
-            if (!token || !newPassword) return invalid();
-            if (newPassword.length < 12) {
-                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Password must be at least 12 characters.' } });
-            }
+            if (typeof token !== 'string' || typeof newPassword !== 'string' || !token || !newPassword) return invalid();
 
             const tokenHash = createHash('sha256').update(token).digest('hex');
             const { rows } = await query(
-                'SELECT id, user_id FROM password_reset_tokens WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()',
+                `SELECT t.id, t.user_id, u.email FROM password_reset_tokens t JOIN users u ON u.id = t.user_id
+                 WHERE t.token_hash = $1 AND t.used_at IS NULL AND t.expires_at > NOW()`,
                 [tokenHash]
             );
             if (rows.length === 0) return invalid();
 
+            // #456: checked after the token, so an unauthenticated caller can't
+            // make this server query HIBP. The token stays unused on a policy
+            // failure, so the user can retry with another password.
+            const problem = await checkNewPassword(newPassword, { email: rows[0].email });
+            if (problem) return passwordProblemResponse(res, problem);
+
             const newHash = await hashPassword(newPassword);
             await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, rows[0].user_id]);
-            await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [rows[0].id]);
-            // Invalidate the calendar subscription token so a leaked URL stops
-            // working after a credential reset — user must regenerate from the modal.
+            // Spend this token and any other outstanding one for the user.
+            await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [rows[0].user_id]);
+            // A reset means the old password may be compromised: sign out every
+            // session (#456), and invalidate the calendar subscription token so
+            // a leaked URL stops working -- user must regenerate from the modal.
+            await query('DELETE FROM sessions WHERE user_id = $1', [rows[0].user_id]);
             await query('UPDATE plan_settings SET calendar_token = NULL WHERE user_id = $1', [rows[0].user_id]);
 
+            res.json({ ok: true });
+        } catch (err) {
+            next(err);
+        }
+    });
+
+    // #456: the advisory meter and form hints read these, so they never drift
+    // from what the server enforces.
+    authRouter.get('/password-policy', setupStatusLimiter, (req, res) => {
+        res.json(passwordPolicySummary());
+    });
+
+    // Failed attempts (wrong current password, policy rejections) count, so a
+    // stolen session can't be used to brute-force the current password.
+    const changePasswordLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+        skipSuccessfulRequests: true,
+        message: { error: { code: 'RATE_LIMITED', message: 'Too many attempts, try again later' } }
+    });
+
+    // #456: change password while signed in (Settings -> Security). Needs the
+    // current password. On success every *other* session is signed out, the
+    // caller's session stays, and outstanding reset links and the calendar
+    // feed token are invalidated, as after a reset.
+    authRouter.post('/change-password', requireSession, requireCsrf, changePasswordLimiter, async (req, res, next) => {
+        try {
+            const { currentPassword, newPassword } = req.body || {};
+            if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !currentPassword || !newPassword) {
+                return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Current and new password are required' } });
+            }
+            const { rows } = await query('SELECT email, password_hash FROM users WHERE id = $1', [req.userId]);
+            if (rows.length === 0) {
+                return res.status(401).json({ error: { code: 'UNAUTHENTICATED', message: 'Login required' } });
+            }
+            if (!(await verifyPassword(rows[0].password_hash, currentPassword))) {
+                return res.status(400).json({ error: { code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect.' } });
+            }
+            if (newPassword === currentPassword) {
+                return passwordProblemResponse(res, { reason: 'PASSWORD_UNCHANGED', message: 'New password must be different from the current one.' });
+            }
+            const problem = await checkNewPassword(newPassword, { email: rows[0].email });
+            if (problem) return passwordProblemResponse(res, problem);
+
+            const newHash = await hashPassword(newPassword);
+            await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, req.userId]);
+            await query('DELETE FROM sessions WHERE user_id = $1 AND id <> $2', [req.userId, hashToken(req.cookies.session)]);
+            await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [req.userId]);
+            await query('UPDATE plan_settings SET calendar_token = NULL WHERE user_id = $1', [req.userId]);
             res.json({ ok: true });
         } catch (err) {
             next(err);

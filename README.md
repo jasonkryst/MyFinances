@@ -54,7 +54,7 @@ MyFinances prioritizes your financial data security:
 - ✅ **Secure File Imports** — JSON validation + 2 MB size limit + full re-sanitization on import
 - ✅ **Input Validation** — Numeric bounds, date validation, text sanitization at every entry point
 - ✅ **Client-Side Only (default)** — No server, no authentication surface
-- ✅ **Optional Postgres Backend** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request
+- ✅ **Optional Postgres Backend** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request, NIST-style new-password rules with an optional Have I Been Pwned breach check, and a Settings → Security change-password form
 
 ### Continuous Security Scanning
 The CI pipeline runs five automated scans on every push and pull request to `main`:

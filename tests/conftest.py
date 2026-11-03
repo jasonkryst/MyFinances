@@ -254,7 +254,7 @@ def close_settings(page):
 
 
 def switch_settings_tab(page, tab):
-    """Click a Settings modal tab (#322: 'appearance'/'data'/'notifications'/'advanced')."""
+    """Click a Settings modal tab (#322/#456: 'appearance'/'data'/'notifications'/'advanced'/'security')."""
     page.click(f'[data-settings-tab="{tab}"]')
 
 

@@ -1,4 +1,13 @@
 import { updateAccountMenuEmail } from './ui.js';
+import { t } from './i18n.js';
+import {
+    attachPasswordStrengthMeter, newPasswordError, passwordResponseMessage, showBreachCheckNote
+} from './passwordUi.js';
+
+// All gate text is localized (#456): static labels via data-i18n in
+// index.html, dynamic messages via t() here. The strength meter is attached
+// only where a password is *set* (first-run setup, reset link), never to the
+// sign-in form.
 
 export async function showLoginGate(app) {
     let needsSetup = false;
@@ -48,11 +57,17 @@ export async function showLoginGate(app) {
     }
 
     if (needsSetup) {
-        subtitleEl.textContent = 'Create your account';
+        subtitleEl.textContent = t('login.subtitleCreate');
         confirmGroup.classList.remove('hidden');
         confirmInput.required = true;
-        submitBtn.textContent = 'Create Account';
+        submitBtn.textContent = t('login.createAccount');
         passwordInput.autocomplete = 'new-password';
+        attachPasswordStrengthMeter(passwordInput, { getEmail: () => emailInput.value });
+        showBreachCheckNote(document.getElementById('loginGateSetupBreachNote'));
+    }
+    if (resetToken && resetPassword) {
+        attachPasswordStrengthMeter(resetPassword);
+        showBreachCheckNote(document.getElementById('loginGateResetBreachNote'));
     }
 
     showMode(resetToken ? 'reset' : 'login');
@@ -82,7 +97,7 @@ export async function showLoginGate(app) {
             if (forgotError) forgotError.textContent = '';
             const email = forgotEmailInput?.value?.trim() || '';
             if (!email || !email.includes('@')) {
-                if (forgotError) forgotError.textContent = 'Enter a valid email address.';
+                if (forgotError) forgotError.textContent = t('login.invalidEmail');
                 return;
             }
             const submitBtn = forgotForm.querySelector('[type="submit"]');
@@ -96,12 +111,12 @@ export async function showLoginGate(app) {
                 });
             } catch (_) { /* ignore network errors — always show success */ }
             if (res?.status === 429) {
-                if (forgotError) forgotError.textContent = 'Too many attempts. Try again later.';
+                if (forgotError) forgotError.textContent = t('login.tooManyAttempts');
                 if (submitBtn) submitBtn.disabled = false;
                 return;
             }
             const msg = document.createElement('p');
-            msg.textContent = 'If that email has an account, a reset link is on its way. Check your inbox.';
+            msg.textContent = t('login.resetSent');
             forgotForm.replaceChildren(msg);
         };
     }
@@ -111,12 +126,9 @@ export async function showLoginGate(app) {
         resetForm.onsubmit = async (e) => {
             e.preventDefault();
             if (resetError) resetError.textContent = '';
-            if (resetPassword.value.length < 12) {
-                if (resetError) resetError.textContent = 'Password must be at least 12 characters.';
-                return;
-            }
-            if (resetPassword.value !== resetConfirm.value) {
-                if (resetError) resetError.textContent = 'Passwords do not match.';
+            const clientError = newPasswordError(resetPassword.value, resetConfirm.value);
+            if (clientError) {
+                if (resetError) resetError.textContent = clientError;
                 return;
             }
             const submitBtn = resetForm.querySelector('[type="submit"]');
@@ -129,19 +141,23 @@ export async function showLoginGate(app) {
                     body: JSON.stringify({ token: resetToken, newPassword: resetPassword.value })
                 });
             } catch (_) {
-                if (resetError) resetError.textContent = 'Could not reach the server. Check your connection.';
+                if (resetError) resetError.textContent = t('login.networkError');
                 if (submitBtn) submitBtn.disabled = false;
                 return;
             }
             if (!res.ok) {
                 const body = await res.json().catch(() => ({}));
-                if (resetError) resetError.textContent = body?.error?.message || 'Reset failed. The link may have expired.';
+                if (resetError) {
+                    resetError.textContent = res.status === 429
+                        ? t('login.tooManyAttempts')
+                        : passwordResponseMessage(body, 'login.resetFailed');
+                }
                 if (submitBtn) submitBtn.disabled = false;
                 return;
             }
             window.history.replaceState({}, '', window.location.pathname);
             const successMsg = document.createElement('p');
-            successMsg.textContent = 'Password updated successfully. You can now sign in.';
+            successMsg.textContent = t('login.resetSuccess');
             resetForm.replaceChildren(successMsg);
             setTimeout(() => showMode('login'), 2000);
         };
@@ -154,13 +170,9 @@ export async function showLoginGate(app) {
             submitBtn.disabled = true;
 
             if (needsSetup) {
-                if (passwordInput.value.length < 12) {
-                    errorEl.textContent = 'Password must be at least 12 characters.';
-                    submitBtn.disabled = false;
-                    return;
-                }
-                if (passwordInput.value !== confirmInput.value) {
-                    errorEl.textContent = 'Passwords do not match.';
+                const clientError = newPasswordError(passwordInput.value, confirmInput.value, emailInput.value);
+                if (clientError) {
+                    errorEl.textContent = clientError;
                     submitBtn.disabled = false;
                     return;
                 }
@@ -173,18 +185,18 @@ export async function showLoginGate(app) {
                     });
                 } catch (err) {
                     console.error('[loginGate] register fetch error:', err);
-                    errorEl.textContent = 'Could not reach the server. Check your connection.';
+                    errorEl.textContent = t('login.networkError');
                     submitBtn.disabled = false;
                     return;
                 }
                 if (!res.ok) {
                     if (res.status === 429) {
-                        errorEl.textContent = 'Too many attempts. Try again later.';
+                        errorEl.textContent = t('login.tooManyAttempts');
                     } else if (res.status === 409) {
-                        errorEl.textContent = 'An account already exists. Please sign in.';
+                        errorEl.textContent = t('login.accountExists');
                     } else {
                         const body = await res.json().catch(() => ({}));
-                        errorEl.textContent = body?.error?.message || 'Account creation failed.';
+                        errorEl.textContent = passwordResponseMessage(body, 'login.createFailed');
                     }
                     submitBtn.disabled = false;
                     return;
@@ -199,15 +211,15 @@ export async function showLoginGate(app) {
                     });
                 } catch (err) {
                     console.error('[loginGate] fetch error:', err);
-                    errorEl.textContent = 'Could not reach the server. Check your connection.';
+                    errorEl.textContent = t('login.networkError');
                     submitBtn.disabled = false;
                     return;
                 }
                 console.warn('[loginGate] /auth/login status:', res.status);
                 if (!res.ok) {
                     errorEl.textContent = res.status === 429
-                        ? 'Too many attempts. Try again later.'
-                        : 'Invalid email or password.';
+                        ? t('login.tooManyAttempts')
+                        : t('login.invalidCredentials');
                     submitBtn.disabled = false;
                     return;
                 }

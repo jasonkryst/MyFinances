@@ -1025,6 +1025,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '6.67.0 — 2026-11-03',
+        items: [
+            '<strong>Stronger passwords</strong> (issue #456): on the self-hosted server, new passwords need at least 15 characters and are checked against common and repetitive passwords, with an optional check against known data breaches. A strength meter shows how strong your new password is, in words as well as colour.',
+            '<strong>Settings → Security</strong>: change your password while signed in. Your other devices are signed out afterwards.'
+        ]
+    },
+    {
         version: '6.66.0 — 2026-11-02',
         items: [
             '<strong>Settings backup</strong> (issue #326): export just your preferences (theme, language, currency and option toggles) to a small file and import them on another device. Your financial data is never included or changed. Find it in Settings → Data &amp; Storage.'

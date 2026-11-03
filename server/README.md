@@ -68,6 +68,54 @@ The `postgres-data` volume is the only durability layer for this backend —
 use the root-level `backup.sh`/`backup.ps1` and `restore.sh`/`restore.ps1`
 scripts to back it up; see "Backup and Restore" in the root `DEPLOYMENT.md`.
 
+## Password security (issue #456)
+
+New passwords follow NIST SP 800-63B rev 4. The rules apply wherever a password
+is *set*: `POST /auth/register`, `POST /auth/reset-password`,
+`POST /auth/change-password` and `scripts/create-user.js`. Login never checks
+them, so an existing shorter password keeps working until it is changed.
+
+- 15 to 128 characters, counted as Unicode code points. Spaces and any
+  character are allowed, and there are no composition rules.
+- Rejected: repetitive or sequential passwords (`aaaa…`, `12345…`, `qwerty…`,
+  a block typed twice), anything on the bundled 10,000 most common passwords
+  list (also matched after stripping leading/trailing digits and symbols), and
+  passwords containing the app name or the email name (3+ characters).
+- The rules live in `src/passwordPolicy.js`, shared with the browser's
+  strength meter, and `src/auth/passwordCheck.js` adds the common list and the
+  breach check.
+- A rejection is `400 { error: { code: 'VALIDATION_FAILED', reason, message } }`.
+  `reason` is one of `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG`,
+  `PASSWORD_REPETITIVE`, `PASSWORD_COMMON`, `PASSWORD_CONTEXT`,
+  `PASSWORD_BREACHED` or `PASSWORD_UNCHANGED`. The browser shows its own
+  en/es/pl text for each.
+- `GET /auth/password-policy` (anonymous) returns
+  `{ minLength, maxLength, breachedCheckEnabled }`.
+
+### Breached-password check (optional)
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `SECURITY_CHECK_BREACHED_PASSWORDS` | off | `true` checks each new password against Have I Been Pwned's Pwned Passwords range API (the issue's `Security:CheckBreachedPasswords`). |
+| `SECURITY_BREACH_CHECK_URL` | `https://api.pwnedpasswords.com/range/` | Range endpoint. Point it at a self-hosted mirror of the HIBP dataset if the server has no internet access. |
+| `SECURITY_BREACH_CHECK_TIMEOUT_MS` | `3000` | Per-request timeout. |
+
+- **k-anonymity:** only the first 5 hex characters of the password's SHA-1
+  leave the server, with `Add-Padding: true`; the match happens locally.
+- **Fails open:** a timeout, network error or non-2xx response accepts the
+  password and logs a warning with no password data. It runs last, after the
+  local rules, and on reset only after the token is valid.
+- **No egress:** leave it off (the default), or use a mirror.
+
+### Change password and sessions
+
+`POST /auth/change-password` (session + CSRF, rate-limited to 5 failures per
+15 minutes) takes `{ currentPassword, newPassword }`. A wrong current password
+is `400 INVALID_CURRENT_PASSWORD`. On success it signs out every *other*
+session, spends any outstanding reset link and clears the calendar feed token.
+A successful reset now signs out *every* session. The UI is Settings ->
+Security.
+
 ## Automated Backups
 
 `docker-compose.yml` includes a `backup` service that runs `pg_dump` on a

@@ -9046,10 +9046,12 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
     .savings-subtab-btn { padding: 8px 4px; font-size: 0.8rem; white-space: normal; line-height: 1.25; }
 }
 
-/* Settings tabs: equal-width 2x2 grid on phone */
+/* Settings tabs: equal-width two-column grid on phone; an odd last tab
+   (Security, #456) spans the full row instead of sitting alone at half width */
 @media (max-width: 480px) {
     .settings-tabs { display: grid; grid-template-columns: 1fr 1fr; }
     .settings-tab-btn { text-align: center; min-height: 40px; }
+    .settings-tab-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 
 /* Net Worth / Forecast stat cards: two per row on phone */
@@ -9078,4 +9080,54 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     color: var(--text-color);
+}
+
+/* ===== Password strength meter + Settings Security tab (#456) =====
+   The bar is decoration (aria-hidden); the level is always written out in
+   .pw-meter-label, so colour is never the only signal. Widths are classes,
+   not inline styles, because of the CSP. */
+.pw-meter {
+    margin-top: 6px;
+}
+.pw-meter-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-color);
+    overflow: hidden;
+}
+.pw-meter-fill {
+    height: 100%;
+    width: 0;
+    transition: width 0.2s ease;
+}
+.pw-meter-fill--0 { width: 8%; background: var(--danger-color); }
+.pw-meter-fill--1 { width: 25%; background: var(--danger-color); }
+.pw-meter-fill--2 { width: 50%; background: #d97706; }
+.pw-meter-fill--3 { width: 75%; background: var(--success-color); }
+.pw-meter-fill--4 { width: 100%; background: var(--success-color); }
+.pw-meter-fill--empty { width: 0; }
+.pw-meter-label {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+.pw-meter-hint {
+    margin: 2px 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+.settings-change-password {
+    margin-top: 4px;
+}
+.settings-security-title {
+    margin: 0 0 8px;
+}
+.settings-security-status {
+    margin: 4px 0 8px;
+    color: var(--success-color);
+    font-weight: 600;
+}
+.settings-security-status:empty {
+    display: none;
 }

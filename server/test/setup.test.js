@@ -115,11 +115,11 @@ test('setup-status becomes needsSetup:false after successful register', async ()
 
 // Boundary success — must run before the validation-failure block to avoid
 // exhausting the 5-failure rate-limit window on the shared server instance.
-test('register succeeds with exactly 12-character password (boundary)', async () => {
+test('register succeeds with exactly 15-character password (boundary, #456)', async () => {
     const res = await fetch(`${baseUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'new@example.com', password: '12characters' })
+        body: JSON.stringify({ email: 'new@example.com', password: 'violet harbor 9' })
     });
     assert.equal(res.status, 200);
 });
@@ -161,7 +161,7 @@ test('register returns 400 for email without @', async () => {
     assert.equal(body.error.code, 'VALIDATION_FAILED');
 });
 
-test('register returns 400 when password is shorter than 12 characters', async () => {
+test('register returns 400 when password is shorter than 15 characters', async () => {
     const res = await fetch(`${baseUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,11 +172,11 @@ test('register returns 400 when password is shorter than 12 characters', async (
     assert.equal(body.error.code, 'VALIDATION_FAILED');
 });
 
-test('register returns 400 for exactly 11-character password (boundary)', async () => {
+test('register returns 400 for exactly 14-character password (boundary, #456)', async () => {
     const res = await fetch(`${baseUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'new@example.com', password: '11charszzzz' })
+        body: JSON.stringify({ email: 'new@example.com', password: 'fourteen chars' })
     });
     assert.equal(res.status, 400);
 });
