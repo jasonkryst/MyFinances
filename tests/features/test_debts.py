@@ -966,7 +966,7 @@ def test_debt_notes_survive_sanitizer_roundtrip(app_page):
         'accountId': None, 'archived': False, 'personIds': [], 'notes': 'Round-trip note',
     }]})
     page.evaluate("() => { window.app.switchPage('liabilities'); window.app.updateUI(); }")
-    page.wait_for_selector('text=Roundtrip Note Debt', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=Roundtrip Note Debt', timeout=5000)
 
     saved_notes = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'Roundtrip Note Debt')?.notes"

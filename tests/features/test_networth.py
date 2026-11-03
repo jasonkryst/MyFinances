@@ -143,7 +143,7 @@ def test_multiple_assets_and_liabilities(app_page):
         page.select_option('#accountType', label=name)
         page.fill('#accountStartingBalance', amount)
         page.click('#accountFormSubmit')
-        page.wait_for_selector(f'#accountsSection >> text={name}', timeout=10000)
+        page.wait_for_selector(f'#accountList >> text={name}', timeout=10000)
     
     # Add multiple debts
     page.click('button[data-page="liabilities"]')
