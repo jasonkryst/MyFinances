@@ -14,13 +14,13 @@ import pytest
 from tests.conftest import assert_no_errors, seed_state
 
 
-def _seed(page, templates, incomes=None):
+def _seed(page, templates, incomes=None, extra_accounts=()):
     """Seed one account + the given recurring templates/incomes (JS array literals)
     through the server. The account's server id is exposed as window._acct."""
     tpls = page.evaluate("() => (" + templates + ")")
     incs = page.evaluate("() => (" + (incomes or '[]') + ")")
     seed_state(page, {
-        'accounts': [{'id': 8800, 'name': 'RI Checking', 'type': 'Checking', 'startingBalance': 1000}],
+        'accounts': [{'id': 8800, 'name': 'RI Checking', 'type': 'Checking', 'startingBalance': 1000}, *extra_accounts],
         'incomes': incs,
         'recurringTemplates': tpls,
     })
@@ -129,7 +129,10 @@ def test_income_template_is_positive_ledger_inflow_and_raises_balance(app_page):
 @pytest.mark.feature
 def test_income_default_category_is_income(app_page):
     page = app_page
-    _seed(page, "[" + _tmpl(1, 'Retainer', 'income', 500).replace("category: 'Other'", "category: ''") + "]")
+    _seed(page, "[" + _tmpl(1, 'Retainer', 'income', 500) + "]")
+    # The server's sanitizer already defaults a blank category to 'Other', so blank it in memory
+    # (no write) to exercise the ledger's own income default.
+    page.evaluate("() => { window.app.recurringTemplates.find(t => t.name === 'Retainer').category = ''; }")
     cat = page.evaluate("""async () => {
         const txs = await import('/src/ledgerTransactions.js').then(m => m.getLedgerTransactions(window.app));
         return txs.find(x => x.name === 'Retainer').category;
@@ -207,10 +210,17 @@ def test_health_ignores_archived_paused_and_transfer(app_page, extra, ttype):
     page = app_page
     _seed(page, "[]")
     base, _ = _health_net(page)
-    tmpl = _tmpl(1, 'Ignored', ttype, 700, extra=extra)
+    archived = 'archived: true' in extra
+    tmpl = _tmpl(1, 'Ignored', ttype, 700, extra=extra.replace(', archived: true', ''))
+    extra_accounts = ()
     if ttype == 'transfer':
         tmpl = tmpl.replace('targetAccountId: null', 'targetAccountId: 8801')
-    _seed(page, "[" + tmpl + "]")
+        extra_accounts = ({'id': 8801, 'name': 'RI Savings', 'type': 'Savings', 'startingBalance': 0},)
+    _seed(page, "[" + tmpl + "]", extra_accounts=extra_accounts)
+    if archived:
+        # Recurring templates' `archived` flag has no Postgres column (app gap, see task report),
+        # so it can't come back from the server: set it in memory (no write).
+        page.evaluate("() => { window.app.recurringTemplates.find(t => t.name === 'Ignored').archived = true; }")
     net, _ = _health_net(page)
     assert net == pytest.approx(base)
 
@@ -273,10 +283,12 @@ def test_income_type_survives_storage_and_import_sanitize_round_trip(app_page):
     types = page.evaluate("""async () => {
         const m = await import('/src/sanitizers.js');
         const imported = m.sanitizeParsedState({ recurringTemplates: JSON.parse(JSON.stringify(window.app.recurringTemplates)) });
-        return { loaded: window.app.recurringTemplates.map(t => t.type), imported: imported.recurringTemplates.map(t => t.type) };
+        const byName = list => Object.fromEntries(list.map(t => [t.name, t.type]));
+        return { loaded: byName(window.app.recurringTemplates), imported: byName(imported.recurringTemplates) };
     }""")
-    assert types['loaded'] == ['income', 'reimbursement']
-    assert types['imported'] == ['income', 'reimbursement']
+    expected = {'Retainer': 'income', 'Old refund': 'reimbursement'}
+    assert types['loaded'] == expected
+    assert types['imported'] == expected
 
 
 # --- Calendar feed ------------------------------------------------------------

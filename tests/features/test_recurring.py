@@ -92,6 +92,7 @@ def test_create_recurring_template_monthly(app_page):
 
     _fill_recurring_form(page, 'Netflix', '15.99', 'monthly', '2026-05-01', page.evaluate("() => window._acct"))
     page.click('#recurringFormSubmit')
+    page.wait_for_selector('#recurringList .recurring-card-name', timeout=10000)  # add awaits the POST
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Netflix', "New monthly template should appear in the recurring list"
@@ -114,6 +115,7 @@ def test_create_recurring_template_biweekly(app_page):
 
     _fill_recurring_form(page, 'Lawn Care', '40', 'biweekly', '2026-05-04', page.evaluate("() => window._acct"))
     page.click('#recurringFormSubmit')
+    page.wait_for_selector('#recurringList .recurring-card-name', timeout=10000)  # add awaits the POST
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Lawn Care', "New biweekly template should appear in the recurring list"
@@ -133,6 +135,7 @@ def test_create_recurring_template_weekly(app_page):
 
     _fill_recurring_form(page, 'Cleaning Service', '25', 'weekly', '2026-05-06', page.evaluate("() => window._acct"))
     page.click('#recurringFormSubmit')
+    page.wait_for_selector('#recurringList .recurring-card-name', timeout=10000)  # add awaits the POST
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Cleaning Service', "New weekly template should appear in the recurring list"
