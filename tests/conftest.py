@@ -4,7 +4,10 @@ Shared pytest fixtures and configuration for MyFinances test suite.
 Provides common browser setup, test data, and utility functions.
 """
 
+import json
 import os
+import urllib.error
+import urllib.request
 from datetime import date
 
 import pytest
@@ -64,47 +67,174 @@ def page(browser) -> Page:
     page.close()
 
 
-# Seeds localStorage with an already-onboarded, empty-but-valid state before
-# any page script runs, so the first-run setup wizard (shown only when
-# localStorage has no debtTrackerData key at all) doesn't pop up and block
-# interaction in every other test. Tests that specifically want to exercise
-# first-run/onboarding behavior should clear storage themselves and reload.
-SKIP_FIRST_RUN_WIZARD_SCRIPT = """
-    try {
-        if (!localStorage.getItem('debtTrackerData')) {
-            localStorage.setItem('debtTrackerData', JSON.stringify({ accounts: [], debts: [], settings: [] }));
+# ---------------------------------------------------------------------------
+# Real-stack harness (v7.0.0): the app has no local storage mode, so every
+# browser test runs against the real nginx + Node + Postgres stack, signed in as
+# the single test user. `app_page` wipes server data, so NEVER point tests at a
+# deployment holding real data.
+# ---------------------------------------------------------------------------
+TEST_EMAIL = os.environ.get("POSTGRES_TEST_EMAIL", "testuser@example.com")
+TEST_PASSWORD = os.environ.get("POSTGRES_TEST_PASSWORD", "ci-test-password")
+
+_API_ROOT = BASE_URL.rstrip("/")
+_SESSION_COOKIES: dict = {}  # name -> value; module-level so every fixture shares one login
+
+
+def _http_json(method, path, body=None, cookies=None):
+    """Tiny urllib client. Returns (status, parsed_json_or_None, response_headers)."""
+    headers = {"Content-Type": "application/json"}
+    if cookies:
+        headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
+        if method not in ("GET", "HEAD") and cookies.get("csrf"):
+            headers["X-CSRF-Token"] = cookies["csrf"]
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(_API_ROOT + path, data=data, method=method, headers=headers)
+    try:
+        resp = urllib.request.urlopen(req, timeout=30)
+        status = resp.status
+    except urllib.error.HTTPError as e:
+        resp = e
+        status = e.code
+    raw = resp.read()
+    try:
+        parsed = json.loads(raw) if raw else None
+    except ValueError:
+        parsed = None
+    return status, parsed, resp.headers
+
+
+def _cookies_from(headers):
+    out = {}
+    for line in headers.get_all("Set-Cookie") or []:
+        name, _, rest = line.partition("=")
+        if name in ("session", "csrf"):
+            out[name] = rest.split(";", 1)[0]
+    return out
+
+
+def _login_or_register():
+    """Sign in once and cache the cookies.
+
+    Registers only when the server reports `needsSetup: true` (an empty users
+    table). Any other state logs in with TEST_EMAIL/TEST_PASSWORD; if that fails
+    the whole session aborts and nothing is wiped, so a real deployment with
+    different credentials can never be reset by this harness.
+    """
+    status, body, _ = _http_json("GET", "/auth/setup-status")
+    creds = {"email": TEST_EMAIL, "password": TEST_PASSWORD}
+    if status == 200 and isinstance(body, dict) and body.get("needsSetup") is True:
+        status, body, headers = _http_json("POST", "/auth/register", creds)
+        if status >= 300:
+            pytest.exit(f"Test harness: POST /auth/register failed ({status}): {body}", returncode=2)
+    else:
+        status, body, headers = _http_json("POST", "/auth/login", creds)
+        if status >= 300:
+            pytest.exit(
+                f"Test harness: login as {TEST_EMAIL} failed ({status}): {body}. "
+                "Set POSTGRES_TEST_EMAIL/POSTGRES_TEST_PASSWORD for this stack. Nothing was modified.",
+                returncode=2,
+            )
+    cookies = _cookies_from(headers)
+    if "session" not in cookies:
+        pytest.exit("Test harness: auth response carried no session cookie", returncode=2)
+    _SESSION_COOKIES.clear()
+    _SESSION_COOKIES.update(cookies)
+    return _SESSION_COOKIES
+
+
+@pytest.fixture(scope="session")
+def stack_user():
+    """Cookies (`session`, `csrf`) for the test user, logged in once per pytest session."""
+    return _login_or_register()
+
+
+def ensure_session(context) -> None:
+    """Install the cached auth cookies into a browser context.
+
+    If the server no longer accepts the cached session (401 on a cheap
+    authenticated GET) it logs in again and refreshes the cache first.
+    """
+    if not _SESSION_COOKIES:
+        _login_or_register()
+    status, _, _ = _http_json("GET", "/api/plan-settings", cookies=_SESSION_COOKIES)
+    if status == 401:
+        _login_or_register()
+    context.add_cookies([
+        {"name": name, "value": value, "url": BASE_URL} for name, value in _SESSION_COOKIES.items()
+    ])
+
+
+_RESET_JS = """
+    async () => {
+        const { pgDeleteAll } = await import('/src/postgresSync.js');
+        await pgDeleteAll(window.app);
+        const csrf = (document.cookie.split('; ').find(c => c.startsWith('csrf=')) || '').slice(5);
+        const r = await fetch('/api/settings/reconciliationAdjustsBalance', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+            body: JSON.stringify({ value: false }),
+        });
+        if (!r.ok) throw new Error('settings PUT failed: ' + r.status);
+    }
+"""
+
+_SEED_JS = """
+    async ({ state, seedAdjusts }) => {
+        const { sanitizeParsedState } = await import('/src/sanitizers.js');
+        const { replaceForPostgres } = await import('/src/postgresImport.js');
+        const input = { ...state };
+        if (seedAdjusts) {
+            input.settings = [...(state.settings || []), { key: 'reconciliationAdjustsBalance', value: false }];
         }
-    } catch (e) {}
+        const clean = sanitizeParsedState(input);
+        await replaceForPostgres(window.app, clean, {
+            paymentStrategy: state.strategy,
+            monthlyPayment: state.monthlyPayment,
+        });
+    }
 """
 
 
-@pytest.fixture
-def app_page(page) -> Page:
-    """Navigate to the app and return ready page."""
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
-    # Prevent Postgres auto-detection from triggering the login gate when a Docker
-    # stack is running at port 32900. checkPostgresBackendPresent() does HEAD /
-    # and checks for the X-Myfinances-Backend: postgres response header; fulfilling
-    # that request with a plain 200 (no header) makes the check return false.
-    def _intercept_head_root(route):
-        if route.request.method == 'HEAD':
-            route.fulfill(status=200)
-        else:
-            route.continue_()
-    page.route(BASE_URL, _intercept_head_root)
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    wait_for_app_ready(page)
+def reset_server_state(page) -> None:
+    """Wipe all server data (awaited, not fire-and-forget), keep the wizard from
+    blocking, then reload so the app re-reads the now-empty server."""
+    page.evaluate(_RESET_JS)
+    page.reload()
 
-    # ~100 tests reload after seeding localStorage; make every reload wait for init
-    # too, rather than patching each call site.
-    _original_reload = page.reload
+
+def seed_state(page, state: dict, *, reload=True) -> None:
+    """Replace all server data with `state` (same shape as a JSON export) through
+    the real import path, then reload so the app loads it back from the server."""
+    has_adjust = any(
+        isinstance(s, dict) and s.get("key") == "reconciliationAdjustsBalance"
+        for s in (state.get("settings") or [])
+    )
+    page.evaluate(_SEED_JS, {"state": state, "seedAdjusts": not has_adjust})
+    if reload:
+        page.reload()
+
+
+def _wrap_reload(page):
+    # ~100 tests reload after seeding; make every reload wait for init too,
+    # rather than patching each call site.
+    original = page.reload
 
     def _reload_and_wait(*args, **kwargs):
-        response = _original_reload(*args, **kwargs)
+        response = original(*args, **kwargs)
         wait_for_app_ready(page)
         return response
 
     page.reload = _reload_and_wait
+
+
+@pytest.fixture
+def app_page(page, stack_user) -> Page:
+    """Signed-in page on the real stack with an empty server."""
+    ensure_session(page.context)
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
+    _wrap_reload(page)
+    reset_server_state(page)
     return page
 
 
@@ -154,10 +284,17 @@ async def async_page(async_browser):
 
 
 @pytest.fixture
-async def async_app_page(async_page):
-    """Navigate to app and return ready async page."""
-    await async_page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
+async def async_app_page(async_page, stack_user):
+    """Signed-in async page on the real stack with an empty server."""
+    ready = 'html[data-app-ready="true"]'
+    await async_page.context.add_cookies([
+        {"name": name, "value": value, "url": BASE_URL} for name, value in stack_user.items()
+    ])
     await async_page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    await async_page.wait_for_selector(ready, state="attached", timeout=30000)
+    await async_page.evaluate(_RESET_JS)
+    await async_page.reload()
+    await async_page.wait_for_selector(ready, state="attached", timeout=30000)
     return async_page
 
 

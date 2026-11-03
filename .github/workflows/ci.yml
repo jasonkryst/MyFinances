@@ -410,6 +410,7 @@ jobs:
             tests/features/test_home_purchase.py \
             tests/features/test_transfers.py \
             tests/features/test_code_splitting.py \
+            tests/features/test_harness.py \
             tests/features/test_ci_shard_coverage.py \
             -v
 
