@@ -94,6 +94,63 @@ describe('probeServer', () => {
     });
 });
 
+// A fetch that never answers, but rejects (like the browser) once its signal aborts.
+function hangingFetch() {
+    return jest.fn((url, init = {}) => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(init.signal.reason || new Error('aborted')));
+    }));
+}
+
+describe('timeouts', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    test('a probe that never settles is unreachable after PROBE_TIMEOUT_MS', async () => {
+        const { PROBE_TIMEOUT_MS } = require('../../src/storage.js');
+        global.fetch = hangingFetch();
+        const pending = probeServer();
+        await jest.advanceTimersByTimeAsync(PROBE_TIMEOUT_MS);
+        await expect(pending).resolves.toEqual({ reachable: false });
+        expect(global.fetch.mock.calls[0][1].signal).toBeDefined();
+    });
+
+    test('a hanging setup-status after a 401 is unreachable too', async () => {
+        const { PROBE_TIMEOUT_MS } = require('../../src/storage.js');
+        const hang = hangingFetch();
+        global.fetch = jest.fn((url, init) => (url === '/api/plan-settings'
+            ? Promise.resolve(res(401, {}))
+            : hang(url, init)));
+        const pending = probeServer();
+        await jest.advanceTimersByTimeAsync(PROBE_TIMEOUT_MS);
+        await expect(pending).resolves.toEqual({ reachable: false });
+    });
+
+    test('a load that never settles rejects after LOAD_TIMEOUT_MS', async () => {
+        const { loadFromPostgres, LOAD_TIMEOUT_MS } = require('../../src/storage.js');
+        global.fetch = hangingFetch();
+        const pending = loadFromPostgres({});
+        const assertion = expect(pending).rejects.toBeDefined();
+        await jest.advanceTimersByTimeAsync(LOAD_TIMEOUT_MS);
+        await assertion;
+    });
+});
+
+describe('loadFromPostgres errors', () => {
+    test('a 401 during load throws SessionExpiredError (re-probe, not the unreachable gate)', async () => {
+        const { loadFromPostgres, SessionExpiredError } = require('../../src/storage.js');
+        global.fetch = jest.fn((url) => Promise.resolve(url === '/api/debts' ? res(401, {}) : res(200, [])));
+        await expect(loadFromPostgres({})).rejects.toBeInstanceOf(SessionExpiredError);
+    });
+
+    test('a 500 during load throws a plain error', async () => {
+        const { loadFromPostgres, SessionExpiredError } = require('../../src/storage.js');
+        global.fetch = jest.fn((url) => Promise.resolve(url === '/api/debts' ? res(500, {}) : res(200, [])));
+        const err = await loadFromPostgres({}).catch(e => e);
+        expect(err).toBeInstanceOf(Error);
+        expect(err).not.toBeInstanceOf(SessionExpiredError);
+    });
+});
+
 describe('saveToStorage', () => {
     function makeApp() {
         return {

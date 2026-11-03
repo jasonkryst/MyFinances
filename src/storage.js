@@ -12,12 +12,25 @@ export function getCsrfCookie() {
 // it must not be hit on every page load: a signed-in boot answers from
 // `/api/plan-settings` alone, and setup-status is asked only without a session.
 //
-// Never throws. Any network error, non-JSON body or unexpected status on either
-// request means the server can't be reached ({ reachable: false }).
+// Never throws. Any network error, timeout, non-JSON body or unexpected status
+// on either request means the server can't be reached ({ reachable: false }).
+export const PROBE_TIMEOUT_MS = 8000;
+export const LOAD_TIMEOUT_MS = 20000;
+
+// An AbortSignal that fires after `ms`. Built on setTimeout (not
+// AbortSignal.timeout) so the timer is the page's own, and a server that
+// accepts the connection but never answers can't hang boot. Covers the body
+// read too: res.json() rejects once the signal aborts.
+function _timeoutSignal(ms) {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), ms);
+    return controller.signal;
+}
+
 export async function probeServer() {
     const UNREACHABLE = { reachable: false };
     try {
-        const res = await fetch('/api/plan-settings', { cache: 'no-store' });
+        const res = await fetch('/api/plan-settings', { cache: 'no-store', signal: _timeoutSignal(PROBE_TIMEOUT_MS) });
         if (res.status === 401) {
             return await _probeSetupStatus();
         }
@@ -33,7 +46,7 @@ export async function probeServer() {
 }
 
 async function _probeSetupStatus() {
-    const res = await fetch('/auth/setup-status', { cache: 'no-store' });
+    const res = await fetch('/auth/setup-status', { cache: 'no-store', signal: _timeoutSignal(PROBE_TIMEOUT_MS) });
     // 429: the setup-status limiter is exhausted. The server answered, so it is
     // reachable; treat it as sign-in mode rather than the "Can't reach your
     // server" gate. This also keeps a Retry on that gate from looping on 429.
@@ -62,24 +75,37 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
     balanceHistory: '/api/balance-history'
 };
 
-// Fetch one API resource as JSON, throwing on any non-2xx so a failed load
-// reaches init()'s unreachable gate instead of assigning an error body as data.
-async function _getJson(path) {
-    const res = await fetch(path, { cache: 'no-store' });
+// Thrown by loadFromPostgres when the session expired between the probe and
+// the load: init() re-probes (which leads to the login gate) instead of
+// showing the unreachable gate.
+export class SessionExpiredError extends Error {
+    constructor(path) {
+        super(`GET ${path} returned 401`);
+        this.name = 'SessionExpiredError';
+    }
+}
+
+// Fetch one API resource as JSON, throwing on any non-2xx (or timeout) so a
+// failed load reaches init()'s gates instead of assigning an error body as data.
+async function _getJson(path, signal) {
+    const res = await fetch(path, { cache: 'no-store', signal });
+    if (res.status === 401) throw new SessionExpiredError(path);
     if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
     return res.json();
 }
 
-// Throws when any request fails; init() then shows the unreachable gate.
+// Throws when any request fails or the whole fan-out exceeds LOAD_TIMEOUT_MS;
+// init() then shows the unreachable gate (or re-probes on SessionExpiredError).
 export async function loadFromPostgres(app) {
+    const signal = _timeoutSignal(LOAD_TIMEOUT_MS);
     const entries = Object.entries(POSTGRES_RESOURCE_ENDPOINTS);
     const [lists, snapshots, settingsRows, overrides, clearedTransactions, planSettings] = await Promise.all([
-        Promise.all(entries.map(([, path]) => _getJson(path))),
-        _getJson('/api/net-worth-snapshots'),
-        _getJson('/api/settings'),
-        _getJson('/api/ledger-overrides'),
-        _getJson('/api/ledger-cleared'),
-        _getJson('/api/plan-settings')
+        Promise.all(entries.map(([, path]) => _getJson(path, signal))),
+        _getJson('/api/net-worth-snapshots', signal),
+        _getJson('/api/settings', signal),
+        _getJson('/api/ledger-overrides', signal),
+        _getJson('/api/ledger-cleared', signal),
+        _getJson('/api/plan-settings', signal)
     ]);
 
     entries.forEach(([field], i) => { app[field] = lists[i]; });
@@ -186,6 +212,11 @@ export async function clearAllData(app, options = {}) {
     app.incomes = [];
     app.bills = [];
     app.expenses = [];
+    app.recurringTemplates = [];
+    app.emergencyFunds = [];
+    app.sinkingFunds = [];
+    app.monthlySnapshots = [];
+    app.netWorthMilestonesAwarded = [];
     app.lastPaymentPlan = null;
     app.lastSummary = null;
     app.perMonthStimulus = [];

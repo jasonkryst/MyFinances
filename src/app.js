@@ -35,7 +35,7 @@ import {
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature,
     renderPayoffGanttChart as renderPayoffGanttChartFeature
 } from './charts.js';
-import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres } from './storage.js';
+import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres, SessionExpiredError } from './storage.js';
 import { showServerUnreachable } from './serverUnreachableGate.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgMigrationModal } from './pgMigrationModal.js';
@@ -246,6 +246,9 @@ export class DebtTrackerApp {
                 await loadFromPostgres(this);
                 break;
             } catch (err) {
+                // The session expired between probe and load: re-probe, which
+                // now reports no session and shows the login gate.
+                if (err instanceof SessionExpiredError) continue;
                 console.error('Loading data from the server failed:', err);
                 this._markReadyBehindGate();
                 await showServerUnreachable(this);
@@ -256,8 +259,11 @@ export class DebtTrackerApp {
         const legacyPromptShown = await this._handleLegacyBrowserData();
 
         // §5 step 6: first run means the wizard has never stored its setting
-        // (it persists a default the moment it opens).
-        const isFirstRun = !(this.settings || []).some(s => s?.key === RECONCILIATION_ADJUSTS_BALANCE);
+        // (it persists a default the moment it opens) AND there is no data.
+        // Existing users who never opened Settings lack the setting too; the
+        // empty-data check keeps the wizard (and the silent What's New
+        // "seen" mark below) away from them.
+        const isFirstRun = this._isFirstRun();
         if (isFirstRun && !legacyPromptShown) maybeShowSetupWizardFeature(this, true);
 
         const versionEl = document.getElementById('appVersion');
@@ -296,6 +302,14 @@ export class DebtTrackerApp {
     // starting".
     _markReadyBehindGate() {
         document.documentElement.dataset.appReady = 'true';
+    }
+
+    _isFirstRun() {
+        const hasSetting = (this.settings || []).some(s => s?.key === RECONCILIATION_ADJUSTS_BALANCE);
+        if (hasSetting) return false;
+        const collections = [this.accounts, this.debts, this.incomes, this.recurringTemplates,
+            this.emergencyFunds, this.sinkingFunds];
+        return collections.every(c => !Array.isArray(c) || c.length === 0);
     }
 
     // Legacy browser-only data (spec §5 step 4) is handled in Task 6. Returns

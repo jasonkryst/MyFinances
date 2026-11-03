@@ -13,7 +13,7 @@ the `first_run_page` fixture below deletes it again to simulate a first run.
 
 import pytest
 
-from tests.conftest import wait_for_api
+from tests.conftest import seed_state, wait_for_api
 
 _DELETE_ADJUSTS_SETTING_JS = """
     async () => {
@@ -64,6 +64,24 @@ def test_setup_wizard_does_not_show_once_setting_exists(app_page):
     classes = _wizard_classes(page)
     assert 'hidden' in classes
     assert 'flex-visible' not in classes
+
+
+@pytest.mark.ui
+def test_setup_wizard_not_shown_for_existing_data_without_setting(app_page):
+    """An existing user who never opened Settings has data but no
+    reconciliationAdjustsBalance setting. That is not a first run: no wizard,
+    and What's New is not silently marked seen."""
+    page = app_page
+    seed_state(page, {'accounts': [{'id': 1, 'name': 'Existing Checking', 'type': 'Checking',
+                                    'startingBalance': 100}]})
+    page.evaluate("() => localStorage.removeItem('debtTrackerLastSeenVersion')")
+    page.evaluate(_DELETE_ADJUSTS_SETTING_JS)
+    page.reload()
+    assert page.evaluate("() => window.app.accounts.length") == 1
+    assert page.evaluate("() => window.app.getSetting('reconciliationAdjustsBalance', null)") is None
+    assert 'hidden' in _wizard_classes(page)
+    assert page.evaluate("() => localStorage.getItem('debtTrackerLastSeenVersion')") is None, \
+        "What's New must not be silently marked seen for an existing user"
 
 
 @pytest.mark.ui

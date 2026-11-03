@@ -9,7 +9,7 @@ import json
 import tempfile
 import os
 
-from tests.conftest import assert_no_errors, open_settings, switch_settings_tab, wait_for_api
+from tests.conftest import assert_no_errors, open_settings, seed_state, switch_settings_tab, wait_for_api
 
 ALL_NAV_PAGES = [
     "health", "accounts", "income", "liabilities", "recurring",
@@ -472,6 +472,16 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(app_page):
     §5 step 6) and the setup wizard reappears, letting the user reconsider the
     reconciliation mode."""
     page = app_page
+    seed_state(page, {
+        'accounts': [{'id': 1, 'name': 'Clear Mem Checking', 'type': 'Checking', 'startingBalance': 100}],
+        'recurringTemplates': [{
+            'id': 1, 'name': 'Clear Mem Sub', 'type': 'subscription', 'amount': 9,
+            'frequency': 'monthly', 'dayOfMonth': 1, 'category': 'Other', 'accountId': 1,
+        }],
+        'emergencyFunds': [{'id': 1, 'accountId': 1, 'targetAmount': 1000, 'monthlyContribution': 50}],
+    })
+    assert page.evaluate("() => window.app.recurringTemplates.length") == 1
+    assert page.evaluate("() => window.app.emergencyFunds.length") == 1
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
     wait_for_api(page, '/api/settings',
                  lambda rows: any(r.get('key') == 'reconciliationAdjustsBalance' and r.get('value') is True
@@ -490,6 +500,12 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(app_page):
 
     wait_for_api(page, '/api/settings',
                  lambda rows: not any(r.get('key') == 'reconciliationAdjustsBalance' for r in rows))
+
+    # Without a reload, memory matches the now-empty server: every collection
+    # pgDeleteAll wipes is reset in place too.
+    for coll in ('accounts', 'recurringTemplates', 'emergencyFunds', 'sinkingFunds',
+                 'monthlySnapshots', 'netWorthMilestonesAwarded'):
+        assert page.evaluate(f"() => window.app.{coll}.length") == 0, coll
 
     page.reload()
 

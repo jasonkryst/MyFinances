@@ -192,6 +192,29 @@ def test_unreachable_when_load_fails(app_page):
 
 
 @pytest.mark.feature
+def test_session_expiring_during_load_shows_login_gate(app_page):
+    """A 401 from the load (session expired after the probe) re-probes and
+    shows the login gate, not "Can't reach your server"."""
+    page = app_page
+    _seed_basic(page)
+    state = {"done": False}
+
+    def expire_once(route):
+        if state["done"]:
+            route.continue_()
+            return
+        state["done"] = True
+        page.context.clear_cookies()  # the session really is gone from here on
+        route.fulfill(status=401, content_type='application/json', body='{"error":"UNAUTHENTICATED"}')
+
+    page.context.route('**/api/debts', expire_once)
+    page.reload()
+    page.wait_for_selector('#loginGate', state='visible', timeout=15000)
+    assert page.is_hidden('#serverUnreachableGate')
+    assert page.locator('#accountList .acct-card').count() == 0
+
+
+@pytest.mark.feature
 def test_no_session_shows_login_gate(app_page):
     page = app_page
     page.context.clear_cookies()
