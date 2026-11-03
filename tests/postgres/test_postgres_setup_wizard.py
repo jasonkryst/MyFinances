@@ -14,7 +14,7 @@ from playwright.async_api import async_playwright, expect
 
 pytestmark = pytest.mark.asyncio
 
-BASE_URL_DEFAULT = "http://localhost:32900"
+from tests.postgres.conftest import BASE_URL as BASE_URL_DEFAULT
 
 
 def _make_pg_context(playwright):

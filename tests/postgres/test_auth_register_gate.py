@@ -9,7 +9,7 @@ import httpx
 
 pytestmark = pytest.mark.asyncio
 
-BASE = 'http://localhost:32900'
+from tests.postgres.conftest import BASE_URL as BASE
 
 
 async def test_register_returns_404_when_allow_setup_not_set():

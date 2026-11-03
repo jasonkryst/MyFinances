@@ -18,19 +18,11 @@ async def _latest_mailpit_message(page):
 
 
 async def _login(page, base_url, credentials):
-    await page.goto(base_url)
-    gate = page.locator('#loginGate')
-    await gate.wait_for(state='visible', timeout=8000)
-    await page.fill('#loginGateEmail', credentials['email'])
-    await page.fill('#loginGatePassword', credentials['password'])
-    async with page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
-        await page.click('.login-gate-submit')
-    await gate.wait_for(state='hidden', timeout=12000)
+    # Session comes from the shared harness (no per-test UI login).
+    await sign_in(page, base_url)
     await page.wait_for_selector('#topNav', state='visible', timeout=8000)
-    # #topNav becomes visible before app.init() finishes awaiting
-    # loadFromPostgres()'s 15-endpoint fan-out and wiring up the settings
-    # modal's click handlers (initSettingsModalFeature); wait for the
-    # network to go quiet so #settingsBtn is actually interactive.
+    # init can still be wiring up the settings modal's handlers; wait for the network to
+    # go quiet so #settingsBtn is actually interactive.
     await page.wait_for_load_state('networkidle', timeout=15000)
 
 
