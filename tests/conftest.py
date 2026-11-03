@@ -4,6 +4,7 @@ Shared pytest fixtures and configuration for MyFinances test suite.
 Provides common browser setup, test data, and utility functions.
 """
 
+import asyncio
 import json
 import os
 import urllib.error
@@ -73,8 +74,10 @@ def page(browser) -> Page:
 # the single test user. `app_page` wipes server data, so NEVER point tests at a
 # deployment holding real data.
 # ---------------------------------------------------------------------------
-TEST_EMAIL = os.environ.get("POSTGRES_TEST_EMAIL", "testuser@example.com")
-TEST_PASSWORD = os.environ.get("POSTGRES_TEST_PASSWORD", "ci-test-password")
+TEST_EMAIL = os.environ.get("TEST_EMAIL") or os.environ.get("POSTGRES_TEST_EMAIL", "testuser@example.com")
+TEST_PASSWORD = os.environ.get("TEST_PASSWORD") or os.environ.get(
+    "POSTGRES_TEST_PASSWORD", "ci-Test-Passphrase-2026!"
+)
 
 _API_ROOT = BASE_URL.rstrip("/")
 _SESSION_COOKIES: dict = {}  # name -> value; module-level so every fixture shares one login
@@ -148,20 +151,29 @@ def stack_user():
     return _login_or_register()
 
 
+def _valid_session_cookies():
+    """Cached cookies, after re-logging in if the server answers 401 (blocking I/O)."""
+    if not _SESSION_COOKIES:
+        _login_or_register()
+    status, _, _ = _http_json("GET", "/api/plan-settings", cookies=_SESSION_COOKIES)
+    if status == 401:
+        _login_or_register()
+    return [{"name": n, "value": v, "url": BASE_URL} for n, v in _SESSION_COOKIES.items()]
+
+
 def ensure_session(context) -> None:
     """Install the cached auth cookies into a browser context.
 
     If the server no longer accepts the cached session (401 on a cheap
     authenticated GET) it logs in again and refreshes the cache first.
     """
-    if not _SESSION_COOKIES:
-        _login_or_register()
-    status, _, _ = _http_json("GET", "/api/plan-settings", cookies=_SESSION_COOKIES)
-    if status == 401:
-        _login_or_register()
-    context.add_cookies([
-        {"name": name, "value": value, "url": BASE_URL} for name, value in _SESSION_COOKIES.items()
-    ])
+    context.add_cookies(_valid_session_cookies())
+
+
+async def ensure_session_async(context) -> None:
+    """Async twin of ensure_session (the blocking HTTP runs in a worker thread)."""
+    cookies = await asyncio.to_thread(_valid_session_cookies)
+    await context.add_cookies(cookies)
 
 
 _RESET_JS = """
@@ -200,6 +212,8 @@ def reset_server_state(page) -> None:
     blocking, then reload so the app re-reads the now-empty server."""
     page.evaluate(_RESET_JS)
     page.reload()
+    # Idempotent: a wrapped reload already waited, an unwrapped one has not.
+    wait_for_app_ready(page)
 
 
 def seed_state(page, state: dict, *, reload=True) -> None:
@@ -287,9 +301,7 @@ async def async_page(async_browser):
 async def async_app_page(async_page, stack_user):
     """Signed-in async page on the real stack with an empty server."""
     ready = 'html[data-app-ready="true"]'
-    await async_page.context.add_cookies([
-        {"name": name, "value": value, "url": BASE_URL} for name, value in stack_user.items()
-    ])
+    await ensure_session_async(async_page.context)
     await async_page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     await async_page.wait_for_selector(ready, state="attached", timeout=30000)
     await async_page.evaluate(_RESET_JS)
