@@ -2,6 +2,7 @@ import readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import { pool } from '../src/db.js';
 import { hashPassword } from '../src/auth/argon2.js';
+import { checkNewPassword, PASSWORD_MIN_LENGTH } from '../src/auth/passwordCheck.js';
 import { sendTemplatedEmail } from '../src/email/send.js';
 
 async function promptTwoLines(emailPrompt, passwordPrompt) {
@@ -25,15 +26,18 @@ async function main() {
         return;
     }
 
-    const [email, password] = await promptTwoLines('Email: ', 'Password (min 12 chars): ');
+    const [email, password] = await promptTwoLines('Email: ', `Password (min ${PASSWORD_MIN_LENGTH} chars): `);
 
     if (!email.includes('@')) {
         console.error('Invalid email.');
         process.exitCode = 1;
         return;
     }
-    if (password.length < 12) {
-        console.error('Password must be at least 12 characters.');
+    // #456: same new-password policy as /auth/register (length, common,
+    // context, and the optional breached-password check).
+    const problem = await checkNewPassword(password, { email });
+    if (problem) {
+        console.error(problem.message);
         process.exitCode = 1;
         return;
     }

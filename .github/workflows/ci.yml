@@ -560,6 +560,7 @@ jobs:
             tests/ui/test_main_nav.py \
             tests/ui/test_recurring_actions.py \
             tests/ui/test_login_gate_theme.py \
+            tests/ui/test_password_security.py \
             tests/ui/test_reduced_motion.py \
             tests/ui/test_guide_theme.py \
             tests/ui/test_design_consistency.py \

@@ -41,13 +41,16 @@ async def test_reset_password_with_invalid_token_returns_400():
     assert body['error']['code'] == 'INVALID_TOKEN'
 
 
-async def test_reset_password_short_password_returns_400():
+async def test_reset_password_short_password_with_bad_token_returns_400():
+    # #456: the token is checked before the password policy, so a bad token
+    # always answers INVALID_TOKEN (the policy itself is covered by
+    # server/test/passwordSecurity.test.js with real tokens).
     async with httpx.AsyncClient() as client:
         r = await client.post(f'{BASE}/auth/reset-password',
                               json={'token': 'anytoken', 'newPassword': 'short'})
     assert r.status_code == 400
     body = r.json()
-    assert body['error']['code'] == 'VALIDATION_FAILED'
+    assert body['error']['code'] == 'INVALID_TOKEN'
 
 
 async def test_reset_password_missing_fields_returns_400():

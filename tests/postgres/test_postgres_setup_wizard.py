@@ -156,7 +156,7 @@ async def test_password_mismatch_shows_error_no_network_call(base_url):
 
 
 async def test_short_password_shows_error_no_network_call(base_url):
-    """Password shorter than 12 chars shows a client-side error; /auth/register is not called."""
+    """Password shorter than 15 chars (#456) shows a client-side error; /auth/register is not called."""
     async with async_playwright() as p:
         async with _make_pg_context(p) as page:
             logs = _capture_console(page)
@@ -176,7 +176,7 @@ async def test_short_password_shows_error_no_network_call(base_url):
             error = page.locator('#loginGateError')
             await expect(error).to_have_text(re.compile(r'.'), timeout=4000)
             text = await error.text_content()
-            assert '12' in text, f'Expected min-length error, got: "{text}". Console: {logs}'
+            assert '15' in text, f'Expected min-length error, got: "{text}". Console: {logs}'
             assert len(register_called) == 0, '/auth/register should not be called'
 
 

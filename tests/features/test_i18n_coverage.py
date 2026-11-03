@@ -513,6 +513,64 @@ TRANSLATED_PAGES = {
             document.querySelector('[data-settings-tab="advanced"]').click();
         }""",
     ),
+    # #456: Security tab, local-mode note.
+    'settings-security-local': (
+        ['#settingsModal'],
+        """async () => {
+            document.getElementById('settingsBtn').click();
+            document.querySelector('[data-settings-tab="security"]').click();
+        }""",
+    ),
+    # #456: Security tab in Postgres mode, with the strength meter showing a
+    # policy reason and a client-side error. The breach note is forced visible.
+    'settings-security-postgres': (
+        ['#settingsModal'],
+        """async () => {
+            localStorage.setItem('debtTrackerStorageBackend', 'postgres');
+            document.getElementById('settingsBtn').click();
+            document.querySelector('[data-settings-tab="security"]').click();
+            document.getElementById('settingsSecurityBreachNote').classList.remove('hidden');
+            const pw = document.getElementById('settingsNewPassword');
+            pw.value = 'short';
+            pw.dispatchEvent(new Event('input'));
+            document.getElementById('settingsChangePasswordBtn').click();
+            localStorage.removeItem('debtTrackerStorageBackend');
+        }""",
+    ),
+    # #456: login gate in first-run setup mode (meter + client error). The
+    # brand title in the header band is not scanned: it is the app's name.
+    'login-gate-setup': (
+        ['.login-gate-body'],
+        """async () => {
+            const orig = window.fetch;
+            window.fetch = (u, o) => String(u).includes('/auth/setup-status')
+                ? Promise.resolve(new Response('{"needsSetup":true}', { status: 200, headers: { 'Content-Type': 'application/json' } }))
+                : orig(u, o);
+            const lg = await import('/src/loginGate.js');
+            lg.showLoginGate(window.app);
+            await new Promise(r => setTimeout(r, 100));
+            document.getElementById('loginGateSetupBreachNote').classList.remove('hidden');
+            const pw = document.getElementById('loginGatePassword');
+            pw.value = 'short';
+            pw.dispatchEvent(new Event('input'));
+            document.getElementById('loginGateSubmit').click();
+        }""",
+    ),
+    # #456: login gate reset-link mode.
+    'login-gate-reset': (
+        ['.login-gate-body'],
+        """async () => {
+            history.replaceState({}, '', '?reset_token=abc');
+            const lg = await import('/src/loginGate.js');
+            lg.showLoginGate(window.app);
+            await new Promise(r => setTimeout(r, 100));
+            const pw = document.getElementById('loginGateResetPassword');
+            pw.value = '123456789012345';
+            pw.dispatchEvent(new Event('input'));
+            document.getElementById('loginGateResetForm').requestSubmit();
+            history.replaceState({}, '', location.pathname);
+        }""",
+    ),
     'accounts': (
         ['#accountsSection', '#acctBreakdownModal', '#balanceHistoryModal', '#transferModal'],
         """async () => {
