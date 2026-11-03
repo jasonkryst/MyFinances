@@ -256,10 +256,9 @@ jobs:
             tests/features/test_i18n_coverage.py \
             tests/features/test_pwa.py \
             tests/features/test_issue_93_expense_save.py \
-            tests/features/test_storage_backend.py \
+            tests/features/test_server_only_storage.py \
             tests/features/test_spending_analysis.py \
             tests/features/test_bills.py \
-            tests/features/test_storage_quota.py \
             tests/features/test_retirement.py \
             tests/features/test_retirement_coast_fire.py \
             tests/features/test_health_fire_target.py \

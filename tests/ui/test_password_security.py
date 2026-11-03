@@ -43,13 +43,6 @@ def app_page(browser, stack_user):
 STRONG = 'violet harbor lantern 42'
 
 
-def _postgres_mode(page):
-    # getStorageBackendPreference() reads localStorage on every call, so the
-    # Security tab can be put in Postgres mode without a reload (which would
-    # trigger the real login gate).
-    page.evaluate("() => localStorage.setItem('debtTrackerStorageBackend', 'postgres')")
-
-
 def _open_security_tab(page):
     open_settings(page)
     switch_settings_tab(page, 'security')
@@ -71,8 +64,9 @@ def _mock_change(page, status, body, calls):
 
 @pytest.fixture
 def pg_page(app_page):
+    """The signed-in page. The app is server-only (v7.0.0), so the Security
+    form always shows; the name is kept from when a Postgres mode existed."""
     yield app_page
-    app_page.evaluate("() => localStorage.removeItem('debtTrackerStorageBackend')")
 
 
 # ---------------------------------------------------------------- Security tab
@@ -87,22 +81,12 @@ def test_security_tab_is_fifth_settings_tab(app_page):
 
 
 @pytest.mark.ui
-def test_security_tab_local_mode_shows_note_not_form(app_page):
-    # RESERVED for Task 5/6/8 (local-backend mode). On the Docker stack the app auto-detects Postgres
-    # and persists that preference, so the local-mode note is never shown here.
-    _open_security_tab(app_page)
-    assert app_page.is_visible('#settingsSecurityLocalNote')
-    assert not app_page.is_visible('#settingsChangePasswordForm')
-    assert app_page.get_attribute('[data-settings-tab="security"]', 'aria-selected') == 'true'
-
-
-@pytest.mark.ui
-def test_security_tab_postgres_mode_shows_form(pg_page):
+def test_security_tab_always_shows_form(pg_page):
     _mock_policy(pg_page)
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     assert pg_page.is_visible('#settingsChangePasswordForm')
-    assert not pg_page.is_visible('#settingsSecurityLocalNote')
+    assert pg_page.locator('#settingsSecurityLocalNote').count() == 0
+    assert pg_page.get_attribute('[data-settings-tab="security"]', 'aria-selected') == 'true'
     assert pg_page.get_attribute('#settingsCurrentPassword', 'autocomplete') == 'current-password'
     assert pg_page.get_attribute('#settingsNewPassword', 'autocomplete') == 'new-password'
     assert pg_page.get_attribute('#settingsConfirmPassword', 'autocomplete') == 'new-password'
@@ -111,7 +95,6 @@ def test_security_tab_postgres_mode_shows_form(pg_page):
 @pytest.mark.ui
 def test_breach_note_follows_server_policy(pg_page):
     _mock_policy(pg_page, breached_enabled=True)
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     pg_page.wait_for_selector('#settingsSecurityBreachNote:not(.hidden)')
 
@@ -119,7 +102,6 @@ def test_breach_note_follows_server_policy(pg_page):
 @pytest.mark.ui
 def test_breach_note_hidden_when_check_off(pg_page):
     _mock_policy(pg_page, breached_enabled=False)
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     pg_page.wait_for_timeout(200)
     assert not pg_page.is_visible('#settingsSecurityBreachNote')
@@ -130,7 +112,6 @@ def test_breach_note_hidden_when_check_off(pg_page):
 @pytest.mark.ui
 def test_meter_is_text_not_only_colour(pg_page):
     _mock_policy(pg_page)
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     label = pg_page.locator('#settingsNewPasswordStrength')
     assert label.get_attribute('aria-live') == 'polite'
@@ -159,7 +140,6 @@ def test_meter_is_text_not_only_colour(pg_page):
 @pytest.mark.ui
 def test_meter_flags_email_name_as_context(pg_page):
     _mock_policy(pg_page)
-    _postgres_mode(pg_page)
     pg_page.evaluate("() => { window.app.userEmail = 'budgetfan@example.com'; }")
     _open_security_tab(pg_page)
     pg_page.fill('#settingsNewPassword', 'budgetfan rules the world')
@@ -169,7 +149,6 @@ def test_meter_flags_email_name_as_context(pg_page):
 @pytest.mark.ui
 def test_meter_text_is_localized(pg_page):
     _mock_policy(pg_page)
-    _postgres_mode(pg_page)
     pg_page.evaluate("() => window.app.setLocale('es')")
     _open_security_tab(pg_page)
     pg_page.fill('#settingsNewPassword', 'short')
@@ -185,7 +164,6 @@ def test_change_password_success_sends_csrf_and_clears_fields(pg_page):
     calls = []
     _mock_change(pg_page, 200, {'ok': True}, calls)
     pg_page.context.add_cookies([{'name': 'csrf', 'value': 'tok123', 'url': BASE_URL}])
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     pg_page.fill('#settingsCurrentPassword', 'my old password here')
     pg_page.fill('#settingsNewPassword', STRONG)
@@ -210,7 +188,6 @@ def test_change_password_client_validation_blocks_request(pg_page, current, new,
     _mock_policy(pg_page)
     calls = []
     _mock_change(pg_page, 200, {'ok': True}, calls)
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     pg_page.fill('#settingsCurrentPassword', current)
     pg_page.fill('#settingsNewPassword', new)
@@ -232,7 +209,6 @@ def test_change_password_server_errors_are_localized(pg_page, status, body, expe
     _mock_policy(pg_page)
     calls = []
     _mock_change(pg_page, status, body, calls)
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     pg_page.fill('#settingsCurrentPassword', 'old password value')
     pg_page.fill('#settingsNewPassword', STRONG)
@@ -247,7 +223,6 @@ def test_change_password_server_errors_are_localized(pg_page, status, body, expe
 def test_breached_message_in_polish(pg_page):
     _mock_policy(pg_page)
     _mock_change(pg_page, 400, {'error': {'code': 'VALIDATION_FAILED', 'reason': 'PASSWORD_BREACHED'}}, [])
-    _postgres_mode(pg_page)
     pg_page.evaluate("() => window.app.setLocale('pl')")
     _open_security_tab(pg_page)
     pg_page.fill('#settingsCurrentPassword', 'old password value')
@@ -261,7 +236,6 @@ def test_breached_message_in_polish(pg_page):
 @pytest.mark.ui
 def test_reopening_settings_wipes_typed_passwords(pg_page):
     _mock_policy(pg_page)
-    _postgres_mode(pg_page)
     _open_security_tab(pg_page)
     pg_page.fill('#settingsCurrentPassword', 'old password value')
     pg_page.fill('#settingsNewPassword', STRONG)

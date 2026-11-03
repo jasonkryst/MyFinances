@@ -1622,6 +1622,19 @@
             </div>
         </div>
     </div>
+    <!-- Server Unreachable Gate (v7.0.0; after #loginGate so ".login-gate" selectors still find the login gate first) — full-page overlay when the boot probe or data load fails; src/serverUnreachableGate.js -->
+    <div id="serverUnreachableGate" class="login-gate server-unreachable-gate hidden" role="alertdialog" aria-modal="true" aria-labelledby="serverUnreachableTitle" aria-describedby="serverUnreachableBody">
+        <div class="login-gate-card">
+            <div class="login-gate-header">
+                <h1 id="serverUnreachableTitle" class="login-gate-title" data-i18n="serverGate.title">Can't reach your server</h1>
+            </div>
+            <div class="login-gate-body">
+                <p id="serverUnreachableBody" class="server-unreachable-body" data-i18n="serverGate.body">MyFinances keeps your data on your PostgreSQL server, and it isn't answering right now. Check your connection or that the server is running, then try again.</p>
+                <button type="button" id="serverUnreachableRetryBtn" class="btn btn-primary server-unreachable-retry" data-i18n="serverGate.retry">Try again</button>
+                <p id="serverUnreachableStatus" class="server-unreachable-status" role="status" aria-live="polite"></p>
+            </div>
+        </div>
+    </div>
     <!-- Postgres Migration Modal - offered once when local data exists and Postgres is empty on first login -->
     <div id="pgMigrationModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="pgMigrationTitle" tabindex="-1">
@@ -1636,24 +1649,6 @@
             <div class="modal-actions">
                 <button id="pgMigrationTransferBtn" class="btn btn-success">Transfer Data</button>
                 <button id="pgMigrationSkipBtn" class="btn btn-secondary">Skip for Now</button>
-            </div>
-        </div>
-    </div>
-    <!-- Postgres Switch Confirm Modal - one-time warning before the permanent switch to Postgres backend -->
-    <div id="pgSwitchConfirmModal" class="modal modal-overlay hidden"
-         role="dialog" aria-modal="true" aria-labelledby="pgSwitchConfirmTitle" tabindex="-1">
-        <div class="modal-content">
-            <h3 id="pgSwitchConfirmTitle">Switch to PostgreSQL?</h3>
-            <p class="modal-description">
-                Switching to PostgreSQL is permanent. Once switched, you will not be able
-                to switch back to local or session storage.
-            </p>
-            <p class="modal-description">
-                Any existing local data can be transferred to the server on your next login.
-            </p>
-            <div class="modal-actions">
-                <button id="pgSwitchConfirmBtn" class="btn btn-danger">Continue</button>
-                <button id="pgSwitchCancelBtn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>
@@ -1803,14 +1798,7 @@
             </div>
             <div id="settingsPanel-data" class="settings-tab-panel" role="tabpanel">
                 <div class="form-group modal-form-group">
-                    <label for="settingStorageBackend" data-i18n="settings.dataStorageLabel">Data Storage</label>
-                    <select id="settingStorageBackend">
-                        <option value="local" data-i18n="settings.storageLocal">Local Storage (persists across visits)</option>
-                        <option value="session" data-i18n="settings.storageSession">Session Storage (cleared when this tab closes)</option>
-                        <option value="postgres" data-i18n="settings.storagePostgres">PostgreSQL (self-hosted server)</option>
-                    </select>
-                    <p class="modal-helper-text" data-i18n="settings.dataStorageHelp">Local Storage keeps your data saved on this device between visits. Session Storage keeps it only for as long as this browser tab stays open, then clears it automatically when the tab closes.</p>
-                    <p id="settingsStoragePostgresNote" class="modal-helper-text hidden" data-i18n="settings.storagePostgresNote">You are using PostgreSQL. Switching back to local or session storage is not supported.</p>
+                    <p id="settingStorageInfo" class="settings-storage-info" data-i18n="settings.storageServer">Storage: PostgreSQL server</p>
                 </div>
                 <div class="form-group modal-form-group settings-backup-block">
                     <h4 class="settings-backup-title" data-i18n="settings.backup.title">Settings backup</h4>
@@ -1824,12 +1812,12 @@
                 </div>
                 <div class="form-group modal-form-group settings-danger-zone">
                     <h4 class="settings-danger-title" data-i18n="settings.dangerTitle">Danger zone</h4>
-                    <p class="modal-helper-text" data-i18n="settings.dangerHelp">Permanently remove every account, debt, income, expense, plan and setting stored in this browser. Export a backup first.</p>
+                    <p class="modal-helper-text" data-i18n="settings.dangerHelp">Permanently remove every account, debt, income, expense, plan and setting stored on your server. Export a backup first.</p>
                     <button type="button" id="clearDataBtn" class="btn btn-danger btn-small" data-i18n="settings.clearAllData">Clear All Data</button>
                 </div>
             </div>
             <div id="settingsPanel-notifications" class="settings-tab-panel" role="tabpanel">
-                <div class="form-group modal-form-group hidden" id="settingsEmailTestGroup">
+                <div class="form-group modal-form-group" id="settingsEmailTestGroup">
                     <button type="button" id="settingsSendTestEmailBtn" class="btn btn-secondary" data-i18n="settings.sendTestEmail">Send test email</button>
                     <p class="modal-helper-text" data-i18n="settings.testEmailHelp">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
                 </div>
@@ -1874,8 +1862,7 @@
                 </div>
             </div>
             <div id="settingsPanel-security" class="settings-tab-panel" role="tabpanel">
-                <p id="settingsSecurityLocalNote" class="modal-helper-text" data-i18n="settings.security.localNote">Password settings are available when you use the self-hosted PostgreSQL server. Local and Session Storage have no account or password.</p>
-                <form id="settingsChangePasswordForm" class="settings-change-password hidden" novalidate>
+                <form id="settingsChangePasswordForm" class="settings-change-password" novalidate>
                     <h4 class="settings-security-title" data-i18n="settings.security.title">Change password</h4>
                     <!-- Lets password managers pair the new password with the account. -->
                     <input type="email" id="settingsSecurityUsername" autocomplete="username" hidden>

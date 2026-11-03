@@ -126,7 +126,7 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page, stack_us
 
 @pytest.mark.ui
 def test_pg_modal_content_not_white_in_dark_mode(app_page):
-    """pgMigrationModal and pgSwitchConfirmModal .modal-content must not be
+    """pgMigrationModal's .modal-content must not be
     white in dark mode — they use the base .modal-content rule which now
     reads var(--bg-secondary) rather than hardcoded white (issue #120)."""
     from tests.conftest import open_settings
@@ -136,7 +136,7 @@ def test_pg_modal_content_not_white_in_dark_mode(app_page):
     page.select_option('#themeSwitcher', 'dark')
     page.wait_for_selector('body.dark-mode', timeout=5000)
 
-    for modal_id in ['pgMigrationModal', 'pgSwitchConfirmModal']:
+    for modal_id in ['pgMigrationModal']:
         bg = page.evaluate(f"""
             () => getComputedStyle(
                 document.querySelector('#{modal_id} .modal-content')

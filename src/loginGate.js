@@ -9,16 +9,23 @@ import {
 // only where a password is *set* (first-run setup, reset link), never to the
 // sign-in form.
 
-export async function showLoginGate(app) {
+// `options.needsSetup` (boolean) skips the setup-status request when the
+// caller already knows the answer: init()'s probeServer() just asked, and that
+// route is rate-limited (20 requests per 15 minutes).
+export async function showLoginGate(app, options = {}) {
     let needsSetup = false;
-    try {
-        const statusRes = await fetch('/auth/setup-status');
-        if (statusRes.ok) {
-            const data = await statusRes.json();
-            needsSetup = data.needsSetup === true;
+    if (typeof options.needsSetup === 'boolean') {
+        needsSetup = options.needsSetup;
+    } else {
+        try {
+            const statusRes = await fetch('/auth/setup-status');
+            if (statusRes.ok) {
+                const data = await statusRes.json();
+                needsSetup = data.needsSetup === true;
+            }
+        } catch (err) {
+            console.error('[loginGate] setup-status fetch error:', err);
         }
-    } catch (err) {
-        console.error('[loginGate] setup-status fetch error:', err);
     }
 
     const gate = document.getElementById('loginGate');

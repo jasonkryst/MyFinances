@@ -431,10 +431,8 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     for path in ('/api/accounts', '/api/debts', '/api/incomes'):
         wait_for_api(page, path, lambda rows: rows == [])
 
-    # clearAllData() leaves the in-memory app on the 'local' backend until the next load
-    # (src/storage.js sets _storageBackendKind = 'local'), so a re-import in the same session
-    # would never reach the server. Reload to boot back into the Postgres backend.
-    page.reload()
+    # No reload here on purpose: clearAllData() keeps the app on the server, so
+    # an import straight after the clear must reach it.
 
     # --- Re-import the previously exported backup ---
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
@@ -468,25 +466,16 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
 
 
 @pytest.mark.integration
-def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
-    # RESERVED for Task 5: the first-run definition changes there (on the current Postgres
-    # boot path the wizard never shows), so this test is left as-is until it is rewritten.
-    """Clearing all data removes the storageKey entirely, so the next page
-    load is indistinguishable from a true first run and the setup wizard
-    must reappear, letting the user reconsider the reconciliation mode.
-
-    Uses the raw `page` fixture (not `app_page`) because `app_page`'s
-    init script re-seeds localStorage on every navigation, including the
-    reload this test relies on, which would mask the true first-run state
-    we're asserting on."""
-    from tests.conftest import BASE_URL
-
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
-    page.click('#setupWizardVisibleBtn')
-    page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
-
+def test_clear_all_data_then_reload_retriggers_setup_wizard(app_page):
+    """Clear All Data wipes every record and setting on the server, including
+    reconciliationAdjustsBalance, so the next load is a true first run (spec
+    §5 step 6) and the setup wizard reappears, letting the user reconsider the
+    reconciliation mode."""
+    page = app_page
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(r.get('key') == 'reconciliationAdjustsBalance' and r.get('value') is True
+                                  for r in rows))
 
     open_settings(page)
     switch_settings_tab(page, 'data')
@@ -499,18 +488,12 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     page.click('#alertModalOkBtn')
     page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
-    cleared_data = page.evaluate(
-        '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
-    )
-    assert not cleared_data, "App data should be removed after Clear All Data"
+    wait_for_api(page, '/api/settings',
+                 lambda rows: not any(r.get('key') == 'reconciliationAdjustsBalance' for r in rows))
 
-    page.reload(wait_until="networkidle")
+    page.reload()
 
-    modal = page.query_selector('#setupWizardModal')
-    assert modal, "Setup wizard modal should exist in the DOM"
-    classes = modal.get_attribute('class') or ''
-    assert 'flex-visible' in classes, "Setup wizard should reappear after a full data clear"
-
+    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=10000)
     page.click('#setupWizardVisibleBtn')
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
     assert setting is False, "Choosing a fresh mode after the reset should not be influenced by the prior setting"

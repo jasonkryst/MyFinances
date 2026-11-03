@@ -259,7 +259,7 @@ def test_reconciliation_module_load_failure_via_ledger_shows_alert(app_page):
     page.wait_for_selector('#reconcileFromLedgerBtn', timeout=10000)
     page.click('#reconcileFromLedgerBtn')
 
-    page.wait_for_selector('text=/.*check your connection.*/i', timeout=10000)
+    page.wait_for_selector('#alertModal >> text=/.*check your connection.*/i', timeout=10000)
     assert page.page_errors == [], f"Unexpected page errors: {page.page_errors}"
 
 

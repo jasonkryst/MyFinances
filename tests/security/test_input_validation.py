@@ -408,21 +408,26 @@ async def test_reconciliation_note_truncated_on_save_reload(async_app_page):
     """A reconciliation note longer than 200 characters is truncated on save/reload."""
     page = async_app_page
 
-    result = await page.evaluate("""async () => {
+    await seed_state_async(page, {
+        "accounts": [{"id": 7503, "name": "Recon Truncate", "type": "Checking", "startingBalance": 1000}],
+    })
+
+    await page.evaluate("""async () => {
         const app = window.app;
-        app.accounts = [{ id: 7503, name: 'Recon Truncate', type: 'Checking', startingBalance: 1000 }];
-        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.reconciliations = [];
-
         const longNote = 'x'.repeat(250);
-        await app.applyReconciliation(7503, 1100, longNote, '2026-06-10');
-        app.saveToStorage();
-        app.loadFromStorage();
-        return { noteLength: app.reconciliations[0].note.length };
+        await app.applyReconciliation(app.accounts[0].id, 1100, longNote, '2026-06-10');
     }""")
+    # Wait for the server copy, then reload so the note comes back from the server.
+    for _ in range(100):
+        rows = await page.evaluate("async () => (await fetch('/api/reconciliations')).json()")
+        if rows:
+            break
+        await page.wait_for_timeout(100)
+    await page.reload()
+    await page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    note_length = await page.evaluate("() => window.app.reconciliations[0].note.length")
 
-    assert result['noteLength'] == 200
+    assert note_length == 200
 
 
 @pytest.mark.security

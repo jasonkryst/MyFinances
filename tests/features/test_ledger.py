@@ -232,7 +232,6 @@ def test_ledger_override_persists_after_reload(app_page):
     page.fill('#ledgerOverrideAmountInput', '777.77')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     # Confirm it actually landed on the server before reloading.
     stored_overrides = _server_overrides(page, tx_id)
@@ -299,7 +298,6 @@ def test_ledger_overrides_for_different_keys_do_not_collide(app_page):
     page.fill('#ledgerOverrideAmountInput', '222.22')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     stored_overrides = _server_overrides(page, tx_id_1, tx_id_2)
 
@@ -360,7 +358,6 @@ def test_ledger_cleared_persists_after_reload(app_page):
     checkbox = page.query_selector('[data-ledger-cleared]')
     tx_id = checkbox.get_attribute('data-ledger-cleared')
     checkbox.click()
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     stored = _server_cleared(page, tx_id)
     assert stored, "ledgerClearedTransactions should be persisted to the server"
@@ -1659,7 +1656,6 @@ def test_ledger_override_memo_persists_after_storage_reload(app_page):
     page.fill('#ledgerOverrideMemoInput', 'refund received')
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     stored = _server_overrides(page, tx_id).get(tx_id)
     assert stored, "Override should be persisted to the server"
@@ -1689,7 +1685,6 @@ def test_ledger_override_memo_empty_when_not_entered(app_page):
     # Leave memo blank
     page.click('#ledgerOverrideConfirmBtn')
     page.wait_for_selector('#ledgerOverrideModal', state='hidden', timeout=5000)
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
 
     stored = _server_overrides(page, tx_id).get(tx_id)
     assert stored, "Override should be persisted"
@@ -1869,7 +1864,6 @@ def test_ledger_bulk_clear_persists_after_reload(app_page):
     page.click('#ledgerSelectAll')
     page.click('#ledgerBulkClearBtn')
     page.wait_for_selector('[data-ledger-cleared]', timeout=5000)
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
     _server_cleared(page, *tx_ids)
 
     page.reload()

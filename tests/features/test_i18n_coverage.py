@@ -553,6 +553,22 @@ TRANSLATED_PAGES = {
             document.getElementById('loginGateSubmit').click();
         }""",
     ),
+    # v7.0.0: "Can't reach your server" gate, after a failed Retry so the
+    # polite status line holds the still-unreachable message too.
+    'server-unreachable-gate': (
+        ['#serverUnreachableGate'],
+        """async () => {
+            const orig = window.fetch;
+            window.fetch = (u, o) => String(u).includes('/api/plan-settings')
+                ? Promise.reject(new TypeError('Failed to fetch'))
+                : orig(u, o);
+            const gate = await import('/src/serverUnreachableGate.js');
+            gate.showServerUnreachable(window.app);
+            document.getElementById('serverUnreachableRetryBtn').click();
+            await new Promise(r => setTimeout(r, 200));
+            window.fetch = orig;
+        }""",
+    ),
     # #456: login gate reset-link mode.
     'login-gate-reset': (
         ['.login-gate-body'],

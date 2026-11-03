@@ -355,7 +355,7 @@ def test_archived_count_note_shows_correct_count(app_page):
 
 @pytest.mark.feature
 def test_archived_flag_survives_storage_round_trip(app_page):
-    """Archived flag persists through saveToStorage / loadFromStorage cycle."""
+    """Archived flag persists through a save to and load from the server."""
     page = app_page
     _seed_account(page)
     _seed_template(page, template_id=9002, archived=True, name="Persist Archived")

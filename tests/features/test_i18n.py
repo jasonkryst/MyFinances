@@ -175,24 +175,17 @@ def test_health_gauge_sr_tables_translate(app_page, account_data, income_data):
 
 
 @pytest.mark.feature
-def test_settings_modal_postgres_storage_option_translates(app_page):
-    """The Settings modal's PostgreSQL storage option and helper note
-    translate too -- previously hardcoded English inside an otherwise
-    translated modal (i18n audit finding, 2026-09-02). Fixed 2026-09-04."""
+def test_settings_modal_storage_line_translates(app_page):
+    """The Settings modal's static "Storage: PostgreSQL server" line (v7.0.0,
+    which replaced the backend select) translates too."""
     page = app_page
 
     page.evaluate("() => window.app.setLocale('es')")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
+    page.click('[data-settings-tab="data"]')
 
-    option_text = page.inner_text('#settingStorageBackend option[value="postgres"]')
-    assert option_text == 'PostgreSQL (servidor autoalojado)'
-
-    note_text = page.evaluate(
-        "() => document.getElementById('settingsStoragePostgresNote').textContent"
-    )
-    assert note_text == 'Estás usando PostgreSQL. No es posible volver a almacenamiento local o de sesión.'
+    assert page.inner_text('#settingStorageInfo') == 'Almacenamiento: servidor PostgreSQL'
 
 
 @pytest.mark.feature

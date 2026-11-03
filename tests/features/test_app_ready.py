@@ -14,8 +14,10 @@ from tests.conftest import BASE_URL, ensure_session, seed_state, wait_for_app_re
 def test_app_page_fixture_returns_initialized_app(app_page):
     page = app_page
     assert page.get_attribute('html', 'data-app-ready') == 'true'
-    # init() has run: the post-init globals from the DOMContentLoaded handler exist.
-    assert page.evaluate("() => !!window.app && typeof window.flushStorageSave === 'function'")
+    # init() has run past the boot gates and loaded from the server.
+    assert page.evaluate("() => !!window.app && Array.isArray(window.app.settings)")
+    assert page.is_hidden('#serverUnreachableGate')
+    assert page.is_hidden('#loginGate')
 
 
 @pytest.mark.feature

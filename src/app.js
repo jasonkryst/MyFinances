@@ -35,11 +35,11 @@ import {
     renderDebtToIncomeChart as renderDebtToIncomeChartFeature,
     renderPayoffGanttChart as renderPayoffGanttChartFeature
 } from './charts.js';
-import { saveToStorage, loadFromStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, switchStorageBackend as switchStorageBackendFeature, checkPostgresSession, checkPostgresBackendPresent, loadFromPostgres, flushStorageSave } from './storage.js';
+import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres } from './storage.js';
+import { showServerUnreachable } from './serverUnreachableGate.js';
 import { showLoginGate } from './loginGate.js';
 import { showPgMigrationModal } from './pgMigrationModal.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, exportChartsAsPng as exportChartsAsPngFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
-import { createStorageAdapter, getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import {
     recordBalanceHistory as recordBalanceHistoryFeature,
     getBalanceHistory as getBalanceHistoryFeature,
@@ -95,7 +95,7 @@ import {
     captureNetWorthSnapshot as captureNetWorthSnapshotFeature,
     renderNetWorthWidget as renderNetWorthWidgetFeature
 } from './reportsNetWorth.js';
-import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showStorageQuotaWarning as showStorageQuotaWarningFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, checkWhatsNew as checkWhatsNewFeature, openWhatsNewModal as openWhatsNewModalFeature, showAlertModal } from './ui.js';
+import { initializeEventListeners as initializeUIEventListeners, switchTab as switchTabFeature, updateFormVisibility as updateFormVisibilityFeature, switchPage as switchPageFeature, renderPageData as renderPageDataFeature, switchLiabilitiesSubTab as switchLiabilitiesSubTabFeature, updateUI as updateUIFeature, showMilestone as showMilestoneFeature, showNetWorthMilestone as showNetWorthMilestoneFeature, showUpdateAvailableBanner as showUpdateAvailableBannerFeature, checkWhatsNew as checkWhatsNewFeature, openWhatsNewModal as openWhatsNewModalFeature, showAlertModal } from './ui.js';
 import { registerServiceWorker } from './serviceWorker.js';
 import { APP_VERSION, renderLazyLoadError } from './utils.js';
 import {
@@ -133,7 +133,7 @@ import {
 import { renderHealthDashboard as renderHealthDashboardFeature } from './health.js';
 import { openKeyboardShortcutsModal as openKeyboardShortcutsModalFeature } from './keyboardShortcuts.js';
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
-import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT } from './settings.js';
+import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { initCalendarFeedModal } from './calendarFeed.js';
@@ -199,9 +199,6 @@ export class DebtTrackerApp {
             this.liabilitiesSubTab = 'debts';
         this._savedMonthlyPayment = null;
         this._savedStrategy = null;
-        this.storageKey = 'debtTrackerData';
-        this._storageBackendKind = getStorageBackendPreference();
-        this.storageAdapter = createStorageAdapter(this._storageBackendKind);
     this._netWorthRangeMonths = 6;
     this._cashFlowTrendRangeMonths = 6;
     this._forecastRangeMonths = 1;
@@ -219,49 +216,54 @@ export class DebtTrackerApp {
 
         applyStaticTranslations();
 
-        this._isFirstRun = this.storageAdapter.get(this.storageKey) === null;
-
         this.initializeEventListeners();
     }
 
+    // Boot (v7.0.0, spec §5): the PostgreSQL server is the only storage.
     async init() {
-        // A fresh browser/incognito profile has no stored backend
-        // preference and would otherwise default to local-storage mode
-        // forever, silently bypassing login even when this origin is a
-        // Postgres-backed deployment (issue #164). Detect that case and
-        // force Postgres mode before deciding which init path to take.
-        if (this._storageBackendKind !== 'postgres' && await checkPostgresBackendPresent()) {
-            this._storageBackendKind = 'postgres';
-            setStorageBackendPreference('postgres');
+        // §5 step 5: the backend preference from the local/session-storage era
+        // means nothing now; drop it unconditionally.
+        try { localStorage.removeItem('debtTrackerStorageBackend'); } catch (_) { /* storage blocked */ }
+
+        // §5 steps 1-3: probe, sign in if needed, load. Any failure shows the
+        // "Can't reach your server" gate; its Retry resolves once the server
+        // answers again and the whole sequence re-runs. Nothing is rendered
+        // from data while a gate is up.
+        for (;;) {
+            const probe = await probeServer();
+            if (!probe.reachable) {
+                // A 429 from /auth/setup-status is mapped to reachable by
+                // probeServer(), so this retry loop can't spin on the limiter.
+                this._markReadyBehindGate();
+                await showServerUnreachable(this);
+                continue;
+            }
+            if (!probe.hasSession) {
+                this._markReadyBehindGate();
+                await showLoginGate(this, { needsSetup: probe.needsSetup === true });
+            }
+            try {
+                await loadFromPostgres(this);
+                break;
+            } catch (err) {
+                console.error('Loading data from the server failed:', err);
+                this._markReadyBehindGate();
+                await showServerUnreachable(this);
+            }
         }
 
-        if (this._storageBackendKind === 'postgres') {
-            const hasSession = await checkPostgresSession();
-            if (!hasSession) {
-                await showLoginGate(this);
-            }
-            await loadFromPostgres(this);
-            const localJson = window.localStorage.getItem('debtTrackerData');
-            if (localJson) {
-                const postgresIsEmpty =
-                    this.debts.length === 0 && this.accounts.length === 0 &&
-                    this.incomes.length === 0 && this.bills.length === 0 &&
-                    this.expenses.length === 0 && this.recurringTemplates.length === 0 &&
-                    this.emergencyFunds.length === 0 && this.sinkingFunds.length === 0 &&
-                    this.reconciliations.length === 0;
-                if (postgresIsEmpty) {
-                    await showPgMigrationModal(this, localJson);
-                }
-            }
-        } else {
-            this.loadFromStorage();
-            maybeShowSetupWizardFeature(this, this._isFirstRun);
-        }
+        // §5 step 4 (legacy browser data) — true when a prompt was shown.
+        const legacyPromptShown = await this._handleLegacyBrowserData();
+
+        // §5 step 6: first run means the wizard has never stored its setting
+        // (it persists a default the moment it opens).
+        const isFirstRun = !(this.settings || []).some(s => s?.key === RECONCILIATION_ADJUSTS_BALANCE);
+        if (isFirstRun && !legacyPromptShown) maybeShowSetupWizardFeature(this, true);
 
         const versionEl = document.getElementById('appVersion');
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
 
-        checkWhatsNewFeature(this._isFirstRun);
+        checkWhatsNewFeature(isFirstRun);
 
         // Auto-capture monthly net worth snapshot if enabled
         if (getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
@@ -287,6 +289,19 @@ export class DebtTrackerApp {
         this.updateUI();
         this.updateFormVisibility();
         this.switchPage('health');
+    }
+
+    // The readiness marker (issue #422) also goes up while boot waits at a
+    // gate, so tests and tooling can tell "stopped at a gate" from "still
+    // starting".
+    _markReadyBehindGate() {
+        document.documentElement.dataset.appReady = 'true';
+    }
+
+    // Legacy browser-only data (spec §5 step 4) is handled in Task 6. Returns
+    // true when a prompt was shown, which suppresses the setup wizard.
+    async _handleLegacyBrowserData() {
+        return false;
     }
 
     initializeEventListeners() {
@@ -656,9 +671,8 @@ export class DebtTrackerApp {
 
     /**
      * Wipe all debts and reset every piece of app state, then confirm to the user.
-     * Clears `this.debts`, `this.lastPaymentPlan`, `this.lastSummary`, and
-     * `this.perMonthStimulus`, removes data from localStorage, and resets all
-     * form fields.
+     * Resets in-memory state, deletes every record on the server (awaited),
+     * and resets all form fields.
      */
     clearAllData() {
         return clearAllDataFeature(this, {
@@ -678,10 +692,6 @@ export class DebtTrackerApp {
         return showNetWorthMilestoneFeature(message);
     }
 
-    showStorageQuotaWarning(usage) {
-        return showStorageQuotaWarningFeature(usage);
-    }
-
     showUpdateAvailableBanner(waitingWorker) {
         return showUpdateAvailableBannerFeature(waitingWorker);
     }
@@ -690,28 +700,11 @@ export class DebtTrackerApp {
     openWhatsNewModal() { return openWhatsNewModalFeature(); }
 
     /**
-     * Persist current state to localStorage under `this.storageKey`.
-     * Saved keys: `debts`, `perMonthStimulus`, `monthlyPayment`, `strategy`, `timestamp`.
+     * Persist the plan-settings scalars to the server (PATCH /api/plan-settings).
+     * Record collections are synced by their feature modules.
      */
     saveToStorage() {
         return saveToStorage(this);
-    }
-
-    /**
-     * Restore state from localStorage.
-     * Populates `this.debts`, `this.perMonthStimulus`, `this._savedMonthlyPayment`,
-     * and `this._savedStrategy`. Silently ignores missing or corrupted data.
-     */
-    loadFromStorage() {
-        return loadFromStorage(this);
-    }
-
-    /**
-     * Switch the active persistence backend ('local' | 'session'),
-     * migrating current data into the new backend and clearing the old one.
-     */
-    switchStorageBackend(kind) {
-        return switchStorageBackendFeature(this, kind);
     }
 
     /**
@@ -1213,8 +1206,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // racing the window.app assignment. A data attribute keeps it CSP-safe.
         document.documentElement.dataset.appReady = 'true';
     }
-    window.flushStorageSave = flushStorageSave;
-    window.addEventListener('beforeunload', () => flushStorageSave());
     const pageParam = new URLSearchParams(window.location.search).get('page');
     if (pageParam) window.app.switchPage(pageParam);
     registerServiceWorker(window.app);

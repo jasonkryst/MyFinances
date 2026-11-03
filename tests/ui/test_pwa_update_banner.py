@@ -5,8 +5,7 @@ Service-worker update-available banner tests (GitHub issue #75).
 The banner is triggered from src/serviceWorker.js's updatefound/statechange
 listener, which is awkward to force deterministically in Playwright (it
 depends on real SW lifecycle timing). Since app.showUpdateAvailableBanner(waitingWorker)
-is a plain, directly-callable method (same pattern as app.showStorageQuotaWarning
-in tests/features/test_storage_quota.py), these tests call it directly with a
+is a plain, directly-callable method, these tests call it directly with a
 stub waitingWorker object rather than forcing a real SW update cycle.
 """
 

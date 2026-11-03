@@ -200,13 +200,6 @@ def _valid_session_cookies():
     return [{"name": n, "value": v, "url": BASE_URL} for n, v in _SESSION_COOKIES.items()]
 
 
-# A fresh context has no stored backend preference, so every app boot would call
-# GET /auth/setup-status to detect Postgres (checkPostgresBackendPresent). That route is limited to
-# 20 requests per 15 minutes, and a 429 there makes the app fall back to local mode. Pin the
-# preference the detection would have stored anyway so a test run never trips the limiter.
-_PIN_BACKEND_JS = "try { localStorage.setItem('debtTrackerStorageBackend', 'postgres'); } catch (e) {}"
-
-
 def ensure_session(context) -> None:
     """Install the cached auth cookies into a browser context.
 
@@ -214,14 +207,12 @@ def ensure_session(context) -> None:
     authenticated GET) it logs in again and refreshes the cache first.
     """
     context.add_cookies(_valid_session_cookies())
-    context.add_init_script(_PIN_BACKEND_JS)
 
 
 async def ensure_session_async(context) -> None:
     """Async twin of ensure_session (the blocking HTTP runs in a worker thread)."""
     cookies = await asyncio.to_thread(_valid_session_cookies)
     await context.add_cookies(cookies)
-    await context.add_init_script(_PIN_BACKEND_JS)
 
 
 _RESET_JS = """

@@ -1,9 +1,8 @@
 // Settings -> Security tab (issue #456): change password while signed in.
-// Only meaningful on the self-hosted PostgreSQL backend; in Local/Session
-// Storage mode there is no account, so the tab shows a short note instead.
+// The app always runs against the PostgreSQL server (v7.0.0), so the form is
+// always shown.
 import { t } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
-import { getStorageBackendPreference } from './storageAdapters.js';
 import { showLoginGate } from './loginGate.js';
 import {
     attachPasswordStrengthMeter, newPasswordError, passwordResponseMessage, showBreachCheckNote
@@ -14,7 +13,6 @@ let meter = null;
 function els() {
     return {
         form: document.getElementById('settingsChangePasswordForm'),
-        localNote: document.getElementById('settingsSecurityLocalNote'),
         username: document.getElementById('settingsSecurityUsername'),
         current: document.getElementById('settingsCurrentPassword'),
         next: document.getElementById('settingsNewPassword'),
@@ -32,15 +30,11 @@ function clearFields(e) {
     if (meter) meter.reset(); else e.next.value = '';
 }
 
-// Called each time the Settings modal opens: picks the form or the local-mode
-// note, and wipes any password left in the fields from a previous visit.
+// Called each time the Settings modal opens: wipes any password left in the
+// fields from a previous visit.
 export function refreshSecuritySettingsPanel(app) {
     const e = els();
-    if (!e.form || !e.localNote) return;
-    const isPostgres = getStorageBackendPreference() === 'postgres';
-    e.form.classList.toggle('hidden', !isPostgres);
-    e.localNote.classList.toggle('hidden', isPostgres);
-    if (!isPostgres) return;
+    if (!e.form) return;
     if (e.username) e.username.value = app?.userEmail || '';
     e.error.textContent = '';
     e.status.textContent = '';

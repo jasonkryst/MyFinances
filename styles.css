@@ -8386,7 +8386,8 @@ body.dark-mode .login-gate-header {
     min-height: 1.25rem;
     margin: 0.25rem 0 0.75rem;
 }
-.login-gate-submit {
+.login-gate-submit,
+.server-unreachable-retry {
     width: 100%;
     min-height: 48px;
     border-radius: 12px;
@@ -8396,11 +8397,13 @@ body.dark-mode .login-gate-header {
     box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
     transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
-.login-gate-submit:hover {
+.login-gate-submit:hover,
+.server-unreachable-retry:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 22px rgba(37, 99, 235, 0.34);
 }
-.login-gate-submit:active {
+.login-gate-submit:active,
+.server-unreachable-retry:active {
     transform: translateY(0);
     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.24);
 }
@@ -9130,4 +9133,23 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
 }
 .settings-security-status:empty {
     display: none;
+}
+
+/* Server Unreachable Gate (v7.0.0) — reuses the .login-gate overlay/card. */
+.server-unreachable-body {
+    color: var(--text-primary);
+    margin: 0 0 1.25rem;
+    line-height: 1.5;
+}
+.server-unreachable-status {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    min-height: 1.25rem;
+    margin: 0.75rem 0 0;
+    text-align: center;
+}
+.settings-storage-info {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
 }

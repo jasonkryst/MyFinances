@@ -6,6 +6,9 @@ sw.js precaches the app shell on first visit so the app can load with zero
 network connectivity afterward -- this is the core "offline" promise of a
 PWA. Playwright's BrowserContext.set_offline() simulates a fully disconnected
 network at the browser level (distinct from just a slow/flaky connection).
+
+Since v7.0.0 the data lives only on the server, so offline the cached shell
+shows the "Can't reach your server" gate rather than any data.
 """
 
 import time
@@ -57,11 +60,12 @@ def test_app_shell_loads_offline_after_first_visit(browser):
 
 @pytest.mark.integration
 @pytest.mark.slow
-def test_data_page_navigation_works_offline(browser):
-    """Switching pages while offline relies only on cached resources — all routing
-    is client-side JS and the SW precaches every app-shell file on first visit."""
-    # RESERVED for Task 5: offline behaviour (server-unreachable gate) changes there; with the
-    # server unreachable the current Postgres boot path shows the login gate, so the app is not usable offline.
+def test_offline_reload_shows_unreachable_gate_then_recovers(browser):
+    """v7.0.0: data lives only on the server. Offline, the SW still serves the
+    shell, so the app boots far enough to show the "Can't reach your server"
+    gate instead of stale or empty data. Back online, Retry loads the data.
+    (Replaces the old "page navigation works offline" test: there is no
+    offline data to navigate any more.)"""
     context = browser.new_context()
     ensure_session(context)
     page = context.new_page()
@@ -69,72 +73,39 @@ def test_data_page_navigation_works_offline(browser):
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     wait_for_app_ready(page)
     assert _wait_for_active_service_worker(page), "Expected active service worker"
+    page.evaluate("""async () => {
+        const { replaceForPostgres } = await import('/src/postgresImport.js');
+        const { sanitizeParsedState } = await import('/src/sanitizers.js');
+        await replaceForPostgres(window.app, sanitizeParsedState({
+            accounts: [{ id: 1, name: 'Offline Gate Checking', type: 'Checking', balance: 500 }],
+            settings: [{ key: 'reconciliationAdjustsBalance', value: false }],
+        }), {});
+    }""")
 
     context.set_offline(True)
     page.reload(wait_until="load", timeout=15000)
-
-    page.click('button[data-page="health"]')
-    page.wait_for_selector('#healthSection.active', timeout=8000)
-
-    content = page.inner_text('#healthSection')
-    assert len(content.strip()) > 50, (
-        "Expected substantive rendered content in Health section offline; "
-        "got only empty or shell-level text — cached JS may not have run"
-    )
-
-    context.set_offline(False)
-    context.close()
-
-
-@pytest.mark.integration
-@pytest.mark.slow
-def test_add_debt_offline_persists_to_localstorage(browser):
-    """Adding a debt while offline writes it to localStorage — the full add-debt
-    flow (form fill → submit → re-render) is purely client-side with no network calls."""
-    # RESERVED for Task 5: offline behaviour (server-unreachable gate) changes there; with the
-    # server unreachable the current Postgres boot path shows the login gate, so the app is not usable offline.
-    context = browser.new_context()
-    ensure_session(context)
-    page = context.new_page()
-
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     wait_for_app_ready(page)
-    assert _wait_for_active_service_worker(page), "Expected active service worker"
 
-    context.set_offline(True)
-    page.reload(wait_until="load", timeout=15000)
-
-    # Navigate to Liabilities → Debts tab.
-    page.click('button[data-page="liabilities"]')
-    page.click('[data-liabilities-subtab="debts"]')
-    page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-
-    # Open the add-debt form and fill it.
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
-    page.fill('#debtName', 'Offline Test Debt')
-    page.select_option('#debtType', value='creditCard')
-    page.fill('#accountBalance', '1500')
-    page.fill('#interestRate', '19.99')
-    page.fill('#minimumPayment', '35')
-    page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
-
-    page.wait_for_selector('text=Offline Test Debt', timeout=5000)
-
-    # Confirm the debt was persisted to localStorage (no network path involved).
-    stored = page.evaluate("""
-        () => {
-            const raw = localStorage.getItem('debtTrackerData');
-            if (!raw) return null;
-            const data = JSON.parse(raw);
-            return (data.debts || []).find(d => d.name === 'Offline Test Debt') || null;
+    page.wait_for_selector('#serverUnreachableGate', state='visible', timeout=10000)
+    assert page.is_hidden('#loginGate'), "Offline must not be mistaken for a missing session"
+    assert page.locator('#accountList .acct-card').count() == 0, "No data may render behind the gate"
+    # Network-only: /api must never be answered from the SW cache.
+    cached_api = page.evaluate("""async () => {
+        const keys = await caches.keys();
+        for (const k of keys) {
+            const reqs = await (await caches.open(k)).keys();
+            if (reqs.some(r => new URL(r.url).pathname.startsWith('/api/'))) return true;
         }
-    """)
-    assert stored is not None, "Expected the new debt to be saved in localStorage while offline"
-    assert stored['accountBalance'] == 1500
+        return false;
+    }""")
+    assert not cached_api, "API responses must not be stored in Cache Storage"
 
     context.set_offline(False)
+    page.click('#serverUnreachableRetryBtn')
+    page.wait_for_selector('#serverUnreachableGate', state='hidden', timeout=15000)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountList >> text=Offline Gate Checking', timeout=10000)
+
     context.close()
 
 
@@ -143,29 +114,25 @@ def test_add_debt_offline_persists_to_localstorage(browser):
 def test_chartjs_renders_from_sw_cache_offline(browser):
     """Chart.js (loaded from CDN) is cached by the SW's staleWhileRevalidate handler
     on first fetch. Going offline after the first visit must still serve the script
-    from that cache so window.Chart is defined and charts render."""
-    # RESERVED for Task 5: offline behaviour (server-unreachable gate) changes there; with the
-    # server unreachable the current Postgres boot path shows the login gate, so the app is not usable offline.
+    from that cache, so window.Chart is defined while the unreachable gate is up
+    (and charts can render as soon as the server is back)."""
     context = browser.new_context()
     ensure_session(context)
     page = context.new_page()
 
-    # Online first visit — navigate to Health so Chart.js CDN is fetched and cached
-    # by the SW's staleWhileRevalidate handler (sw.js:99-101).
+    # Online first visit, so the Chart.js CDN script is fetched and cached by the
+    # SW's staleWhileRevalidate handler.
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     wait_for_app_ready(page)
     assert _wait_for_active_service_worker(page), "Expected active service worker"
-    page.click('button[data-page="health"]')
-    page.wait_for_selector('#healthSection.active', timeout=8000)
-    # Give the SW time to finish caching the CDN response.
-    page.wait_for_load_state("networkidle", timeout=10000)
+    # A second online load goes through the now-active SW, which caches the CDN response.
+    page.reload(wait_until="networkidle", timeout=30000)
+    wait_for_app_ready(page)
 
     context.set_offline(True)
     page.reload(wait_until="load", timeout=15000)
-
-    page.click('button[data-page="health"]')
-    page.wait_for_selector('#healthSection.active', timeout=8000)
-    page.wait_for_selector('#healthDtiGauge', timeout=5000)
+    wait_for_app_ready(page)
+    page.wait_for_selector('#serverUnreachableGate', state='visible', timeout=10000)
 
     # window.Chart being defined proves the CDN script was served from SW cache.
     chart_loaded = page.evaluate("() => typeof window.Chart !== 'undefined'")

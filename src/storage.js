@@ -1,7 +1,5 @@
-// LocalStorage import/export
+// Server persistence: boot probe, load from and save to the PostgreSQL API.
 
-import { createStorageAdapter, setStorageBackendPreference } from './storageAdapters.js';
-import { sanitizeParsedState } from './sanitizers.js';
 import { pgDeleteAll } from './postgresSync.js';
 
 export function getCsrfCookie() {
@@ -9,39 +7,41 @@ export function getCsrfCookie() {
     return match ? match.split('=')[1] : '';
 }
 
-export async function checkPostgresSession() {
+// Boot probe (spec §5 step 1). `/auth/setup-status` is rate-limited to 20
+// requests per 15 minutes (server/src/routes/auth.js setupStatusLimiter), so
+// it must not be hit on every page load: a signed-in boot answers from
+// `/api/plan-settings` alone, and setup-status is asked only without a session.
+//
+// Never throws. Any network error, non-JSON body or unexpected status on either
+// request means the server can't be reached ({ reachable: false }).
+export async function probeServer() {
+    const UNREACHABLE = { reachable: false };
     try {
-        const res = await fetch('/api/plan-settings');
-        return res.ok;
+        const res = await fetch('/api/plan-settings', { cache: 'no-store' });
+        if (res.status === 401) {
+            return await _probeSetupStatus();
+        }
+        if (!res.ok) return UNREACHABLE;
+        // A static host's HTML fallback can answer 200 for /api/*; only a JSON
+        // object proves this is the API.
+        const body = await res.json();
+        if (!body || typeof body !== 'object') return UNREACHABLE;
+        return { reachable: true, hasSession: true };
     } catch {
-        return false;
+        return UNREACHABLE;
     }
 }
 
-// Detects whether this origin is a Postgres-backed deployment (nginx.conf's
-// `X-Myfinances-Backend: postgres` header, stamped on every /index.html
-// response by the Docker image that always ships alongside the server +
-// postgres services -- see docker-compose.yml) independent of any
-// per-browser storage-backend preference. A fresh browser/incognito
-// profile has no `debtTrackerStorageBackend` key and would otherwise
-// default to local-storage mode forever, silently skipping the login gate
-// even when a Postgres server is live at this origin (issue #164).
-//
-// This deliberately checks a response header on `/` rather than probing a
-// Postgres-only endpoint like /auth/setup-status: a plain static/local-only
-// deployment (e.g. `python -m http.server`) has no /auth router, and a
-// failed fetch to a 404ing path gets logged as a "Failed to load resource"
-// browser console error regardless of the JS try/catch around it -- every
-// page load on every non-Postgres deployment would otherwise fail any
-// "assert no console errors" test. `/` always exists and returns 200 on
-// both deployment types, so this never logs anything.
-export async function checkPostgresBackendPresent() {
-    try {
-        const res = await fetch('/', { method: 'HEAD', cache: 'no-store' });
-        return res.headers.get('x-myfinances-backend') === 'postgres';
-    } catch {
-        return false;
-    }
+async function _probeSetupStatus() {
+    const res = await fetch('/auth/setup-status', { cache: 'no-store' });
+    // 429: the setup-status limiter is exhausted. The server answered, so it is
+    // reachable; treat it as sign-in mode rather than the "Can't reach your
+    // server" gate. This also keeps a Retry on that gate from looping on 429.
+    if (res.status === 429) return { reachable: true, hasSession: false, needsSetup: false };
+    if (!res.ok) return { reachable: false };
+    const body = await res.json();
+    if (!body || typeof body.needsSetup !== 'boolean') return { reachable: false };
+    return { reachable: true, hasSession: false, needsSetup: body.needsSetup };
 }
 
 const POSTGRES_RESOURCE_ENDPOINTS = {
@@ -62,15 +62,24 @@ const POSTGRES_RESOURCE_ENDPOINTS = {
     balanceHistory: '/api/balance-history'
 };
 
+// Fetch one API resource as JSON, throwing on any non-2xx so a failed load
+// reaches init()'s unreachable gate instead of assigning an error body as data.
+async function _getJson(path) {
+    const res = await fetch(path, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+    return res.json();
+}
+
+// Throws when any request fails; init() then shows the unreachable gate.
 export async function loadFromPostgres(app) {
     const entries = Object.entries(POSTGRES_RESOURCE_ENDPOINTS);
     const [lists, snapshots, settingsRows, overrides, clearedTransactions, planSettings] = await Promise.all([
-        Promise.all(entries.map(([, path]) => fetch(path).then(r => r.json()))),
-        fetch('/api/net-worth-snapshots').then(r => r.json()),
-        fetch('/api/settings').then(r => r.json()),
-        fetch('/api/ledger-overrides').then(r => r.json()),
-        fetch('/api/ledger-cleared').then(r => r.json()),
-        fetch('/api/plan-settings').then(r => r.json())
+        Promise.all(entries.map(([, path]) => _getJson(path))),
+        _getJson('/api/net-worth-snapshots'),
+        _getJson('/api/settings'),
+        _getJson('/api/ledger-overrides'),
+        _getJson('/api/ledger-cleared'),
+        _getJson('/api/plan-settings')
     ]);
 
     entries.forEach(([field], i) => { app[field] = lists[i]; });
@@ -99,66 +108,19 @@ export async function loadFromPostgres(app) {
     app.budgetCategories = planSettings.budgetCategories ?? {};
 }
 
-// Browsers commonly cap localStorage somewhere in the 5-10MB range. We can't
-// query the real per-browser limit, so we warn against a conservative 5MB
-// estimate rather than risk silent write failures once a user is near
-// whatever their actual ceiling turns out to be.
-export const STORAGE_ESTIMATED_QUOTA_BYTES = 5 * 1024 * 1024;
-export const STORAGE_QUOTA_WARNING_RATIO = 0.8;
-
-export function getStorageUsageInfo(serializedJson) {
-    const bytes = new Blob([serializedJson]).size;
-    const pct = bytes / STORAGE_ESTIMATED_QUOTA_BYTES;
-    return {
-        bytes,
-        limitBytes: STORAGE_ESTIMATED_QUOTA_BYTES,
-        pct,
-        nearLimit: pct >= STORAGE_QUOTA_WARNING_RATIO
-    };
-}
-
-// Module-level debounce state for local/session backends.
-// Debounce strategy: LEADING + TRAILING.
-//   - First call in a quiet period writes immediately (leading edge) —
-//     this preserves the existing "data is persisted right away" contract
-//     that tests and switchStorageBackend rely on.
-//   - Subsequent calls within STORAGE_DEBOUNCE_MS reset a trailing timer
-//     so rapid-fire mutations (e.g. every keystroke) collapse to one final
-//     write when the user pauses, rather than one write per character.
-let _saveTimer = null;
-let _pendingApp = null;
-const STORAGE_DEBOUNCE_MS = 300;
-
-// Synchronous write for local/session backends. Used directly by
-// switchStorageBackend (which needs a true/false result without the debounce)
-// and fired by the leading path, the debounce timer, and flushStorageSave.
-function _writeNow(app) {
-    try {
-        const data = {
-            persons: app.persons || [],
-            debts: app.debts,
-            accounts: app.accounts || [],
-            incomes: app.incomes || [],
-            bonuses: app.bonuses || [],
-            bills: app.bills || [],
-            expenses: app.expenses || [],
-            ledgerAmountOverrides: app.ledgerAmountOverrides || {},
-            ledgerClearedTransactions: app.ledgerClearedTransactions || {},
-            recurringTemplates: app.recurringTemplates || [],
-            emergencyFunds: app.emergencyFunds || [],
-            sinkingFunds: app.sinkingFunds || [],
-            reconciliations: app.reconciliations || [],
-            planHistory: app.planHistory || [],
-            retirementSnapshots: app.retirementSnapshots || [],
-            transfers: app.transfers || [],
-            retirementTargetDate: app.retirementTargetDate || null,
-            homePurchasePlan: app.homePurchasePlan || null,
-            budgetCategories: app.budgetCategories || {},
-            balanceHistory: app.balanceHistory || [],
-            settings: app.settings || [],
-            monthlySnapshots: app.monthlySnapshots || [],
-            netWorthMilestonesAwarded: app.netWorthMilestonesAwarded || [],
-            perMonthStimulus: app.perMonthStimulus || [],
+// Persist the plan-settings scalars (payment, strategy, ledger/forecast view
+// settings, retirement target, home purchase plan, category budgets). Every
+// record collection is synced by its own feature module through
+// postgresSync.js; this only PATCHes the single plan-settings row. The name is
+// historical and kept for its many call sites.
+export function saveToStorage(app) {
+    return fetch('/api/plan-settings', {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCsrfCookie()
+        },
+        body: JSON.stringify({
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             strategy: document.getElementById('paymentStrategy')?.value || null,
             ledgerSettings: {
@@ -173,157 +135,14 @@ function _writeNow(app) {
                 accountId: app._forecastAccountId || 'total',
                 notableThresholdPct: app._forecastNotableThresholdPct || 130
             },
-            timestamp: new Date().toISOString()
-        };
-        const json = JSON.stringify(data);
-        app.storageAdapter.set(app.storageKey, json);
-
-        const usage = getStorageUsageInfo(json);
-        if (usage.nearLimit) {
-            if (!app._storageQuotaWarned && typeof app.showStorageQuotaWarning === 'function') {
-                app.showStorageQuotaWarning(usage);
-            }
-            app._storageQuotaWarned = true;
-        } else {
-            app._storageQuotaWarned = false;
-        }
-        return true;
-    } catch (error) {
-        console.error('Error saving to localStorage:', error);
-        if (typeof app.showStorageQuotaWarning === 'function') {
-            app.showStorageQuotaWarning({ bytes: null, limitBytes: STORAGE_ESTIMATED_QUOTA_BYTES, pct: 1, nearLimit: true, writeFailed: true });
-        }
+            retirementTargetDate: app.retirementTargetDate || null,
+            homePurchasePlan: app.homePurchasePlan || null,
+            budgetCategories: app.budgetCategories || {}
+        })
+    }).then(() => true).catch(err => {
+        console.error('Error saving plan settings to Postgres:', err);
         return false;
-    }
-}
-
-// Persist current state. For local/session backends the write is debounced
-// (300 ms trailing edge) so rapid-fire mutations (e.g. typing in a form
-// field) produce a single localStorage.setItem after the user pauses.
-// The beforeunload handler in app.js calls flushStorageSave() to guarantee
-// no writes are lost when the tab closes mid-edit.
-// For the Postgres backend the path is not debounced — each PATCH targets a
-// lightweight plan-settings record, not the full serialized state.
-export function saveToStorage(app) {
-    if (app._storageBackendKind === 'postgres') {
-        return fetch('/api/plan-settings', {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': getCsrfCookie()
-            },
-            body: JSON.stringify({
-                monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
-                strategy: document.getElementById('paymentStrategy')?.value || null,
-                ledgerSettings: {
-                    accountFilter: app._ledgerAccountFilter || 'all',
-                    dateRange: app._ledgerDateRange || 'around7',
-                    sortKey: app._ledgerSortKey || 'date',
-                    sortDir: app._ledgerSortDir || 'desc',
-                    clearedFilter: app._ledgerClearedFilter || 'all'
-                },
-                forecastSettings: {
-                    rangeMonths: app._forecastRangeMonths || 1,
-                    accountId: app._forecastAccountId || 'total',
-                    notableThresholdPct: app._forecastNotableThresholdPct || 130
-                },
-                retirementTargetDate: app.retirementTargetDate || null,
-                homePurchasePlan: app.homePurchasePlan || null,
-                budgetCategories: app.budgetCategories || {}
-            })
-        }).then(() => true).catch(err => {
-            console.error('Error saving plan settings to Postgres:', err);
-            return false;
-        });
-    }
-    if (_saveTimer === null) {
-        // Leading edge: no active debounce window — write immediately and
-        // open a cooldown window to catch any rapid follow-on calls.
-        _writeNow(app);
-        _saveTimer = setTimeout(() => { _saveTimer = null; }, STORAGE_DEBOUNCE_MS);
-    } else {
-        // Within the debounce window: hold latest state for a trailing write
-        // so the final mutation is not lost when the burst settles.
-        _pendingApp = app;
-        clearTimeout(_saveTimer);
-        _saveTimer = setTimeout(() => {
-            _saveTimer = null;
-            const pending = _pendingApp;
-            _pendingApp = null;
-            if (pending) _writeNow(pending);
-        }, STORAGE_DEBOUNCE_MS);
-    }
-}
-
-// Flush any pending trailing write immediately — called from the app's
-// beforeunload handler so in-flight edits are not lost when the tab closes.
-export function flushStorageSave() {
-    if (_saveTimer !== null) {
-        clearTimeout(_saveTimer);
-        _saveTimer = null;
-        const pending = _pendingApp;
-        _pendingApp = null;
-        if (pending) _writeNow(pending);
-    }
-}
-
-// Cancel any pending debounced write without writing — called by clearAllData
-// so a trailing write queued before the clear cannot put stale data back.
-export function cancelStorageSave() {
-    if (_saveTimer !== null) {
-        clearTimeout(_saveTimer);
-        _saveTimer = null;
-        _pendingApp = null;
-    }
-}
-
-// Restore state from localStorage
-export function loadFromStorage(app) {
-    try {
-        const data = app.storageAdapter.get(app.storageKey);
-        if (data) {
-            const parsed = JSON.parse(data);
-            const clean = sanitizeParsedState(parsed);
-            app.persons = clean.persons;
-            app.debts = clean.debts;
-            app.accounts = clean.accounts;
-            app.incomes = clean.incomes;
-            app.bonuses = clean.bonuses;
-            app.bills = clean.bills;
-            app.expenses = clean.expenses;
-            app.ledgerAmountOverrides = clean.ledgerAmountOverrides;
-            app.ledgerClearedTransactions = clean.ledgerClearedTransactions;
-            app.recurringTemplates = clean.recurringTemplates;
-            app.emergencyFunds = clean.emergencyFunds;
-            app.sinkingFunds = clean.sinkingFunds;
-            app.reconciliations = clean.reconciliations;
-            app.planHistory = clean.planHistory;
-            app.retirementSnapshots = clean.retirementSnapshots;
-            app.transfers = clean.transfers;
-            app.retirementTargetDate = clean.retirementTargetDate;
-            app.homePurchasePlan = clean.homePurchasePlan;
-            app.budgetCategories = clean.budgetCategories || {};
-            app.balanceHistory = clean.balanceHistory;
-            app.settings = clean.settings;
-            app.monthlySnapshots = clean.monthlySnapshots;
-            app.netWorthMilestonesAwarded = clean.netWorthMilestonesAwarded;
-            app.perMonthStimulus = clean.perMonthStimulus;
-            app._savedMonthlyPayment = clean.monthlyPayment;
-            app._savedStrategy = clean.strategy;
-            // Restore ledger settings if present
-            app._ledgerAccountFilter = clean.ledgerSettings.accountFilter;
-            app._ledgerDateRange = clean.ledgerSettings.dateRange || 'around7';
-            app._ledgerSortKey = clean.ledgerSettings.sortKey;
-            app._ledgerSortDir = clean.ledgerSettings.sortDir;
-            app._ledgerClearedFilter = clean.ledgerSettings.clearedFilter || 'all';
-            // Restore forecast settings if present
-            app._forecastRangeMonths = clean.forecastSettings.rangeMonths;
-            app._forecastAccountId = clean.forecastSettings.accountId;
-            app._forecastNotableThresholdPct = clean.forecastSettings.notableThresholdPct;
-        }
-    } catch (error) {
-        console.error('Error loading from localStorage:', error);
-    }
+    });
 }
 
 // Legacy incomes predating the income/account linking feature may have no
@@ -332,8 +151,8 @@ export function loadFromStorage(app) {
 // app.incomes are populated for the session (fresh installs leave both
 // arrays empty, so this is a no-op for them).
 //
-// NOT called from loadFromStorage(): it's invoked explicitly from the
-// DebtTrackerApp constructor in app.js, deliberately placed AFTER
+// NOT called from loadFromPostgres(): it's invoked explicitly from
+// DebtTrackerApp.init() in app.js, deliberately placed AFTER
 // captureNetWorthSnapshot() (same spot as the original inline loop this
 // function replaced). captureNetWorthSnapshot() -> computeAccountBalance()
 // excludes transactions from incomes with no accountId from any specific
@@ -357,38 +176,8 @@ export function backfillIncomeAccountIds(app) {
     }
 }
 
-// Switch the active persistence backend, migrating current in-memory state
-// into the new backend and removing the old backend's copy so nothing is
-// left behind (e.g. financial data lingering in localStorage after a user
-// picks Session Storage for privacy).
-export function switchStorageBackend(app, kind) {
-    const normalized = kind === 'session' ? 'session' : 'local';
-    if (normalized === app._storageBackendKind) return;
-
-    const oldAdapter = app.storageAdapter;
-    const oldKind = app._storageBackendKind;
-    app.storageAdapter = createStorageAdapter(normalized);
-    app._storageBackendKind = normalized;
-    const saved = _writeNow(app);
-    if (!saved) {
-        // Migration write failed (e.g. quota exceeded, storage blocked) —
-        // revert to the old backend so nothing is lost or flipped. The old
-        // backend's copy is untouched (never removed), and the persisted
-        // preference is re-synced to the old kind so it can't drift out of
-        // step with the actual active adapter.
-        app.storageAdapter = oldAdapter;
-        app._storageBackendKind = oldKind;
-        setStorageBackendPreference(oldKind);
-        return;
-    }
-    oldAdapter.remove(app.storageKey);
-    setStorageBackendPreference(normalized);
-}
-
 // Wipe all user data and reset the visible UI state.
-export function clearAllData(app, options = {}) {
-    cancelStorageSave();
-    const wasPostgres = app._storageBackendKind === 'postgres';
+export async function clearAllData(app, options = {}) {
     const { onCleared } = options;
 
     app.persons = [];
@@ -433,14 +222,11 @@ export function clearAllData(app, options = {}) {
     app._forecastNotableThresholdPct = 130;
     app._reconciliationAccountFilter = 'all';
 
-    app.storageAdapter.remove(app.storageKey);
-    app.storageAdapter = createStorageAdapter('local');
-    app._storageBackendKind = 'local';
-    setStorageBackendPreference('local');
     localStorage.removeItem('debtTrackerTheme');
     localStorage.removeItem('debtTrackerReconInProgress');
 
-    if (wasPostgres) pgDeleteAll(app); // fire-and-forget; backend kind is already 'local'
+    // Awaited so a reload or import right after the clear sees the empty server.
+    await pgDeleteAll(app);
 
     app.updateUI();
 

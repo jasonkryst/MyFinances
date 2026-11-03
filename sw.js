@@ -28,7 +28,7 @@ const PRECACHE_URLS = [
     '/src/settings.js', '/src/settingsBackup.js', '/src/setupWizard.js', '/src/spending.js', '/src/storage.js',
     '/src/calendarFeed.js',
     '/src/loginGate.js', '/src/people.js', '/src/pgMigrationModal.js', '/src/postgresSync.js', '/src/postgresImport.js',
-    '/src/storageAdapters.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
+    '/src/serverUnreachableGate.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
     '/src/strategyPlanCalculation.js', '/src/strategyScheduleTable.js', '/src/strategySummaryTable.js', '/src/ui.js',
     '/src/utils.js', '/src/balanceHistoryCore.js', '/src/balanceHistory.js', '/src/balanceHistoryModal.js',
     '/src/transfers.js', '/src/passwordPolicy.js', '/src/passwordUi.js', '/src/securitySettings.js',
@@ -103,6 +103,10 @@ async function staleWhileRevalidate(request) {
     return cached || fetchPromise;
 }
 
+function isNetworkOnlyPath(pathname) {
+    return pathname.startsWith('/api/') || pathname.startsWith('/auth/') || pathname === '/calendar.ics';
+}
+
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     if (request.method !== 'GET') return;
@@ -110,6 +114,11 @@ self.addEventListener('fetch', (event) => {
     if (request.url.startsWith(CDN_URL)) {
         event.respondWith(staleWhileRevalidate(request));
     } else if (new URL(request.url).origin === self.location.origin) {
+        // Server data and auth are network-only (v7.0.0): never answer them
+        // from the cache. A cached /api response offline would hide the
+        // "Can't reach your server" gate behind stale data, and financial
+        // data must not sit in Cache Storage.
+        if (isNetworkOnlyPath(new URL(request.url).pathname)) return;
         // App-shell filenames are stable between releases. Prefer the network
         // while online so an active older worker cannot keep serving a stale
         // release; fall back to the precache only when offline.

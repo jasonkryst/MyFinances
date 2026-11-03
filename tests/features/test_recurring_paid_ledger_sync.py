@@ -189,7 +189,6 @@ def test_paid_state_survives_reload(app_page):
     _open_modal(page)
     page.fill('#recurringActualAmountInput', '61.5')
     page.click('#recurringMarkPaidConfirmBtn')
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
     # Mutations are fire-and-forget: be sure the server has both before reloading.
     wait_for_api(page, '/api/ledger-cleared', lambda rows: any(r['clearedKey'] == _tx_id() for r in rows))
     wait_for_api(page, '/api/ledger-overrides', lambda rows: any(r['overrideKey'] == _tx_id() for r in rows))

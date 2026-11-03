@@ -1,172 +1,145 @@
 #!/usr/bin/env python3
 """
 First-Run Setup Wizard and Settings Modal Tests
-The setup wizard (src/setupWizard.js) appears only when localStorage has no
-debtTrackerData key at all (a true first run) and lets the user choose
-whether reconciliations adjust the tracked balance or are visible-only. The
-Settings modal (gear icon) lets that choice be changed later. These tests
-use the raw `page` fixture rather than `app_page`, since app_page seeds
-localStorage to skip the wizard for the rest of the suite.
+The setup wizard (src/setupWizard.js) appears on a true first run, which
+since v7.0.0 means "the reconciliationAdjustsBalance setting is absent on the
+server after load" (spec §5 step 6). It lets the user choose whether
+reconciliations adjust the tracked balance or are visible-only. The Settings
+modal (gear icon) lets that choice be changed later.
+
+The harness's reset seeds that setting so the wizard never blocks other tests;
+the `first_run_page` fixture below deletes it again to simulate a first run.
 """
 
 import pytest
 
+from tests.conftest import wait_for_api
+
+_DELETE_ADJUSTS_SETTING_JS = """
+    async () => {
+        const csrf = (document.cookie.split('; ').find(c => c.startsWith('csrf=')) || '').slice(5);
+        const r = await fetch('/api/settings/reconciliationAdjustsBalance', {
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': csrf },
+        });
+        if (!r.ok && r.status !== 404) throw new Error('settings DELETE failed: ' + r.status);
+    }
+"""
+
+
+def _adjusts_setting(rows):
+    entry = next((r for r in rows if r.get('key') == 'reconciliationAdjustsBalance'), None)
+    return entry['value'] if entry else None
+
+
+def _wizard_classes(page):
+    return page.get_attribute('#setupWizardModal', 'class') or ''
+
+
+@pytest.fixture
+def first_run_page(app_page):
+    """Signed-in page on an empty server with no reconciliationAdjustsBalance
+    setting, reloaded so boot sees a first run and opens the wizard."""
+    page = app_page
+    page.evaluate(_DELETE_ADJUSTS_SETTING_JS)
+    page.reload()
+    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=10000)
+    return page
+
 
 @pytest.mark.ui
-def test_setup_wizard_shows_on_true_first_run(page):
-    """With completely empty localStorage, the setup wizard modal appears
-    automatically on load."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-
-    modal = page.query_selector('#setupWizardModal')
-    assert modal, "Setup wizard modal should exist in the DOM"
-    classes = modal.get_attribute('class') or ''
+def test_setup_wizard_shows_on_true_first_run(first_run_page):
+    """With the setting absent on the server, the wizard appears on load."""
+    classes = _wizard_classes(first_run_page)
     assert 'flex-visible' in classes
     assert 'hidden' not in classes
 
 
 @pytest.mark.ui
-def test_setup_wizard_does_not_show_once_data_exists(page):
-    """Once any debtTrackerData key exists in localStorage (even empty),
-    the wizard must not show on the next load."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.evaluate("""() => {
-        localStorage.setItem('debtTrackerData', JSON.stringify({ accounts: [], debts: [], settings: [] }));
-    }""")
-    page.reload(wait_until="networkidle")
-
-    modal = page.query_selector('#setupWizardModal')
-    assert modal, "Setup wizard modal should exist in the DOM"
-    classes = modal.get_attribute('class') or ''
+def test_setup_wizard_does_not_show_once_setting_exists(app_page):
+    """app_page's reset seeds the setting, so a reload must not show the wizard,
+    even with an otherwise empty dataset."""
+    page = app_page
+    page.reload()
+    classes = _wizard_classes(page)
     assert 'hidden' in classes
     assert 'flex-visible' not in classes
 
 
 @pytest.mark.ui
-def test_choosing_adjust_balance_persists_setting_and_closes_modal(page):
-    """Selecting 'adjust balance' in the wizard sets
-    reconciliationAdjustsBalance=true and hides the modal."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
-
+def test_choosing_adjust_balance_persists_setting_and_closes_modal(first_run_page):
+    """Selecting 'adjust balance' sets reconciliationAdjustsBalance=true on the
+    server and hides the modal."""
+    page = first_run_page
     page.click('#setupWizardAdjustBtn')
+    page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
 
-    modal = page.query_selector('#setupWizardModal')
-    classes = modal.get_attribute('class') or ''
-    assert 'hidden' in classes
-
-    setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
-    assert setting is True
+    assert page.evaluate("() => window.app.getSetting('reconciliationAdjustsBalance', null)") is True
+    wait_for_api(page, '/api/settings', lambda rows: _adjusts_setting(rows) is True)
 
 
 @pytest.mark.ui
-def test_choosing_visible_only_persists_setting_and_closes_modal(page):
-    """Selecting 'visible only' in the wizard sets
-    reconciliationAdjustsBalance=false and hides the modal."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
-
+def test_choosing_visible_only_persists_setting_and_closes_modal(first_run_page):
+    """Selecting 'visible only' sets reconciliationAdjustsBalance=false on the
+    server and hides the modal."""
+    page = first_run_page
     page.click('#setupWizardVisibleBtn')
     page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
 
-    modal = page.query_selector('#setupWizardModal')
-    classes = modal.get_attribute('class') or ''
-    assert 'hidden' in classes
-
-    setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
-    assert setting is False
-
-
+    assert page.evaluate("() => window.app.getSetting('reconciliationAdjustsBalance', null)") is False
+    wait_for_api(page, '/api/settings', lambda rows: _adjusts_setting(rows) is False)
 
 
 @pytest.mark.ui
-def test_wizard_pre_saves_default_before_user_clicks(page):
-    """The wizard must write a default setting to localStorage immediately on
-    show — before the user clicks either button — so a page refresh does not
-    re-display the wizard and block the UI."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
+def test_wizard_pre_saves_default_before_user_clicks(first_run_page):
+    """The wizard writes a default (false) to the server as soon as it shows,
+    before either button is clicked, so a refresh does not re-show it."""
+    page = first_run_page
+    wait_for_api(page, '/api/settings', lambda rows: _adjusts_setting(rows) is False)
 
-    # At this point neither wizard button has been clicked. Check that the
-    # storage key and the default setting are already present.
-    stored = page.evaluate("""() => {
-        const raw = localStorage.getItem('debtTrackerData');
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-        const entry = (data.settings || []).find(s => s.key === 'reconciliationAdjustsBalance');
-        return entry ? entry.value : undefined;
-    }""")
-    assert stored is False, (
-        "reconciliationAdjustsBalance must be pre-saved as false before the "
-        "user clicks anything, so a reload won't re-show the wizard"
-    )
-
-    # A reload without clicking any button must NOT re-show the wizard.
-    page.reload(wait_until="networkidle")
-    modal = page.query_selector('#setupWizardModal')
-    classes = modal.get_attribute('class') or ''
-    assert 'hidden' in classes, "Wizard must not reappear after a reload when pre-save fired"
+    page.reload()
+    assert 'hidden' in _wizard_classes(page), "Wizard must not reappear after a reload when pre-save fired"
 
 
 @pytest.mark.ui
-def test_wizard_escape_closes_modal(page):
-    """Pressing Escape while the setup wizard is open closes it without
-    requiring a button click, using the default (false) that was pre-saved."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
+def test_wizard_escape_closes_modal(first_run_page):
+    """Escape closes the wizard without a button click (the pre-saved default
+    stands)."""
+    page = first_run_page
     # Wait for focus to land on the Adjust button (setTimeout 30ms in open())
     page.wait_for_function(
         "() => document.activeElement && document.activeElement.id === 'setupWizardAdjustBtn'",
         timeout=2000
     )
-
     page.keyboard.press('Escape')
 
-    modal = page.query_selector('#setupWizardModal')
-    classes = modal.get_attribute('class') or ''
+    classes = _wizard_classes(page)
     assert 'hidden' in classes, "Wizard must close on Escape"
     assert 'flex-visible' not in classes
 
 
 @pytest.mark.ui
-def test_wizard_backdrop_click_closes_modal(page):
-    """Clicking the modal backdrop (outside the content box) closes the
-    setup wizard using the default (false) that was pre-saved."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
-
-    # Click the top-left corner of the viewport — inside the overlay element
-    # but outside the centred .modal-content card.
+def test_wizard_backdrop_click_closes_modal(first_run_page):
+    """Clicking the backdrop (outside the content box) closes the wizard."""
+    page = first_run_page
+    # Top-left corner: inside the overlay, outside the centred .modal-content.
     page.mouse.click(10, 10)
 
-    modal = page.query_selector('#setupWizardModal')
-    classes = modal.get_attribute('class') or ''
+    classes = _wizard_classes(page)
     assert 'hidden' in classes, "Wizard must close when backdrop is clicked"
     assert 'flex-visible' not in classes
 
+
 @pytest.mark.ui
-def test_wizard_choice_survives_reload(page):
-    """The wizard's choice is actually persisted to localStorage, not just
-    held in memory."""
-    from tests.conftest import BASE_URL
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
+def test_wizard_choice_survives_reload(first_run_page):
+    """The wizard's choice is persisted on the server, not just held in memory."""
+    page = first_run_page
     page.click('#setupWizardAdjustBtn')
+    wait_for_api(page, '/api/settings', lambda rows: _adjusts_setting(rows) is True)
 
-    page.reload(wait_until="networkidle")
-    setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
-    assert setting is True
-
-    modal = page.query_selector('#setupWizardModal')
-    classes = modal.get_attribute('class') or ''
-    assert 'hidden' in classes, "Wizard must not reappear once a choice has been made"
+    page.reload()
+    assert page.evaluate("() => window.app.getSetting('reconciliationAdjustsBalance', null)") is True
+    assert 'hidden' in _wizard_classes(page), "Wizard must not reappear once a choice has been made"
 
 
 @pytest.mark.ui
@@ -249,139 +222,3 @@ def test_command_palette_has_settings_entry(app_page):
 
     item.click()
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-
-
-@pytest.mark.ui
-def test_settings_modal_shows_current_storage_backend(app_page):
-    """Opening Settings reflects the active storage backend in the select."""
-    page = app_page
-
-    page.evaluate("() => document.getElementById('settingsBtn').click()")
-    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-
-    value = page.evaluate("() => document.getElementById('settingStorageBackend').value")
-    assert value == 'local'
-
-
-@pytest.mark.ui
-def test_settings_modal_switching_backend_migrates_on_done(app_page):
-    """Selecting Session Storage and clicking Done switches the active
-    backend and migrates existing data into it."""
-    page = app_page
-
-    page.evaluate("""() => {
-        window.app.debts = [{ id: 1, name: 'UI Switch Debt', category: 'Other', debtType: 'creditCard', accountBalance: 10, originalBalance: 10, interestRate: 0, minimumPayment: 5, originalMinimumPayment: 5, priority: 1 }];
-        window.app.saveToStorage();
-    }""")
-
-    page.evaluate("() => document.getElementById('settingsBtn').click()")
-    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
-    page.select_option('#settingStorageBackend', 'session')
-    page.click('#settingsModalDoneBtn')
-    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
-
-    result = page.evaluate("""() => ({
-        backend: window.app._storageBackendKind,
-        session: sessionStorage.getItem('debtTrackerData'),
-        local: localStorage.getItem('debtTrackerData')
-    })""")
-    assert result['backend'] == 'session'
-    assert result['session'] is not None
-    assert 'UI Switch Debt' in result['session']
-    assert result['local'] is None
-
-
-@pytest.mark.ui
-def test_settings_modal_escape_does_not_switch_backend(app_page):
-    """Pressing Escape after changing the select, without clicking Done,
-    leaves the active backend unchanged — matching the existing
-    reconciliation-checkbox discard-on-escape behavior."""
-    page = app_page
-
-    page.evaluate("() => document.getElementById('settingsBtn').click()")
-    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
-        timeout=2000
-    )
-    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
-    page.select_option('#settingStorageBackend', 'session')
-    page.keyboard.press('Escape')
-
-    backend = page.evaluate("() => window.app._storageBackendKind")
-    assert backend == 'local'
-
-
-@pytest.mark.ui
-def test_settings_postgres_switch_shows_confirm_modal(app_page):
-    """Selecting PostgreSQL and clicking Done opens the themed confirm modal
-    instead of a browser dialog — the modal must be visible with both buttons."""
-    page = app_page
-
-    page.evaluate("() => document.getElementById('settingsBtn').click()")
-    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
-    page.select_option('#settingStorageBackend', 'postgres')
-    page.click('#settingsModalDoneBtn')
-
-    page.wait_for_selector('#pgSwitchConfirmModal.flex-visible', timeout=5000)
-
-    confirm_btn = page.query_selector('#pgSwitchConfirmBtn')
-    cancel_btn = page.query_selector('#pgSwitchCancelBtn')
-    assert confirm_btn, "Continue button must exist"
-    assert cancel_btn, "Cancel button must exist"
-    assert confirm_btn.is_visible()
-    assert cancel_btn.is_visible()
-
-
-@pytest.mark.ui
-def test_settings_postgres_switch_cancel_closes_modal_and_keeps_backend(app_page):
-    """Clicking Cancel on the Postgres confirm modal dismisses it and leaves
-    the active backend unchanged."""
-    page = app_page
-
-    page.evaluate("() => document.getElementById('settingsBtn').click()")
-    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
-    page.select_option('#settingStorageBackend', 'postgres')
-    page.click('#settingsModalDoneBtn')
-
-    page.wait_for_selector('#pgSwitchConfirmModal.flex-visible', timeout=5000)
-    page.click('#pgSwitchCancelBtn')
-    page.wait_for_selector('#pgSwitchConfirmModal', state='hidden', timeout=5000)
-
-    modal = page.query_selector('#pgSwitchConfirmModal')
-    classes = modal.get_attribute('class') or ''
-    assert 'hidden' in classes
-    assert 'flex-visible' not in classes
-
-    backend = page.evaluate("() => window.app._storageBackendKind")
-    assert backend == 'local'
-
-
-@pytest.mark.ui
-def test_settings_postgres_switch_escape_closes_modal_and_keeps_backend(app_page):
-    """Pressing Escape on the Postgres confirm modal dismisses it and leaves
-    the active backend unchanged."""
-    page = app_page
-
-    page.evaluate("() => document.getElementById('settingsBtn').click()")
-    page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="data"]')  # #322: Data Storage select now lives on the Data & Storage tab
-    page.select_option('#settingStorageBackend', 'postgres')
-    page.click('#settingsModalDoneBtn')
-
-    page.wait_for_selector('#pgSwitchConfirmModal.flex-visible', timeout=5000)
-    page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'pgSwitchCancelBtn'",
-        timeout=2000
-    )
-    page.keyboard.press('Escape')
-
-    modal = page.query_selector('#pgSwitchConfirmModal')
-    classes = modal.get_attribute('class') or ''
-    assert 'hidden' in classes
-
-    backend = page.evaluate("() => window.app._storageBackendKind")
-    assert backend == 'local'

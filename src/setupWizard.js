@@ -2,7 +2,6 @@
 // choice later. Both are plain static modals following the same
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_DEBTS, SHOW_ARCHIVED_RECURRING, AUTO_NW_SNAPSHOT, ZERO_AMOUNT_POLICY, getZeroAmountPolicy } from './settings.js';
-import { getStorageBackendPreference, setStorageBackendPreference } from './storageAdapters.js';
 import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
 import { showLoginGate } from './loginGate.js';
@@ -44,34 +43,6 @@ export function maybeShowSetupWizard(app, isFirstRun) {
     setTimeout(() => adjustBtn.focus(), 30);
 }
 
-function showPgSwitchConfirmModal() {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('pgSwitchConfirmModal');
-        const confirmBtn = document.getElementById('pgSwitchConfirmBtn');
-        const cancelBtn = document.getElementById('pgSwitchCancelBtn');
-        if (!modal) { resolve(false); return; }
-
-        const dismiss = (result) => {
-            confirmBtn.onclick = null;
-            cancelBtn.onclick = null;
-            modal.onkeydown = null;
-            modal.classList.add('hidden');
-            modal.classList.remove('flex-visible');
-            resolve(result);
-        };
-
-        confirmBtn.onclick = () => dismiss(true);
-        cancelBtn.onclick = () => dismiss(false);
-        modal.onkeydown = (event) => {
-            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); }
-        };
-
-        modal.classList.add('flex-visible');
-        modal.classList.remove('hidden');
-        setTimeout(() => cancelBtn.focus(), 30);
-    });
-}
-
 export function initSettingsModal(app) {
     const modal = document.getElementById('settingsModal');
     const settingsBtn = document.getElementById('settingsBtn');
@@ -82,13 +53,10 @@ export function initSettingsModal(app) {
     const showArchivedRecurringCheckbox = document.getElementById('settingShowArchivedRecurring');
     const autoNwSnapshotCheckbox = document.getElementById('settingAutoNwSnapshot');
     const zeroPolicySelect = document.getElementById('settingZeroAmountPolicy');
-    const storageSelect = document.getElementById('settingStorageBackend');
-    const postgresLockNote = document.getElementById('settingsStoragePostgresNote');
-    const emailTestGroup = document.getElementById('settingsEmailTestGroup');
     const sendTestEmailBtn = document.getElementById('settingsSendTestEmailBtn');
     const localeSelect = document.getElementById('settingLocale');
     const currencySelect = document.getElementById('settingCurrency');
-    if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !storageSelect || !localeSelect || !currencySelect) return;
+    if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !localeSelect || !currencySelect) return;
 
     initSettingsBackup(app);
     initSecuritySettings(app);
@@ -129,18 +97,6 @@ export function initSettingsModal(app) {
         if (showArchivedRecurringCheckbox) showArchivedRecurringCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_RECURRING, false));
         if (autoNwSnapshotCheckbox) autoNwSnapshotCheckbox.checked = Boolean(getSetting(app, AUTO_NW_SNAPSHOT, false));
         if (zeroPolicySelect) zeroPolicySelect.value = getZeroAmountPolicy(app);
-        const isPostgres = getStorageBackendPreference() === 'postgres';
-        if (isPostgres) {
-            storageSelect.value = 'postgres';
-            storageSelect.classList.add('hidden');
-            if (postgresLockNote) postgresLockNote.classList.remove('hidden');
-            if (emailTestGroup) emailTestGroup.classList.remove('hidden');
-        } else {
-            storageSelect.value = getStorageBackendPreference();
-            storageSelect.classList.remove('hidden');
-            if (postgresLockNote) postgresLockNote.classList.add('hidden');
-            if (emailTestGroup) emailTestGroup.classList.add('hidden');
-        }
         refreshSecuritySettingsPanel(app);
         localeSelect.value = getCurrentLocale();
         currencySelect.value = getCurrencyCode();
@@ -156,36 +112,19 @@ export function initSettingsModal(app) {
             const panel = modal.querySelector(`#settingsPanel-${activeSettingsTab}`);
             const candidates = panel ? panel.querySelectorAll('input, select, button, a[href]') : [];
             // A panel's first matching control can itself be hidden (e.g. the
-            // Notifications tab's email-test button/group, hidden outside
-            // Postgres mode) — querySelector alone would pick it and focus()
+            // Data tab's hidden settings-import file input) — querySelector alone would pick it and focus()
             // would then silently do nothing, leaving focus behind the modal.
             const first = Array.from(candidates).find(el => el.offsetParent !== null);
             (first || closeBtn).focus();
         }, 30);
     };
 
-    const save = async () => {
+    const save = () => {
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
         if (showArchivedCheckbox) setSetting(app, SHOW_ARCHIVED_DEBTS, showArchivedCheckbox.checked);
         if (showArchivedRecurringCheckbox) setSetting(app, SHOW_ARCHIVED_RECURRING, showArchivedRecurringCheckbox.checked);
         if (autoNwSnapshotCheckbox) setSetting(app, AUTO_NW_SNAPSHOT, autoNwSnapshotCheckbox.checked);
         if (zeroPolicySelect) setSetting(app, ZERO_AMOUNT_POLICY, zeroPolicySelect.value);
-        if (storageSelect.value === 'postgres') {
-            if (getStorageBackendPreference() !== 'postgres') {
-                close();
-                const ok = await showPgSwitchConfirmModal();
-                if (!ok) return;
-                setStorageBackendPreference('postgres');
-                location.reload();
-            } else {
-                app.setLocale(localeSelect.value);
-                setCurrencyCode(currencySelect.value);
-                app.refreshCurrentPageData();
-                close();
-            }
-            return;
-        }
-        app.switchStorageBackend(storageSelect.value);
         app.setLocale(localeSelect.value);
         setCurrencyCode(currencySelect.value);
         app.refreshCurrentPageData();
