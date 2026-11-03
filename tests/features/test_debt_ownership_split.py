@@ -243,8 +243,9 @@ def test_inline_edit_prefills_and_saves_split(app_page):
     root = f'#inline-ownership-{debt_id}'
     page.wait_for_selector(f'{root}:not(.hidden)', timeout=5000)
     assert page.is_checked(f'{root} input[value="custom"]')
-    # Inputs follow the debt's personIds order, which the server (not the seed) decides.
-    order = page.evaluate("window.app.debts[0].personIds")
+    # Input order is whatever the app renders; read it from the inputs' data-person-id.
+    order = [int(v) for v in page.eval_on_selector_all(
+        f'{root} [data-ownership-pct]', 'els => els.map(e => e.dataset.personId)')]
     pct = {ids[0]: 70.0, ids[1]: 30.0}
     assert _pct_values(page, root) == [pct[p] for p in order]
     page.fill(f'{root} [data-ownership-pct] >> nth=0', '20')
