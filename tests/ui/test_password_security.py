@@ -13,7 +13,32 @@ import json
 
 import pytest
 
-from tests.conftest import BASE_URL, open_settings, switch_settings_tab
+from tests.conftest import (BASE_URL, ensure_session, open_settings, reset_server_state,
+                            switch_settings_tab, wait_for_app_ready)
+
+@pytest.fixture
+def app_page(browser, stack_user):
+    """Signed-in page on an empty server, with service workers blocked.
+
+    These tests mock GET /auth/setup-status and /auth/password-policy with page.route. The app's
+    service worker proxies same-origin GETs itself, which bypasses page.route, so it is blocked
+    here (same approach as tests/features/test_code_splitting.py).
+    """
+    context = browser.new_context(service_workers='block')
+    page = context.new_page()
+    page.console_errors = []
+    page.page_errors = []
+    page.on('console', lambda m: page.console_errors.append(m.text or '')
+            if m.type == 'error' and 'favicon' not in (m.text or '').lower() else None)
+    page.on('pageerror', lambda e: page.page_errors.append(str(e)))
+    page.on('dialog', lambda d: d.accept())
+    ensure_session(context)
+    page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
+    wait_for_app_ready(page)
+    reset_server_state(page)
+    yield page
+    context.close()
+
 
 STRONG = 'violet harbor lantern 42'
 
@@ -63,6 +88,8 @@ def test_security_tab_is_fifth_settings_tab(app_page):
 
 @pytest.mark.ui
 def test_security_tab_local_mode_shows_note_not_form(app_page):
+    # RESERVED for Task 5/6/8 (local-backend mode). On the Docker stack the app auto-detects Postgres
+    # and persists that preference, so the local-mode note is never shown here.
     _open_security_tab(app_page)
     assert app_page.is_visible('#settingsSecurityLocalNote')
     assert not app_page.is_visible('#settingsChangePasswordForm')

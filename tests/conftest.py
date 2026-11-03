@@ -115,6 +115,39 @@ def _cookies_from(headers):
     return out
 
 
+def _session_cache_path():
+    import hashlib
+    import tempfile
+    key = hashlib.sha256(f"{_API_ROOT}|{TEST_EMAIL}".encode()).hexdigest()[:16]
+    return os.path.join(tempfile.gettempdir(), f"myfinances-test-session-{key}.json")
+
+
+def _read_session_cache():
+    """Cookies saved by an earlier pytest process, if the server still accepts them.
+
+    The server's login limiter allows 5 sign-ins per 15 minutes, and every pytest process used
+    to log in once, so a few quick invocations locked the harness out. Sharing the session
+    across processes (it is the same single test user) avoids that.
+    """
+    try:
+        with open(_session_cache_path(), encoding="utf-8") as f:
+            cookies = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(cookies, dict) or "session" not in cookies:
+        return None
+    status, _, _ = _http_json("GET", "/api/plan-settings", cookies=cookies)
+    return cookies if status == 200 else None
+
+
+def _write_session_cache(cookies):
+    try:
+        with open(_session_cache_path(), "w", encoding="utf-8") as f:
+            json.dump(cookies, f)
+    except OSError:
+        pass
+
+
 def _login_or_register():
     """Sign in once and cache the cookies.
 
@@ -123,6 +156,11 @@ def _login_or_register():
     the whole session aborts and nothing is wiped, so a real deployment with
     different credentials can never be reset by this harness.
     """
+    cached = _read_session_cache()
+    if cached:
+        _SESSION_COOKIES.clear()
+        _SESSION_COOKIES.update(cached)
+        return _SESSION_COOKIES
     status, body, _ = _http_json("GET", "/auth/setup-status")
     creds = {"email": TEST_EMAIL, "password": TEST_PASSWORD}
     if status == 200 and isinstance(body, dict) and body.get("needsSetup") is True:
@@ -142,6 +180,7 @@ def _login_or_register():
         pytest.exit("Test harness: auth response carried no session cookie", returncode=2)
     _SESSION_COOKIES.clear()
     _SESSION_COOKIES.update(cookies)
+    _write_session_cache(cookies)
     return _SESSION_COOKIES
 
 
@@ -226,6 +265,51 @@ def seed_state(page, state: dict, *, reload=True) -> None:
     page.evaluate(_SEED_JS, {"state": state, "seedAdjusts": not has_adjust})
     if reload:
         page.reload()
+
+
+async def reset_server_state_async(page) -> None:
+    """Async twin of reset_server_state (wipe the server, then reload)."""
+    await page.evaluate(_RESET_JS)
+    await page.reload()
+    await page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    await page.wait_for_function('() => !!window.app', timeout=30000)
+
+
+async def seed_state_async(page, state: dict, *, reload=True) -> None:
+    """Async twin of seed_state for async_app_page tests."""
+    has_adjust = any(
+        isinstance(s, dict) and s.get("key") == "reconciliationAdjustsBalance"
+        for s in (state.get("settings") or [])
+    )
+    await page.evaluate(_SEED_JS, {"state": state, "seedAdjusts": not has_adjust})
+    if reload:
+        await page.reload()
+        await page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+        await page.wait_for_function('() => !!window.app', timeout=30000)
+
+
+_APP_STATE_KEYS = (
+    "accounts", "persons", "debts", "incomes", "bonuses", "bills", "expenses",
+    "ledgerAmountOverrides", "ledgerClearedTransactions", "recurringTemplates",
+    "emergencyFunds", "sinkingFunds", "reconciliations", "planHistory",
+    "retirementSnapshots", "transfers", "balanceHistory", "retirementTargetDate",
+    "homePurchasePlan", "budgetCategories", "monthlySnapshots",
+    "netWorthMilestonesAwarded", "perMonthStimulus",
+)
+
+
+def seed_state_from_app(page) -> None:
+    """Persist whatever a test just built in `window.app.*` (in-memory) to the server.
+
+    For tests whose seed is a JS snippet that assigns `app.accounts = [...]` etc.: snapshot
+    those collections (same keys as a JSON export), push them through `seed_state`, and
+    reload so the app re-reads the server's copy. Dates are serialized by JSON.stringify.
+    """
+    import json as _json
+    raw = page.evaluate(
+        "(keys) => JSON.stringify(Object.fromEntries(keys.map(k => [k, window.app[k]])))",
+        list(_APP_STATE_KEYS))
+    seed_state(page, _json.loads(raw))
 
 
 def wait_for_api(page, path, check, timeout=10.0):

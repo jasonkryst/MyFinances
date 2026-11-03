@@ -12,7 +12,7 @@ just moved inside the modal.
 
 import pytest
 
-from tests.conftest import open_data_transfer, close_data_transfer, assert_no_errors
+from tests.conftest import open_data_transfer, close_data_transfer, assert_no_errors, wait_for_api
 
 
 @pytest.mark.ui
@@ -145,7 +145,7 @@ def test_export_charts_button_enabled_and_downloads_when_chart_visible(app_page)
 @pytest.mark.ui
 def test_import_button_opens_file_picker_and_triggers_import(app_page):
     """Positive: clicking Choose File then selecting a file calls
-    app.importAllJSON (verified via a resulting localStorage write)."""
+    app.importAllJSON (verified by the imported account being on the server after a reload)."""
     import json
     import tempfile
     import os
@@ -179,8 +179,10 @@ def test_import_button_opens_file_picker_and_triggers_import(app_page):
         page.click('#importModeReplaceBtn')
         page.wait_for_selector('#dataTransferModal', timeout=5000)
 
-        stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-        assert stored and 'DT Modal Test' in stored
+        wait_for_api(page, '/api/accounts', lambda rows: any(r.get('name') == 'DT Modal Test' for r in rows))
+        page.reload()
+        names = page.evaluate('() => window.app.accounts.map(a => a.name)')
+        assert 'DT Modal Test' in names
     finally:
         os.unlink(temp_file)
 
@@ -291,9 +293,14 @@ def test_replace_vs_merge_choice_shown_inline_not_as_native_confirm(app_page):
         page.click('#importModeMergeBtn')
         page.wait_for_selector('#dataTransferModal', timeout=5000)
 
+        # The merge is a series of server calls; the result banner appears when they finish.
+        page.wait_for_selector('#importResultBanner:not(.hidden)', timeout=15000)
         assert page.is_visible('#importModeChoice') is False
         banner = page.query_selector('#importResultBanner')
         assert banner.is_visible()
+        # Merge semantics: the pre-existing account is still on the server next to the imported one
+        names = [a['name'] for a in wait_for_api(page, '/api/accounts', lambda r: len(r) >= 2)]
+        assert 'Pre-existing Account' in names and 'Imported Account' in names
     finally:
         os.unlink(temp_file)
 
@@ -336,7 +343,7 @@ def test_merge_with_skipped_duplicates_shows_duplicate_count_not_generic_message
             timeout=5000
         )
         page.click('#importModeMergeBtn')
-        page.wait_for_selector('#dataTransferModal', timeout=5000)
+        page.wait_for_selector('#importResultBanner:not(.hidden)', timeout=15000)
 
         banner_text = page.inner_text('#importResultBanner')
         assert 'Skipped 1 duplicate' in banner_text
