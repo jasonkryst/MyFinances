@@ -2,21 +2,14 @@
 
 import { APP_VERSION, normalizeText, sanitizeFiniteNumber } from './utils.js';
 import { getFilteredSortedLedgerTransactions } from './ledgerTransactions.js';
-import { sanitizeParsedState, remapDebtPersonRefs, remapIncomePersonRef } from './sanitizers.js';
+import { sanitizeParsedState } from './sanitizers.js';
 import { replaceForPostgres, mergeForPostgres } from './postgresImport.js';
 import { PLAN_HISTORY_CAP } from './strategyPlanCalculation.js';
-import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
 import { seedMissingBalanceHistory } from './balanceHistory.js';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
 
-// Merge incoming items into existing by name, skipping duplicates.
-function _mergeByName(existing, incoming, idOffset = 0) {
-    const names = new Set(existing.map(x => x.name?.toLowerCase()).filter(Boolean));
-    const toAdd = incoming.filter(x => x.name && !names.has(x.name.toLowerCase()));
-    return [...existing, ...toAdd.map((x, i) => ({ ...x, id: Date.now() + idOffset + i }))];
-}
 // Export a full app backup as JSON.
 export function exportAllJSON(app) {
     const normalisedDebts = app.debts.map(d => ({
@@ -375,15 +368,12 @@ export function importAllJSON(app, file, options = {}) {
             });
             clean.planHistory = clean.planHistory.slice(-PLAN_HISTORY_CAP);
         }
-        const incomingPersons = clean.persons || [];
         const incomingDebts = clean.debts;
         const incomingAccounts = clean.accounts;
         const incomingIncomes = clean.incomes;
         const incomingBonuses = clean.bonuses;
         const incomingBills = clean.bills;
         const incomingExpenses = clean.expenses;
-        const incomingLedgerAmountOverrides = clean.ledgerAmountOverrides;
-        const incomingLedgerClearedTransactions = clean.ledgerClearedTransactions;
         const incomingRecurringTemplates = clean.recurringTemplates;
         const incomingEmergencyFunds = clean.emergencyFunds;
         const incomingSinkingFunds = clean.sinkingFunds;
@@ -391,17 +381,11 @@ export function importAllJSON(app, file, options = {}) {
         const incomingPlanHistory = clean.planHistory;
         const incomingRetirementSnapshots = clean.retirementSnapshots;
         const incomingTransfers = clean.transfers || [];
-        const incomingBalanceHistory = clean.balanceHistory || [];
         const incomingRetirementTargetDate = clean.retirementTargetDate;
         const incomingHomePurchasePlan = clean.homePurchasePlan;
-        const incomingBudgetCategories = clean.budgetCategories || {};
-        const incomingSettings = clean.settings;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
         const incomingNetWorthMilestones = clean.netWorthMilestonesAwarded;
-        const incomingPerMonthStimulus = clean.perMonthStimulus || [];
         const incomingStrategy = payload?.strategy || null;
-        const incomingLedgerSettings = clean.ledgerSettings;
-        const incomingForecastSettings = clean.forecastSettings;
 
         const validDebts = incomingDebts.filter(d => d && d.name);
         let mergeDuplicatesReported = false;
@@ -435,181 +419,27 @@ export function importAllJSON(app, file, options = {}) {
             ? await requestImportMode(parts)
             : true;
 
-        if (app._storageBackendKind === 'postgres') {
-            let postgresSkippedDebts = 0;
-            let postgresAddedDebts = 0;
-            try {
-                if (shouldReplace) {
-                    await replaceForPostgres(app, clean, incomingStrategy);
-                } else {
-                    // Same duplicate-by-name rule as the local branch below, counted
-                    // before the merge so the banner can report what was skipped.
-                    const existingDebtNames = new Set((app.debts || []).map(d => d.name?.toLowerCase()));
-                    let added = 0;
-                    for (const d of validDebts) {
-                        const key = d.name.toLowerCase();
-                        if (existingDebtNames.has(key)) { postgresSkippedDebts++; } else { added++; }
-                    }
-                    postgresAddedDebts = added;
-                    await mergeForPostgres(app, clean, incomingStrategy);
+        let postgresSkippedDebts = 0;
+        let postgresAddedDebts = 0;
+        try {
+            if (shouldReplace) {
+                await replaceForPostgres(app, clean, incomingStrategy);
+            } else {
+                // Duplicate-by-name debts are counted
+                // before the merge so the banner can report what was skipped.
+                const existingDebtNames = new Set((app.debts || []).map(d => d.name?.toLowerCase()));
+                let added = 0;
+                for (const d of validDebts) {
+                    const key = d.name.toLowerCase();
+                    if (existingDebtNames.has(key)) { postgresSkippedDebts++; } else { added++; }
                 }
-            } catch {
-                if (typeof onImportError === 'function') onImportError();
-                return;
+                postgresAddedDebts = added;
+                await mergeForPostgres(app, clean, incomingStrategy);
             }
-            if (incomingStrategy) {
-                const mpEl = document.getElementById('monthlyPayment');
-                const psEl = document.getElementById('paymentStrategy');
-                const payment = sanitizeFiniteNumber(incomingStrategy.monthlyPayment, null, { min: 0 });
-                const strategy = normalizeText(incomingStrategy.paymentStrategy, 30);
-                if (mpEl && payment !== null) mpEl.value = payment;
-                if (psEl && strategy) psEl.value = strategy;
-            }
-            await seedMissingBalanceHistory(app);
-            app.updateUI();
-            app.refreshCurrentPageData();
-            if (postgresSkippedDebts > 0 && typeof onMergeDuplicates === 'function') {
-                onMergeDuplicates(postgresAddedDebts, postgresSkippedDebts, warnings);
-                mergeDuplicatesReported = true;
-            }
-            if (!mergeDuplicatesReported && typeof onImported === 'function') {
-                onImported(parts, warnings);
-            }
+        } catch {
+            if (typeof onImportError === 'function') onImportError();
             return;
         }
-
-        if (shouldReplace) {
-            app.persons = incomingPersons.map((p, i) => ({ ...p, id: Date.now() + 7000 + i }));
-            // #272: persons get fresh ids, so debts' personIds and ownershipSplit
-            // keys are remapped through the same old->new person id map.
-            const personIdMap = Object.fromEntries(incomingPersons.map((p, i) => [p.id, app.persons[i].id]));
-            app.accounts = incomingAccounts;
-            app.debts = validDebts.map((d, i) => ({ ...remapDebtPersonRefs(d, personIdMap), id: Date.now() + i }));
-            app.incomes = incomingIncomes.map((inc, i) => ({ ...remapIncomePersonRef(inc, personIdMap), id: Date.now() + 1000 + i }));
-            app.bonuses = incomingBonuses.map((b, i) => ({ ...b, id: Date.now() + 1500 + i }));
-            app.bills = incomingBills.map((b, i) => ({ ...b, id: Date.now() + 2000 + i }));
-            app.expenses = incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }));
-            app.recurringTemplates = incomingRecurringTemplates.map((r, i) => ({ ...r, id: Date.now() + 4000 + i }));
-            app.emergencyFunds = incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }));
-            app.sinkingFunds = incomingSinkingFunds.map((s, i) => ({ ...s, id: Date.now() + 5000 + i }));
-            app.reconciliations = incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }));
-            app.planHistory = incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }));
-            app.retirementSnapshots = incomingRetirementSnapshots.map((s, i) => ({ ...s, id: Date.now() + 6500 + i }));
-            // Debts get fresh ids by index; accounts keep their ids in replace mode.
-            const debtIdMap = new Map(validDebts.map((d, i) => [d.id, app.debts[i].id]));
-            const accountIdMap = new Map(app.accounts.map(a => [a.id, a.id]));
-            // Accounts keep their ids in replace mode, so this is a pass-through
-            // rather than a real remap -- still routed through accountIdMap for
-            // the same orphan-dropping behavior merge mode needs (see below).
-            app.transfers = incomingTransfers
-                .filter(t => accountIdMap.has(t.fromAccountId) && accountIdMap.has(t.toAccountId))
-                .map((t, i) => ({ ...t, fromAccountId: accountIdMap.get(t.fromAccountId), toAccountId: accountIdMap.get(t.toAccountId), id: Date.now() + 7500 + i }));
-            app.balanceHistory = remapHistoryOwners(incomingBalanceHistory, debtIdMap, accountIdMap)
-                .map((h, i) => ({ ...h, id: Date.now() + 8000 + i }));
-            app.retirementTargetDate = incomingRetirementTargetDate || null;
-            app.homePurchasePlan = incomingHomePurchasePlan || null;
-            app.budgetCategories = incomingBudgetCategories;
-            app.settings = incomingSettings || [];
-            app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
-            app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
-            app.monthlySnapshots = incomingMonthlySnapshots || [];
-            app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
-            app.perMonthStimulus = incomingPerMonthStimulus;
-            if (incomingLedgerSettings) {
-                app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
-                app._ledgerDateRange = incomingLedgerSettings.dateRange || 'around7';
-                app._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
-                app._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
-                app._ledgerClearedFilter = incomingLedgerSettings.clearedFilter || 'all';
-            }
-            if (incomingForecastSettings) {
-                app._forecastRangeMonths = incomingForecastSettings.rangeMonths || 1;
-                app._forecastAccountId = incomingForecastSettings.accountId || 'total';
-                app._forecastNotableThresholdPct = incomingForecastSettings.notableThresholdPct || 130;
-            }
-        } else {
-            const existingNames = new Set(app.debts.map(d => d.name.toLowerCase()));
-            let skipped = 0;
-            const toAdd = [];
-            for (const d of validDebts) {
-                if (existingNames.has(d.name.toLowerCase())) {
-                    skipped++;
-                } else {
-                    toAdd.push({
-                        ...d,
-                        id: Date.now() + toAdd.length
-                    });
-                    existingNames.add(d.name.toLowerCase());
-                }
-            }
-            app.debts = [...app.debts, ...toAdd];
-            const toAddIds = new Set(toAdd.map(d => d.id));
-            if (skipped > 0 && typeof onMergeDuplicates === 'function') {
-                onMergeDuplicates(toAdd.length, skipped, warnings);
-                mergeDuplicatesReported = true;
-            }
-            app.persons = _mergeByName(app.persons || [], incomingPersons, 7000);
-            // #272: resolve each incoming person to the surviving (existing or
-            // newly added) person by name, then remap the newly added debts.
-            const personIdByName = new Map(app.persons.map(p => [p.name.toLowerCase(), p.id]));
-            const personIdMap = Object.fromEntries(
-                incomingPersons.filter(p => p.name && personIdByName.has(p.name.toLowerCase())).map(p => [p.id, personIdByName.get(p.name.toLowerCase())])
-            );
-            app.debts = app.debts.map(d => toAddIds.has(d.id) ? remapDebtPersonRefs(d, personIdMap) : d);
-            app.accounts = _mergeByName(app.accounts, incomingAccounts, 0);
-            app.incomes = _mergeByName(app.incomes, incomingIncomes.map(inc => remapIncomePersonRef(inc, personIdMap)), 1000);
-            app.bonuses = _mergeByName(app.bonuses, incomingBonuses, 1500);
-            app.bills = _mergeByName(app.bills, incomingBills, 2000);
-            app.expenses = [...app.expenses, ...incomingExpenses.map((e, i) => ({ ...e, id: Date.now() + 3000 + i }))];
-            app.recurringTemplates = _mergeByName(app.recurringTemplates, incomingRecurringTemplates, 4000);
-            app.emergencyFunds = [...app.emergencyFunds, ...incomingEmergencyFunds.map((f, i) => ({ ...f, id: Date.now() + 4500 + i }))];
-            app.sinkingFunds = _mergeByName(app.sinkingFunds, incomingSinkingFunds, 5000);
-            app.reconciliations = [...app.reconciliations, ...incomingReconciliations.map((r, i) => ({ ...r, id: Date.now() + 5500 + i }))];
-            app.planHistory = [...app.planHistory, ...incomingPlanHistory.map((h, i) => ({ ...h, id: Date.now() + 6000 + i }))].slice(-PLAN_HISTORY_CAP);
-            app.retirementSnapshots = [...app.retirementSnapshots, ...incomingRetirementSnapshots.map((s, i) => ({ ...s, id: Date.now() + 6500 + i }))];
-            // Name-matched debts/accounts resolve to the surviving record's id.
-            const debtIdByName = new Map(app.debts.map(d => [d.name.toLowerCase(), d.id]));
-            const accountIdByName = new Map(app.accounts.map(a => [a.name.toLowerCase(), a.id]));
-            const debtIdMap = new Map(validDebts.map(d => [d.id, debtIdByName.get(d.name.toLowerCase())]));
-            const accountIdMap = new Map(incomingAccounts.map(a => [a.id, accountIdByName.get(a.name.toLowerCase())]));
-            // A transfer whose from/to account didn't resolve to a surviving
-            // account (name not found) is dropped rather than imported with a
-            // dangling reference.
-            app.transfers = [
-                ...(app.transfers || []),
-                ...incomingTransfers
-                    .filter(t => accountIdMap.has(t.fromAccountId) && accountIdMap.has(t.toAccountId))
-                    .map((t, i) => ({ ...t, fromAccountId: accountIdMap.get(t.fromAccountId), toAccountId: accountIdMap.get(t.toAccountId), id: Date.now() + 7500 + i }))
-            ];
-            const remappedHistory = remapHistoryOwners(incomingBalanceHistory, debtIdMap, accountIdMap);
-            app.balanceHistory = [
-                ...(app.balanceHistory || []),
-                ...excludeExistingHistory(app.balanceHistory || [], remappedHistory)
-                    .map((h, i) => ({ ...h, id: Date.now() + 8000 + i }))
-            ];
-            if (incomingRetirementTargetDate) app.retirementTargetDate = incomingRetirementTargetDate;
-            if (incomingHomePurchasePlan) app.homePurchasePlan = incomingHomePurchasePlan;
-            app.budgetCategories = { ...(app.budgetCategories || {}), ...incomingBudgetCategories };
-            app.settings = incomingSettings || [];
-            app.ledgerAmountOverrides = incomingLedgerAmountOverrides || {};
-            app.ledgerClearedTransactions = incomingLedgerClearedTransactions || {};
-            app.monthlySnapshots = incomingMonthlySnapshots || [];
-            app.netWorthMilestonesAwarded = incomingNetWorthMilestones || [];
-            app.perMonthStimulus = incomingPerMonthStimulus;
-            if (incomingLedgerSettings) {
-                app._ledgerAccountFilter = incomingLedgerSettings.accountFilter || 'all';
-                app._ledgerDateRange = incomingLedgerSettings.dateRange || 'around7';
-                app._ledgerSortKey = incomingLedgerSettings.sortKey || 'date';
-                app._ledgerSortDir = incomingLedgerSettings.sortDir || 'desc';
-                app._ledgerClearedFilter = incomingLedgerSettings.clearedFilter || 'all';
-            }
-            if (incomingForecastSettings) {
-                app._forecastRangeMonths = incomingForecastSettings.rangeMonths || 1;
-                app._forecastAccountId = incomingForecastSettings.accountId || 'total';
-                app._forecastNotableThresholdPct = incomingForecastSettings.notableThresholdPct || 130;
-            }
-        }
-
         if (incomingStrategy) {
             const mpEl = document.getElementById('monthlyPayment');
             const psEl = document.getElementById('paymentStrategy');
@@ -618,11 +448,13 @@ export function importAllJSON(app, file, options = {}) {
             if (mpEl && payment !== null) mpEl.value = payment;
             if (psEl && strategy) psEl.value = strategy;
         }
-
         await seedMissingBalanceHistory(app);
-        app.saveToStorage();
         app.updateUI();
         app.refreshCurrentPageData();
+        if (postgresSkippedDebts > 0 && typeof onMergeDuplicates === 'function') {
+            onMergeDuplicates(postgresAddedDebts, postgresSkippedDebts, warnings);
+            mergeDuplicatesReported = true;
+        }
         if (!mergeDuplicatesReported && typeof onImported === 'function') {
             onImported(parts, warnings);
         }

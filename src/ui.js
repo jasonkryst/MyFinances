@@ -577,7 +577,7 @@ export function updateAccountMenuEmail(app) {
         }
     }
     if (logoutItem) {
-        logoutItem.classList.toggle('hidden', app._storageBackendKind !== 'postgres');
+        logoutItem.classList.remove('hidden');
     }
 }
 

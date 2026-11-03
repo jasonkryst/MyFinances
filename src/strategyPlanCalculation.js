@@ -37,19 +37,15 @@ export async function recordPlanHistoryEntry(app, monthlyPayment, strategy) {
 
     app.planHistory = app.planHistory || [];
 
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/plan-history', entry);
-        if (saved) entry.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/plan-history', entry);
+    if (saved) entry.id = saved.id;
 
     app.planHistory.push(entry);
 
     const overflow = app.planHistory.length - PLAN_HISTORY_CAP;
     if (overflow > 0) {
         const trimmed = app.planHistory.splice(0, overflow);
-        if (app._storageBackendKind === 'postgres') {
-            trimmed.forEach(t => pgDelete(app, `/api/plan-history/${t.id}`));
-        }
+        trimmed.forEach(t => pgDelete(app, `/api/plan-history/${t.id}`));
     }
 }
 

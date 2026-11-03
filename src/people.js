@@ -206,10 +206,8 @@ export async function addPerson(app) {
     const person = { id: Date.now(), name };
     app.persons.push(person);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/persons', person);
-        if (saved?.id) person.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/persons', person);
+    if (saved?.id) person.id = saved.id;
     refreshPersonSelectors(app);
     app.renderPeopleList();
     document.getElementById('personForm')?.reset();
@@ -228,14 +226,14 @@ export async function deletePerson(app, personId) {
             if (!(app.debts[i].personIds || []).includes(personId)) continue;
             // #272: also moves/renormalizes the removed person's ownership share.
             app.debts[i] = removePersonFromDebt(app.debts[i], personId, replacementId);
-            if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/debts/${app.debts[i].id}`, app.debts[i]);
+            pgPatch(app, `/api/debts/${app.debts[i].id}`, app.debts[i]);
         }
     }
 
     for (let i = 0; i < app.incomes.length; i++) {
         if (app.incomes[i].personId !== personId) continue;
         app.incomes[i] = { ...app.incomes[i], personId: null };
-        if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[i].id}`, app.incomes[i]);
+        pgPatch(app, `/api/incomes/${app.incomes[i].id}`, app.incomes[i]);
     }
 
     const confirmed = await showDeleteConfirmModal(t('people.deleteConfirm', { name: (app.persons.find(p => p.id === personId) || {}).name }));
@@ -243,7 +241,7 @@ export async function deletePerson(app, personId) {
 
     app.persons = app.persons.filter(p => p.id !== personId);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/persons/${personId}`);
+    pgDelete(app, `/api/persons/${personId}`);
     refreshPersonSelectors(app);
     app.renderPeopleList();
     app.renderIncomeList();
@@ -273,7 +271,7 @@ export async function saveEditPerson(app, personId) {
     app.persons[idx] = { ...app.persons[idx], name };
     app.editingPersonId = null;
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/persons/${personId}`, app.persons[idx]);
+    pgPatch(app, `/api/persons/${personId}`, app.persons[idx]);
     refreshPersonSelectors(app);
     app.renderPeopleList();
 }

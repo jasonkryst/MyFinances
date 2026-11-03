@@ -268,10 +268,8 @@ export async function addIncome(app) {
     const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.incomes.push(income);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/incomes', income);
-        if (saved?.id) income.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/incomes', income);
+    if (saved?.id) income.id = saved.id;
     app.renderIncomeList();
     document.getElementById('incomeForm').reset();
 }
@@ -280,7 +278,7 @@ export async function addIncome(app) {
 export function deleteIncome(app, incomeId) {
     app.incomes = app.incomes.filter(i => i.id !== incomeId);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/incomes/${incomeId}`);
+    pgDelete(app, `/api/incomes/${incomeId}`);
     app.renderIncomeList();
     app.renderStrategyIncomeWidget();
 }
@@ -342,7 +340,7 @@ export async function saveEditIncome(app, incomeId) {
     app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.editingIncomeId = null;
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
+    pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
     app.renderIncomeList();
     app.renderStrategyIncomeWidget();
 }
@@ -365,10 +363,8 @@ export async function addBonus(app) {
     const bonus = { id: Date.now(), name, amount, date, category, accountId, purpose };
     app.bonuses.push(bonus);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/bonuses', bonus);
-        if (saved?.id) bonus.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/bonuses', bonus);
+    if (saved?.id) bonus.id = saved.id;
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
     document.getElementById('bonusForm').reset();
@@ -379,7 +375,7 @@ export async function addBonus(app) {
 export function deleteBonus(app, bonusId) {
     app.bonuses = app.bonuses.filter(b => b.id !== bonusId);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/bonuses/${bonusId}`);
+    pgDelete(app, `/api/bonuses/${bonusId}`);
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
 }
@@ -425,7 +421,7 @@ export async function saveEditBonus(app, bonusId) {
     app.bonuses[idx] = { ...app.bonuses[idx], name, amount, date, category, accountId, purpose };
     app.editingBonusId = null;
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/bonuses/${app.bonuses[idx].id}`, app.bonuses[idx]);
+    pgPatch(app, `/api/bonuses/${app.bonuses[idx].id}`, app.bonuses[idx]);
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
 }
