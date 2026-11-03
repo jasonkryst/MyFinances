@@ -6,16 +6,18 @@ Verifies Content Security Policy compliance and no unsafe-inline violations.
 
 import pytest
 
-BASE_URL = "http://localhost:32900/"
+from tests.conftest import BASE_URL, ensure_session, wait_for_app_ready
 
 
 @pytest.mark.security
-def test_csp_compliance(page):
+def test_csp_compliance(page, stack_user):
     """Test that page load and navigation produce no CSP violations.
 
     Uses the bare `page` fixture (not `app_page`) so the listener is registered
     before goto() — catching any violations raised during initial page parse/load.
+    The session cookie is installed first so the app boots rather than showing the login gate.
     """
+    ensure_session(page.context)
     csp_errors = []
 
     def handle_console_msg(msg):
@@ -24,6 +26,7 @@ def test_csp_compliance(page):
 
     page.on("console", handle_console_msg)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
 
     # Dismiss the first-run setup wizard (true first run on a bare `page`)
     # before clicking nav buttons, otherwise the modal overlay intercepts clicks.

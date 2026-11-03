@@ -12,7 +12,7 @@ import time
 
 import pytest
 
-from tests.conftest import BASE_URL
+from tests.conftest import BASE_URL, ensure_session, wait_for_app_ready
 
 
 def _wait_for_active_service_worker(page, timeout_ms=15000):
@@ -37,10 +37,12 @@ def _wait_for_active_service_worker(page, timeout_ms=15000):
 @pytest.mark.slow
 def test_app_shell_loads_offline_after_first_visit(browser):
     context = browser.new_context()
+    ensure_session(context)
     page = context.new_page()
 
     # First visit online: lets sw.js install and precache the app shell.
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
     assert _wait_for_active_service_worker(page), "Expected an active service worker after the first online visit"
 
     context.set_offline(True)
@@ -53,21 +55,19 @@ def test_app_shell_loads_offline_after_first_visit(browser):
     context.close()
 
 
-_SEED_SCRIPT = """
-    localStorage.setItem('debtTrackerData', JSON.stringify({ accounts: [], debts: [], settings: [] }));
-"""
-
-
 @pytest.mark.integration
 @pytest.mark.slow
 def test_data_page_navigation_works_offline(browser):
     """Switching pages while offline relies only on cached resources — all routing
     is client-side JS and the SW precaches every app-shell file on first visit."""
+    # RESERVED for Task 5: offline behaviour (server-unreachable gate) changes there; with the
+    # server unreachable the current Postgres boot path shows the login gate, so the app is not usable offline.
     context = browser.new_context()
+    ensure_session(context)
     page = context.new_page()
-    context.add_init_script(_SEED_SCRIPT)
 
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
     assert _wait_for_active_service_worker(page), "Expected active service worker"
 
     context.set_offline(True)
@@ -91,11 +91,14 @@ def test_data_page_navigation_works_offline(browser):
 def test_add_debt_offline_persists_to_localstorage(browser):
     """Adding a debt while offline writes it to localStorage — the full add-debt
     flow (form fill → submit → re-render) is purely client-side with no network calls."""
+    # RESERVED for Task 5: offline behaviour (server-unreachable gate) changes there; with the
+    # server unreachable the current Postgres boot path shows the login gate, so the app is not usable offline.
     context = browser.new_context()
+    ensure_session(context)
     page = context.new_page()
-    context.add_init_script(_SEED_SCRIPT)
 
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
     assert _wait_for_active_service_worker(page), "Expected active service worker"
 
     context.set_offline(True)
@@ -141,13 +144,16 @@ def test_chartjs_renders_from_sw_cache_offline(browser):
     """Chart.js (loaded from CDN) is cached by the SW's staleWhileRevalidate handler
     on first fetch. Going offline after the first visit must still serve the script
     from that cache so window.Chart is defined and charts render."""
+    # RESERVED for Task 5: offline behaviour (server-unreachable gate) changes there; with the
+    # server unreachable the current Postgres boot path shows the login gate, so the app is not usable offline.
     context = browser.new_context()
+    ensure_session(context)
     page = context.new_page()
-    context.add_init_script(_SEED_SCRIPT)
 
     # Online first visit — navigate to Health so Chart.js CDN is fetched and cached
     # by the SW's staleWhileRevalidate handler (sw.js:99-101).
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
     assert _wait_for_active_service_worker(page), "Expected active service worker"
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=8000)
