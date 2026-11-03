@@ -53,6 +53,10 @@ async function readCapped(res) {
 // with a count above zero. Every other outcome, including errors, is false.
 export async function isPasswordBreached(password) {
     if (!isBreachCheckEnabled()) return false;
+    // SHA-1 is mandated by the Pwned Passwords range protocol; it is only a
+    // lookup key, never stored or used to authenticate (stored passwords are
+    // argon2id). CodeQL js/insufficient-password-hash alerts here are
+    // dismissed as false positives for that reason (PR #457).
     const sha1 = createHash('sha1').update(String(password), 'utf8').digest('hex').toUpperCase();
     const prefix = sha1.slice(0, 5);
     const suffix = sha1.slice(5);
