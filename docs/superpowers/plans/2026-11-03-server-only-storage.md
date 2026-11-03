@@ -265,3 +265,35 @@ Required content changes:
 - [ ] **Step 1:** Run `npm run test:unit`, server suite (Docker recipe from memory), and `pytest tests/ -v` against the local stack. Everything must pass.
 - [ ] **Step 2:** Push, update the draft PR body (summary, BREAKING note, test plan), and wait for CI to go fully green, including `build-images` and `ci-complete`. If a shard exceeds its timeout, rebalance the files between shards.
 - [ ] **Step 3:** Mark the PR ready. Do not merge (the owner merges).
+
+### Task 12: Postgres field parity (added during execution; runs after Task 3, before Task 4)
+
+Task 3a found that Postgres mode silently drops fields that local storage kept. Once Postgres is the only backend, that is data loss for every migrating user, and it would break spec §1's migration criterion.
+
+**Files:**
+- Create: `server/migrations/1755600000031_add-missing-persisted-fields.js`
+  - The number must sort above the newest migration on `main` at merge time.
+  - Idempotent `ADD COLUMN IF NOT EXISTS`.
+  - `down()` drops only the columns it added.
+- Modify: `server/src/routes/{recurringTemplates,sinkingFunds,emergencyFunds,ledgerOverrides,debts}.js` (`columns` maps), plus every other route whose sanitizer emits a field without a column, as found by the parity test below.
+- Modify: `src/storage.js` `loadFromPostgres` and `src/postgresImport.js`, only if a field needs special handling (e.g. a jsonb column).
+- Create: `server/test/fieldParity.test.js`
+
+**Interfaces:**
+- Known gaps:
+  - `recurring_templates.archived` (boolean, default false)
+  - `sinking_funds.order` / `archived` / `completed_date` (pick column names that avoid the SQL reserved word `order`, e.g. `sort_order`)
+  - `emergency_funds.auto_sync_balance`
+  - `ledger_overrides.memo`
+  - `debts.notes` and `debts.next_payment_due`
+- Types follow the sanitizer: text, boolean, date, integer.
+- `paidAmounts` stays unpersisted; it is legacy, per CLAUDE.md #434.
+
+- [ ] **Step 1: Write the failing parity test.**
+  - For every CRUD resource that uses `createCrudResource`, build a fully populated record, run it through the resource's frontend `sanitize*`, and take the output keys.
+  - Assert that every key is in that route's `columns` map, or in an explicit `NOT_PERSISTED = { resource: { field: 'reason' } }` allowlist.
+  - Also add a round-trip test per known gap: POST a record carrying the field, GET it, and check the field equals the value sent. Use the existing `server/test/helpers` app/session helpers.
+- [ ] **Step 2: Run** the server suite (Docker recipe in `local-test-env-quirks` memory). The parity test is expected to FAIL, naming each gap.
+- [ ] **Step 3: Implement** the migration and the `columns` entries. Keep `NOT_PERSISTED` minimal, with a reason on every entry.
+- [ ] **Step 4: Run** the server suite. Expected: PASS. Also run `server/scripts/check-migration-order.sh origin/main`. Then run the 8 previously failing Playwright tests from Task 3a's report against a rebuilt local stack (`docker compose build server`). Expected: PASS.
+- [ ] **Step 5: Commit** `fix(server): persist fields Postgres mode silently dropped`.
