@@ -436,10 +436,21 @@ export function importAllJSON(app, file, options = {}) {
             : true;
 
         if (app._storageBackendKind === 'postgres') {
+            let postgresSkippedDebts = 0;
+            let postgresAddedDebts = 0;
             try {
                 if (shouldReplace) {
                     await replaceForPostgres(app, clean, incomingStrategy);
                 } else {
+                    // Same duplicate-by-name rule as the local branch below, counted
+                    // before the merge so the banner can report what was skipped.
+                    const existingDebtNames = new Set((app.debts || []).map(d => d.name?.toLowerCase()));
+                    let added = 0;
+                    for (const d of validDebts) {
+                        const key = d.name.toLowerCase();
+                        if (existingDebtNames.has(key)) { postgresSkippedDebts++; } else { added++; }
+                    }
+                    postgresAddedDebts = added;
                     await mergeForPostgres(app, clean, incomingStrategy);
                 }
             } catch {
@@ -457,6 +468,10 @@ export function importAllJSON(app, file, options = {}) {
             await seedMissingBalanceHistory(app);
             app.updateUI();
             app.refreshCurrentPageData();
+            if (postgresSkippedDebts > 0 && typeof onMergeDuplicates === 'function') {
+                onMergeDuplicates(postgresAddedDebts, postgresSkippedDebts, warnings);
+                mergeDuplicatesReported = true;
+            }
             if (!mergeDuplicatesReported && typeof onImported === 'function') {
                 onImported(parts, warnings);
             }
