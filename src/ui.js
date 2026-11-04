@@ -1000,6 +1000,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.0.0 — 2026-11-03',
+        items: [
+            '<strong>MyFinances now runs only against your own MyFinances server.</strong> Browser-only storage is gone, so your data always lives on the server and syncs across devices. If the server cannot be reached, you see a clear screen with a Retry button.',
+            '<strong>One-time prompt to move browser-only data:</strong> after you sign in, MyFinances offers to import any data left in this browser from an earlier version. If the server already has data, you can download it as a backup first.',
+            '<strong>Save problems are never silent:</strong> if a change fails to save, a banner tells you right away.'
+        ]
+    },
+    {
         version: '6.67.0 — 2026-11-03',
         items: [
             '<strong>Stronger passwords</strong> (issue #456): on the self-hosted server, new passwords need at least 15 characters and are checked against common and repetitive passwords, with an optional check against known data breaches. A strength meter shows how strong your new password is, in words as well as colour.',
