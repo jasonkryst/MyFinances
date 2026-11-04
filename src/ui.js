@@ -31,6 +31,9 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    document.getElementById('syncErrorBannerDismiss')?.addEventListener('click', () => {
+        document.getElementById('syncErrorBanner')?.classList.add('hidden');
+    });
     // #428: mobile collapsibles (add forms, filter disclosures). Delegated so
     // markup that is re-rendered (Ledger filters) keeps working.
     document.addEventListener('click', e => {
@@ -1306,23 +1309,11 @@ export function showNetWorthMilestone(message) {
     window.setTimeout(() => host.remove(), 2600);
 }
 
-let _pgErrorToastTimer = null;
-
-export function showPgErrorToast() {
-    if (_pgErrorToastTimer !== null) {
-        clearTimeout(_pgErrorToastTimer);
-    } else {
-        const el = document.createElement('div');
-        el.id = 'pgErrorToast';
-        el.className = 'pg-error-toast';
-        el.setAttribute('role', 'alert');
-        el.textContent = 'Sync error — your change may not have been saved to the server.';
-        document.body.appendChild(el);
-    }
-    _pgErrorToastTimer = setTimeout(() => {
-        document.getElementById('pgErrorToast')?.remove();
-        _pgErrorToastTimer = null;
-    }, 5000);
+// Persistent sync-error banner (v7.0.0, spec section 6). The markup lives in
+// index.html, hidden by default. Showing is idempotent (one banner, never
+// stacked); the dismiss button hides it until the next failure.
+export function showSyncErrorBanner() {
+    document.getElementById('syncErrorBanner')?.classList.remove('hidden');
 }
 
 let _emailTestToastTimer = null;

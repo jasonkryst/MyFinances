@@ -1552,7 +1552,12 @@
             </div>
         </div>
     </div>
-    <!-- Login Gate — full-page overlay for Postgres backend -->
+    <!-- Persistent sync-error banner: shown when a save to the server fails -->
+    <div id="syncErrorBanner" class="sync-error-banner hidden" role="alert">
+        <span class="sync-error-banner-text" data-i18n="sync.errorBanner">Sync error — your change may not have been saved to the server.</span>
+        <button type="button" id="syncErrorBannerDismiss" class="sync-error-banner-dismiss" data-i18n-attr="aria-label:sync.dismiss" aria-label="Dismiss">&times;</button>
+    </div>
+    <!-- Login Gate — full-page overlay -->
     <div id="loginGate" class="login-gate hidden" role="dialog" aria-modal="true" aria-labelledby="loginGateTitle">
         <div class="login-gate-card">
             <div class="login-gate-header">

@@ -1852,4 +1852,6 @@ export default {
     "pgMigration.cleanupDescription": "Este navegador aún guarda datos del antiguo modo solo de navegador, pero tu servidor ya tiene datos, así que no se importarán. Descarga una copia de seguridad en JSON o elimínalos de este navegador.",
     "pgMigration.download": "Descargar como copia JSON",
     "pgMigration.remove": "Eliminar",
+    "sync.errorBanner": "Error de sincronización: es posible que tu cambio no se haya guardado en el servidor.",
+    "sync.dismiss": "Descartar",
 };

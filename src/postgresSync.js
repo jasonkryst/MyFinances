@@ -1,6 +1,6 @@
 import { getCsrfCookie } from './storage.js';
 import { showLoginGate } from './loginGate.js';
-import { showPgErrorToast } from './ui.js';
+import { showSyncErrorBanner } from './ui.js';
 
 const ALL_RESOURCE_PATHS = [
     '/api/persons',
@@ -35,21 +35,24 @@ async function pgFetch(app, method, path, body) {
             body: body !== undefined ? JSON.stringify(body) : undefined
         });
         if (res.status === 401) {
-            await showLoginGate(app);
+            // Several saves can fail at once; one gate is enough.
+            if (document.getElementById('loginGate')?.classList.contains('hidden') !== false) {
+                await showLoginGate(app);
+            }
             return null;
         }
         if (!res.ok) {
             let errorBody = null;
             try { errorBody = await res.json(); } catch { /* non-JSON body */ }
             console.error(`[postgresSync] ${method} ${path} failed: ${res.status}`, errorBody);
-            showPgErrorToast();
+            showSyncErrorBanner();
             return null;
         }
         if (res.status === 204) return null;
         return await res.json();
     } catch (err) {
         console.error(`[postgresSync] ${method} ${path} error:`, err);
-        showPgErrorToast();
+        showSyncErrorBanner();
         return null;
     }
 }

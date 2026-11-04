@@ -1,6 +1,6 @@
 import { getCsrfCookie } from './storage.js';
 import { pgDeleteAll, pgDeleteMilestones } from './postgresSync.js';
-import { showPgErrorToast } from './ui.js';
+import { showSyncErrorBanner } from './ui.js';
 import { sanitizeFiniteNumber, normalizeText } from './utils.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
 
@@ -273,7 +273,7 @@ async function doReplaceRollback(app, snapshot) {
         applyResultsToApp(app, snapshotToPostData(snapshot), results);
     } catch (rollbackErr) {
         console.error('[pgImport] Rollback also failed — data may be inconsistent:', rollbackErr);
-        showPgErrorToast();
+        showSyncErrorBanner();
     }
 }
 
@@ -297,7 +297,7 @@ export async function replaceForPostgres(app, clean, incomingStrategy) {
     } catch (err) {
         console.error('[pgImport] Replace failed, rolling back:', err);
         await doReplaceRollback(app, snapshot);
-        showPgErrorToast();
+        showSyncErrorBanner();
         throw err;
     }
 }
@@ -516,7 +516,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
                 fetch(path, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfCookie() } })
             )
         );
-        showPgErrorToast();
+        showSyncErrorBanner();
         throw err;
     }
 }

@@ -1852,4 +1852,6 @@ export default {
     "pgMigration.cleanupDescription": "Ta przeglądarka nadal przechowuje dane ze starego trybu tylko w przeglądarce, ale Twój serwer ma już dane, więc nie zostaną zaimportowane. Pobierz kopię zapasową JSON albo usuń je z tej przeglądarki.",
     "pgMigration.download": "Pobierz jako kopię JSON",
     "pgMigration.remove": "Usuń",
+    "sync.errorBanner": "Błąd synchronizacji — Twoja zmiana mogła nie zostać zapisana na serwerze.",
+    "sync.dismiss": "Zamknij",
 };

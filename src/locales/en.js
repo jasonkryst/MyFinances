@@ -1881,4 +1881,6 @@ export default {
     "pgMigration.cleanupDescription": "This browser still holds data from the old browser-only mode, but your server already has data, so it will not be imported. Download a JSON backup or remove it from this browser.",
     "pgMigration.download": "Download as JSON backup",
     "pgMigration.remove": "Remove it",
+    "sync.errorBanner": "Sync error — your change may not have been saved to the server.",
+    "sync.dismiss": "Dismiss",
 };

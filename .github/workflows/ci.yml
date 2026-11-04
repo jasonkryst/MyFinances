@@ -257,6 +257,7 @@ jobs:
             tests/features/test_pwa.py \
             tests/features/test_issue_93_expense_save.py \
             tests/features/test_server_only_storage.py \
+            tests/features/test_sync_error_banner.py \
             tests/features/test_spending_analysis.py \
             tests/features/test_bills.py \
             tests/features/test_retirement.py \
