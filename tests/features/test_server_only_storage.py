@@ -10,7 +10,7 @@ import pytest
 
 from tests.conftest import (
     BASE_URL, open_data_transfer, open_settings, reset_server_state, seed_state,
-    switch_settings_tab, wait_for_app_ready,
+    switch_settings_tab, wait_for_api, wait_for_app_ready,
 )
 
 ACCOUNT = {"id": 1, "name": "Server Checking", "type": "Checking", "balance": 1200}
@@ -222,3 +222,68 @@ def test_no_session_shows_login_gate(app_page):
     wait_for_app_ready(page)
     page.wait_for_selector('#loginGate', state='visible', timeout=15000)
     assert page.is_hidden('#serverUnreachableGate')
+
+
+# Device-preference / transient-UI keys that may live in browser storage (spec section 3).
+# Collapsible open-state is held in memory by utils.js (no storage key), so there is no
+# prefix to match. Mirrors ALLOWED_KEYS in tests/security/test_no_browser_financial_storage.py.
+ALLOWED_LOCAL_KEYS = {
+    'debtTrackerTheme', 'debtTrackerLocale', 'debtTrackerCurrency',
+    'debtTrackerLastSeenVersion', 'debtTrackerLedgerFilters', 'ledgerHiddenColumns',
+    'debtTrackerReconInProgress',
+}
+
+
+@pytest.mark.feature
+def test_no_financial_keys_after_crud_pass(app_page):
+    from tests.conftest import create_account, create_debt
+
+    page = app_page
+    create_account(page, {"name": "Storage Checking", "type": "Checking", "balance": "5000"})
+    create_debt(page, {"name": "Storage Visa", "type": "creditCard", "balance": "2500",
+                       "interest_rate": "18.5", "min_payment": "100"})
+    page.click('button[data-page="income"]')
+    page.wait_for_selector('#incomeSection.active', timeout=5000)
+    page.fill('#incomeName', 'Storage Salary')
+    page.fill('#incomeAmount', '5000')
+    page.fill('#incomeFirstDate', '2026-05-01')
+    page.select_option('#incomeFrequency', 'monthly')
+    page.select_option('#incomeAccount', index=1)
+    page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Storage Salary', timeout=10000)
+
+    # Recurring template
+    page.click('button[data-page="recurring"]')
+    page.wait_for_selector('#recurringSection.active', timeout=5000)
+    page.click('#recurringFormToggle')
+    page.wait_for_selector('#recurringFormBody:not([hidden])', timeout=5000)
+    acct_id = page.evaluate("() => String(window.app.accounts.find(a => a.name === 'Storage Checking').id)")
+    page.fill('#recurringName', 'Storage Netflix')
+    page.select_option('#recurringType', 'subscription')
+    page.fill('#recurringAmount', '15.99')
+    page.select_option('#recurringFrequency', 'monthly')
+    page.fill('#recurringStartDate', '2026-05-01')
+    page.select_option('#recurringAccount', acct_id)
+    page.click('#recurringFormSubmit')
+    page.wait_for_selector('#recurringList .recurring-card-name', timeout=10000)
+
+    # Emergency fund
+    page.click('button[data-page="savings"]')
+    page.wait_for_selector('#savingsSection.active', timeout=5000)
+    page.click('.savings-subtab-btn[data-savings-subtab="emergency"]')
+    toggle = page.query_selector('#emergencyFormToggle')
+    if toggle:
+        toggle.click()
+        page.wait_for_selector('#emergencyFormBody.visible', timeout=3000)
+    page.select_option('#emergencyAccount', value=acct_id)
+    page.fill('#emergencyTarget', '10000')
+    page.fill('#emergencyCurrent', '1000')
+    page.fill('#emergencyContribution', '500')
+    page.click('#emergencyFormSubmit')
+    wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
+
+    page.reload()
+
+    keys = page.evaluate("() => Object.keys(localStorage)")
+    assert set(keys) <= ALLOWED_LOCAL_KEYS, f"unexpected localStorage keys: {sorted(set(keys) - ALLOWED_LOCAL_KEYS)}"
+    assert page.evaluate("() => sessionStorage.length") == 0
