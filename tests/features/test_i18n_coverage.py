@@ -569,6 +569,27 @@ TRANSLATED_PAGES = {
             window.fetch = orig;
         }""",
     ),
+    # v7.0.0: legacy browser-data modal, import variant with a failed transfer
+    # (error line visible), then the cleanup variant.
+    'legacy-data-modal-import': (
+        ['#pgMigrationModal'],
+        """async () => {
+            const m = await import('/src/pgMigrationModal.js');
+            const json = JSON.stringify({ accounts: [{ id: 1, name: 'A', type: 'Checking', startingBalance: 1 }], debts: [] });
+            m.showPgMigrationModal({}, json);
+            await new Promise(r => setTimeout(r, 100));
+            document.getElementById('pgMigrationError').textContent = (await import('/src/i18n.js')).t('pgMigration.failed');
+            document.getElementById('pgMigrationError').classList.remove('hidden');
+        }""",
+    ),
+    'legacy-data-modal-cleanup': (
+        ['#pgMigrationModal'],
+        """async () => {
+            const m = await import('/src/pgMigrationModal.js');
+            m.showLegacyDataCleanupModal('{}');
+            await new Promise(r => setTimeout(r, 100));
+        }""",
+    ),
     # #456: login gate reset-link mode.
     'login-gate-reset': (
         ['.login-gate-body'],

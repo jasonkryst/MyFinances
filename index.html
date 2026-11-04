@@ -1635,20 +1635,23 @@
             </div>
         </div>
     </div>
-    <!-- Postgres Migration Modal - offered once when local data exists and Postgres is empty on first login -->
+    <!-- Legacy browser data modal (v7.0.0): offers to import old browser-only data when the server is empty, otherwise download-or-remove. Text is set by pgMigrationModal.js via t() -->
     <div id="pgMigrationModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="pgMigrationTitle" tabindex="-1">
         <div class="modal-content">
-            <h3 id="pgMigrationTitle">Transfer Your Local Data</h3>
-            <p class="modal-description">
-                We found data saved locally in this browser. Transfer it to your PostgreSQL
-                account now so you don't lose your financial history.
+            <h3 id="pgMigrationTitle" data-i18n="pgMigration.title">Transfer Your Local Data</h3>
+            <p id="pgMigrationDescription" class="modal-description" data-i18n="pgMigration.description">
+                We found data saved locally in this browser. Transfer it to your PostgreSQL account now so you don't lose your financial history.
             </p>
             <p id="pgMigrationCounts" class="modal-helper-text"></p>
             <p id="pgMigrationError" class="pg-migration-error hidden" role="alert" aria-live="polite"></p>
-            <div class="modal-actions">
-                <button id="pgMigrationTransferBtn" class="btn btn-success">Transfer Data</button>
-                <button id="pgMigrationSkipBtn" class="btn btn-secondary">Skip for Now</button>
+            <div id="pgMigrationImportActions" class="modal-actions">
+                <button id="pgMigrationTransferBtn" class="btn btn-success" data-i18n="pgMigration.transfer">Transfer Data</button>
+                <button id="pgMigrationSkipBtn" class="btn btn-secondary" data-i18n="pgMigration.skip">Skip for Now</button>
+            </div>
+            <div id="pgMigrationCleanupActions" class="modal-actions hidden">
+                <button id="pgLegacyDownloadBtn" class="btn btn-primary" data-i18n="pgMigration.download">Download as JSON backup</button>
+                <button id="pgLegacyRemoveBtn" class="btn btn-secondary" data-i18n="pgMigration.remove">Remove it</button>
             </div>
         </div>
     </div>

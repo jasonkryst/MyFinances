@@ -38,7 +38,7 @@ import {
 import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres, SessionExpiredError } from './storage.js';
 import { showServerUnreachable } from './serverUnreachableGate.js';
 import { showLoginGate } from './loginGate.js';
-import { showPgMigrationModal } from './pgMigrationModal.js';
+import { showPgMigrationModal, showLegacyDataCleanupModal } from './pgMigrationModal.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, exportChartsAsPng as exportChartsAsPngFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import {
     recordBalanceHistory as recordBalanceHistoryFeature,
@@ -312,10 +312,28 @@ export class DebtTrackerApp {
         return collections.every(c => !Array.isArray(c) || c.length === 0);
     }
 
-    // Legacy browser-only data (spec §5 step 4) is handled in Task 6. Returns
-    // true when a prompt was shown, which suppresses the setup wizard.
+    // Legacy browser-only data (spec §5 step 4). Returns true when a prompt
+    // was shown, which suppresses the setup wizard.
     async _handleLegacyBrowserData() {
-        return false;
+        let localJson = null;
+        try { localJson = window.localStorage.getItem('debtTrackerData'); } catch (_) { return false; }
+        if (!localJson) return false;
+        try {
+            JSON.parse(localJson);
+        } catch {
+            try { window.localStorage.removeItem('debtTrackerData'); } catch (_) { /* storage blocked */ }
+            return false;
+        }
+        const serverIsEmpty = [
+            this.debts, this.accounts, this.incomes, this.bills, this.expenses,
+            this.recurringTemplates, this.emergencyFunds, this.sinkingFunds,
+            this.reconciliations, this.persons, this.transfers, this.balanceHistory,
+        ].every(c => !Array.isArray(c) || c.length === 0);
+        // Boot waits on the prompt; flag readiness so tooling can tell that apart from a hang.
+        this._markReadyBehindGate();
+        if (serverIsEmpty) await showPgMigrationModal(this, localJson);
+        else await showLegacyDataCleanupModal(localJson);
+        return true;
     }
 
     initializeEventListeners() {
