@@ -4,6 +4,56 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.0.0] — 2026-11-03
+
+### BREAKING
+- **Browser-only storage is removed.** MyFinances now requires a running MyFinances server (the Docker stack: nginx + Node + PostgreSQL). Local Storage and Session Storage modes are gone, and so is `python -m http.server` support.
+
+### Upgrade
+1. Optionally export JSON from 6.x (Account menu → Backup & Restore → Export Backup).
+2. Deploy the Docker stack (see `DEPLOYMENT.md`).
+3. Sign in. The first sign-in needs an account: `setup.sh`/`setup.ps1` create one for you. For a manual deployment either start the server once with `ALLOW_SETUP=true` to get the setup screen (then unset it), or create the user with `docker compose run --rm server node scripts/create-user.js`.
+4. Accept the one-time prompt that imports leftover browser data. If the server already has data, the prompt offers to download this browser's data as a JSON backup, or to remove it. Declining the import also downloads a JSON backup before the browser copy is removed.
+
+Browser data is stored per origin, so the import prompt only appears when 7.0 is served from the same scheme, host and port as 6.x. If the address changes, export JSON from 6.x first (Account menu → Backup & Restore → Export Backup) and import it after signing in.
+
+### Added
+- **"Can't reach your MyFinances server" screen** with a "Try again" button. Boot gives up after 8 s on the probe and 20 s on the data load.
+- **Persistent "Couldn't save your last change" banner** when a write to the server fails.
+- **One-time cleanup prompt** for legacy browser data.
+- **Concurrent sign-in prompts collapse into one.**
+- **`docker-compose.dev.yml`**, which bind-mounts the frontend for development.
+
+### Removed
+- The Settings storage selector, the storage quota warning, and `python -m http.server` support.
+
+### Fixed
+- **Postgres mode silently dropped fields.** They are now persisted (migration `1755600000031`):
+  - debt `notes` and `nextPaymentDue`
+  - recurring template `archived`
+  - sinking fund order, `archived` and `completedDate`
+  - emergency fund `autoSyncBalance`
+  - ledger override `memo`
+  - income `updatedAt`
+- Debt `updatedAt` is now stored as a date.
+- Postgres merge import now reports skipped duplicates.
+- Clear All Data now clears every collection in memory.
+- An expired session during load leads to sign-in instead of the unreachable screen.
+- A write rejected with 401 mid-session is retried once after sign-in instead of being lost.
+- Declining the legacy browser-data import no longer deletes the only copy: a JSON backup is downloaded first.
+- The manifest, meta description and guide no longer claim data stays in the browser.
+
+### Security
+- The service worker no longer caches `/api`, `/auth` or `/calendar.ics` responses. Financial data previously landed in Cache Storage.
+- A static test now forbids financial data in browser storage.
+- The server sends `Cache-Control: no-store` on every `/api` and `/auth` response, so a still-running 6.x service worker cannot cache financial data during the upgrade.
+- `/auth/password-policy` has its own rate limit.
+
+### Tests
+- The whole Playwright suite now runs against a real Postgres stack.
+- CI builds the images once per run and shares them across shards.
+- `.gitattributes` forces LF line endings on `.sh` files.
+
 ## [6.67.0] — 2026-11-03
 
 ### Added

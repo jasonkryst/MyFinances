@@ -1,6 +1,6 @@
-import { getCsrfCookie } from './storage.js';
-import { showLoginGate } from './loginGate.js';
-import { showPgErrorToast } from './ui.js';
+import { getCsrfCookie, discardBody } from './storage.js';
+import { requestLogin } from './loginGate.js';
+import { showSyncErrorBanner } from './ui.js';
 
 const ALL_RESOURCE_PATHS = [
     '/api/persons',
@@ -26,7 +26,8 @@ const ALL_RESOURCE_PATHS = [
 
 async function pgFetch(app, method, path, body) {
     try {
-        const res = await fetch(path, {
+        // The csrf cookie is re-read per attempt: signing in issues a new one.
+        const send = () => fetch(path, {
             method,
             headers: {
                 'Content-Type': 'application/json',
@@ -34,22 +35,27 @@ async function pgFetch(app, method, path, body) {
             },
             body: body !== undefined ? JSON.stringify(body) : undefined
         });
+        let res = await send();
         if (res.status === 401) {
-            await showLoginGate(app);
-            return null;
+            // Several saves can fail at once; one gate is enough. After
+            // signing in, retry this write exactly once (no loop) so it is
+            // not silently lost.
+            await discardBody(res);
+            await requestLogin(app);
+            res = await send();
         }
         if (!res.ok) {
             let errorBody = null;
             try { errorBody = await res.json(); } catch { /* non-JSON body */ }
             console.error(`[postgresSync] ${method} ${path} failed: ${res.status}`, errorBody);
-            showPgErrorToast();
+            showSyncErrorBanner();
             return null;
         }
         if (res.status === 204) return null;
         return await res.json();
     } catch (err) {
         console.error(`[postgresSync] ${method} ${path} error:`, err);
-        showPgErrorToast();
+        showSyncErrorBanner();
         return null;
     }
 }

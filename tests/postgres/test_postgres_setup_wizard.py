@@ -14,7 +14,7 @@ from playwright.async_api import async_playwright, expect
 
 pytestmark = pytest.mark.asyncio
 
-BASE_URL_DEFAULT = "http://localhost:32900"
+from tests.postgres.conftest import BASE_URL as BASE_URL_DEFAULT
 
 
 def _make_pg_context(playwright):
@@ -185,8 +185,8 @@ async def test_setup_submit_calls_register_not_login(base_url):
     async with async_playwright() as p:
         async with _make_pg_context(p) as page:
             await _mock_setup_needed(page)
-            # _mock_all_api omitted: it would make checkPostgresSession return
-            # true (200 from /api/plan-settings mock), skipping showLoginGate.
+            # _mock_all_api omitted: it would make probeServer() report a session
+            # (200 from the /api/plan-settings mock), skipping showLoginGate.
             # The real server returns 401 for all /api calls (no session cookie
             # in the fresh context), so the gate correctly appears.
 

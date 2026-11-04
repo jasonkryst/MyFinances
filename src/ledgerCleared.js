@@ -25,13 +25,9 @@ export function setLedgerCleared(app, transactionId, cleared) {
     if (cleared) {
         const entry = { clearedAt: new Date().toISOString() };
         app.ledgerClearedTransactions[transactionId] = entry;
-        if (app._storageBackendKind === 'postgres') {
-            pgPut(app, `/api/ledger-cleared/${transactionId}`, entry);
-        }
+        pgPut(app, `/api/ledger-cleared/${transactionId}`, entry);
     } else {
         delete app.ledgerClearedTransactions[transactionId];
-        if (app._storageBackendKind === 'postgres') {
-            pgDelete(app, `/api/ledger-cleared/${transactionId}`);
-        }
+        pgDelete(app, `/api/ledger-cleared/${transactionId}`);
     }
 }

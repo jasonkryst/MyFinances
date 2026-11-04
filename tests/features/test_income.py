@@ -9,13 +9,24 @@ import pytest
 BASE_URL = "http://localhost:32900/"
 
 
+_NAME_FIELD = {'accounts': 'accountName', 'incomes': 'incomeName'}
+
+
+def _submit(page, button, collection):
+    """Click a form's submit and wait for the add to finish: addAccount/addIncome await the
+    server POST, then render and reset the form, so the UI lags the click."""
+    page.click(button)
+    page.wait_for_function(
+        f"() => document.getElementById('{_NAME_FIELD[collection]}').value === ''", timeout=10000)
+
+
 def _create_income_account(page, name="Income Validation Account"):
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', name)
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
 
@@ -31,7 +42,7 @@ def test_create_income(app_page, income_data):
     page.fill('#accountName', 'Income Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
     
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -57,7 +68,7 @@ def test_income_frequencies(app_page):
     page.fill('#accountName', 'Income Freq Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
 
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -70,7 +81,7 @@ def test_income_frequencies(app_page):
         page.fill('#incomeFirstDate', '2026-05-01')
         page.select_option('#incomeFrequency', freq)
         page.select_option('#incomeAccount', index=1)
-        page.click('#incomeFormSubmit')
+        _submit(page, '#incomeFormSubmit', 'incomes')
 
 
 @pytest.mark.feature
@@ -83,7 +94,7 @@ def test_total_income_calculation(app_page):
     page.fill('#accountName', 'Income Total Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
 
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -110,7 +121,7 @@ def test_multiple_income_sources(app_page):
     page.fill('#accountName', 'Income Multi Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
 
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -127,7 +138,7 @@ def test_multiple_income_sources(app_page):
         page.fill('#incomeFirstDate', date)
         page.select_option('#incomeFrequency', freq)
         page.select_option('#incomeAccount', index=1)
-        page.click('#incomeFormSubmit')
+        _submit(page, '#incomeFormSubmit', 'incomes')
     
     # Verify all incomes appear
     for name, _, _, _ in incomes:
@@ -343,7 +354,7 @@ def _create_debt_for_advisor(page):
     page.fill('#accountName', 'Advisor Debt Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -518,7 +529,7 @@ def _create_three_debts_for_elimination(page):
     page.fill('#accountName', 'Elimination Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -625,7 +636,7 @@ def _create_debts_for_advice_interest_filter(page):
     page.fill('#accountName', 'Advice Filter Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    _submit(page, '#accountFormSubmit', 'accounts')
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -645,6 +656,10 @@ def _create_debts_for_advice_interest_filter(page):
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
         page.click('#debtFormSubmit')
+        # addDebt awaits the server POST, then resets and closes the form: wait for the
+        # close before the next iteration toggles it open again.
+        page.wait_for_selector(f'#debtsList >> text={name}', timeout=10000)
+        page.wait_for_selector('#debtFormBody[hidden]', state='attached', timeout=10000)
 
 
 @pytest.mark.feature
@@ -726,7 +741,7 @@ def test_income_frequency_weekly_selectable(app_page):
     page.fill('#incomeFirstDate', '2026-09-01')
     page.select_option('#incomeFrequency', 'weekly')
     page.select_option('#incomeAccount', index=1)
-    page.click('#incomeFormSubmit')
+    _submit(page, '#incomeFormSubmit', 'incomes')
 
     assert page.query_selector('text=Weekly Paycheck') is not None, \
         "Weekly income source not saved"
@@ -748,7 +763,7 @@ def test_income_frequency_twice_monthly_selectable(app_page):
     page.fill('#incomeFirstDate', '2026-09-01')
     page.select_option('#incomeFrequency', 'twice_monthly')
     page.select_option('#incomeAccount', index=1)
-    page.click('#incomeFormSubmit')
+    _submit(page, '#incomeFormSubmit', 'incomes')
 
     assert page.query_selector('text=Semi-Monthly Pay') is not None, \
         "Twice-monthly income source not saved"

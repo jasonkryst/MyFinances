@@ -13,15 +13,19 @@ dangling ARIA references, tap-target size, focus management).
 Usage:
     python tests/a11y/run_a11y_audit.py > docs/audit/a11y/raw_findings.json
 
-Requires the app to be served at http://localhost:32900/ (e.g.
-`python -m http.server 32900` from the repo root).
+Requires the Docker stack (nginx + Node + Postgres) and the test user; point
+TEST_BASE_URL at it. The audit REPLACES the server's data with SAMPLE_DATA.
 """
 
 import json
+import os
 import sys
 from playwright.sync_api import sync_playwright
 
-BASE_URL = "http://localhost:32900/"
+# Reuse the test harness (signed-in session + seeding through the real server API) so
+# the standalone CLI entry point works the same as the pytest wrapper.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from tests.conftest import BASE_URL, ensure_session, seed_state, wait_for_app_ready  # noqa: E402
 
 PAGES = [
     "health", "accounts", "income", "liabilities", "recurring",
@@ -300,15 +304,19 @@ def collect_audit_findings(headless=True):
         browser = p.chromium.launch(headless=headless)
 
         # ── Desktop pass ────────────────────────────────────────────────
-        page = browser.new_page(viewport={"width": 1366, "height": 900})
+        ctx = browser.new_context(viewport={"width": 1366, "height": 900})
+        ensure_session(ctx)
+        page = ctx.new_page()
         console_errors = []
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
         page.on("pageerror", lambda e: console_errors.append(str(e)))
 
         page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-        page.evaluate("(data) => localStorage.setItem('debtTrackerData', JSON.stringify(data))", SAMPLE_DATA)
+        wait_for_app_ready(page)
+        seed_state(page, SAMPLE_DATA, reload=False)
         page.evaluate("() => localStorage.setItem('debtTrackerTheme', 'light')")
         page.reload(wait_until="networkidle")
+        wait_for_app_ready(page)
 
         results["landmarks"]["index"] = page.evaluate(JS_LANDMARKS)
 
@@ -439,10 +447,13 @@ def collect_audit_findings(headless=True):
         page.close()
 
         # ── Mobile pass ─────────────────────────────────────────────────
-        mpage = browser.new_page(viewport={"width": 375, "height": 667})
+        mctx = browser.new_context(viewport={"width": 375, "height": 667})
+        ensure_session(mctx)
+        mpage = mctx.new_page()
         mpage.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-        mpage.evaluate("(data) => localStorage.setItem('debtTrackerData', JSON.stringify(data))", SAMPLE_DATA)
+        wait_for_app_ready(mpage)
         mpage.reload(wait_until="networkidle")
+        wait_for_app_ready(mpage)
 
         results["mobile"]["tap_targets"] = mpage.evaluate(JS_TAP_TARGETS)
         nav_toggle = mpage.query_selector("#navToggle")

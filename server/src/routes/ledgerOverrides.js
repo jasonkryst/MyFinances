@@ -11,7 +11,8 @@ function sanitizeOverrideEntry(body, key) {
         transactionName: normalizeText(body?.transactionName, 120) || null,
         accountId: sanitizeInteger(body?.accountId, null),
         date: sanitizeDateISO(body?.date),
-        updatedAt: sanitizeDateISO(body?.updatedAt) || new Date().toISOString()
+        updatedAt: sanitizeDateISO(body?.updatedAt) || new Date().toISOString(),
+        memo: normalizeText(body?.memo, 500) || ''
     };
 }
 
@@ -27,7 +28,8 @@ export default createKeyedResource({
         transactionName: 'transaction_name',
         accountId: 'account_id',
         date: 'date',
-        updatedAt: 'updated_at'
+        updatedAt: 'updated_at',
+        memo: 'memo'
     },
     sanitize: sanitizeOverrideEntry
 });

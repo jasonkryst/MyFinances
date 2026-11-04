@@ -459,10 +459,8 @@ export async function addAccount(app) {
     const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes };
     app.accounts.push(account);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/accounts', account);
-        if (saved?.id) account.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/accounts', account);
+    if (saved?.id) account.id = saved.id;
     await recordBalanceHistory(app, { kind: 'account', id: account.id });
     app.renderAccountsList();
     app.renderNetWorthWidget();
@@ -506,7 +504,7 @@ export async function deleteAccount(app, id) {
     app.accounts = app.accounts.filter(a => a.id !== id);
     removeHistoryForOwner(app, { kind: 'account', id });
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/accounts/${id}`);
+    pgDelete(app, `/api/accounts/${id}`);
     app.renderAccountsList();
     app.renderNetWorthWidget();
     refreshAccountSelectors(app);
@@ -517,7 +515,7 @@ export function archiveAccount(app, id) {
     if (idx === -1) return;
     app.accounts[idx] = { ...app.accounts[idx], archived: true };
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${id}`, { archived: true });
+    pgPatch(app, `/api/accounts/${id}`, { archived: true });
     app.renderAccountsList();
     app.renderNetWorthWidget();
 }
@@ -527,7 +525,7 @@ export function unarchiveAccount(app, id) {
     if (idx === -1) return;
     app.accounts[idx] = { ...app.accounts[idx], archived: false };
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${id}`, { archived: false });
+    pgPatch(app, `/api/accounts/${id}`, { archived: false });
     app.renderAccountsList();
     app.renderNetWorthWidget();
 }
@@ -577,7 +575,7 @@ export async function saveEditAccount(app, id) {
     app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes };
     app.editingAccountId = null;
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);
+    pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);
     await recordBalanceHistory(app, { kind: 'account', id: app.accounts[idx].id });
     app.renderAccountsList();
     app.renderNetWorthWidget();

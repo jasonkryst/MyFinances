@@ -6,6 +6,8 @@ Tests net worth calculation, historical snapshots, and milestones.
 
 import pytest
 
+from tests.conftest import wait_for_api
+
 BASE_URL = "http://localhost:32900/"
 
 
@@ -95,8 +97,8 @@ def test_net_worth_snapshot_capture(app_page):
             capture_btn.click()
             
             # Snapshot should be saved
-            snapshots = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-            assert snapshots, "Snapshot data should be saved"
+            snapshots = wait_for_api(page, '/api/net-worth-snapshots', lambda rows: len(rows) > 0)
+            assert snapshots, "Snapshot data should be saved on the server"
 
 
 @pytest.mark.feature
@@ -141,6 +143,10 @@ def test_multiple_assets_and_liabilities(app_page):
         page.select_option('#accountType', label=name)
         page.fill('#accountStartingBalance', amount)
         page.click('#accountFormSubmit')
+        # addAccount awaits the server POST, then renders and resets the form: wait for the
+        # reset before filling the next account, or it wipes the new input.
+        page.wait_for_function("() => document.getElementById('accountName').value === ''", timeout=10000)
+        page.wait_for_selector(f'#accountList >> text={name}', timeout=10000)
     
     # Add multiple debts
     page.click('button[data-page="liabilities"]')
@@ -168,6 +174,8 @@ def test_multiple_assets_and_liabilities(app_page):
             page.fill('#fixedStartDate', '2026-01-01')
             page.fill('#fixedEndDate', '2031-01-01')
         page.click('#debtFormSubmit')
+        page.wait_for_selector(f'#debtsList >> text={debt_type}', timeout=10000)
+        page.wait_for_selector('#debtFormBody[hidden]', state='attached', timeout=10000)
     
     # Net worth should be (5000+10000+3000) - (2000+15000) = 1000
     net_worth_text = page.evaluate('() => document.querySelector("#netWorthWidget").textContent')

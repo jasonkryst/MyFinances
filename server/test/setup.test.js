@@ -268,3 +268,35 @@ test('21st setup-status call within 15 minutes is rate limited', async () => {
         isolatedServer.close();
     }
 });
+
+test('password-policy calls do not consume the setup-status budget', async () => {
+    const isolatedApp = createApp();
+    const isolatedServer = isolatedApp.listen(0);
+    const isolatedBaseUrl = `http://127.0.0.1:${isolatedServer.address().port}`;
+    try {
+        for (let i = 0; i < 25; i++) {
+            const policy = await fetch(`${isolatedBaseUrl}/auth/password-policy`);
+            assert.equal(policy.status, 200, `password-policy call ${i + 1}`);
+        }
+        const res = await fetch(`${isolatedBaseUrl}/auth/setup-status`);
+        assert.equal(res.status, 200);
+    } finally {
+        isolatedServer.close();
+    }
+});
+
+test('password-policy has its own, larger limit (121st call within 15 minutes is rate limited)', async () => {
+    const isolatedApp = createApp();
+    const isolatedServer = isolatedApp.listen(0);
+    const isolatedBaseUrl = `http://127.0.0.1:${isolatedServer.address().port}`;
+    try {
+        for (let i = 0; i < 120; i++) {
+            const ok = await fetch(`${isolatedBaseUrl}/auth/password-policy`);
+            assert.equal(ok.status, 200, `password-policy call ${i + 1}`);
+        }
+        const res = await fetch(`${isolatedBaseUrl}/auth/password-policy`);
+        assert.equal(res.status, 429);
+    } finally {
+        isolatedServer.close();
+    }
+});

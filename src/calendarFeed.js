@@ -238,17 +238,13 @@ export function initCalendarFeedModal(app) {
 
         const section = document.getElementById('calendarSubscriptionSection');
         if (section) {
-            if (app._storageBackendKind === 'postgres') {
-                section.classList.remove('hidden');
-                const urlRow = document.getElementById('calendarTokenUrlRow');
-                const genBtn = document.getElementById('calendarGenerateTokenBtn');
-                if (urlRow) urlRow.classList.add('hidden');
-                if (genBtn) { genBtn.classList.remove('hidden'); genBtn.disabled = false; genBtn.textContent = 'Generate subscription link'; }
-                const token = await fetchToken();
-                if (token) setTokenUrl(token);
-            } else {
-                section.classList.add('hidden');
-            }
+            section.classList.remove('hidden');
+            const urlRow = document.getElementById('calendarTokenUrlRow');
+            const genBtn = document.getElementById('calendarGenerateTokenBtn');
+            if (urlRow) urlRow.classList.add('hidden');
+            if (genBtn) { genBtn.classList.remove('hidden'); genBtn.disabled = false; genBtn.textContent = 'Generate subscription link'; }
+            const token = await fetchToken();
+            if (token) setTokenUrl(token);
         }
 
         const downloadBtn = document.getElementById('calendarDownloadBtn');

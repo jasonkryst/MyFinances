@@ -1,3 +1,5 @@
+> **Superseded by [2026-11-03-server-only-storage-design.md](2026-11-03-server-only-storage-design.md) (v7.0.0).** The local/session storage adapters described here were removed; the PostgreSQL server is the only storage.
+
 # Storage Abstraction Layer — Design (Issue #41)
 
 **Date:** 2026-07-14

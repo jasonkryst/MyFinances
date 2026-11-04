@@ -114,7 +114,9 @@ def test_smoke_account_to_networth(app_page):
         page.select_option('#accountType', label='Checking')
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
-    
+        # add is a server round trip; wait for the card before adding the next
+        page.wait_for_selector(f'#accountList >> text={name}', timeout=10000)
+
     # Verify all accounts created
     for name, _ in accounts:
         assert page.query_selector(f'text={name}'), f"{name} not found"
@@ -136,7 +138,8 @@ def test_smoke_data_persistence(app_page):
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '9999')
     page.click('#accountFormSubmit')
-    
+    page.wait_for_selector('#accountList >> text=Persist Test', timeout=10000)
+
     # Navigate away
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)

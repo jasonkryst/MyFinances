@@ -7,6 +7,8 @@ Consolidated from duplicate test files.
 
 import pytest
 
+from tests.conftest import wait_for_api
+
 BASE_URL = "http://localhost:32900/"
 
 
@@ -103,9 +105,9 @@ def test_savings_data_persistence(app_page):
     page.click('button[data-page="savings"]')
     page.wait_for_selector('#savingsSection.active', timeout=5000)
     
-    # Check localStorage for savings data
-    data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-    assert data, "Data should be persisted in localStorage"
+    # The app is signed in and has loaded its data from the server
+    plan_settings = wait_for_api(page, '/api/plan-settings', lambda d: isinstance(d, dict))
+    assert plan_settings is not None, "Server should answer for the signed-in user"
     
     # Navigate away
     page.click('button[data-page="accounts"]')
@@ -216,11 +218,8 @@ def test_ef_add_with_auto_sync_stores_flag(app_page):
     page.click('#emergencyFormSubmit')
     page.wait_for_timeout(500)
 
-    data_json = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-    import json
-    data = json.loads(data_json)
-    ef_funds = data.get('emergencyFunds', [])
-    assert len(ef_funds) > 0, "EF fund should be saved"
+    ef_funds = wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
+    assert len(ef_funds) > 0, "EF fund should be saved on the server"
     fund = ef_funds[-1]
     assert fund.get('autoSyncBalance') is True, "autoSyncBalance should be true when auto-sync was checked"
 
@@ -240,11 +239,8 @@ def test_ef_add_without_auto_sync_stores_false(app_page):
     page.click('#emergencyFormSubmit')
     page.wait_for_timeout(500)
 
-    data_json = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-    import json
-    data = json.loads(data_json)
-    ef_funds = data.get('emergencyFunds', [])
-    assert len(ef_funds) > 0, "EF fund should be saved"
+    ef_funds = wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
+    assert len(ef_funds) > 0, "EF fund should be saved on the server"
     fund = ef_funds[-1]
     assert not fund.get('autoSyncBalance'), "autoSyncBalance should be false when auto-sync was not checked"
 
@@ -357,11 +353,8 @@ def test_ef_id_is_numeric_not_string(app_page):
     page.click('#emergencyFormSubmit')
     page.wait_for_timeout(500)
 
-    data_json = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-    import json
-    data = json.loads(data_json)
-    ef_funds = data.get('emergencyFunds', [])
-    assert len(ef_funds) > 0, "EF fund should be saved"
+    ef_funds = wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
+    assert len(ef_funds) > 0, "EF fund should be saved on the server"
     fund = ef_funds[-1]
     assert isinstance(fund.get('id'), (int, float)), \
         f"EF id should be numeric, got {fund.get('id')!r}"

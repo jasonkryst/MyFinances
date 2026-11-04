@@ -4,57 +4,31 @@ Operational notes for automated agents (CI bots, Claude Code, etc.) running task
 
 ## Running the Playwright test suite locally
 
-### Port 32900 conflict
-
-The app's default dev-server port is **32900**. The Docker stack (`docker compose up -d`) binds that port — and Docker's port binding persists even through `docker compose pause` (the proxy process stays alive).
-
-Before running tests, ensure port 32900 is free, or use the `TEST_BASE_URL` env var to redirect tests to a different port:
+Since 7.0.0 the app has no browser-only mode, so every Playwright test runs against a real stack (nginx + Node API + PostgreSQL). A static file server is not enough.
 
 ```powershell
-# Start a lightweight server on a different port (e.g. 32901)
-python -m http.server 32901
+# Start the stack (first time: .\setup.ps1 or ./setup.sh creates secrets/)
+docker compose up -d
 
-# Run tests against that server
-$env:TEST_BASE_URL = "http://localhost:32901/"
+# Credentials of the stack's single user (these are the harness defaults).
+# No user yet? Create it the way CI does (bash / Git Bash):
+#   printf '%s\n%s\n' testuser@example.com 'ci-Test-Passphrase-2026!' | docker compose run --rm -T server node scripts/create-user.js
+# (The harness can also register it, but only if the server has ALLOW_SETUP=true.)
+$env:TEST_EMAIL = "testuser@example.com"
+$env:TEST_PASSWORD = "ci-Test-Passphrase-2026!"
+# Optional: another URL (default http://localhost:32900/)
+$env:TEST_BASE_URL = "http://localhost:32900/"
+
 pytest tests/ -v
 ```
 
-If Docker owns port 32900, stop the stack first:
-
-```powershell
-docker compose down   # or: docker compose stop
-```
-
-### Login gate / Postgres auto-detection
-
-When a Docker stack is running at the test URL, the app's `checkPostgresBackendPresent()` detects the `X-Myfinances-Backend: postgres` response header on `HEAD /` and shows a full-page login gate — blocking all Playwright tests.
-
-The `app_page` fixture in `tests/conftest.py` **automatically intercepts that `HEAD /` request** and strips the Postgres header, so tests run against `app_page` are unaffected regardless of what server is behind the URL.
-
-For tests that bypass `app_page` (e.g. raw `page` fixture or custom navigation), inject the same interception:
-
-```python
-page.route(BASE_URL, lambda route: route.fulfill(status=200)
-           if route.request.method == 'HEAD' else route.continue_())
-```
-
-To clear any persisted Postgres backend preference that a previous test run may have stored in `localStorage`, add this init script before navigating:
-
-```python
-page.add_init_script("""
-    try { localStorage.removeItem('debtTrackerStorageBackend'); } catch(e) {}
-""")
-```
-
-### Quick start (no Docker conflict)
-
-```powershell
-# Terminal 1 — serve the app
-python -m http.server 32900
-
-# Terminal 2 — run tests
-pytest tests/ -v
-```
+- **The tests wipe the server's data.** `app_page` calls `reset_server_state` before every test. Never point them at a stack that holds real data.
+- **One pytest process per stack.** All tests share one user, so two runs against the same stack wipe each other's data.
+- **Login fails loudly.** If the server has a user and `TEST_EMAIL`/`TEST_PASSWORD` don't match, the run aborts without changing anything. `POSTGRES_TEST_EMAIL`/`POSTGRES_TEST_PASSWORD` are accepted as fallbacks.
+- **Session cache.** The harness caches the session cookies in a temp file across pytest processes and logs in again on a 401.
+- **Seeding.** Use `seed_state(page, state)` (JSON-export shape, imported through `replaceForPostgres`), and `wait_for_api(page, path, check)` before a reload that must see a fire-and-forget save. See `tests/conftest.py` and `CLAUDE.md`.
+- **Service worker.** It can serve JS modules past `page.route`; tests that intercept module or API requests use `browser.new_context(service_workers='block')` (see `tests/features/test_code_splitting.py`).
+- **Frontend edits** show up on refresh with `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d`; without it, rebuild the `myfinances` image.
 
 ## Branches, pull requests and merging (issue #380)
 

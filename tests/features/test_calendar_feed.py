@@ -16,7 +16,7 @@ Covers:
 """
 
 import pytest
-from tests.conftest import assert_no_errors, BASE_URL
+from tests.conftest import assert_no_errors, BASE_URL, seed_state
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -550,23 +550,13 @@ def test_ics_xss_payload_in_name_does_not_appear_verbatim(app_page):
     output — at minimum the angle brackets must be absent (normalizeText strips them).
     """
     page = app_page
-    page.evaluate("""() => {
-        const app = window.app;
-        // normalizeText() in sanitizers.js strips < > ` " from names
-        app.recurringTemplates = [{
-            id: 1, name: '<script>alert(1)</script>Evil', type: 'subscription',
-            amount: 1, frequency: 'monthly', dayOfMonth: 1, category: 'Other',
-            accountId: null, targetAccountId: null, startDate: null, endDate: null,
-            paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.bills = [];
-        app.debts = [];
-        app.expenses = [];
-        app.accounts = [];
-        // Save and reload so normalizeText sanitization runs on load
-        app.saveToStorage();
-        app.loadFromStorage();
-    }""")
+    # normalizeText() in sanitizers.js strips < > ` " from names on the way in
+    seed_state(page, {'recurringTemplates': [{
+        'id': 1, 'name': '<script>alert(1)</script>Evil', 'type': 'subscription',
+        'amount': 1, 'frequency': 'monthly', 'dayOfMonth': 1, 'category': 'Other',
+        'accountId': None, 'targetAccountId': None, 'startDate': None, 'endDate': None,
+        'paused': False, 'skippedMonths': [], 'paidMonths': [],
+    }]})
     content, _ = _download_ics(page)
     assert '<script>' not in content
     assert '</script>' not in content

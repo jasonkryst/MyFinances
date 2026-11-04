@@ -51,6 +51,17 @@ export function createAuthRouter() {
         message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, try again later' } }
     });
 
+    // /password-policy is a static GET the Settings Security tab reads on
+    // every open; it gets its own, larger budget so it can never use up
+    // setup-status's 20 requests (which would push boot into sign-in mode).
+    const passwordPolicyLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 120,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, try again later' } }
+    });
+
     const registerLimiter = rateLimit({
         windowMs: 15 * 60 * 1000,
         max: 5,
@@ -248,7 +259,7 @@ export function createAuthRouter() {
 
     // #456: the advisory meter and form hints read these, so they never drift
     // from what the server enforces.
-    authRouter.get('/password-policy', setupStatusLimiter, (req, res) => {
+    authRouter.get('/password-policy', passwordPolicyLimiter, (req, res) => {
         res.json(passwordPolicySummary());
     });
 

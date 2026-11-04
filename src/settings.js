@@ -59,12 +59,10 @@ export function setSetting(app, key, value) {
         app.settings.push({ key, value });
     }
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        // Encoded: bct:<category> keys carry free-text category names, and a
-        // settings import (#326) can supply them, so a raw '/' or '?' must not
-        // be able to retarget the request. Matches postgresImport.js.
-        pgPut(app, `/api/settings/${encodeURIComponent(key)}`, { value });
-    }
+    // Encoded: bct:<category> keys carry free-text category names, and a
+    // settings import (#326) can supply them, so a raw '/' or '?' must not
+    // be able to retarget the request. Matches postgresImport.js.
+    pgPut(app, `/api/settings/${encodeURIComponent(key)}`, { value });
 }
 // Unknown/invalid stored values (non-number, <= 0, > max) fall back to 25.
 export function getFireMultiplier(app) {

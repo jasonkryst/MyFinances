@@ -12,11 +12,10 @@ i18n coverage guards (issue #317).
 """
 
 import datetime
-import json
 
 import pytest
 
-from tests.conftest import BASE_URL, SKIP_FIRST_RUN_WIZARD_SCRIPT, wait_for_app_ready
+from tests.conftest import BASE_URL, ensure_session, seed_state, wait_for_app_ready
 
 LOCALES_URL = BASE_URL.rstrip('/') + '/src/locales/'
 
@@ -526,7 +525,6 @@ TRANSLATED_PAGES = {
     'settings-security-postgres': (
         ['#settingsModal'],
         """async () => {
-            localStorage.setItem('debtTrackerStorageBackend', 'postgres');
             document.getElementById('settingsBtn').click();
             document.querySelector('[data-settings-tab="security"]').click();
             document.getElementById('settingsSecurityBreachNote').classList.remove('hidden');
@@ -534,7 +532,6 @@ TRANSLATED_PAGES = {
             pw.value = 'short';
             pw.dispatchEvent(new Event('input'));
             document.getElementById('settingsChangePasswordBtn').click();
-            localStorage.removeItem('debtTrackerStorageBackend');
         }""",
     ),
     # #456: login gate in first-run setup mode (meter + client error). The
@@ -554,6 +551,51 @@ TRANSLATED_PAGES = {
             pw.value = 'short';
             pw.dispatchEvent(new Event('input'));
             document.getElementById('loginGateSubmit').click();
+        }""",
+    ),
+    # v7.0.0: "Can't reach your server" gate, after a failed Retry so the
+    # polite status line holds the still-unreachable message too.
+    'server-unreachable-gate': (
+        ['#serverUnreachableGate'],
+        """async () => {
+            const orig = window.fetch;
+            window.fetch = (u, o) => String(u).includes('/api/plan-settings')
+                ? Promise.reject(new TypeError('Failed to fetch'))
+                : orig(u, o);
+            const gate = await import('/src/serverUnreachableGate.js');
+            gate.showServerUnreachable(window.app);
+            document.getElementById('serverUnreachableRetryBtn').click();
+            await new Promise(r => setTimeout(r, 200));
+            window.fetch = orig;
+        }""",
+    ),
+    # v7.0.0: persistent sync-error banner, forced visible (spec section 6).
+    'sync-error-banner': (
+        ['#syncErrorBanner'],
+        """async () => {
+            const ui = await import('/src/ui.js');
+            ui.showSyncErrorBanner();
+        }""",
+    ),
+    # v7.0.0: legacy browser-data modal, import variant with a failed transfer
+    # (error line visible), then the cleanup variant.
+    'legacy-data-modal-import': (
+        ['#pgMigrationModal'],
+        """async () => {
+            const m = await import('/src/pgMigrationModal.js');
+            const json = JSON.stringify({ accounts: [{ id: 1, name: 'A', type: 'Checking', startingBalance: 1 }], debts: [] });
+            m.showPgMigrationModal({}, json);
+            await new Promise(r => setTimeout(r, 100));
+            document.getElementById('pgMigrationError').textContent = (await import('/src/i18n.js')).t('pgMigration.failed');
+            document.getElementById('pgMigrationError').classList.remove('hidden');
+        }""",
+    ),
+    'legacy-data-modal-cleanup': (
+        ['#pgMigrationModal'],
+        """async () => {
+            const m = await import('/src/pgMigrationModal.js');
+            m.showLegacyDataCleanupModal('{}');
+            await new Promise(r => setTimeout(r, 100));
         }""",
     ),
     # #456: login gate reset-link mode.
@@ -1086,7 +1128,7 @@ SCAN_JS = """
 
 
 @pytest.fixture
-def pseudo_page(browser):
+def pseudo_page(browser, stack_user):
     """A page whose 'es' dictionary is pseudo-localised en.js. Service workers
     are blocked so the route always serves the pseudo module."""
     context = browser.new_context(service_workers='block')
@@ -1096,18 +1138,17 @@ def pseudo_page(browser):
     page.on('dialog', lambda d: d.accept())
     page.route(LOCALES_URL + 'es.js', lambda route: route.fulfill(
         status=200, content_type='application/javascript', body=PSEUDO_ES_MODULE))
-    page.route(BASE_URL, lambda route: route.fulfill(status=200)
-               if route.request.method == 'HEAD' else route.continue_())
+    ensure_session(context)
     yield page
     context.close()
 
 
 def _load_pseudo(page, state):
-    page.add_init_script(
-        "try { localStorage.setItem('debtTrackerLocale', 'es');"
-        f" localStorage.setItem('debtTrackerData', {json.dumps(json.dumps(state))}); }} catch (e) {{}}")
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
+    page.add_init_script("try { localStorage.setItem('debtTrackerLocale', 'es'); } catch (e) {}")
     page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
+    wait_for_app_ready(page)
+    seed_state(page, state, reload=False)
+    page.reload()
     wait_for_app_ready(page)
 
 

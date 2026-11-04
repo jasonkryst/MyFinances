@@ -7,17 +7,20 @@ interaction, storage save/load round-trip, and export/import.
 
 import pytest
 
+from tests.conftest import seed_state, wait_for_api
+
 
 def _seed_two_accounts(page):
+    """Seed two accounts through the server and expose their server-assigned ids as
+    window._tA / window._tB (page.evaluate snippets below read them)."""
+    seed_state(page, {'accounts': [
+        {'id': 1, 'name': 'Transfer Checking', 'type': 'Checking', 'startingBalance': 1000},
+        {'id': 2, 'name': 'Transfer Savings', 'type': 'Savings', 'startingBalance': 500},
+    ]})
     page.evaluate("""() => {
-        const app = window.app;
-        app.accounts = [
-            { id: 9001, name: 'Transfer Checking', type: 'Checking', startingBalance: 1000 },
-            { id: 9002, name: 'Transfer Savings', type: 'Savings', startingBalance: 500 }
-        ];
-        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.reconciliations = []; app.transfers = [];
+        const byName = n => window.app.accounts.find(a => a.name === n).id;
+        window._tA = byName('Transfer Checking');
+        window._tB = byName('Transfer Savings');
     }""")
 
 
@@ -29,15 +32,15 @@ def test_add_transfer_creates_record(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const res = await app.addTransfer(9001, 9002, 250, '2026-06-10', 'Move to savings');
+        const res = await app.addTransfer(window._tA, window._tB, 250, '2026-06-10', 'Move to savings');
         return { success: res.success, count: app.transfers.length, entry: app.transfers[0] };
     }""")
 
     assert result['success'] is True
     assert result['count'] == 1
     entry = result['entry']
-    assert entry['fromAccountId'] == 9001
-    assert entry['toAccountId'] == 9002
+    assert entry['fromAccountId'] == page.evaluate("() => window._tA")
+    assert entry['toAccountId'] == page.evaluate("() => window._tB")
     assert entry['amount'] == 250
     assert entry['memo'] == 'Move to savings'
 
@@ -49,7 +52,7 @@ def test_add_transfer_rejects_same_account(app_page):
     _seed_two_accounts(page)
 
     page.evaluate("""() => {
-        window._transferTestPromise = window.app.addTransfer(9001, 9001, 100, '2026-06-10', '');
+        window._transferTestPromise = window.app.addTransfer(window._tA, window._tA, 100, '2026-06-10', '');
     }""")
     page.locator('#alertModalOkBtn').click()
     result = page.evaluate("""async () => {
@@ -68,7 +71,7 @@ def test_add_transfer_rejects_non_positive_amount(app_page):
     _seed_two_accounts(page)
 
     page.evaluate("""() => {
-        window._transferTestPromise = window.app.addTransfer(9001, 9002, 0, '2026-06-10', '');
+        window._transferTestPromise = window.app.addTransfer(window._tA, window._tB, 0, '2026-06-10', '');
     }""")
     page.locator('#alertModalOkBtn').click()
     result = page.evaluate("""async () => {
@@ -89,9 +92,9 @@ def test_edit_transfer_updates_record(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        const added = await app.addTransfer(9001, 9002, 250, '2026-06-10', '');
+        const added = await app.addTransfer(window._tA, window._tB, 250, '2026-06-10', '');
         const id = app.transfers[0].id;
-        const res = await app.editTransfer(id, { fromAccountId: 9001, toAccountId: 9002, amount: 400, date: '2026-06-11', memo: 'Updated' });
+        const res = await app.editTransfer(id, { fromAccountId: window._tA, toAccountId: window._tB, amount: 400, date: '2026-06-11', memo: 'Updated' });
         return { success: res.success, count: app.transfers.length, entry: app.transfers[0] };
     }""")
 
@@ -110,7 +113,7 @@ def test_delete_transfer_removes_record(app_page):
 
     page.evaluate("""async () => {
         const app = window.app;
-        await app.addTransfer(9001, 9002, 250, '2026-06-10', '');
+        await app.addTransfer(window._tA, window._tB, 250, '2026-06-10', '');
         window._deleteTransferPromise = app.deleteTransfer(app.transfers[0].id);
     }""")
     page.locator('#deleteConfirmBtn').click()
@@ -132,10 +135,10 @@ def test_transfer_generates_two_opposite_signed_ledger_legs(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        await app.addTransfer(9001, 9002, 250, '2026-06-10', '');
+        await app.addTransfer(window._tA, window._tB, 250, '2026-06-10', '');
         const mod = await import('/src/ledgerTransactions.js');
-        const fromTxs = mod.getLedgerTransactionsForMonth(app, 2026, 5, 9001).filter(t => t.type === 'transfer');
-        const toTxs = mod.getLedgerTransactionsForMonth(app, 2026, 5, 9002).filter(t => t.type === 'transfer');
+        const fromTxs = mod.getLedgerTransactionsForMonth(app, 2026, 5, window._tA).filter(t => t.type === 'transfer');
+        const toTxs = mod.getLedgerTransactionsForMonth(app, 2026, 5, window._tB).filter(t => t.type === 'transfer');
         return {
             fromAmount: fromTxs[0]?.amount, fromName: fromTxs[0]?.name,
             toAmount: toTxs[0]?.amount, toName: toTxs[0]?.name,
@@ -160,10 +163,10 @@ def test_compute_account_balance_reflects_transfer_on_both_accounts(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        await app.addTransfer(9001, 9002, 250, '2026-06-10', '');
+        await app.addTransfer(window._tA, window._tB, 250, '2026-06-10', '');
         return {
-            fromBalance: app.computeAccountBalance(9001, 2026, 5),
-            toBalance: app.computeAccountBalance(9002, 2026, 5)
+            fromBalance: app.computeAccountBalance(window._tA, 2026, 5),
+            toBalance: app.computeAccountBalance(window._tB, 2026, 5)
         };
     }""")
 
@@ -180,12 +183,12 @@ def test_transfer_with_deleted_account_does_not_throw(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        await app.addTransfer(9001, 9002, 250, '2026-06-10', '');
-        app.accounts = app.accounts.filter(a => a.id !== 9002);
+        await app.addTransfer(window._tA, window._tB, 250, '2026-06-10', '');
+        app.accounts = app.accounts.filter(a => a.id !== window._tB);
         let threw = false;
         try {
             const mod = await import('/src/ledgerTransactions.js');
-            mod.getLedgerTransactionsForMonth(app, 2026, 5, 9001);
+            mod.getLedgerTransactionsForMonth(app, 2026, 5, window._tA);
         } catch (e) {
             threw = true;
         }
@@ -197,51 +200,47 @@ def test_transfer_with_deleted_account_does_not_throw(app_page):
 
 @pytest.mark.feature
 def test_save_and_reload_from_storage_preserves_transfers(app_page):
-    """Regression guard: app.transfers must actually round-trip through
-    saveToStorage()/loadFromStorage(), not just through sanitizeParsedState
-    in isolation -- _writeNow()'s serialized payload must include it."""
+    """Regression guard: app.transfers must actually round-trip through the server
+    (a transfer added in one page load is still there after a full reload)."""
     page = app_page
-    _seed_two_accounts(page)
+    seed_state(page, {'accounts': [
+        {'id': 9001, 'name': 'Transfer Checking', 'type': 'Checking', 'startingBalance': 1000},
+        {'id': 9002, 'name': 'Transfer Savings', 'type': 'Savings', 'startingBalance': 500},
+    ]})
+    ids = page.evaluate("() => window.app.accounts.map(a => a.id)")
 
-    result = page.evaluate("""async () => {
-        const app = window.app;
-        await app.addTransfer(9001, 9002, 250, '2026-06-10', 'Round trip check');
-        await app.saveToStorage();
-        app.transfers = [];
-        app.loadFromStorage();
-        return { count: app.transfers.length, entry: app.transfers[0] };
-    }""")
+    page.evaluate("""async (ids) => {
+        await window.app.addTransfer(ids[0], ids[1], 250, '2026-06-10', 'Round trip check');
+    }""", ids)
+    wait_for_api(page, '/api/transfers', lambda rows: any(r['memo'] == 'Round trip check' for r in rows))
+    page.reload()
+
+    result = page.evaluate("() => ({ count: window.app.transfers.length, entry: window.app.transfers[0] })")
 
     assert result['count'] == 1, "app.transfers did not survive a save/reload round trip"
     assert result['entry']['memo'] == 'Round trip check'
+    assert sorted([result['entry']['fromAccountId'], result['entry']['toAccountId']]) == sorted(ids)
 
 
 @pytest.mark.feature
 def test_sanitize_parsed_state_rejects_invalid_transfers(app_page):
-    """sanitizeParsedState (via loadFromStorage) drops transfers with equal
+    """sanitizeParsedState (via the seed/import path) drops transfers with equal
     from/to accounts or a non-positive amount, keeping valid entries."""
     page = app_page
 
-    result = page.evaluate("""() => {
-        const app = window.app;
-        const data = {
-            accounts: [
-                { id: 9101, name: 'A', type: 'Checking', startingBalance: 100 },
-                { id: 9102, name: 'B', type: 'Savings', startingBalance: 100 }
-            ],
-            debts: [], incomes: [], bonuses: [], bills: [], expenses: [],
-            recurringTemplates: [], emergencyFunds: [], sinkingFunds: [],
-            transfers: [
-                { id: 1, fromAccountId: 9101, toAccountId: 9101, amount: 100, date: '2026-06-01' },
-                { id: 2, fromAccountId: 9101, toAccountId: 9102, amount: -50, date: '2026-06-01' },
-                { id: 3, fromAccountId: 9101, toAccountId: 9999, amount: 50, date: '2026-06-01' },
-                { id: 4, fromAccountId: 9101, toAccountId: 9102, amount: 75, date: '2026-06-01', memo: 'Valid' }
-            ]
-        };
-        localStorage.setItem(app.storageKey, JSON.stringify(data));
-        app.loadFromStorage();
-        return { transfers: app.transfers };
-    }""")
+    seed_state(page, {
+        'accounts': [
+            {'id': 9101, 'name': 'A', 'type': 'Checking', 'startingBalance': 100},
+            {'id': 9102, 'name': 'B', 'type': 'Savings', 'startingBalance': 100},
+        ],
+        'transfers': [
+            {'id': 1, 'fromAccountId': 9101, 'toAccountId': 9101, 'amount': 100, 'date': '2026-06-01'},
+            {'id': 2, 'fromAccountId': 9101, 'toAccountId': 9102, 'amount': -50, 'date': '2026-06-01'},
+            {'id': 3, 'fromAccountId': 9101, 'toAccountId': 9999, 'amount': 50, 'date': '2026-06-01'},
+            {'id': 4, 'fromAccountId': 9101, 'toAccountId': 9102, 'amount': 75, 'date': '2026-06-01', 'memo': 'Valid'},
+        ],
+    })
+    result = page.evaluate("() => ({ transfers: window.app.transfers })")
 
     transfers = result['transfers']
     assert len(transfers) == 1, f"Expected only the valid transfer to survive sanitization, got {transfers}"
@@ -251,21 +250,19 @@ def test_sanitize_parsed_state_rejects_invalid_transfers(app_page):
 
 @pytest.mark.feature
 def test_export_import_round_trip_preserves_transfers(app_page):
-    """importAllJSON preserves transfers, re-ids them, and keeps account FKs
-    valid (accounts keep their ids in replace mode)."""
+    """importAllJSON preserves transfers, re-ids them, and remaps account FKs
+    onto the ids the server assigned to the imported accounts."""
     page = app_page
 
     result = page.evaluate("""async () => {
         const app = window.app;
         const mod = await import('/src/dataExport.js');
-        app.accounts = [
-            { id: 9201, name: 'Import Checking', type: 'Checking', startingBalance: 500 },
-            { id: 9202, name: 'Import Savings', type: 'Savings', startingBalance: 0 }
-        ];
-        app.transfers = [];
 
         const payload = {
-            accounts: app.accounts,
+            accounts: [
+                { id: 9201, name: 'Import Checking', type: 'Checking', startingBalance: 500 },
+                { id: 9202, name: 'Import Savings', type: 'Savings', startingBalance: 0 }
+            ],
             debts: [], incomes: [], bonuses: [], bills: [], expenses: [],
             recurringTemplates: [], emergencyFunds: [], sinkingFunds: [],
             transfers: [{
@@ -275,16 +272,21 @@ def test_export_import_round_trip_preserves_transfers(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'backup.json', { type: 'application/json' });
 
-        return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ transfers: app.transfers }), 300);
-        });
+        mod.importAllJSON(app, file, { requestImportMode: async () => true });
+        for (let i = 0; i < 100 && !app.transfers.length; i++) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        return {
+            transfers: app.transfers,
+            checkingId: app.accounts.find(a => a.name === 'Import Checking')?.id,
+            savingsId: app.accounts.find(a => a.name === 'Import Savings')?.id,
+        };
     }""")
 
     transfers = result['transfers']
     assert len(transfers) == 1
-    assert transfers[0]['fromAccountId'] == 9201
-    assert transfers[0]['toAccountId'] == 9202
+    assert transfers[0]['fromAccountId'] == result['checkingId']
+    assert transfers[0]['toAccountId'] == result['savingsId']
     assert transfers[0]['amount'] == 150
     assert transfers[0]['id'] != 999, "Imported entries should be re-id'd to avoid collisions"
 
@@ -297,7 +299,7 @@ def test_clear_all_data_resets_transfers(app_page):
 
     result = page.evaluate("""async () => {
         const app = window.app;
-        await app.addTransfer(9001, 9002, 250, '2026-06-10', '');
+        await app.addTransfer(window._tA, window._tB, 250, '2026-06-10', '');
         const mod = await import('/src/storage.js');
         mod.clearAllData(app, {});
         return { count: app.transfers.length };

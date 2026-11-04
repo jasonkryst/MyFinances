@@ -6,7 +6,7 @@ Tests debt CRUD operations and calculations.
 
 import pytest
 
-from tests.conftest import create_debt
+from tests.conftest import create_debt, seed_state
 
 BASE_URL = "http://localhost:32900/"
 
@@ -97,6 +97,7 @@ def test_debt_interest_calculation(app_page):
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
     page.click('#accountFormSubmit')
+    page.wait_for_selector('#accountsSection >> text=Interest Test Account', timeout=10000)
     
     # Create debt with known interest rate
     page.click('button[data-page="liabilities"]')
@@ -114,6 +115,7 @@ def test_debt_interest_calculation(app_page):
     page.click('#debtFormSubmit')
     
     # Verify debt is shown
+    page.wait_for_selector('#debtsList >> text=Interest Calc Debt', timeout=10000)
     assert page.query_selector('text=Interest Calc Debt'), "Debt not created"
 
 
@@ -956,35 +958,15 @@ def test_debt_notes_survive_sanitizer_roundtrip(app_page):
     """Notes survive an export/import round-trip (sanitizeDebt preserves the field)."""
     page = app_page
 
-    page.evaluate("""() => {
-        window.app.debts = [{
-            id: 9301,
-            name: 'Roundtrip Note Debt',
-            category: '',
-            debtType: 'creditCard',
-            accountBalance: 500,
-            originalBalance: 1000,
-            creditLimit: null,
-            interestRate: 12,
-            minimumPayment: 25,
-            dueDate: 10,
-            fixedAmount: null,
-            fixedStartDate: null,
-            fixedEndDate: null,
-            debtStartDate: null,
-            updatedAt: null,
-            priority: null,
-            accountId: null,
-            archived: false,
-            personIds: [],
-            notes: 'Round-trip note'
-        }];
-        window.app.saveToStorage();
-        window.app.loadFromStorage();
-        window.app.switchPage('liabilities');
-        window.app.updateUI();
-    }""")
-    page.wait_for_selector('text=Roundtrip Note Debt', timeout=5000)
+    seed_state(page, {'debts': [{
+        'id': 9301, 'name': 'Roundtrip Note Debt', 'category': '', 'debtType': 'creditCard',
+        'accountBalance': 500, 'originalBalance': 1000, 'creditLimit': None, 'interestRate': 12,
+        'minimumPayment': 25, 'dueDate': 10, 'fixedAmount': None, 'fixedStartDate': None,
+        'fixedEndDate': None, 'debtStartDate': None, 'updatedAt': None, 'priority': None,
+        'accountId': None, 'archived': False, 'personIds': [], 'notes': 'Round-trip note',
+    }]})
+    page.evaluate("() => { window.app.switchPage('liabilities'); window.app.updateUI(); }")
+    page.wait_for_selector('#debtsList >> text=Roundtrip Note Debt', timeout=5000)
 
     saved_notes = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'Roundtrip Note Debt')?.notes"
@@ -1082,19 +1064,13 @@ def test_next_payment_due_optional_empty_is_null(app_page):
 def test_next_payment_due_survives_sanitizer_roundtrip(app_page):
     """nextPaymentDue survives export/import sanitizer round-trip."""
     page = app_page
-    page.evaluate("""() => {
-        window.app.debts = [{
-            id: 8800, name: 'NPD Roundtrip', debtType: 'creditCard',
-            accountBalance: 1200, interestRate: 14, minimumPayment: 40,
-            dueDate: 20, nextPaymentDue: '2026-11-20',
-            creditLimit: null, fixedAmount: null, fixedStartDate: null,
-            fixedEndDate: null, debtStartDate: null, updatedAt: null,
-            priority: null, accountId: null, archived: false, personIds: [], notes: ''
-        }];
-        window.app.saveToStorage();
-        window.app.loadFromStorage();
-    }""")
-    page.wait_for_timeout(300)
+    seed_state(page, {'debts': [{
+        'id': 8800, 'name': 'NPD Roundtrip', 'debtType': 'creditCard', 'accountBalance': 1200,
+        'interestRate': 14, 'minimumPayment': 40, 'dueDate': 20, 'nextPaymentDue': '2026-11-20',
+        'creditLimit': None, 'fixedAmount': None, 'fixedStartDate': None, 'fixedEndDate': None,
+        'debtStartDate': None, 'updatedAt': None, 'priority': None, 'accountId': None,
+        'archived': False, 'personIds': [], 'notes': '',
+    }]})
 
     saved = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'NPD Roundtrip')?.nextPaymentDue"
@@ -1106,19 +1082,13 @@ def test_next_payment_due_survives_sanitizer_roundtrip(app_page):
 def test_next_payment_due_invalid_date_stored_as_null(app_page):
     """An invalid nextPaymentDue value is sanitized to null."""
     page = app_page
-    page.evaluate("""() => {
-        window.app.debts = [{
-            id: 8801, name: 'NPD Invalid', debtType: 'creditCard',
-            accountBalance: 500, interestRate: 10, minimumPayment: 20,
-            dueDate: 1, nextPaymentDue: 'not-a-date',
-            creditLimit: null, fixedAmount: null, fixedStartDate: null,
-            fixedEndDate: null, debtStartDate: null, updatedAt: null,
-            priority: null, accountId: null, archived: false, personIds: [], notes: ''
-        }];
-        window.app.saveToStorage();
-        window.app.loadFromStorage();
-    }""")
-    page.wait_for_timeout(300)
+    seed_state(page, {'debts': [{
+        'id': 8801, 'name': 'NPD Invalid', 'debtType': 'creditCard', 'accountBalance': 500,
+        'interestRate': 10, 'minimumPayment': 20, 'dueDate': 1, 'nextPaymentDue': 'not-a-date',
+        'creditLimit': None, 'fixedAmount': None, 'fixedStartDate': None, 'fixedEndDate': None,
+        'debtStartDate': None, 'updatedAt': None, 'priority': None, 'accountId': None,
+        'archived': False, 'personIds': [], 'notes': '',
+    }]})
 
     saved = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'NPD Invalid')?.nextPaymentDue"

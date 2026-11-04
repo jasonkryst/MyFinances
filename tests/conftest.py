@@ -4,7 +4,11 @@ Shared pytest fixtures and configuration for MyFinances test suite.
 Provides common browser setup, test data, and utility functions.
 """
 
+import asyncio
+import json
 import os
+import urllib.error
+import urllib.request
 from datetime import date
 
 import pytest
@@ -64,47 +68,291 @@ def page(browser) -> Page:
     page.close()
 
 
-# Seeds localStorage with an already-onboarded, empty-but-valid state before
-# any page script runs, so the first-run setup wizard (shown only when
-# localStorage has no debtTrackerData key at all) doesn't pop up and block
-# interaction in every other test. Tests that specifically want to exercise
-# first-run/onboarding behavior should clear storage themselves and reload.
-SKIP_FIRST_RUN_WIZARD_SCRIPT = """
-    try {
-        if (!localStorage.getItem('debtTrackerData')) {
-            localStorage.setItem('debtTrackerData', JSON.stringify({ accounts: [], debts: [], settings: [] }));
+# ---------------------------------------------------------------------------
+# Real-stack harness (v7.0.0): the app has no local storage mode, so every
+# browser test runs against the real nginx + Node + Postgres stack, signed in as
+# the single test user. `app_page` wipes server data, so NEVER point tests at a
+# deployment holding real data.
+# ---------------------------------------------------------------------------
+TEST_EMAIL = os.environ.get("TEST_EMAIL") or os.environ.get("POSTGRES_TEST_EMAIL", "testuser@example.com")
+TEST_PASSWORD = os.environ.get("TEST_PASSWORD") or os.environ.get(
+    "POSTGRES_TEST_PASSWORD", "ci-Test-Passphrase-2026!"
+)
+
+_API_ROOT = BASE_URL.rstrip("/")
+_SESSION_COOKIES: dict = {}  # name -> value; module-level so every fixture shares one login
+
+
+def _http_json(method, path, body=None, cookies=None):
+    """Tiny urllib client. Returns (status, parsed_json_or_None, response_headers)."""
+    headers = {"Content-Type": "application/json"}
+    if cookies:
+        headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
+        if method not in ("GET", "HEAD") and cookies.get("csrf"):
+            headers["X-CSRF-Token"] = cookies["csrf"]
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(_API_ROOT + path, data=data, method=method, headers=headers)
+    try:
+        resp = urllib.request.urlopen(req, timeout=30)
+        status = resp.status
+    except urllib.error.HTTPError as e:
+        resp = e
+        status = e.code
+    raw = resp.read()
+    try:
+        parsed = json.loads(raw) if raw else None
+    except ValueError:
+        parsed = None
+    return status, parsed, resp.headers
+
+
+def _cookies_from(headers):
+    out = {}
+    for line in headers.get_all("Set-Cookie") or []:
+        name, _, rest = line.partition("=")
+        if name in ("session", "csrf"):
+            out[name] = rest.split(";", 1)[0]
+    return out
+
+
+def _session_cache_path():
+    import hashlib
+    import tempfile
+    key = hashlib.sha256(f"{_API_ROOT}|{TEST_EMAIL}".encode()).hexdigest()[:16]
+    return os.path.join(tempfile.gettempdir(), f"myfinances-test-session-{key}.json")
+
+
+def _read_session_cache():
+    """Cookies saved by an earlier pytest process, if the server still accepts them.
+
+    The server's login limiter allows 5 sign-ins per 15 minutes, and every pytest process used
+    to log in once, so a few quick invocations locked the harness out. Sharing the session
+    across processes (it is the same single test user) avoids that.
+    """
+    try:
+        with open(_session_cache_path(), encoding="utf-8") as f:
+            cookies = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(cookies, dict) or "session" not in cookies:
+        return None
+    status, _, _ = _http_json("GET", "/api/plan-settings", cookies=cookies)
+    return cookies if status == 200 else None
+
+
+def _write_session_cache(cookies):
+    try:
+        with open(_session_cache_path(), "w", encoding="utf-8") as f:
+            json.dump(cookies, f)
+    except OSError:
+        pass
+
+
+def _login_or_register():
+    """Sign in once and cache the cookies.
+
+    Registers only when the server reports `needsSetup: true` (an empty users
+    table). Any other state logs in with TEST_EMAIL/TEST_PASSWORD; if that fails
+    the whole session aborts and nothing is wiped, so a real deployment with
+    different credentials can never be reset by this harness.
+    """
+    cached = _read_session_cache()
+    if cached:
+        _SESSION_COOKIES.clear()
+        _SESSION_COOKIES.update(cached)
+        return _SESSION_COOKIES
+    status, body, _ = _http_json("GET", "/auth/setup-status")
+    creds = {"email": TEST_EMAIL, "password": TEST_PASSWORD}
+    if status == 200 and isinstance(body, dict) and body.get("needsSetup") is True:
+        status, body, headers = _http_json("POST", "/auth/register", creds)
+        if status >= 300:
+            pytest.exit(f"Test harness: POST /auth/register failed ({status}): {body}", returncode=2)
+    else:
+        status, body, headers = _http_json("POST", "/auth/login", creds)
+        if status >= 300:
+            pytest.exit(
+                f"Test harness: login as {TEST_EMAIL} failed ({status}): {body}. "
+                "Set POSTGRES_TEST_EMAIL/POSTGRES_TEST_PASSWORD for this stack. Nothing was modified.",
+                returncode=2,
+            )
+    cookies = _cookies_from(headers)
+    if "session" not in cookies:
+        pytest.exit("Test harness: auth response carried no session cookie", returncode=2)
+    _SESSION_COOKIES.clear()
+    _SESSION_COOKIES.update(cookies)
+    _write_session_cache(cookies)
+    return _SESSION_COOKIES
+
+
+@pytest.fixture(scope="session")
+def stack_user():
+    """Cookies (`session`, `csrf`) for the test user, logged in once per pytest session."""
+    return _login_or_register()
+
+
+def _valid_session_cookies():
+    """Cached cookies, after re-logging in if the server answers 401 (blocking I/O)."""
+    if not _SESSION_COOKIES:
+        _login_or_register()
+    status, _, _ = _http_json("GET", "/api/plan-settings", cookies=_SESSION_COOKIES)
+    if status == 401:
+        _login_or_register()
+    return [{"name": n, "value": v, "url": BASE_URL} for n, v in _SESSION_COOKIES.items()]
+
+
+def ensure_session(context) -> None:
+    """Install the cached auth cookies into a browser context.
+
+    If the server no longer accepts the cached session (401 on a cheap
+    authenticated GET) it logs in again and refreshes the cache first.
+    """
+    context.add_cookies(_valid_session_cookies())
+
+
+async def ensure_session_async(context) -> None:
+    """Async twin of ensure_session (the blocking HTTP runs in a worker thread)."""
+    cookies = await asyncio.to_thread(_valid_session_cookies)
+    await context.add_cookies(cookies)
+
+
+_RESET_JS = """
+    async () => {
+        const { pgDeleteAll } = await import('/src/postgresSync.js');
+        await pgDeleteAll(window.app);
+        const csrf = (document.cookie.split('; ').find(c => c.startsWith('csrf=')) || '').slice(5);
+        const r = await fetch('/api/settings/reconciliationAdjustsBalance', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+            body: JSON.stringify({ value: false }),
+        });
+        if (!r.ok) throw new Error('settings PUT failed: ' + r.status);
+    }
+"""
+
+_SEED_JS = """
+    async ({ state, seedAdjusts }) => {
+        const { sanitizeParsedState } = await import('/src/sanitizers.js');
+        const { replaceForPostgres } = await import('/src/postgresImport.js');
+        const input = { ...state };
+        if (seedAdjusts) {
+            input.settings = [...(state.settings || []), { key: 'reconciliationAdjustsBalance', value: false }];
         }
-    } catch (e) {}
+        const clean = sanitizeParsedState(input);
+        await replaceForPostgres(window.app, clean, {
+            paymentStrategy: state.strategy,
+            monthlyPayment: state.monthlyPayment,
+        });
+    }
 """
 
 
-@pytest.fixture
-def app_page(page) -> Page:
-    """Navigate to the app and return ready page."""
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
-    # Prevent Postgres auto-detection from triggering the login gate when a Docker
-    # stack is running at port 32900. checkPostgresBackendPresent() does HEAD /
-    # and checks for the X-Myfinances-Backend: postgres response header; fulfilling
-    # that request with a plain 200 (no header) makes the check return false.
-    def _intercept_head_root(route):
-        if route.request.method == 'HEAD':
-            route.fulfill(status=200)
-        else:
-            route.continue_()
-    page.route(BASE_URL, _intercept_head_root)
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+def reset_server_state(page) -> None:
+    """Wipe all server data (awaited, not fire-and-forget), keep the wizard from
+    blocking, then reload so the app re-reads the now-empty server."""
+    page.evaluate(_RESET_JS)
+    page.reload()
+    # Idempotent: a wrapped reload already waited, an unwrapped one has not.
     wait_for_app_ready(page)
 
-    # ~100 tests reload after seeding localStorage; make every reload wait for init
-    # too, rather than patching each call site.
-    _original_reload = page.reload
+
+def seed_state(page, state: dict, *, reload=True) -> None:
+    """Replace all server data with `state` (same shape as a JSON export) through
+    the real import path, then reload so the app loads it back from the server."""
+    has_adjust = any(
+        isinstance(s, dict) and s.get("key") == "reconciliationAdjustsBalance"
+        for s in (state.get("settings") or [])
+    )
+    page.evaluate(_SEED_JS, {"state": state, "seedAdjusts": not has_adjust})
+    if reload:
+        page.reload()
+
+
+async def reset_server_state_async(page) -> None:
+    """Async twin of reset_server_state (wipe the server, then reload)."""
+    await page.evaluate(_RESET_JS)
+    await page.reload()
+    await page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    await page.wait_for_function('() => !!window.app', timeout=30000)
+
+
+async def seed_state_async(page, state: dict, *, reload=True) -> None:
+    """Async twin of seed_state for async_app_page tests."""
+    has_adjust = any(
+        isinstance(s, dict) and s.get("key") == "reconciliationAdjustsBalance"
+        for s in (state.get("settings") or [])
+    )
+    await page.evaluate(_SEED_JS, {"state": state, "seedAdjusts": not has_adjust})
+    if reload:
+        await page.reload()
+        await page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+        await page.wait_for_function('() => !!window.app', timeout=30000)
+
+
+_APP_STATE_KEYS = (
+    "accounts", "persons", "debts", "incomes", "bonuses", "bills", "expenses",
+    "ledgerAmountOverrides", "ledgerClearedTransactions", "recurringTemplates",
+    "emergencyFunds", "sinkingFunds", "reconciliations", "planHistory",
+    "retirementSnapshots", "transfers", "balanceHistory", "retirementTargetDate",
+    "homePurchasePlan", "budgetCategories", "monthlySnapshots",
+    "netWorthMilestonesAwarded", "perMonthStimulus",
+)
+
+
+def seed_state_from_app(page) -> None:
+    """Persist whatever a test just built in `window.app.*` (in-memory) to the server.
+
+    For tests whose seed is a JS snippet that assigns `app.accounts = [...]` etc.: snapshot
+    those collections (same keys as a JSON export), push them through `seed_state`, and
+    reload so the app re-reads the server's copy. Dates are serialized by JSON.stringify.
+    """
+    import json as _json
+    raw = page.evaluate(
+        "(keys) => JSON.stringify(Object.fromEntries(keys.map(k => [k, window.app[k]])))",
+        list(_APP_STATE_KEYS))
+    seed_state(page, _json.loads(raw))
+
+
+def wait_for_api(page, path, check, timeout=10.0):
+    """Poll an authenticated GET `path` from the page until `check(json)` is truthy.
+
+    Mutations are fire-and-forget PUT/PATCH calls; a test that reloads right after
+    one can race it. Call this first to be sure the server holds the change (the
+    predicate runs in Python because the app's CSP forbids eval in the page).
+    Returns the matching payload.
+    """
+    import time
+    deadline = time.monotonic() + timeout
+    data = None
+    while time.monotonic() < deadline:
+        data = page.evaluate(
+            "async (p) => { const r = await fetch(p); return r.ok ? await r.json() : null; }", path)
+        if data is not None and check(data):
+            return data
+        page.wait_for_timeout(100)
+    raise AssertionError(f"{path} never satisfied the expected condition; last response: {data!r}")
+
+
+def _wrap_reload(page):
+    # ~100 tests reload after seeding; make every reload wait for init too,
+    # rather than patching each call site.
+    original = page.reload
 
     def _reload_and_wait(*args, **kwargs):
-        response = _original_reload(*args, **kwargs)
+        response = original(*args, **kwargs)
         wait_for_app_ready(page)
         return response
 
     page.reload = _reload_and_wait
+
+
+@pytest.fixture
+def app_page(page, stack_user) -> Page:
+    """Signed-in page on the real stack with an empty server."""
+    ensure_session(page.context)
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
+    _wrap_reload(page)
+    reset_server_state(page)
     return page
 
 
@@ -154,10 +402,15 @@ async def async_page(async_browser):
 
 
 @pytest.fixture
-async def async_app_page(async_page):
-    """Navigate to app and return ready async page."""
-    await async_page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
+async def async_app_page(async_page, stack_user):
+    """Signed-in async page on the real stack with an empty server."""
+    ready = 'html[data-app-ready="true"]'
+    await ensure_session_async(async_page.context)
     await async_page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    await async_page.wait_for_selector(ready, state="attached", timeout=30000)
+    await async_page.evaluate(_RESET_JS)
+    await async_page.reload()
+    await async_page.wait_for_selector(ready, state="attached", timeout=30000)
     return async_page
 
 

@@ -10,6 +10,8 @@ display, and sanitize/import round-trips of the two new fields.
 
 import pytest
 
+from tests.conftest import seed_state, wait_for_api
+
 
 def _seed(page, reconciliations=None, with_bill=False, switch_page=True):
     """One checking account (id 9001), optional 1st-of-month bill, optional prior reconciliations."""
@@ -465,18 +467,21 @@ def test_import_round_trip_preserves_statement_range(app_page):
 
 @pytest.mark.feature
 def test_statement_range_survives_save_and_reload(app_page):
-    """Recorded range survives a localStorage save/load cycle."""
+    """Recorded range survives a save to the server and a full reload."""
     page = app_page
-    _seed(page, switch_page=False)
+    # A real, server-side account: the reconciliation is persisted with an account foreign key.
+    seed_state(page, {
+        'accounts': [{'id': 9001, 'name': 'Range Checking', 'type': 'Checking', 'startingBalance': 1000}],
+        'settings': [{'key': 'reconciliationAdjustsBalance', 'value': True}],
+    })
+    acct_id = page.evaluate("() => window.app.accounts[0].id")
+    page.evaluate("""async (id) => {
+        await window.app.applyReconciliation(id, 1100, '', { statementStartDate: '2026-09-01', statementEndDate: '2026-09-30' });
+    }""", acct_id)
+    wait_for_api(page, '/api/reconciliations', lambda rows: any(r['accountId'] == acct_id for r in rows))
+    page.reload()
 
-    entry = page.evaluate("""async () => {
-        const app = window.app;
-        await app.applyReconciliation(9001, 1100, '', { statementStartDate: '2026-09-01', statementEndDate: '2026-09-30' });
-        await app.saveToStorage();
-        app.reconciliations = [];
-        app.loadFromStorage();
-        return app.reconciliations.find(r => r.accountId === 9001);
-    }""")
+    entry = page.evaluate("(id) => window.app.reconciliations.find(r => r.accountId === id)", acct_id)
 
     assert entry['statementStartDate'] == '2026-09-01'
     assert entry['statementEndDate'] == '2026-09-30'

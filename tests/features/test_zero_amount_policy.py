@@ -9,7 +9,7 @@ amounts are always rejected; transfer-type recurring templates always need > 0.
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, seed_state, wait_for_api
 
 
 # --- helpers ---------------------------------------------------------------
@@ -71,18 +71,19 @@ def _dismiss_alert(page):
     return text
 
 
-def _seed_recurring_account(page, account_id=7301):
-    page.evaluate(f"""() => {{
-        const app = window.app;
-        app.accounts = [{{ id: {account_id}, name: 'Zero Rec Account', type: 'Checking', startingBalance: 1000 }}];
-        app.recurringTemplates = [];
-        app.incomes = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.emergencyFunds = []; app.sinkingFunds = [];
-        app.switchPage('recurring');
-    }}""")
+def _seed_recurring_account(page):
+    """One account on the server; its server-assigned id is kept in window._zacct."""
+    seed_state(page, {'accounts': [{'id': 7301, 'name': 'Zero Rec Account', 'type': 'Checking',
+                                    'startingBalance': 1000}]})
+    page.evaluate("""() => {
+        window._zacct = window.app.accounts[0].id;
+        window.app.switchPage('recurring');
+    }""")
 
 
-def _submit_recurring(page, name, amount, rec_type="subscription", account_id=7301):
+def _submit_recurring(page, name, amount, rec_type="subscription", account_id=None):
+    if account_id is None:
+        account_id = page.evaluate("() => window._zacct")
     page.click('button[data-page="recurring"]')
     page.wait_for_selector('#recurringSection.active', timeout=5000)
     if page.get_attribute('#recurringFormToggle', 'aria-expanded') != 'true':
@@ -317,14 +318,13 @@ def test_negative_recurring_amount_rejected_under_allow(app_page):
 @pytest.mark.feature
 def test_transfer_recurring_zero_rejected_even_under_allow(app_page):
     page = app_page
+    seed_state(page, {'accounts': [
+        {'id': 7301, 'name': 'Zero Rec Account', 'type': 'Checking', 'startingBalance': 1000},
+        {'id': 7302, 'name': 'Zero Rec Savings', 'type': 'Savings', 'startingBalance': 500},
+    ]})
     page.evaluate("""() => {
-        const app = window.app;
-        app.accounts = [
-            { id: 7301, name: 'Zero Rec Account', type: 'Checking', startingBalance: 1000 },
-            { id: 7302, name: 'Zero Rec Savings', type: 'Savings', startingBalance: 500 }
-        ];
-        app.recurringTemplates = [];
-        app.switchPage('recurring');
+        window._zacct = window.app.accounts.find(a => a.name === 'Zero Rec Account').id;
+        window.app.switchPage('recurring');
     }""")
     _set_policy(page, 'allow')
     _submit_recurring(page, "Zero Transfer", "0", rec_type="transfer")
@@ -336,44 +336,48 @@ def test_transfer_recurring_zero_rejected_even_under_allow(app_page):
 @pytest.mark.feature
 def test_inline_edit_zero_policy_and_blank(app_page):
     page = app_page
-    _seed_recurring_account(page)
-    page.evaluate("""() => {
-        window.app.recurringTemplates = [{
-            id: 8801, name: 'Edit Me', type: 'subscription', amount: 25, frequency: 'monthly',
-            dayOfMonth: 1, category: 'Other', accountId: 7301, targetAccountId: null,
-            startDate: '2026-06-01', endDate: null, paused: false,
-            skippedMonths: [], paidMonths: [], paidAmounts: {}
-        }];
+    seed_state(page, {
+        'accounts': [{'id': 7301, 'name': 'Zero Rec Account', 'type': 'Checking', 'startingBalance': 1000}],
+        'recurringTemplates': [{
+            'id': 8801, 'name': 'Edit Me', 'type': 'subscription', 'amount': 25, 'frequency': 'monthly',
+            'dayOfMonth': 1, 'category': 'Other', 'accountId': 7301, 'targetAccountId': None,
+            'startDate': '2026-06-01', 'endDate': None, 'paused': False,
+            'skippedMonths': [], 'paidMonths': [], 'paidAmounts': {},
+        }],
+    })
+    tid = page.evaluate("() => window.app.recurringTemplates[0].id")
+    page.evaluate("""(tid) => {
+        window.app.switchPage('recurring');
         window.app.renderRecurringPage();
-        window.app.startEditRecurring(8801);
-    }""")
-    page.wait_for_selector('#re-amount-8801', timeout=5000)
+        window.app.startEditRecurring(tid);
+    }""", tid)
+    page.wait_for_selector(f'#re-amount-{tid}', timeout=5000)
 
     def amount():
         return page.evaluate("() => window.app.recurringTemplates[0].amount")
 
     # blank rejected
-    page.fill('#re-amount-8801', '')
-    page.evaluate("() => { window.app.saveEditRecurring(8801); }")
+    page.fill(f'#re-amount-{tid}', '')
+    page.evaluate(f"() => {{ window.app.saveEditRecurring({tid}); }}")
     _dismiss_alert(page)
     assert amount() == 25
 
     # negative rejected
-    page.fill('#re-amount-8801', '-3')
-    page.evaluate("() => { window.app.saveEditRecurring(8801); }")
+    page.fill(f'#re-amount-{tid}', '-3')
+    page.evaluate(f"() => {{ window.app.saveEditRecurring({tid}); }}")
     _dismiss_alert(page)
     assert amount() == 25
 
     # block: zero rejected
     _set_policy(page, 'block')
-    page.fill('#re-amount-8801', '0')
-    page.evaluate("() => { window.app.saveEditRecurring(8801); }")
+    page.fill(f'#re-amount-{tid}', '0')
+    page.evaluate(f"() => {{ window.app.saveEditRecurring({tid}); }}")
     _dismiss_alert(page)
     assert amount() == 25
 
     # warn: confirm saves
     _set_policy(page, 'warn')
-    page.evaluate("() => { window.app.saveEditRecurring(8801); }")
+    page.evaluate(f"() => {{ window.app.saveEditRecurring({tid}); }}")
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
     page.click('#deleteConfirmBtn')
     page.wait_for_function("() => window.app.recurringTemplates[0].amount === 0", timeout=5000)
@@ -384,12 +388,11 @@ def test_inline_edit_zero_policy_and_blank(app_page):
 @pytest.mark.feature
 def test_policy_persists_across_reload_and_is_in_export(app_page):
     page = app_page
-    _set_policy(page, 'warn')
-    page.evaluate("() => { window.app.saveToStorage(); window.flushStorageSave && window.flushStorageSave(); }")
-    stored = page.evaluate(
-        """() => JSON.parse(localStorage.getItem(window.app.storageKey || 'debtTrackerData')).settings"""
-    )
-    assert {'key': 'zeroAmountPolicy', 'value': 'warn'} in stored
+    page.evaluate("() => window.app.setSetting('zeroAmountPolicy', 'warn')")
+    stored = wait_for_api(page, '/api/settings',
+                          lambda rows: any(r['key'] == 'zeroAmountPolicy' and r['value'] == 'warn' for r in rows))
+    assert {'key': 'zeroAmountPolicy', 'value': 'warn'} in [
+        {'key': r['key'], 'value': r['value']} for r in stored]
     # exportAllJSON serializes app.settings verbatim
     exported = page.evaluate("() => window.app.settings")
     assert {'key': 'zeroAmountPolicy', 'value': 'warn'} in exported
@@ -409,7 +412,7 @@ def test_pages_render_with_zero_recurring_template(app_page, nav):
     page.evaluate("""() => {
         window.app.recurringTemplates = [{
             id: 8802, name: 'Zero Downstream', type: 'subscription', amount: 0, frequency: 'monthly',
-            dayOfMonth: 1, category: 'Other', accountId: 7301, targetAccountId: null,
+            dayOfMonth: 1, category: 'Other', accountId: window._zacct, targetAccountId: null,
             startDate: '2026-01-01', endDate: null, paused: false,
             skippedMonths: [], paidMonths: [], paidAmounts: {}
         }];

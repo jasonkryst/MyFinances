@@ -1,0 +1,16 @@
+# Dev override: serve the working tree straight from nginx so edits show up on
+# refresh without rebuilding the image.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# nginx's html root is /usr/share/nginx/html (see Dockerfile).
+services:
+  myfinances:
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./guide.html:/usr/share/nginx/html/guide.html:ro
+      - ./src:/usr/share/nginx/html/src:ro
+      - ./styles.css:/usr/share/nginx/html/styles.css:ro
+      - ./styles-csp-classes.css:/usr/share/nginx/html/styles-csp-classes.css:ro
+      - ./guide.css:/usr/share/nginx/html/guide.css:ro
+      - ./sw.js:/usr/share/nginx/html/sw.js:ro
+      - ./manifest.json:/usr/share/nginx/html/manifest.json:ro
+      - ./icons:/usr/share/nginx/html/icons:ro

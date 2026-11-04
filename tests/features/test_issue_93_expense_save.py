@@ -17,6 +17,8 @@ from datetime import date
 
 import pytest
 
+from tests.conftest import seed_state, wait_for_api
+
 
 # ───────────────────────────── helpers ────────────────────────────────
 
@@ -42,6 +44,8 @@ def _add_expense_via_ui(page, name="Groceries", amount="250.00", date=None):
     page.fill('#expenseBudget', amount)
     page.fill('#expenseDate', date)
     page.click('#expenseFormSubmit')
+    # The card renders once the server has assigned the expense's id.
+    page.wait_for_selector(f'#expensesPanel >> text={name}', timeout=10000)
 
 
 # ─────────────────────────── positive tests ───────────────────────────
@@ -55,17 +59,12 @@ def test_expense_appears_on_screen_after_add(app_page):
 
 
 @pytest.mark.feature
-def test_expense_written_to_localstorage_immediately(app_page):
-    """addExpense writes the expense to localStorage before the page reloads."""
+def test_expense_written_to_server_immediately(app_page):
+    """addExpense persists the expense to the server (not just memory) as soon as it is added."""
     page = app_page
-    _add_expense_via_ui(page, name="Dining Out", amount="80.00", date="2026-09-15")
+    _add_expense_via_ui(page, name="Dining Out", amount="80.00", date=_this_month(15))
 
-    in_storage = page.evaluate("""(name) => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        return (d.expenses || []).some(e => e.name === name);
-    }""", "Dining Out")
-
-    assert in_storage, "Expense should be present in localStorage immediately after add"
+    wait_for_api(page, '/api/expenses', lambda rows: any(e['name'] == 'Dining Out' for e in rows))
 
 
 @pytest.mark.feature
@@ -87,16 +86,13 @@ def test_expense_survives_page_reload(app_page):
 def test_expense_date_stored_as_iso_string(app_page):
     """addExpense stores date as a YYYY-MM-DD string, not a Date object."""
     page = app_page
-    _add_expense_via_ui(page, name="Phone Bill", amount="55.00", date="2026-11-05")
+    _add_expense_via_ui(page, name="Phone Bill", amount="55.00", date=_this_month(5))
 
-    raw_date = page.evaluate("""(name) => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        const exp = (d.expenses || []).find(e => e.name === name);
-        return exp ? exp.date : null;
-    }""", "Phone Bill")
+    rows = wait_for_api(page, '/api/expenses', lambda rows: any(e['name'] == 'Phone Bill' for e in rows))
+    raw_date = next(e['date'] for e in rows if e['name'] == 'Phone Bill')
 
-    assert raw_date == "2026-11-05", \
-        f"Stored date should be bare ISO string '2026-11-05', got: {repr(raw_date)}"
+    assert raw_date == _this_month(5), \
+        f"Stored date should be a bare ISO string, got: {repr(raw_date)}"
 
 
 @pytest.mark.feature
@@ -109,16 +105,10 @@ def test_self_healing_corrupted_utc_date_on_reload(app_page):
     page = app_page
 
     corrupt_date = f"{date.today().year}-{date.today().month:02d}-15T05:00:00.000Z"
-    page.evaluate(f"""() => {{
-        const key = 'debtTrackerData';
-        const d = JSON.parse(localStorage.getItem(key) || '{{}}');
-        d.expenses = [{{
-            id: 9999, name: 'Legacy Corrupted', budgetAmount: 99,
-            date: '{corrupt_date}',
-            category: 'Other', accountId: null
-        }}];
-        localStorage.setItem(key, JSON.stringify(d));
-    }}""")
+    seed_state(page, {'expenses': [{
+        'id': 9999, 'name': 'Legacy Corrupted', 'budgetAmount': 99,
+        'date': corrupt_date, 'category': 'Other', 'accountId': None,
+    }]}, reload=False)
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
@@ -147,6 +137,8 @@ def test_edited_expense_date_survives_reload(app_page):
     expense_id = page.get_attribute('.budget-card--editing [data-expense-action="save"]', 'data-expense-id')
     page.fill(f'#ee-date-{expense_id}', _this_month(25))
     page.click(f'.budget-card--editing [data-expense-action="save"]')
+    wait_for_api(page, '/api/expenses',
+                 lambda rows: any(e['name'] == 'Car Insurance' and e['date'] == _this_month(25) for e in rows))
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
@@ -219,15 +211,10 @@ def test_corrupted_expense_with_null_date_is_dropped(app_page):
     """
     page = app_page
 
-    page.evaluate("""() => {
-        const key = 'debtTrackerData';
-        const d = JSON.parse(localStorage.getItem(key) || '{}');
-        d.expenses = [
-            { id: 1, name: 'Good Expense', budgetAmount: 50, date: '2026-08-01', category: 'Other' },
-            { id: 2, name: 'Null Date Expense', budgetAmount: 50, date: null, category: 'Other' }
-        ];
-        localStorage.setItem(key, JSON.stringify(d));
-    }""")
+    seed_state(page, {'expenses': [
+        {'id': 1, 'name': 'Good Expense', 'budgetAmount': 50, 'date': '2026-08-01', 'category': 'Other'},
+        {'id': 2, 'name': 'Null Date Expense', 'budgetAmount': 50, 'date': None, 'category': 'Other'},
+    ]}, reload=False)
 
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)

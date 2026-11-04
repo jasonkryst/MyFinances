@@ -13,6 +13,7 @@ that content is reachable by scrolling.
 """
 
 import pytest
+from tests.conftest import seed_state_from_app
 
 PHONE = {"width": 390, "height": 844}
 
@@ -154,7 +155,7 @@ def phone_page(app_page):
     page = app_page
     page.set_viewport_size(PHONE)
     page.evaluate(SEED)
-    page.reload()
+    seed_state_from_app(page)
     return page
 
 

@@ -6,43 +6,44 @@ Tests the inline edit/save flow for debt cards.
 
 import pytest
 
+from tests.conftest import seed_state
+
 
 @pytest.mark.ui
 def test_debt_inline_edit_and_save(app_page):
     """Test editing a debt's name, balance, and interest rate inline."""
     page = app_page
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.accounts = [{ id: 6201, name: 'Debt Edit Checking', type: 'Checking', startingBalance: 1000 }];
-        app.debts = [{
-            id: 95, name: 'Visa', debtType: 'creditCard',
-            accountBalance: 2000, originalBalance: 2000,
-            interestRate: 18, minimumPayment: 50, dueDate: 15,
-            accountId: 6201, category: 'Credit Card'
-        }];
-        app.incomes = []; app.bills = []; app.expenses = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.switchPage('liabilities');
-    }""")
+    seed_state(page, {
+        'accounts': [{'id': 6201, 'name': 'Debt Edit Checking', 'type': 'Checking', 'startingBalance': 1000}],
+        'debts': [{
+            'id': 95, 'name': 'Visa', 'debtType': 'creditCard',
+            'accountBalance': 2000, 'originalBalance': 2000,
+            'interestRate': 18, 'minimumPayment': 50, 'dueDate': 15,
+            'accountId': 6201, 'category': 'Credit Card',
+        }],
+    })
+    page.evaluate("() => window.app.switchPage('liabilities')")
 
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
 
-    edit_btn = page.query_selector('[data-debt-action="edit"][data-debt-id="95"]')
+    # The server assigns the id; look the debt up by name.
+    debt_id = page.evaluate("() => window.app.debts.find(d => d.name === 'Visa').id")
+    edit_btn = page.query_selector(f'[data-debt-action="edit"][data-debt-id="{debt_id}"]')
     assert edit_btn, "Expected an Edit button on the debt card"
     edit_btn.click()
 
-    name_input = page.query_selector('#inline-name-95')
-    balance_input = page.query_selector('#inline-balance-95')
-    interest_input = page.query_selector('#inline-interest-95')
+    name_input = page.query_selector(f'#inline-name-{debt_id}')
+    balance_input = page.query_selector(f'#inline-balance-{debt_id}')
+    interest_input = page.query_selector(f'#inline-interest-{debt_id}')
     assert name_input and balance_input and interest_input, "Inline edit fields should be present"
 
-    page.fill('#inline-name-95', 'Visa Platinum')
-    page.fill('#inline-balance-95', '1500')
-    page.fill('#inline-interest-95', '12.5')
+    page.fill(f'#inline-name-{debt_id}', 'Visa Platinum')
+    page.fill(f'#inline-balance-{debt_id}', '1500')
+    page.fill(f'#inline-interest-{debt_id}', '12.5')
 
-    save_btn = page.query_selector('[data-debt-action="save-inline"][data-debt-id="95"]')
+    save_btn = page.query_selector(f'[data-debt-action="save-inline"][data-debt-id="{debt_id}"]')
     assert save_btn, "Expected a Save button while editing"
     save_btn.click()
 

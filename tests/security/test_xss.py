@@ -9,6 +9,8 @@ import json
 import tempfile
 import os
 
+from tests.conftest import seed_state_async
+
 BASE_URL = "http://localhost:32900/"
 
 
@@ -26,7 +28,8 @@ async def test_xss_in_account_name(async_app_page):
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
     await page.click('#accountFormSubmit')
-    
+    await page.wait_for_selector('.acct-card-name', timeout=10000)
+
     # Check if script was rendered as text (escaped)
     account_text = await page.evaluate("""
         () => document.querySelector('.acct-card-name')?.textContent
@@ -169,12 +172,6 @@ async def test_malicious_json_import(async_app_page):
             debts_count = await page.evaluate('() => document.querySelectorAll(".debt-card").length')
             assert debts_count > 0, "Debt was not imported"
             
-            # Check localStorage was sanitized
-            stored_data = await page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
-            if stored_data:
-                parsed = json.loads(stored_data)
-                # Verify scripts are not present in rendered HTML
-                assert parsed, "No data in localStorage"
     finally:
         os.unlink(temp_file)
 
@@ -356,18 +353,13 @@ async def test_ledger_override_amount_extreme_values(async_app_page):
         console_errors.append(msg.text) if msg.type == 'error' else None
     ))
 
-    await page.evaluate("""() => {
-        const app = window.app;
-        const today = new Date();
-        app.accounts = [{ id: 7002, name: 'Override Bounds', type: 'Checking', startingBalance: 1000 }];
-        app.bills = [{
-            id: 71, name: 'Rent', dueDay: today.getDate(), amount: 50, category: 'Other', accountId: 7002
-        }];
-        app.incomes = []; app.expenses = []; app.debts = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.ledgerAmountOverrides = {};
-        app.switchPage('ledger');
-    }""")
+    from datetime import date
+    await seed_state_async(page, {
+        'accounts': [{'id': 7002, 'name': 'Override Bounds', 'type': 'Checking', 'startingBalance': 1000}],
+        'bills': [{'id': 71, 'name': 'Rent', 'dueDay': date.today().day, 'amount': 50,
+                   'category': 'Other', 'accountId': 7002}],
+    })
+    await page.evaluate("() => window.app.switchPage('ledger')")
 
     override_btn = await page.query_selector('[data-ledger-override]')
     assert override_btn, "Expected an override button for the bill transaction"
