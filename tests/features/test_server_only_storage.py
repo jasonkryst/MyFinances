@@ -282,8 +282,20 @@ def test_no_financial_keys_after_crud_pass(app_page):
     page.click('#emergencyFormSubmit')
     wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
 
-    page.reload()
+    # Every record must be on the server, not just rendered from memory.
+    for path, name in (('/api/accounts', 'Storage Checking'), ('/api/debts', 'Storage Visa'),
+                       ('/api/incomes', 'Storage Salary'),
+                       ('/api/recurring-templates', 'Storage Netflix')):
+        wait_for_api(page, path, lambda rows, n=name: any(r.get('name') == n for r in rows))
 
-    keys = page.evaluate("() => Object.keys(localStorage)")
-    assert set(keys) <= ALLOWED_LOCAL_KEYS, f"unexpected localStorage keys: {sorted(set(keys) - ALLOWED_LOCAL_KEYS)}"
-    assert page.evaluate("() => sessionStorage.length") == 0
+    def check_storage():
+        # A non-empty localStorage keeps the allowlist check from passing vacuously.
+        page.evaluate("() => localStorage.setItem('debtTrackerLocale', 'en')")
+        keys = set(page.evaluate("() => Object.keys(localStorage)"))
+        assert keys, "localStorage unexpectedly empty"
+        assert keys <= ALLOWED_LOCAL_KEYS, f"unexpected localStorage keys: {sorted(keys - ALLOWED_LOCAL_KEYS)}"
+        assert page.evaluate("() => sessionStorage.length") == 0
+
+    check_storage()
+    page.reload()
+    check_storage()
