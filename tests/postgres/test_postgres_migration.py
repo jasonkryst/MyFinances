@@ -194,6 +194,72 @@ async def test_migration_transfer_copies_data_to_postgres(pg_page, base_url, cre
     await _wipe_all(pg_page, base_url)
 
 
+async def test_migration_transfer_retries_after_a_failed_request(pg_page, base_url, credentials):
+    """A failed first transfer leaves the modal usable; the second click completes it.
+
+    Regression test for #467: doTransfer() keeps its click handler installed after
+    setLoading(false), but nothing exercised the retry path.
+    """
+    logs = _capture_console(pg_page)
+    await _login_with_local_data(pg_page, base_url, credentials, SAMPLE_LOCAL_DATA)
+    try:
+        await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    except Exception as exc:
+        await pg_page.wait_for_timeout(300)
+        pytest.fail(
+            f"#pgMigrationModal never became visible.\nConsole:\n"
+            + "\n".join(logs[-30:]) + f"\n{exc}"
+        )
+
+    attempts = {"accounts": 0}
+
+    async def fail_the_first_account_post(route):
+        if route.request.method == "POST" and route.request.url.endswith("/api/accounts"):
+            attempts["accounts"] += 1
+            if attempts["accounts"] == 1:
+                await route.fulfill(status=500, content_type="application/json",
+                                    body='{"error":"forced failure"}')
+                return
+        await route.continue_()
+
+    await pg_page.route("**/api/accounts", fail_the_first_account_post)
+    try:
+        await pg_page.click("#pgMigrationTransferBtn")
+        await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=10000)
+        assert "Transfer failed" in (await pg_page.locator("#pgMigrationError").text_content())
+        assert await pg_page.locator("#pgMigrationModal").is_visible(), \
+            "modal closed after a failed transfer"
+        assert await pg_page.locator("#pgMigrationTransferBtn").is_enabled(), \
+            "transfer button stayed disabled after a failed transfer"
+        assert (await pg_page.locator("#pgMigrationTransferBtn").text_content()).strip() == "Transfer Data"
+
+        async with pg_page.expect_response(
+            lambda r: "/api/accounts" in r.url and r.request.method == "POST",
+            timeout=15000,
+        ):
+            await pg_page.click("#pgMigrationTransferBtn")
+
+        await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=15000)
+        await _wait_for_app_ready(pg_page)
+
+        accounts = await (await _api_get(pg_page, base_url, "/api/accounts")).json()
+        debts = await (await _api_get(pg_page, base_url, "/api/debts")).json()
+        assert any(a["name"] == "Migration Checking" for a in accounts), \
+            f"Migrated account not found after retry: {accounts}"
+        assert any(d["name"] == "Test Debt" for d in debts), \
+            f"Migrated debt not found after retry: {debts}"
+
+        local_data = await pg_page.evaluate("localStorage.getItem('debtTrackerData')")
+        assert local_data is None, "localStorage not cleared after the retry succeeded"
+        assert attempts["accounts"] >= 2, f"expected a retry, saw {attempts['accounts']} account POSTs"
+    finally:
+        await pg_page.unroute("**/api/accounts", fail_the_first_account_post)
+        try:
+            await _wipe_all(pg_page, base_url)
+        except Exception:
+            pass
+
+
 async def test_migration_skip_preserves_local_data(pg_page, base_url, credentials):
     """Skip leaves localStorage intact and Postgres stays empty."""
     logs = _capture_console(pg_page)
