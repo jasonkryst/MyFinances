@@ -3,8 +3,6 @@ export default {
 
     'toolbar.commandPaletteTitle': 'Salto rápido (Ctrl+K)',
     'toolbar.commandPaletteAriaLabel': 'Abrir paleta de comandos de salto rápido',
-    'toolbar.dataTransferTitle': 'Copia de Seguridad y Restauración',
-    'toolbar.dataTransferAriaLabel': 'Hacer copia de seguridad y restaurar datos',
     'toolbar.settingsTitle': 'Configuración',
     'toolbar.settingsAriaLabel': 'Abrir configuración',
     'toolbar.helpTitle': 'Abrir guía de uso',

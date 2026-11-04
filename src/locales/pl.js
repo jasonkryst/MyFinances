@@ -3,8 +3,6 @@ export default {
 
     'toolbar.commandPaletteTitle': 'Szybkie przejście (Ctrl+K)',
     'toolbar.commandPaletteAriaLabel': 'Otwórz panel szybkich poleceń',
-    'toolbar.dataTransferTitle': 'Kopia Zapasowa i Przywracanie',
-    'toolbar.dataTransferAriaLabel': 'Utwórz kopię zapasową i przywróć dane',
     'toolbar.settingsTitle': 'Ustawienia',
     'toolbar.settingsAriaLabel': 'Otwórz ustawienia',
     'toolbar.helpTitle': 'Otwórz przewodnik użytkowania',
