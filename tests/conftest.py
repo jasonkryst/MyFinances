@@ -20,6 +20,27 @@ BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:32900/")
 HEADLESS = True
 
 
+# TEMP-DIAG: report which requests are pending when the first goto times out.
+_orig_goto = Page.goto
+
+
+def _diag_goto(self, url, **kw):
+    pending, log = {}, []
+    self.on("request", lambda r: pending.__setitem__(r, r.url))
+    self.on("requestfinished", lambda r: pending.pop(r, None))
+    self.on("requestfailed", lambda r: (pending.pop(r, None), log.append("FAILED " + r.url)))
+    self.on("console", lambda m: log.append("console " + m.type + " " + m.text[:200]))
+    self.on("pageerror", lambda e: log.append("pageerror " + str(e)[:300]))
+    try:
+        return _orig_goto(self, url, **kw)
+    except Exception:
+        print("DIAG goto failed; pending:", list(pending.values()), "log:", log[:30], flush=True)
+        raise
+
+
+Page.goto = _diag_goto
+
+
 def current_month_iso(day=1):
     """ISO date string for `day` in the real current calendar month.
 
