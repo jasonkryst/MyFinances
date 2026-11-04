@@ -1,5 +1,5 @@
 import { createKeyedResource } from '../keyedRouter.js';
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO } from '../sanitizers/index.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO } from '../sanitizers/index.js';
 
 function sanitizeOverrideEntry(body, key) {
     const amount = sanitizeFiniteNumber(body?.amount, NaN);
@@ -11,7 +11,7 @@ function sanitizeOverrideEntry(body, key) {
         transactionName: normalizeText(body?.transactionName, 120) || null,
         accountId: sanitizeInteger(body?.accountId, null),
         date: sanitizeDateISO(body?.date),
-        updatedAt: sanitizeDateISO(body?.updatedAt) || new Date().toISOString()
+        updatedAt: sanitizeTimestampISO(body?.updatedAt) || new Date().toISOString()
     };
 }
 
