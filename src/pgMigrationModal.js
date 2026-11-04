@@ -92,7 +92,8 @@ function downloadLegacyBackup(localJson) {
 }
 
 // Import variant. Resolves 'imported' | 'declined' | 'failed' | 'dismissed'.
-// The key is removed on 'imported' and 'declined' only. A failed transfer
+// The key is removed on 'imported' and 'declined' only (declining downloads
+// the raw JSON first). A failed transfer
 // keeps the modal open (so the user can retry or decline); it resolves
 // 'failed' only if the modal is then dismissed with Escape.
 export async function showPgMigrationModal(app, localJson) {
@@ -147,6 +148,9 @@ export async function showPgMigrationModal(app, localJson) {
             }
         };
         els.skipBtn.onclick = () => {
+            // Declining must not destroy the browser's only copy: save the raw
+            // legacy JSON first, then remove the key.
+            downloadLegacyBackup(localJson);
             removeLegacyKey();
             close();
             resolve('declined');

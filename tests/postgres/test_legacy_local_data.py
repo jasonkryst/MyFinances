@@ -75,10 +75,15 @@ async def test_legacy_import_moves_data_and_removes_key(pg_page, base_url):
     assert await _key(pg_page) is None
 
 
-async def test_legacy_decline_removes_key(pg_page, base_url):
+async def test_legacy_decline_downloads_backup_then_removes_key(pg_page, base_url):
     await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
     await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
-    await pg_page.click("#pgMigrationSkipBtn")
+    async with pg_page.expect_download() as info:
+        await pg_page.click("#pgMigrationSkipBtn")
+    download = await info.value
+    assert re.fullmatch(r"myfinances-browser-backup-\d{4}-\d{2}-\d{2}\.json", download.suggested_filename)
+    with open(await download.path(), encoding="utf-8") as f:
+        assert json.load(f) == LEGACY
     await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=5000)
     assert await _key(pg_page) is None
     assert await _accounts(pg_page, base_url) == []
