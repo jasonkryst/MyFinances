@@ -6,7 +6,7 @@
 // textContent from t()/plural().
 import { sanitizeParsedState } from './sanitizers.js';
 import { replaceForPostgres } from './postgresImport.js';
-import { t, plural } from './i18n.js';
+import { t, plural, getIntlLocale } from './i18n.js';
 
 const LEGACY_KEY = 'debtTrackerData';
 
@@ -28,7 +28,7 @@ function buildCountsSummary(clean) {
         .filter(([arr]) => arr?.length)
         .map(([arr, key]) => plural(key, arr.length));
     return parts.length
-        ? t('pgMigration.found', { list: parts.join(', ') })
+        ? t('pgMigration.found', { list: new Intl.ListFormat(getIntlLocale(), { type: 'conjunction' }).format(parts) })
         : t('pgMigration.foundGeneric');
 }
 
