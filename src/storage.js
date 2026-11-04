@@ -29,11 +29,21 @@ function _timeoutSignal(ms) {
     return controller.signal;
 }
 
+// A fetch whose body is never read keeps the response stream open. With a
+// no-store response (the server sends it for every /api and /auth reply) the
+// browser cannot drain it into the HTTP cache, so the request stays in flight
+// and the page never reaches network idle. Call this on any response whose
+// body is not otherwise consumed.
+export async function discardBody(res) {
+    try { await res.arrayBuffer(); } catch (_) { /* aborted or already consumed */ }
+}
+
 export async function probeServer() {
     const UNREACHABLE = { reachable: false };
     try {
         const res = await fetch('/api/plan-settings', { cache: 'no-store', signal: _timeoutSignal(PROBE_TIMEOUT_MS) });
         if (res.status === 401) {
+            await discardBody(res);
             return await _probeSetupStatus();
         }
         if (!res.ok) return UNREACHABLE;
@@ -175,9 +185,11 @@ export function saveToStorage(app) {
         if (res.status === 401) {
             // Several saves can fail at once; one gate is enough. Retry once
             // after sign-in so the save is not silently lost.
+            await discardBody(res);
             await requestLogin(app);
             res = await send();
         }
+        await discardBody(res);
         if (res.ok) return true;
         console.error(`Error saving plan settings: PATCH /api/plan-settings failed: ${res.status}`);
         showSyncErrorBanner();

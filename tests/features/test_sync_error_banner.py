@@ -228,3 +228,21 @@ def test_boot_session_expired_loop_is_capped(app_page):
     assert page.locator('#loginGate:not(.hidden)').count() == 0
     # 3 rounds (initial + 2 re-probes), each = probe + the load's own plan-settings GET
     assert len(probes) <= 7, len(probes)
+
+
+# --- Response bodies must be consumed ------------------------------------------
+
+@pytest.mark.feature
+def test_first_run_boot_reaches_network_idle(app_page):
+    """First-run boot PATCHes plan-settings; its no-store response body must be read.
+
+    An unread body keeps the request in flight (the server sends no-store on every
+    API response), so the page never reached network idle.
+    """
+    page = app_page
+    page.evaluate("""async () => {
+        const csrf = document.cookie.split('csrf=')[1].split(';')[0];
+        await fetch('/api/settings/reconciliationAdjustsBalance',
+            { method: 'DELETE', headers: { 'X-CSRF-Token': csrf } });
+    }""")
+    page.goto(BASE_URL, wait_until='networkidle', timeout=20000)

@@ -3,7 +3,7 @@
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_DEBTS, SHOW_ARCHIVED_RECURRING, AUTO_NW_SNAPSHOT, ZERO_AMOUNT_POLICY, getZeroAmountPolicy } from './settings.js';
 import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
-import { getCsrfCookie } from './storage.js';
+import { getCsrfCookie, discardBody } from './storage.js';
 import { requestLogin } from './loginGate.js';
 import { showEmailTestToast } from './ui.js';
 import { initSettingsBackup } from './settingsBackup.js';
@@ -142,6 +142,7 @@ export function initSettingsModal(app) {
                     method: 'POST',
                     headers: { 'X-CSRF-Token': getCsrfCookie() }
                 });
+                await discardBody(res);
                 if (res.status === 401) {
                     await requestLogin(app);
                     return;

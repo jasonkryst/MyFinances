@@ -1,4 +1,4 @@
-import { getCsrfCookie } from './storage.js';
+import { getCsrfCookie, discardBody } from './storage.js';
 import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
 
@@ -40,6 +40,7 @@ async function pgFetch(app, method, path, body) {
             // Several saves can fail at once; one gate is enough. After
             // signing in, retry this write exactly once (no loop) so it is
             // not silently lost.
+            await discardBody(res);
             await requestLogin(app);
             res = await send();
         }

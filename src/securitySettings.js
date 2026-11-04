@@ -2,7 +2,7 @@
 // The app always runs against the PostgreSQL server (v7.0.0), so the form is
 // always shown.
 import { t } from './i18n.js';
-import { getCsrfCookie } from './storage.js';
+import { getCsrfCookie, discardBody } from './storage.js';
 import { requestLogin } from './loginGate.js';
 import {
     attachPasswordStrengthMeter, newPasswordError, passwordResponseMessage, showBreachCheckNote
@@ -82,11 +82,13 @@ export function initSecuritySettings(app) {
                 return;
             }
             if (res.ok) {
+                await discardBody(res);
                 clearFields(e);
                 e.status.textContent = t('settings.security.success');
                 return;
             }
             if (res.status === 401) {
+                await discardBody(res);
                 await requestLogin(app);
                 return;
             }
