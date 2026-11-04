@@ -6,73 +6,46 @@ This guide covers deployment options and security configurations for MyFinances.
 
 ## Quick Start - Local Development
 
-### Using Python HTTP Server
+Since 7.0.0, MyFinances stores everything in its own PostgreSQL server, so a plain
+static file server (such as `python -m http.server`) is no longer enough: the app
+needs the API at `/api` and `/auth`. Run the Docker stack (nginx + Node.js API +
+PostgreSQL) instead:
+
 ```bash
-cd "path/to/MyFinances"
-python -m http.server 32900
+./setup.sh            # first time only (Windows: .\setup.ps1): secrets, migrations, admin user
+docker compose up -d  # http://localhost:32900
 ```
-Access at: `http://localhost:32900`
 
-### Using PowerShell HTTP Listener
-```powershell
-$listener = [System.Net.HttpListener]::new()
-$listener.Prefixes.Add('http://localhost:32900/')
-$listener.Start()
-Write-Output 'Serving http://localhost:32900/'
+For frontend work, add the dev override. It bind-mounts `index.html`, `guide.html`,
+`src/`, the stylesheets, `sw.js`, `manifest.json` and `icons/` into the nginx
+container read-only, so an edit needs only a browser refresh instead of an image
+rebuild:
 
-while ($listener.IsListening) {
-    $context = $listener.GetContext()
-    $path = $context.Request.Url.AbsolutePath.TrimStart('/')
-    if ([string]::IsNullOrWhiteSpace($path)) { $path = 'index.html' }
-    
-    $localPath = Join-Path (Get-Location) $path
-    
-    if ((Test-Path $localPath) -and -not (Get-Item $localPath).PSIsContainer) {
-        $bytes = [System.IO.File]::ReadAllBytes($localPath)
-        $ext = [System.IO.Path]::GetExtension($localPath).ToLowerInvariant()
-        
-        $contentType = switch ($ext) {
-            '.html' { 'text/html; charset=utf-8' }
-            '.js' { 'application/javascript; charset=utf-8' }
-            '.css' { 'text/css; charset=utf-8' }
-            '.json' { 'application/json; charset=utf-8' }
-            '.svg' { 'image/svg+xml' }
-            '.png' { 'image/png' }
-            default { 'application/octet-stream' }
-        }
-        
-        # ADD SECURITY HEADERS HERE
-        $context.Response.AddHeader('X-Content-Type-Options', 'nosniff')
-        $context.Response.AddHeader('X-Frame-Options', 'DENY')
-        $context.Response.AddHeader('X-XSS-Protection', '1; mode=block')
-        $context.Response.AddHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-        
-        $context.Response.StatusCode = 200
-        $context.Response.ContentType = $contentType
-        $context.Response.ContentLength64 = $bytes.Length
-        $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
-    } else {
-        $msg = [Text.Encoding]::UTF8.GetBytes('Not Found')
-        $context.Response.StatusCode = 404
-        $context.Response.ContentType = 'text/plain; charset=utf-8'
-        $context.Response.ContentLength64 = $msg.Length
-        $context.Response.OutputStream.Write($msg, 0, $msg.Length)
-    }
-    
-    $context.Response.OutputStream.Close()
-}
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
+
+See [PostgreSQL Server Setup](#postgresql-server-setup-required) below for what
+`setup.sh` does.
 
 ## Production Deployment
 
 ### Recommended Architecture
 ```
-Internet ← HTTPS → Web Server (Nginx/Apache) ← HTTP → MyFinances (Static Files)
-                   ↓
-                Security Headers
-                CSP Policy
-                Cache Control
+Internet ← HTTPS → TLS proxy (Nginx/Caddy/Traefik/Cloudflare Tunnel)
+                     ↓ HTTP
+                   MyFinances stack (docker compose, port 32900)
+                     ├─ myfinances  — nginx: static frontend, security headers, CSP,
+                     │                proxies /api/, /auth/ and /calendar.ics to ↓
+                     ├─ server      — Node.js + Express API (auth, sessions, CSRF)
+                     └─ postgres    — PostgreSQL 16 (the only data store)
 ```
+
+> **The Nginx and Apache configurations below serve static files only.** On their
+> own they cannot run MyFinances 7.0 or later, which needs the API. Use them as a
+> reference for security headers and caching, and put your TLS proxy in front of
+> the Docker stack (forward every path to it) rather than serving the files
+> directly.
 
 ### Nginx Configuration
 
@@ -218,21 +191,11 @@ The repository ships with production-ready Docker files. The image is built on `
 - `docker-compose.yml` — hardened Compose config (read-only filesystem, dropped capabilities)
 - `.dockerignore` — excludes tests, docs, Python cache, and editor files from the build context
 
-**Build and run with Docker:**
+> `docker build -t myfinances .` builds only the frontend (nginx) image. Running it
+> alone gives the "Can't reach your server" screen, because the API and database
+> are separate services. Always run the full stack with Docker Compose.
 
-```bash
-# Build the image
-docker build -t myfinances .
-
-# Run on port 32900
-docker run -d -p 32900:80 --name myfinances myfinances
-```
-
-Access at: `http://localhost:32900`
-
-> The image ships `manifest.json`, `sw.js`, and `icons/` (PWA support, #75) alongside the existing static files.
-
-**Build and run with Docker Compose (recommended):**
+**Build and run with Docker Compose:**
 
 ```bash
 # Start (detached)
@@ -241,7 +204,7 @@ docker compose up -d
 # View logs
 docker compose logs -f
 
-# Stop and remove container
+# Stop and remove containers (add -v only if you want to DELETE the database volume)
 docker compose down
 ```
 
@@ -272,15 +235,22 @@ nothing is loaded or contacted. The CSP always allow-lists
 `googletagmanager.com`/`google-analytics.com` regardless of whether you set
 this, so no other file needs to change either way.
 
-This only applies to the Docker deployment above — there's no equivalent
-mechanism for the manual Nginx/Apache configs or GitHub Pages below. To enable
-it there, hand-write an `env-config.js` containing
+This only applies to the Docker deployment above. If you serve the frontend
+files some other way, hand-write an `env-config.js` containing
 `window.__ENV__ = { GA_MEASUREMENT_ID: "G-XXXXXXXXXX" };` alongside `index.html`.
 
-## PostgreSQL Backend Deployment (Optional — Multi-Device Sync)
+## PostgreSQL Server Setup (Required)
 
-The frontend works completely offline against `localStorage`. The backend is opt-in:
-enable it to get multi-device sync and server-side persistence across devices.
+Since 7.0.0 the PostgreSQL server is the only storage. The browser keeps no
+financial data: without a reachable server the app shows a "Can't reach your server"
+screen with a "Try again" button, and without a session it shows the sign-in screen.
+
+**Upgrading from 6.x:** data that a 6.x browser kept in Local Storage is not on the
+server. Optionally export a JSON backup from 6.x first (Account menu → Backup &
+Restore), then deploy this stack and sign in in that same browser. If the server
+is empty, MyFinances offers a one-time import of the browser's data. If the server
+already has data, it offers to download the browser's copy as a JSON backup or to
+remove it.
 
 ### Prerequisites
 
@@ -378,8 +348,8 @@ if a release adds new database tables (check the `CHANGELOG.md` entry for "migra
 
 ### Backup and Restore
 
-The `postgres-data` named volume (`docker-compose.yml`) is the only durability layer once
-you opt into the Postgres backend — losing it loses everything. Root-level scripts wrap
+The `postgres-data` named volume (`docker-compose.yml`) is the only durability layer —
+losing it loses everything. Root-level scripts wrap
 `pg_dump`/`pg_restore` so backups don't require remembering `docker exec` invocations:
 
 ```sh
@@ -445,15 +415,10 @@ npm run migrate up
 node scripts/create-user.js
 node src/index.js
 ```
-### GitHub Pages Deployment
+### Static Hosting (GitHub Pages, S3, …)
 
-1. Push code to GitHub repository
-2. Go to Settings → Pages
-3. Select source: `main` branch
-4. Select folder: `/ (root)`
-5. Click "Save"
-
-**Note**: GitHub Pages serves all files via HTTPS with appropriate security headers by default.
+Not supported since 7.0.0: a static host cannot run the API and database the app
+needs.
 
 ## Security Configuration Checklist
 
@@ -492,6 +457,10 @@ Using online tools:
 - **SecurityHeaders.com**: https://securityheaders.com
 
 ### Functionality Testing
+
+The Playwright suite runs against a running stack and **wipes all of its data** before
+every test, so run it only against a local or throwaway stack, never production.
+See [tests/README.md](tests/README.md) for `TEST_BASE_URL`/`TEST_EMAIL`/`TEST_PASSWORD`.
 
 ```bash
 # Run tests
