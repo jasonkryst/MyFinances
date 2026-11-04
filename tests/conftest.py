@@ -26,7 +26,10 @@ _orig_goto = Page.goto
 
 def _diag_goto(self, url, **kw):
     pending, log = {}, []
-    self.on("request", lambda r: pending.__setitem__(r, r.url))
+    import time as _t
+    t0 = _t.monotonic()
+    self.on("request", lambda r: (pending.__setitem__(r, r.url), log.append("%.1f REQ %s %s" % (_t.monotonic() - t0, r.method, r.url))))
+    self.on("response", lambda r: log.append("%.1f RES %s %s" % (_t.monotonic() - t0, r.status, r.url)))
     self.on("requestfinished", lambda r: pending.pop(r, None))
     self.on("requestfailed", lambda r: (pending.pop(r, None), log.append("FAILED " + r.url)))
     self.on("console", lambda m: log.append("console " + m.type + " " + m.text[:200]))
@@ -34,7 +37,7 @@ def _diag_goto(self, url, **kw):
     try:
         return _orig_goto(self, url, **kw)
     except Exception:
-        print("DIAG goto failed; pending:", list(pending.values()), "log:", log[:30], flush=True)
+        print("DIAG goto failed; pending:", list(pending.values()), "log:", log[:80], flush=True)
         raise
 
 
