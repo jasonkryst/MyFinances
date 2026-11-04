@@ -25,12 +25,14 @@ Audit reports generated at key milestones. Subdirectories match the audit type.
 Latest reports (newest first per category):
 - [`audit/security/SECURITY_AUDIT_2026-11-04.md`](audit/security/SECURITY_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 PostgreSQL-only storage review (no High/Medium findings)
 - [`audit/a11y/A11Y_AUDIT_REPORT_2026-11-04.md`](audit/a11y/A11Y_AUDIT_REPORT_2026-11-04.md) — November 4, 2026 — v7.0.0 WCAG 2.1 AA review of the server-only surfaces (0 Critical / 7 Major / 14 Minor)
+- [`audit/i18n/I18N_AUDIT_2026-11-04.md`](audit/i18n/I18N_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 internationalization review (2 High / 6 Medium / 8 Low; coverage guard 175/175 passing)
+- [`audit/i18n/I18N_AUDIT_2026-10-06.md`](audit/i18n/I18N_AUDIT_2026-10-06.md) — October 6, 2026 (previous i18n audit)
 - [`audit/a11y/A11Y_AUDIT_REPORT_2026-10-06.md`](audit/a11y/A11Y_AUDIT_REPORT_2026-10-06.md) — October 6, 2026 (previous accessibility audit)
 - [`audit/documentation/DOCUMENTATION_AUDIT_2026-09-02.md`](audit/documentation/DOCUMENTATION_AUDIT_2026-09-02.md) — September 2, 2026 — full markdown/docs staleness audit (this report)
 - [`audit/security/SECURITY_AUDIT_2026-09-02.md`](audit/security/SECURITY_AUDIT_2026-09-02.md) — September 2, 2026 (previous full security audit)
 - [`audit/a11y/A11Y_AUDIT_REPORT_2026-09-02.md`](audit/a11y/A11Y_AUDIT_REPORT_2026-09-02.md) — September 2, 2026
 - [`audit/test/TESTING_AUDIT_2026-09-02.md`](audit/test/TESTING_AUDIT_2026-09-02.md) — September 2, 2026
-- [`audit/i18n/I18N_AUDIT_2026-09-02.md`](audit/i18n/I18N_AUDIT_2026-09-02.md) — September 2, 2026
+- [`audit/i18n/I18N_AUDIT_2026-09-02.md`](audit/i18n/I18N_AUDIT_2026-09-02.md) — September 2, 2026 (earlier i18n audit)
 - [`audit/features/FEATURES_AUDIT_2026-09-02.md`](audit/features/FEATURES_AUDIT_2026-09-02.md) — September 2, 2026
 - [`audit/performance/PERFORMANCE_AUDIT_2026-09-02.md`](audit/performance/PERFORMANCE_AUDIT_2026-09-02.md) — September 2, 2026
 - [`audit/database/DATABASE_AUDIT_2026-09-02.md`](audit/database/DATABASE_AUDIT_2026-09-02.md) — September 2, 2026
