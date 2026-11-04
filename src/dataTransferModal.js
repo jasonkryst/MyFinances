@@ -4,7 +4,7 @@
 // owns all of #dataTransferModal's internal wiring, including the
 // relocated #exportJsonBtn/#importJsonBtn/#importJsonInput.
 
-import { t } from './i18n.js';
+import { t, getIntlLocale } from './i18n.js';
 
 export function initDataTransferModal(app) {
     const modal = document.getElementById('dataTransferModal');
@@ -164,7 +164,7 @@ export function requestImportModeChoice(parts) {
             resolve(true);
             return;
         }
-        summary.textContent = `Found: ${parts.join(', ')}. Replace your current data entirely, or merge debts only (income & strategy will still be restored; duplicate debt names are skipped)?`;
+        summary.textContent = `Found: ${new Intl.ListFormat(getIntlLocale(), { type: 'conjunction' }).format(parts)}. Replace your current data entirely, or merge debts only (income & strategy will still be restored; duplicate debt names are skipped)?`;
         choice.classList.remove('hidden');
 
         const cleanup = () => {
