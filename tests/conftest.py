@@ -37,7 +37,7 @@ def _diag_goto(self, url, **kw):
     try:
         return _orig_goto(self, url, **kw)
     except Exception:
-        print("DIAG goto failed; pending:", list(pending.values()), "log:", log[:80], flush=True)
+        print("DIAG goto failed; pending:", list(pending.values()), "log:", [l for l in log if "/src/" not in l][-40:], flush=True)
         raise
 
 
