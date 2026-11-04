@@ -1,0 +1,4437 @@
+{
+ "meta": {
+  "date": "2026-11-04",
+  "app_version": "7.0.0",
+  "stack": "http://localhost:32901/ (nginx + Node + Postgres, main @ 3d156a1)",
+  "tools": {
+   "axe-core": "4.14.0 (tags wcag2a, wcag2aa, wcag21a, wcag21aa), injected with bypass_csp",
+   "dom_audit": "tests/a11y/run_a11y_audit.py",
+   "custom": "throwaway Playwright driver: computed-style contrast, Tab walks, AX tree via CDP, viewport reflow, reduced-motion emulation"
+  }
+ },
+ "run_a11y_audit": {
+  "console_errors": [],
+  "pages": {
+   "health": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "Financial Health"
+     },
+     {
+      "level": 3,
+      "text": "Top Recommendations"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Health",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "accounts": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "🏦 Accounts"
+     },
+     {
+      "level": 3,
+      "text": "Net Worth"
+     },
+     {
+      "level": 3,
+      "text": "Add Account"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Accounts",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "income": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "💰 Income Sources"
+     },
+     {
+      "level": 3,
+      "text": "Add Income Source"
+     },
+     {
+      "level": 4,
+      "text": "One-time Bonuses & Deposits"
+     },
+     {
+      "level": 4,
+      "text": "📅 Estimated Income Summary"
+     },
+     {
+      "level": 4,
+      "text": "Income Trend"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Income",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "liabilities": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "💳 Liabilities"
+     },
+     {
+      "level": 2,
+      "text": "Your Debts"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Liabilities",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "recurring": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "🔁 Recurring Templates"
+     },
+     {
+      "level": 3,
+      "text": "Upcoming this month"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Recurring",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "savings": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "💰 Savings"
+     },
+     {
+      "level": 2,
+      "text": "Emergency Fund"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Savings",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "strategy": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "Payment Plan"
+     },
+     {
+      "level": 4,
+      "text": "📊 Strategy Comparison"
+     },
+     {
+      "level": 4,
+      "text": "🔧 What-If Simulator"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Plan",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "reports": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "📈 Reports"
+     },
+     {
+      "level": 3,
+      "text": "November 2026"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Reports",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "ledger": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "📒 Ledger"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Ledger",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "reconcile": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "🔄 Reconcile"
+     },
+     {
+      "level": 3,
+      "text": "History"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Reconcile",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   },
+   "retirement": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances"
+     },
+     {
+      "level": 2,
+      "text": "🏛️ Retirement"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [
+     {
+      "tag": "DIV",
+      "id": "spendingDrilldownModal",
+      "attr": "aria-labelledby",
+      "refId": "spendingDrilldownTitle"
+     },
+     {
+      "tag": "DIV",
+      "id": "acctBreakdownModal",
+      "attr": "aria-labelledby",
+      "refId": "acctBreakdownTitle"
+     }
+    ],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "A",
+      "class": "header-icon-btn",
+      "text": "❓",
+      "color": "rgba(255, 255, 255, 0.8)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     },
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 30.4,
+      "fontWeight": 700
+     },
+     {
+      "tag": "BUTTON",
+      "class": "page-button active",
+      "text": "Retirement",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(255, 255, 255, 0.15)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 13,
+      "fontWeight": 600
+     }
+    ]
+   }
+  },
+  "dark_mode_contrast": {
+   "health": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Health",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "accounts": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Accounts",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "income": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Income",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "liabilities": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Liabilities",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "recurring": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Recurring",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "savings": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Savings",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "strategy": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Plan",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "reports": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Reports",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "ledger": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Ledger",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "reconcile": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Reconcile",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ],
+   "retirement": [
+    {
+     "tag": "BUTTON",
+     "class": "page-button active",
+     "text": "Retirement",
+     "color": "rgb(255, 255, 255)",
+     "bg": "rgba(255, 255, 255, 0.15)",
+     "ratio": 1,
+     "threshold": 4.5,
+     "fontSize": 13,
+     "fontWeight": 600
+    }
+   ]
+  },
+  "modals": {
+   "update_balance": {
+    "update_balance_focus": {
+     "id": "updateBalanceInput",
+     "tag": "INPUT",
+     "modalHidden": false
+    },
+    "update_balance_after_escape": {
+     "modalHidden": true,
+     "activeId": ""
+    }
+   },
+   "reconcile": {
+    "open_focus": {
+     "id": "",
+     "modalHidden": true
+    },
+    "after_escape": {
+     "modalHidden": true
+    }
+   },
+   "amortization": {
+    "open_focus": {
+     "id": "closeAmortization",
+     "tag": "BUTTON",
+     "modalHidden": false
+    },
+    "after_escape": {
+     "modalHidden": true,
+     "activeId": ""
+    }
+   },
+   "tab_order_accounts": [
+    {
+     "tag": "BODY",
+     "id": "",
+     "text": "Skip to main content\n    \n    "
+    },
+    {
+     "tag": "A",
+     "id": "",
+     "text": "Skip to main content"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "commandPaletteBtn",
+     "text": ""
+    },
+    {
+     "tag": "BUTTON",
+     "id": "reportsCalendarShortcutBtn",
+     "text": ""
+    },
+    {
+     "tag": "A",
+     "id": "helpBtn",
+     "text": "❓"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuBtn",
+     "text": ""
+    },
+    {
+     "tag": "BUTTON",
+     "id": "",
+     "text": "Health"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "",
+     "text": "Accounts"
+    }
+   ]
+  },
+  "mobile": {
+   "tap_targets": [
+    {
+     "text": "⚙",
+     "id": "healthBudgetThresholdsBtn",
+     "w": 23,
+     "h": 40
+    },
+    {
+     "text": "▼ Show per-card breakdow",
+     "id": "healthCardUtilToggle",
+     "w": 255,
+     "h": 40
+    },
+    {
+     "text": "▼ Show projected transac",
+     "id": "healthSurplusTxToggle",
+     "w": 183,
+     "h": 40
+    }
+   ],
+   "nav_toggle_aria_expanded": {
+    "before": "false",
+    "after": "true"
+   },
+   "nav_menu_visible_after_open": true
+  },
+  "guide": {
+   "guide": {
+    "headings": [
+     {
+      "level": 1,
+      "text": "MyFinances Usage Guide"
+     },
+     {
+      "level": 2,
+      "text": "Table of Contents"
+     },
+     {
+      "level": 2,
+      "text": "Getting Started"
+     },
+     {
+      "level": 3,
+      "text": "What is MyFinances?"
+     },
+     {
+      "level": 3,
+      "text": "Key Features"
+     },
+     {
+      "level": 3,
+      "text": "Navigation Basics"
+     },
+     {
+      "level": 3,
+      "text": "Theme & Accessibility"
+     },
+     {
+      "level": 2,
+      "text": "Financial Health Dashboard"
+     },
+     {
+      "level": 3,
+      "text": "Health Metrics"
+     },
+     {
+      "level": 2,
+      "text": "Adding Debts"
+     },
+     {
+      "level": 3,
+      "text": "How to Add a Debt"
+     },
+     {
+      "level": 3,
+      "text": "Editing and Deleting"
+     },
+     {
+      "level": 3,
+      "text": "Filtering the Debt List"
+     },
+     {
+      "level": 3,
+      "text": "Payoff Analysis"
+     },
+     {
+      "level": 2,
+      "text": "Setting Up Accounts"
+     },
+     {
+      "level": 2,
+      "text": "Tracking Income"
+     },
+     {
+      "level": 3,
+      "text": "Income Summary"
+     },
+     {
+      "level": 3,
+      "text": "One-time Bonuses and Deposits"
+     },
+     {
+      "level": 2,
+      "text": "Managing Expenses"
+     },
+     {
+      "level": 3,
+      "text": "How to Add an Expense"
+     },
+     {
+      "level": 3,
+      "text": "Expense Fields"
+     },
+     {
+      "level": 2,
+      "text": "Recurring Transaction Templates"
+     },
+     {
+      "level": 3,
+      "text": "What Are Recurring Templates?"
+     },
+     {
+      "level": 3,
+      "text": "How to Add a Recurring Template"
+     },
+     {
+      "level": 3,
+      "text": "Template Configuration"
+     },
+     {
+      "level": 3,
+      "text": "Pausing and Skipping"
+     },
+     {
+      "level": 3,
+      "text": "Marking as Paid"
+     },
+     {
+      "level": 2,
+      "text": "Managing Savings"
+     },
+     {
+      "level": 3,
+      "text": "What Are Emergency Funds and Sinking Funds?"
+     },
+     {
+      "level": 3,
+      "text": "Emergency Fund"
+     },
+     {
+      "level": 4,
+      "text": "To Add or Edit an Emergency Fund"
+     },
+     {
+      "level": 3,
+      "text": "Sinking Funds (Goal-Based Savings)"
+     },
+     {
+      "level": 4,
+      "text": "To Add a Sinking Fund"
+     },
+     {
+      "level": 4,
+      "text": "Allocation Methods"
+     },
+     {
+      "level": 3,
+      "text": "Viewing Savings Impact"
+     },
+     {
+      "level": 2,
+      "text": "Creating a Payment Plan"
+     },
+     {
+      "level": 3,
+      "text": "Strategies"
+     },
+     {
+      "level": 3,
+      "text": "Results Areas"
+     },
+     {
+      "level": 2,
+      "text": "Viewing Reports"
+     },
+     {
+      "level": 3,
+      "text": "Calendar Tab"
+     },
+     {
+      "level": 3,
+      "text": "Income vs Expenses Tab"
+     },
+     {
+      "level": 3,
+      "text": "Money Flow Tab"
+     },
+     {
+      "level": 3,
+      "text": "What Changed (Variance Dashboard) Tab"
+     },
+     {
+      "level": 2,
+      "text": "Net Worth Tracking"
+     },
+     {
+      "level": 3,
+      "text": "What Is Captured in a Snapshot"
+     },
+     {
+      "level": 3,
+      "text": "How to Use the Net Worth Tab"
+     },
+     {
+      "level": 3,
+      "text": "Snapshot History Table Columns"
+     },
+     {
+      "level": 3,
+      "text": "Spending by Category"
+     },
+     {
+      "level": 2,
+      "text": "Cash Flow Forecast"
+     },
+     {
+      "level": 3,
+      "text": "How to Use the Forecast Tab"
+     },
+     {
+      "level": 3,
+      "text": "Summary Stats & Chart"
+     },
+     {
+      "level": 3,
+      "text": "Notable Months & Warnings"
+     },
+     {
+      "level": 2,
+      "text": "Viewing Transactions"
+     },
+     {
+      "level": 3,
+      "text": "Ledger Filters"
+     },
+     {
+      "level": 3,
+      "text": "Overriding Transaction Amounts"
+     },
+     {
+      "level": 3,
+      "text": "Marking Transactions Cleared"
+     },
+     {
+      "level": 2,
+      "text": "Account Reconciliation"
+     },
+     {
+      "level": 3,
+      "text": "How to Reconcile an Account"
+     },
+     {
+      "level": 3,
+      "text": "Reconciliation Mode"
+     },
+     {
+      "level": 3,
+      "text": "Reconciliations on the Ledger"
+     },
+     {
+      "level": 2,
+      "text": "Data Management"
+     },
+     {
+      "level": 3,
+      "text": "Exporting Data"
+     },
+     {
+      "level": 3,
+      "text": "Exporting the Ledger to CSV"
+     },
+     {
+      "level": 3,
+      "text": "Exporting Charts as PNG"
+     },
+     {
+      "level": 3,
+      "text": "Printing or Saving Pages as PDF"
+     },
+     {
+      "level": 3,
+      "text": "Summary Reports"
+     },
+     {
+      "level": 3,
+      "text": "Importing Data"
+     },
+     {
+      "level": 3,
+      "text": "Exporting Schedule to CSV"
+     },
+     {
+      "level": 3,
+      "text": "Clearing All Data"
+     },
+     {
+      "level": 2,
+      "text": "Retirement Accounts"
+     },
+     {
+      "level": 3,
+      "text": "Setting Up a Retirement Account"
+     },
+     {
+      "level": 3,
+      "text": "Logging Snapshots"
+     },
+     {
+      "level": 3,
+      "text": "Charts and Projection"
+     },
+     {
+      "level": 2,
+      "text": "Tips and Tricks"
+     }
+    ],
+    "orphaned_inputs": [],
+    "unnamed_interactive": [],
+    "images_no_alt": [],
+    "dangling_aria_refs": [],
+    "duplicate_ids": [],
+    "contrast_issues": [
+     {
+      "tag": "H1",
+      "class": null,
+      "text": "MyFinances Usage Guide",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 3,
+      "fontSize": 35.2,
+      "fontWeight": 700
+     },
+     {
+      "tag": "P",
+      "class": null,
+      "text": "Privacy-first personal finance tracking ",
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "ratio": 1,
+      "threshold": 4.5,
+      "fontSize": 16,
+      "fontWeight": 400
+     }
+    ]
+   }
+  },
+  "landmarks": {
+   "index": {
+    "lang": "en",
+    "hasMain": true,
+    "navCount": 1,
+    "h1Count": 1,
+    "title": "MyFinances - Track Your Money"
+   },
+   "guide": {
+    "lang": "en",
+    "hasMain": true,
+    "navCount": 1,
+    "h1Count": 1,
+    "title": "MyFinances Usage Guide"
+   }
+  }
+ },
+ "serverGate": {
+  "light": {
+   "focusOnOpen": {
+    "tag": "BUTTON",
+    "id": "serverUnreachableRetryBtn",
+    "cls": "btn btn-primary server-unreachable-retry",
+    "text": "Try again",
+    "inside": "serverUnreachableGate"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "contrast": [
+    {
+     "sel": "#serverUnreachableTitle",
+     "fg": "#ffffff",
+     "bg": "#2563eb→#1d4ed8",
+     "ratio": 5.17,
+     "required": 3,
+     "fontSize": 25.6,
+     "fontWeight": 700,
+     "text": "Can't reach your server"
+    },
+    {
+     "sel": "#serverUnreachableBody",
+     "fg": "#1e293b",
+     "bg": "#ffffff",
+     "ratio": 14.63,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 400,
+     "text": "MyFinances keeps your data on your PostgreSQL serv"
+    },
+    {
+     "sel": "#serverUnreachableRetryBtn",
+     "fg": "#ffffff",
+     "bg": "#2563eb",
+     "ratio": 5.17,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Try again"
+    }
+   ],
+   "focusStyleRetry": {
+    "id": "serverUnreachableRetryBtn",
+    "outlineStyle": "auto",
+    "outlineWidth": "1px",
+    "outlineColor": "rgb(16, 16, 16)",
+    "outlineOffset": "0px",
+    "boxShadow": "rgba(37, 99, 235, 0.28) 0px 6px 16px 0px",
+    "outlineVsAdjacent": 19.03
+   },
+   "tabForward": [
+    {
+     "tag": "BODY",
+     "id": "",
+     "cls": "",
+     "text": "Skip to main content\n    \n    \n        \n",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "",
+     "cls": "skip-link",
+     "text": "Skip to main content",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "commandPaletteBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "reportsCalendarShortcutBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "helpBtn",
+     "cls": "header-icon-btn",
+     "text": "❓",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    }
+   ],
+   "tabBackward": [
+    {
+     "tag": "INPUT",
+     "id": "incomeTrendYoYToggle",
+     "cls": "",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "SELECT",
+     "id": "incomeTrendRangeSelect",
+     "cls": "select-styled",
+     "text": "Trailing 12 months\n                     ",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "bonusFormToggle",
+     "cls": "bonus-form-toggle",
+     "text": "🎁 Add a one-time bonus / deposit\n      ",
+     "inside": null
+    }
+   ],
+   "visibleAfterEscape": true,
+   "statusAfterRetry": {
+    "text": "Still can't reach your server. Check your connection and try again.",
+    "role": "status",
+    "live": "polite"
+   },
+   "focusAfterRetry": {
+    "tag": "BUTTON",
+    "id": "serverUnreachableRetryBtn",
+    "cls": "btn btn-primary server-unreachable-retry",
+    "text": "Try again",
+    "inside": "serverUnreachableGate"
+   },
+   "statusContrast": {
+    "sel": "#serverUnreachableStatus",
+    "fg": "#64748b",
+    "bg": "#ffffff",
+    "ratio": 4.76,
+    "required": 4.5,
+    "fontSize": 14.4,
+    "fontWeight": 400,
+    "text": "Still can't reach your server. Check your connecti"
+   },
+   "spaceActivates": "Still can't reach your server. Check your connection and try again.",
+   "retryRect": {
+    "sel": "#serverUnreachableRetryBtn",
+    "w": 334,
+    "h": 48,
+    "visible": true
+   },
+   "axe": {
+    "violations": [],
+    "passes": 12,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 2,
+      "nodes": [
+       "#serverUnreachableTitle",
+       "#serverUnreachableBody"
+      ]
+     }
+    ]
+   },
+   "axeFull": {
+    "violations": [],
+    "passes": 24,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 8,
+      "nodes": [
+       "span[data-i18n-attr=\"aria-label:income.nameHelp\"]",
+       "span[data-i18n-attr=\"aria-label:income.amountHelp\"]",
+       "label[for=\"incomeWithholding\"] > .help-icon",
+       "label[for=\"incomeFirstDate\"] > .help-icon"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 19,
+      "nodes": [
+       ".header-hero > h1",
+       "span[data-i18n=\"nav.overview\"]",
+       "button[data-page=\"health\"]",
+       "button[data-page=\"accounts\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#helpBtn"
+      ]
+     }
+    ]
+   }
+  },
+  "dark": {
+   "focusOnOpen": {
+    "tag": "BUTTON",
+    "id": "serverUnreachableRetryBtn",
+    "cls": "btn btn-primary server-unreachable-retry",
+    "text": "Try again",
+    "inside": "serverUnreachableGate"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "contrast": [
+    {
+     "sel": "#serverUnreachableTitle",
+     "fg": "#ffffff",
+     "bg": "#111827→#1e293b",
+     "ratio": 14.63,
+     "required": 3,
+     "fontSize": 25.6,
+     "fontWeight": 700,
+     "text": "Can't reach your server"
+    },
+    {
+     "sel": "#serverUnreachableBody",
+     "fg": "#f1f5f9",
+     "bg": "#1e293b",
+     "ratio": 13.35,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 400,
+     "text": "MyFinances keeps your data on your PostgreSQL serv"
+    },
+    {
+     "sel": "#serverUnreachableRetryBtn",
+     "fg": "#f1f5f9",
+     "bg": "#334155",
+     "ratio": 9.45,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Try again"
+    }
+   ]
+  },
+  "w390": {
+   "reflow": {
+    "vw": 390,
+    "docScrollWidth": 390,
+    "overflowing": [],
+    "rootScrollable": false,
+    "rootOverflowY": "auto",
+    "rootRect": {
+     "w": 390,
+     "h": 700
+    }
+   },
+   "retryRect": {
+    "sel": "#serverUnreachableRetryBtn",
+    "w": 316,
+    "h": 48,
+    "visible": true
+   },
+   "motionRetry": {
+    "sel": "#serverUnreachableRetryBtn",
+    "transitionDuration": "1e-05s",
+    "animationDuration": "1e-05s",
+    "animationName": "none"
+   }
+  },
+  "w320": {
+   "reflow": {
+    "vw": 320,
+    "docScrollWidth": 320,
+    "overflowing": [],
+    "rootScrollable": false,
+    "rootOverflowY": "auto",
+    "rootRect": {
+     "w": 320,
+     "h": 700
+    }
+   },
+   "retryRect": {
+    "sel": "#serverUnreachableRetryBtn",
+    "w": 246,
+    "h": 48,
+    "visible": true
+   },
+   "motionRetry": {
+    "sel": "#serverUnreachableRetryBtn",
+    "transitionDuration": "1e-05s",
+    "animationDuration": "1e-05s",
+    "animationName": "none"
+   }
+  },
+  "es": {
+   "lang": "en",
+   "title": "No se puede conectar con tu servidor",
+   "retry": "Reintentar",
+   "status": "Sigue sin poder conectarse con tu servidor. Revisa tu conexión y vuelve a intentarlo."
+  },
+  "pl": {
+   "lang": "en",
+   "title": "Nie można połączyć się z serwerem",
+   "retry": "Spróbuj ponownie",
+   "status": "Nadal nie można połączyć się z serwerem. Sprawdź połączenie i spróbuj ponownie."
+  }
+ },
+ "syncBanner": {
+  "light_1280_en": {
+   "focusAfterShow": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "",
+    "text": "Skip to main content\n    \n    \n        \n",
+    "inside": null
+   },
+   "contrastText": {
+    "sel": ".sync-error-banner-text",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 13.92,
+    "fontWeight": 400,
+    "text": "Couldn't save your last change — check your connec"
+   },
+   "contrastDismiss": {
+    "sel": "#syncErrorBannerDismiss",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 19.2,
+    "fontWeight": 400,
+    "text": "×"
+   },
+   "dismissRect": {
+    "sel": "#syncErrorBannerDismiss",
+    "w": 19.2,
+    "h": 19.2,
+    "visible": true
+   },
+   "bannerRect": {
+    "sel": "#syncErrorBanner",
+    "w": 420,
+    "h": 61,
+    "visible": true
+   },
+   "attrs": {
+    "role": "alert",
+    "live": null,
+    "text": "Couldn't save your last change — check your connection. Reload to see what's saved.",
+    "dismissName": "Dismiss",
+    "lang": "en"
+   },
+   "tabsToReachDismiss": 15,
+   "focusStyleDismiss": {
+    "id": "syncErrorBannerDismiss",
+    "outlineStyle": "auto",
+    "outlineWidth": "1px",
+    "outlineColor": "rgb(16, 16, 16)",
+    "outlineOffset": "0px",
+    "boxShadow": "none",
+    "outlineVsAdjacent": 3.94
+   },
+   "visibleAfterEscape": true,
+   "visibleAfterEnter": false,
+   "focusAfterDismiss": {
+    "tag": "BUTTON",
+    "id": "syncErrorBannerDismiss",
+    "cls": "sync-error-banner-dismiss",
+    "text": "×",
+    "inside": "syncErrorBanner"
+   },
+   "axe": {
+    "violations": [],
+    "passes": 11,
+    "incomplete": [
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#syncErrorBannerDismiss"
+      ]
+     }
+    ]
+   }
+  },
+  "dark_1280_en": {
+   "focusAfterShow": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "dark-mode",
+    "text": "Skip to main content\n    \n    \n        \n",
+    "inside": null
+   },
+   "contrastText": {
+    "sel": ".sync-error-banner-text",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 13.92,
+    "fontWeight": 400,
+    "text": "Couldn't save your last change — check your connec"
+   },
+   "contrastDismiss": {
+    "sel": "#syncErrorBannerDismiss",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 19.2,
+    "fontWeight": 400,
+    "text": "×"
+   },
+   "dismissRect": {
+    "sel": "#syncErrorBannerDismiss",
+    "w": 19.2,
+    "h": 19.2,
+    "visible": true
+   },
+   "bannerRect": {
+    "sel": "#syncErrorBanner",
+    "w": 420,
+    "h": 61,
+    "visible": true
+   },
+   "attrs": {
+    "role": "alert",
+    "live": null,
+    "text": "Couldn't save your last change — check your connection. Reload to see what's saved.",
+    "dismissName": "Dismiss",
+    "lang": "en"
+   }
+  },
+  "light_390_en": {
+   "focusAfterShow": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "",
+    "text": "Skip to main content\n    \n    \n        \n",
+    "inside": null
+   },
+   "contrastText": {
+    "sel": ".sync-error-banner-text",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 13.92,
+    "fontWeight": 400,
+    "text": "Couldn't save your last change — check your connec"
+   },
+   "contrastDismiss": {
+    "sel": "#syncErrorBannerDismiss",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 19.2,
+    "fontWeight": 400,
+    "text": "×"
+   },
+   "dismissRect": {
+    "sel": "#syncErrorBannerDismiss",
+    "w": 19.2,
+    "h": 40,
+    "visible": true
+   },
+   "bannerRect": {
+    "sel": "#syncErrorBanner",
+    "w": 351,
+    "h": 62,
+    "visible": true
+   },
+   "attrs": {
+    "role": "alert",
+    "live": null,
+    "text": "Couldn't save your last change — check your connection. Reload to see what's saved.",
+    "dismissName": "Dismiss",
+    "lang": "en"
+   }
+  },
+  "light_320_en": {
+   "focusAfterShow": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "",
+    "text": "Skip to main content\n    \n    \n        \n",
+    "inside": null
+   },
+   "contrastText": {
+    "sel": ".sync-error-banner-text",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 13.92,
+    "fontWeight": 400,
+    "text": "Couldn't save your last change — check your connec"
+   },
+   "contrastDismiss": {
+    "sel": "#syncErrorBannerDismiss",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 19.2,
+    "fontWeight": 400,
+    "text": "×"
+   },
+   "dismissRect": {
+    "sel": "#syncErrorBannerDismiss",
+    "w": 19.2,
+    "h": 40,
+    "visible": true
+   },
+   "bannerRect": {
+    "sel": "#syncErrorBanner",
+    "w": 288,
+    "h": 80.5,
+    "visible": true
+   },
+   "attrs": {
+    "role": "alert",
+    "live": null,
+    "text": "Couldn't save your last change — check your connection. Reload to see what's saved.",
+    "dismissName": "Dismiss",
+    "lang": "en"
+   },
+   "reflow": {
+    "vw": 320,
+    "docScrollWidth": 320,
+    "overflowing": [],
+    "rootScrollable": false,
+    "rootOverflowY": "visible",
+    "rootRect": {
+     "w": 288,
+     "h": 80
+    }
+   }
+  },
+  "light_1280_es": {
+   "focusAfterShow": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "",
+    "text": "Saltar al contenido principal\n    \n    \n",
+    "inside": null
+   },
+   "contrastText": {
+    "sel": ".sync-error-banner-text",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 13.92,
+    "fontWeight": 400,
+    "text": "No se pudo guardar tu último cambio: revisa tu con"
+   },
+   "contrastDismiss": {
+    "sel": "#syncErrorBannerDismiss",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 19.2,
+    "fontWeight": 400,
+    "text": "×"
+   },
+   "dismissRect": {
+    "sel": "#syncErrorBannerDismiss",
+    "w": 19.2,
+    "h": 19.2,
+    "visible": true
+   },
+   "bannerRect": {
+    "sel": "#syncErrorBanner",
+    "w": 420,
+    "h": 61,
+    "visible": true
+   },
+   "attrs": {
+    "role": "alert",
+    "live": null,
+    "text": "No se pudo guardar tu último cambio: revisa tu conexión. Recarga para ver lo que está guardado.",
+    "dismissName": "Descartar",
+    "lang": "en"
+   }
+  },
+  "light_1280_pl": {
+   "focusAfterShow": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "",
+    "text": "Przejdź do głównej treści\n    \n    \n    ",
+    "inside": null
+   },
+   "contrastText": {
+    "sel": ".sync-error-banner-text",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 13.92,
+    "fontWeight": 400,
+    "text": "Nie udało się zapisać ostatniej zmiany — sprawdź p"
+   },
+   "contrastDismiss": {
+    "sel": "#syncErrorBannerDismiss",
+    "fg": "#ffffff",
+    "bg": "#dc2626",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 19.2,
+    "fontWeight": 400,
+    "text": "×"
+   },
+   "dismissRect": {
+    "sel": "#syncErrorBannerDismiss",
+    "w": 19.2,
+    "h": 19.2,
+    "visible": true
+   },
+   "bannerRect": {
+    "sel": "#syncErrorBanner",
+    "w": 420,
+    "h": 61,
+    "visible": true
+   },
+   "attrs": {
+    "role": "alert",
+    "live": null,
+    "text": "Nie udało się zapisać ostatniej zmiany — sprawdź połączenie. Odśwież stronę, aby zobaczyć zapisane dane.",
+    "dismissName": "Zamknij",
+    "lang": "en"
+   }
+  }
+ },
+ "migrationModal": {
+  "import_light": {
+   "focusOnOpen": {
+    "tag": "BUTTON",
+    "id": "pgMigrationTransferBtn",
+    "cls": "btn btn-success",
+    "text": "Transfer Data",
+    "inside": "pgMigrationModal"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "texts": {
+    "title": "Transfer Your Local Data",
+    "desc": "We found data saved locally in this browser. Transfer it to your PostgreSQL account now so you don't lose your financial history. If you choose not to import it, a JSON backup is downloaded first and the browser copy is then removed.",
+    "counts": "Found: 1 debt, 1 account."
+   },
+   "contrast": [
+    {
+     "sel": "#pgMigrationTitle",
+     "fg": "#1e293b",
+     "bg": "#ffffff",
+     "ratio": 14.63,
+     "required": 3,
+     "fontSize": 18.72,
+     "fontWeight": 700,
+     "text": "Transfer Your Local Data"
+    },
+    {
+     "sel": "#pgMigrationDescription",
+     "fg": "#64748b",
+     "bg": "#ffffff",
+     "ratio": 4.76,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 400,
+     "text": "We found data saved locally in this browser. Trans"
+    },
+    {
+     "sel": "#pgMigrationCounts",
+     "fg": "#64748b",
+     "bg": "#ffffff",
+     "ratio": 4.76,
+     "required": 4.5,
+     "fontSize": 12.48,
+     "fontWeight": 400,
+     "text": "Found: 1 debt, 1 account."
+    },
+    {
+     "sel": "#pgMigrationTransferBtn",
+     "fg": "#ffffff",
+     "bg": "#15803d",
+     "ratio": 5.02,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Transfer Data"
+    },
+    {
+     "sel": "#pgMigrationSkipBtn",
+     "fg": "#1f2937",
+     "bg": "#e2e8f0",
+     "ratio": 11.91,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Don't import — download a backup and remove"
+    }
+   ],
+   "focusStyle": {
+    "id": "pgMigrationTransferBtn",
+    "outlineStyle": "auto",
+    "outlineWidth": "1px",
+    "outlineColor": "rgb(16, 16, 16)",
+    "outlineOffset": "0px",
+    "boxShadow": "none",
+    "outlineVsAdjacent": 19.03
+   },
+   "tabForward": [
+    {
+     "tag": "BUTTON",
+     "id": "pgMigrationSkipBtn",
+     "cls": "btn btn-secondary",
+     "text": "Don't import — download a backup and rem",
+     "inside": "pgMigrationModal"
+    },
+    {
+     "tag": "BODY",
+     "id": "",
+     "cls": "",
+     "text": "Skip to main content\n    \n    \n        \n",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "",
+     "cls": "skip-link",
+     "text": "Skip to main content",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "commandPaletteBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "reportsCalendarShortcutBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "helpBtn",
+     "cls": "header-icon-btn",
+     "text": "❓",
+     "inside": null
+    }
+   ],
+   "axe": {
+    "violations": [],
+    "passes": 12,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 1,
+      "nodes": [
+       "#pgMigrationDescription"
+      ]
+     }
+    ]
+   },
+   "axeFull": {
+    "violations": [],
+    "passes": 24,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 8,
+      "nodes": [
+       "span[data-i18n-attr=\"aria-label:income.nameHelp\"]",
+       "span[data-i18n-attr=\"aria-label:income.amountHelp\"]",
+       "label[for=\"incomeWithholding\"] > .help-icon",
+       "label[for=\"incomeFirstDate\"] > .help-icon"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 18,
+      "nodes": [
+       ".header-hero > h1",
+       "span[data-i18n=\"nav.overview\"]",
+       "button[data-page=\"health\"]",
+       "button[data-page=\"accounts\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#helpBtn"
+      ]
+     }
+    ]
+   },
+   "hiddenAfterEscape": true,
+   "focusAfterEscape": {
+    "tag": "A",
+    "id": "helpBtn",
+    "cls": "header-icon-btn",
+    "text": "❓",
+    "inside": null
+   }
+  },
+  "import_dark": {
+   "focusOnOpen": {
+    "tag": "BUTTON",
+    "id": "pgMigrationTransferBtn",
+    "cls": "btn btn-success",
+    "text": "Transfer Data",
+    "inside": "pgMigrationModal"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "texts": {
+    "title": "Transfer Your Local Data",
+    "desc": "We found data saved locally in this browser. Transfer it to your PostgreSQL account now so you don't lose your financial history. If you choose not to import it, a JSON backup is downloaded first and the browser copy is then removed.",
+    "counts": "Found: 1 debt, 1 account."
+   },
+   "contrast": [
+    {
+     "sel": "#pgMigrationTitle",
+     "fg": "#f1f5f9",
+     "bg": "#1e293b",
+     "ratio": 13.35,
+     "required": 3,
+     "fontSize": 18.72,
+     "fontWeight": 700,
+     "text": "Transfer Your Local Data"
+    },
+    {
+     "sel": "#pgMigrationDescription",
+     "fg": "#94a3b8",
+     "bg": "#1e293b",
+     "ratio": 5.71,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 400,
+     "text": "We found data saved locally in this browser. Trans"
+    },
+    {
+     "sel": "#pgMigrationCounts",
+     "fg": "#94a3b8",
+     "bg": "#1e293b",
+     "ratio": 5.71,
+     "required": 4.5,
+     "fontSize": 12.48,
+     "fontWeight": 400,
+     "text": "Found: 1 debt, 1 account."
+    },
+    {
+     "sel": "#pgMigrationTransferBtn",
+     "fg": "#f1f5f9",
+     "bg": "#334155",
+     "ratio": 9.45,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Transfer Data"
+    },
+    {
+     "sel": "#pgMigrationSkipBtn",
+     "fg": "#e2e8f0",
+     "bg": "#334155",
+     "ratio": 8.4,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Don't import — download a backup and remove"
+    }
+   ]
+  },
+  "cleanup_light": {
+   "focusOnOpen": {
+    "tag": "BUTTON",
+    "id": "pgLegacyDownloadBtn",
+    "cls": "btn btn-primary",
+    "text": "Download as JSON backup",
+    "inside": "pgMigrationModal"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "texts": {
+    "title": "Old Browser Data Found",
+    "desc": "This browser still holds data from the old browser-only mode, but your server already has data, so it will not be imported. Download a JSON backup or remove it from this browser.",
+    "counts": ""
+   },
+   "contrast": [
+    {
+     "sel": "#pgMigrationTitle",
+     "fg": "#1e293b",
+     "bg": "#ffffff",
+     "ratio": 14.63,
+     "required": 3,
+     "fontSize": 18.72,
+     "fontWeight": 700,
+     "text": "Old Browser Data Found"
+    },
+    {
+     "sel": "#pgMigrationDescription",
+     "fg": "#64748b",
+     "bg": "#ffffff",
+     "ratio": 4.76,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 400,
+     "text": "This browser still holds data from the old browser"
+    },
+    {
+     "sel": "#pgMigrationCounts",
+     "fg": "#64748b",
+     "bg": "#ffffff",
+     "ratio": 4.76,
+     "required": 4.5,
+     "fontSize": 12.48,
+     "fontWeight": 400,
+     "text": ""
+    },
+    {
+     "sel": "#pgLegacyDownloadBtn",
+     "fg": "#ffffff",
+     "bg": "#2563eb",
+     "ratio": 5.17,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Download as JSON backup"
+    },
+    {
+     "sel": "#pgLegacyRemoveBtn",
+     "fg": "#1f2937",
+     "bg": "#e2e8f0",
+     "ratio": 11.91,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Remove it"
+    }
+   ],
+   "focusStyle": {
+    "id": "pgLegacyDownloadBtn",
+    "outlineStyle": "auto",
+    "outlineWidth": "1px",
+    "outlineColor": "rgb(16, 16, 16)",
+    "outlineOffset": "0px",
+    "boxShadow": "none",
+    "outlineVsAdjacent": 19.03
+   },
+   "tabForward": [
+    {
+     "tag": "BUTTON",
+     "id": "pgLegacyRemoveBtn",
+     "cls": "btn btn-secondary",
+     "text": "Remove it",
+     "inside": "pgMigrationModal"
+    },
+    {
+     "tag": "BODY",
+     "id": "",
+     "cls": "",
+     "text": "Skip to main content\n    \n    \n        \n",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "",
+     "cls": "skip-link",
+     "text": "Skip to main content",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "commandPaletteBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "reportsCalendarShortcutBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "helpBtn",
+     "cls": "header-icon-btn",
+     "text": "❓",
+     "inside": null
+    }
+   ],
+   "axe": {
+    "violations": [],
+    "passes": 12,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 1,
+      "nodes": [
+       "#pgMigrationDescription"
+      ]
+     }
+    ]
+   },
+   "axeFull": {
+    "violations": [],
+    "passes": 24,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 8,
+      "nodes": [
+       "span[data-i18n-attr=\"aria-label:income.nameHelp\"]",
+       "span[data-i18n-attr=\"aria-label:income.amountHelp\"]",
+       "label[for=\"incomeWithholding\"] > .help-icon",
+       "label[for=\"incomeFirstDate\"] > .help-icon"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 18,
+      "nodes": [
+       ".header-hero > h1",
+       "span[data-i18n=\"nav.overview\"]",
+       "button[data-page=\"health\"]",
+       "button[data-page=\"accounts\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#helpBtn"
+      ]
+     }
+    ]
+   },
+   "hiddenAfterEscape": true,
+   "focusAfterEscape": {
+    "tag": "A",
+    "id": "helpBtn",
+    "cls": "header-icon-btn",
+    "text": "❓",
+    "inside": null
+   }
+  },
+  "cleanup_dark": {
+   "focusOnOpen": {
+    "tag": "BUTTON",
+    "id": "pgLegacyDownloadBtn",
+    "cls": "btn btn-primary",
+    "text": "Download as JSON backup",
+    "inside": "pgMigrationModal"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "texts": {
+    "title": "Old Browser Data Found",
+    "desc": "This browser still holds data from the old browser-only mode, but your server already has data, so it will not be imported. Download a JSON backup or remove it from this browser.",
+    "counts": ""
+   },
+   "contrast": [
+    {
+     "sel": "#pgMigrationTitle",
+     "fg": "#f1f5f9",
+     "bg": "#1e293b",
+     "ratio": 13.35,
+     "required": 3,
+     "fontSize": 18.72,
+     "fontWeight": 700,
+     "text": "Old Browser Data Found"
+    },
+    {
+     "sel": "#pgMigrationDescription",
+     "fg": "#94a3b8",
+     "bg": "#1e293b",
+     "ratio": 5.71,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 400,
+     "text": "This browser still holds data from the old browser"
+    },
+    {
+     "sel": "#pgMigrationCounts",
+     "fg": "#94a3b8",
+     "bg": "#1e293b",
+     "ratio": 5.71,
+     "required": 4.5,
+     "fontSize": 12.48,
+     "fontWeight": 400,
+     "text": ""
+    },
+    {
+     "sel": "#pgLegacyDownloadBtn",
+     "fg": "#f1f5f9",
+     "bg": "#334155",
+     "ratio": 9.45,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Download as JSON backup"
+    },
+    {
+     "sel": "#pgLegacyRemoveBtn",
+     "fg": "#e2e8f0",
+     "bg": "#334155",
+     "ratio": 8.4,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Remove it"
+    }
+   ]
+  },
+  "failed": {
+   "text": "Transfer failed. Check your connection and try again.",
+   "role": "alert",
+   "live": "polite",
+   "describedBy": null,
+   "bannerVisible": true,
+   "focus": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "",
+    "text": "Skip to main content\n    \n    \n        \n",
+    "inside": null
+   },
+   "contrast": {
+    "sel": "#pgMigrationError",
+    "fg": "#dc2626",
+    "bg": "#ffffff",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 14,
+    "fontWeight": 400,
+    "text": "Transfer failed. Check your connection and try aga"
+   },
+   "transferRect": {
+    "sel": "#pgMigrationTransferBtn",
+    "w": 115,
+    "h": 62,
+    "visible": true
+   }
+  },
+  "failed_dark_contrast": {
+   "sel": "#pgMigrationError",
+   "fg": "#dc2626",
+   "bg": "#1e293b",
+   "ratio": 3.03,
+   "required": 4.5,
+   "fontSize": 14,
+   "fontWeight": 400,
+   "text": "Transfer failed. Check your connection and try aga"
+  },
+  "w390": {
+   "reflow": {
+    "vw": 390,
+    "docScrollWidth": 390,
+    "overflowing": [],
+    "rootScrollable": false,
+    "rootOverflowY": "visible",
+    "rootRect": {
+     "w": 390,
+     "h": 800
+    }
+   },
+   "rects": [
+    {
+     "sel": "#pgMigrationTransferBtn",
+     "w": 88.8,
+     "h": 54,
+     "visible": true
+    },
+    {
+     "sel": "#pgMigrationSkipBtn",
+     "w": 212,
+     "h": 54,
+     "visible": true
+    }
+   ]
+  },
+  "w320": {
+   "reflow": {
+    "vw": 320,
+    "docScrollWidth": 320,
+    "overflowing": [],
+    "rootScrollable": false,
+    "rootOverflowY": "visible",
+    "rootRect": {
+     "w": 320,
+     "h": 800
+    }
+   },
+   "rects": [
+    {
+     "sel": "#pgMigrationTransferBtn",
+     "w": 88.8,
+     "h": 86,
+     "visible": true
+    },
+    {
+     "sel": "#pgMigrationSkipBtn",
+     "w": 147.6,
+     "h": 86,
+     "visible": true
+    }
+   ]
+  },
+  "es": {
+   "lang": "en",
+   "title": "Transfiere tus datos locales",
+   "transfer": "Transferir datos",
+   "skip": "No importar: descargar copia y eliminar",
+   "counts": "Encontrado: 1 deuda, 1 cuenta."
+  },
+  "pl": {
+   "lang": "en",
+   "title": "Przenieś swoje dane lokalne",
+   "transfer": "Przenieś dane",
+   "skip": "Nie importuj: pobierz kopię i usuń",
+   "counts": "Znaleziono: Długi: 1, Konta: 1."
+  }
+ },
+ "loginGate": {
+  "light": {
+   "focusOnOpen": {
+    "tag": "INPUT",
+    "id": "loginGateEmail",
+    "cls": "form-control",
+    "text": "",
+    "inside": "loginGate"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "contrast": [
+    {
+     "sel": "#loginGateTitle",
+     "fg": "#ffffff",
+     "bg": "#2563eb→#1d4ed8",
+     "ratio": 5.17,
+     "required": 3,
+     "fontSize": 25.6,
+     "fontWeight": 700,
+     "text": "MyFinances"
+    },
+    {
+     "sel": "#loginGateSubtitle",
+     "fg": "#64748b",
+     "bg": "#ffffff",
+     "ratio": 4.76,
+     "required": 4.5,
+     "fontSize": 15.2,
+     "fontWeight": 400,
+     "text": "Sign in to your account"
+    },
+    {
+     "sel": "label[for=loginGateEmail]",
+     "fg": "#1e293b",
+     "bg": "#ffffff",
+     "ratio": 14.63,
+     "required": 4.5,
+     "fontSize": 13.6,
+     "fontWeight": 600,
+     "text": "Email"
+    },
+    {
+     "sel": "#loginGateSubmit",
+     "fg": "#ffffff",
+     "bg": "#2563eb",
+     "ratio": 5.17,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Sign In"
+    },
+    {
+     "sel": "#loginGateForgotBtn",
+     "fg": "#2563eb",
+     "bg": "#ffffff",
+     "ratio": 5.17,
+     "required": 4.5,
+     "fontSize": 14,
+     "fontWeight": 500,
+     "text": "Forgot password?"
+    }
+   ],
+   "focusStyleEmail": {
+    "id": "loginGateEmail",
+    "outlineStyle": "solid",
+    "outlineWidth": "2px",
+    "outlineColor": "rgba(0, 0, 0, 0)",
+    "outlineOffset": "0px",
+    "boxShadow": "rgba(37, 99, 235, 0.18) 0px 0px 0px 4px",
+    "outlineVsAdjacent": 1
+   },
+   "tabForward": [
+    {
+     "tag": "INPUT",
+     "id": "loginGatePassword",
+     "cls": "form-control",
+     "text": "",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "loginGateSubmit",
+     "cls": "btn btn-primary login-gate-submit",
+     "text": "Sign In",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "loginGateForgotBtn",
+     "cls": "link-btn",
+     "text": "Forgot password?",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BODY",
+     "id": "",
+     "cls": "",
+     "text": "Skip to main content\n    \n    \n        \n",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "",
+     "cls": "skip-link",
+     "text": "Skip to main content",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "commandPaletteBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "reportsCalendarShortcutBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    }
+   ],
+   "visibleAfterEscape": true,
+   "errorAfterBadLogin": {
+    "text": "Invalid email or password.",
+    "role": "alert",
+    "live": "polite",
+    "pwInvalid": null,
+    "pwDescribedBy": null
+   },
+   "errorContrast": {
+    "sel": "#loginGateError",
+    "fg": "#dc2626",
+    "bg": "#ffffff",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 14,
+    "fontWeight": 400,
+    "text": "Invalid email or password."
+   },
+   "focusAfterError": {
+    "tag": "INPUT",
+    "id": "loginGatePassword",
+    "cls": "form-control",
+    "text": "",
+    "inside": "loginGate"
+   },
+   "forgotFocusStyle": {
+    "id": "loginGateForgotBtn",
+    "outlineStyle": "auto",
+    "outlineWidth": "1px",
+    "outlineColor": "rgb(16, 16, 16)",
+    "outlineOffset": "0px",
+    "boxShadow": "none",
+    "outlineVsAdjacent": 19.03
+   },
+   "axe": {
+    "violations": [],
+    "passes": 15,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 1,
+      "nodes": [
+       "#loginGateTitle"
+      ]
+     }
+    ]
+   },
+   "axeFull": {
+    "violations": [],
+    "passes": 25,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 8,
+      "nodes": [
+       "span[data-i18n-attr=\"aria-label:income.nameHelp\"]",
+       "span[data-i18n-attr=\"aria-label:income.amountHelp\"]",
+       "label[for=\"incomeWithholding\"] > .help-icon",
+       "label[for=\"incomeFirstDate\"] > .help-icon"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 18,
+      "nodes": [
+       ".header-hero > h1",
+       "span[data-i18n=\"nav.overview\"]",
+       "button[data-page=\"health\"]",
+       "button[data-page=\"accounts\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#helpBtn"
+      ]
+     }
+    ]
+   }
+  },
+  "dark": {
+   "focusOnOpen": {
+    "tag": "INPUT",
+    "id": "loginGateEmail",
+    "cls": "form-control",
+    "text": "",
+    "inside": "loginGate"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "contrast": [
+    {
+     "sel": "#loginGateTitle",
+     "fg": "#ffffff",
+     "bg": "#111827→#1e293b",
+     "ratio": 14.63,
+     "required": 3,
+     "fontSize": 25.6,
+     "fontWeight": 700,
+     "text": "MyFinances"
+    },
+    {
+     "sel": "#loginGateSubtitle",
+     "fg": "#94a3b8",
+     "bg": "#1e293b",
+     "ratio": 5.71,
+     "required": 4.5,
+     "fontSize": 15.2,
+     "fontWeight": 400,
+     "text": "Sign in to your account"
+    },
+    {
+     "sel": "label[for=loginGateEmail]",
+     "fg": "#f1f5f9",
+     "bg": "#1e293b",
+     "ratio": 13.35,
+     "required": 4.5,
+     "fontSize": 13.6,
+     "fontWeight": 600,
+     "text": "Email"
+    },
+    {
+     "sel": "#loginGateSubmit",
+     "fg": "#f1f5f9",
+     "bg": "#334155",
+     "ratio": 9.45,
+     "required": 4.5,
+     "fontSize": 16,
+     "fontWeight": 600,
+     "text": "Sign In"
+    },
+    {
+     "sel": "#loginGateForgotBtn",
+     "fg": "#2563eb",
+     "bg": "#1e293b",
+     "ratio": 2.83,
+     "required": 4.5,
+     "fontSize": 14,
+     "fontWeight": 500,
+     "text": "Forgot password?"
+    }
+   ],
+   "errorContrast": {
+    "sel": "#loginGateError",
+    "fg": "#dc2626",
+    "bg": "#1e293b",
+    "ratio": 3.03,
+    "required": 4.5,
+    "fontSize": 14,
+    "fontWeight": 400,
+    "text": "Invalid email or password."
+   }
+  },
+  "setup": {
+   "subtitle": "Create your account",
+   "submit": "Create Account",
+   "confirmVisible": true,
+   "pwDescribedBy": "loginGatePasswordStrength loginGatePasswordStrengthHint",
+   "meter": [
+    {
+     "id": "loginGatePasswordStrength",
+     "text": "Password strength: Does not meet the rules",
+     "live": "polite",
+     "role": null
+    },
+    {
+     "id": "loginGatePasswordStrengthHint",
+     "text": "Password must be at least 15 characters.",
+     "live": null,
+     "role": null
+    }
+   ],
+   "tabForward": [
+    {
+     "tag": "INPUT",
+     "id": "loginGatePassword",
+     "cls": "form-control",
+     "text": "",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "INPUT",
+     "id": "loginGateConfirm",
+     "cls": "form-control",
+     "text": "",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "loginGateSubmit",
+     "cls": "btn btn-primary login-gate-submit",
+     "text": "Create Account",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "loginGateForgotBtn",
+     "cls": "link-btn",
+     "text": "Forgot password?",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BODY",
+     "id": "",
+     "cls": "",
+     "text": "Skip to main content\n    \n    \n        \n",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "",
+     "cls": "skip-link",
+     "text": "Skip to main content",
+     "inside": null
+    }
+   ],
+   "axe": {
+    "violations": [],
+    "passes": 16,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 1,
+      "nodes": [
+       "#loginGateTitle"
+      ]
+     }
+    ]
+   }
+  },
+  "midSession": {
+   "focusOnOpen": {
+    "tag": "INPUT",
+    "id": "loginGateEmail",
+    "cls": "form-control",
+    "text": "",
+    "inside": "loginGate"
+   },
+   "behind": {
+    "containerInert": false,
+    "containerAriaHidden": null,
+    "rootAriaModal": "true"
+   },
+   "tabForward": [
+    {
+     "tag": "INPUT",
+     "id": "loginGatePassword",
+     "cls": "form-control",
+     "text": "",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "loginGateSubmit",
+     "cls": "btn btn-primary login-gate-submit",
+     "text": "Sign In",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "loginGateForgotBtn",
+     "cls": "link-btn",
+     "text": "Forgot password?",
+     "inside": "loginGate"
+    },
+    {
+     "tag": "BODY",
+     "id": "",
+     "cls": "",
+     "text": "Skip to main content\n    \n    \n        \n",
+     "inside": null
+    },
+    {
+     "tag": "A",
+     "id": "",
+     "cls": "skip-link",
+     "text": "Skip to main content",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "commandPaletteBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "reportsCalendarShortcutBtn",
+     "cls": "header-icon-btn",
+     "text": "",
+     "inside": null
+    }
+   ],
+   "bannerVisible": false,
+   "focusAfterSignIn": {
+    "tag": "BODY",
+    "id": "",
+    "cls": "",
+    "text": "Skip to main content\n    \n    \n        \n",
+    "inside": null
+   }
+  },
+  "w390": {
+   "reflow": {
+    "vw": 390,
+    "docScrollWidth": 390,
+    "overflowing": [],
+    "rootScrollable": false,
+    "rootOverflowY": "auto",
+    "rootRect": {
+     "w": 390,
+     "h": 700
+    }
+   },
+   "rects": [
+    {
+     "sel": "#loginGateSubmit",
+     "w": 316,
+     "h": 48,
+     "visible": true
+    },
+    {
+     "sel": "#loginGateForgotBtn",
+     "w": 112.1,
+     "h": 40,
+     "visible": true
+    },
+    {
+     "sel": "#loginGateEmail",
+     "w": 316,
+     "h": 44,
+     "visible": true
+    }
+   ]
+  },
+  "w320": {
+   "reflow": {
+    "vw": 320,
+    "docScrollWidth": 320,
+    "overflowing": [],
+    "rootScrollable": false,
+    "rootOverflowY": "auto",
+    "rootRect": {
+     "w": 320,
+     "h": 700
+    }
+   },
+   "rects": [
+    {
+     "sel": "#loginGateSubmit",
+     "w": 246,
+     "h": 48,
+     "visible": true
+    },
+    {
+     "sel": "#loginGateForgotBtn",
+     "w": 112.1,
+     "h": 40,
+     "visible": true
+    },
+    {
+     "sel": "#loginGateEmail",
+     "w": 246,
+     "h": 44,
+     "visible": true
+    }
+   ]
+  },
+  "es": {
+   "lang": "en",
+   "subtitle": "Inicia sesión en tu cuenta",
+   "email": "Correo electrónico",
+   "submit": "Iniciar sesión",
+   "logoAria": "Logotipo de MyFinances"
+  },
+  "pl": {
+   "lang": "en",
+   "subtitle": "Zaloguj się na swoje konto",
+   "email": "E-mail",
+   "submit": "Zaloguj się",
+   "logoAria": "Logo MyFinances"
+  }
+ },
+ "settingsAndMenu": {
+  "light": {
+   "menuFocusAfterOpen": {
+    "tag": "BUTTON",
+    "id": "accountMenuBtn",
+    "cls": "header-icon-btn",
+    "text": "",
+    "inside": null
+   },
+   "logoutVisible": true,
+   "logoutContrast": {
+    "sel": "#accountMenuLogoutBtn",
+    "fg": "#dc2626",
+    "bg": "#ffffff",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 14.4,
+    "fontWeight": 400,
+    "text": "Sign Out"
+   },
+   "logoutRect": {
+    "sel": "#accountMenuLogoutBtn",
+    "w": 198,
+    "h": 34,
+    "visible": true
+   },
+   "emailHeader": {
+    "sel": "#accountMenuEmail",
+    "fg": "#6b7280",
+    "bg": "#ffffff",
+    "ratio": 4.83,
+    "required": 4.5,
+    "fontSize": 13.12,
+    "fontWeight": 500,
+    "text": ""
+   },
+   "afterArrowDown": {
+    "tag": "BUTTON",
+    "id": "accountMenuBtn",
+    "cls": "header-icon-btn",
+    "text": "",
+    "inside": null
+   },
+   "tabThroughMenu": [
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuWhatsNewBtn",
+     "cls": "account-menu-item",
+     "text": "What's New",
+     "inside": "accountMenuDropdown"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuCalendarFeedBtn",
+     "cls": "account-menu-item",
+     "text": "Calendar Feed",
+     "inside": "accountMenuDropdown"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuBackupBtn",
+     "cls": "account-menu-item",
+     "text": "Backup & Restore",
+     "inside": "accountMenuDropdown"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuSettingsBtn",
+     "cls": "account-menu-item",
+     "text": "Settings",
+     "inside": "accountMenuDropdown"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuShortcutsBtn",
+     "cls": "account-menu-item",
+     "text": "Keyboard Shortcuts",
+     "inside": "accountMenuDropdown"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "accountMenuLogoutBtn",
+     "cls": "account-menu-item account-menu-item--log",
+     "text": "Sign Out",
+     "inside": "accountMenuDropdown"
+    },
+    {
+     "tag": "BUTTON",
+     "id": "",
+     "cls": "page-button active",
+     "text": "Health",
+     "inside": null
+    },
+    {
+     "tag": "BUTTON",
+     "id": "",
+     "cls": "page-button",
+     "text": "Accounts",
+     "inside": null
+    }
+   ],
+   "logoutFocusStyle": {
+    "id": "accountMenuLogoutBtn",
+    "outlineStyle": "auto",
+    "outlineWidth": "1px",
+    "outlineColor": "rgb(16, 16, 16)",
+    "outlineOffset": "0px",
+    "boxShadow": "none",
+    "outlineVsAdjacent": 19.03
+   },
+   "afterEscape": {
+    "hidden": true,
+    "focus": {
+     "tag": "BUTTON",
+     "id": "accountMenuLogoutBtn",
+     "cls": "account-menu-item account-menu-item--log",
+     "text": "Sign Out",
+     "inside": "accountMenuDropdown"
+    }
+   },
+   "menuAxe": {
+    "violations": [],
+    "passes": 14,
+    "incomplete": []
+   },
+   "storageInfo": {
+    "sel": "#settingStorageInfo",
+    "fg": "#1e293b",
+    "bg": "#ffffff",
+    "ratio": 14.63,
+    "required": 4.5,
+    "fontSize": 16,
+    "fontWeight": 600,
+    "text": "Storage: PostgreSQL server"
+   },
+   "storageInfoSemantics": {
+    "tag": "P",
+    "role": null,
+    "labelFor": false,
+    "orphanLabelForOldSelect": false
+   },
+   "axeData": {
+    "violations": [],
+    "passes": 15,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 2,
+      "nodes": [
+       "p[data-i18n=\"settings.backup.help\"]",
+       "p[data-i18n=\"settings.dangerHelp\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#settingsModalCloseBtn"
+      ]
+     }
+    ]
+   },
+   "security": {
+    "inputs": [
+     {
+      "id": "settingsSecurityUsername",
+      "type": "email",
+      "visible": false,
+      "autocomplete": "username",
+      "label": null,
+      "describedBy": null
+     },
+     {
+      "id": "settingsCurrentPassword",
+      "type": "password",
+      "visible": true,
+      "autocomplete": "current-password",
+      "label": "Current password",
+      "describedBy": null
+     },
+     {
+      "id": "settingsNewPassword",
+      "type": "password",
+      "visible": true,
+      "autocomplete": "new-password",
+      "label": "New password",
+      "describedBy": "settingsNewPasswordStrength settingsNewPasswordStrengthHint"
+     },
+     {
+      "id": "settingsConfirmPassword",
+      "type": "password",
+      "visible": true,
+      "autocomplete": "new-password",
+      "label": "Confirm new password",
+      "describedBy": null
+     }
+    ],
+    "buttons": [
+     {
+      "id": "settingsChangePasswordBtn",
+      "text": "Change password",
+      "visible": true
+     }
+    ],
+    "live": [
+     {
+      "id": "settingsNewPasswordStrength",
+      "role": null,
+      "live": "polite"
+     },
+     {
+      "id": "settingsChangePasswordError",
+      "role": "alert",
+      "live": "polite"
+     },
+     {
+      "id": "settingsChangePasswordStatus",
+      "role": "status",
+      "live": "polite"
+     }
+    ],
+    "hidden": false
+   },
+   "axeSecurity": {
+    "violations": [],
+    "passes": 18,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 1,
+      "nodes": [
+       "p[data-i18n=\"settings.security.help\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#settingsModalCloseBtn"
+      ]
+     }
+    ]
+   },
+   "securityIds": [
+    "settingsCurrentPassword",
+    "settingsNewPassword",
+    "settingsConfirmPassword"
+   ],
+   "securityButtons": [
+    "settingsChangePasswordBtn"
+   ],
+   "securityAfterMismatch": [
+    {
+     "id": "settingsNewPasswordStrength",
+     "cls": "pw-meter-label",
+     "text": "Password strength: Strong",
+     "role": null,
+     "live": "polite"
+    },
+    {
+     "id": "settingsNewPasswordStrengthHint",
+     "cls": "pw-meter-hint",
+     "text": "This is a strong password.",
+     "role": null,
+     "live": null
+    },
+    {
+     "id": "",
+     "cls": "modal-helper-text",
+     "text": "After the change, your other devices are signed out and any calendar feed link must be regenerated.",
+     "role": null,
+     "live": null
+    },
+    {
+     "id": "settingsChangePasswordError",
+     "cls": "login-gate-error",
+     "text": "Passwords do not match.",
+     "role": "alert",
+     "live": "polite"
+    }
+   ],
+   "securityFocusAfter": {
+    "tag": "INPUT",
+    "id": "settingsNewPassword",
+    "cls": "form-control",
+    "text": "",
+    "inside": "settingsModal"
+   },
+   "securityErrContrast": {
+    "sel": "settingsNewPasswordStrength",
+    "fg": "#1e293b",
+    "bg": "#ffffff",
+    "ratio": 14.63,
+    "required": 4.5,
+    "fontSize": 14,
+    "fontWeight": 600,
+    "text": "Password strength: Strong"
+   }
+  },
+  "dark": {
+   "menuFocusAfterOpen": {
+    "tag": "BUTTON",
+    "id": "accountMenuBtn",
+    "cls": "header-icon-btn",
+    "text": "",
+    "inside": null
+   },
+   "logoutVisible": true,
+   "logoutContrast": {
+    "sel": "#accountMenuLogoutBtn",
+    "fg": "#f87171",
+    "bg": "#1e293b",
+    "ratio": 5.29,
+    "required": 4.5,
+    "fontSize": 14.4,
+    "fontWeight": 400,
+    "text": "Sign Out"
+   },
+   "logoutRect": {
+    "sel": "#accountMenuLogoutBtn",
+    "w": 198,
+    "h": 34,
+    "visible": true
+   },
+   "emailHeader": {
+    "sel": "#accountMenuEmail",
+    "fg": "#94a3b8",
+    "bg": "#1e293b",
+    "ratio": 5.71,
+    "required": 4.5,
+    "fontSize": 13.12,
+    "fontWeight": 500,
+    "text": ""
+   },
+   "storageInfo": {
+    "sel": "#settingStorageInfo",
+    "fg": "#f1f5f9",
+    "bg": "#1e293b",
+    "ratio": 13.35,
+    "required": 4.5,
+    "fontSize": 16,
+    "fontWeight": 600,
+    "text": "Storage: PostgreSQL server"
+   },
+   "storageInfoSemantics": {
+    "tag": "P",
+    "role": null,
+    "labelFor": false,
+    "orphanLabelForOldSelect": false
+   },
+   "security": {
+    "inputs": [
+     {
+      "id": "settingsSecurityUsername",
+      "type": "email",
+      "visible": false,
+      "autocomplete": "username",
+      "label": null,
+      "describedBy": null
+     },
+     {
+      "id": "settingsCurrentPassword",
+      "type": "password",
+      "visible": true,
+      "autocomplete": "current-password",
+      "label": "Current password",
+      "describedBy": null
+     },
+     {
+      "id": "settingsNewPassword",
+      "type": "password",
+      "visible": true,
+      "autocomplete": "new-password",
+      "label": "New password",
+      "describedBy": "settingsNewPasswordStrength settingsNewPasswordStrengthHint"
+     },
+     {
+      "id": "settingsConfirmPassword",
+      "type": "password",
+      "visible": true,
+      "autocomplete": "new-password",
+      "label": "Confirm new password",
+      "describedBy": null
+     }
+    ],
+    "buttons": [
+     {
+      "id": "settingsChangePasswordBtn",
+      "text": "Change password",
+      "visible": true
+     }
+    ],
+    "live": [
+     {
+      "id": "settingsNewPasswordStrength",
+      "role": null,
+      "live": "polite"
+     },
+     {
+      "id": "settingsChangePasswordError",
+      "role": "alert",
+      "live": "polite"
+     },
+     {
+      "id": "settingsChangePasswordStatus",
+      "role": "status",
+      "live": "polite"
+     }
+    ],
+    "hidden": false
+   }
+  },
+  "es": {
+   "lang": "en",
+   "logout": "Sign Out",
+   "settings": "Settings",
+   "menuBtnAria": "Account menu",
+   "storageInfo": "Almacenamiento: servidor PostgreSQL",
+   "dismiss": "Descartar"
+  },
+  "pl": {
+   "lang": "en",
+   "logout": "Sign Out",
+   "settings": "Settings",
+   "menuBtnAria": "Account menu",
+   "storageInfo": "Przechowywanie: serwer PostgreSQL",
+   "dismiss": "Zamknij"
+  },
+  "w390": {
+   "logoutRect": {
+    "sel": "#accountMenuLogoutBtn",
+    "w": 198,
+    "h": 40,
+    "visible": true
+   },
+   "menuBtn": {
+    "sel": "#accountMenuBtn",
+    "w": 44,
+    "h": 44,
+    "visible": true
+   }
+  }
+ },
+ "pages": {
+  "light": {
+   "health": {
+    "violations": [],
+    "passes": 19,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 4,
+      "nodes": [
+       ".health-metric-card[data-card-nav=\"liabilities\"]:nth-child(1) > .health-gauge-wrap > .health-gauge-center > .health-gauge-value",
+       ".health-metric-card[data-card-nav=\"liabilities\"]:nth-child(1) > .health-gauge-wrap > .health-gauge-center > .health-gauge-label",
+       ".health-metric-card[data-card-nav=\"savings\"]:nth-child(2) > .health-gauge-wrap > .health-gauge-center > .health-gauge-value",
+       ".health-metric-card[data-card-nav=\"savings\"]:nth-child(2) > .health-gauge-wrap > .health-gauge-center > .health-gauge-label"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#healthBudgetThresholdsBtn"
+      ]
+     }
+    ]
+   },
+   "health__header": null,
+   "accounts": {
+    "violations": [
+     {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "tags": [
+       "wcag2aa",
+       "wcag143"
+      ],
+      "nodes": [
+       {
+        "target": ".acct-card:nth-child(1) > .acct-card-header > .acct-balances > .acct-balance-item:nth-child(2) > .acct-balance--pos.acct-balance-value",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #059669, background color: #ffffff, font size: 12.0pt (16px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": ".acct-card:nth-child(2) > .acct-card-header > .acct-balances > .acct-balance-item:nth-child(2) > .acct-balance--pos.acct-balance-value",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #059669, background color: #ffffff, font size: 12.0pt (16px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": ".acct-card:nth-child(3) > .acct-card-header > .acct-balances > .acct-balance-item:nth-child(2) > .acct-balance--pos.acct-balance-value",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #059669, background color: #ffffff, font size: 12.0pt (16px), font weight: bold). Expected contrast ratio of 4.5:1"
+       }
+      ],
+      "count": 3
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "help": "Elements must have their visible text as part of their accessible name",
+      "tags": [
+       "wcag21a",
+       "wcag253"
+      ],
+      "nodes": [
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6558\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6559\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6560\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6561\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       }
+      ],
+      "count": 4
+     }
+    ],
+    "passes": 14,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 3,
+      "nodes": [
+       "label[for=\"accountStartingBalance\"] > .help-icon",
+       "label[for=\"accountInterestRate\"] > .help-icon",
+       "span[data-i18n-attr=\"aria-label:accounts.notesHelp\"]"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 8,
+      "nodes": [
+       ".nw-widget-head > h3",
+       ".nw-widget-date",
+       ".nw-widget-main",
+       ".nw-widget-change"
+      ]
+     }
+    ]
+   },
+   "accounts__header": null,
+   "income": {
+    "violations": [
+     {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "tags": [
+       "wcag2aa",
+       "wcag143"
+      ],
+      "nodes": [
+       {
+        "target": "#income-card-1765 > .income-card-info > .income-card-amount",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.6 (foreground color: #059669, background color: #f8fafc, font size: 13.2pt (17.6px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": "#income-card-1766 > .income-card-info > .income-card-amount",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.6 (foreground color: #059669, background color: #f8fafc, font size: 13.2pt (17.6px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": ".bonus-card-amount",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 12.0pt (16px), font weight: bold). Expected contrast ratio of 4.5:1"
+       }
+      ],
+      "count": 3
+     }
+    ],
+    "passes": 16,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 8,
+      "nodes": [
+       "span[data-i18n-attr=\"aria-label:income.nameHelp\"]",
+       "span[data-i18n-attr=\"aria-label:income.amountHelp\"]",
+       "label[for=\"incomeWithholding\"] > .help-icon",
+       "label[for=\"incomeFirstDate\"] > .help-icon"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 10,
+      "nodes": [
+       ".bonus-form-chevron",
+       "#incomeSummary > h4",
+       ".income-summary-item:nth-child(1) > .income-summary-label",
+       ".income-summary-item:nth-child(1) > .income-summary-value"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 2,
+      "nodes": [
+       "button[data-bonus-year-nav=\"prev\"]",
+       "button[data-bonus-year-nav=\"next\"]"
+      ]
+     }
+    ]
+   },
+   "income__header": null,
+   "liabilities": {
+    "violations": [
+     {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "help": "Elements must have their visible text as part of their accessible name",
+      "tags": [
+       "wcag21a",
+       "wcag253"
+      ],
+      "nodes": [
+       {
+        "target": ".break-even-accelerate-btn",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       }
+      ],
+      "count": 1
+     }
+    ],
+    "passes": 15,
+    "incomplete": []
+   },
+   "liabilities__header": null,
+   "recurring": {
+    "violations": [
+     {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "tags": [
+       "wcag2aa",
+       "wcag143"
+      ],
+      "nodes": [
+       {
+        "target": ".recurring-amount--pos",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #059669, background color: #ffffff, font size: 12.6pt (16.8px), font weight: bold). Expected contrast ratio of 4.5:1"
+       }
+      ],
+      "count": 1
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "help": "Elements must have their visible text as part of their accessible name",
+      "tags": [
+       "wcag21a",
+       "wcag253"
+      ],
+      "nodes": [
+       {
+        "target": "#recurringOverdueFilterBtn",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       }
+      ],
+      "count": 1
+     }
+    ],
+    "passes": 15,
+    "incomplete": []
+   },
+   "recurring__header": null,
+   "savings": {
+    "violations": [],
+    "passes": 10,
+    "incomplete": []
+   },
+   "savings__header": null,
+   "strategy": {
+    "violations": [
+     {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "tags": [
+       "wcag2aa",
+       "wcag143"
+      ],
+      "nodes": [
+       {
+        "target": ".strategy-net-breakdown",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #2f7e66, background color: #d1fae5, font size: 9.4pt (12.48px), font weight: normal). Expected contrast ratio of 4.5:1"
+       }
+      ],
+      "count": 1
+     }
+    ],
+    "passes": 22,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 2,
+      "nodes": [
+       "#targetDateToggle > .target-date-chevron",
+       "#planHistoryToggle > .target-date-chevron"
+      ]
+     }
+    ]
+   },
+   "strategy__header": null,
+   "reports": {
+    "violations": [
+     {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "tags": [
+       "wcag2aa",
+       "wcag143"
+      ],
+      "nodes": [
+       {
+        "target": "span[data-i18n=\"reports.groupTrends\"]",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.33 (foreground color: #87a9f4, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": "span[data-i18n=\"reports.groupPlanning\"]",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.33 (foreground color: #87a9f4, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": "span[data-i18n=\"reports.groupPrint\"]",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.33 (foreground color: #87a9f4, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+       }
+      ],
+      "count": 3
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "help": "Elements must have their visible text as part of their accessible name",
+      "tags": [
+       "wcag21a",
+       "wcag253"
+      ],
+      "nodes": [
+       {
+        "target": "div[data-cal-day=\"1\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"5\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"6\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"10\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"15\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"20\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       }
+      ],
+      "count": 6
+     }
+    ],
+    "passes": 17,
+    "incomplete": [
+     {
+      "id": "label-content-name-mismatch",
+      "count": 2,
+      "nodes": [
+       "#rptPrevMonth",
+       "#rptNextMonth"
+      ]
+     }
+    ]
+   },
+   "reports__header": null,
+   "ledger": {
+    "violations": [],
+    "passes": 15,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 6,
+      "nodes": [
+       "#ledgerColsSelect",
+       "th[data-key=\"date\"] > .sort-icon",
+       "th[data-key=\"account\"] > .sort-icon",
+       "th[data-key=\"name\"] > .sort-icon"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 4,
+      "nodes": [
+       "button[data-ledger-nav-type=\"income\"]",
+       "button[data-ledger-nav-id=\"2890\"]",
+       "tr:nth-child(4) > td[data-col=\"name\"] > button[data-ledger-nav-id=\"2892\"][data-ledger-nav-type=\"recurring\"][title=\"Go to recurring\"]",
+       "tr:nth-child(5) > td[data-col=\"name\"] > button[data-ledger-nav-id=\"2892\"][data-ledger-nav-type=\"recurring\"][title=\"Go to recurring\"]"
+      ]
+     }
+    ]
+   },
+   "ledger__header": null,
+   "reconcile": {
+    "violations": [],
+    "passes": 16,
+    "incomplete": []
+   },
+   "reconcile__header": null,
+   "retirement": {
+    "violations": [],
+    "passes": 3,
+    "incomplete": []
+   },
+   "retirement__header": null,
+   "__header_full": {
+    "violations": [],
+    "passes": 11,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 16,
+      "nodes": [
+       ".header-hero > h1",
+       "span[data-i18n=\"nav.overview\"]",
+       "button[data-page=\"health\"]",
+       "button[data-page=\"accounts\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#helpBtn"
+      ]
+     }
+    ]
+   }
+  },
+  "dark": {
+   "health": {
+    "violations": [],
+    "passes": 19,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 4,
+      "nodes": [
+       ".health-metric-card[data-card-nav=\"liabilities\"]:nth-child(1) > .health-gauge-wrap > .health-gauge-center > .health-gauge-value",
+       ".health-metric-card[data-card-nav=\"liabilities\"]:nth-child(1) > .health-gauge-wrap > .health-gauge-center > .health-gauge-label",
+       ".health-metric-card[data-card-nav=\"savings\"]:nth-child(2) > .health-gauge-wrap > .health-gauge-center > .health-gauge-value",
+       ".health-metric-card[data-card-nav=\"savings\"]:nth-child(2) > .health-gauge-wrap > .health-gauge-center > .health-gauge-label"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#healthBudgetThresholdsBtn"
+      ]
+     }
+    ]
+   },
+   "health__header": null,
+   "accounts": {
+    "violations": [
+     {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "help": "Elements must have their visible text as part of their accessible name",
+      "tags": [
+       "wcag21a",
+       "wcag253"
+      ],
+      "nodes": [
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6558\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6559\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6560\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": ".acct-balance-breakdown-btn[data-account-action=\"breakdown\"][data-account-id=\"6561\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       }
+      ],
+      "count": 4
+     }
+    ],
+    "passes": 14,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 3,
+      "nodes": [
+       "label[for=\"accountStartingBalance\"] > .help-icon",
+       "label[for=\"accountInterestRate\"] > .help-icon",
+       "span[data-i18n-attr=\"aria-label:accounts.notesHelp\"]"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 8,
+      "nodes": [
+       ".nw-widget-head > h3",
+       ".nw-widget-date",
+       ".nw-widget-main",
+       ".nw-widget-change"
+      ]
+     }
+    ]
+   },
+   "accounts__header": null,
+   "income": {
+    "violations": [],
+    "passes": 16,
+    "incomplete": [
+     {
+      "id": "aria-prohibited-attr",
+      "count": 8,
+      "nodes": [
+       "span[data-i18n-attr=\"aria-label:income.nameHelp\"]",
+       "span[data-i18n-attr=\"aria-label:income.amountHelp\"]",
+       "label[for=\"incomeWithholding\"] > .help-icon",
+       "label[for=\"incomeFirstDate\"] > .help-icon"
+      ]
+     },
+     {
+      "id": "color-contrast",
+      "count": 10,
+      "nodes": [
+       ".bonus-form-chevron",
+       "#incomeSummary > h4",
+       ".income-summary-item:nth-child(1) > .income-summary-label",
+       ".income-summary-item:nth-child(1) > .income-summary-value"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 2,
+      "nodes": [
+       "button[data-bonus-year-nav=\"prev\"]",
+       "button[data-bonus-year-nav=\"next\"]"
+      ]
+     }
+    ]
+   },
+   "income__header": null,
+   "liabilities": {
+    "violations": [],
+    "passes": 13,
+    "incomplete": []
+   },
+   "liabilities__header": null,
+   "recurring": {
+    "violations": [
+     {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "help": "Elements must have their visible text as part of their accessible name",
+      "tags": [
+       "wcag21a",
+       "wcag253"
+      ],
+      "nodes": [
+       {
+        "target": "#recurringOverdueFilterBtn",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       }
+      ],
+      "count": 1
+     }
+    ],
+    "passes": 15,
+    "incomplete": []
+   },
+   "recurring__header": null,
+   "savings": {
+    "violations": [],
+    "passes": 10,
+    "incomplete": []
+   },
+   "savings__header": null,
+   "strategy": {
+    "violations": [],
+    "passes": 14,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 2,
+      "nodes": [
+       "#targetDateToggle > .target-date-chevron",
+       "#planHistoryToggle > .target-date-chevron"
+      ]
+     }
+    ]
+   },
+   "strategy__header": null,
+   "reports": {
+    "violations": [
+     {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "tags": [
+       "wcag2aa",
+       "wcag143"
+      ],
+      "nodes": [
+       {
+        "target": "span[data-i18n=\"reports.groupTrends\"]",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3 (foreground color: #3c659c, background color: #0f172a, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": "span[data-i18n=\"reports.groupPlanning\"]",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3 (foreground color: #3c659c, background color: #0f172a, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+       },
+       {
+        "target": "span[data-i18n=\"reports.groupPrint\"]",
+        "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3 (foreground color: #3c659c, background color: #0f172a, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+       }
+      ],
+      "count": 3
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "help": "Elements must have their visible text as part of their accessible name",
+      "tags": [
+       "wcag21a",
+       "wcag253"
+      ],
+      "nodes": [
+       {
+        "target": "div[data-cal-day=\"1\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"5\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"6\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"10\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"15\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       },
+       {
+        "target": "div[data-cal-day=\"20\"]",
+        "summary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+       }
+      ],
+      "count": 6
+     }
+    ],
+    "passes": 17,
+    "incomplete": [
+     {
+      "id": "label-content-name-mismatch",
+      "count": 2,
+      "nodes": [
+       "#rptPrevMonth",
+       "#rptNextMonth"
+      ]
+     }
+    ]
+   },
+   "reports__header": null,
+   "ledger": {
+    "violations": [],
+    "passes": 15,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 6,
+      "nodes": [
+       "#ledgerColsSelect",
+       "th[data-key=\"date\"] > .sort-icon",
+       "th[data-key=\"account\"] > .sort-icon",
+       "th[data-key=\"name\"] > .sort-icon"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 4,
+      "nodes": [
+       "button[data-ledger-nav-type=\"income\"]",
+       "button[data-ledger-nav-id=\"2890\"]",
+       "tr:nth-child(4) > td[data-col=\"name\"] > button[data-ledger-nav-id=\"2892\"][data-ledger-nav-type=\"recurring\"][title=\"Go to recurring\"]",
+       "tr:nth-child(5) > td[data-col=\"name\"] > button[data-ledger-nav-id=\"2892\"][data-ledger-nav-type=\"recurring\"][title=\"Go to recurring\"]"
+      ]
+     }
+    ]
+   },
+   "ledger__header": null,
+   "reconcile": {
+    "violations": [],
+    "passes": 16,
+    "incomplete": []
+   },
+   "reconcile__header": null,
+   "retirement": {
+    "violations": [],
+    "passes": 3,
+    "incomplete": []
+   },
+   "retirement__header": null,
+   "__header_full": {
+    "violations": [],
+    "passes": 11,
+    "incomplete": [
+     {
+      "id": "color-contrast",
+      "count": 16,
+      "nodes": [
+       ".header-hero > h1",
+       "span[data-i18n=\"nav.overview\"]",
+       "button[data-page=\"health\"]",
+       "button[data-page=\"accounts\"]"
+      ]
+     },
+     {
+      "id": "label-content-name-mismatch",
+      "count": 1,
+      "nodes": [
+       "#helpBtn"
+      ]
+     }
+    ]
+   }
+  }
+ },
+ "spot_checks": {
+  "rptGroup_light": {
+   "c": {
+    "sel": "",
+    "fg": "#2563eb",
+    "bg": "#ffffff",
+    "ratio": 5.17,
+    "required": 4.5,
+    "fontSize": 10,
+    "fontWeight": 700,
+    "text": "Trends"
+   },
+   "opacity": "0.55",
+   "parentOpacity": "1",
+   "color": "rgb(37, 99, 235)"
+  },
+  "acctPos_light": null,
+  "rptGroup_dark": {
+   "c": {
+    "sel": "",
+    "fg": "#60a5fa",
+    "bg": "#0f172a",
+    "ratio": 7.02,
+    "required": 4.5,
+    "fontSize": 10,
+    "fontWeight": 700,
+    "text": "Trends"
+   },
+   "opacity": "0.55",
+   "parentOpacity": "1",
+   "color": "rgb(96, 165, 250)"
+  },
+  "acctPos_dark": null,
+  "darkEmailFocus": {
+   "border": "rgb(37, 99, 235)",
+   "borderW": "1px",
+   "bg": "rgb(30, 41, 59)",
+   "shadow": "rgba(37, 99, 235, 0.18) 0px 0px 0px 4px",
+   "cardBg": "rgb(30, 41, 59)"
+  },
+  "darkEmailUnfocused": {
+   "border": "rgb(37, 99, 235)",
+   "bg": "rgb(30, 41, 59)"
+  },
+  "lightEmailUnfocused": {
+   "border": "rgb(37, 99, 235)",
+   "bg": "rgb(255, 255, 255)"
+  },
+  "lightEmailFocus": {
+   "border": "rgb(37, 99, 235)",
+   "bg": "rgb(255, 255, 255)",
+   "shadow": "rgba(37, 99, 235, 0.18) 0px 0px 0px 4px"
+  },
+  "loginAxDialogs": [
+   {
+    "role": "dialog",
+    "name": "MyFinances",
+    "desc": null
+   }
+  ],
+  "loginAxMain": 1,
+  "gateAx": {
+   "alertdialogs": [
+    {
+     "name": "Can't reach your server",
+     "desc": "MyFinances keeps your data on your PostgreSQL server, and it isn't answering right now. Check your connection or that the server is running, then try again."
+    }
+   ],
+   "exposedButtonsOutside": 20
+  },
+  "darkSecurityError": {
+   "sel": "#settingsChangePasswordError",
+   "fg": "#dc2626",
+   "bg": "#1e293b",
+   "ratio": 3.03,
+   "required": 4.5,
+   "fontSize": 14,
+   "fontWeight": 400,
+   "text": "Passwords do not match."
+  },
+  "securityConfirmAttrs": {
+   "inv": null,
+   "db": null
+  },
+  "darkMeterLabel": {
+   "sel": "#settingsNewPasswordStrength",
+   "fg": "#f1f5f9",
+   "bg": "#1e293b",
+   "ratio": 13.35,
+   "required": 4.5,
+   "fontSize": 14,
+   "fontWeight": 600,
+   "text": "Password strength: Strong"
+  },
+  "darkMeterHint": {
+   "sel": "#settingsNewPasswordStrengthHint",
+   "fg": "#a8b3c7",
+   "bg": "#1e293b",
+   "ratio": 6.92,
+   "required": 4.5,
+   "fontSize": 13,
+   "fontWeight": 400,
+   "text": "This is a strong password."
+  },
+  "login_w640": {
+   "vw": 640,
+   "docScrollWidth": 640,
+   "overflowing": [],
+   "rootScrollable": true,
+   "rootOverflowY": "auto",
+   "rootRect": {
+    "w": 640,
+    "h": 450
+   }
+  },
+  "login_w640_submitReachable": {
+   "top": 315.96875,
+   "bottom": 363.96875,
+   "vh": 450,
+   "gateScrollH": 601,
+   "gateClientH": 450
+  },
+  "settings_320x256": {
+   "vw": 320,
+   "docScrollWidth": 320,
+   "overflowing": [],
+   "rootScrollable": false,
+   "rootOverflowY": "visible",
+   "rootRect": {
+    "w": 320,
+    "h": 256
+   }
+  },
+  "settings_320x256_btn": {
+   "top": 115,
+   "bottom": 155,
+   "vh": 256
+  }
+ }
+}
