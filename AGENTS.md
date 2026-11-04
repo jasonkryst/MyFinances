@@ -11,8 +11,8 @@ Since 7.0.0 the app has no browser-only mode, so every Playwright test runs agai
 docker compose up -d
 
 # Credentials of the stack's single user (these are the harness defaults).
-# No user yet? Create it the way CI does:
-#   docker compose run --rm server node scripts/create-user.js   (prompts for email, then password)
+# No user yet? Create it the way CI does (bash / Git Bash):
+#   printf '%s\n%s\n' testuser@example.com 'ci-Test-Passphrase-2026!' | docker compose run --rm -T server node scripts/create-user.js
 # (The harness can also register it, but only if the server has ALLOW_SETUP=true.)
 $env:TEST_EMAIL = "testuser@example.com"
 $env:TEST_PASSWORD = "ci-Test-Passphrase-2026!"

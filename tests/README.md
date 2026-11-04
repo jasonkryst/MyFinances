@@ -73,7 +73,13 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 - `TEST_BASE_URL` — app URL, default `http://localhost:32900/`
 - `TEST_EMAIL` / `TEST_PASSWORD` — the stack's single user, defaults `testuser@example.com` / `ci-Test-Passphrase-2026!`; `POSTGRES_TEST_EMAIL` / `POSTGRES_TEST_PASSWORD` are fallbacks, and `tests/postgres/conftest.py` reads `POSTGRES_TEST_BASE_URL`
 
-**The user.** `stack_user` registers the user only when `/auth/setup-status` reports `needsSetup` (registration also needs `ALLOW_SETUP=true` on the server); otherwise it logs in and aborts the run loudly if that fails, changing nothing. Create the user the way CI does with `docker compose run --rm server node scripts/create-user.js`. The session cookies are cached in a temp file and shared across pytest processes.
+**The user.** `stack_user` registers the user only when `/auth/setup-status` reports `needsSetup` (registration also needs `ALLOW_SETUP=true` on the server); otherwise it logs in and aborts the run loudly if that fails, changing nothing. On a fresh stack, create the default test user the way CI does (otherwise the run aborts):
+
+```bash
+printf '%s\n%s\n' testuser@example.com 'ci-Test-Passphrase-2026!' | docker compose run --rm -T server node scripts/create-user.js
+```
+
+stdin is the email line, then the password line. Use other credentials by setting `TEST_EMAIL`/`TEST_PASSWORD` to match. The session cookies are cached in a temp file and shared across pytest processes.
 
 **⚠️ The suite wipes the server's data** before every test. Never point it at a stack holding real data, and never run two pytest processes against one stack (they share one user).
 
