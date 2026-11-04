@@ -37,6 +37,16 @@ export function createApp() {
     app.use(express.json({ limit: '1mb' }));
     app.use(cookieParser());
 
+    // Financial data and session responses must never be stored by a cache.
+    // The v6.x service worker runtime-caches same-origin GETs, so during the
+    // upgrade window it would otherwise keep API bodies. Set here rather than
+    // in nginx: a location-level add_header drops the inherited server-level
+    // security headers (CSP etc.). /calendar.ics sets its own no-store.
+    app.use(['/api', '/auth'], (req, res, next) => {
+        res.setHeader('Cache-Control', 'no-store');
+        next();
+    });
+
     app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
     app.use('/auth', createAuthRouter());

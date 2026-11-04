@@ -18,6 +18,15 @@ test('GET /health returns 200 ok', async () => {
     assert.deepEqual(await res.json(), { status: 'ok' });
 });
 
+test('/api and /auth responses are Cache-Control: no-store', async () => {
+    // Unauthenticated /api request: 401 from requireSession, header must still be set.
+    const api = await fetch(`${baseUrl}/api/debts`);
+    assert.equal(api.status, 401);
+    assert.equal(api.headers.get('cache-control'), 'no-store');
+    const auth = await fetch(`${baseUrl}/auth/setup-status`);
+    assert.equal(auth.headers.get('cache-control'), 'no-store');
+});
+
 test('unknown route returns 404 JSON', async () => {
     const res = await fetch(`${baseUrl}/nope`);
     assert.equal(res.status, 404);
