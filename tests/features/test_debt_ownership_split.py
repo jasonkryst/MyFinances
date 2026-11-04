@@ -224,7 +224,7 @@ def test_ownership_inputs_are_labelled_and_names_escaped(app_page):
     }""")
     _nav_debts(page)
     _open_debt_form(page)
-    page.wait_for_function("document.querySelectorAll('#debtPersons option').length === 2")
+    page.wait_for_function("() => document.querySelectorAll('#debtPersons option').length === 2")
     page.select_option('#debtPersons', value=['1', '2'])
     page.wait_for_selector('#debtOwnership:not(.hidden)')
     assert page.query_selector('#debtOwnership #pwn') is None, "Person name must be escaped"
@@ -259,7 +259,7 @@ def test_inline_edit_prefills_and_saves_split(app_page):
     page.wait_for_selector(f'{root}:not(.hidden)')
     page.check(f'{root} input[value="equal"]')
     page.click('[data-debt-action="save-inline"]')
-    page.wait_for_function("window.app.editingDebtId === null")
+    page.wait_for_function("() => window.app.editingDebtId === null")
     assert page.evaluate("window.app.debts[0].ownershipSplit") is None
     # Dropping to one person also clears it and hides the control.
     page.evaluate("window.app.debts[0].ownershipSplit = {'%d': 0.7, '%d': 0.3}" % tuple(ids))
@@ -497,7 +497,7 @@ def _delete_person(page, person_id, replacement=None):
     page.click('#personReplacementConfirmBtn')
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_function(f"!window.app.persons.some(p => p.id === {person_id})")
+    page.wait_for_function(f"() => !window.app.persons.some(p => p.id === {person_id})")
 
 
 @pytest.mark.feature

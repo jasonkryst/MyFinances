@@ -1,5 +1,7 @@
 import pytest
-from playwright.async_api import async_playwright, expect
+from playwright.async_api import expect
+
+from tests.postgres.conftest import sign_in
 
 pytestmark = pytest.mark.asyncio
 

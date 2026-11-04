@@ -7,6 +7,7 @@ import os
 import tempfile
 
 import pytest
+from playwright.sync_api import expect
 
 from tests.conftest import (
     BASE_URL, open_data_transfer, open_settings, reset_server_state, seed_state,
@@ -162,7 +163,8 @@ def test_retry_while_still_unreachable_keeps_gate(app_page):
         "() => document.getElementById('serverUnreachableStatus').textContent.trim().length > 0",
         timeout=10000)
     assert page.is_visible('#serverUnreachableGate')
-    assert page.locator('#serverUnreachableRetryBtn').is_enabled()
+    # Retry re-enables the button only when the attempt settles; wait rather than race it.
+    expect(page.locator('#serverUnreachableRetryBtn')).to_be_enabled(timeout=10000)
     assert page.get_attribute('#serverUnreachableStatus', 'aria-live') == 'polite'
 
 

@@ -656,6 +656,10 @@ def _create_debts_for_advice_interest_filter(page):
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
         page.click('#debtFormSubmit')
+        # addDebt awaits the server POST, then resets and closes the form: wait for the
+        # close before the next iteration toggles it open again.
+        page.wait_for_selector(f'#debtsList >> text={name}', timeout=10000)
+        page.wait_for_selector('#debtFormBody[hidden]', state='attached', timeout=10000)
 
 
 @pytest.mark.feature
