@@ -43,7 +43,7 @@ export function createApp() {
     // in nginx: a location-level add_header drops the inherited server-level
     // security headers (CSP etc.). /calendar.ics sets its own no-store.
     app.use(['/api', '/auth'], (req, res, next) => {
-        res.setHeader('Cache-Control', 'no-store');
+        /* BISECT */
         next();
     });
 
