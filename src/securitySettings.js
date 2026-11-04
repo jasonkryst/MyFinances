@@ -3,7 +3,7 @@
 // always shown.
 import { t } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
-import { showLoginGate } from './loginGate.js';
+import { requestLogin } from './loginGate.js';
 import {
     attachPasswordStrengthMeter, newPasswordError, passwordResponseMessage, showBreachCheckNote
 } from './passwordUi.js';
@@ -87,7 +87,7 @@ export function initSecuritySettings(app) {
                 return;
             }
             if (res.status === 401) {
-                await showLoginGate(app);
+                await requestLogin(app);
                 return;
             }
             const body = await res.json().catch(() => ({}));

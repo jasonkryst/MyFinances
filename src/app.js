@@ -37,7 +37,7 @@ import {
 } from './charts.js';
 import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres, SessionExpiredError } from './storage.js';
 import { showServerUnreachable } from './serverUnreachableGate.js';
-import { showLoginGate } from './loginGate.js';
+import { requestLogin } from './loginGate.js';
 import { showPgMigrationModal, showLegacyDataCleanupModal } from './pgMigrationModal.js';
 import { exportAllJSON as exportAllJSONFeature, exportToCSV as exportToCSVFeature, exportLedgerToCSV as exportLedgerToCSVFeature, exportPaymentScheduleCSV as exportPaymentScheduleCSVFeature, exportChartsAsPng as exportChartsAsPngFeature, importAllJSON as importAllJSONFeature } from './dataExport.js';
 import {
@@ -229,6 +229,9 @@ export class DebtTrackerApp {
         // "Can't reach your server" gate; its Retry resolves once the server
         // answers again and the whole sequence re-runs. Nothing is rendered
         // from data while a gate is up.
+        // Consecutive SessionExpiredError re-probes are capped: a server that
+        // reports a session but 401s the data would otherwise loop forever.
+        let expiredReprobes = 0;
         for (;;) {
             const probe = await probeServer();
             if (!probe.reachable) {
@@ -240,7 +243,7 @@ export class DebtTrackerApp {
             }
             if (!probe.hasSession) {
                 this._markReadyBehindGate();
-                await showLoginGate(this, { needsSetup: probe.needsSetup === true });
+                await requestLogin(this, { needsSetup: probe.needsSetup === true });
             }
             try {
                 await loadFromPostgres(this);
@@ -248,7 +251,7 @@ export class DebtTrackerApp {
             } catch (err) {
                 // The session expired between probe and load: re-probe, which
                 // now reports no session and shows the login gate.
-                if (err instanceof SessionExpiredError) continue;
+                if (err instanceof SessionExpiredError && ++expiredReprobes <= 2) continue;
                 console.error('Loading data from the server failed:', err);
                 this._markReadyBehindGate();
                 await showServerUnreachable(this);

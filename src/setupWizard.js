@@ -4,7 +4,7 @@
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_DEBTS, SHOW_ARCHIVED_RECURRING, AUTO_NW_SNAPSHOT, ZERO_AMOUNT_POLICY, getZeroAmountPolicy } from './settings.js';
 import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie } from './storage.js';
-import { showLoginGate } from './loginGate.js';
+import { requestLogin } from './loginGate.js';
 import { showEmailTestToast } from './ui.js';
 import { initSettingsBackup } from './settingsBackup.js';
 import { initSecuritySettings, refreshSecuritySettingsPanel } from './securitySettings.js';
@@ -143,7 +143,7 @@ export function initSettingsModal(app) {
                     headers: { 'X-CSRF-Token': getCsrfCookie() }
                 });
                 if (res.status === 401) {
-                    await showLoginGate(app);
+                    await requestLogin(app);
                     return;
                 }
                 if (res.status === 200) {

@@ -26,7 +26,8 @@ const ALL_RESOURCE_PATHS = [
 
 async function pgFetch(app, method, path, body) {
     try {
-        const res = await fetch(path, {
+        // The csrf cookie is re-read per attempt: signing in issues a new one.
+        const send = () => fetch(path, {
             method,
             headers: {
                 'Content-Type': 'application/json',
@@ -34,10 +35,13 @@ async function pgFetch(app, method, path, body) {
             },
             body: body !== undefined ? JSON.stringify(body) : undefined
         });
+        let res = await send();
         if (res.status === 401) {
-            // Several saves can fail at once; one gate is enough.
+            // Several saves can fail at once; one gate is enough. After
+            // signing in, retry this write exactly once (no loop) so it is
+            // not silently lost.
             await requestLogin(app);
-            return null;
+            res = await send();
         }
         if (!res.ok) {
             let errorBody = null;

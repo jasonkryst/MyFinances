@@ -136,3 +136,95 @@ def test_plan_settings_401_shows_login_gate_not_banner(app_page):
     page.wait_for_selector('#loginGate:not(.hidden)', timeout=10000)
     assert not page.is_visible(BANNER)
     assert page.locator('#loginGate').count() == 1
+
+
+# --- Retry once after re-login (final review I-1) -----------------------------
+
+from tests.conftest import TEST_EMAIL, TEST_PASSWORD, wait_for_api  # noqa: E402
+
+
+def _sign_in_through_gate(page):
+    page.wait_for_selector('#loginGate:not(.hidden)', timeout=10000)
+    page.fill('#loginGateEmail', TEST_EMAIL)
+    page.fill('#loginGatePassword', TEST_PASSWORD)
+    page.click('#loginGateSubmit')
+    page.wait_for_selector('#loginGate.hidden', state='attached', timeout=15000)
+
+
+def _unauth(route):
+    route.fulfill(status=401, body='{}', content_type='application/json')
+
+
+@pytest.mark.feature
+def test_write_401_is_retried_after_login_and_saved(app_page):
+    page = app_page
+    posts = []
+
+    def handler(route):
+        if route.request.method != 'POST':
+            return route.continue_()
+        posts.append(1)
+        return _unauth(route) if len(posts) == 1 else route.continue_()
+
+    page.route('**/api/debts', handler)
+    _add_debt(page, 'Retry Debt')
+    _sign_in_through_gate(page)
+    wait_for_api(page, '/api/debts', lambda d: any(x['name'] == 'Retry Debt' for x in d))
+    assert len(posts) == 2
+    assert not page.is_visible(BANNER)
+
+
+@pytest.mark.feature
+def test_write_401_retry_failure_shows_banner(app_page):
+    page = app_page
+    page.route('**/api/debts', lambda r: _unauth(r) if r.request.method == 'POST' else r.continue_())
+    _add_debt(page, 'Doomed Debt')
+    _sign_in_through_gate(page)
+    page.wait_for_selector(BANNER + ':visible', timeout=10000)
+    assert wait_for_api(page, '/api/debts', lambda d: True) == []
+
+
+@pytest.mark.feature
+def test_plan_settings_401_is_retried_after_login_and_saved(app_page):
+    page = app_page
+    patches = []
+
+    def handler(route):
+        if route.request.method != 'PATCH':
+            return route.continue_()
+        patches.append(1)
+        return _unauth(route) if len(patches) == 1 else route.continue_()
+
+    page.route('**/api/plan-settings', handler)
+    page.evaluate("() => { window.app.retirementTargetDate = '2051-06-01'; window.app.saveToStorage(); }")
+    _sign_in_through_gate(page)
+    wait_for_api(page, '/api/plan-settings', lambda d: d.get('retirementTargetDate') == '2051-06-01')
+    assert len(patches) == 2
+    assert not page.is_visible(BANNER)
+
+
+@pytest.mark.feature
+def test_plan_settings_401_retry_failure_shows_banner(app_page):
+    page = app_page
+    page.route('**/api/plan-settings', lambda r: _unauth(r) if r.request.method == 'PATCH' else r.continue_())
+    page.evaluate("() => { window.app.saveToStorage(); }")
+    _sign_in_through_gate(page)
+    page.wait_for_selector(BANNER + ':visible', timeout=10000)
+
+
+# --- Boot re-probe cap (T5) ---------------------------------------------------
+
+@pytest.mark.feature
+def test_boot_session_expired_loop_is_capped(app_page):
+    page = app_page
+    probes = []
+    page.on('request', lambda r: probes.append(1)
+            if r.method == 'GET' and r.url.endswith('/api/plan-settings') else None)
+    # The probe (plan-settings) says "signed in" but the data load 401s every time.
+    page.route('**/api/debts', lambda r: _unauth(r) if r.request.method == 'GET' else r.continue_())
+    probes.clear()
+    page.evaluate("() => location.reload()")
+    page.wait_for_selector('#serverUnreachableGate', state='visible', timeout=30000)
+    assert page.locator('#loginGate:not(.hidden)').count() == 0
+    # 3 rounds (initial + 2 re-probes), each = probe + the load's own plan-settings GET
+    assert len(probes) <= 7, len(probes)

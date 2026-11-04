@@ -142,13 +142,7 @@ export async function loadFromPostgres(app) {
 // postgresSync.js; this only PATCHes the single plan-settings row. The name is
 // historical and kept for its many call sites.
 export function saveToStorage(app) {
-    return fetch('/api/plan-settings', {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': getCsrfCookie()
-        },
-        body: JSON.stringify({
+    const body = JSON.stringify({
             monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
             strategy: document.getElementById('paymentStrategy')?.value || null,
             ledgerSettings: {
@@ -166,14 +160,25 @@ export function saveToStorage(app) {
             retirementTargetDate: app.retirementTargetDate || null,
             homePurchasePlan: app.homePurchasePlan || null,
             budgetCategories: app.budgetCategories || {}
-        })
-    }).then(async res => {
-        if (res.ok) return true;
+    });
+    // The csrf cookie is re-read per attempt: signing in issues a new one.
+    const send = () => fetch('/api/plan-settings', {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCsrfCookie()
+        },
+        body
+    });
+    return send().then(async first => {
+        let res = first;
         if (res.status === 401) {
-            // Several saves can fail at once; one gate is enough.
+            // Several saves can fail at once; one gate is enough. Retry once
+            // after sign-in so the save is not silently lost.
             await requestLogin(app);
-            return false;
+            res = await send();
         }
+        if (res.ok) return true;
         console.error(`Error saving plan settings: PATCH /api/plan-settings failed: ${res.status}`);
         showSyncErrorBanner();
         return false;

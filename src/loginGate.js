@@ -16,9 +16,12 @@ import {
 // must open a single gate (one set of handlers, one setup-status request).
 // showLoginGate resolves after sign-in, which clears the slot.
 let _loginPromise = null;
-export function requestLogin(app) {
+// Every caller must go through here (never showLoginGate directly): a second
+// showLoginGate while a gate is open replaces form.onsubmit, so the first
+// promise would never resolve. `options` is forwarded to showLoginGate.
+export function requestLogin(app, options = {}) {
     if (!_loginPromise) {
-        _loginPromise = showLoginGate(app).finally(() => { _loginPromise = null; });
+        _loginPromise = showLoginGate(app, options).finally(() => { _loginPromise = null; });
     }
     return _loginPromise;
 }
