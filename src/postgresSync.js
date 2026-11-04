@@ -1,5 +1,5 @@
 import { getCsrfCookie } from './storage.js';
-import { showLoginGate } from './loginGate.js';
+import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
 
 const ALL_RESOURCE_PATHS = [
@@ -36,9 +36,7 @@ async function pgFetch(app, method, path, body) {
         });
         if (res.status === 401) {
             // Several saves can fail at once; one gate is enough.
-            if (document.getElementById('loginGate')?.classList.contains('hidden') !== false) {
-                await showLoginGate(app);
-            }
+            await requestLogin(app);
             return null;
         }
         if (!res.ok) {

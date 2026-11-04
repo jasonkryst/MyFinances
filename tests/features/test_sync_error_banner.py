@@ -9,7 +9,7 @@ import pytest
 from tests.conftest import BASE_URL, ensure_session, reset_server_state, wait_for_app_ready
 
 BANNER = '#syncErrorBanner'
-EN_TEXT = 'Sync error'
+EN_TEXT = "Couldn't save your last change — check your connection. Reload to see what's saved."
 
 
 @pytest.fixture
@@ -103,6 +103,26 @@ def test_mutation_401_shows_login_gate_not_banner(app_page):
                if r.request.method == 'POST' else r.continue_())
     _add_debt(page, 'Gate Debt')
     page.wait_for_selector('#loginGate:not(.hidden)', timeout=10000)
+    assert not page.is_visible(BANNER)
+
+
+@pytest.mark.feature
+def test_concurrent_401s_open_one_login_gate(app_page):
+    page = app_page
+    setup_calls = []
+    page.on('request', lambda r: setup_calls.append(r.url) if '/auth/setup-status' in r.url else None)
+    unauth = lambda r: r.fulfill(status=401, body='{}', content_type='application/json')
+    page.route('**/api/plan-settings', lambda r: unauth(r) if r.request.method == 'PATCH' else r.continue_())
+    page.route('**/api/persons', lambda r: unauth(r) if r.request.method == 'POST' else r.continue_())
+    page.evaluate("""() => {
+        window.app.saveToStorage();
+        window.app.saveToStorage();
+        import('/src/postgresSync.js').then(m => { m.pgPost(window.app, '/api/persons', { name: 'X' }); });
+    }""")
+    page.wait_for_selector('#loginGate:not(.hidden)', timeout=10000)
+    page.wait_for_timeout(1500)
+    assert len(setup_calls) == 1, setup_calls
+    assert page.locator('#loginGate:not(.hidden)').count() == 1
     assert not page.is_visible(BANNER)
 
 

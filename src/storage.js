@@ -1,7 +1,7 @@
 // Server persistence: boot probe, load from and save to the PostgreSQL API.
 
 import { pgDeleteAll } from './postgresSync.js';
-import { showLoginGate } from './loginGate.js';
+import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
 
 export function getCsrfCookie() {
@@ -171,9 +171,7 @@ export function saveToStorage(app) {
         if (res.ok) return true;
         if (res.status === 401) {
             // Several saves can fail at once; one gate is enough.
-            if (document.getElementById('loginGate')?.classList.contains('hidden') !== false) {
-                await showLoginGate(app);
-            }
+            await requestLogin(app);
             return false;
         }
         console.error(`Error saving plan settings: PATCH /api/plan-settings failed: ${res.status}`);

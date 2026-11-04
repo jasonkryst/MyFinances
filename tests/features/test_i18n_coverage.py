@@ -569,6 +569,14 @@ TRANSLATED_PAGES = {
             window.fetch = orig;
         }""",
     ),
+    # v7.0.0: persistent sync-error banner, forced visible (spec section 6).
+    'sync-error-banner': (
+        ['#syncErrorBanner'],
+        """async () => {
+            const ui = await import('/src/ui.js');
+            ui.showSyncErrorBanner();
+        }""",
+    ),
     # v7.0.0: legacy browser-data modal, import variant with a failed transfer
     # (error line visible), then the cleanup variant.
     'legacy-data-modal-import': (

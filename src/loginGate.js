@@ -12,6 +12,17 @@ import {
 // `options.needsSetup` (boolean) skips the setup-status request when the
 // caller already knows the answer: init()'s probeServer() just asked, and that
 // route is rate-limited (20 requests per 15 minutes).
+// One shared in-flight login request: several saves failing with 401 at once
+// must open a single gate (one set of handlers, one setup-status request).
+// showLoginGate resolves after sign-in, which clears the slot.
+let _loginPromise = null;
+export function requestLogin(app) {
+    if (!_loginPromise) {
+        _loginPromise = showLoginGate(app).finally(() => { _loginPromise = null; });
+    }
+    return _loginPromise;
+}
+
 export async function showLoginGate(app, options = {}) {
     let needsSetup = false;
     if (typeof options.needsSetup === 'boolean') {
