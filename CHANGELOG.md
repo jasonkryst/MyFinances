@@ -10,13 +10,13 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **Browser-only storage is removed.** MyFinances now requires a running MyFinances server (the Docker stack: nginx + Node + PostgreSQL). Local Storage and Session Storage modes are gone, and so is `python -m http.server` support.
 
 ### Upgrade
-1. Optionally export JSON from 6.x (Settings → Data & Storage → Backup & Restore).
+1. Optionally export JSON from 6.x (Account menu → Backup & Restore → Export Backup).
 2. Deploy the Docker stack (see `DEPLOYMENT.md`).
 3. Sign in.
-4. Accept the one-time prompt that imports leftover browser data. If the server already has data, the prompt offers to download that data as a JSON backup or remove it.
+4. Accept the one-time prompt that imports leftover browser data. If the server already has data, the prompt offers to download this browser's data as a JSON backup, or to remove it.
 
 ### Added
-- **"Can't reach your MyFinances server" screen** with a Retry button. Boot gives up after 8 s on the probe and 20 s on the data load.
+- **"Can't reach your MyFinances server" screen** with a "Try again" button. Boot gives up after 8 s on the probe and 20 s on the data load.
 - **Persistent "Couldn't save your last change" banner** when a write to the server fails.
 - **One-time cleanup prompt** for legacy browser data.
 - **Concurrent sign-in prompts collapse into one.**
