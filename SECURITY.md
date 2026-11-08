@@ -240,6 +240,9 @@ For production deployment:
 - Serve the stack only over HTTPS (session cookies are `Secure`)
 - Sign out on shared devices; changing your password signs out every other session
 - Keep the host, Docker images and backups protected; anyone with the database volume or a dump can read the data
+- Leave `ALLOW_SETUP` unset except while creating the first account
+- Never put the test-only variables (`TEST_BASE_URL`, `TEST_EMAIL`, `TEST_PASSWORD`) in the production stack, and never point the test suite at a production server: it wipes all data before every test
+- Treat downloaded `myfinances-browser-backup-*.json` files (from the 7.0.0 legacy-data prompt) and JSON exports like the database: they hold your full financial data unencrypted
 
 ## Security Testing
 
@@ -294,24 +297,30 @@ If you discover a security vulnerability:
 
 ## Security Audit Results
 
-**Most Recent Audit**: August 31, 2026
+**Most Recent Audit**: November 4, 2026 (v7.0.0, PostgreSQL-only storage). Full report: [SECURITY_AUDIT_2026-11-04.md](docs/audit/security/SECURITY_AUDIT_2026-11-04.md)
 
 ### Summary
 - Risk Level: **LOW**
-- Status: **PASSED**
-- No Critical Vulnerabilities: **YES**
+- Status: **PASSED**. No High or Medium vulnerabilities introduced by 7.0.0
+- Live tooling at audit time: CodeQL 0 open alerts, Trivy pass, dependency-review pass, secret scanning 0 open alerts, `tests/security/` pass
+- Dependabot: 2 open alerts, both in the dev-only Jest/Stryker toolchain (`minimatch` medium, `deepmerge` low); nothing shipped to the browser or server is affected
 
 ### Key Findings
-- ✅ All input properly sanitized
-- ✅ No XSS vulnerabilities
-- ✅ Strong CSP implemented
-- ✅ Secure file upload handling
-- ✅ No dangerous code patterns
-- ✅ Server auth: argon2id, httpOnly session cookies, CSRF tokens, rate limiting (server storage became mandatory in 7.0.0, after this audit)
-- ✅ No sensitive data exposure
-- ✅ Proper error handling
+- ✅ All input sanitized client-side and re-sanitized server-side on every write
+- ✅ No XSS: new UI (server-unreachable gate, sync-error banner, legacy-data modal) uses `textContent`/i18n only; legacy JSON never reaches `innerHTML`
+- ✅ Strong CSP, unchanged and kept in sync between `index.html` and `nginx.conf`
+- ✅ Server auth: argon2id, httpOnly session cookies, CSRF double-submit, rate limiting. Required for every deployment since 7.0.0
+- ✅ A write rejected with 401 is retried once after re-login; it can't double-apply, because the session check runs before any route handler
+- ✅ No financial data in browser storage, enforced by static and runtime tests
+- ✅ No financial data in the service-worker cache: `/api`, `/auth` and `/calendar.ics` are network-only, and the server sends `Cache-Control: no-store` on `/api` and `/auth` (this closed a pre-7.0 exposure)
+- ✅ Migration 031 is static DDL; all SQL values are bound parameters
 
-For full audit reports, see: [docs/audit/security/](docs/audit/security/)
+### Open Low-severity follow-ups
+- #473: harden the browser-storage static scanner
+- #475: test-harness session cache file permissions and atomic writes
+- #477: encode the ledger-override key in its PUT/DELETE URL
+
+Earlier reports: [docs/audit/security/](docs/audit/security/)
 
 ## Security Improvements Completed
 
@@ -342,6 +351,6 @@ For security-related questions or concerns, please contact the repository mainta
 
 ---
 
-**Last Updated:** August 31, 2026  
-**Version:** 1.1  
+**Last Updated:** November 4, 2026  
+**Version:** 1.2  
 **Status:** Production-Ready
