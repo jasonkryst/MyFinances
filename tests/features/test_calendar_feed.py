@@ -567,7 +567,6 @@ def test_a_token_network_error_does_not_break_the_dialog(app_page):
     """Aborting GET /api/calendar/token must not leave an unhandled rejection or block the download."""
     page = app_page
     _seed_calendar_data(page)
-    page.evaluate("window.app._storageBackendKind = 'postgres'")
     page.evaluate("""() => {
         window.__unhandled = [];
         window.addEventListener('unhandledrejection', e => window.__unhandled.push(String(e.reason)));
