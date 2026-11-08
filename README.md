@@ -9,7 +9,7 @@ _A modern, privacy-first web app to track accounts, debts, income, and spending,
 
 Self-hosted: your data lives in your own PostgreSQL server. MyFinances runs as a small Docker stack (nginx + Node.js API + PostgreSQL) that you deploy yourself (see [DEPLOYMENT.md](DEPLOYMENT.md)); the calculations run in your browser, and your data syncs across every device you sign in from. Since 7.0.0 the server is required: browser-only storage was removed.
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: August 31, 2026 (before 7.0.0 made the server mandatory) | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: November 4, 2026 (v7.0.0, [report](docs/audit/security/SECURITY_AUDIT_2026-11-04.md)) | **Last Scan**: 0 HIGH, 0 MEDIUM; CodeQL 0 open alerts
 
 ---
 
