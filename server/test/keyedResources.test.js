@@ -77,6 +77,17 @@ test('ledger-overrides: PUT upserts a compound-key entry', async () => {
     assert.equal(body.transactionName, 'Extra payment');
 });
 
+test('ledger-overrides: keeps the time of day in updatedAt', async () => {
+    const key = encodeURIComponent('debt|123|4|2026-08-01');
+    const updatedAt = '2026-08-01T12:34:56.789Z';
+    const res = await fetch(`${baseUrl}/api/ledger-overrides/${key}`, {
+        method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({ amount: 10, updatedAt })
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(new Date(body.updatedAt).toISOString(), updatedAt);
+});
+
 test('ledger-overrides: rejects a non-finite amount', async () => {
     const key = encodeURIComponent('debt|123|4|2026-08-01');
     const res = await fetch(`${baseUrl}/api/ledger-overrides/${key}`, {
