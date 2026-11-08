@@ -553,6 +553,9 @@ export function renderLedgerPage(app) {
             app._ledgerDateRange = 'around7';
             app._ledgerClearedFilter = 'all';
             app._ledgerCategoryFilter = 'all';
+            // The stored copy (page size included) is removed below, so reset
+            // page size too; otherwise it reverted only on the next reload (#544).
+            app._ledgerPageSize = 25;
             app._ledgerPage = 1;
             localStorage.removeItem('debtTrackerLedgerFilters');
             app._ledgerFiltersRestored = false;

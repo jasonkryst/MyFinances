@@ -48,6 +48,8 @@ export const MUTATE_SCOPE = {
     'src/passwordPolicy.js': true,
     // #564: partial plan-settings PATCH body builder.
     'src/planSettingsPatch.js': true,
+    // #519: bounded request pool for import/rollback fan-outs.
+    'src/concurrency.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

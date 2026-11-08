@@ -4,6 +4,21 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.3.0] — 2026-11-08
+
+### Fixed
+- **Large imports no longer fail with `ERR_INSUFFICIENT_RESOURCES`** (issue #519). Replace and merge imports, their rollbacks, the legacy browser-data transfer, `pgDeleteAll` and balance-history seeding sent one request per record with a bare `Promise.all`. A backup with 2,000 Ledger overrides and 1,000 cleared flags put about 3,000 requests in flight; Chromium aborted some, the import failed, and the rollback (same fan-out) could fail too, leaving the server partly wiped. Every fan-out now goes through a pool of 6 (`IMPORT_CONCURRENCY`).
+  - New pure `src/concurrency.js`: `mapWithConcurrency` (order-preserving; after the first failure it starts nothing new, lets running requests settle, then throws, so nothing is still writing when the rollback starts) and `mapSettledWithConcurrency` (the merge rollback's deletes). Jest-tested and in the Stryker scope.
+  - The CRUD collections are now posted one collection at a time, each through the pool, instead of all collections at once.
+- **Ledger Clear filters resets the page size** (found via #544). It removed the stored filters, page size included, but left the in-memory page size, so the old size stayed until the next reload.
+
+### Tests
+- **Element-missing skips are now failures** (issue #544). Two Ledger Clear-filters tests looked for `#clearFiltersBtn` (the app's id is `#ledgerClearFiltersBtn`) and skipped on every run. They also needed an active filter, since the button only renders while one is set. `test_ledger_filter_persistence.py` now seeds real server data, waits on state instead of sleeping, and adds a negative test (no button without an active filter). The other 14 `if not el: pytest.skip(...)` guards (in `test_p1_batch2.py`, `test_validation_modals.py` and `test_spending_ui.py`) are asserts.
+- New `tests/features/test_skip_guard.py` (shard K): a static scan fails on any `pytest.skip` guarded by a missing-element check (`if not el`, `is None`, `query_selector`, `locator`, `is_visible`, `.count()`). Date- and environment-dependent skips are unaffected. A genuine case can opt out with `# skip-ok: <reason>`.
+- New `tests/features/test_import_concurrency.py`: a 2,000-override + 1,000-cleared replace import succeeds with at most 6 write requests in flight (recorded by wrapping `fetch`); merge is bounded; a failing import's rollback is bounded and restores the prior data; after a failure no further requests start; an empty import sends no record writes.
+- New `tests/unit/concurrency.test.js`.
+- **#543 verified:** community PR #562 (thanks @Aryanban) made `test_plan_history.py` wait for the history entry. Ten consecutive local runs pass, and recent `main` CI runs are green.
+
 ## [7.2.0] — 2026-11-08
 
 ### Accessibility

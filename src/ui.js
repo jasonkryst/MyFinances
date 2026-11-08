@@ -1000,6 +1000,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.3.0 — 2026-11-08',
+        items: [
+            '<strong>Large backups import reliably:</strong> restoring a backup, or moving old browser data, with years of Ledger amount changes and cleared marks no longer fails part-way. MyFinances now sends a few requests at a time instead of thousands at once, and if an import does fail, putting your previous data back works the same way.',
+            '<strong>Clear filters on the Ledger</strong> now also resets the number of rows per page.'
+        ]
+    },
+    {
         version: '7.2.0 — 2026-11-08',
         items: [
             '<strong>Easier-to-read text in dark mode:</strong> error messages, the “Forgot password?” link and the focus outline on the sign-in fields now stand out clearly against the dark background.',

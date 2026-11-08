@@ -303,6 +303,7 @@ jobs:
             tests/features/test_reports_nav_groups.py \
             tests/features/test_category_budgets.py \
             tests/features/test_plan_settings_partial_save.py \
+            tests/features/test_import_concurrency.py \
             -v
       - name: Stop stack
         if: always()
@@ -403,6 +404,7 @@ jobs:
             tests/features/test_harness.py \
             tests/features/test_ci_shard_coverage.py \
             tests/features/test_async_submit_guard.py \
+            tests/features/test_skip_guard.py \
             -v
       - name: Stop stack
         if: always()
