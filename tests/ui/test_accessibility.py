@@ -6,7 +6,7 @@ Tests keyboard navigation, ARIA labels, and screen reader compatibility.
 
 import pytest
 
-from tests.conftest import create_debt, seed_state
+from tests.conftest import create_debt, seed_state, submit_account_form
 
 def _calculate_plan(page, debt_data):
     """Create a debt and run a payment plan so the Results tab bar renders."""
@@ -234,7 +234,7 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     # The reconcile *modal* opens from the Ledger page's per-account filter
     # (not the Reconcile page's own inline reconcileAccount() form, a
@@ -270,7 +270,7 @@ def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)

@@ -7,7 +7,7 @@ so re-rendering a page never throws "Canvas is already in use" or leaks chart in
 
 import pytest
 
-from tests.conftest import create_debt, create_income, assert_no_errors
+from tests.conftest import create_debt, create_income, assert_no_errors, submit_account_form
 
 
 def _calculate_plan(page, debt_data):
@@ -51,7 +51,7 @@ def test_health_dti_chart_survives_repeated_rerender(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     for _ in range(3):
         page.click('button[data-page="health"]')
@@ -82,7 +82,7 @@ def test_networth_trend_chart_survives_repeated_rerender(app_page, account_data)
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
@@ -116,7 +116,7 @@ def test_forecast_chart_survives_repeated_rerender(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)

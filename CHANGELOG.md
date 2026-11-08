@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.0.1] — 2026-11-08
+
+### Tests / CI
+- **Tests no longer race async saves** (issue #592). Since 7.0.0, adding an account or debt waits for the server before it swaps in the real id, re-renders and closes the form. Tests that clicked Submit and moved on could pick the account's temporary id in an income dropdown (the server rejected the income with a 400), or click the Add Debt toggle while the form was still open and close it. Both failed CI intermittently.
+  - New `tests/conftest.py` helpers: `submit_account_form` and `submit_debt_form` (plus `_async` twins) click Submit and wait for the save to finish; `open_debt_form` opens the Add Debt form only when it is closed. `create_account` and `create_debt` use them.
+  - Every account and debt Submit click in `tests/` now waits, or is marked `# submit-no-wait: <reason>` where the save is meant not to finish (validation rejections, deliberately failed requests).
+  - New `tests/features/test_async_submit_guard.py` (shard K) fails CI when a Submit click on either form is not followed by a wait.
+- **Plan-history tests wait for the history entry** (issue #543, PR #562, community contribution). They read `app.planHistory` before the server POST had returned.
+
+### Maintenance
+- **Docker:** the root `.dockerignore` now excludes `node_modules/` at any depth and `server/test/`, and the server image sets ownership with `COPY --chown` instead of a separate `chown -R` layer (issue #532, PR #542, community contribution).
+- **Unused code removed:** two unreferenced `toolbar.dataTransfer*` locale keys and several dead CSS rules (issue #537, PR #540, community contribution).
+
 ## [7.0.0] — 2026-11-03
 
 ### BREAKING

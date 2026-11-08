@@ -7,7 +7,7 @@ and visible after debt data changes post-calculation.
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, submit_debt_form
 
 
 def _add_debt(page, name="Test Debt", balance="5000", rate="15", min_payment="100"):
@@ -21,7 +21,7 @@ def _add_debt(page, name="Test Debt", balance="5000", rate="15", min_payment="10
     page.fill('#interestRate', rate)
     page.fill('#minimumPayment', min_payment)
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     page.wait_for_timeout(300)
 
 

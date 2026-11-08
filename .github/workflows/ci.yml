@@ -372,7 +372,8 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml.
+  # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml,
+  # and test_async_submit_guard.py, a static scan for account/debt Submit clicks with no wait (#592).
   test-features-k:
     needs: build-images
     runs-on: ubuntu-latest
@@ -399,6 +400,7 @@ jobs:
             tests/features/test_code_splitting.py \
             tests/features/test_harness.py \
             tests/features/test_ci_shard_coverage.py \
+            tests/features/test_async_submit_guard.py \
             -v
       - name: Stop stack
         if: always()
