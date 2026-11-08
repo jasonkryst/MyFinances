@@ -42,6 +42,8 @@ def _add_expense(page, expense_data):
         category=expense_data["category"],
     )
     page.click('#expenseFormSubmit')
+    # addExpense awaits the server POST before it re-renders and resets the form.
+    page.wait_for_function("() => document.getElementById('expenseName').value === ''", timeout=10000)
 
 
 @pytest.mark.feature
@@ -380,6 +382,7 @@ def test_expense_summary_matches_visible_list(app_page, expense_data):
     page.wait_for_selector('#expenseForm', state='visible', timeout=5000)
     _fill_expense_form(page, name='Bus Pass', amount='80', date=expense_data['date'], category='Transport')
     page.click('#expenseFormSubmit')
+    page.wait_for_function("() => document.getElementById('expenseName').value === ''", timeout=10000)
 
     summary = page.text_content('.budget-cat-summary--expense')
     assert 'Food' in summary

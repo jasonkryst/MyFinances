@@ -360,10 +360,8 @@ export async function addBill(app) {
     const bill = { id: Date.now(), name, amount, dueDay, category, accountId };
     app.bills.push(bill);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/bills', bill);
-        if (saved?.id) bill.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/bills', bill);
+    if (saved?.id) bill.id = saved.id;
     document.getElementById('billForm').reset();
     // Collapse the form after adding
     const billBody = document.getElementById('billFormBody');
@@ -377,7 +375,7 @@ export async function addBill(app) {
 export function deleteBill(app, id) {
     app.bills = app.bills.filter(b => b.id !== id);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/bills/${id}`);
+    pgDelete(app, `/api/bills/${id}`);
     renderBudgetPage(app);
 }
 
@@ -401,7 +399,7 @@ export async function saveEditBill(app, id) {
     app.bills[idx] = { ...app.bills[idx], name, amount, dueDay, category, accountId };
     app.editingBillId = null;
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/bills/${app.bills[idx].id}`, app.bills[idx]);
+    pgPatch(app, `/api/bills/${app.bills[idx].id}`, app.bills[idx]);
     renderBudgetPage(app);
 }
 
@@ -426,10 +424,8 @@ export async function addExpense(app) {
     const expense = { id: Date.now(), name, budgetAmount, date: dateStr, category, accountId };
     app.expenses.push(expense);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/expenses', expense);
-        if (saved?.id) expense.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/expenses', expense);
+    if (saved?.id) expense.id = saved.id;
     document.getElementById('expenseForm').reset();
     // Collapse the form after adding
     const expBody = document.getElementById('expenseFormBody');
@@ -443,7 +439,7 @@ export async function addExpense(app) {
 export function deleteExpense(app, id) {
     app.expenses = app.expenses.filter(e => e.id !== id);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/expenses/${id}`);
+    pgDelete(app, `/api/expenses/${id}`);
     renderBudgetPage(app);
 }
 
@@ -468,7 +464,7 @@ export async function saveEditExpense(app, id) {
     app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date: dateStr, category, accountId };
     app.editingExpenseId = null;
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/expenses/${app.expenses[idx].id}`, app.expenses[idx]);
+    pgPatch(app, `/api/expenses/${app.expenses[idx].id}`, app.expenses[idx]);
     renderBudgetPage(app);
 }
 

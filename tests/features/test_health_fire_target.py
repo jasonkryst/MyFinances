@@ -3,6 +3,8 @@
 
 import pytest
 
+from tests.conftest import wait_for_api
+
 SETUP = """() => {
     const app = window.app;
     const now = new Date();
@@ -127,8 +129,8 @@ def test_fire_very_large_multiplier_shows_999_plus(app_page):
 def test_fire_persists_across_reload(app_page):
     _setup(app_page)
     _commit(app_page, '#healthFireMultiplier', '30')
-    app_page.wait_for_function(
-        "() => (JSON.parse(localStorage.getItem('debtTrackerData') || '{}').settings || []).some(s => s.key === 'fireMultiplier' && s.value === 30)")
+    wait_for_api(app_page, '/api/settings',
+                 lambda rows: any(s['key'] == 'fireMultiplier' and s['value'] == 30 for s in rows))
     app_page.reload(wait_until='networkidle')
     assert app_page.evaluate("() => window.app.settings.find(s => s.key === 'fireMultiplier').value") == 30
 

@@ -11,6 +11,8 @@ from datetime import date
 
 import pytest
 
+from tests.conftest import seed_state
+
 
 def _seed_reconciliation_account(page, adjusts_balance=True):
     """Create a single checking account with no other collections.
@@ -234,31 +236,27 @@ def test_expected_transactions_across_month_boundary(app_page):
 
 @pytest.mark.feature
 def test_sanitize_reconciliation_rejects_invalid_entries(app_page):
-    """sanitizeReconciliation (via loadFromStorage) drops entries with missing
+    """sanitizeReconciliation (via import/seed) drops entries with missing
     accountId or non-finite statementBalance, keeping valid entries."""
     page = app_page
 
-    result = page.evaluate("""() => {
-        const app = window.app;
-        const data = {
-            accounts: [{ id: 7201, name: 'Recon Sanitize', type: 'Checking', startingBalance: 100 }],
-            debts: [], incomes: [], bonuses: [], bills: [], expenses: [],
-            recurringTemplates: [], emergencyFunds: [], sinkingFunds: [],
-            reconciliations: [
-                { id: 1, accountId: null, date: '2026-06-01', previousBalance: 0, statementBalance: 100, difference: 100, note: '' },
-                { id: 2, accountId: 7201, date: '2026-06-01', previousBalance: 0, statementBalance: 'not-a-number', difference: 0, note: '' },
-                { id: 3, accountId: 7201, date: '2026-06-01', previousBalance: 50, statementBalance: 150, difference: 100, note: 'Valid' }
-            ]
-        };
-        localStorage.setItem(app.storageKey, JSON.stringify(data));
-        app.loadFromStorage();
-        return { reconciliations: app.reconciliations };
-    }""")
+    seed_state(page, {
+        'accounts': [{'id': 7201, 'name': 'Recon Sanitize', 'type': 'Checking', 'startingBalance': 100}],
+        'reconciliations': [
+            {'id': 1, 'accountId': None, 'date': '2026-06-01', 'previousBalance': 0, 'statementBalance': 100, 'difference': 100, 'note': ''},
+            {'id': 2, 'accountId': 7201, 'date': '2026-06-01', 'previousBalance': 0, 'statementBalance': 'not-a-number', 'difference': 0, 'note': ''},
+            {'id': 3, 'accountId': 7201, 'date': '2026-06-01', 'previousBalance': 50, 'statementBalance': 150, 'difference': 100, 'note': 'Valid'},
+        ],
+    })
+    result = page.evaluate("""() => ({
+        reconciliations: window.app.reconciliations,
+        accountId: window.app.accounts.find(a => a.name === 'Recon Sanitize').id,
+    })""")
 
     recs = result['reconciliations']
     assert len(recs) == 1, f"Expected only the valid entry to survive sanitization, got {recs}"
     assert recs[0]['note'] == 'Valid'
-    assert recs[0]['accountId'] == 7201
+    assert recs[0]['accountId'] == result['accountId']
     assert recs[0]['statementBalance'] == 150
 
 
@@ -270,11 +268,9 @@ def test_export_import_round_trip_preserves_reconciliations(app_page):
     result = page.evaluate("""async () => {
         const app = window.app;
         const mod = await import('/src/dataExport.js');
-        app.accounts = [{ id: 7101, name: 'Recon Import', type: 'Checking', startingBalance: 500 }];
-        app.reconciliations = [];
 
         const payload = {
-            accounts: app.accounts,
+            accounts: [{ id: 7101, name: 'Recon Import', type: 'Checking', startingBalance: 500 }],
             debts: [{ id: 1, name: 'Dummy Debt', debtType: 'creditCard', accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
             incomes: [], bonuses: [], bills: [], expenses: [],
             recurringTemplates: [], emergencyFunds: [], sinkingFunds: [],
@@ -286,15 +282,19 @@ def test_export_import_round_trip_preserves_reconciliations(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'backup.json', { type: 'application/json' });
 
-        return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ reconciliations: app.reconciliations }), 300);
-        });
+        mod.importAllJSON(app, file, { requestImportMode: async () => true });
+        for (let i = 0; i < 100 && !app.reconciliations.length; i++) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        return {
+            reconciliations: app.reconciliations,
+            accountId: app.accounts.find(a => a.name === 'Recon Import')?.id,
+        };
     }""")
 
     recs = result['reconciliations']
     assert len(recs) == 1
-    assert recs[0]['accountId'] == 7101
+    assert recs[0]['accountId'] == result['accountId'] and result['accountId'] != 7101
     assert recs[0]['statementBalance'] == 500
     assert recs[0]['note'] == 'Imported entry'
     assert recs[0]['id'] != 999, "Imported entries should be re-id'd to avoid collisions"

@@ -31,6 +31,9 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    document.getElementById('syncErrorBannerDismiss')?.addEventListener('click', () => {
+        document.getElementById('syncErrorBanner')?.classList.add('hidden');
+    });
     // #428: mobile collapsibles (add forms, filter disclosures). Delegated so
     // markup that is re-rendered (Ledger filters) keeps working.
     document.addEventListener('click', e => {
@@ -577,7 +580,7 @@ export function updateAccountMenuEmail(app) {
         }
     }
     if (logoutItem) {
-        logoutItem.classList.toggle('hidden', app._storageBackendKind !== 'postgres');
+        logoutItem.classList.remove('hidden');
     }
 }
 
@@ -916,34 +919,6 @@ export function showMilestone(debtName) {
     window.setTimeout(() => host.remove(), 1800);
 }
 
-export function showStorageQuotaWarning(usage) {
-    if (document.getElementById('storageQuotaBanner')) return;
-
-    const banner = document.createElement('div');
-    banner.id = 'storageQuotaBanner';
-    banner.className = 'storage-quota-banner';
-    banner.setAttribute('role', 'alert');
-
-    const text = document.createElement('span');
-    if (usage.writeFailed) {
-        text.textContent = 'Your saved data could not be written to browser storage — it may be full. Export a backup now to avoid losing data.';
-    } else {
-        const mb = (usage.bytes / (1024 * 1024)).toFixed(1);
-        const pct = Math.round(usage.pct * 100);
-        text.textContent = `Your saved data is using about ${mb} MB (${pct}% of typical browser storage limits). Consider exporting a backup and trimming old records.`;
-    }
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'storage-quota-banner-close';
-    closeBtn.setAttribute('aria-label', 'Dismiss storage warning');
-    closeBtn.textContent = '×';
-    closeBtn.addEventListener('click', () => banner.remove());
-
-    banner.appendChild(text);
-    banner.appendChild(closeBtn);
-    document.body.appendChild(banner);
-}
-
 export function showUpdateAvailableBanner(waitingWorker) {
     if (document.getElementById('swUpdateBanner')) return;
 
@@ -1024,6 +999,14 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.0.0 — 2026-11-03',
+        items: [
+            '<strong>MyFinances now runs only against your own MyFinances server.</strong> Browser-only storage is gone, so your data always lives on the server and syncs across devices. If the server cannot be reached, you see a clear screen with a “Try again” button.',
+            '<strong>One-time prompt to move browser-only data:</strong> after you sign in, MyFinances offers to import any data left in this browser from an earlier version. If the server already has data, you can download the data in this browser as a backup, or remove it.',
+            '<strong>Save problems are never silent:</strong> if a change fails to save, a banner tells you right away.'
+        ]
+    },
     {
         version: '6.67.0 — 2026-11-03',
         items: [
@@ -1334,23 +1317,11 @@ export function showNetWorthMilestone(message) {
     window.setTimeout(() => host.remove(), 2600);
 }
 
-let _pgErrorToastTimer = null;
-
-export function showPgErrorToast() {
-    if (_pgErrorToastTimer !== null) {
-        clearTimeout(_pgErrorToastTimer);
-    } else {
-        const el = document.createElement('div');
-        el.id = 'pgErrorToast';
-        el.className = 'pg-error-toast';
-        el.setAttribute('role', 'alert');
-        el.textContent = 'Sync error — your change may not have been saved to the server.';
-        document.body.appendChild(el);
-    }
-    _pgErrorToastTimer = setTimeout(() => {
-        document.getElementById('pgErrorToast')?.remove();
-        _pgErrorToastTimer = null;
-    }, 5000);
+// Persistent sync-error banner (v7.0.0, spec section 6). The markup lives in
+// index.html, hidden by default. Showing is idempotent (one banner, never
+// stacked); the dismiss button hides it until the next failure.
+export function showSyncErrorBanner() {
+    document.getElementById('syncErrorBanner')?.classList.remove('hidden');
 }
 
 let _emailTestToastTimer = null;

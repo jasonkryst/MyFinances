@@ -56,17 +56,15 @@ export async function addRetirementSnapshot(app, accountId, date, balance, contr
     const snapshot = { id: Date.now(), accountId, date, balance, contribution, annualSalary };
     app.retirementSnapshots.push(snapshot);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/retirement-snapshots', snapshot);
-        if (saved?.id) snapshot.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/retirement-snapshots', snapshot);
+    if (saved?.id) snapshot.id = saved.id;
     app.renderRetirementPage();
 }
 
 export function deleteRetirementSnapshot(app, id) {
     app.retirementSnapshots = app.retirementSnapshots.filter(s => s.id !== id);
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/retirement-snapshots/${id}`);
+    pgDelete(app, `/api/retirement-snapshots/${id}`);
     app.renderRetirementPage();
 }
 
@@ -866,14 +864,14 @@ export function renderRetirementPage(app) {
 
         if (action === 'toggle-catchup') {
             app.accounts[idx] = { ...app.accounts[idx], catchUpEligible: event.target.checked };
-            if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
+            pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
             app.saveToStorage();
             app.renderRetirementPage();
         }
         if (action === 'set-hsa-coverage') {
             const val = event.target.value === 'family' ? 'family' : 'selfOnly';
             app.accounts[idx] = { ...app.accounts[idx], hsaCoverageType: val };
-            if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
+            pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
             app.saveToStorage();
             app.renderRetirementPage();
         }

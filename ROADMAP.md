@@ -147,7 +147,7 @@ MyFinances is evolving from a focused debt payoff calculator into a comprehensiv
 1. **Provide visibility** — Show users their complete financial picture
 2. **Enable motivation** — Display progress and milestones
 3. **Support decision-making** — Compare scenarios and forecast outcomes
-4. **Maintain simplicity** — Stay client-side, no servers, no complexity
+4. **Maintain simplicity** — Self-hosted on one Docker stack (since 7.0.0 the PostgreSQL server is the only storage), no third-party services, no complexity
 
 ---
 
@@ -610,10 +610,10 @@ Domain-specific tools for advanced users.
 Surfaced during audit cycles and ongoing development — not yet fully prioritized against the tiers above. **Next formal audit recommended**: July 2026 (the app has grown ~90 tests and 10 source modules since the June 19 audit). Grouped by the lens that surfaced them.
 
 #### 🧩 Featureset
-- **PWA / offline installability** — add a manifest + service worker so the app can be installed and used offline; fits the "client-side only, no server" architecture naturally and improves mobile usability. (Promoted candidate for v4.4)
+- ~~**PWA / offline installability**~~ ✅ **Delivered in v4.7–v4.14** — manifest + service worker; since 7.0.0 the cached shell shows a "Can't reach your server" screen offline instead of data. (Promoted candidate for v4.4)
 - **Bank statement / CSV transaction import** — a mapping wizard to bulk-import transactions into the ledger, rather than manual entry only. Bigger lift than Enhanced Data Export (Tier 4) since it's import, not export.
 - **Reminders for due bills/recurring items** — browser Notification API (with explicit opt-in) or an in-app "due soon" digest on the Health dashboard, building on `recurringTemplates`' existing occurrence-date math. (Promoted candidate for v4.4)
-- **Scheduled/auto-export reminders** — since there's no cloud backup, periodically nudge users (e.g. "last export was 45 days ago") to export their JSON backup, directly addressing the single-point-of-failure risk of localStorage-only persistence. (Promoted candidate for v4.4)
+- **Scheduled/auto-export reminders** — periodically nudge users (e.g. "last export was 45 days ago") to export their JSON backup. Written when persistence was localStorage-only; since 7.0.0 data lives in PostgreSQL (see `DEPLOYMENT.md` → Backup and Restore), so this is now a secondary safety net. (Promoted candidate for v4.4)
 - **FIRE / net-worth goal calculator** — extends the existing Net Worth Tracker with a target net-worth + timeline projection, reusing `monthlySnapshots` trend data. (Promoted candidate for v4.4)
 - ~~**Guide page content audit**~~ ✅ **Largely addressed** — `guide.html` now has dedicated sections for Health Dashboard, Reconciliation, Command Palette, Forecast, Spending Analysis, and the Settings/reconciliation-mode workflow, including the ledger Cleared-transaction tracking added in v4.40.0. Still-undocumented features: PWA installability/offline behavior, the language switcher (English/Español/Polski), and the optional self-hosted PostgreSQL storage backend (login gate, data-transfer modal, migration flow). Low effort, high value for new users on those backends/PWA specifically.
 - **Savings Goals scope clarification** — the Tier 2 "Savings Goals" entry overlaps significantly with the existing Sinking Funds feature (target amount, deadline, monthly allocation); the remaining gap is cross-fund aggregation and a unified goal-progress view, not a separate data model. Should be scoped accordingly before implementation.
@@ -631,7 +631,7 @@ Surfaced during audit cycles and ongoing development — not yet fully prioritiz
 - *(Process item, not a UI feature — tracked in Tier 0 above)* dedicated Strategy results-tab-bar a11y regression tests.
 
 #### 🔒 Security
-- **Optional passphrase-encrypted localStorage** — client-side encryption (e.g. WebCrypto AES-GCM) of the persisted JSON blob, opt-in, for users on shared devices — the app already has no server, so this stays fully consistent with the privacy-first model.
+- ~~**Optional passphrase-encrypted localStorage**~~ **Obsolete since 7.0.0** — financial data is no longer kept in browser storage at all; it lives in the self-hosted PostgreSQL server. Encryption at rest is now a database/volume concern.
 - **"Lock app" / idle session timeout** — auto-blur/hide financial data after N minutes of inactivity on a shared device, independent of the encryption feature above.
 - **Automated SRI/CSP regression check in CI** — the Chart.js CDN `integrity` hash and CSP sync are currently verified by manual audit + one static test; consider a CI step that re-fetches the pinned Chart.js version's hash periodically to catch silent CDN drift.
 - *(Bug fixes, tracked in Tier 0 above)* income/debt validation bypass, exception-message escaping, `accounts.js` option-list helper contract.
@@ -735,7 +735,7 @@ Surfaced during audit cycles and ongoing development — not yet fully prioritiz
 **Focus**: Scenario Planning & Proactive Alerts
 
 - [ ] Multiple Scenario Comparison (MEDIUM impact)
-- [ ] Scheduled/auto-export reminders (LOW effort, HIGH value for localStorage-only app)
+- [ ] Scheduled/auto-export reminders (LOW effort; less critical since 7.0.0 moved data to PostgreSQL)
 - [ ] Reminders for due bills/recurring items (Notification API, opt-in)
 
 ---
@@ -744,7 +744,7 @@ Surfaced during audit cycles and ongoing development — not yet fully prioritiz
 - [ ] Bill Payment Tracker — remaining pieces (late payment warnings, payment history) to be redefined against Recurring Templates
 - [ ] Income Growth Projections — natural extension of Cash Flow Forecast
 - [ ] Debt Consolidation Calculator
-- [ ] PWA / offline installability
+- [x] PWA installability (delivered v4.7–v4.14)
 - [ ] FIRE / net-worth goal calculator (extends existing Net Worth Tracker)
 - [ ] Advanced Tax/Retirement tools
 
@@ -780,7 +780,7 @@ this.reconciliationEntries = [];  // Account adjustments
 ```
 
 ### Storage Impact
-- Current localStorage usage: ~50-200KB typical
+- Typical dataset: ~50-200KB (measured when data lived in localStorage; stored in PostgreSQL since 7.0.0)
 - Monthly snapshots: ~100 bytes each (12 months/year = 1.2KB/year)
 - No breaking changes needed
 
@@ -792,7 +792,7 @@ this.reconciliationEntries = [];  // Account adjustments
 - Enhanced Reports page
 
 ### Performance
-- All calculations client-side (no server needed)
+- All calculations client-side (the server stores and validates data)
 - Monthly aggregations can be lazy-loaded
 - Charts use existing Chart.js infrastructure
 
@@ -823,7 +823,7 @@ this.reconciliationEntries = [];  // Account adjustments
 4. Maintain mobile responsiveness (test at 480px, 768px, 1024px)
 
 ### Architecture Principles
-- Keep client-side only (no server)
+- Keep calculations in the browser; the self-hosted server stores and validates data (PostgreSQL is the only storage since 7.0.0)
 - Maintain modular structure (one feature per file if possible)
 - All user input must be sanitized
 - Use `escapeHtml()` for all output

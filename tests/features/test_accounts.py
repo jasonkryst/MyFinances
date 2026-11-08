@@ -6,7 +6,7 @@ Tests account CRUD operations and calculations.
 
 import pytest
 
-from tests.conftest import current_month_iso
+from tests.conftest import current_month_iso, seed_state, submit_account_form
 
 BASE_URL = "http://localhost:32900/"
 
@@ -64,7 +64,8 @@ def test_account_types(app_page):
         page.fill('#accountStartingBalance', '1000')
         page.click('#accountFormSubmit')
         
-        # Verify account created
+        # Verify account created (the card renders after the server round-trip)
+        page.wait_for_selector(f'text={account_type} Test', timeout=10000)
         assert page.query_selector(f'text={account_type} Test'), \
             f"Could not create {account_type} account"
 
@@ -82,6 +83,7 @@ def test_account_balance_display(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', balance)
     page.click('#accountFormSubmit')
+    page.wait_for_selector('text=Balance Test', timeout=10000)
     
     # Find account and check balance display
     account_card = page.query_selector('text=Balance Test')
@@ -103,7 +105,7 @@ def test_net_worth_includes_accounts(app_page):
     page.fill('#accountName', 'NW Test Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '10000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Capture a net worth snapshot and re-render the widget so it shows account data
     page.evaluate("() => { window.app.captureNetWorthSnapshot(); window.app.renderNetWorthWidget(); }")
@@ -137,6 +139,7 @@ def test_multiple_accounts(app_page):
         page.select_option('#accountType', label=name)
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
+        page.wait_for_selector(f'text={name} Test', timeout=10000)
     
     # Verify all accounts are displayed
     for name, _ in accounts:
@@ -173,13 +176,9 @@ def assert_no_errors(page):
 
 
 def _seed_accounts(page, accounts):
-    """Replace app.accounts wholesale and re-render the Accounts page."""
-    page.evaluate("""(accounts) => {
-        const app = window.app;
-        app.accounts = accounts;
-        app.saveToStorage();
-        app.switchPage('accounts');
-    }""", accounts)
+    """Replace the server's accounts wholesale (reloads) and open the Accounts page."""
+    seed_state(page, {'accounts': accounts})
+    page.evaluate("() => window.app.switchPage('accounts')")
 
 
 def _badge_text_for_card(page, account_name):
@@ -276,10 +275,11 @@ def test_edit_account_removing_rate_hides_badge(app_page):
     ])
     assert _badge_text_for_card(page, 'Was Rated') is not None, "Badge should show before the edit"
 
-    page.click('[data-account-action="edit"][data-account-id="1"]')
-    page.wait_for_selector('#ac-rate-1')
-    page.fill('#ac-rate-1', '0')
-    page.click('[data-account-action="save"][data-account-id="1"]')
+    acct_id = page.evaluate("() => window.app.accounts.find(a => a.name === 'Was Rated').id")
+    page.click(f'[data-account-action="edit"][data-account-id="{acct_id}"]')
+    page.wait_for_selector(f'#ac-rate-{acct_id}')
+    page.fill(f'#ac-rate-{acct_id}', '0')
+    page.click(f'[data-account-action="save"][data-account-id="{acct_id}"]')
 
     assert _badge_text_for_card(page, 'Was Rated') is None, \
         "Badge should disappear once the rate is edited down to 0"
@@ -368,6 +368,7 @@ def _seed_two_accounts(page):
         page.select_option('#accountType', label='Checking')
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
+        page.wait_for_selector(f'#accountsSection >> text={name}', timeout=10000)
     return 'Primary Account', 'Replacement Account'
 
 
@@ -394,7 +395,7 @@ def test_delete_account_no_links_shows_confirm_modal(app_page):
     page.fill('#accountName', 'Solo Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
@@ -412,7 +413,7 @@ def test_delete_account_no_links_cancel_keeps_account(app_page):
     page.fill('#accountName', 'Keep Me Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
@@ -430,7 +431,7 @@ def test_delete_account_no_links_confirm_removes_account(app_page):
     page.fill('#accountName', 'Delete Me Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
@@ -457,6 +458,7 @@ def test_delete_account_with_linked_items_shows_replacement_modal(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Linked Salary', timeout=10000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -487,6 +489,7 @@ def test_delete_account_replacement_modal_confirm_disabled_without_selection(app
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Salary For Guard Test', timeout=10000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -511,6 +514,7 @@ def test_delete_account_replacement_modal_cancel_keeps_account(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Salary To Survive', timeout=10000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -540,6 +544,7 @@ def test_delete_account_replacement_modal_second_confirm_names_target(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Salary For Confirm Test', timeout=10000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -570,6 +575,7 @@ def test_delete_account_with_linked_items_second_confirm_cancel_keeps_account(ap
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Salary Cancel Step2', timeout=10000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -598,6 +604,7 @@ def test_delete_account_reassigns_linked_income_to_replacement(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Reassigned Salary', timeout=10000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -606,6 +613,7 @@ def test_delete_account_reassigns_linked_income_to_replacement(app_page):
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
     page.click('#accountReplacementConfirmBtn')
     page.click('#deleteConfirmBtn')
+    page.wait_for_function("() => !window.app.accounts.some(a => a.name === 'Primary Account')")
 
     # Primary account should be gone
     acc_names = page.evaluate("() => window.app.accounts.map(a => a.name)")
@@ -628,31 +636,33 @@ def test_delete_account_reassigns_linked_income_to_replacement(app_page):
 def test_delete_account_with_linked_items_reassigns_all_types(app_page):
     """Delete-and-reassign moves income, debts, bills, and expenses to the replacement account."""
     page = app_page
-    _seed_two_accounts(page)
+    # Seed through the API so the linked items exist on the server (account ids remap on seed).
+    seed_state(page, {
+        'accounts': [
+            {'id': 1, 'name': 'Primary Account', 'type': 'Checking', 'startingBalance': 1000},
+            {'id': 2, 'name': 'Replacement Account', 'type': 'Checking', 'startingBalance': 2000},
+        ],
+        'incomes': [{'id': 2001, 'name': 'Multi Income', 'amount': 1000, 'accountId': 1,
+                     'frequency': 'monthly', 'firstPayDate': '2026-06-01'}],
+        'debts': [{'id': 2002, 'name': 'Multi Debt', 'accountId': 1, 'debtType': 'creditCard',
+                   'accountBalance': 500, 'interestRate': 15, 'minimumPayment': 25, 'dueDate': 1}],
+        'bills': [{'id': 2003, 'name': 'Multi Bill', 'accountId': 1, 'amount': 100, 'dueDay': 1,
+                   'category': 'Utilities'}],
+        'expenses': [{'id': 2004, 'name': 'Multi Expense', 'accountId': 1, 'budgetAmount': 50,
+                      'date': '2026-06-01', 'category': 'Food'}],
+    })
+    replacement_id = page.evaluate(
+        "() => window.app.accounts.find(a => a.name === 'Replacement Account').id")
+    page.evaluate("() => window.app.switchPage('accounts')")
 
     primary_id = page.evaluate(
-        "() => window.app.accounts.find(a => a.name === 'Primary Account')?.id"
-    )
-    replacement_id = page.evaluate(
-        "() => window.app.accounts.find(a => a.name === 'Replacement Account')?.id"
-    )
-
-    # Seed items across multiple types via JS to avoid UI friction
-    page.evaluate("""([pid]) => {
-        const app = window.app;
-        app.incomes.push({ id: 2001, name: 'Multi Income', amount: 1000, accountId: pid, frequency: 'monthly', firstDate: '2026-06-01' });
-        app.debts.push({ id: 2002, name: 'Multi Debt', accountId: pid, debtType: 'creditCard', accountBalance: 500, interestRate: 15, minimumPayment: 25, dueDate: 1 });
-        app.bills.push({ id: 2003, name: 'Multi Bill', accountId: pid, amount: 100, dueDate: 1, frequency: 'monthly', firstDate: '2026-06-01' });
-        app.expenses.push({ id: 2004, name: 'Multi Expense', accountId: pid, amount: 50, category: 'Food', frequency: 'monthly', firstDate: '2026-06-01' });
-        app.saveToStorage();
-        app.switchPage('accounts');
-    }""", [primary_id])
-
-    page.locator('[data-account-action="delete"]').first.click()
+        "() => window.app.accounts.find(a => a.name === 'Primary Account').id")
+    page.click(f'[data-account-action="delete"][data-account-id="{primary_id}"]')
 
     page.select_option('#accountReplacementSelect', label='Replacement Account (Checking)')
     page.click('#accountReplacementConfirmBtn')
     page.click('#deleteConfirmBtn')
+    page.wait_for_function("() => !window.app.accounts.some(a => a.name === 'Primary Account')")
 
     result = page.evaluate("""([rid]) => {
         const app = window.app;
@@ -684,6 +694,7 @@ def test_delete_account_with_linked_items_replacement_pages_navigate_cleanly(app
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    page.wait_for_selector('#incomeList >> text=Navigation Test Salary', timeout=10000)
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -708,7 +719,7 @@ def test_account_type_shown_in_selectors(app_page):
     page.fill('#accountName', 'My BCU')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     expected_label = 'My BCU (Checking)'
 

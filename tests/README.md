@@ -5,8 +5,8 @@
 The MyFinances test suite is organized by functional category to ensure comprehensive coverage, maintainability, and clarity. All tests use Playwright for browser automation and follow pytest conventions.
 
 **Current Status: Fully Passing**
-- ✅ 768 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres — the last requires the Docker Postgres stack)
-- ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Storage Quota, Settings, PWA, i18n, and the optional PostgreSQL backend
+- ✅ 768 Tests Passing across 6 categories (security, features, ui, a11y, integration, postgres); since 7.0.0 every Playwright category runs against the real Docker stack
+- ✅ Complete Feature Coverage including Financial Health Dashboard, Cash Flow Forecast, Account Reconciliation, Command Palette, Print/PDF, Reduced Motion, Settings, PWA, i18n, and server-only storage (gates, sync banner, legacy data)
 - ✅ Direct unit coverage of every `utils.js` sanitizer primitive, plus adversarial/negative-input import tests for every record-type sanitizer
 - ✅ 0 HIGH/MEDIUM Security Issues
 - ✅ 100% CSP Compliance Verified
@@ -36,7 +36,7 @@ pytest tests/features/ -v          # Feature tests only
 pytest tests/ui/ -v                # UI tests only
 pytest tests/a11y/ -v               # Accessibility audit tests only
 pytest tests/integration/ -v       # End-to-end tests only
-pytest tests/postgres/ -v          # Postgres backend tests only (requires Docker stack)
+pytest tests/postgres/ -v          # Postgres-specific tests (auth, import, mutations, legacy data)
 ```
 
 Run specific test file:
@@ -61,10 +61,35 @@ pytest --cov=. --cov-report=html
 
 ### Prerequisites for Test Execution
 
-**Local Server Must Be Running:**
-- Default URL: `http://localhost:32900/`
-- Can start a simple Python server: `python -m http.server 32900`
-- Or use VS Code Live Server extension
+**The Docker stack must be running** (nginx + Node API + PostgreSQL). Since 7.0.0 the app has no browser-only mode, so a static file server is not enough.
+
+```bash
+docker compose up -d                       # http://localhost:32900
+# frontend edits without rebuilding the image:
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+**Environment variables** (read by `tests/conftest.py`):
+- `TEST_BASE_URL` — app URL, default `http://localhost:32900/`
+- `TEST_EMAIL` / `TEST_PASSWORD` — the stack's single user, defaults `testuser@example.com` / `ci-Test-Passphrase-2026!`; `POSTGRES_TEST_EMAIL` / `POSTGRES_TEST_PASSWORD` are fallbacks, and `tests/postgres/conftest.py` reads `POSTGRES_TEST_BASE_URL`
+
+**The user.** `stack_user` registers the user only when `/auth/setup-status` reports `needsSetup` (registration also needs `ALLOW_SETUP=true` on the server); otherwise it logs in and aborts the run loudly if that fails, changing nothing. On a fresh stack, create the default test user the way CI does (otherwise the run aborts):
+
+```bash
+printf '%s\n%s\n' testuser@example.com 'ci-Test-Passphrase-2026!' | docker compose run --rm -T server node scripts/create-user.js
+```
+
+stdin is the email line, then the password line. Use other credentials by setting `TEST_EMAIL`/`TEST_PASSWORD` to match. The session cookies are cached in a temp file and shared across pytest processes.
+
+**⚠️ The suite wipes the server's data** before every test. Never point it at a stack holding real data, and never run two pytest processes against one stack (they share one user).
+
+**Harness** (`tests/conftest.py`):
+- `app_page` — signed-in page; waits for `data-app-ready` and calls `reset_server_state` so every test starts on an empty server. Async twin: `async_app_page`.
+- `ensure_session(context)` — installs the cached session cookies into a browser context, logging in again on a 401.
+- `reset_server_state(page)` — `pgDeleteAll`, seeds the `reconciliationAdjustsBalance` setting so the setup wizard stays closed, then reloads.
+- `seed_state(page, state)` — replaces all server data with a JSON-export-shaped `state` through `replaceForPostgres`, then reloads. `seed_state_from_app(page)` does the same for collections a test built in `window.app`.
+- `wait_for_api(page, path, check, timeout)` — polls an authenticated GET until `check(json)` holds; call it before a reload that must see a fire-and-forget save.
+- **Service worker:** it can serve JS modules past `page.route`; tests that intercept module or API requests use `browser.new_context(service_workers='block')` (see `tests/features/test_code_splitting.py`).
 
 ---
 
@@ -106,12 +131,13 @@ tests/
 │   ├── test_reconciliation_statement_range.py # Statement start/end dates: validation, defaults, card + modal UI, persistence
 │   ├── test_spending_analysis.py # Spending category breakdowns, month-over-month trends
 │   ├── test_storage_import.py  # Sanitizer unit tests + adversarial import tests
-│   ├── test_storage_quota.py   # Soft warning at ~80%, hard-failure on write error, re-arming
+│   ├── test_sync_error_banner.py # Persistent #syncErrorBanner on a failed save, no stacking, 401 → login gate
 │   ├── test_settings.py        # Reconciliation mode persistence and import/export round-trip
 │   ├── test_strategy.py        # Strategy switching, comparison panel, stimulus validation
 │   ├── test_plan_history.py    # Plan History logging/cap on Calculate, last-plan restore on reload (#162)
 │   ├── test_validation_modals.py     # Themed #alertModal replaces native browser alert() for all form validation errors
-│   ├── test_storage_backend.py       # localStorage vs. sessionStorage adapter selection, default/compat path, switchStorageBackend migration
+│   ├── test_server_only_storage.py   # Server-only storage: persistence across reload, unreachable/login gates, stale backend key removed, no financial keys in browser storage
+│   ├── test_harness.py         # Real-stack harness contract: app_page starts empty, seed_state writes through the API, ensure_session recovers
 │   ├── test_i18n.py            # Locale storage, t() lookup with English fallback, applyStaticTranslations(); Spanish/Polish pilot scope
 │   ├── test_i18n_coverage.py   # #317 guards: es/pl key/placeholder parity, no English stubs, pseudo-locale render scan of translated pages
 │   ├── test_pwa.py             # manifest.json validity, SW precache list vs. src/ + APP_VERSION sync, SW browser registration
@@ -163,12 +189,13 @@ tests/
 │   ├── test_smoke.py            # Full application smoke test (account → debt → net worth)
 │   ├── test_workflows.py        # Multi-step workflows, JSON/CSV import/export, ledger CSV column picker, clear-data/reimport
 │   ├── test_interest_income_workflow.py # End-to-end interest income workflow
-│   └── test_pwa_offline.py      # Offline app-shell behavior via the service worker
-└── postgres/                     # Optional PostgreSQL backend tests (47 tests — requires Docker stack)
+│   └── test_pwa_offline.py      # Offline: cached app shell shows the "Can't reach your server" gate, no data
+└── postgres/                     # Postgres-specific tests (selection below)
     ├── test_postgres_bootstrap.py     # Auth, login gate, session handling
     ├── test_postgres_import.py        # loadFromPostgres fan-out + import round-trip
     ├── test_postgres_mutations.py     # Per-resource CRUD via pgPost/pgPatch/pgDelete
-    ├── test_postgres_migration.py     # local→Postgres one-time migration modal flow
+    ├── test_postgres_migration.py     # No migration prompt without a legacy browser key
+    ├── test_legacy_local_data.py      # Legacy debtTrackerData: import / decline / failure / cleanup download-remove / Escape
     ├── test_postgres_notifications.py # Mailpit-backed end-to-end coverage for the test-email flow
     └── test_postgres_setup_wizard.py  # First-run setup wizard against the Postgres backend
 ```
@@ -278,9 +305,14 @@ tests/
 - **Coverage:** Modal present and hidden on load; valid submissions succeed without a modal; invalid submissions (missing name, bad amounts, duplicate names) show the modal with the correct message; modal dismissible via OK button and Escape key
 - **Status:** ✅ PASSING
 
-#### test_storage_backend.py
-- **Tests:** `localStorage` vs. `sessionStorage` adapter selection and migration
-- **Coverage:** Default backend is `localStorage` (backward-compatible); data written through one adapter is not visible through the other; `switchStorageBackend()` migrates in-memory state to the new backend and removes it from the old one
+#### test_server_only_storage.py (7.0.0)
+- **Tests:** The PostgreSQL server as the only storage
+- **Coverage:** An added record persists across reload; JSON export/import round-trip; Settings shows "Storage: PostgreSQL server" with no local/session option; a stale `debtTrackerStorageBackend` is ignored and removed; reload doesn't call `/auth/setup-status` with a session; aborted probe, 502 and failed load show the unreachable gate (and "Try again" keeps it while still down); a session expiring during load or no session shows the login gate; after a CRUD pass no browser-storage key outside the spec §3 allowlist (`test_no_financial_keys_after_crud_pass`)
+- **Status:** ✅ PASSING
+
+#### test_sync_error_banner.py (7.0.0)
+- **Tests:** Persistent `#syncErrorBanner` when a save fails
+- **Coverage:** Shown on a failed mutation, stays until dismissed, never stacked; a 401 shows the login gate instead
 - **Status:** ✅ PASSING
 
 #### test_i18n.py
@@ -394,7 +426,7 @@ tests/
 #### test_pwa_update_banner.py
 - **Tests:** Service-worker update-available banner
 - **Coverage:** `app.showUpdateAvailableBanner(fakeWorker)` shows the banner with a Reload button; clicking Reload calls `postMessage({type:'SKIP_WAITING'})` on the stub worker; banner disappears after dismissal; calling the method twice does not stack two banners
-- **Note:** Calls the method directly with a stub worker object rather than forcing a real SW update cycle, matching the pattern used in `test_storage_quota.py`
+- **Note:** Calls the method directly with a stub worker object rather than forcing a real SW update cycle
 - **Status:** ✅ PASSING
 
 #### test_login_gate_theme.py
@@ -543,7 +575,7 @@ def test_full_workflow():
 | Account Reconciliation | N/A | ✅ | ✅ | N/A | ✅ |
 | Spending Analysis | N/A | ✅ | ✅ | N/A | ✅ |
 | Storage Import/Sanitizers | ✅ | ✅ | N/A | ✅ | ✅ |
-| Storage Quota Monitoring | N/A | ✅ | N/A | N/A | N/A |
+| Server-only storage / sync banner | ✅ | ✅ | N/A | N/A | N/A |
 | Settings / Recon Mode | N/A | ✅ | ✅ | N/A | N/A |
 | Command Palette | N/A | N/A | ✅ | N/A | N/A |
 | Print / Save as PDF | N/A | N/A | ✅ | N/A | N/A |
@@ -554,9 +586,9 @@ def test_full_workflow():
 | CSP | N/A | ✅ | ✅ | ✅ | ✅ |
 | XSS | N/A | ✅ | ✅ | ✅ | ✅ |
 | Accessibility | N/A | N/A | ✅ | ✅ | N/A |
-| PWA (installability + offline) | N/A | ✅ | ✅ | ✅ | N/A |
+| PWA (installability, offline gate) | N/A | ✅ | ✅ | ✅ | N/A |
 | i18n (locale switching) | N/A | ✅ | N/A | N/A | N/A |
-| PostgreSQL Backend (optional) | N/A | N/A | ✅ | N/A | N/A |
+| PostgreSQL (auth, import, legacy data) | N/A | N/A | ✅ | N/A | N/A |
 
 **Legend:** ✅ Complete | ⚠️ Partial | N/A Not Applicable
 
@@ -627,9 +659,13 @@ async def test_full_workflow(async_app_page):
 ## Troubleshooting
 
 ### Test Fails with "Connection Refused"
-- **Issue:** Server not running
-- **Solution:** Start local server: `python -m http.server 32900`
-- **Check:** Verify BASE_URL in conftest.py matches server port
+- **Issue:** Stack not running
+- **Solution:** `docker compose up -d`
+- **Check:** `TEST_BASE_URL` (default `http://localhost:32900/`) matches the stack's port
+
+### Run Aborts with "login as … failed"
+- **Issue:** The server already has a user and `TEST_EMAIL`/`TEST_PASSWORD` don't match it
+- **Solution:** Set them to that user's credentials, or use a fresh stack (`docker compose down -v` deletes its data) and create the test user
 
 ### Test Times Out Waiting for Element
 - **Issue:** Selector incorrect or element not rendered
@@ -671,16 +707,7 @@ async def test_full_workflow(async_app_page):
 
 To run tests in CI pipeline:
 
-```yaml
-# GitHub Actions example
-- name: Run Tests
-  run: |
-    pip install -r requirements.txt
-    playwright install chromium
-    python -m http.server 32900 &
-    sleep 2
-    pytest tests/ -v --tb=short
-```
+In `.github/workflows/ci.yml`, the `build-images` job builds the `myfinances` and `myfinances-server` images once per run and uploads them as the `stack-images` artifact. Every Playwright job then runs the `.github/actions/start-stack` composite action, which loads the images, creates the Docker secrets, runs `docker compose up -d --no-build`, waits for nginx and the server healthcheck, creates the test user with `server/scripts/create-user.js` (`ALLOW_SETUP` stays unset) and exports `TEST_BASE_URL`/`TEST_EMAIL`/`TEST_PASSWORD` (plus the `POSTGRES_TEST_*` names). Feature and UI shards list their test files explicitly; `tests/features/test_ci_shard_coverage.py` fails when a file is in no shard.
 
 ---
 

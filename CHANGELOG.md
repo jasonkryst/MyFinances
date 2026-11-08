@@ -4,6 +4,71 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.0.1] — 2026-11-08
+
+### Tests / CI
+- **Tests no longer race async saves** (issue #592). Since 7.0.0, adding an account or debt waits for the server before it swaps in the real id, re-renders and closes the form. Tests that clicked Submit and moved on could pick the account's temporary id in an income dropdown (the server rejected the income with a 400), or click the Add Debt toggle while the form was still open and close it. Both failed CI intermittently.
+  - New `tests/conftest.py` helpers: `submit_account_form` and `submit_debt_form` (plus `_async` twins) click Submit and wait for the save to finish; `open_debt_form` opens the Add Debt form only when it is closed. `create_account` and `create_debt` use them.
+  - Every account and debt Submit click in `tests/` now waits, or is marked `# submit-no-wait: <reason>` where the save is meant not to finish (validation rejections, deliberately failed requests).
+  - New `tests/features/test_async_submit_guard.py` (shard K) fails CI when a Submit click on either form is not followed by a wait.
+  - The guard exposed a test that tested nothing: `test_xss_in_debt_name` left a credit card's required fields blank, so validation rejected it and no debt was created, and it read a class (`.debt-card-name`) that debt cards don't use. It now creates the debt and checks that the name renders as inert text with no injected `onload` element.
+  - The negative fixed-amount debt test now checks `app.debts` and that the form stays open, instead of the page text straight after Submit.
+- **Plan-history tests wait for the history entry** (issue #543, PR #562, community contribution). They read `app.planHistory` before the server POST had returned.
+
+### Maintenance
+- **Docker:** the root `.dockerignore` now excludes `node_modules/` at any depth and `server/test/`, and the server image sets ownership with `COPY --chown` instead of a separate `chown -R` layer (issue #532, PR #542, community contribution).
+- **Unused code removed:** two unreferenced `toolbar.dataTransfer*` locale keys and several dead CSS rules (issue #537, PR #540, community contribution).
+
+## [7.0.0] — 2026-11-03
+
+### BREAKING
+- **Browser-only storage is removed.** MyFinances now requires a running MyFinances server (the Docker stack: nginx + Node + PostgreSQL). Local Storage and Session Storage modes are gone, and so is `python -m http.server` support.
+
+### Upgrade
+1. Optionally export JSON from 6.x (Account menu → Backup & Restore → Export Backup).
+2. Deploy the Docker stack (see `DEPLOYMENT.md`).
+3. Sign in. The first sign-in needs an account: `setup.sh`/`setup.ps1` create one for you. For a manual deployment either start the server once with `ALLOW_SETUP=true` to get the setup screen (then unset it), or create the user with `docker compose run --rm server node scripts/create-user.js`.
+4. Accept the one-time prompt that imports leftover browser data. If the server already has data, the prompt offers to download this browser's data as a JSON backup, or to remove it. Declining the import also downloads a JSON backup before the browser copy is removed.
+
+Browser data is stored per origin, so the import prompt only appears when 7.0 is served from the same scheme, host and port as 6.x. If the address changes, export JSON from 6.x first (Account menu → Backup & Restore → Export Backup) and import it after signing in.
+
+### Added
+- **"Can't reach your MyFinances server" screen** with a "Try again" button. Boot gives up after 8 s on the probe and 20 s on the data load.
+- **Persistent "Couldn't save your last change" banner** when a write to the server fails.
+- **One-time cleanup prompt** for legacy browser data.
+- **Concurrent sign-in prompts collapse into one.**
+- **`docker-compose.dev.yml`**, which bind-mounts the frontend for development.
+
+### Removed
+- The Settings storage selector, the storage quota warning, and `python -m http.server` support.
+
+### Fixed
+- **Postgres mode silently dropped fields.** They are now persisted (migration `1755600000031`):
+  - debt `notes` and `nextPaymentDue`
+  - recurring template `archived`
+  - sinking fund order, `archived` and `completedDate`
+  - emergency fund `autoSyncBalance`
+  - ledger override `memo`
+  - income `updatedAt`
+- Debt `updatedAt` is now stored as a date.
+- Postgres merge import now reports skipped duplicates.
+- Clear All Data now clears every collection in memory.
+- An expired session during load leads to sign-in instead of the unreachable screen.
+- A write rejected with 401 mid-session is retried once after sign-in instead of being lost.
+- Declining the legacy browser-data import no longer deletes the only copy: a JSON backup is downloaded first.
+- The manifest, meta description and guide no longer claim data stays in the browser.
+
+### Security
+- The service worker no longer caches `/api`, `/auth` or `/calendar.ics` responses. Financial data previously landed in Cache Storage.
+- A static test now forbids financial data in browser storage.
+- The server sends `Cache-Control: no-store` on every `/api` and `/auth` response, so a still-running 6.x service worker cannot cache financial data during the upgrade.
+- `/auth/password-policy` has its own rate limit.
+
+### Tests
+- The whole Playwright suite now runs against a real Postgres stack.
+- CI builds the images once per run and shares them across shards.
+- `.gitattributes` forces LF line endings on `.sh` files.
+
 ## [6.67.0] — 2026-11-03
 
 ### Added

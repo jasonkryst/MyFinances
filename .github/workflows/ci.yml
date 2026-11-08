@@ -12,6 +12,29 @@ on:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Build the nginx + server images once; every Playwright job loads them via
+  # .github/actions/start-stack instead of rebuilding.
+  # ---------------------------------------------------------------------------
+  build-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build images
+        run: |
+          mkdir -p secrets
+          echo "ci-db-password" > secrets/postgres_password.txt
+          : > secrets/smtp_password.txt
+          docker compose build
+      - name: Save images
+        run: docker save myfinances:latest myfinances-server:latest | zstd -T0 > images.tar.zst
+      - uses: actions/upload-artifact@v7
+        with:
+          name: stack-images
+          path: images.tar.zst
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
   # Features — 9 parallel shards. A/F/G split by slow-test file (~25s/test).
   # B/C/H are the "fast" (~3s/test) files, bin-packed to ~100-115 tests each.
   # I holds test_performance (render-heavy) in isolation.
@@ -26,6 +49,7 @@ jobs:
   # `pytest tests/features/<file>.py --collect-only -q`, then bin-pack.
   # ---------------------------------------------------------------------------
   test-features-a:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -41,14 +65,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_debts.py \
@@ -57,9 +74,13 @@ jobs:
             tests/features/test_filter_sort.py \
             tests/features/test_account_menu.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # test_ledger: 18 slow tests (~25s each in CI); isolated to its own shard.
   test-features-f:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -75,18 +96,15 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_ledger.py -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # test_reconciliation: 13 slow tests (~25s each in CI); isolated to its own shard.
   test-features-g:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -102,21 +120,18 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_reconciliation.py tests/features/test_recurring_income.py -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # test_reports, test_debt_calculator, test_break_even, test_networth are
   # calculation-heavy tests (~20s each in CI vs ~3s for shard-B/C). Kept in
   # their own shard so shard A stays under 20 min.
   # test_balance_history (24 tests) is fast and bin-packed here.
   test-features-e:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -132,14 +147,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_reports.py \
@@ -151,12 +159,16 @@ jobs:
             tests/features/test_debt_ownership_split.py \
             tests/features/test_import_person_remap.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # test_accounts (27 tests, multi-modal deletion flows) and test_forecast
   # (16 tests, multi-month projection rendering) are the two heaviest shard-A
   # files and were moved here after the deletion-with-replacement feature
   # pushed shard A past the 20-min timeout.
   test-features-d:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -172,21 +184,18 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_accounts.py \
             tests/features/test_forecast.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   test-features-b:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -202,14 +211,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_income.py \
@@ -225,8 +227,12 @@ jobs:
             tests/features/test_analytics.py \
             tests/features/test_zero_amount_policy.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   test-features-c:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -242,14 +248,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_storage_import.py \
@@ -257,18 +256,22 @@ jobs:
             tests/features/test_i18n_coverage.py \
             tests/features/test_pwa.py \
             tests/features/test_issue_93_expense_save.py \
-            tests/features/test_storage_backend.py \
+            tests/features/test_server_only_storage.py \
+            tests/features/test_sync_error_banner.py \
             tests/features/test_spending_analysis.py \
             tests/features/test_bills.py \
-            tests/features/test_storage_quota.py \
             tests/features/test_retirement.py \
             tests/features/test_retirement_coast_fire.py \
             tests/features/test_health_fire_target.py \
             tests/features/test_health_credit_factors.py \
             tests/features/test_refinance_scenario.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   test-features-h:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -284,14 +287,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_interest_income.py \
@@ -306,10 +302,14 @@ jobs:
             tests/features/test_reports_nav_groups.py \
             tests/features/test_category_budgets.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # test_performance may be slow (render-heavy); isolated here so it doesn't
   # push other shards over budget.
   test-features-i:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -325,14 +325,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_performance.py \
@@ -341,9 +334,13 @@ jobs:
             tests/features/test_app_ready.py \
             tests/features/test_number_clarity.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # J/K: files that were never listed in any shard until #415 (~82 / ~71 tests).
   test-features-j:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -359,14 +356,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_p1_batch2.py \
@@ -378,9 +368,14 @@ jobs:
             tests/features/test_data_export.py \
             tests/features/test_report_range_utils.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
-  # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml.
+  # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml,
+  # and test_async_submit_guard.py, a static scan for account/debt Submit clicks with no wait (#592).
   test-features-k:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -396,27 +391,26 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/features/test_reconciliation_statement_range.py \
             tests/features/test_home_purchase.py \
             tests/features/test_transfers.py \
             tests/features/test_code_splitting.py \
+            tests/features/test_harness.py \
             tests/features/test_ci_shard_coverage.py \
+            tests/features/test_async_submit_guard.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Integration
   # ---------------------------------------------------------------------------
   test-integration:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -432,20 +426,17 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: pytest tests/integration -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # UI — split into 3 parallel shards (bin-packed by test count: a=83, b=85, c=86)
   # ---------------------------------------------------------------------------
   test-ui-a:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -461,14 +452,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/ui/test_accessibility.py \
@@ -477,8 +461,12 @@ jobs:
             tests/ui/test_remaining_pages_print.py \
             tests/ui/test_reports_nav.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   test-ui-b:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -494,14 +482,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/ui/test_table_mobile_scroll.py \
@@ -522,8 +503,12 @@ jobs:
             tests/ui/test_mobile_no_card_clipping.py \
             tests/ui/test_mobile_clipping_fixes.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   test-ui-c:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -539,14 +524,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/ui/test_high_contrast_theme.py \
@@ -565,9 +543,13 @@ jobs:
             tests/ui/test_guide_theme.py \
             tests/ui/test_design_consistency.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # D: UI files that were never listed in any shard until #415 (~36 tests).
   test-ui-d:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -583,14 +565,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: |
           pytest \
             tests/ui/test_keyboard_shortcuts.py \
@@ -600,11 +575,15 @@ jobs:
             tests/ui/test_debt_card_layout.py \
             tests/ui/test_css_integrity.py \
             -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Security
   # ---------------------------------------------------------------------------
   test-security:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -620,20 +599,17 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: pytest tests/security -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Postgres (full stack — longer timeout is justified)
   # ---------------------------------------------------------------------------
   test-postgres:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -651,32 +627,8 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Create Docker secrets
-        run: |
-          mkdir -p secrets
-          echo "ci-test-password" > secrets/postgres_password.txt
-          touch secrets/smtp_password.txt
-      - name: Start full stack
-        run: |
-          docker compose up -d --build
-          for i in $(seq 1 60); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 2
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
-          for i in $(seq 1 30); do
-            docker inspect --format='{{.State.Health.Status}}' myfinances-server 2>/dev/null | grep -q "^healthy$" && break
-            sleep 2
-          done
-      - name: Run migrations
-        run: docker compose run --rm server npm run migrate up
-      - name: Seed test user
-        run: printf "testuser@example.com\nci-test-password\n" | docker compose run --rm -T server node scripts/create-user.js
+      - uses: ./.github/actions/start-stack
       - name: Run Postgres bootstrap tests
-        env:
-          POSTGRES_TEST_BASE_URL: http://localhost:32900
-          POSTGRES_TEST_EMAIL: testuser@example.com
-          POSTGRES_TEST_PASSWORD: ci-test-password
         run: pytest tests/postgres -v
       - name: Stop stack
         if: always()
@@ -686,6 +638,7 @@ jobs:
   # Accessibility audit
   # ---------------------------------------------------------------------------
   test-a11y:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -701,15 +654,11 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
       - run: playwright install --with-deps chromium
-      - name: Start static server
-        run: |
-          python -m http.server 32900 > /tmp/http-server.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - run: pytest tests/a11y -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Server node:test suite (server/test/*.test.js) against a real Postgres
@@ -803,6 +752,7 @@ jobs:
   # Lighthouse performance audit
   # ---------------------------------------------------------------------------
   lighthouse:
+    needs: build-images
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -812,21 +762,14 @@ jobs:
         uses: browser-actions/setup-chrome@v2
         with:
           chrome-version: stable
-      - name: Start app container
-        run: |
-          docker compose up -d --build myfinances
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:32900/ > /dev/null && break
-            sleep 1
-          done
-          curl -sf http://localhost:32900/ > /dev/null || exit 1
+      - uses: ./.github/actions/start-stack
       - name: Run Lighthouse CI
         run: npx --yes @lhci/cli@0.15.1 autorun
         env:
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
-      - name: Stop app container
+      - name: Stop stack
         if: always()
-        run: docker compose down
+        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Single required status check (issue #380). The main ruleset requires this
@@ -843,6 +786,7 @@ jobs:
     timeout-minutes: 5
     if: always()
     needs:
+      - build-images
       - test-features-a
       - test-features-b
       - test-features-c

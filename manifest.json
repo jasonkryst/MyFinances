@@ -2,7 +2,7 @@
   "id": "/",
   "name": "MyFinances",
   "short_name": "MyFinances",
-  "description": "Privacy-first personal finance tracker — debt payoff, budgets, net worth, all data stays in your browser.",
+  "description": "Privacy-first personal finance tracker — debt payoff, budgets, net worth, self-hosted, with your data kept in your own PostgreSQL server.",
   "categories": ["finance", "productivity"],
   "start_url": "/",
   "scope": "/",

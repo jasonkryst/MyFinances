@@ -13,6 +13,7 @@ export default createCrudResource({
         currentAmount: 'current_amount',
         monthlyContribution: 'monthly_contribution',
         autoContribute: 'auto_contribute',
+        autoSyncBalance: 'auto_sync_balance',
         notes: 'notes'
     }
 });

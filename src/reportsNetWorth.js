@@ -144,7 +144,7 @@ export function captureNetWorthSnapshot(app, options = {}) {
     }
     app.monthlySnapshots.sort((a, b) => a.date.localeCompare(b.date));
     app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgPut(app, `/api/net-worth-snapshots/${snapshot.date}`, snapshot);
+    pgPut(app, `/api/net-worth-snapshots/${snapshot.date}`, snapshot);
 
     if (!options.skipMilestone && baseline !== null) {
         const gainNow = snapshot.netWorth - baseline;

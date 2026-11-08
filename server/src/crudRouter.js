@@ -130,5 +130,7 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
         }
     });
 
+    // Exposed so test/fieldParity.test.js can compare columns to sanitizer output.
+    router.crudConfig = { table, columns, sanitize };
     return router;
 }

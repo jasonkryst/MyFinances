@@ -104,7 +104,7 @@ function _syncPaidMonth(app, tmpl, year, month) {
 }
 
 function _persistTemplate(app, tmpl) {
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${tmpl.id}`, tmpl);
+    pgPatch(app, `/api/recurring-templates/${tmpl.id}`, tmpl);
 }
 
 // Sets one occurrence's paid state on every leg. When `actualAmount` is a

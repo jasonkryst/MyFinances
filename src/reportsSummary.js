@@ -95,7 +95,7 @@ export function renderReportsSummary(app) {
 
     const cashFlowRows = [
         [t('reports.statIncome'), cf.income],
-        [t('reports.statBills'), cf.bills],
+        ...(app.bills?.length > 0 ? [[t('reports.statBills'), cf.bills]] : []),
         [t('reports.statExpenseBudgets'), cf.expenses],
         [t('reports.statRecurringCosts'), cf.recurring],
         [t('reports.statDebtMinimums'), cf.debtMin],

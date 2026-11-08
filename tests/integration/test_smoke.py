@@ -5,6 +5,7 @@ End-to-end test of major features in sequence.
 """
 
 import pytest
+from tests.conftest import open_debt_form, submit_account_form, submit_debt_form
 
 BASE_URL = "http://localhost:32900/"
 
@@ -21,7 +22,7 @@ def test_smoke_full_workflow(app_page):
     page.fill('#accountName', 'Smoke Checking')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '5000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     page.wait_for_selector('text=Smoke Checking', timeout=10000)
     assert page.query_selector('text=Smoke Checking'), "Account creation failed"
     
@@ -40,15 +41,14 @@ def test_smoke_full_workflow(app_page):
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
     page.fill('#debtName', 'Credit Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '2500')
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     assert page.query_selector('text=Credit Card'), "Debt creation failed"
     
     # 4. Check net worth
@@ -113,8 +113,10 @@ def test_smoke_account_to_networth(app_page):
         page.fill('#accountName', name)
         page.select_option('#accountType', label='Checking')
         page.fill('#accountStartingBalance', balance)
-        page.click('#accountFormSubmit')
-    
+        submit_account_form(page)
+        # add is a server round trip; wait for the card before adding the next
+        page.wait_for_selector(f'#accountList >> text={name}', timeout=10000)
+
     # Verify all accounts created
     for name, _ in accounts:
         assert page.query_selector(f'text={name}'), f"{name} not found"
@@ -135,8 +137,9 @@ def test_smoke_data_persistence(app_page):
     page.fill('#accountName', 'Persist Test')
     page.select_option('#accountType', label='Savings')
     page.fill('#accountStartingBalance', '9999')
-    page.click('#accountFormSubmit')
-    
+    submit_account_form(page)
+    page.wait_for_selector('#accountList >> text=Persist Test', timeout=10000)
+
     # Navigate away
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -160,7 +163,7 @@ def test_smoke_export_import(app_page):
     page.fill('#accountName', 'Export Test')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     from tests.conftest import open_data_transfer
     open_data_transfer(page)
