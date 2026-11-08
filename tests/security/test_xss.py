@@ -79,16 +79,23 @@ async def test_xss_in_debt_name(async_app_page):
     await page.select_option('#debtType', 'creditCard')
     await page.fill('#accountBalance', '2000')
     await page.fill('#interestRate', '18')
+    # Credit cards also require a minimum payment and due date. Without them
+    # validation rejected the submit, no debt was created, and the assertions
+    # below passed without testing anything (found by the #592 submit guard).
+    await page.fill('#minimumPayment', '50')
+    await page.fill('#dueDate', '15')
     await submit_debt_form_async(page)
-    
-    # Verify svg tag was escaped
+    await page.wait_for_selector('#debtsList .debt-name', timeout=10000)
+
+    # The debt must exist, its name must render as inert text, and no element
+    # carrying the onload handler may have been injected into the list.
     debt_text = await page.evaluate("""
-        () => {
-            const cards = document.querySelectorAll('.debt-card-name');
-            return cards.length > 0 ? cards[0].textContent : '';
-        }
+        () => document.querySelector('#debtsList .debt-name')?.textContent || ''
     """)
+    assert 'svg onload' in debt_text, f"Debt was not created with the payload name: {debt_text!r}"
     assert '<svg' not in debt_text, "SVG tag was not escaped!"
+    injected = await page.evaluate("() => document.querySelectorAll('#debtsList [onload]').length")
+    assert injected == 0, "An element with an onload handler was injected into the debt list"
 
 
 @pytest.mark.security

@@ -11,6 +11,8 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - New `tests/conftest.py` helpers: `submit_account_form` and `submit_debt_form` (plus `_async` twins) click Submit and wait for the save to finish; `open_debt_form` opens the Add Debt form only when it is closed. `create_account` and `create_debt` use them.
   - Every account and debt Submit click in `tests/` now waits, or is marked `# submit-no-wait: <reason>` where the save is meant not to finish (validation rejections, deliberately failed requests).
   - New `tests/features/test_async_submit_guard.py` (shard K) fails CI when a Submit click on either form is not followed by a wait.
+  - The guard exposed a test that tested nothing: `test_xss_in_debt_name` left a credit card's required fields blank, so validation rejected it and no debt was created, and it read a class (`.debt-card-name`) that debt cards don't use. It now creates the debt and checks that the name renders as inert text with no injected `onload` element.
+  - The negative fixed-amount debt test now checks `app.debts` and that the form stays open, instead of the page text straight after Submit.
 - **Plan-history tests wait for the history entry** (issue #543, PR #562, community contribution). They read `app.planHistory` before the server POST had returned.
 
 ### Maintenance
