@@ -12,6 +12,8 @@ wrapper, which hardcodes alert()/confirm()-based callbacks.
 
 import pytest
 
+from tests.conftest import seed_state
+
 
 @pytest.mark.feature
 def test_import_malformed_json_triggers_invalid_callback(app_page):
@@ -892,12 +894,7 @@ def test_interest_rate_survives_storage_round_trip(app_page):
     """A valid interestRate persists through saveToStorage -> reload."""
     page = app_page
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.accounts = [{ id: 1, name: 'HYSA', type: 'Savings', startingBalance: 1000, interestRate: 4.5 }];
-        app.saveToStorage();
-    }""")
-    page.reload(wait_until="networkidle")
+    seed_state(page, {'accounts': [{'id': 1, 'name': 'HYSA', 'type': 'Savings', 'startingBalance': 1000, 'interestRate': 4.5}]})
 
     rate = page.evaluate("() => window.app.accounts[0]?.interestRate")
     assert rate == 4.5, f"interestRate lost on reload: {rate}"

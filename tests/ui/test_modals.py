@@ -5,6 +5,7 @@ Tests modal functionality using CSS classes instead of inline styles.
 """
 
 import pytest
+from tests.conftest import open_debt_form, submit_account_form, submit_debt_form
 
 @pytest.mark.ui
 def test_modal_classes_not_styles(app_page):
@@ -135,21 +136,20 @@ def test_amortization_modal(app_page):
     page.fill('#accountName', 'Test Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Create debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
     page.fill('#debtName', 'Test Debt')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '2000')
     page.fill('#interestRate', '15')
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     
     # Navigate to strategy and open amortization
     page.click('button[data-page="strategy"]')

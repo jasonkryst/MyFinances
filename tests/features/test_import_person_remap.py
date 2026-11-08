@@ -12,6 +12,8 @@ import json
 
 import pytest
 
+from tests.conftest import seed_state
+
 
 def _import(page, payload, replace):
     return page.evaluate(
@@ -75,16 +77,17 @@ def test_replace_import_remaps_income_person(app_page):
 @pytest.mark.feature
 def test_merge_import_maps_income_to_existing_person_by_name(app_page):
     page = app_page
-    page.evaluate("window.app.persons = [{ id: 777, name: 'Alex' }]")
+    seed_state(page, {"persons": [{"id": 777, "name": "Alex"}]})
+    alex_id = page.evaluate("window.app.persons.find(p => p.name === 'Alex').id")
     payload = {"persons": PERSONS, "incomes": [_income("Paycheck", 5)]}
     assert _import(page, payload, False) == 'imported'
-    assert page.evaluate("window.app.incomes.find(i => i.name === 'Paycheck').personId") == 777
+    assert page.evaluate("window.app.incomes.find(i => i.name === 'Paycheck').personId") == alex_id
 
 
 @pytest.mark.feature
 def test_merge_import_maps_income_to_newly_created_person(app_page):
     page = app_page
-    page.evaluate("window.app.persons = [{ id: 777, name: 'Alex' }]")
+    seed_state(page, {"persons": [{"id": 777, "name": "Alex"}]})
     payload = {"persons": PERSONS, "incomes": [_income("Side", 6)]}
     assert _import(page, payload, False) == 'imported'
     assert _income_person_names(page)["Side"] == "Sam"
@@ -94,13 +97,15 @@ def test_merge_import_maps_income_to_newly_created_person(app_page):
 @pytest.mark.feature
 def test_merge_import_leaves_existing_income_untouched(app_page):
     page = app_page
-    page.evaluate("""() => {
-        window.app.persons = [{ id: 777, name: 'Alex' }];
-        window.app.incomes = [{ id: 1, name: 'Paycheck', amount: 5, firstPayDate: '2026-01-02', frequency: 'monthly', personId: 777 }];
-    }""")
+    seed_state(page, {
+        "persons": [{"id": 777, "name": "Alex"}],
+        "incomes": [{"id": 1, "name": "Paycheck", "amount": 5, "firstPayDate": "2026-01-02",
+                     "frequency": "monthly", "personId": 777}],
+    })
+    alex_id = page.evaluate("window.app.persons.find(p => p.name === 'Alex').id")
     payload = {"persons": PERSONS, "incomes": [_income("Paycheck", 6)]}
     assert _import(page, payload, False) == 'imported'
-    assert page.evaluate("window.app.incomes.filter(i => i.name === 'Paycheck').map(i => i.personId)") == [777]
+    assert page.evaluate("window.app.incomes.filter(i => i.name === 'Paycheck').map(i => i.personId)") == [alex_id]
 
 
 @pytest.mark.feature

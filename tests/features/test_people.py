@@ -6,6 +6,7 @@ and data persistence across page reloads.
 """
 
 import pytest
+from tests.conftest import submit_account_form
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ def _create_account_then_nav_income(page):
     page.fill('#accountName', 'Test Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     _nav_income(page)
 
 

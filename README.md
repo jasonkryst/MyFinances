@@ -7,26 +7,27 @@
 
 _A modern, privacy-first web app to track accounts, debts, income, and spending, helping you plan and visualize your path to financial freedom._
 
-All calculations happen locally in your browser — no accounts required. An optional self-hosted Node.js + PostgreSQL backend is available for multi-device sync (see [DEPLOYMENT.md](DEPLOYMENT.md)).
+Self-hosted: your data lives in your own PostgreSQL server. MyFinances runs as a small Docker stack (nginx + Node.js API + PostgreSQL) that you deploy yourself (see [DEPLOYMENT.md](DEPLOYMENT.md)); the calculations run in your browser, and your data syncs across every device you sign in from. Since 7.0.0 the server is required: browser-only storage was removed.
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: August 31, 2026 | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: November 4, 2026 (v7.0.0, [report](docs/audit/security/SECURITY_AUDIT_2026-11-04.md)) | **Last Scan**: 0 HIGH, 0 MEDIUM; CodeQL 0 open alerts
 
 ---
 
 ## 🚀 Quick Start
 
 ```bash
-# Development (Python)
-python -m http.server 32900
-
-# Docker (recommended for consistent environments)
+# Run the stack (nginx + API + PostgreSQL); first time: ./setup.sh or .\setup.ps1
 docker compose up -d        # Build and run at http://localhost:32900
 docker compose down         # Stop
 
-# Open browser
+# Frontend development: bind-mount the working tree so edits need only a refresh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Open browser and sign in (or create the account on first run)
 http://localhost:32900
 
-# Run tests
+# Run tests (needs the running stack; set TEST_EMAIL/TEST_PASSWORD for its user;
+# tests WIPE the server's data, so never point them at real data)
 pytest tests/ -v                  # Run all tests
 pytest tests/security/ -v         # Security tests only
 pytest tests/features/ -v         # Feature tests only
@@ -46,15 +47,14 @@ For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
 MyFinances prioritizes your financial data security:
 
 ### Security Features
-- ✅ **Zero Data Transmission** — All data stays on your device
+- ✅ **Self-Hosted Data** — Your data goes only to the server you deploy; nothing is sent to third parties
 - ✅ **XSS Prevention** — All user input sanitized and HTML-encoded via `escapeHtml()`
 - ✅ **Strong CSP** — `script-src 'self' https://cdn.jsdelivr.net`, `style-src 'self'` — no inline scripts or styles (plus `googletagmanager.com`/`google-analytics.com`, allow-listed for the opt-in analytics feature below but never contacted unless you configure it)
 - ✅ **Security Headers** — X-Content-Type-Options, X-Frame-Options, frame-ancestors protection
-- ✅ **No External Dependencies** — Vanilla JavaScript (no npm supply-chain risk)
+- ✅ **Minimal Dependencies** — Vanilla JavaScript frontend with no npm packages; the server uses a small set of npm packages (Express, `pg`, argon2, nodemailer) covered by Dependency Review and Trivy
 - ✅ **Secure File Imports** — JSON validation + 2 MB size limit + full re-sanitization on import
 - ✅ **Input Validation** — Numeric bounds, date validation, text sanitization at every entry point
-- ✅ **Client-Side Only (default)** — No server, no authentication surface
-- ✅ **Optional Postgres Backend** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request, NIST-style new-password rules with an optional Have I Been Pwned breach check, and a Settings → Security change-password form
+- ✅ **Authenticated Server** — argon2id password hashing, server-side sessions (opaque token), httpOnly/Secure/SameSite=Strict cookies, CSRF double-submit tokens on every mutating request, NIST-style new-password rules with an optional Have I Been Pwned breach check, and a Settings → Security change-password form
 
 ### Continuous Security Scanning
 The CI pipeline runs five automated scans on every push and pull request to `main`:
@@ -67,10 +67,10 @@ The CI pipeline runs five automated scans on every push and pull request to `mai
 All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/MyFinances/security) as SARIF reports.
 
 ### Privacy Guarantee
-- ✅ All calculations run entirely in your browser
-- ✅ No data is sent to any server
-- ✅ No accounts, no tracking, no analytics by default — self-hosters can opt their own instance into Google Analytics via an env var (see [DEPLOYMENT.md](DEPLOYMENT.md)); nothing is ever sent to Google unless you configure it
-- ✅ Data stored only in your browser's `localStorage` (same-origin isolated)
+- ✅ Self-hosted: your data lives in your own PostgreSQL server, behind your own sign-in
+- ✅ No data is sent to anyone but that server
+- ✅ No tracking and no analytics by default — self-hosters can opt their own instance into Google Analytics via an env var (see [DEPLOYMENT.md](DEPLOYMENT.md)); nothing is ever sent to Google unless you configure it
+- ✅ No financial data is kept in browser storage; only device preferences such as theme and language are
 
 ### Documentation
 - [SECURITY.md](SECURITY.md) — Detailed security practices, CSP policy, vulnerability reporting
@@ -84,13 +84,13 @@ All findings feed into the [GitHub Security tab](https://github.com/jasonkryst/M
 ### Navigation & Accessibility
 - **Grouped main navigation** — Three labeled groups: **Overview** (Health, Accounts, Income), **Manage** (Liabilities, Recurring, Savings, Plan), **Analyze** (Reports, Ledger, Reconcile, Retirement); active-group highlighting, `aria-current`, hamburger menu on ≤768px
 - **Command palette** — Ctrl/Cmd+K or the 🔍 toolbar button opens a fuzzy-search jump list across all 11 pages and common actions; Arrow-key navigation, Enter to activate, Escape restores focus; full `role="dialog"` / `role="listbox"` ARIA semantics
-- **Theme selector (Light / Dark / High Contrast)** — 3-way selector in the Settings modal (gear icon); preference persisted to localStorage. High Contrast targets WCAG AA/AAA with pure black surfaces, bright accent colors, and a bold focus outline on every interactive element; command palette includes a "Cycle theme" action
+- **Theme selector (Light / Dark / High Contrast)** — 3-way selector in the Settings modal (gear icon); preference saved on this device. High Contrast targets WCAG AA/AAA with pure black surfaces, bright accent colors, and a bold focus outline on every interactive element; command palette includes a "Cycle theme" action
 - **Print / Save as PDF** — 🖨️ Print button on every page; `@media print` hides forms/controls so only read-only data content prints; browser print-to-PDF doubles as a PDF export
 - **Keyboard navigation** — all interactive elements reachable by keyboard; modals trap focus and Escape-to-close; calendar day-cells keyboard-activatable
 - **Accessible control names** — every button/tab has an accessible name; per-item Edit/Delete/Save/Cancel buttons name the item (e.g. `Delete Visa card`), toggle chips expose `aria-pressed`, and sortable column headers expose `aria-sort` plus a direction-aware label (#331); enforced by `tests/ui/test_aria_labels.py`
 - **Reduced motion** — `prefers-reduced-motion: reduce` collapses all CSS transitions/animations; `Chart.defaults.animation` disabled app-wide when the OS preference is set
 - **Screen-reader chart tables** — every Chart.js canvas has a paired visually-hidden `.sr-only` `<table>` with the same data, rebuilt on every chart re-render via `renderChartDataTable()` in `utils.js`
-- **localStorage quota monitoring** — soft-warning banner when usage crosses ~80% of the estimated 5 MB limit; hard-failure banner if `setItem` actually throws
+- **Save-failure banner** — if a change can't be saved to the server, a persistent banner says so (no silent data loss); if the server can't be reached at startup, a full-page screen offers "Try again"
 - **In-app guide** — the ❓ Help button opens `guide.html` in a new tab; theme (including High Contrast) follows the main app preference
 - **$0 ledger amount policy** — Settings → Advanced lets you Allow, Warn about, or Block $0 amounts in ledger overrides and recurring templates (transfers always need more than $0)
 - **Language support (English / Español / Polski)** — switch languages from the Settings modal (gear icon). Every page, pop-up and chart is translated, including Ledger-generated transaction names, and number/date formatting follows the selected language. Changing the language re-renders the page you're on.
@@ -151,7 +151,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 - **Expense budgets** — variable monthly spending targets with date tracking (for calendar and ledger); inline editing in the list
 - **Bills** — fixed monthly costs with due day and category (data model; no standalone add UI — use Recurring Templates for new fixed costs)
 - **Cash Flow Summary** — live panel: Income − Debt minimums − Bills − Budgeted expenses = Net remaining
-- **Persisted to storage** — expenses and bills are saved to localStorage and included in JSON export/import
+- **Persisted to the server** — expenses and bills are saved to PostgreSQL and included in JSON export/import
 
 ---
 
@@ -226,7 +226,7 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 ---
 
 ### Data Management
-- **Persistent storage** — all data auto-saved to `localStorage`; key `debtTrackerData`, format `"4.0.0"`. Optional: switch to a self-hosted PostgreSQL backend for multi-device sync
+- **Server storage** — every change is saved to your PostgreSQL server as you make it; sign in from any device to see the same data. Data left in a browser by a pre-7.0 version is offered for a one-time import (or download/removal) after sign-in
 - **JSON export** — one-click full backup including accounts, debts, income, bills, expenses, recurring templates, snapshots, overrides, reconciliations, and settings
 - **JSON import** — Replace (full restore) or Merge (append debts; restore income, bills, expenses, overrides); legacy v1.0 files accepted; 2 MB max; full re-sanitization after import; a collapsible warning list reports any coerced fields or rejected records, and a malformed file shows the specific parse error inline
 - **CSV export** — debt payment schedule + per-debt summary; Ledger CSV with custom column picker
@@ -234,9 +234,9 @@ Internal links on each card navigate directly to the relevant page (Savings, Lia
 
 ---
 
-### Installable & Offline (PWA)
+### Installable (PWA)
 - **Add to Home Screen / Install** — `manifest.json` plus a generated icon set (`icons/`) make the app installable as a standalone app on desktop and mobile
-- **Offline app shell** — a service worker (`sw.js`) precaches the app shell on first visit, so the app loads with zero network connectivity afterward (your saved data already lives in `localStorage`, so nothing about it depends on the network either way)
+- **Cached app shell** — a service worker (`sw.js`) precaches the app shell, so the page itself loads quickly; your data always comes from the server (`/api`, `/auth` and `/calendar.ics` are never cached), and with no connection the app shows a "can't reach your server" screen instead of stale data
 - **Current releases** — while online, stable app-shell URLs revalidate before use so Chrome receives newly deployed HTML, JavaScript, and styles instead of retaining an older cached release
 - **Update prompt** — when a new version is deployed, a dismissible banner offers to reload rather than silently swapping assets mid-session
 
@@ -328,10 +328,10 @@ src/
   ├─ ui.js                 — Event listeners, page navigation, mobile menu
   ├─ commandPalette.js     — Ctrl+K command palette
   ├─ keyboardShortcuts.js  — Keyboard Shortcuts help panel (KEYBOARD_SHORTCUTS single source of truth)
-  ├─ settings.js           — App settings (reconciliation mode, storage backend, etc.)
-  ├─ setupWizard.js        — First-run setup wizard + storage backend switcher
-  ├─ loginGate.js          — Full-page login gate overlay (PostgreSQL backend only)
-  ├─ storageAdapters.js    — Storage backend adapters (LocalStorage / Session / Postgres)
+  ├─ settings.js           — App settings (reconciliation mode, $0 policy, etc.)
+  ├─ setupWizard.js        — First-run setup wizard + Settings modal wiring
+  ├─ loginGate.js          — Full-page sign-in / first-run setup gate
+  ├─ serverUnreachableGate.js — Full-page "can't reach your server" gate with Try again
   ├─ serviceWorker.js      — Service worker registration
   ├─ i18n.js               — Internationalization (t(), locale switching, applyStaticTranslations)
   ├─ locales/              — i18n locale dictionaries (en.js, es.js, pl.js)
@@ -366,7 +366,7 @@ src/
   ├─ reportsSummary.js     — Reports summary metrics
   ├─ forecast.js           — Cash Flow Forecast (Reports tab)
   ├─ charts.js             — Chart rendering & lifecycle
-  ├─ storage.js            — Persistence (save/load/quota/backend switching)
+  ├─ storage.js            — Boot probe, load from the server, plan-settings save, clear all
   ├─ sanitizers.js         — Sanitizers for persisted/imported record shapes
   ├─ dataExport.js         — JSON/CSV export & import
   ├─ dataTransferModal.js  — Postgres-to-local data transfer modal
@@ -379,7 +379,7 @@ src/
   ├─ guideTheme.js         — Applies saved dark-mode theme to guide.html
   ├─ guideNav.js           — In-app guide navigation helpers
   └─ utils.js              — Formatting, date utilities, sanitization, chart tables
-server/                     — Optional self-hosted Node.js + PostgreSQL backend
+server/                     — Self-hosted Node.js + PostgreSQL API (required since 7.0.0)
   ├─ src/index.js          — Express app (auth, CRUD routes, CSRF, rate-limiting)
   ├─ migrations/           — node-pg-migrate SQL migration files
   ├─ scripts/create-user.js — Bootstrap admin user (argon2id hashed)
@@ -397,11 +397,11 @@ tests/ (778 tests across 81 files)
   │   ├─ test_expenses.py, test_recurring.py, test_recurring_occurrences.py
   │   ├─ test_ledger.py, test_reports.py, test_savings.py, test_networth.py
   │   ├─ test_health.py, test_forecast.py, test_reconciliation.py
-  │   ├─ test_spending_analysis.py, test_storage_import.py, test_storage_quota.py
+  │   ├─ test_spending_analysis.py, test_storage_import.py, test_sync_error_banner.py
   │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
   │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py, test_versioning.py
   │   ├─ test_break_even.py, test_interest_income.py, test_i18n.py, test_i18n_coverage.py
-  │   ├─ test_storage_backend.py, test_pwa.py, test_pwa_icons.py, test_analytics.py
+  │   ├─ test_server_only_storage.py, test_pwa.py, test_pwa_icons.py, test_analytics.py
   │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py, test_validation_modals.py
   │   └─ test_issue_92_export.py, test_issue_93_expense_save.py
   ├─ ui/ (249 tests)          — UI/UX, responsiveness, accessibility
@@ -419,7 +419,7 @@ tests/ (778 tests across 81 files)
   ├─ integration/ (18 tests)  — End-to-end workflows, import/export, data persistence
   │   ├─ test_smoke.py, test_workflows.py, test_interest_income_workflow.py
   │   └─ test_pwa_offline.py
-  └─ postgres/ (47 tests — requires Docker stack)
+  └─ postgres/ (Postgres-specific: auth, import, mutations, legacy data)
       ├─ test_postgres_bootstrap.py     — Auth, login gate, session handling
       ├─ test_postgres_import.py        — loadFromPostgres fan-out + import round-trip
       ├─ test_postgres_mutations.py     — Per-resource CRUD via pgPost/pgPatch/pgDelete
@@ -450,7 +450,7 @@ icons/                        — Generated PWA icon set (tools/generate-icons.j
 ### Key Technologies
 
 - **Frontend**: Vanilla ES6+ JavaScript — no frameworks, no build step
-- **Storage**: Browser localStorage (same-origin isolated); optional self-hosted PostgreSQL backend
+- **Storage**: Self-hosted PostgreSQL via a Node.js + Express API (required)
 - **Charts**: Chart.js 4.4.3 via CDN
 - **Testing**: pytest + Playwright (browser automation)
 
@@ -547,7 +547,7 @@ form-action 'self'
 - **Spending Analysis** — Category breakdowns, month-over-month trends
 - **Settings** — Reconciliation mode persistence and import/export round-trip
 - **Storage Import** — Sanitizer primitives, adversarial inputs for all record types, legacy v1.0 format
-- **Storage Quota** — Soft warning at ~80%, dismissibility, re-arming, hard-failure on write error
+- **Server-only storage** — persistence across reload, unreachable/login gates, no financial keys in browser storage, save-failure banner
 - **Main Nav Groups** — Grouped navigation structure (Overview/Manage/Analyze)
 - **Break-Even Analysis** — badge no-plan and plan-active states, min-type toggle, accelerate modal (open/preview/apply), plan table columns, fixed-amount exclusion, edge cases (0% APR, balance=minimum, invalid percent, $0/$negative extra)
 - **Analytics** — optional self-hosted Google Analytics stays off with no `window.__ENV__.GA_MEASUREMENT_ID`; injects `gtag.js`/`dataLayer` when it's present; `index.html`/`guide.html` wiring
@@ -624,25 +624,24 @@ npm run test:mutation     # Stryker mutation run (HTML report at reports/mutatio
 | Edge | 79+ | ✅ Full |
 | IE 11 | — | ❌ Not supported |
 
-**Required**: ES6+ JavaScript, localStorage enabled, CSS Grid & Flexbox, CSS custom properties.
+**Required**: ES6+ JavaScript, cookies enabled (for sign-in), CSS Grid & Flexbox, CSS custom properties, and a reachable MyFinances server.
 
 ---
 
 ## 🚀 Deployment
 
 ```bash
-# Development
-python -m http.server 32900
+docker compose up -d        # nginx + API + PostgreSQL at http://localhost:32900
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for Nginx, Apache, and Docker configurations including security headers, HTTPS, and caching.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the Docker stack, secrets, reverse proxy, HTTPS and backups.
 
 ---
 
 ## 🐛 Troubleshooting
 
 **My data disappeared.**
-> Browser storage may have been cleared. Use **Backup & Restore → Export** regularly as a portable JSON backup you can re-import any time.
+> Your data lives in the server's PostgreSQL volume. Check that you signed in to the right server, and that the volume wasn't removed (`docker compose down -v` deletes it). Use **Backup & Restore → Export** regularly as a portable JSON backup you can re-import any time.
 
 **Import says "duplicate skipped" but I wanted to update.**
 > Delete or rename the existing item first, then re-import. Or use inline editing to update manually.
@@ -660,10 +659,10 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for Nginx, Apache, and Docker configurations 
 > Check that JavaScript is enabled and no CSP violations appear in the browser console.
 
 **Data isn't persisting between refreshes.**
-> Verify localStorage is enabled. Safari may require explicit permission in Storage settings.
+> If the "Couldn't save your last change" banner appeared, the server rejected or never received the change. Check the server logs (`docker compose logs server`) and your connection, then reload to see what's saved.
 
-**The storage quota warning appeared.**
-> Export a JSON backup immediately. Consider clearing old net-worth snapshots or unused data to free space.
+**"Can't reach your server" appears.**
+> The app could not reach the API. Check that the stack is running (`docker compose ps`), then press **Try again**.
 
 ---
 

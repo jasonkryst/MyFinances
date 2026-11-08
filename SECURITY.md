@@ -2,18 +2,18 @@
 
 ## Overview
 
-MyFinances is a client-side personal finance tracking application with strong security practices. This document outlines the security measures implemented and best practices for deployment and usage.
+MyFinances is a self-hosted personal finance tracking application with strong security practices: a browser frontend backed by your own Node.js + PostgreSQL server. This document outlines the security measures implemented and best practices for deployment and usage.
 
 ## Security Architecture
 
-### Client-Side Only (Default)
-- **No Backend Server (default)**: All data is stored locally in the browser's localStorage
-- **No Network Transmission**: Financial data never leaves your machine
-- **No API Calls**: Eliminates server vulnerabilities
-- **Offline Capable**: Works without internet connection
+### Self-Hosted Server Storage (since 7.0.0)
+- **Your server only**: All financial data is stored in your own PostgreSQL server; the browser talks only to that server (same origin) and to the Chart.js CDN
+- **No financial data in browser storage**: Only device preferences (theme, language, currency, Ledger view state) and an unfinished-reconciliation draft live in `localStorage`. `tests/security/test_no_browser_financial_storage.py` enforces this allowlist statically
+- **No cached API responses**: The service worker is network-only for `/api/`, `/auth/` and `/calendar.ics`, so financial data never lands in Cache Storage
+- **Fails closed**: If the server cannot be reached the app shows a blocking "Can't reach your server" screen, never stale or local data
 
-### Optional PostgreSQL Backend
-An opt-in self-hosted Node.js + PostgreSQL backend adds multi-device sync with strong server-side security:
+### Server Security
+The Node.js + PostgreSQL server protects that data with:
 - **argon2id password hashing** — industry-standard, tuned cost factors
 - **Server-side sessions** — opaque tokens hashed before storage; never stored in plain text
 - **httpOnly / Secure / SameSite=Strict cookies** — session token unreachable from JavaScript
@@ -129,23 +129,21 @@ form-action 'self'
 
 ### 5. Data Storage
 
-#### LocalStorage
-- **Scope**: Same-origin policy enforced by browser
-- **Encryption**: Browser handles encryption at rest
-- **Isolation**: Other origins cannot access data
-- **Format**: Valid JSON only
+#### Server (PostgreSQL)
+- **Every write re-sanitized**: the server re-runs the same `sanitize*` functions as the frontend before storing a record
+- **Secrets**: in the Docker stack the database password is a Docker secret, not an environment variable
+- **At rest**: protect the `postgres-data` volume and any `pg_dump` backups like the data itself (dumps are not encrypted)
 
-#### No Sensitive Data Storage
-- ❌ No passwords
-- ❌ No API keys
-- ❌ No authentication tokens
-- ✅ Theme preference (non-sensitive)
+#### Browser Storage
+- ❌ No financial data, passwords, API keys or authentication tokens in `localStorage`/`sessionStorage`
+- ✅ Device preferences only (theme, language, currency, Ledger filters/columns, What's New version) plus an unfinished-reconciliation draft
+- The session token is an httpOnly cookie, unreadable from JavaScript; pre-7.0 browser data (`debtTrackerData`) is removed after the one-time import or download prompt
 
-### 6. No External Dependencies
+### 6. Minimal Dependencies
 
-- **Vanilla JavaScript**: No npm packages to audit
-- **No Third-Party Libraries**: Except Chart.js from CDN (for visualization only)
-- **No Vulnerable Dependencies**: All code is self-contained
+- **Vanilla JavaScript frontend**: No npm packages are shipped to the browser
+- **One frontend library**: Chart.js from CDN (for visualization only)
+- **Small server dependency set**: Express, `pg`, argon2, nodemailer, `express-rate-limit`, `cookie-parser` and `node-pg-migrate`, checked by Dependency Review and Trivy
 - **Code Review Easy**: All source code is readable and auditable
 
 ## Deployment Security
@@ -238,11 +236,13 @@ For production deployment:
 - Use reputable antivirus software
 - Lock device when not in use
 
-### 4. Local Storage
-- Understand localStorage is readable by any JavaScript
-- Only use on trusted devices
-- Clear browser data if compromised
-- Never share device with untrusted users
+### 4. Server Access
+- Serve the stack only over HTTPS (session cookies are `Secure`)
+- Sign out on shared devices; changing your password signs out every other session
+- Keep the host, Docker images and backups protected; anyone with the database volume or a dump can read the data
+- Leave `ALLOW_SETUP` unset except while creating the first account
+- Never put the test-only variables (`TEST_BASE_URL`, `TEST_EMAIL`, `TEST_PASSWORD`) in the production stack, and never point the test suite at a production server: it wipes all data before every test
+- Treat downloaded `myfinances-browser-backup-*.json` files (from the 7.0.0 legacy-data prompt) and JSON exports like the database: they hold your full financial data unencrypted
 
 ## Security Testing
 
@@ -297,33 +297,39 @@ If you discover a security vulnerability:
 
 ## Security Audit Results
 
-**Most Recent Audit**: August 31, 2026
+**Most Recent Audit**: November 4, 2026 (v7.0.0, PostgreSQL-only storage). Full report: [SECURITY_AUDIT_2026-11-04.md](docs/audit/security/SECURITY_AUDIT_2026-11-04.md)
 
 ### Summary
 - Risk Level: **LOW**
-- Status: **PASSED**
-- No Critical Vulnerabilities: **YES**
+- Status: **PASSED**. No High or Medium vulnerabilities introduced by 7.0.0
+- Live tooling at audit time: CodeQL 0 open alerts, Trivy pass, dependency-review pass, secret scanning 0 open alerts, `tests/security/` pass
+- Dependabot: 2 open alerts, both in the dev-only Jest/Stryker toolchain (`minimatch` medium, `deepmerge` low); nothing shipped to the browser or server is affected
 
 ### Key Findings
-- ✅ All input properly sanitized
-- ✅ No XSS vulnerabilities
-- ✅ Strong CSP implemented
-- ✅ Secure file upload handling
-- ✅ No dangerous code patterns
-- ✅ Client-side only (no server vulnerabilities)
-- ✅ No sensitive data exposure
-- ✅ Proper error handling
+- ✅ All input sanitized client-side and re-sanitized server-side on every write
+- ✅ No XSS: new UI (server-unreachable gate, sync-error banner, legacy-data modal) uses `textContent`/i18n only; legacy JSON never reaches `innerHTML`
+- ✅ Strong CSP, unchanged and kept in sync between `index.html` and `nginx.conf`
+- ✅ Server auth: argon2id, httpOnly session cookies, CSRF double-submit, rate limiting. Required for every deployment since 7.0.0
+- ✅ A write rejected with 401 is retried once after re-login; it can't double-apply, because the session check runs before any route handler
+- ✅ No financial data in browser storage, enforced by static and runtime tests
+- ✅ No financial data in the service-worker cache: `/api`, `/auth` and `/calendar.ics` are network-only, and the server sends `Cache-Control: no-store` on `/api` and `/auth` (this closed a pre-7.0 exposure)
+- ✅ Migration 031 is static DDL; all SQL values are bound parameters
 
-For full audit reports, see: [docs/audit/security/](docs/audit/security/)
+### Open Low-severity follow-ups
+- #473: harden the browser-storage static scanner
+- #475: test-harness session cache file permissions and atomic writes
+- #477: encode the ledger-override key in its PUT/DELETE URL
+
+Earlier reports: [docs/audit/security/](docs/audit/security/)
 
 ## Security Improvements Completed
 
 The following previously planned enhancements are now shipped:
-- ✅ **Progressive Web App (PWA)** — `sw.js` service worker for offline capability and app-shell caching
-- ✅ **Optional server-side auth** — argon2id + session cookies + CSRF for the Postgres backend
+- ✅ **Progressive Web App (PWA)** — `sw.js` service worker for installability and app-shell caching (never caches `/api`, `/auth` or `/calendar.ics`)
+- ✅ **Server-side auth** — argon2id + session cookies + CSRF, required for every deployment since 7.0.0
 
 Remaining considerations:
-- [ ] localStorage encryption (browser-side, optional for highly sensitive deployments)
+- [ ] Encryption at rest for the database volume and backups (today: host/disk encryption)
 - [ ] Password protection for JSON exports
 
 ## Compliance
@@ -336,8 +342,8 @@ Remaining considerations:
 ### Privacy
 - ✓ No data collection by default
 - ✓ No tracking by default — self-hosters may opt their own instance into Google Analytics (see CSP section above)
-- ✓ No external API calls unless you enable that opt-in analytics or the optional self-hosted Postgres backend
-- ✓ Local storage only (unless the optional Postgres backend is configured)
+- ✓ No external API calls beyond your own server and the Chart.js CDN, unless you enable that opt-in analytics
+- ✓ Self-hosted: your data lives in your own PostgreSQL server
 
 ## Security Contacts
 
@@ -345,6 +351,6 @@ For security-related questions or concerns, please contact the repository mainta
 
 ---
 
-**Last Updated:** August 31, 2026  
-**Version:** 1.1  
+**Last Updated:** November 4, 2026  
+**Version:** 1.2  
 **Status:** Production-Ready

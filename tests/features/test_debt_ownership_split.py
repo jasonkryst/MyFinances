@@ -11,6 +11,8 @@ import json
 
 import pytest
 
+from tests.conftest import seed_state
+
 
 # -- Helpers ------------------------------------------------------------------
 
@@ -57,22 +59,24 @@ def _pct_values(page, root='#debtOwnership'):
     return [float(i.input_value()) for i in _pct_inputs(page, root)]
 
 
-def _seed_people_and_debt(page, split, person_names=('Alex', 'Sam'), **debt_extra):
-    """Seeds persons + one debt linked to all of them, returns (person_ids, debt_id)."""
-    return page.evaluate(
-        """([names, split, extra]) => {
-            const app = window.app;
-            app.persons = names.map((n, i) => ({ id: 9100 + i, name: n }));
-            const ids = app.persons.map(p => p.id);
-            const sp = split ? Object.fromEntries(split.map((f, i) => [ids[i], f])) : null;
-            app.debts = [{ id: 9200, name: 'Mortgage', debtType: 'creditCard', accountBalance: 1000,
-                originalBalance: 1000, interestRate: 5, minimumPayment: 100, originalMinimumPayment: 100,
-                dueDate: 5, priority: null, accountId: null, personIds: ids, ownershipSplit: sp, ...extra }];
-            app.saveToStorage();
-            app.updateUI();
-            return [ids, 9200];
-        }""",
-        [list(person_names), split, debt_extra])
+def _seed_people_and_debt(page, split, person_names=('Alex', 'Sam'), extra_persons=(), **debt_extra):
+    """Seeds persons + one debt linked to all of them through the server,
+    returns (server person_ids, debt_id)."""
+    seed_ids = [100 + i for i in range(len(person_names))]
+    debt = {'id': 200, 'name': 'Mortgage', 'debtType': 'creditCard', 'accountBalance': 1000,
+            'originalBalance': 1000, 'interestRate': 5, 'minimumPayment': 100,
+            'originalMinimumPayment': 100, 'dueDate': 5, 'priority': None, 'accountId': None,
+            'personIds': seed_ids,
+            'ownershipSplit': ({str(i): f for i, f in zip(seed_ids, split)} if split else None)}
+    debt.update(debt_extra)
+    seed_state(page, {
+        'persons': [{'id': i, 'name': n} for i, n in zip(seed_ids, person_names)]
+                   + [{'id': 300 + i, 'name': n} for i, n in enumerate(extra_persons)],
+        'debts': [debt],
+    })
+    # Server-assigned ids, in the order of person_names (the app's list order isn't guaranteed).
+    return page.evaluate("""(names) => [names.map(n => window.app.persons.find(p => p.name === n).id),
+                                      window.app.debts[0].id]""", list(person_names))
 
 
 def _import(page, payload, replace):
@@ -220,7 +224,7 @@ def test_ownership_inputs_are_labelled_and_names_escaped(app_page):
     }""")
     _nav_debts(page)
     _open_debt_form(page)
-    page.wait_for_function("document.querySelectorAll('#debtPersons option').length === 2")
+    page.wait_for_function("() => document.querySelectorAll('#debtPersons option').length === 2")
     page.select_option('#debtPersons', value=['1', '2'])
     page.wait_for_selector('#debtOwnership:not(.hidden)')
     assert page.query_selector('#debtOwnership #pwn') is None, "Person name must be escaped"
@@ -239,19 +243,23 @@ def test_inline_edit_prefills_and_saves_split(app_page):
     root = f'#inline-ownership-{debt_id}'
     page.wait_for_selector(f'{root}:not(.hidden)', timeout=5000)
     assert page.is_checked(f'{root} input[value="custom"]')
-    assert _pct_values(page, root) == [70.0, 30.0]
+    # Input order is whatever the app renders; read it from the inputs' data-person-id.
+    order = [int(v) for v in page.eval_on_selector_all(
+        f'{root} [data-ownership-pct]', 'els => els.map(e => e.dataset.personId)')]
+    pct = {ids[0]: 70.0, ids[1]: 30.0}
+    assert _pct_values(page, root) == [pct[p] for p in order]
     page.fill(f'{root} [data-ownership-pct] >> nth=0', '20')
     assert _pct_values(page, root) == [20.0, 80.0]
     page.click('[data-debt-action="save-inline"]')
     page.wait_for_selector('#debtsList [data-ownership-split]', timeout=5000)
     split = page.evaluate("window.app.debts[0].ownershipSplit")
-    assert split[str(ids[0])] == pytest.approx(0.2) and split[str(ids[1])] == pytest.approx(0.8)
+    assert split[str(order[0])] == pytest.approx(0.2) and split[str(order[1])] == pytest.approx(0.8)
     # Switching to "Shared equally" clears the split.
     page.click('[data-debt-action="edit"]')
     page.wait_for_selector(f'{root}:not(.hidden)')
     page.check(f'{root} input[value="equal"]')
     page.click('[data-debt-action="save-inline"]')
-    page.wait_for_function("window.app.editingDebtId === null")
+    page.wait_for_function("() => window.app.editingDebtId === null")
     assert page.evaluate("window.app.debts[0].ownershipSplit") is None
     # Dropping to one person also clears it and hides the control.
     page.evaluate("window.app.debts[0].ownershipSplit = {'%d': 0.7, '%d': 0.3}" % tuple(ids))
@@ -265,7 +273,10 @@ def test_inline_edit_prefills_and_saves_split(app_page):
 @pytest.mark.feature
 def test_split_display_escapes_person_names(app_page):
     page = app_page
-    _seed_people_and_debt(page, [0.6, 0.4], person_names=('<img src=x onerror="window.__xss=1">', 'Sam'))
+    _seed_people_and_debt(page, [0.6, 0.4], person_names=('Mallory', 'Sam'))
+    # The server strips markup characters from names, so inject the hostile name into
+    # memory (no write) and check the renderer escapes it.
+    page.evaluate('''() => { window.app.persons.find(p => p.name === 'Mallory').name = '<img src=x onerror="window.__xss=1">'; }''')
     _nav_debts(page)
     el = page.wait_for_selector('#debtsList [data-ownership-split]')
     assert page.evaluate("window.__xss") is None
@@ -454,7 +465,6 @@ def test_export_import_round_trip_preserves_split(app_page):
 def test_split_survives_reload(app_page):
     page = app_page
     _seed_people_and_debt(page, [0.6, 0.4])
-    page.wait_for_function("(localStorage.getItem('debtTrackerData') || '').includes('ownershipSplit')")
     page.reload()
     page.wait_for_selector('#healthSection.active', timeout=5000)
     split = page.evaluate("window.app.debts[0].ownershipSplit")
@@ -464,13 +474,11 @@ def test_split_survives_reload(app_page):
 @pytest.mark.feature
 def test_legacy_debt_without_field_loads_as_equal_share(app_page):
     page = app_page
-    page.evaluate("""() => {
-        localStorage.setItem('debtTrackerData', JSON.stringify({
-            persons: [{ id: 1, name: 'Alex' }, { id: 2, name: 'Sam' }],
-            debts: [{ id: 5, name: 'Old', debtType: 'creditCard', accountBalance: 100, minimumPayment: 10,
-                      interestRate: 5, dueDate: 3, personIds: [1, 2] }]
-        }));
-    }""")
+    seed_state(page, {
+        'persons': [{'id': 1, 'name': 'Alex'}, {'id': 2, 'name': 'Sam'}],
+        'debts': [{'id': 5, 'name': 'Old', 'debtType': 'creditCard', 'accountBalance': 100,
+                   'minimumPayment': 10, 'interestRate': 5, 'dueDate': 3, 'personIds': [1, 2]}],
+    }, reload=False)
     page.reload()
     page.wait_for_selector('#healthSection.active', timeout=5000)
     assert page.evaluate("window.app.debts[0].ownershipSplit") is None
@@ -489,7 +497,7 @@ def _delete_person(page, person_id, replacement=None):
     page.click('#personReplacementConfirmBtn')
     page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)
     page.click('#deleteConfirmBtn')
-    page.wait_for_function(f"!window.app.persons.some(p => p.id === {person_id})")
+    page.wait_for_function(f"() => !window.app.persons.some(p => p.id === {person_id})")
 
 
 @pytest.mark.feature
@@ -498,7 +506,7 @@ def test_delete_person_removes_key_and_renormalizes(app_page):
     ids, _ = _seed_people_and_debt(page, [0.5, 0.3, 0.2], person_names=('A', 'B', 'C'))
     _delete_person(page, ids[1])
     d = page.evaluate("window.app.debts[0]")
-    assert d['personIds'] == [ids[0], ids[2]]
+    assert sorted(d['personIds']) == sorted([ids[0], ids[2]])
     assert str(ids[1]) not in d['ownershipSplit']
     assert d['ownershipSplit'][str(ids[0])] == pytest.approx(0.5 / 0.7)
     assert d['ownershipSplit'][str(ids[2])] == pytest.approx(0.2 / 0.7)
@@ -511,7 +519,7 @@ def test_delete_person_moves_share_to_replacement(app_page):
     ids, _ = _seed_people_and_debt(page, [0.5, 0.3, 0.2], person_names=('A', 'B', 'C'))
     _delete_person(page, ids[1], replacement=ids[2])
     d = page.evaluate("window.app.debts[0]")
-    assert d['personIds'] == [ids[0], ids[2]]
+    assert sorted(d['personIds']) == sorted([ids[0], ids[2]])
     assert d['ownershipSplit'][str(ids[0])] == pytest.approx(0.5)
     assert d['ownershipSplit'][str(ids[2])] == pytest.approx(0.5)
 
@@ -529,13 +537,13 @@ def test_delete_person_leaving_one_owner_clears_split(app_page):
 @pytest.mark.feature
 def test_delete_person_with_replacement_not_yet_linked(app_page):
     page = app_page
-    ids, _ = _seed_people_and_debt(page, [0.6, 0.4])
-    page.evaluate("window.app.persons.push({ id: 9300, name: 'Newbie' })")
-    _delete_person(page, ids[1], replacement=9300)
+    ids, _ = _seed_people_and_debt(page, [0.6, 0.4], extra_persons=('Newbie',))
+    newbie = page.evaluate("window.app.persons.find(p => p.name === 'Newbie').id")
+    _delete_person(page, ids[1], replacement=newbie)
     d = page.evaluate("window.app.debts[0]")
-    assert d['personIds'] == [ids[0], 9300]
+    assert sorted(d['personIds']) == sorted([ids[0], newbie])
     assert d['ownershipSplit'][str(ids[0])] == pytest.approx(0.6)
-    assert d['ownershipSplit']['9300'] == pytest.approx(0.4)
+    assert d['ownershipSplit'][str(newbie)] == pytest.approx(0.4)
 
 
 # -- Income stays single-owner ---------------------------------------------------

@@ -226,14 +226,10 @@ def test_app_loads_without_error_when_service_worker_unsupported(page):
     """Simulates an old/unsupported browser (no navigator.serviceWorker at all) and confirms the
     app still loads and functions -- PWA support must be a progressive enhancement, not a hard
     dependency."""
-    from tests.conftest import BASE_URL
+    from tests.conftest import BASE_URL, ensure_session
+    ensure_session(page.context)
     page.add_init_script("""
         Object.defineProperty(window.navigator, 'serviceWorker', { value: undefined, configurable: true });
-        try {
-            if (!localStorage.getItem('debtTrackerData')) {
-                localStorage.setItem('debtTrackerData', JSON.stringify({ accounts: [], debts: [], settings: [] }));
-            }
-        } catch (e) {}
     """)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     assert page.is_visible('h1')

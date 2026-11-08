@@ -138,7 +138,7 @@ def test_back_to_top_scrolls_to_top(page):
     page.evaluate('() => window.scrollTo(0, 800)')
     page.wait_for_selector('#backToTop.back-to-top--visible', timeout=5000)
     page.click('#backToTop')
-    page.wait_for_function('window.scrollY === 0', timeout=5000)
+    page.wait_for_function('() => window.scrollY === 0', timeout=5000)
 
     assert page.evaluate('() => window.scrollY') == 0
 

@@ -6,6 +6,8 @@ Tests input bounds checking, sanitization, and validation.
 
 import pytest
 
+from tests.conftest import seed_state_async, submit_account_form_async, submit_debt_form_async, open_debt_form_async
+
 BASE_URL = "http://localhost:32900/"
 
 
@@ -21,8 +23,10 @@ async def test_negative_balance(async_app_page):
     await page.fill('#accountName', 'Negative Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '-5000')
-    await page.click('#accountFormSubmit')
-    
+    await submit_account_form_async(page)
+    # the add is a server round trip; wait for the card to render
+    await page.wait_for_selector('.acct-card-name', timeout=10000)
+
     # Verify account was created (negative balances are allowed)
     account_name = await page.evaluate("""
         () => {
@@ -47,8 +51,10 @@ async def test_special_characters_in_names(async_app_page):
     await page.fill('#accountName', special_name)
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
-    
+    await submit_account_form_async(page)
+    # the add is a server round trip; wait for the card to render
+    await page.wait_for_selector('.acct-card-name', timeout=10000)
+
     # Verify name is stored (special characters should be preserved but dangerous ones removed)
     account_text = await page.evaluate("""
         () => {
@@ -74,8 +80,10 @@ async def test_very_large_amount(async_app_page):
     await page.fill('#accountName', 'Large Amount Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', large_amount)
-    await page.click('#accountFormSubmit')
-    
+    await submit_account_form_async(page)
+    # the add is a server round trip; wait for the card to render
+    await page.wait_for_selector('.acct-card-name', timeout=10000)
+
     # Account should be created
     account_text = await page.evaluate("""
         () => {
@@ -98,8 +106,10 @@ async def test_decimal_amounts(async_app_page):
     await page.fill('#accountName', 'Decimal Test')
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1234.56')
-    await page.click('#accountFormSubmit')
-    
+    await submit_account_form_async(page)
+    # the add is a server round trip; wait for the card to render
+    await page.wait_for_selector('.acct-card-name', timeout=10000)
+
     # Verify account was created with decimal amount
     account_name = await page.evaluate("""
         () => {
@@ -125,8 +135,8 @@ async def test_empty_string_input(async_app_page):
     await page.fill('#accountStartingBalance', '1000')
     
     # App should prevent submission or handle gracefully
-    await page.click('#accountFormSubmit')
-    
+    await page.click('#accountFormSubmit')  # submit-no-wait: empty name is rejected by validation, so the form never resets
+
     # Check if error message appears or form is still visible
     form_visible = await page.evaluate("""
         () => !!document.querySelector('#accountFormSubmit')
@@ -143,7 +153,7 @@ async def test_interest_rate_bounds(async_app_page):
     # Navigate to debts
     await page.click('button[data-page="liabilities"]')
     await page.click('[data-liabilities-subtab="debts"]')
-    await page.click('#debtFormToggle')
+    await open_debt_form_async(page)
     
     # Test with very high interest rate
     await page.fill('#debtName', 'High Interest Test')
@@ -152,8 +162,9 @@ async def test_interest_rate_bounds(async_app_page):
     await page.fill('#interestRate', '99.99')
     await page.fill('#minimumPayment', '50')
     await page.fill('#dueDate', '15')
-    await page.click('#debtFormSubmit')
-    
+    await submit_debt_form_async(page)
+    await page.wait_for_selector('.debt-name', timeout=10000)
+
     # Verify debt was created despite unrealistic interest rate
     debt_name = await page.evaluate("""
         () => {
@@ -235,7 +246,7 @@ async def test_recurring_day_of_month_bounds(async_app_page):
     await page.fill('#accountName', 'Recurring Bounds Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
 
     await page.click('button[data-page="recurring"]')
     await page.wait_for_selector('#recurringSection.active', timeout=5000)
@@ -270,7 +281,7 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     await page.fill('#accountName', 'EF Bounds Checking')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -397,21 +408,26 @@ async def test_reconciliation_note_truncated_on_save_reload(async_app_page):
     """A reconciliation note longer than 200 characters is truncated on save/reload."""
     page = async_app_page
 
-    result = await page.evaluate("""async () => {
+    await seed_state_async(page, {
+        "accounts": [{"id": 7503, "name": "Recon Truncate", "type": "Checking", "startingBalance": 1000}],
+    })
+
+    await page.evaluate("""async () => {
         const app = window.app;
-        app.accounts = [{ id: 7503, name: 'Recon Truncate', type: 'Checking', startingBalance: 1000 }];
-        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.reconciliations = [];
-
         const longNote = 'x'.repeat(250);
-        await app.applyReconciliation(7503, 1100, longNote, '2026-06-10');
-        app.saveToStorage();
-        app.loadFromStorage();
-        return { noteLength: app.reconciliations[0].note.length };
+        await app.applyReconciliation(app.accounts[0].id, 1100, longNote, '2026-06-10');
     }""")
+    # Wait for the server copy, then reload so the note comes back from the server.
+    for _ in range(100):
+        rows = await page.evaluate("async () => (await fetch('/api/reconciliations')).json()")
+        if rows:
+            break
+        await page.wait_for_timeout(100)
+    await page.reload()
+    await page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    note_length = await page.evaluate("() => window.app.reconciliations[0].note.length")
 
-    assert result['noteLength'] == 200
+    assert note_length == 200
 
 
 @pytest.mark.security
@@ -428,8 +444,10 @@ async def test_unicode_in_names(async_app_page):
     await page.fill('#accountName', unicode_name)
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
-    
+    await submit_account_form_async(page)
+    # the add is a server round trip; wait for the card to render
+    await page.wait_for_selector('.acct-card-name', timeout=10000)
+
     # Verify account was created with unicode
     account_text = await page.evaluate("""
         () => {
@@ -442,26 +460,23 @@ async def test_unicode_in_names(async_app_page):
 
 @pytest.mark.security
 async def test_sanitize_recurring_template_paid_months(async_app_page):
-    """sanitizeRecurringTemplate (via save/reload) strips malformed paidMonths
+    """sanitizeRecurringTemplate (through the import path and a server round trip) strips malformed paidMonths
     entries, keeping only 'YYYY-MM' strings."""
     page = async_app_page
 
+    await seed_state_async(page, {
+        'accounts': [{'id': 8301, 'name': 'Paid Months Sanitize', 'type': 'Checking', 'startingBalance': 100}],
+        'recurringTemplates': [{
+            'id': 8302, 'name': 'Sanitize Sub', 'type': 'subscription', 'amount': 10,
+            'frequency': 'monthly', 'dayOfMonth': 1, 'category': 'Subscription',
+            'accountId': 8301, 'targetAccountId': None,
+            'startDate': '2026-01-01', 'endDate': None,
+            'paused': False, 'skippedMonths': [],
+            'paidMonths': ['2026-06', 123, 'not-a-month', '26-06', '2026-006'],
+        }],
+    })
     result = await page.evaluate("""() => {
-        const app = window.app;
-        app.accounts = [{ id: 8301, name: 'Paid Months Sanitize', type: 'Checking', startingBalance: 100 }];
-        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.emergencyFunds = []; app.sinkingFunds = []; app.reconciliations = [];
-        app.recurringTemplates = [{
-            id: 8302, name: 'Sanitize Sub', type: 'subscription', amount: 10,
-            frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
-            accountId: 8301, targetAccountId: null,
-            startDate: '2026-01-01', endDate: null,
-            paused: false, skippedMonths: [],
-            paidMonths: ['2026-06', 123, 'not-a-month', '26-06', '2026-006']
-        }];
-        app.saveToStorage();
-        app.loadFromStorage();
-        const t = app.recurringTemplates.find(x => x.id === 8302);
+        const t = window.app.recurringTemplates.find(x => x.name === 'Sanitize Sub');
         return { paidMonths: t ? t.paidMonths : null };
     }""")
 
@@ -470,24 +485,19 @@ async def test_sanitize_recurring_template_paid_months(async_app_page):
 
 @pytest.mark.security
 async def test_sanitize_setting_rejects_xss_and_object_values(async_app_page):
-    """sanitizeSetting (via save/reload) escapes/truncates string values via
+    """sanitizeSetting (through the import path and a server round trip) escapes/truncates string values via
     normalizeText, and drops entries whose value is an object/array/function
     rather than a boolean, number, or string."""
     page = async_app_page
 
-    result = await page.evaluate("""() => {
-        const app = window.app;
-        app.settings = [
-            { key: 'xssString', value: '<script>alert(1)</script>' },
-            { key: 'objectValue', value: { evil: true } },
-            { key: 'arrayValue', value: [1, 2, 3] },
-            { key: 'boolValue', value: true },
-            { key: '<img src=x onerror=alert(1)>', value: 'attempted key xss' }
-        ];
-        app.saveToStorage();
-        app.loadFromStorage();
-        return app.settings;
-    }""")
+    await seed_state_async(page, {'settings': [
+        {'key': 'xssString', 'value': '<script>alert(1)</script>'},
+        {'key': 'objectValue', 'value': {'evil': True}},
+        {'key': 'arrayValue', 'value': [1, 2, 3]},
+        {'key': 'boolValue', 'value': True},
+        {'key': '<img src=x onerror=alert(1)>', 'value': 'attempted key xss'},
+    ]})
+    result = await page.evaluate("() => window.app.settings")
 
     by_key = {s['key']: s for s in result}
     assert 'objectValue' not in by_key, "Object values must be dropped"

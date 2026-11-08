@@ -13,8 +13,10 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, seed_state, wait_for_api
 
+# Seed ids. The server assigns its own ids when data is seeded, so _seed()
+# rebinds these to the real ids and every helper below reads them at call time.
 ACCT = 7341
 ACCT2 = 7342
 TID = 9341
@@ -25,24 +27,64 @@ def _mk():
     return f"{t.year}-{t.month:02d}"
 
 
-def _tx_id(account=ACCT, day=1, tid=TID):
+def _tx_id(account=None, day=1, tid=None):
+    account = ACCT if account is None else account
+    tid = TID if tid is None else tid
     t = date.today()
     return f"recurring|{tid}|{account}|{t.year}-{t.month:02d}-{day:02d}"
 
 
-def _seed(page, templates, accounts=None, cleared=None, overrides=None):
+def _seed_server(page, templates, accounts=None):
+    """Seed accounts + recurring templates through the server (no reload). Returns the accounts list."""
     accounts = accounts or [{"id": ACCT, "name": "Sync Checking", "type": "Checking", "startingBalance": 1000}]
-    page.evaluate(f"""() => {{
-        const app = window.app;
-        app.accounts = {json.dumps(accounts)};
-        app.recurringTemplates = {json.dumps(templates)};
-        app.incomes = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.emergencyFunds = []; app.sinkingFunds = []; app.transfers = [];
-        app.ledgerClearedTransactions = {json.dumps(cleared or {})};
-        app.ledgerAmountOverrides = {json.dumps(overrides or {})};
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }}""")
+    seed_state(page, {"accounts": accounts, "recurringTemplates": templates}, reload=False)
+    return accounts
+
+
+def _rebind_ids(page, accounts, templates):
+    global ACCT, ACCT2, TID
+    real = page.evaluate("""() => ({
+        accounts: Object.fromEntries(window.app.accounts.map(a => [a.name, a.id])),
+        templates: window.app.recurringTemplates.map(t => ({ name: t.name, id: t.id })),
+    })""")
+    mapping = {}
+    for a in accounts:
+        mapping[a["id"]] = real["accounts"][a["name"]]
+    old_tid = templates[0]["id"] if templates else TID
+    if templates:
+        mapping[old_tid] = next(t["id"] for t in real["templates"] if t["name"] == templates[0]["name"])
+    ACCT = mapping.get(ACCT, ACCT)
+    ACCT2 = mapping.get(ACCT2, ACCT2)
+    TID = mapping.get(old_tid, TID)
+    return mapping
+
+
+def _remap_key(key, mapping):
+    kind, tid, acct, day = key.split("|")
+    return "|".join([kind, str(mapping.get(int(tid), tid)), str(mapping.get(int(acct), acct)) if acct.isdigit() else acct, day])
+
+
+def _seed(page, templates, accounts=None, cleared=None, overrides=None):
+    accounts = _seed_server(page, templates, accounts)
+    page.reload()
+    mapping = _rebind_ids(page, accounts, templates)
+    if cleared or overrides:
+        page.evaluate("""async ({ cleared, overrides }) => {
+            const app = window.app;
+            const { pgPut } = await import('/src/postgresSync.js');
+            for (const [k, v] of Object.entries(cleared)) {
+                app.ledgerClearedTransactions[k] = { clearedKey: k, ...v };
+                await pgPut(app, `/api/ledger-cleared/${k}`, v);
+            }
+            for (const [k, v] of Object.entries(overrides)) {
+                app.ledgerAmountOverrides[k] = { overrideKey: k, ...v };
+                await pgPut(app, `/api/ledger-overrides/${k}`, { ...v, overrideKey: k });
+            }
+        }""", {
+            "cleared": {_remap_key(k, mapping): v for k, v in (cleared or {}).items()},
+            "overrides": {_remap_key(k, mapping): v for k, v in (overrides or {}).items()},
+        })
+    page.evaluate("() => window.app.switchPage('recurring')")
     page.wait_for_selector('#recurringSection.active', timeout=5000)
 
 
@@ -147,7 +189,9 @@ def test_paid_state_survives_reload(app_page):
     _open_modal(page)
     page.fill('#recurringActualAmountInput', '61.5')
     page.click('#recurringMarkPaidConfirmBtn')
-    page.evaluate("() => window.flushStorageSave && window.flushStorageSave()")
+    # Mutations are fire-and-forget: be sure the server has both before reloading.
+    wait_for_api(page, '/api/ledger-cleared', lambda rows: any(r['clearedKey'] == _tx_id() for r in rows))
+    wait_for_api(page, '/api/ledger-overrides', lambda rows: any(r['overrideKey'] == _tx_id() for r in rows))
     page.reload(wait_until="networkidle")
     page.evaluate("() => window.app.switchPage('recurring')")
     page.wait_for_selector(f'#recurring-card-{TID}', timeout=5000)
@@ -262,15 +306,26 @@ def test_legacy_paid_month_and_amount_migrate_to_ledger_on_load(app_page):
     """Pre-#434 data (paidMonths + paidAmounts on the template) migrates into the ledger maps on reload."""
     page = app_page
     mk = _mk()
-    page.evaluate(f"""() => {{
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{{}}');
-        d.accounts = [{{ id: {ACCT}, name: 'Sync Checking', type: 'Checking', startingBalance: 1000 }}];
-        d.recurringTemplates = [{json.dumps(_tmpl(paidMonths=[mk], paidAmounts={mk: 70}))}];
-        d.ledgerClearedTransactions = {{}};
-        d.ledgerAmountOverrides = {{}};
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }}""")
-    page.reload(wait_until="networkidle")
+    accounts = _seed_server(page, [_tmpl(paidMonths=[mk])])
+    page.reload()
+    _rebind_ids(page, accounts, [_tmpl()])
+    # paidAmounts was never persisted to Postgres, so the server can't hand legacy amounts
+    # back on load (and the load-time reconcile has already cleared the month from paidMonths
+    # alone). Rewind to the pre-#434 shape in memory -- paidMonths + paidAmounts, nothing
+    # cleared -- and run the same reconcile that runs on load.
+    changed = page.evaluate("""async ([tid, mk]) => {
+        const app = window.app;
+        const { pgDelete } = await import('/src/postgresSync.js');
+        for (const k of Object.keys(app.ledgerClearedTransactions)) {
+            delete app.ledgerClearedTransactions[k];
+            pgDelete(app, `/api/ledger-cleared/${k}`);
+        }
+        const t = app.recurringTemplates.find(x => x.id === tid);
+        t.paidMonths = [mk];
+        t.paidAmounts = { [mk]: 70 };
+        return app.reconcileRecurringPaidState();
+    }""", [TID, mk])
+    assert changed is True
     page.evaluate("() => window.app.switchPage('recurring')")
     page.wait_for_selector(f'#recurring-card-{TID}', timeout=5000)
 

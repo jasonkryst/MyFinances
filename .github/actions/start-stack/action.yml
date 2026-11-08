@@ -1,0 +1,54 @@
+name: Start MyFinances stack
+description: >
+  Loads the prebuilt stack images (from the build-images job), starts nginx +
+  server + Postgres with docker compose, pre-creates the test user, and exports
+  the TEST_* / POSTGRES_TEST_* variables the pytest harness reads. Honors an
+  inherited COMPOSE_FILE (test-postgres adds the mailpit override).
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v8
+      with:
+        name: stack-images
+        path: ${{ runner.temp }}/stack-images
+    - name: Load images
+      shell: bash
+      run: zstd -d -c "${{ runner.temp }}/stack-images/images.tar.zst" | docker load
+    - name: Create Docker secrets
+      shell: bash
+      run: |
+        mkdir -p secrets
+        echo "ci-db-password" > secrets/postgres_password.txt
+        : > secrets/smtp_password.txt
+    - name: Start stack
+      shell: bash
+      run: |
+        docker compose up -d --no-build
+        for i in $(seq 1 60); do
+          curl -sf http://localhost:32900/ > /dev/null && break
+          sleep 2
+        done
+        curl -sf http://localhost:32900/ > /dev/null || { docker compose logs; exit 1; }
+        for i in $(seq 1 60); do
+          docker inspect --format='{{.State.Health.Status}}' myfinances-server 2>/dev/null | grep -q "^healthy$" && break
+          sleep 2
+        done
+        docker inspect --format='{{.State.Health.Status}}' myfinances-server | grep -q "^healthy$" || { docker compose logs server; exit 1; }
+    - name: Create test user
+      shell: bash
+      env:
+        TEST_EMAIL: testuser@example.com
+        TEST_PASSWORD: ci-Test-Passphrase-2026!
+      run: |
+        printf '%s\n%s\n' "$TEST_EMAIL" "$TEST_PASSWORD" | docker compose run --rm -T server node scripts/create-user.js
+    - name: Export test environment
+      shell: bash
+      run: |
+        {
+          echo 'TEST_BASE_URL=http://localhost:32900/'
+          echo 'TEST_EMAIL=testuser@example.com'
+          echo 'TEST_PASSWORD=ci-Test-Passphrase-2026!'
+          echo 'POSTGRES_TEST_BASE_URL=http://localhost:32900'
+          echo 'POSTGRES_TEST_EMAIL=testuser@example.com'
+          echo 'POSTGRES_TEST_PASSWORD=ci-Test-Passphrase-2026!'
+        } >> "$GITHUB_ENV"

@@ -34,13 +34,22 @@ async def test_inactive_group_labels_dimmed(async_app_page):
     """After loading (health active), the Manage and Analyze group labels should have lower-opacity/different background than Overview."""
     page = async_app_page
 
-    result = await page.evaluate('''() => {
-        const labels = [...document.querySelectorAll('#topNav .nav-group-label')];
-        return labels.map(l => ({
-            text: l.textContent.trim(),
-            bg: window.getComputedStyle(l).backgroundColor,
-        }));
-    }''')
+    # The label background carries a 0.15s transition and the active group is applied once
+    # the page settles, so poll computed styles until they stop changing instead of sampling once.
+    await page.wait_for_selector('#topNav .page-button.active', timeout=10000)
+    result = []
+    for _ in range(40):
+        result = await page.evaluate('''() => {
+            const labels = [...document.querySelectorAll('#topNav .nav-group-label')];
+            return labels.map(l => ({
+                text: l.textContent.trim(),
+                bg: window.getComputedStyle(l).backgroundColor,
+            }));
+        }''')
+        bgs = {r['text']: r['bg'] for r in result}
+        if len(result) == 3 and bgs.get('Overview') not in (bgs.get('Manage'), bgs.get('Analyze')):
+            break
+        await page.wait_for_timeout(100)
     assert len(result) == 3, f"Expected 3 group labels, got {len(result)}"
     overview = next(r for r in result if r['text'] == 'Overview')
     manage   = next(r for r in result if r['text'] == 'Manage')

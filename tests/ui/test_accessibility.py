@@ -6,7 +6,7 @@ Tests keyboard navigation, ARIA labels, and screen reader compatibility.
 
 import pytest
 
-from tests.conftest import create_debt
+from tests.conftest import create_debt, seed_state, submit_account_form
 
 def _calculate_plan(page, debt_data):
     """Create a debt and run a payment plan so the Results tab bar renders."""
@@ -234,7 +234,7 @@ def test_reconcile_modal_tab_trap_cycles_focus(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     # The reconcile *modal* opens from the Ledger page's per-account filter
     # (not the Reconcile page's own inline reconcileAccount() form, a
@@ -270,7 +270,7 @@ def test_reconcile_modal_restores_focus_on_close(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
@@ -340,26 +340,17 @@ def test_account_replacement_modal_tab_trap_and_focus_restore(app_page, debt_dat
     no Tab trap and no focus-restore. Fixed 2026-09-03.
     """
     page = app_page
+    # Two accounts, the first linked to a debt, so deleting it triggers the replacement modal.
+    seed_state(page, {
+        'accounts': [
+            {'id': 1, 'name': 'Linked Account', 'type': 'Checking', 'startingBalance': 1000},
+            {'id': 2, 'name': 'Spare Account', 'type': 'Savings', 'startingBalance': 500},
+        ],
+        'debts': [{'name': 'Linked Debt', 'category': 'Credit Card', 'debtType': 'creditCard', 'priority': 1,
+                   'accountId': 1, 'accountBalance': 500, 'interestRate': 10, 'minimumPayment': 25, 'dueDate': 15}],
+    })
     page.click('button[data-page="accounts"]')
-    page.fill('#accountName', 'Linked Account')
-    page.select_option('#accountType', label='Checking')
-    page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
-    page.fill('#accountName', 'Spare Account')
-    page.select_option('#accountType', label='Savings')
-    page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
-
-    # Link a debt to the first account so deleting it triggers the replacement modal.
-    linked_account_id = page.evaluate("""() => {
-        const app = window.app;
-        const acct = app.accounts.find(a => a.name === 'Linked Account');
-        app.debts = [{ id: 9001, name: 'Linked Debt', category: 'Credit Card', debtType: 'creditCard',
-            priority: 1, accountId: acct.id, accountBalance: 500, interestRate: 10, minimumPayment: 25, dueDate: 15 }];
-        app.saveToStorage();
-        app.renderAccountsList();
-        return acct.id;
-    }""")
+    linked_account_id = page.evaluate("() => window.app.accounts.find(a => a.name === 'Linked Account').id")
 
     delete_btn = page.query_selector(f'button[data-account-action="delete"][data-account-id="{linked_account_id}"]')
     delete_btn.click()

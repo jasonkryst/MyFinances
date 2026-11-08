@@ -9,7 +9,7 @@ import json
 import tempfile
 import os
 
-from tests.conftest import assert_no_errors, open_settings, switch_settings_tab
+from tests.conftest import assert_no_errors, open_settings, seed_state, switch_settings_tab, wait_for_api, submit_account_form, submit_debt_form, open_debt_form
 
 ALL_NAV_PAGES = [
     "health", "accounts", "income", "liabilities", "recurring",
@@ -31,14 +31,13 @@ def test_export_data_format(app_page):
         # Export functionality should exist
         assert export_btn, "Export button should be available"
         
-        # Verify localStorage has valid data to export
-        data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-        if data:
-            try:
-                parsed = json.loads(data)
-                assert parsed, "Exported data should be valid JSON"
-            except json.JSONDecodeError:
-                pytest.fail("localStorage data is not valid JSON")
+        # The app state the export is built from must serialize to valid JSON
+        data = page.evaluate('() => JSON.stringify({ accounts: window.app.accounts, debts: window.app.debts })')
+        try:
+            parsed = json.loads(data)
+            assert parsed is not None, "Exported data should be valid JSON"
+        except json.JSONDecodeError:
+            pytest.fail("app state is not valid JSON")
 
 
 @pytest.mark.integration
@@ -49,14 +48,14 @@ def test_export_schedule_as_csv(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
+    open_debt_form(page)
     page.fill('#debtName', 'CSV Test Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '1000')
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     page.wait_for_selector('text=CSV Test Card', timeout=10000)
 
     page.click('button[data-page="strategy"]')
@@ -88,14 +87,14 @@ def test_export_csv_escapes_comma_in_debt_name(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
+    open_debt_form(page)
     page.fill('#debtName', 'Visa, Rewards Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '1000')
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     page.wait_for_function(
         "() => document.body.textContent.includes('Visa, Rewards Card')",
         timeout=10000
@@ -173,9 +172,8 @@ def test_import_json_file(app_page):
                 if page.is_visible('#importModeChoice'):
                     page.click('#importModeReplaceBtn')
 
-                # Verify data was imported
-                stored_data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-                assert stored_data, "Data should be imported"
+                # Verify data was imported: the server holds it
+                wait_for_api(page, '/api/accounts', lambda rows: any(r.get('name') == 'Import Test' for r in rows))
         finally:
             os.unlink(temp_file)
 
@@ -237,6 +235,8 @@ def test_import_refreshes_currently_active_page(app_page):
             page.click('#importModeReplaceBtn')
 
         # Still on the Accounts page the whole time -- no manual re-navigation.
+        # (The import is a series of server calls; the list re-renders when they finish.)
+        page.wait_for_selector('#accountList >> text=Refreshed Via Import Account', timeout=15000)
         account_list_text = page.evaluate("""() => {
             const el = document.getElementById('accountList');
             return el ? el.textContent : '';
@@ -259,7 +259,7 @@ def test_import_replaces_data(app_page):
     page.fill('#accountName', 'Original Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Import new data
     from tests.conftest import open_data_transfer
@@ -298,9 +298,10 @@ def test_import_replaces_data(app_page):
                 if page.is_visible('#importModeChoice'):
                     page.click('#importModeReplaceBtn')
 
-                # Data should be replaced
-                stored = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-                assert stored, "Import should update data"
+                # Data should be replaced on the server: old account gone, new one present
+                rows = wait_for_api(page, '/api/accounts',
+                                    lambda r: any(a.get('name') == 'New Imported Account' for a in r))
+                assert not any(a.get('name') == 'Original Account' for a in rows), "Replace must drop the old account"
         finally:
             os.unlink(temp_file)
 
@@ -309,53 +310,46 @@ def test_import_replaces_data(app_page):
 def test_roundtrip_export_import(app_page):
     """Test data survives export and re-import."""
     page = app_page
-    
+
     # Create account
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
     page.fill('#accountName', 'Roundtrip Test')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '7500')
-    page.click('#accountFormSubmit')
-    
-    # Get current data
-    original_data = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-    
-    if original_data:
-        # Export and re-import
-        from tests.conftest import open_data_transfer
-        open_data_transfer(page)
-        export_btn = page.query_selector('#exportJsonBtn')
-        import_btn = page.query_selector('#importJsonBtn')
+    submit_account_form(page)
+    wait_for_api(page, '/api/accounts', lambda rows: any(r.get('name') == 'Roundtrip Test' for r in rows))
 
-        if export_btn and import_btn:
-            # Simulate export by getting data
-            export_data = original_data
-            
-            # Re-import
-            parsed = json.loads(export_data)
-            
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(parsed, f)
-                temp_file = f.name
-            
-            try:
-                page.click('[data-dt-tab="import"]')
-                page.click('#importJsonBtn')
-                page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
+    # Export the real backup file
+    from tests.conftest import open_data_transfer
+    open_data_transfer(page)
+    with page.expect_download() as download_info:
+        page.click('#exportJsonBtn')
+    with open(download_info.value.path(), 'r', encoding='utf-8') as f:
+        exported = json.load(f)
+    assert any(a.get('name') == 'Roundtrip Test' for a in exported.get('accounts', []))
 
-                file_input = page.query_selector('#importJsonInput')
-                if file_input:
-                    file_input.set_input_files(temp_file)
-                    page.wait_for_selector('#importModeChoice, #importError', timeout=5000)
-                    if page.is_visible('#importModeChoice'):
-                        page.click('#importModeReplaceBtn')
+    # Re-import it over the (still populated) server
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(exported, f)
+        temp_file = f.name
 
-                    # Data should match
-                    reimported = page.evaluate('() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")')
-                    assert reimported, "Roundtrip data preservation failed"
-            finally:
-                os.unlink(temp_file)
+    try:
+        page.click('[data-dt-tab="import"]')
+        page.click('#importJsonBtn')
+        page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
+        page.query_selector('#importJsonInput').set_input_files(temp_file)
+        page.wait_for_selector('#importModeChoice, #importError', timeout=5000)
+        if page.is_visible('#importModeChoice'):
+            page.click('#importModeReplaceBtn')
+
+        # Data should match what was exported
+        rows = wait_for_api(page, '/api/accounts',
+                            lambda r: any(a.get('name') == 'Roundtrip Test' for a in r))
+        match = [a for a in rows if a.get('name') == 'Roundtrip Test']
+        assert len(match) == 1, "Roundtrip must not duplicate or lose the account"
+    finally:
+        os.unlink(temp_file)
 
 
 @pytest.mark.integration
@@ -368,7 +362,7 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     console/page errors.
 
     This exercises the full export -> clear -> reimport -> render path,
-    not just that localStorage contains *something* afterward.
+    not just that the server contains *something* afterward.
     """
     page = app_page
 
@@ -378,19 +372,19 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     page.fill('#accountName', 'Clear Test Checking')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '4200')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     page.wait_for_selector('text=Clear Test Checking', timeout=10000)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
+    open_debt_form(page)
     page.fill('#debtName', 'Clear Test Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '1500')
     page.fill('#interestRate', '20')
     page.fill('#minimumPayment', '75')
     page.fill('#dueDate', '10')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     page.wait_for_selector('text=Clear Test Card', timeout=10000)
 
     page.click('button[data-page="income"]')
@@ -434,10 +428,11 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     page.click('#alertModalOkBtn')
     page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
-    cleared_data = page.evaluate(
-        '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
-    )
-    assert not cleared_data, "App data should be removed after Clear All Data"
+    for path in ('/api/accounts', '/api/debts', '/api/incomes'):
+        wait_for_api(page, path, lambda rows: rows == [])
+
+    # No reload here on purpose: clearAllData() keeps the app on the server, so
+    # an import straight after the clear must reach it.
 
     # --- Re-import the previously exported backup ---
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
@@ -456,14 +451,9 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
         if page.is_visible('#importModeChoice'):
             page.click('#importModeReplaceBtn')
 
-        reimported = page.evaluate(
-            '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
-        )
-        assert reimported, "Re-import after clearing should repopulate localStorage"
-        reimported_parsed = json.loads(reimported)
-        assert reimported_parsed.get('accounts'), "Re-imported data should include the account"
-        assert reimported_parsed.get('debts'), "Re-imported data should include the debt"
-        assert reimported_parsed.get('incomes'), "Re-imported data should include the income"
+        wait_for_api(page, '/api/accounts', lambda rows: any(r.get('name') == 'Clear Test Checking' for r in rows))
+        wait_for_api(page, '/api/debts', lambda rows: any(r.get('name') == 'Clear Test Card' for r in rows))
+        wait_for_api(page, '/api/incomes', lambda rows: any(r.get('name') == 'Clear Test Salary' for r in rows))
         close_data_transfer(page)
 
         # --- Visit every top-level nav page and verify clean rendering ---
@@ -476,23 +466,26 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
 
 
 @pytest.mark.integration
-def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
-    """Clearing all data removes the storageKey entirely, so the next page
-    load is indistinguishable from a true first run and the setup wizard
-    must reappear, letting the user reconsider the reconciliation mode.
-
-    Uses the raw `page` fixture (not `app_page`) because `app_page`'s
-    init script re-seeds localStorage on every navigation, including the
-    reload this test relies on, which would mask the true first-run state
-    we're asserting on."""
-    from tests.conftest import BASE_URL
-
-    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=5000)
-    page.click('#setupWizardVisibleBtn')
-    page.wait_for_selector('#setupWizardModal', state='hidden', timeout=5000)
-
+def test_clear_all_data_then_reload_retriggers_setup_wizard(app_page):
+    """Clear All Data wipes every record and setting on the server, including
+    reconciliationAdjustsBalance, so the next load is a true first run (spec
+    §5 step 6) and the setup wizard reappears, letting the user reconsider the
+    reconciliation mode."""
+    page = app_page
+    seed_state(page, {
+        'accounts': [{'id': 1, 'name': 'Clear Mem Checking', 'type': 'Checking', 'startingBalance': 100}],
+        'recurringTemplates': [{
+            'id': 1, 'name': 'Clear Mem Sub', 'type': 'subscription', 'amount': 9,
+            'frequency': 'monthly', 'dayOfMonth': 1, 'category': 'Other', 'accountId': 1,
+        }],
+        'emergencyFunds': [{'id': 1, 'accountId': 1, 'targetAmount': 1000, 'monthlyContribution': 50}],
+    })
+    assert page.evaluate("() => window.app.recurringTemplates.length") == 1
+    assert page.evaluate("() => window.app.emergencyFunds.length") == 1
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(r.get('key') == 'reconciliationAdjustsBalance' and r.get('value') is True
+                                  for r in rows))
 
     open_settings(page)
     switch_settings_tab(page, 'data')
@@ -505,18 +498,18 @@ def test_clear_all_data_then_reload_retriggers_setup_wizard(page):
     page.click('#alertModalOkBtn')
     page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
 
-    cleared_data = page.evaluate(
-        '() => localStorage.getItem(window.app?.storageKey || "debtTrackerData")'
-    )
-    assert not cleared_data, "App data should be removed after Clear All Data"
+    wait_for_api(page, '/api/settings',
+                 lambda rows: not any(r.get('key') == 'reconciliationAdjustsBalance' for r in rows))
 
-    page.reload(wait_until="networkidle")
+    # Without a reload, memory matches the now-empty server: every collection
+    # pgDeleteAll wipes is reset in place too.
+    for coll in ('accounts', 'recurringTemplates', 'emergencyFunds', 'sinkingFunds',
+                 'monthlySnapshots', 'netWorthMilestonesAwarded'):
+        assert page.evaluate(f"() => window.app.{coll}.length") == 0, coll
 
-    modal = page.query_selector('#setupWizardModal')
-    assert modal, "Setup wizard modal should exist in the DOM"
-    classes = modal.get_attribute('class') or ''
-    assert 'flex-visible' in classes, "Setup wizard should reappear after a full data clear"
+    page.reload()
 
+    page.wait_for_selector('#setupWizardModal.flex-visible', timeout=10000)
     page.click('#setupWizardVisibleBtn')
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
     assert setting is False, "Choosing a fresh mode after the reset should not be influenced by the prior setting"

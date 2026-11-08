@@ -449,36 +449,6 @@ body.dark-mode .text-income {
     color: var(--text-muted, #6b7280);
 }
 
-.storage-quota-banner {
-    position: fixed;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9998;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    max-width: min(560px, 92vw);
-    padding: 12px 14px 12px 16px;
-    border-radius: 10px;
-    background: #b45309;
-    color: #fff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
-    font-size: 0.88rem;
-    line-height: 1.4;
-}
-
-.storage-quota-banner-close {
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 1.2rem;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 2px;
-    flex-shrink: 0;
-}
-
 .sw-update-banner {
     position: fixed;
     bottom: 16px;
@@ -522,21 +492,38 @@ body.dark-mode .text-income {
 }
 
 
-/* Postgres sync error toast */
-.pg-error-toast {
+/* Persistent sync error banner */
+.sync-error-banner {
     position: fixed;
     bottom: 16px;
     left: 16px;
     z-index: 9998;
-    max-width: min(400px, 90vw);
-    padding: 11px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    max-width: min(420px, 90vw);
+    padding: 11px 12px 11px 16px;
     border-radius: 10px;
     background: #dc2626;
     color: #fff;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
     font-size: 0.87rem;
     line-height: 1.4;
-    animation: toast-slide-in 0.25s ease forwards;
+}
+
+.sync-error-banner.hidden {
+    display: none;
+}
+
+.sync-error-banner-dismiss {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
 }
 
 .email-test-toast {

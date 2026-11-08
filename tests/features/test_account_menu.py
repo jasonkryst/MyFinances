@@ -160,15 +160,11 @@ def test_account_menu_calendar_feed_opens_modal(app_page):
 # ─── negative / edge cases ───────────────────────────────────────────────────
 
 @pytest.mark.feature
-def test_logout_item_hidden_in_local_storage_mode(app_page):
-    """Sign Out item is hidden when the storage backend is localStorage (no Postgres session)."""
+def test_logout_item_always_visible(app_page):
+    """The app is server-only (v7.0.0), so Sign Out is always offered."""
     page = app_page
-    # Default app_page fixture uses localStorage backend
     _open_account_menu(page)
-    logout_hidden = page.evaluate(
-        "() => document.getElementById('accountMenuLogoutBtn')?.classList.contains('hidden') ?? true"
-    )
-    assert logout_hidden, "Sign Out should be hidden in local-storage mode"
+    assert page.is_visible('#accountMenuLogoutBtn')
     assert_no_errors(page)
 
 
@@ -176,7 +172,7 @@ def test_logout_item_hidden_in_local_storage_mode(app_page):
 def test_email_hidden_when_no_user_email_set(app_page):
     """The email display line is hidden when app.userEmail is not set."""
     page = app_page
-    # app_page is local-storage mode — userEmail is not set
+    # app_page boots with an existing session cookie, so no sign-in set userEmail
     email_el_hidden = page.evaluate("""() => {
         const el = document.getElementById('accountMenuEmail');
         return !el || el.classList.contains('hidden') || el.textContent.trim() === '';

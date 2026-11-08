@@ -266,10 +266,6 @@
     display: none;
 }
 
-.cancel-edit-btn {
-    display: none;
-}
-
 .form-group.no-margin {
     margin: 0;
 }
@@ -981,11 +977,6 @@ body.dark-mode .cal-day-label {
     color: #64748b;
 }
 
-/* ── Comparison table best row ── */
-body.dark-mode .comparison-table tr.comparison-best td {
-    color: #86efac;
-}
-
 /* ── Input validation ── */
 body.dark-mode .input-error {
     background: #3b0f0f !important;
@@ -1379,9 +1370,6 @@ body.dark-mode .header-icon-btn:hover {
     background: rgba(255,255,255,0.12);
     color: #fff;
 }
-
-/* Keep old class names harmless if referenced elsewhere */
-.header-toolbar-btn { display: none; }
 
 /* ── Account menu dropdown ───────────────────────────────────────────────── */
 .account-menu-wrap {
@@ -3383,11 +3371,6 @@ body.dark-mode .ledger-nav-btn:hover { background: #334155; }
         display: none;
     }
 
-    .header-toolbar-btn {
-        padding: 4px 8px;
-        font-size: 0.72rem;
-    }
-
     .debt-details {
         flex-direction: column;
         gap: 5px;
@@ -3716,9 +3699,6 @@ body.dark-mode .debt-progress-note { color: #fbbf24; }
 .comparison-table tr.comparison-current td {
     font-weight: 600;
     background: #eff6ff;
-}
-.comparison-table tr.comparison-best td {
-    color: #166534;
 }
 .strat-badge {
     display: inline-block;
@@ -4844,20 +4824,9 @@ body.dark-mode .strategy-net--negative { background: #450a0a; color: #fca5a5; }
    BUDGET PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Two-column layout */
-.budget-two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 24px;
-}
 .budget-col { display: flex; flex-direction: column; }
-@media (max-width: 768px) {
-    .budget-two-col { grid-template-columns: 1fr; }
-}
 
 /* Column heading card */
-.budget-col-card,
 .budget-form-card {
     background: #fff;
     border: 1px solid #e5e7eb;
@@ -4866,7 +4835,6 @@ body.dark-mode .strategy-net--negative { background: #450a0a; color: #fca5a5; }
     margin-bottom: 12px;
     overflow: hidden;
 }
-body.dark-mode .budget-col-card,
 body.dark-mode .budget-form-card {
     background: #1e293b;
     border-color: #334155;
@@ -4923,14 +4891,12 @@ body.dark-mode .budget-form-toggle--open {
 }
 
 /* Legacy h3 inside budget cards (kept for non-collapsible uses) */
-.budget-col-card h3,
 .budget-form-card h3 {
     margin: 0 0 16px 0;
     font-size: 1rem;
     font-weight: 700;
     color: #1e293b;
 }
-body.dark-mode .budget-col-card h3,
 body.dark-mode .budget-form-card h3 { color: #f1f5f9; }
 
 /* Form grid inside budget forms */
@@ -4997,11 +4963,6 @@ body.dark-mode .budget-card-name { color: #f1f5f9; }
     font-size: 0.95rem;
 }
 body.dark-mode .budget-card-amount { color: #2dd4bf; }
-.budget-card-period {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: #94a3b8;
-}
 .budget-card-meta {
     font-size: 0.78rem;
     color: #64748b;
@@ -8386,7 +8347,8 @@ body.dark-mode .login-gate-header {
     min-height: 1.25rem;
     margin: 0.25rem 0 0.75rem;
 }
-.login-gate-submit {
+.login-gate-submit,
+.server-unreachable-retry {
     width: 100%;
     min-height: 48px;
     border-radius: 12px;
@@ -8396,11 +8358,13 @@ body.dark-mode .login-gate-header {
     box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
     transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
-.login-gate-submit:hover {
+.login-gate-submit:hover,
+.server-unreachable-retry:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 22px rgba(37, 99, 235, 0.34);
 }
-.login-gate-submit:active {
+.login-gate-submit:active,
+.server-unreachable-retry:active {
     transform: translateY(0);
     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.24);
 }
@@ -8665,13 +8629,6 @@ body.dark-mode .bva-pos { color: #86efac; }
     margin-bottom: 10px;
 }
 
-/* C3c: shared button variants */
-.btn-ghost {
-    background: transparent;
-    color: var(--primary-color);
-    border: 1px solid transparent;
-}
-.btn-ghost:hover { background: rgba(37,99,235,0.08); }
 body.dark-mode .btn-secondary,
 body.dark-mode .btn-edit {
     border: 1px solid #64748b;
@@ -9130,4 +9087,23 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
 }
 .settings-security-status:empty {
     display: none;
+}
+
+/* Server Unreachable Gate (v7.0.0) — reuses the .login-gate overlay/card. */
+.server-unreachable-body {
+    color: var(--text-primary);
+    margin: 0 0 1.25rem;
+    line-height: 1.5;
+}
+.server-unreachable-status {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    min-height: 1.25rem;
+    margin: 0.75rem 0 0;
+    text-align: center;
+}
+.settings-storage-info {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
 }

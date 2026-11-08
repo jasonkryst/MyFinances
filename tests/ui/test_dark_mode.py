@@ -75,18 +75,20 @@ def test_dark_mode_modal_styling(app_page):
 
 
 @pytest.mark.ui
-def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
+def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page, stack_user):
     """src/ui.js only calls applyTheme() when debtTrackerTheme is exactly
     'dark' or 'light'. If localStorage holds a garbage value (e.g. from a
     corrupted/old write), the app must not crash and must not apply
     dark-mode styling based on that garbage value."""
-    from tests.conftest import BASE_URL, assert_no_errors, open_settings
+    from tests.conftest import BASE_URL, assert_no_errors, ensure_session, open_settings, wait_for_app_ready
 
-    # Seed the garbage value before the app's init script runs.
+    # Signed-in session (a bare page would show the login gate), then seed the garbage value before the app's init script runs.
     page.add_init_script(
         "window.localStorage.setItem('debtTrackerTheme', 'banana');"
     )
+    ensure_session(page.context)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
 
     assert_no_errors(page)
 
@@ -103,6 +105,7 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
     assert stored_value == 'banana'
 
     page.reload(wait_until="networkidle")
+    wait_for_app_ready(page)
     assert_no_errors(page)
     classes_after_reload = page.query_selector('body').evaluate('(el) => el.className')
     assert 'dark-mode' not in classes_after_reload, (
@@ -123,7 +126,7 @@ def test_dark_mode_corrupted_localStorage_value_falls_back_safely(page):
 
 @pytest.mark.ui
 def test_pg_modal_content_not_white_in_dark_mode(app_page):
-    """pgMigrationModal and pgSwitchConfirmModal .modal-content must not be
+    """pgMigrationModal's .modal-content must not be
     white in dark mode — they use the base .modal-content rule which now
     reads var(--bg-secondary) rather than hardcoded white (issue #120)."""
     from tests.conftest import open_settings
@@ -133,7 +136,7 @@ def test_pg_modal_content_not_white_in_dark_mode(app_page):
     page.select_option('#themeSwitcher', 'dark')
     page.wait_for_selector('body.dark-mode', timeout=5000)
 
-    for modal_id in ['pgMigrationModal', 'pgSwitchConfirmModal']:
+    for modal_id in ['pgMigrationModal']:
         bg = page.evaluate(f"""
             () => getComputedStyle(
                 document.querySelector('#{modal_id} .modal-content')

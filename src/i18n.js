@@ -1,7 +1,7 @@
 // Locale storage, string lookup with fallback, and static-markup translation.
 // The locale *preference* is stored directly in localStorage under its own
-// key (like debtTrackerTheme/debtTrackerStorageBackend) — a device display
-// preference, not financial data, independent of app.storageAdapter.
+// key (like debtTrackerTheme) — a device display
+// preference, not financial data, and never sent to the server.
 import en from './locales/en.js';
 import es from './locales/es.js';
 import pl from './locales/pl.js';

@@ -16,7 +16,7 @@ import os
 
 import pytest
 
-from tests.conftest import BASE_URL, SKIP_FIRST_RUN_WIZARD_SCRIPT, assert_no_errors
+from tests.conftest import BASE_URL, assert_no_errors, ensure_session
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -51,7 +51,7 @@ def test_ga_script_injected_when_measurement_id_present(page):
     page.add_init_script("""
         window.__ENV__ = { GA_MEASUREMENT_ID: 'G-TESTID1234' };
     """)
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
+    ensure_session(page.context)
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
 
     gtag_script = page.query_selector(f'script[src^="{GTAG_SRC_PREFIX}"]')
