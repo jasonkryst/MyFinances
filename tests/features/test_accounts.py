@@ -6,7 +6,7 @@ Tests account CRUD operations and calculations.
 
 import pytest
 
-from tests.conftest import current_month_iso, seed_state
+from tests.conftest import current_month_iso, seed_state, submit_account_form
 
 BASE_URL = "http://localhost:32900/"
 
@@ -105,7 +105,7 @@ def test_net_worth_includes_accounts(app_page):
     page.fill('#accountName', 'NW Test Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '10000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Capture a net worth snapshot and re-render the widget so it shows account data
     page.evaluate("() => { window.app.captureNetWorthSnapshot(); window.app.renderNetWorthWidget(); }")
@@ -395,7 +395,7 @@ def test_delete_account_no_links_shows_confirm_modal(app_page):
     page.fill('#accountName', 'Solo Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
@@ -413,7 +413,7 @@ def test_delete_account_no_links_cancel_keeps_account(app_page):
     page.fill('#accountName', 'Keep Me Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
@@ -431,7 +431,7 @@ def test_delete_account_no_links_confirm_removes_account(app_page):
     page.fill('#accountName', 'Delete Me Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('[data-account-action="delete"]')
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
@@ -719,7 +719,7 @@ def test_account_type_shown_in_selectors(app_page):
     page.fill('#accountName', 'My BCU')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     expected_label = 'My BCU (Checking)'
 
