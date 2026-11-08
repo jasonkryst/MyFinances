@@ -175,7 +175,7 @@ body.dark-mode .amount-originally {
 }
 
 .stimulus-badge {
-    color: #059669;
+    color: #047857;
     font-size: 0.9em;
     display: block;
     margin-top: 4px;
@@ -279,11 +279,11 @@ body.dark-mode .result-payment {
 }
 
 body.dark-mode .text-expense {
-    color: #ef4444;
+    color: #f87171; /* #ef4444 was 4.0:1 on the dark card */
 }
 
 .text-income {
-    color: #059669;
+    color: #047857; /* #059669 was 3.8:1 on white */
 }
 
 body.dark-mode .text-income {
@@ -565,7 +565,7 @@ body.dark-mode .text-income {
 
 /* Migration modal inline error */
 .pg-migration-error {
-    color: #dc2626;
+    color: var(--danger-text, #dc2626); /* lighter in dark mode (#484) */
     font-size: 0.875rem;
     margin-top: 8px;
 }

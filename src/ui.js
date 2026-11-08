@@ -1000,6 +1000,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.2.0 — 2026-11-08',
+        items: [
+            '<strong>Easier-to-read text in dark mode:</strong> error messages, the “Forgot password?” link and the focus outline on the sign-in fields now stand out clearly against the dark background.',
+            '<strong>Clearer amounts and labels:</strong> positive balances, income and bonus amounts use slightly darker colours in light mode, and the Reports tab groups are no longer faded; the group you are in is shown as a filled label.',
+            '<strong>Better screen reader support:</strong> the page now tells screen readers which language it is shown in, so Spanish and Polish are read with the right pronunciation, and keyboard focus stays in place after a failed import of old browser data.'
+        ]
+    },
+    {
         version: '7.1.0 — 2026-11-08',
         items: [
             '<strong>Several tabs or devices no longer undo each other’s settings</strong> (issues #564, #521): saving a change now sends only that setting. A tab left open from earlier can no longer quietly revert your category budgets, home purchase plan, retirement target date or payoff strategy.',
