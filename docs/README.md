@@ -28,6 +28,7 @@ Latest reports (newest first per category):
 - [`audit/i18n/I18N_AUDIT_2026-11-04.md`](audit/i18n/I18N_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 internationalization review (2 High / 6 Medium / 8 Low; coverage guard 175/175 passing)
 - [`audit/performance/PERFORMANCE_SUSTAINABILITY_AUDIT_2026-11-04.md`](audit/performance/PERFORMANCE_SUSTAINABILITY_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 performance and sustainability review (3 High / 9 Medium / 15 Low; boot, sync, render, server, CI cost)
 - [`audit/test/TESTING_AUDIT_2026-11-04.md`](audit/test/TESTING_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 testing audit (2 High / 7 Medium / 9 Low; 2,141 Playwright, 457 Jest, 220 server tests; mutation score 67.20%)
+- [`audit/features/FEATURES_AUDIT_2026-11-04.md`](audit/features/FEATURES_AUDIT_2026-11-04.md) — November 4, 2026 — v7.0.0 features audit and recommendations (17 works / 3 degraded / 1 broken; 2 High / 4 Medium / 6 Low; multi-device lost updates)
 - [`audit/test/TESTING_AUDIT_2026-10-06.md`](audit/test/TESTING_AUDIT_2026-10-06.md) — October 6, 2026 (previous test audit)
 - [`audit/i18n/I18N_AUDIT_2026-10-06.md`](audit/i18n/I18N_AUDIT_2026-10-06.md) — October 6, 2026 (previous i18n audit)
 - [`audit/performance/PERFORMANCE_AUDIT_2026-10-06.md`](audit/performance/PERFORMANCE_AUDIT_2026-10-06.md) — October 6, 2026 (previous performance audit)
@@ -37,7 +38,7 @@ Latest reports (newest first per category):
 - [`audit/a11y/A11Y_AUDIT_REPORT_2026-09-02.md`](audit/a11y/A11Y_AUDIT_REPORT_2026-09-02.md) — September 2, 2026
 - [`audit/test/TESTING_AUDIT_2026-09-02.md`](audit/test/TESTING_AUDIT_2026-09-02.md) — September 2, 2026 (earlier test audit)
 - [`audit/i18n/I18N_AUDIT_2026-09-02.md`](audit/i18n/I18N_AUDIT_2026-09-02.md) — September 2, 2026 (earlier i18n audit)
-- [`audit/features/FEATURES_AUDIT_2026-09-02.md`](audit/features/FEATURES_AUDIT_2026-09-02.md) — September 2, 2026
+- [`audit/features/FEATURES_AUDIT_2026-09-02.md`](audit/features/FEATURES_AUDIT_2026-09-02.md) — September 2, 2026 (previous features audit)
 - [`audit/performance/PERFORMANCE_AUDIT_2026-09-02.md`](audit/performance/PERFORMANCE_AUDIT_2026-09-02.md) — September 2, 2026 (earlier performance audit)
 - [`audit/database/DATABASE_AUDIT_2026-09-02.md`](audit/database/DATABASE_AUDIT_2026-09-02.md) — September 2, 2026
 - [`audit/other/MISC_AUDIT_2026-09-02.md`](audit/other/MISC_AUDIT_2026-09-02.md) — September 2, 2026
