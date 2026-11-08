@@ -109,6 +109,36 @@ async def test_legacy_import_failure_keeps_key(pg_page, base_url):
     assert await _key(pg_page) is not None
 
 
+async def test_legacy_import_failure_returns_focus_to_transfer(pg_page, base_url):
+    """#490: the Transfer button is disabled while loading, which drops focus to
+    <body>. After a failure focus is back on it, so Enter retries."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+
+    async def fail_post(route):
+        if route.request.method == "POST":
+            await route.fulfill(status=500, content_type="application/json", body='{"error":"boom"}')
+        else:
+            await route.continue_()
+
+    await pg_page.route("**/api/accounts", fail_post)
+    await pg_page.focus("#pgMigrationTransferBtn")
+    await pg_page.keyboard.press("Enter")
+    await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
+
+    active = await pg_page.evaluate("() => document.activeElement && document.activeElement.id")
+    assert active == "pgMigrationTransferBtn", f"focus was lost to {active!r}"
+    assert await pg_page.evaluate("() => document.activeElement !== document.body")
+    assert await pg_page.locator("#pgMigrationTransferBtn").is_enabled()
+
+    # Enter now retries from where the user is.
+    await pg_page.unroute("**/api/accounts", fail_post)
+    await pg_page.keyboard.press("Enter")
+    await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=15000)
+    assert await _key(pg_page) is None
+    assert any(a["name"] == "Legacy Checking" for a in await _accounts(pg_page, base_url))
+
+
 async def test_nonempty_db_shows_cleanup_variant(pg_page, base_url):
     await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY), server_has_data=True)
     await pg_page.locator("#pgLegacyDownloadBtn").wait_for(state="visible", timeout=15000)

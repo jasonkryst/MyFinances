@@ -4,6 +4,24 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.2.0] — 2026-11-08
+
+### Accessibility
+- **Dark-mode error text passes contrast** (issue #484). A new `--danger-text` token (`#dc2626` light, `#f87171` dark, `#ff6b6b` high contrast) is used for error text: `.login-gate-error` (sign-in and Settings → Security), `.pg-migration-error`, `.error-message`, `.recon-range-error` and `.recon-diff--neg`. Dark error text was `#dc2626` on `#1e293b` (3.0:1); it is now 5.3:1. `--danger-color` itself is unchanged, because it is also the background of white-text danger buttons. `styles-csp-classes.css` had its own hard-coded `.pg-migration-error` colour, which now uses the token too.
+- **"Forgot password?" link and the sign-in focus ring in dark mode** (issues #485, #486). `.link-btn` is `#60a5fa` (5.75:1; `#93c5fd` on hover/focus), and a focused sign-in field gets a `#60a5fa` border and a 3px solid ring instead of a 2.8:1 border and an 18% halo.
+- **Reports tab-group labels are no longer faded** (issue #487). Inactive labels were dimmed with `opacity: 0.55` (2.3:1 light, 3.0:1 dark). They are now an outlined muted-text label, and the active group's label is a filled pill (primary blue with white text; `#60a5fa` with dark text in dark mode).
+- **Positive amounts in light mode** (issue #488). Green amount text moves from `#059669` (3.8:1 on white) to `#047857` (5.5:1): account balances, Money Flow differences, income cards, recurring inflows, Plan schedule principal/stimulus, and Home Purchase status. Bonus amounts move from `#d97706` (3.2:1) to `#b45309` (5.0:1). `.principal` gets a dark-mode colour, which it never had. Dark mode is otherwise unchanged.
+- **Same problems elsewhere, fixed while here:** the "Mark complete"/"Paid off" buttons and the calendar income chip (white on `#059669`, 3.8:1) now use `#047857` (5.5:1); Ledger income amounts (`.text-income`) and the schedule's stimulus badge use `#047857` in light mode; and dark-mode Ledger expense amounts (`.text-expense`) move from `#ef4444` (4.0:1) to `#f87171` (5.3:1).
+- **Plan net breakdown** (issue #489): `.strategy-net-breakdown` drops `opacity: 0.8` (4.3:1 → 6.8:1).
+- **`<html lang>` follows the UI language** (issue #497, WCAG 3.1.1). `i18n.js` sets `document.documentElement.lang` when it loads (so the sign-in and unreachable screens are covered) and on every `setLocale()`.
+- **Focus returns to Transfer after a failed legacy-data import** (issue #490). The button was disabled while loading, which dropped focus to `<body>`; now Enter retries straight away.
+
+### Tests
+- New `tests/ui/test_contrast_fixes.py` (shard `test-ui-a`) measures rendered contrast from computed styles, compositing translucent backgrounds and ancestor opacity (`tests/ui/contrast_utils.py`), in light and dark mode. Negative cases: light-mode error text and `--danger-color`/`.btn-delete` are unchanged, high contrast keeps its own red, positive and negative balances stay distinguishable.
+- New `tests/features/test_html_lang.py`: lang after a Settings change and after reload (es, pl), back to English, an unknown locale and a tampered stored locale fall back to `en`, and the sign-in screen already has the right lang.
+- `tests/postgres/test_legacy_local_data.py`: a failed import leaves focus on Transfer, and Enter retries successfully.
+- `tests/ui/test_reports_nav.py`: the active group label is filled; inactive labels are no longer dimmed.
+
 ## [7.1.0] — 2026-11-08
 
 ### Fixed
