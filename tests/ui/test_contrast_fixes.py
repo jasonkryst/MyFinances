@@ -29,6 +29,16 @@ def _signed_out_page(page):
     return gate
 
 
+def _settle(page, selector):
+    """Wait for CSS transitions on matching elements to finish, so colours are
+    measured in their final state (a 0.15s border transition failed CI)."""
+    page.wait_for_function(
+        """(sel) => !document.getAnimations().some(a => {
+            const t = a.effect && a.effect.target;
+            return t && t.matches && t.matches(sel);
+        })""", arg=selector, timeout=5000)
+
+
 def _ratio(page, selector):
     return text_contrast(page.locator(selector))['ratio']
 
@@ -121,8 +131,10 @@ def test_forgot_password_link_contrast(page, stack_user, dark):
         link = '.login-gate .link-btn:visible'
         assert _ratio(gate, link) >= AA_TEXT
         gate.hover(link)
+        _settle(gate, '.login-gate .link-btn')
         assert _ratio(gate, link) >= AA_TEXT, 'hover state'
         gate.focus(link)
+        _settle(gate, '.login-gate .link-btn')
         assert _ratio(gate, link) >= AA_TEXT, 'focus state'
     finally:
         gate.context.close()
@@ -135,6 +147,8 @@ def test_login_input_focus_indicator_contrast(page, stack_user, dark):
     try:
         set_theme(gate, dark=dark)
         gate.focus('#loginGateEmail')
+        # The border and ring transition over 0.15s; measure the settled state.
+        _settle(gate, '#loginGateEmail')
         info = gate.evaluate("""() => {
             const el = document.getElementById('loginGateEmail');
             const cs = getComputedStyle(el);
@@ -156,6 +170,7 @@ def test_reports_group_labels_contrast(app_page, dark):
     set_theme(page, dark=dark)
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
+    _settle(page, '.rpt-tab-group-label')
     labels = page.locator('.rpt-tab-group-label')
     assert labels.count() >= 3
     for i in range(labels.count()):
@@ -172,6 +187,7 @@ def test_active_reports_group_is_visually_distinct(app_page, dark):
     set_theme(page, dark=dark)
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
+    _settle(page, '.rpt-tab-group-label')
     styles = page.evaluate("""() => Array.from(document.querySelectorAll('.rpt-tab-group')).map(g => ({
         active: !!g.querySelector('.rpt-tab-btn--active'),
         bg: getComputedStyle(g.querySelector('.rpt-tab-group-label')).backgroundColor
