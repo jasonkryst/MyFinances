@@ -52,6 +52,9 @@ export function normalizeMultilineText(value, maxLen = 500) {
 }
 
 export function sanitizeFiniteNumber(value, fallback = 0, { min = null, max = null } = {}) {
+    // Treat null, undefined, and empty string as missing so the caller-supplied
+    // fallback is returned (Number(null) === 0 would otherwise coerce them to 0).
+    if (value === null || value === undefined || value === '') return fallback;
     const n = Number(value);
     if (!Number.isFinite(n)) return fallback;
     if (min !== null && n < min) return min;

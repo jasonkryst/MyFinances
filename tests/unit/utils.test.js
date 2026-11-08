@@ -65,6 +65,13 @@ describe('sanitizeFiniteNumber', () => {
         expect(sanitizeFiniteNumber(-5, 0, { min: 0 })).toBe(0);
         expect(sanitizeFiniteNumber(500, 0, { max: 100 })).toBe(100);
     });
+
+    test('returns fallback for null, undefined, and empty string', () => {
+        expect(sanitizeFiniteNumber(null, null)).toBe(null);
+        expect(sanitizeFiniteNumber(undefined, null)).toBe(null);
+        expect(sanitizeFiniteNumber('', 42)).toBe(42);
+        expect(sanitizeFiniteNumber(null, 7)).toBe(7);
+    });
 });
 
 describe('sanitizeInteger', () => {
