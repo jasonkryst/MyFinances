@@ -394,8 +394,7 @@ def test_ledger_cross_nav_debt_navigates(app_page):
     page.wait_for_timeout(500)
 
     nav_btn = page.query_selector('[data-ledger-nav-type="debt"]')
-    if not nav_btn:
-        pytest.skip("No debt nav button visible — no debt transactions in window")
+    assert nav_btn, "No debt nav button visible — no debt transactions in window"
 
     nav_btn.click()
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
@@ -412,8 +411,7 @@ def test_recurring_mark_paid_opens_modal(app_page):
 
     # The mark-paid button only appears when the recurring template has occurrences this month
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible (no occurrence this month)")
+    assert mark_btn, "Mark-paid button not visible (no occurrence this month)"
 
     mark_btn.click()
     page.wait_for_selector('#recurringMarkPaidModal', timeout=5000)
@@ -430,8 +428,7 @@ def test_recurring_mark_paid_default_amount_prefilled(app_page):
     _seed_recurring(page, name="Prefill Test", amount="42")
 
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible")
+    assert mark_btn, "Mark-paid button not visible"
 
     mark_btn.click()
     page.wait_for_selector('#recurringActualAmountInput', timeout=5000)
@@ -447,8 +444,7 @@ def test_recurring_mark_paid_with_actual_amount(app_page):
     _seed_recurring(page, name="Actual Amount Test", amount="50")
 
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible")
+    assert mark_btn, "Mark-paid button not visible"
 
     mark_btn.click()
     page.wait_for_selector('#recurringActualAmountInput', timeout=5000)
@@ -475,8 +471,7 @@ def test_recurring_mark_paid_cancel_no_change(app_page):
     _seed_recurring(page, name="Cancel Mark Test", amount="20")
 
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible")
+    assert mark_btn, "Mark-paid button not visible"
 
     mark_btn.click()
     page.wait_for_selector('#recurringMarkPaidCancelBtn', timeout=5000)

@@ -1,6 +1,7 @@
 import { getCsrfCookie, discardBody } from './storage.js';
 import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
+import { mapWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 
 const ALL_RESOURCE_PATHS = [
     '/api/persons',
@@ -92,9 +93,11 @@ const DEFAULT_PLAN_SETTINGS = {
 };
 
 export async function pgDeleteAll(app) {
-    await Promise.all([
-        ...ALL_RESOURCE_PATHS.map(path => pgFetch(app, 'DELETE', path)),
-        pgFetch(app, 'DELETE', '/api/plan-settings/milestones'),
-        pgFetch(app, 'PATCH', '/api/plan-settings', DEFAULT_PLAN_SETTINGS)
-    ]);
+    // Bounded like the import that usually follows it (#519); about 20 requests.
+    const requests = [
+        ...ALL_RESOURCE_PATHS.map(path => () => pgFetch(app, 'DELETE', path)),
+        () => pgFetch(app, 'DELETE', '/api/plan-settings/milestones'),
+        () => pgFetch(app, 'PATCH', '/api/plan-settings', DEFAULT_PLAN_SETTINGS)
+    ];
+    await mapWithConcurrency(requests, IMPORT_CONCURRENCY, request => request());
 }

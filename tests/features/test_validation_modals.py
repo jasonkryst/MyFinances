@@ -193,8 +193,7 @@ def test_strategy_no_debts_shows_modal(app_page):
         monthly_input.fill('500')
 
     calc_btn = page.query_selector('#calculateBtn')
-    if not calc_btn:
-        pytest.skip("Calculate button not found")
+    assert calc_btn, "Calculate button not found"
 
     calc_btn.click()
 

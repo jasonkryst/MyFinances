@@ -545,8 +545,7 @@ def test_spending_drilldown_debt_payments_has_no_view_in_ledger_link(app_page):
     page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
 
     cat_el = page.query_selector('[data-spending-cat="Debt Payments"]')
-    if not cat_el:
-        pytest.skip("No Debt Payments category rendered for this seed")
+    assert cat_el, "No Debt Payments category rendered for this seed"
     cat_el.click()
     page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
     assert page.query_selector('#spendingDrilldownViewLedgerBtn') is None
@@ -568,8 +567,7 @@ def test_ledger_category_filter_persists_across_navigation(app_page):
 
     options = page.eval_on_selector_all('#ledgerCategoryFilter option', 'opts => opts.map(o => o.value)')
     non_all = [o for o in options if o and o != 'all']
-    if not non_all:
-        pytest.skip("No non-'all' category options to select")
+    assert non_all, "No non-'all' category options to select"
 
     page.select_option('#ledgerCategoryFilter', non_all[0])
     page.wait_for_timeout(300)
