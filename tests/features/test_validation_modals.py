@@ -9,6 +9,7 @@ shows the modal with the correct message, dismissible via OK or Escape).
 """
 
 import pytest
+from tests.conftest import submit_account_form, submit_debt_form
 
 
 @pytest.mark.feature
@@ -35,7 +36,7 @@ def test_add_debt_missing_name_shows_modal(app_page):
         toggle.click()
 
     # Submit with empty name
-    page.click('#debtFormSubmit')
+    page.click('#debtFormSubmit')  # submit-no-wait: validation rejects the empty name, so the alert modal opens and no save runs
 
     modal = page.query_selector('#alertModal')
     assert modal is not None, "#alertModal not found"
@@ -62,7 +63,7 @@ def test_alert_modal_ok_button_closes_modal(app_page):
     if toggle:
         toggle.click()
 
-    page.click('#debtFormSubmit')
+    page.click('#debtFormSubmit')  # submit-no-wait: validation rejects the empty name, so the alert modal opens and no save runs
 
     # Modal should be open
     modal = page.query_selector('#alertModal')
@@ -90,7 +91,7 @@ def test_alert_modal_escape_key_closes_modal(app_page):
     if toggle:
         toggle.click()
 
-    page.click('#debtFormSubmit')
+    page.click('#debtFormSubmit')  # submit-no-wait: validation rejects the empty name, so the alert modal opens and no save runs
 
     modal = page.query_selector('#alertModal')
     assert 'flex-visible' in (modal.get_attribute('class') or '')
@@ -112,7 +113,7 @@ def test_valid_debt_submission_no_modal(app_page):
     page.fill('#accountName', 'Modal Test Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
@@ -128,7 +129,7 @@ def test_valid_debt_submission_no_modal(app_page):
     page.fill('#interestRate', '5')
     page.fill('#minimumPayment', '50')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
 
     modal = page.query_selector('#alertModal')
     classes = modal.get_attribute('class') or '' if modal else ''
@@ -168,7 +169,7 @@ def test_add_account_missing_name_shows_modal(app_page):
 
     # Clear name and submit
     page.fill('#accountName', '')
-    page.click('#accountFormSubmit')
+    page.click('#accountFormSubmit')  # submit-no-wait: validation rejects the empty name, so the alert modal opens and no save runs
 
     modal = page.query_selector('#alertModal')
     assert modal is not None

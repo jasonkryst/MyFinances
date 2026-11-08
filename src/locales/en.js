@@ -5,8 +5,6 @@ export default {
 
     'toolbar.commandPaletteTitle': 'Quick jump (Ctrl+K)',
     'toolbar.commandPaletteAriaLabel': 'Open quick jump command palette',
-    'toolbar.dataTransferTitle': 'Backup & Restore',
-    'toolbar.dataTransferAriaLabel': 'Backup and restore data',
     'toolbar.settingsTitle': 'Settings',
     'toolbar.settingsAriaLabel': 'Open settings',
     'toolbar.helpTitle': 'Open usage guide',

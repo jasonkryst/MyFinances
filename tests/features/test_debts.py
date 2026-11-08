@@ -6,7 +6,7 @@ Tests debt CRUD operations and calculations.
 
 import pytest
 
-from tests.conftest import create_debt, seed_state
+from tests.conftest import create_debt, seed_state, open_debt_form, submit_account_form, submit_debt_form
 
 BASE_URL = "http://localhost:32900/"
 
@@ -22,14 +22,13 @@ def test_create_debt(app_page, debt_data):
     page.fill('#accountName', 'Debt Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Navigate to debts
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
     
     # Fill form
     page.fill('#debtName', debt_data["name"])
@@ -58,7 +57,7 @@ def test_debt_types(app_page):
     page.fill('#accountName', 'Debt Types Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Navigate to debts
     page.click('button[data-page="liabilities"]')
@@ -68,8 +67,7 @@ def test_debt_types(app_page):
     debt_types = ['creditCard', 'fixedAmount']
     
     for i, debt_type in enumerate(debt_types):
-        page.click('#debtFormToggle')
-        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+        open_debt_form(page)
 
         page.fill('#debtName', f'Debt Type {i}')
         page.select_option('#debtType', debt_type)
@@ -82,7 +80,7 @@ def test_debt_types(app_page):
             page.fill('#fixedAmount', '100')
             page.fill('#fixedStartDate', '2026-01-01')
             page.fill('#fixedEndDate', '2026-12-31')
-        page.click('#debtFormSubmit')
+        submit_debt_form(page)
 
 
 @pytest.mark.feature
@@ -103,8 +101,7 @@ def test_debt_interest_calculation(app_page):
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
     
     page.fill('#debtName', 'Interest Calc Debt')
     page.select_option('#debtType', 'creditCard')
@@ -144,14 +141,13 @@ def test_amortization_schedule(app_page):
     page.fill('#accountName', 'Amort Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Create debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
     
     page.fill('#debtName', 'Amortization Test')
     page.select_option('#debtType', 'creditCard')
@@ -159,7 +155,7 @@ def test_amortization_schedule(app_page):
     page.fill('#interestRate', '15')
     page.fill('#minimumPayment', '75')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     
     # Navigate to strategy and check amortization
     page.click('button[data-page="strategy"]')
@@ -186,14 +182,13 @@ def test_net_worth_includes_debts(app_page):
     page.fill('#accountName', 'Asset Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '10000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Create debt
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
     
     page.fill('#debtName', 'Liability')
     page.select_option('#debtType', 'creditCard')
@@ -201,7 +196,7 @@ def test_net_worth_includes_debts(app_page):
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     
     # Check net worth (should be 10000 - 3000 = 7000)
     net_worth_widget = page.query_selector('#netWorthWidget')
@@ -322,21 +317,26 @@ def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
     page.fill('#accountName', 'Fixed Debt Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
 
     page.fill('#debtName', 'Negative Fixed Debt')
     page.select_option('#debtType', 'fixedAmount')
     page.fill('#fixedAmount', '-100')
     page.fill('#fixedStartDate', '2026-01-01')
     page.fill('#fixedEndDate', '2026-12-31')
-    page.click('#debtFormSubmit')
+    page.click('#debtFormSubmit')  # submit-no-wait: validation rejects the negative fixed amount, so the form stays open and no save finishes
 
+    # addDebt pushes into app.debts before its first await on the success path, so a
+    # rejected submit is visible in app state straight away (issue #592).
+    assert not page.evaluate("() => window.app.debts.some(d => d.name === 'Negative Fixed Debt')"), (
+        "A rejected negative fixed-amount debt must not reach app.debts"
+    )
+    assert page.locator('#debtFormBody:not([hidden])').count() == 1, "The form should stay open after a rejected submit"
     assert page.query_selector('text=Negative Fixed Debt') is None, (
         "A negative fixed-amount debt payment should be rejected, not silently saved as $0.01"
     )
@@ -353,7 +353,7 @@ def _create_interest_and_no_interest_debts(page):
     page.fill('#accountName', 'Interest Filter Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -364,15 +364,14 @@ def _create_interest_and_no_interest_debts(page):
         ('Interest Bearing Card', '400', '18', '30'),
     ]
     for name, balance, rate, min_pmt in debts:
-        page.click('#debtFormToggle')
-        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+        open_debt_form(page)
         page.fill('#debtName', name)
         page.select_option('#debtType', 'creditCard')
         page.fill('#accountBalance', balance)
         page.fill('#interestRate', rate)
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
-        page.click('#debtFormSubmit')
+        submit_debt_form(page)
 
 
 @pytest.mark.feature
@@ -711,8 +710,7 @@ def test_credit_limit_saves_via_form(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
 
     page.fill('#debtName', 'Limit Test Card')
     page.select_option('#debtType', 'creditCard')
@@ -904,8 +902,7 @@ def test_credit_limit_not_required_for_debt_save(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
 
     page.fill('#debtName', 'No Limit Debt')
     page.select_option('#debtType', 'creditCard')
@@ -935,8 +932,7 @@ def test_debt_notes_saved_and_displayed(app_page):
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
 
     page.fill('#debtName', 'Notes Test Debt')
     page.select_option('#debtType', 'creditCard')

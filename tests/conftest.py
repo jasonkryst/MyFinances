@@ -531,21 +531,79 @@ def assert_no_errors(page):
     assert len(page.page_errors) == 0, f"Page errors: {page.page_errors}"
 
 
+# ── Async add-form submits (issue #592) ──────────────────────────────────────
+# Since v7, addAccount/addDebt push the record with a temporary Date.now() id,
+# then await the server POST before swapping in the real id, re-rendering and
+# resetting the form. A test that acts straight after clicking Submit can pick
+# the temporary id in a dropdown (the server then 400s the linked record) or
+# toggle the still-open debt form shut. These helpers click Submit and wait for
+# the end of the add, signalled by state that changes only after the awaits:
+#   - accounts: addAccount resets #accountForm, so #accountName is empty again;
+#   - debts: addDebt and saveEdit both end in cancelEdit(), which resets the
+#     form and hides #debtFormBody.
+# tests/features/test_async_submit_guard.py fails CI when a raw Submit click on
+# either form is not followed by a wait.
+ACCOUNT_SUBMIT_SETTLED_JS = "() => document.getElementById('accountName')?.value === ''"
+DEBT_SUBMIT_SETTLED_JS = (
+    "() => document.getElementById('debtFormBody')?.hidden === true"
+    " && document.getElementById('debtName')?.value === ''"
+)
+
+
+def submit_account_form(page, timeout=10000):
+    """Click Add Account and wait until the account is saved and has its server id."""
+    page.click('#accountFormSubmit')
+    page.wait_for_function(ACCOUNT_SUBMIT_SETTLED_JS, timeout=timeout)
+
+
+async def submit_account_form_async(page, timeout=10000):
+    """Async twin of submit_account_form."""
+    await page.click('#accountFormSubmit')
+    await page.wait_for_function(ACCOUNT_SUBMIT_SETTLED_JS, timeout=timeout)
+
+
+def submit_debt_form(page, timeout=10000):
+    """Click the debt form's Submit (add or edit) and wait until the save finishes and the form closes."""
+    page.click('#debtFormSubmit')
+    page.wait_for_function(DEBT_SUBMIT_SETTLED_JS, timeout=timeout)
+
+
+async def submit_debt_form_async(page, timeout=10000):
+    """Async twin of submit_debt_form."""
+    await page.click('#debtFormSubmit')
+    await page.wait_for_function(DEBT_SUBMIT_SETTLED_JS, timeout=timeout)
+
+
+def open_debt_form(page, timeout=5000):
+    """Open the Add Debt form if it is closed. Never clicks the toggle when it is already open,
+    since a click on an open form closes it."""
+    if page.locator('#debtFormBody[hidden]').count():
+        page.click('#debtFormToggle')
+    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=timeout)
+
+
+async def open_debt_form_async(page, timeout=5000):
+    """Async twin of open_debt_form."""
+    if await page.locator('#debtFormBody[hidden]').count():
+        await page.click('#debtFormToggle')
+    await page.wait_for_selector('#debtFormBody:not([hidden])', timeout=timeout)
+
+
 def create_account(page, account_data):
     """Helper to create an account via UI."""
     page.click('button[data-page="accounts"]')
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
-    page.wait_for_selector(f'text={account_data["name"]}', timeout=10000)
+    submit_account_form(page)
+    page.wait_for_selector(f'#accountList >> text={account_data["name"]}', timeout=10000)
 
 
 def create_debt(page, debt_data):
     """Helper to create a debt via UI."""
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
+    open_debt_form(page)
     page.fill('#debtName', debt_data["name"])
     page.select_option('#debtType', debt_data["type"])
     page.fill('#accountBalance', debt_data["balance"])
@@ -553,8 +611,8 @@ def create_debt(page, debt_data):
     page.fill('#minimumPayment', debt_data["min_payment"])
     if debt_data["type"] == "creditCard":
         page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
-    page.wait_for_selector(f'text={debt_data["name"]}', timeout=10000)
+    submit_debt_form(page)
+    page.wait_for_selector(f'#debtsList >> text={debt_data["name"]}', timeout=10000)
 
 
 def create_income(page, income_data):

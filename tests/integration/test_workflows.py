@@ -9,7 +9,7 @@ import json
 import tempfile
 import os
 
-from tests.conftest import assert_no_errors, open_settings, seed_state, switch_settings_tab, wait_for_api
+from tests.conftest import assert_no_errors, open_settings, seed_state, switch_settings_tab, wait_for_api, submit_account_form, submit_debt_form, open_debt_form
 
 ALL_NAV_PAGES = [
     "health", "accounts", "income", "liabilities", "recurring",
@@ -48,14 +48,14 @@ def test_export_schedule_as_csv(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
+    open_debt_form(page)
     page.fill('#debtName', 'CSV Test Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '1000')
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     page.wait_for_selector('text=CSV Test Card', timeout=10000)
 
     page.click('button[data-page="strategy"]')
@@ -87,14 +87,14 @@ def test_export_csv_escapes_comma_in_debt_name(app_page):
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
+    open_debt_form(page)
     page.fill('#debtName', 'Visa, Rewards Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '1000')
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     page.wait_for_function(
         "() => document.body.textContent.includes('Visa, Rewards Card')",
         timeout=10000
@@ -259,7 +259,7 @@ def test_import_replaces_data(app_page):
     page.fill('#accountName', 'Original Account')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Import new data
     from tests.conftest import open_data_transfer
@@ -317,7 +317,7 @@ def test_roundtrip_export_import(app_page):
     page.fill('#accountName', 'Roundtrip Test')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '7500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     wait_for_api(page, '/api/accounts', lambda rows: any(r.get('name') == 'Roundtrip Test' for r in rows))
 
     # Export the real backup file
@@ -372,19 +372,19 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
     page.fill('#accountName', 'Clear Test Checking')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '4200')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     page.wait_for_selector('text=Clear Test Checking', timeout=10000)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
-    page.click('#debtFormToggle')
+    open_debt_form(page)
     page.fill('#debtName', 'Clear Test Card')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '1500')
     page.fill('#interestRate', '20')
     page.fill('#minimumPayment', '75')
     page.fill('#dueDate', '10')
-    page.click('#debtFormSubmit')
+    submit_debt_form(page)
     page.wait_for_selector('text=Clear Test Card', timeout=10000)
 
     page.click('button[data-page="income"]')

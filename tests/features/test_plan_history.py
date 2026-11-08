@@ -23,8 +23,25 @@ def _calculate(page, monthly_payment="200", strategy="avalanche"):
     page.wait_for_selector('#strategySection.active', timeout=5000)
     page.fill('#monthlyPayment', monthly_payment)
     page.select_option('#paymentStrategy', strategy)
+    _before = page.evaluate("() => (window.app.planHistory || []).length")
     page.click('#calculateBtn')
     page.wait_for_selector('#resultsSection.visible', timeout=10000)
+    page.wait_for_function(
+        """({ before, payment, strategy, capped }) => {
+          const h = window.app.planHistory || [];
+          if (h.length > before) {
+            const newest = h[h.length - 1];
+            return newest && newest.monthlyPayment === payment && newest.strategy === strategy;
+          }
+          if (capped && h.length === 20) {
+            const newest = h[h.length - 1];
+            return newest && newest.monthlyPayment === payment && newest.strategy === strategy;
+          }
+          return false;
+        }""",
+        arg={"before": _before, "payment": float(monthly_payment), "strategy": strategy, "capped": _before >= 20},
+        timeout=15000,
+    )
 
 
 @pytest.mark.feature

@@ -7,7 +7,7 @@ stimulus input on the payment schedule table.
 
 import pytest
 
-from tests.conftest import create_debt, assert_no_errors
+from tests.conftest import create_debt, assert_no_errors, open_debt_form, submit_account_form, submit_debt_form
 
 
 def _create_two_debts(page):
@@ -16,7 +16,7 @@ def _create_two_debts(page):
     page.fill('#accountName', 'Strategy Account')
     page.select_option('#accountType', label='Credit Card')
     page.fill('#accountStartingBalance', '0')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -27,15 +27,14 @@ def _create_two_debts(page):
         ('Low Interest Debt', '5000', '6', '150'),
     ]
     for name, balance, rate, min_pmt in debts:
-        page.click('#debtFormToggle')
-        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+        open_debt_form(page)
         page.fill('#debtName', name)
         page.select_option('#debtType', 'creditCard')
         page.fill('#accountBalance', balance)
         page.fill('#interestRate', rate)
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
-        page.click('#debtFormSubmit')
+        submit_debt_form(page)
 
 
 def _calculate(page, strategy):

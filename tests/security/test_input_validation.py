@@ -6,7 +6,7 @@ Tests input bounds checking, sanitization, and validation.
 
 import pytest
 
-from tests.conftest import seed_state_async
+from tests.conftest import seed_state_async, submit_account_form_async, submit_debt_form_async, open_debt_form_async
 
 BASE_URL = "http://localhost:32900/"
 
@@ -23,7 +23,7 @@ async def test_negative_balance(async_app_page):
     await page.fill('#accountName', 'Negative Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '-5000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
     # the add is a server round trip; wait for the card to render
     await page.wait_for_selector('.acct-card-name', timeout=10000)
 
@@ -51,7 +51,7 @@ async def test_special_characters_in_names(async_app_page):
     await page.fill('#accountName', special_name)
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
     # the add is a server round trip; wait for the card to render
     await page.wait_for_selector('.acct-card-name', timeout=10000)
 
@@ -80,7 +80,7 @@ async def test_very_large_amount(async_app_page):
     await page.fill('#accountName', 'Large Amount Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', large_amount)
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
     # the add is a server round trip; wait for the card to render
     await page.wait_for_selector('.acct-card-name', timeout=10000)
 
@@ -106,7 +106,7 @@ async def test_decimal_amounts(async_app_page):
     await page.fill('#accountName', 'Decimal Test')
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '1234.56')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
     # the add is a server round trip; wait for the card to render
     await page.wait_for_selector('.acct-card-name', timeout=10000)
 
@@ -135,7 +135,7 @@ async def test_empty_string_input(async_app_page):
     await page.fill('#accountStartingBalance', '1000')
     
     # App should prevent submission or handle gracefully
-    await page.click('#accountFormSubmit')
+    await page.click('#accountFormSubmit')  # submit-no-wait: empty name is rejected by validation, so the form never resets
 
     # Check if error message appears or form is still visible
     form_visible = await page.evaluate("""
@@ -153,7 +153,7 @@ async def test_interest_rate_bounds(async_app_page):
     # Navigate to debts
     await page.click('button[data-page="liabilities"]')
     await page.click('[data-liabilities-subtab="debts"]')
-    await page.click('#debtFormToggle')
+    await open_debt_form_async(page)
     
     # Test with very high interest rate
     await page.fill('#debtName', 'High Interest Test')
@@ -162,7 +162,7 @@ async def test_interest_rate_bounds(async_app_page):
     await page.fill('#interestRate', '99.99')
     await page.fill('#minimumPayment', '50')
     await page.fill('#dueDate', '15')
-    await page.click('#debtFormSubmit')
+    await submit_debt_form_async(page)
     await page.wait_for_selector('.debt-name', timeout=10000)
 
     # Verify debt was created despite unrealistic interest rate
@@ -246,7 +246,7 @@ async def test_recurring_day_of_month_bounds(async_app_page):
     await page.fill('#accountName', 'Recurring Bounds Test')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
 
     await page.click('button[data-page="recurring"]')
     await page.wait_for_selector('#recurringSection.active', timeout=5000)
@@ -281,7 +281,7 @@ async def test_savings_emergency_fund_numeric_bounds(async_app_page):
     await page.fill('#accountName', 'EF Bounds Checking')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -444,7 +444,7 @@ async def test_unicode_in_names(async_app_page):
     await page.fill('#accountName', unicode_name)
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
     # the add is a server round trip; wait for the card to render
     await page.wait_for_selector('.acct-card-name', timeout=10000)
 
