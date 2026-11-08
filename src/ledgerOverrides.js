@@ -34,13 +34,13 @@ export function setLedgerAmountOverride(app, transactionId, amount, metadata = {
         memo: metadata.memo || ''
     };
     app.ledgerAmountOverrides[transactionId] = entry;
-    pgPut(app, `/api/ledger-overrides/${transactionId}`, { ...entry, overrideKey: transactionId });
+    pgPut(app, `/api/ledger-overrides/${encodeURIComponent(transactionId)}`, { ...entry, overrideKey: transactionId });
 }
 
 export function clearLedgerAmountOverride(app, transactionId) {
     if (!transactionId || !app.ledgerAmountOverrides) return;
     delete app.ledgerAmountOverrides[transactionId];
-    pgDelete(app, `/api/ledger-overrides/${transactionId}`);
+    pgDelete(app, `/api/ledger-overrides/${encodeURIComponent(transactionId)}`);
 }
 
 export function openLedgerOverrideModal(app, tx, onApplied) {
