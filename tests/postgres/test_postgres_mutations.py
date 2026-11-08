@@ -340,7 +340,7 @@ async def test_retirement_target_date_persists(pg_page, base_url, credentials):
         timeout=8000
     ):
         await pg_page.evaluate("""
-            () => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(); }
+            () => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(['retirementTargetDate']); }
         """)
 
     await pg_page.reload()

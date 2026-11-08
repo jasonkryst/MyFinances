@@ -205,7 +205,6 @@ export async function addPerson(app) {
 
     const person = { id: Date.now(), name };
     app.persons.push(person);
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/persons', person);
     if (saved?.id) person.id = saved.id;
     refreshPersonSelectors(app);
@@ -240,7 +239,6 @@ export async function deletePerson(app, personId) {
     if (!confirmed) return;
 
     app.persons = app.persons.filter(p => p.id !== personId);
-    app.saveToStorage();
     pgDelete(app, `/api/persons/${personId}`);
     refreshPersonSelectors(app);
     app.renderPeopleList();
@@ -270,7 +268,6 @@ export async function saveEditPerson(app, personId) {
 
     app.persons[idx] = { ...app.persons[idx], name };
     app.editingPersonId = null;
-    app.saveToStorage();
     pgPatch(app, `/api/persons/${personId}`, app.persons[idx]);
     refreshPersonSelectors(app);
     app.renderPeopleList();

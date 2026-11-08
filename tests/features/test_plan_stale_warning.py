@@ -84,7 +84,6 @@ def test_stale_banner_visible_after_debt_balance_change(app_page):
         const d = window.app.debts.find(d => d.name === 'Stale Test Debt');
         if (d) {
             d.accountBalance = 4500;
-            window.app.saveToStorage();
         }
     }""")
     _navigate_to_strategy(page)
@@ -114,7 +113,6 @@ def test_stale_banner_visible_after_new_debt_added(app_page):
             accountBalance: 3000, interestRate: 10, minimumPayment: 60,
             dueDate: 15, archived: false
         });
-        window.app.saveToStorage();
     }""")
     _navigate_to_strategy(page)
     page.wait_for_timeout(400)
@@ -137,7 +135,7 @@ def test_stale_banner_clears_after_recalculate(app_page):
 
     page.evaluate("""() => {
         const d = window.app.debts.find(d => d.name === 'RC Debt');
-        if (d) { d.accountBalance = 4000; window.app.saveToStorage(); }
+        if (d) { d.accountBalance = 4000; }
     }""")
     _navigate_to_strategy(page)
     page.wait_for_timeout(400)

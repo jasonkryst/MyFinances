@@ -55,7 +55,6 @@ export function getSnapshotsForAccount(app, accountId) {
 export async function addRetirementSnapshot(app, accountId, date, balance, contribution, annualSalary = null) {
     const snapshot = { id: Date.now(), accountId, date, balance, contribution, annualSalary };
     app.retirementSnapshots.push(snapshot);
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/retirement-snapshots', snapshot);
     if (saved?.id) snapshot.id = saved.id;
     app.renderRetirementPage();
@@ -63,7 +62,6 @@ export async function addRetirementSnapshot(app, accountId, date, balance, contr
 
 export function deleteRetirementSnapshot(app, id) {
     app.retirementSnapshots = app.retirementSnapshots.filter(s => s.id !== id);
-    app.saveToStorage();
     pgDelete(app, `/api/retirement-snapshots/${id}`);
     app.renderRetirementPage();
 }
@@ -835,7 +833,7 @@ export function renderRetirementPage(app) {
 
     document.getElementById('retirementTargetDateInput').onchange = (event) => {
         app.retirementTargetDate = event.target.value || null;
-        app.saveToStorage();
+        app.saveToStorage(['retirementTargetDate']);
         app.renderRetirementPage();
     };
 
@@ -865,14 +863,12 @@ export function renderRetirementPage(app) {
         if (action === 'toggle-catchup') {
             app.accounts[idx] = { ...app.accounts[idx], catchUpEligible: event.target.checked };
             pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
-            app.saveToStorage();
             app.renderRetirementPage();
         }
         if (action === 'set-hsa-coverage') {
             const val = event.target.value === 'family' ? 'family' : 'selfOnly';
             app.accounts[idx] = { ...app.accounts[idx], hsaCoverageType: val };
             pgPatch(app, `/api/accounts/${accountId}`, app.accounts[idx]);
-            app.saveToStorage();
             app.renderRetirementPage();
         }
     };

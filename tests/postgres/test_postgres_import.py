@@ -480,12 +480,12 @@ HOME_PLAN = {
 
 
 async def test_postgres_home_purchase_plan_persists_across_reload(pg_page, base_url, credentials):
-    """Saving a plan via app.saveToStorage() PATCHes plan-settings and survives a reload."""
+    """Saving a plan via app.saveToStorage(['homePurchasePlan']) PATCHes plan-settings and survives a reload."""
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await _wipe_all(pg_page, base_url)
 
-    await pg_page.evaluate("(plan) => { window.app.homePurchasePlan = plan; return window.app.saveToStorage(); }", HOME_PLAN)
+    await pg_page.evaluate("(plan) => { window.app.homePurchasePlan = plan; return window.app.saveToStorage(['homePurchasePlan']); }", HOME_PLAN)
     await pg_page.wait_for_timeout(1500)
 
     plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
@@ -497,7 +497,7 @@ async def test_postgres_home_purchase_plan_persists_across_reload(pg_page, base_
     assert loaded == HOME_PLAN, f'Plan not loaded after reload: {loaded}. Console: {logs}'
 
     # Clearing the plan persists null server-side
-    await pg_page.evaluate("() => { window.app.homePurchasePlan = null; return window.app.saveToStorage(); }")
+    await pg_page.evaluate("() => { window.app.homePurchasePlan = null; return window.app.saveToStorage(['homePurchasePlan']); }")
     await pg_page.wait_for_timeout(1500)
     plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
     assert plan.get('homePurchasePlan') is None, f'Plan not cleared. Plan: {plan}. Console: {logs}'

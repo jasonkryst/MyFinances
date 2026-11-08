@@ -472,7 +472,7 @@ def test_forecast_settings_export_import_roundtrip(app_page):
         app._forecastRangeMonths = 12;
         app._forecastAccountId = 'total';
         app._forecastNotableThresholdPct = 250;
-        app.saveToStorage();
+        app.saveToStorage(['forecastSettings']);
     }""")
 
     result = page.evaluate("""async () => {

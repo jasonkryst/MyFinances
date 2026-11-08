@@ -463,7 +463,7 @@ export function initializeEventListeners(app) {
             const nextRange = parseInt(forecastRangeBtn.getAttribute('data-forecast-range'), 10);
             if ([1, 2, 3, 6, 12].includes(nextRange)) {
                 app._forecastRangeMonths = nextRange;
-                app.saveToStorage();
+                app.saveToStorage(['forecastSettings']);
                 app.renderReportsPage();
             }
             return;
@@ -999,6 +999,14 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.1.0 — 2026-11-08',
+        items: [
+            '<strong>Several tabs or devices no longer undo each other’s settings</strong> (issues #564, #521): saving a change now sends only that setting. A tab left open from earlier can no longer quietly revert your category budgets, home purchase plan, retirement target date or payoff strategy.',
+            '<strong>Fewer requests per edit:</strong> adding, editing or deleting a record no longer re-saves all your plan settings as well.',
+            '<strong>Two settings that were never saved now are:</strong> one-off stimulus amounts typed into the Plan payment schedule, and net worth milestones you have reached.'
+        ]
+    },
     {
         version: '7.0.0 — 2026-11-03',
         items: [

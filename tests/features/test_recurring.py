@@ -378,7 +378,6 @@ def test_recurring_template_linked_to_account_affects_balance(app_page):
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
         }];
-        app.saveToStorage();
 
         const balanceAfter = app.computeAccountBalance(window._acct, 2026, 5);
         return { balanceBefore, balanceAfter };
@@ -409,7 +408,6 @@ def test_recurring_reimbursement_linked_to_account_increases_balance(app_page):
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
         }];
-        app.saveToStorage();
 
         const balanceAfter = app.computeAccountBalance(window._acct, 2026, 5);
         return { balanceBefore, balanceAfter };

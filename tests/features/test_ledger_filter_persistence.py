@@ -28,7 +28,6 @@ def _seed_account_and_income(page):
             id: Date.now() + 1, name: 'Filter Income', amount: 500,
             frequency: 'monthly', accountId, startDate: null, endDate: null, notes: ''
         });
-        window.app.saveToStorage();
         return accountId;
     }""")
     page.wait_for_timeout(300)

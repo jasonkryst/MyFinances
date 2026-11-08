@@ -4,6 +4,25 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.1.0] — 2026-11-08
+
+### Fixed
+- **A stale tab or device no longer overwrites plan settings** (issue #564). `saveToStorage(app, fields)` now PATCHes only the plan-settings fields it is given (`monthlyPayment`, `strategy`, `perMonthStimulus`, `ledgerSettings`, `forecastSettings`, `retirementTargetDate`, `homePurchasePlan`, `budgetCategories`). Before, every save sent the whole row, so a tab opened earlier reverted category budgets, the home purchase plan, the retirement target and the strategy set elsewhere. The server already accepted partial PATCHes.
+  - The Plan form's payment and strategy are read from the page only when those fields are saved (Calculate, "Use this amount"), so an amount typed but never calculated is no longer saved as a side effect.
+  - Called with no known field, `saveToStorage` sends nothing and logs a warning, so a forgotten argument can never fall back to writing the whole row.
+  - The PATCH body is built by the new pure `src/planSettingsPatch.js` (Jest-tested, in the Stryker scope).
+- **Schedule-table stimulus amounts are saved** (issue #595). Editing a month's stimulus called `saveToStorage()`, whose body never included `perMonthStimulus`, so the value was lost on reload.
+- **Awarded net worth milestones are saved** (issue #596). Awarding one called `saveToStorage()`, which never sent milestones; it now POSTs `/api/plan-settings/milestones`.
+
+### Performance
+- **Record changes no longer PATCH `/api/plan-settings`** (issue #521). About 70 add/edit/delete/archive/Cleared paths called `saveToStorage()` after their own record request, doubling the requests of each edit. Those calls are removed; the records were always written by their own `pgPost`/`pgPatch`/`pgDelete`.
+  - Ledger filter and sort changes, which only reached the server as a side effect of those calls, now save `ledgerSettings` explicitly. During a Spending cross-navigation the user's own filters are stored, as the device copy already did.
+
+### Tests
+- New `tests/features/test_plan_settings_partial_save.py`: two-tab staleness (budget vs. strategy, account add vs. retirement/home plan), no plan-settings PATCH from record mutations, single-field PATCH bodies, Ledger sort, stimulus and milestone persistence, and no request without a known field.
+- New `tests/unit/planSettingsPatch.test.js`; `tests/unit/storage.test.js` covers the field-scoped save.
+- Tests that called `app.saveToStorage()` after seeding records in memory dropped the call (it never saved records); tests that save plan settings now name the field.
+
 ## [7.0.1] — 2026-11-08
 
 ### Tests / CI
