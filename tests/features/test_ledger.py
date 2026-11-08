@@ -6,7 +6,7 @@ Tests transaction history, filtering, and overrides.
 
 import pytest
 
-from tests.conftest import wait_for_api
+from tests.conftest import wait_for_api, submit_account_form
 
 
 @pytest.mark.feature
@@ -33,7 +33,7 @@ def test_transaction_history(app_page):
     page.fill('#accountName', 'Ledger Test')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '5000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     
     # Navigate to ledger
     page.click('button[data-page="ledger"]')

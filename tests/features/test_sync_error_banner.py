@@ -39,7 +39,7 @@ def _add_debt(page, name):
     page.fill('#interestRate', '18')
     page.fill('#minimumPayment', '25')
     page.fill('#dueDate', '15')
-    page.click('#debtFormSubmit')
+    page.click('#debtFormSubmit')  # submit-no-wait: shared by tests whose POST is failed or answered 401 (login gate), so the save need not finish
 
 
 @pytest.mark.feature
