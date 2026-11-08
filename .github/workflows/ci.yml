@@ -301,6 +301,7 @@ jobs:
             tests/features/test_recurring_paid_ledger_sync.py \
             tests/features/test_reports_nav_groups.py \
             tests/features/test_category_budgets.py \
+            tests/features/test_plan_settings_partial_save.py \
             -v
       - name: Stop stack
         if: always()

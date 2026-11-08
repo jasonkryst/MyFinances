@@ -290,7 +290,8 @@ export class DebtTrackerApp {
 
         backfillIncomeAccountIds(this);
         // #434: migrate legacy recurring paidMonths/paidAmounts into the Ledger.
-        if (this.reconcileRecurringPaidState()) this.saveToStorage();
+        // It persists the templates it changes itself.
+        this.reconcileRecurringPaidState();
         await this.seedMissingBalanceHistory();
         initSettingsModalFeature(this);
         initDataTransferModal(this);
@@ -735,11 +736,12 @@ export class DebtTrackerApp {
     openWhatsNewModal() { return openWhatsNewModalFeature(); }
 
     /**
-     * Persist the plan-settings scalars to the server (PATCH /api/plan-settings).
-     * Record collections are synced by their feature modules.
+     * Persist the named plan-settings fields to the server
+     * (PATCH /api/plan-settings, issue #564), e.g. saveToStorage(['strategy']).
+     * Record collections are synced by their feature modules and never call this.
      */
-    saveToStorage() {
-        return saveToStorage(this);
+    saveToStorage(fields) {
+        return saveToStorage(this, fields);
     }
 
     /**

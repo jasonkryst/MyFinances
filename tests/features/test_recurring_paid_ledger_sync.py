@@ -209,7 +209,9 @@ def test_ledger_cleared_checkbox_marks_recurring_paid_and_back(app_page):
     """Checking Cleared on the Ledger row marks the recurring item paid; unchecking reverts it."""
     page = app_page
     _seed(page, [_tmpl()])
-    page.evaluate("() => window.app.switchPage('ledger')")
+    # The occurrence is on the 1st; the default "around 7 days" Ledger window
+    # misses it after the first week of the month.
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; window.app.switchPage('ledger'); }")
     sel = f'[data-ledger-cleared="{_tx_id()}"]'
     page.wait_for_selector(sel, timeout=10000)
 

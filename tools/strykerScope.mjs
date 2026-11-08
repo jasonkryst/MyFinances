@@ -46,6 +46,8 @@ export const MUTATE_SCOPE = {
     'src/balanceHistoryCore.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).
     'src/passwordPolicy.js': true,
+    // #564: partial plan-settings PATCH body builder.
+    'src/planSettingsPatch.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

@@ -481,7 +481,7 @@ def test_recurring_mark_paid_cancel_no_change(app_page):
     mark_btn.click()
     page.wait_for_selector('#recurringMarkPaidCancelBtn', timeout=5000)
     page.click('#recurringMarkPaidCancelBtn')
-    page.wait_for_timeout(500)  # outlast the 300ms saveToStorage debounce so a wrongful write would be visible
+    page.wait_for_timeout(500)  # give a wrongful template PATCH time to land
 
     month_key = f"{date.today().year}-{date.today().month:02d}"
     rows = wait_for_api(page, '/api/recurring-templates',

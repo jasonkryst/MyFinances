@@ -168,7 +168,6 @@ def test_interest_only_after_balance_turns_positive(app_page):
         app.bonuses = []; app.debts = []; app.bills = []; app.expenses = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = []; app.ledgerAmountOverrides = {};
-        app.saveToStorage();
     }""")
 
     txs = _interest_txs(page)
@@ -221,7 +220,6 @@ def test_interest_is_projection_only_not_persisted(app_page):
     page.evaluate("""async () => {
         const mod = await import('/src/ledgerTransactions.js');
         mod.getLedgerTransactions(window.app);
-        window.app.saveToStorage();
     }""")
 
     # Server-backed: the account's rate is persisted, ledger-generated interest rows are not.
@@ -263,7 +261,6 @@ def test_edit_account_interest_rate_inline(app_page):
         const app = window.app;
         app.accounts = [{ id: 1, name: 'EditMe', type: 'Savings',
                           startingBalance: 500, interestRate: 1 }];
-        app.saveToStorage();
         app.switchPage('accounts');
     }""")
     page.wait_for_selector('text=EditMe')
@@ -412,7 +409,6 @@ def test_sub_cent_rate_shows_no_badge(app_page):
         const app = window.app;
         app.accounts = [{ id: 1, name: 'Tiny Rate', type: 'Savings',
                           startingBalance: 1000, interestRate: 0.001 }];
-        app.saveToStorage();
         app.switchPage('accounts');
     }""")
     page.wait_for_selector('text=Tiny Rate')

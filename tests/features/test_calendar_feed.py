@@ -43,7 +43,6 @@ def _seed_calendar_data(page):
             accountId: 1,
             date: new Date(today.getFullYear(), today.getMonth(), 10)
         }];
-        app.saveToStorage();
     }""")
 
 
@@ -197,7 +196,6 @@ def test_paid_months_excluded_from_feed(app_page):
             accountId: null, targetAccountId: null, startDate: null, endDate: null,
             paused: false, skippedMonths: [], paidMonths: ['{paid_month}']
         }}];
-        app.saveToStorage();
     }}""")
     content, _ = _download_ics(page)
 
@@ -218,7 +216,6 @@ def test_empty_app_state_produces_valid_ics(app_page):
         app.debts = [];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, download = _download_ics(page)
 
@@ -251,7 +248,6 @@ def test_bill_without_due_day_is_skipped(app_page):
         app.debts = [];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     assert 'SUMMARY:Bill - NoDayBill' not in content
@@ -270,7 +266,6 @@ def test_debt_without_due_date_is_skipped(app_page):
                        debtType: 'creditCard', accountId: null, originalBalance: 1000 }];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     assert 'SUMMARY:Debt - NoDueDebt' not in content
@@ -315,7 +310,7 @@ def test_archived_debt_excluded_when_setting_never_set(app_page):
     """No settings entry at all behaves like 'off' -- archived debts are omitted."""
     page = app_page
     _seed_archived_debts(page, False)
-    page.evaluate("() => { window.app.settings = []; window.app.saveToStorage(); }")
+    page.evaluate("() => { window.app.settings = []; }")
     content, _ = _download_ics(page)
     assert 'ArchivedVisa' not in content
     assert 'SUMMARY:Debt - ActiveLoan' in content
@@ -345,7 +340,6 @@ def _seed_incomes(page, incomes):
         app.recurringTemplates = [];
         app.expenses = [];
         app.incomes = incomes;
-        app.saveToStorage();
     }""", incomes)
 
 
@@ -499,7 +493,6 @@ def test_paused_recurring_template_is_skipped(app_page):
             accountId: null, targetAccountId: null, startDate: null, endDate: null,
             paused: true, skippedMonths: [], paidMonths: []
         }];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     assert 'SUMMARY:Subscription - PausedSub' not in content
@@ -517,7 +510,6 @@ def test_ics_escapes_special_characters_in_names(app_page):
         app.debts = [];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     # In ICS, commas and semicolons in values must be escaped

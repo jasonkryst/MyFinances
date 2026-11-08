@@ -91,7 +91,6 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
             date: tx.date,
             memo: memoInput ? memoInput.value : ''
         });
-        app.saveToStorage();
         close();
         if (typeof onApplied === 'function') onApplied();
         if (typeof app.renderReportsPage === 'function') app.renderReportsPage();

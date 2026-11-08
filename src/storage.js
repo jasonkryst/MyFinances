@@ -1,6 +1,7 @@
 // Server persistence: boot probe, load from and save to the PostgreSQL API.
 
 import { pgDeleteAll } from './postgresSync.js';
+import { buildPlanSettingsPatch } from './planSettingsPatch.js';
 import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
 
@@ -146,31 +147,31 @@ export async function loadFromPostgres(app) {
     app.budgetCategories = planSettings.budgetCategories ?? {};
 }
 
-// Persist the plan-settings scalars (payment, strategy, ledger/forecast view
-// settings, retirement target, home purchase plan, category budgets). Every
-// record collection is synced by its own feature module through
-// postgresSync.js; this only PATCHes the single plan-settings row. The name is
-// historical and kept for its many call sites.
-export function saveToStorage(app) {
-    const body = JSON.stringify({
-            monthlyPayment: parseFloat(document.getElementById('monthlyPayment')?.value) || null,
-            strategy: document.getElementById('paymentStrategy')?.value || null,
-            ledgerSettings: {
-                accountFilter: app._ledgerAccountFilter || 'all',
-                dateRange: app._ledgerDateRange || 'around7',
-                sortKey: app._ledgerSortKey || 'date',
-                sortDir: app._ledgerSortDir || 'desc',
-                clearedFilter: app._ledgerClearedFilter || 'all'
-            },
-            forecastSettings: {
-                rangeMonths: app._forecastRangeMonths || 1,
-                accountId: app._forecastAccountId || 'total',
-                notableThresholdPct: app._forecastNotableThresholdPct || 130
-            },
-            retirementTargetDate: app.retirementTargetDate || null,
-            homePurchasePlan: app.homePurchasePlan || null,
-            budgetCategories: app.budgetCategories || {}
-    });
+function _readPlanInputs() {
+    return {
+        monthlyPayment: document.getElementById('monthlyPayment')?.value,
+        strategy: document.getElementById('paymentStrategy')?.value
+    };
+}
+
+// Persist the named plan-settings fields (issues #564, #521); see
+// PLAN_SETTINGS_FIELDS in planSettingsPatch.js for the names. Only those
+// fields are sent, so a stale tab or device can't overwrite the others.
+// Record collections are synced by their own feature modules through
+// postgresSync.js and must not call this. The name is historical.
+//
+// Called with no known field it sends nothing: a forgotten argument must
+// never fall back to writing the whole row.
+export function saveToStorage(app, fields) {
+    const { body: patch, unknown } = buildPlanSettingsPatch(app, fields, _readPlanInputs);
+    if (unknown.length > 0) {
+        console.warn(`saveToStorage: unknown plan-settings field(s) ignored: ${unknown.join(', ')}`);
+    }
+    if (!patch) {
+        console.warn('saveToStorage called without a plan-settings field; nothing sent.');
+        return Promise.resolve(true);
+    }
+    const body = JSON.stringify(patch);
     // The csrf cookie is re-read per attempt: signing in issues a new one.
     const send = () => fetch('/api/plan-settings', {
         method: 'PATCH',
@@ -220,15 +221,14 @@ export function saveToStorage(app) {
 // applies.
 export function backfillIncomeAccountIds(app) {
     if (app.accounts.length > 0 && app.incomes.length > 0) {
+        // In memory only; it re-runs on every load. (It used to call
+        // saveToStorage, which only ever wrote plan settings, never incomes.)
         const firstAccountId = app.accounts[0].id;
-        let changed = false;
         for (let index = 0; index < app.incomes.length; index++) {
             if (!app.incomes[index].accountId || isNaN(app.incomes[index].accountId)) {
                 app.incomes[index].accountId = firstAccountId;
-                changed = true;
             }
         }
-        if (changed) saveToStorage(app);
     }
 }
 

@@ -110,7 +110,6 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
             setLedgerCleared(app, tx.transactionId, true);
         }
         app.syncRecurringPaidFromLedger(clearableTxs.map(tx => tx.transactionId));
-        app.saveToStorage();
         close();
         onComplete();
     };
@@ -161,6 +160,9 @@ function persistLedgerFilters(app) {
         ? (app._ledgerPreCrossNavDateRange ?? 'around7')
         : (app._ledgerDateRange || 'around7');
     saveLedgerFilters(accountFilter, dateRange, app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
+    // The server copy follows explicit filter changes only (#564): record
+    // saves no longer carry the whole plan-settings row with them.
+    app.saveToStorage(['ledgerSettings']);
 }
 
 // Render the Ledger page
@@ -482,6 +484,7 @@ export function renderLedgerPage(app) {
                     app._ledgerSortKey = key;
                     app._ledgerSortDir = key === 'amount' || key === 'balance' ? 'desc' : 'asc';
                 }
+                app.saveToStorage(['ledgerSettings']);
                 app._ledgerPage = 1;
                 renderLedgerPage(app);
             };
@@ -553,6 +556,7 @@ export function renderLedgerPage(app) {
             app._ledgerPage = 1;
             localStorage.removeItem('debtTrackerLedgerFilters');
             app._ledgerFiltersRestored = false;
+            app.saveToStorage(['ledgerSettings']);
             renderLedgerPage(app);
         };
     }
@@ -604,7 +608,6 @@ export function renderLedgerPage(app) {
         btn.onclick = () => {
             const txId = btn.getAttribute('data-ledger-clear-override');
             clearLedgerAmountOverride(app, txId);
-            app.saveToStorage();
             renderLedgerPage(app);
             if (typeof app.renderReportsPage === 'function') app.renderReportsPage();
             if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
@@ -648,7 +651,6 @@ export function renderLedgerPage(app) {
             const txId = checkbox.getAttribute('data-ledger-cleared');
             setLedgerCleared(app, txId, checkbox.checked);
             app.syncRecurringPaidFromLedger([txId]);
-            app.saveToStorage();
             renderLedgerPage(app);
         };
     });
@@ -687,7 +689,6 @@ export function renderLedgerPage(app) {
             const ids = [...container.querySelectorAll('.ledger-row-select:checked')].map(cb => cb.getAttribute('data-ledger-select'));
             ids.forEach(txId => setLedgerCleared(app, txId, true));
             app.syncRecurringPaidFromLedger(ids);
-            app.saveToStorage();
             renderLedgerPage(app);
         };
     }
@@ -698,7 +699,6 @@ export function renderLedgerPage(app) {
             const ids = [...container.querySelectorAll('.ledger-row-select:checked')].map(cb => cb.getAttribute('data-ledger-select'));
             ids.forEach(txId => setLedgerCleared(app, txId, false));
             app.syncRecurringPaidFromLedger(ids);
-            app.saveToStorage();
             renderLedgerPage(app);
         };
     }

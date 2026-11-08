@@ -66,7 +66,7 @@ def test_plan_settings_patch_failure_shows_banner(app_page):
     page = app_page
     page.route('**/api/plan-settings', lambda r: r.fulfill(status=500, body='{}', content_type='application/json')
                if r.request.method == 'PATCH' else r.continue_())
-    page.evaluate("() => window.app.saveToStorage()")
+    page.evaluate("() => window.app.saveToStorage(['ledgerSettings'])")
     page.wait_for_selector(BANNER + ':visible', timeout=10000)
 
 
@@ -75,7 +75,7 @@ def test_banner_not_stacked_and_persistent(app_page):
     page = app_page
     page.route('**/api/plan-settings', lambda r: r.fulfill(status=500, body='{}', content_type='application/json')
                if r.request.method == 'PATCH' else r.continue_())
-    page.evaluate("async () => { await window.app.saveToStorage(); await window.app.saveToStorage(); }")
+    page.evaluate("async () => { await window.app.saveToStorage(['ledgerSettings']); await window.app.saveToStorage(['ledgerSettings']); }")
     page.wait_for_selector(BANNER + ':visible', timeout=10000)
     assert page.locator(BANNER).count() == 1
     page.wait_for_timeout(6000)  # the old toast vanished after 5s
@@ -87,12 +87,12 @@ def test_banner_dismiss_and_reappears(app_page):
     page = app_page
     page.route('**/api/plan-settings', lambda r: r.fulfill(status=500, body='{}', content_type='application/json')
                if r.request.method == 'PATCH' else r.continue_())
-    page.evaluate("() => window.app.saveToStorage()")
+    page.evaluate("() => window.app.saveToStorage(['ledgerSettings'])")
     page.wait_for_selector(BANNER + ':visible', timeout=10000)
     assert page.get_attribute('#syncErrorBannerDismiss', 'aria-label')
     page.click('#syncErrorBannerDismiss')
     assert not page.is_visible(BANNER)
-    page.evaluate("() => window.app.saveToStorage()")
+    page.evaluate("() => window.app.saveToStorage(['ledgerSettings'])")
     page.wait_for_selector(BANNER + ':visible', timeout=10000)
 
 
@@ -115,8 +115,8 @@ def test_concurrent_401s_open_one_login_gate(app_page):
     page.route('**/api/plan-settings', lambda r: unauth(r) if r.request.method == 'PATCH' else r.continue_())
     page.route('**/api/persons', lambda r: unauth(r) if r.request.method == 'POST' else r.continue_())
     page.evaluate("""() => {
-        window.app.saveToStorage();
-        window.app.saveToStorage();
+        window.app.saveToStorage(['ledgerSettings']);
+        window.app.saveToStorage(['ledgerSettings']);
         import('/src/postgresSync.js').then(m => { m.pgPost(window.app, '/api/persons', { name: 'X' }); });
     }""")
     page.wait_for_selector('#loginGate:not(.hidden)', timeout=10000)
@@ -132,7 +132,7 @@ def test_plan_settings_401_shows_login_gate_not_banner(app_page):
     page.route('**/api/plan-settings', lambda r: r.fulfill(status=401, body='{}', content_type='application/json')
                if r.request.method == 'PATCH' else r.continue_())
     # showLoginGate resolves only after sign-in, so do not await the saves.
-    page.evaluate("() => { window.app.saveToStorage(); window.app.saveToStorage(); }")
+    page.evaluate("() => { window.app.saveToStorage(['ledgerSettings']); window.app.saveToStorage(['ledgerSettings']); }")
     page.wait_for_selector('#loginGate:not(.hidden)', timeout=10000)
     assert not page.is_visible(BANNER)
     assert page.locator('#loginGate').count() == 1
@@ -196,7 +196,7 @@ def test_plan_settings_401_is_retried_after_login_and_saved(app_page):
         return _unauth(route) if len(patches) == 1 else route.continue_()
 
     page.route('**/api/plan-settings', handler)
-    page.evaluate("() => { window.app.retirementTargetDate = '2051-06-01'; window.app.saveToStorage(); }")
+    page.evaluate("() => { window.app.retirementTargetDate = '2051-06-01'; window.app.saveToStorage(['retirementTargetDate']); }")
     _sign_in_through_gate(page)
     wait_for_api(page, '/api/plan-settings', lambda d: d.get('retirementTargetDate') == '2051-06-01')
     assert len(patches) == 2
@@ -207,7 +207,7 @@ def test_plan_settings_401_is_retried_after_login_and_saved(app_page):
 def test_plan_settings_401_retry_failure_shows_banner(app_page):
     page = app_page
     page.route('**/api/plan-settings', lambda r: _unauth(r) if r.request.method == 'PATCH' else r.continue_())
-    page.evaluate("() => { window.app.saveToStorage(); }")
+    page.evaluate("() => { window.app.saveToStorage(['ledgerSettings']); }")
     _sign_in_through_gate(page)
     page.wait_for_selector(BANNER + ':visible', timeout=10000)
 

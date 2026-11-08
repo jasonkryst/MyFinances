@@ -161,19 +161,46 @@ describe('saveToStorage', () => {
         };
     }
 
-    test('PATCHes plan settings and resolves true', async () => {
+    test('PATCHes only the named fields and resolves true', async () => {
         global.fetch = jest.fn(() => Promise.resolve(res(200, {})));
-        await expect(saveToStorage(makeApp())).resolves.toBe(true);
+        await expect(saveToStorage(makeApp(), ['retirementTargetDate'])).resolves.toBe(true);
         expect(global.fetch).toHaveBeenCalledTimes(1);
         const [url, init] = global.fetch.mock.calls[0];
         expect(url).toBe('/api/plan-settings');
         expect(init.method).toBe('PATCH');
+        expect(JSON.parse(init.body)).toEqual({ retirementTargetDate: null });
+    });
+
+    test('does not read the Plan inputs for a non-Plan field (#564)', async () => {
+        global.fetch = jest.fn(() => Promise.resolve(res(200, {})));
+        const getById = jest.spyOn(global.document, 'getElementById');
+        await saveToStorage(makeApp(), ['budgetCategories', 'ledgerSettings']);
+        expect(getById).not.toHaveBeenCalled();
+        getById.mockRestore();
     });
 
     test('resolves false when the request fails', async () => {
         global.fetch = jest.fn(() => Promise.reject(new TypeError('Failed to fetch')));
         const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        await expect(saveToStorage(makeApp())).resolves.toBe(false);
+        await expect(saveToStorage(makeApp(), ['budgetCategories'])).resolves.toBe(false);
         spy.mockRestore();
+    });
+
+    test.each([[undefined], [[]], [['debts']]])('sends nothing without a known field (%p)', async fields => {
+        global.fetch = jest.fn(() => Promise.resolve(res(200, {})));
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        await expect(saveToStorage(makeApp(), fields)).resolves.toBe(true);
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    test('drops unknown fields but still sends the known ones', async () => {
+        global.fetch = jest.fn(() => Promise.resolve(res(200, {})));
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        await saveToStorage(makeApp(), ['budgetCategories', 'accounts']);
+        expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ budgetCategories: {} });
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('accounts'));
+        warn.mockRestore();
     });
 });

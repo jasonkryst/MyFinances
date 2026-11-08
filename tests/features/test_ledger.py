@@ -158,7 +158,7 @@ def _seed_income_for_ledger(page, name="Override Salary", amount=4000):
     page.click('#incomeFormSubmit')
     page.wait_for_selector(f'text={name}', timeout=10000)
     # Reset date range so seeded transactions are visible regardless of today's date
-    page.evaluate("() => { window.app._ledgerDateRange = 'all'; }")
+    page.evaluate("() => { window.app._ledgerDateRange = 'all'; return window.app.saveToStorage(['ledgerSettings']); }")
 
 
 @pytest.mark.feature
@@ -1356,7 +1356,6 @@ def _seed_variable_income_for_ledger(page, name="Hourly Payday", amount=1200):
             accountId: acct.id, personId: null,
             category: 'Salary', isVariable: true
         }});
-        app.saveToStorage();
     }}""")
 
     page.click('button[data-page="ledger"]')
