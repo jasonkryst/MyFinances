@@ -1,9 +1,10 @@
 # Dependencies / package managers
-node_modules/
+**/node_modules/
 *.lock
 
 # Test files
 tests/
+server/test/
 docs/
 
 # Python cache
