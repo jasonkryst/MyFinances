@@ -184,20 +184,28 @@ export function downloadIcs(app) {
 }
 
 async function fetchToken() {
-    const res = await fetch('/api/calendar/token');
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.token || null;
+    try {
+        const res = await fetch('/api/calendar/token');
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.token || null;
+    } catch {
+        return null;  // offline or aborted: the dialog still opens and the ICS download still works
+    }
 }
 
 async function postToken() {
-    const res = await fetch('/api/calendar/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() }
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.token || null;
+    try {
+        const res = await fetch('/api/calendar/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() }
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.token || null;
+    } catch {
+        return null;  // offline or aborted: leave the Generate button ready to try again
+    }
 }
 
 function subscriptionUrl(token) {

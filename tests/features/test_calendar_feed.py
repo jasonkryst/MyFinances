@@ -560,3 +560,24 @@ def test_ics_xss_payload_in_name_does_not_appear_verbatim(app_page):
     content, _ = _download_ics(page)
     assert '<script>' not in content
     assert '</script>' not in content
+
+
+@pytest.mark.feature
+def test_a_token_network_error_does_not_break_the_dialog(app_page):
+    """Aborting GET /api/calendar/token must not leave an unhandled rejection or block the download."""
+    page = app_page
+    _seed_calendar_data(page)
+    page.evaluate("""() => {
+        window.__unhandled = [];
+        window.addEventListener('unhandledrejection', e => window.__unhandled.push(String(e.reason)));
+    }""")
+    page.route('**/api/calendar/token', lambda route: route.abort())
+
+    _open_calendar_modal(page)
+    page.wait_for_timeout(200)  # let the rejected fetch settle
+
+    assert page.evaluate("window.__unhandled") == [], page.evaluate("window.__unhandled")
+    assert page.is_visible('#calendarFeedModal')
+    with page.expect_download() as dl_info:
+        page.click('#calendarDownloadBtn')
+    assert dl_info.value.suggested_filename.endswith('.ics')
