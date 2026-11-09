@@ -668,23 +668,12 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the Docker stack, secrets, reverse proxy,
 
 ## 📞 Support & Contributions
 
-### Security Issues
-If you discover a security vulnerability:
-1. **Do not** create a public GitHub issue
-2. Contact the repository owner privately
-3. Include steps to reproduce + impact assessment
-4. See [SECURITY.md](SECURITY.md) for details
-
-### Bug Reports
-Open an issue with steps to reproduce, browser version, and OS. Run the test suite and include output.
-
-### Contributions
-- All changes should pass the security and feature test suites
-- Add tests for new features (security, feature, and UI coverage)
-- Follow the existing modular pattern: feature logic in a module function `featureFn(app, ...)`, thin wrapper on `DebtTrackerApp`
-- All user-supplied strings rendered via `innerHTML` must use `escapeHtml()`
-- New persisted fields must have a `sanitize*` entry in `storage.js`
-- See [SECURITY.md](SECURITY.md) for security guidelines and [ROADMAP.md](ROADMAP.md) for planned work
+- **Questions and ideas:** [Discussions](https://github.com/jasonkryst/MyFinances/discussions)
+- **Bugs, feature requests and accessibility barriers:** [open an issue](https://github.com/jasonkryst/MyFinances/issues/new/choose) using one of the forms
+- **Security vulnerabilities:** report them [privately](https://github.com/jasonkryst/MyFinances/security/advisories/new), never in a public issue; see [SECURITY.md](SECURITY.md#vulnerability-reporting)
+- **Contributing code, tests or translations:** see [CONTRIBUTING.md](CONTRIBUTING.md) and [ROADMAP.md](ROADMAP.md)
+- **Accessibility commitment and known limitations:** [ACCESSIBILITY.md](ACCESSIBILITY.md)
+- Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ---
 
@@ -692,4 +681,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.45.0 — Updated September 4, 2026*
+*See [CHANGELOG.md](CHANGELOG.md) for the current version and release history.*

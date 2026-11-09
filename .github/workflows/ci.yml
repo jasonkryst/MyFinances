@@ -405,6 +405,7 @@ jobs:
             tests/features/test_ci_shard_coverage.py \
             tests/features/test_async_submit_guard.py \
             tests/features/test_skip_guard.py \
+            tests/features/test_community_files.py \
             -v
       - name: Stop stack
         if: always()

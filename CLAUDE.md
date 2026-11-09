@@ -305,3 +305,7 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
 - **Never use the override to merge a red PR, or one with a missing required check.** Fix it or leave it unmerged. Commits land under the owner's identity, so this binds every session.
 - **`ci-complete` is the only required `ci.yml` check.** A new job must be added to its `needs:`, or `tests/features/test_ci_shard_coverage.py` fails. A job that can never run on a PR (only `mutation-testing` today) goes in that test's `NOT_GATING` set instead.
 - **Don't merge PRs yourself**; open them and mark them ready once CI is green. The owner merges.
+
+## Community files
+
+`CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `CONTRIBUTING.md`, `ACCESSIBILITY.md`, the issue forms in `.github/ISSUE_TEMPLATE/` (blank issues off; security goes to private advisories, questions to Discussions) and `.github/pull_request_template.md`. `CONTRIBUTING.md` and the PR checklist summarize the conventions above for people; when a convention here changes, update them too. `ACCESSIBILITY.md`'s "Known limitations" lists open `accessibility` issues; remove an entry when its issue closes. `tests/features/test_community_files.py` (shard K) fails on a broken relative link or anchor, a backticked repo path that no longer exists, or blank issues being re-enabled.
