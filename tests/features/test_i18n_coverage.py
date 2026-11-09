@@ -577,6 +577,14 @@ TRANSLATED_PAGES = {
             ui.showSyncErrorBanner();
         }""",
     ),
+    # #565: record deleted elsewhere, forced visible.
+    'record-gone-banner': (
+        ['#recordGoneBanner'],
+        """async () => {
+            const ui = await import('/src/ui.js');
+            ui.showRecordGoneBanner(window.app);
+        }""",
+    ),
     # #578: sync conflict modal, named and unnamed record variants.
     'sync-conflict-modal': (
         ['#syncConflictModal'],

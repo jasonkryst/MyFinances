@@ -1886,4 +1886,6 @@ export default {
     "sync.conflictMessageUnnamed": "This item was changed in another tab or device while you were editing it. Keep your changes, or use the other version?",
     "sync.conflictKeepMine": "Keep my changes",
     "sync.conflictUseTheirs": "Use the other version",
+    "sync.goneBanner": "This item was changed or deleted in another tab or device.",
+    "sync.goneReload": "Reload",
 };

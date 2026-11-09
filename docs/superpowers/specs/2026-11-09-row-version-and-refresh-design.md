@@ -83,7 +83,7 @@ Since v7.0.0 the server is the only store, but every tab writes optimistically.
   - any `app.editing*Id` is set;
   - a modal is open;
   - focus is in a form control inside a page.
-- **"Deleted elsewhere".** A 404 on PATCH or DELETE of a record shows a distinct notice, "This item was changed or deleted in another tab or device", with a Reload action that runs the refresh. It replaces the "check your connection" banner, and the stale local record is dropped.
+- **"Deleted elsewhere".** A 404 on PATCH or DELETE of a record shows a distinct notice, "This item was changed or deleted in another tab or device", with a Reload action that runs the refresh. It replaces the "check your connection" banner. The stale local record stays visible until Reload or the next refresh removes it, so nothing disappears mid-edit (changed during implementation).
 - **Tests.**
   - A record added through the API in "tab A" appears in tab B within a second.
   - A record deleted through the API disappears when the tab regains focus (threshold 0 in the test).

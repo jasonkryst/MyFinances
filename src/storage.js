@@ -111,7 +111,9 @@ async function _getJson(path, signal) {
 
 // Throws when any request fails or the whole fan-out exceeds LOAD_TIMEOUT_MS;
 // init() then shows the unreachable gate (or re-probes on SessionExpiredError).
-export async function loadFromPostgres(app) {
+// `seed: false` loads into a scratch object without touching the record
+// shadows (liveRefresh.js decides afterwards whether to apply it).
+export async function loadFromPostgres(app, { seed = true } = {}) {
     const signal = _timeoutSignal(LOAD_TIMEOUT_MS);
     const entries = Object.entries(POSTGRES_RESOURCE_ENDPOINTS);
     const [lists, snapshots, settingsRows, overrides, clearedTransactions, planSettings] = await Promise.all([
@@ -148,7 +150,7 @@ export async function loadFromPostgres(app) {
     app.homePurchasePlan = planSettings.homePurchasePlan ?? null;
     app.budgetCategories = planSettings.budgetCategories ?? {};
     // The loaded rows are the server-confirmed copies PATCHes diff against (#578).
-    seedShadows(app);
+    if (seed) seedShadows(app);
 }
 
 function _readPlanInputs() {

@@ -1,6 +1,6 @@
 import { getCsrfCookie, discardBody, POSTGRES_RESOURCE_ENDPOINTS } from './storage.js';
 import { requestLogin } from './loginGate.js';
-import { showSyncErrorBanner, showSyncConflictModal } from './ui.js';
+import { showSyncErrorBanner, showSyncConflictModal, showRecordGoneBanner } from './ui.js';
 import { mapWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 import { createShadowStore, diffFields, classifyConflict, itemPath } from './recordVersions.js';
 
@@ -13,6 +13,25 @@ const patchQueues = new Map();
 let conflictPrompt = Promise.resolve();
 // A 409 is resolved (merge or prompt) and resent at most this many times.
 const MAX_PATCH_ATTEMPTS = 3;
+
+// Writes in flight, and a counter bumped when each one starts (#575). A
+// background refresh waits while any write is pending, and throws its result
+// away if a write started while it was loading.
+let writesInFlight = 0;
+let writeGeneration = 0;
+
+// Fired on window after every successful write; liveRefresh.js relays it to
+// the other tabs. An event instead of an import keeps this module out of
+// another import cycle.
+export const DATA_WRITTEN_EVENT = 'myfinances:data-written';
+
+export function pendingWriteCount() {
+    return writesInFlight + patchQueues.size;
+}
+
+export function currentWriteGeneration() {
+    return writeGeneration;
+}
 
 const ALL_RESOURCE_PATHS = [
     '/api/persons',
@@ -40,6 +59,8 @@ const ALL_RESOURCE_PATHS = [
 // never shows the banner: returns { ok, status, body } (status 0 on a network
 // error) so callers can treat a 409 differently from a failure.
 async function pgRequest(app, method, path, body) {
+    const isWrite = method !== 'GET';
+    if (isWrite) { writesInFlight++; writeGeneration++; }
     try {
         // The csrf cookie is re-read per attempt: signing in issues a new one.
         const send = () => fetch(path, {
@@ -63,9 +84,14 @@ async function pgRequest(app, method, path, body) {
         if (res.status !== 204) {
             try { resBody = await res.json(); } catch { /* empty or non-JSON body */ }
         }
+        if (isWrite && res.ok && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent(DATA_WRITTEN_EVENT, { detail: { method, path } }));
+        }
         return { ok: res.ok, status: res.status, body: resBody };
     } catch (err) {
         return { ok: false, status: 0, body: null, error: err };
+    } finally {
+        if (isWrite) writesInFlight--;
     }
 }
 
@@ -98,14 +124,37 @@ export function seedShadows(app) {
     }
 }
 
-// The in-memory record an item path refers to, or null.
-function findRecord(app, path) {
+// The collection and index of the in-memory record an item path refers to.
+function locateRecord(app, path) {
     const slash = path.lastIndexOf('/');
     const collectionPath = path.slice(0, slash);
     const id = path.slice(slash + 1);
     const field = Object.keys(POSTGRES_RESOURCE_ENDPOINTS).find(f => POSTGRES_RESOURCE_ENDPOINTS[f] === collectionPath);
     if (!field || !Array.isArray(app?.[field])) return null;
-    return app[field].find(r => String(r?.id) === id) || null;
+    const index = app[field].findIndex(r => String(r?.id) === id);
+    return index === -1 ? null : { field, index };
+}
+
+// True for an item path under one of the record collections (not a keyed
+// resource such as /api/ledger-overrides/<key>).
+function isRecordPath(path) {
+    const collectionPath = path.slice(0, path.lastIndexOf('/'));
+    return Object.values(POSTGRES_RESOURCE_ENDPOINTS).includes(collectionPath);
+}
+
+// The in-memory record an item path refers to, or null.
+function findRecord(app, path) {
+    const at = locateRecord(app, path);
+    return at ? app[at.field][at.index] : null;
+}
+
+// A PATCH or DELETE hit 404: another tab or device deleted the record (#565).
+// Say so instead of blaming the connection. The stale copy stays on screen
+// (with the edit the user just made) until they choose Reload, which re-reads
+// the server and removes it; nothing vanishes mid-edit.
+function recordGone(app, path) {
+    shadows.delete(path);
+    showRecordGoneBanner(app);
 }
 
 function applyToRecord(app, path, fields) {
@@ -132,7 +181,16 @@ function pick(obj, keys) {
 async function sendPatch(app, path, body) {
     let base = shadows.get(path);
     // No shadow (no known version): an unchecked write, as before #578.
-    if (!base) return pgFetch(app, 'PATCH', path, body);
+    if (!base) {
+        const res = await pgRequest(app, 'PATCH', path, body);
+        if (res.ok) {
+            shadows.set(path, res.body);
+            return res.body;
+        }
+        if (res.status === 404) recordGone(app, path);
+        else reportFailure('PATCH', path, res);
+        return null;
+    }
 
     let diff = diffFields(base, body);
     if (Object.keys(diff).length === 0) return base;
@@ -143,6 +201,10 @@ async function sendPatch(app, path, body) {
             shadows.set(path, res.body);
             applyToRecord(app, path, { rowVersion: res.body?.rowVersion });
             return res.body;
+        }
+        if (res.status === 404) {
+            recordGone(app, path);
+            return null;
         }
         const theirs = res.body?.current;
         if (res.status !== 409 || !theirs || typeof theirs !== 'object') {
@@ -195,9 +257,20 @@ export function pgPatch(app, path, body) {
     return run;
 }
 
-export function pgDelete(app, path) {
+// Returns a promise that settles when the DELETE is done (callers may ignore it).
+export async function pgDelete(app, path) {
     shadows.delete(path);
-    pgFetch(app, 'DELETE', path);
+    const res = await pgRequest(app, 'DELETE', path);
+    if (res.ok) return;
+    if (res.status === 404) {
+        // Already gone, which is what the user wanted. For a record, another
+        // tab or device deleted it (#565): say why it vanished. A keyed entry
+        // (Ledger override or cleared flag) that was never stored is simply
+        // absent, so stay quiet.
+        if (isRecordPath(path)) recordGone(app, path);
+        return;
+    }
+    reportFailure('DELETE', path, res);
 }
 
 export function pgPut(app, path, body) {
