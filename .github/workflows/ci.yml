@@ -304,6 +304,7 @@ jobs:
             tests/features/test_category_budgets.py \
             tests/features/test_plan_settings_partial_save.py \
             tests/features/test_import_concurrency.py \
+            tests/features/test_row_version_conflicts.py \
             -v
       - name: Stop stack
         if: always()

@@ -4,6 +4,22 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.4.0] — 2026-11-09
+
+### Fixed
+- **A stale tab or device no longer reverts edits made elsewhere** (issue #563). Every record edit used to PATCH the whole in-memory record, so a tab loaded earlier wrote back old values for fields it never touched. For example, tab A renamed a debt, stale tab B changed its balance, and the server ended up with the old name.
+
+### Added
+- **Optimistic concurrency with a row version** (issue #578).
+  - **Server.** Migration `1755600000032` adds `row_version` to every CRUD table. `crudRouter` returns it as `rowVersion` and increments it on each PATCH.
+    - A PATCH carrying a `rowVersion` is checked atomically in the UPDATE. A stale version gets `409 CONFLICT` with the current row and writes nothing.
+    - A PATCH without one is still accepted unchecked, so a tab on the cached pre-upgrade app keeps working until it reloads.
+    - A malformed version is rejected with 400.
+  - **Client.** `postgresSync.js` keeps the last server-confirmed copy of each record and diffs every `pgPatch` body against it. It sends only the changed fields plus the version, and sends nothing when nothing changed. PATCHes to one record are queued, so rapid edits don't conflict with each other. No call site changed.
+  - **Conflicts.** On a 409, changes the other side made to different fields are merged in and the edit is resent. When both sides changed the same field, the new `#syncConflictModal` asks: "Keep my changes" or "Use the other version". Escape keeps the other version.
+  - **New module.** The pure diff and conflict helpers live in `src/recordVersions.js` (Jest-tested, in the Stryker scope at 100%).
+- **Design spec:** `docs/superpowers/specs/2026-11-09-row-version-and-refresh-design.md`. It also covers the follow-up cross-tab refresh (#575, #565).
+
 ## [7.3.1] — 2026-11-09
 
 ### Fixed

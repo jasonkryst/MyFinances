@@ -577,6 +577,21 @@ TRANSLATED_PAGES = {
             ui.showSyncErrorBanner();
         }""",
     ),
+    # #578: sync conflict modal, named and unnamed record variants.
+    'sync-conflict-modal': (
+        ['#syncConflictModal'],
+        """async () => {
+            const ui = await import('/src/ui.js');
+            ui.showSyncConflictModal('⟦Seed Debt⟧');
+        }""",
+    ),
+    'sync-conflict-modal-unnamed': (
+        ['#syncConflictModal'],
+        """async () => {
+            const ui = await import('/src/ui.js');
+            ui.showSyncConflictModal(null);
+        }""",
+    ),
     # v7.0.0: legacy browser-data modal, import variant with a failed transfer
     # (error line visible), then the cleanup variant.
     'legacy-data-modal-import': (

@@ -1733,6 +1733,18 @@
             </div>
         </div>
     </div>
+    <!-- Sync conflict modal (#578): a record changed in another tab or device -->
+    <div id="syncConflictModal" class="modal modal-overlay hidden"
+         role="dialog" aria-modal="true" aria-labelledby="syncConflictTitle" aria-describedby="syncConflictMessage" tabindex="-1">
+        <div class="modal-content">
+            <h3 id="syncConflictTitle" data-i18n="sync.conflictTitle">Changed elsewhere</h3>
+            <p id="syncConflictMessage" class="modal-description"></p>
+            <div class="modal-actions">
+                <button id="syncConflictKeepBtn" class="btn btn-primary" data-i18n="sync.conflictKeepMine">Keep my changes</button>
+                <button id="syncConflictTheirsBtn" class="btn btn-secondary" data-i18n="sync.conflictUseTheirs">Use the other version</button>
+            </div>
+        </div>
+    </div>
     <!-- Archive Confirm Modal -->
     <div id="archiveConfirmModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="archiveConfirmTitle" tabindex="-1">

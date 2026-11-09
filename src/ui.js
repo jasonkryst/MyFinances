@@ -1000,6 +1000,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.4.0 — 2026-11-09',
+        items: [
+            '<strong>Edits from two tabs or devices no longer undo each other:</strong> saving a change now sends only what you changed. If you rename a debt on your laptop and update its balance on your phone, both changes are kept.',
+            '<strong>You choose when both sides changed the same thing:</strong> if another tab or device changed the same detail while you were editing, MyFinances asks whether to keep your changes or use the other version, instead of silently overwriting one of them.'
+        ]
+    },
+    {
         version: '7.3.0 — 2026-11-08',
         items: [
             '<strong>Large backups import reliably:</strong> restoring a backup, or moving old browser data, with years of Ledger amount changes and cleared marks no longer fails part-way. MyFinances now sends a few requests at a time instead of thousands at once, and if an import does fail, putting your previous data back works the same way.',
@@ -1411,6 +1418,57 @@ export function showDeleteConfirmModal(message, confirmLabel = t('common.delete'
         modal.classList.remove('hidden');
         modal.focus();  // immediate focus ensures onkeydown fires for Escape
         setTimeout(() => cancelBtn.focus(), 30);
+    });
+}
+
+// A record changed in another tab or device while this tab edited the same
+// field (#578). Resolves true for "Keep my changes", false for "Use the other
+// version". Escape picks the other version: it overwrites nothing on the server.
+export function showSyncConflictModal(recordName) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('syncConflictModal');
+        const messageEl = document.getElementById('syncConflictMessage');
+        const keepBtn = document.getElementById('syncConflictKeepBtn');
+        const theirsBtn = document.getElementById('syncConflictTheirsBtn');
+        if (!modal || !keepBtn || !theirsBtn) { resolve(false); return; }
+        if (messageEl) {
+            messageEl.textContent = recordName
+                ? t('sync.conflictMessage', { name: recordName })
+                : t('sync.conflictMessageUnnamed');
+        }
+
+        const lastFocused = document.activeElement;
+        const dismiss = (keepMine) => {
+            keepBtn.onclick = null;
+            theirsBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            resolve(keepMine);
+        };
+
+        keepBtn.onclick = () => dismiss(true);
+        theirsBtn.onclick = () => dismiss(false);
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); return; }
+            if (event.key === 'Tab') {
+                const first = keepBtn;
+                const last = theirsBtn;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => theirsBtn.focus(), 30);
     });
 }
 

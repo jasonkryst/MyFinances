@@ -1,5 +1,5 @@
 import { getCsrfCookie } from './storage.js';
-import { pgDeleteAll, pgDeleteMilestones } from './postgresSync.js';
+import { pgDeleteAll, pgDeleteMilestones, seedShadows } from './postgresSync.js';
 import { showSyncErrorBanner } from './ui.js';
 import { sanitizeFiniteNumber, normalizeText } from './utils.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
@@ -340,6 +340,9 @@ export async function replaceForPostgres(app, clean, incomingStrategy, warnings)
         await doReplaceRollback(app, snapshot);
         showSyncErrorBanner();
         throw err;
+    } finally {
+        // Every collection now holds server rows (imported or restored) (#578).
+        seedShadows(app);
     }
 }
 
@@ -551,5 +554,8 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
             path => fetch(path, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfCookie() } }));
         showSyncErrorBanner();
         throw err;
+    } finally {
+        // Kept and newly created records are all server rows (#578).
+        seedShadows(app);
     }
 }
