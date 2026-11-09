@@ -1557,6 +1557,12 @@
         <span class="sync-error-banner-text" data-i18n="sync.errorBanner">Couldn't save your last change — check your connection. Reload to see what's saved.</span>
         <button type="button" id="syncErrorBannerDismiss" class="sync-error-banner-dismiss" data-i18n-attr="aria-label:sync.dismiss" aria-label="Dismiss">&times;</button>
     </div>
+    <!-- #565: a record this tab edited or deleted was already deleted elsewhere -->
+    <div id="recordGoneBanner" class="sync-error-banner record-gone-banner hidden" role="status">
+        <span class="sync-error-banner-text" data-i18n="sync.goneBanner">This item was changed or deleted in another tab or device.</span>
+        <button type="button" id="recordGoneReloadBtn" class="record-gone-reload" data-i18n="sync.goneReload">Reload</button>
+        <button type="button" id="recordGoneDismiss" class="sync-error-banner-dismiss" data-i18n-attr="aria-label:sync.dismiss" aria-label="Dismiss">&times;</button>
+    </div>
     <!-- Login Gate — full-page overlay -->
     <div id="loginGate" class="login-gate hidden" role="dialog" aria-modal="true" aria-labelledby="loginGateTitle">
         <div class="login-gate-card">

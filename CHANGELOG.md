@@ -4,6 +4,24 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.5.0] — 2026-11-09
+
+### Added
+- **Refresh across tabs and on returning to a tab** (issue #575). The design is in `docs/superpowers/specs/2026-11-09-row-version-and-refresh-design.md`.
+  - **Same-browser tabs.** Every successful write fires `myfinances:data-written`. The new `src/liveRefresh.js` relays it on a `BroadcastChannel`, and other tabs of the same browser refresh within about a second; the writing tab doesn't refresh itself.
+  - **Returning to a tab.** A tab hidden for at least `REFRESH_ON_FOCUS_SECONDS` (default 60; 0 means every return) re-reads the server when it is shown again.
+    - The value is configured through env: `docker-compose.yml`, then `docker-entrypoint.d/40-ga-env-config.sh`, then `window.__ENV__`.
+    - The script accepts whole seconds only, strips leading zeros, and drops anything else with a warning. It also gained `ENV_CONFIG_OUT` for tests.
+  - **How a refresh runs.** It loads into a scratch object and applies the result only if no write started meanwhile, then re-seeds the record shadows (#578), reconciles recurring paid state and re-renders the open page.
+    - The user's Ledger filters and sort and Forecast range are kept.
+    - It waits while a save is pending, an inline edit or dialog is open, or focus is in a text field.
+    - The pure decisions are in `src/refreshPolicy.js` (Jest-tested, Stryker 100%).
+
+### Fixed
+- **Records deleted elsewhere no longer show "check your connection"** (issue #565). A PATCH or DELETE that finds the record gone (404) now shows `#recordGoneBanner`, "This item was changed or deleted in another tab or device", with a Reload action (`app.refreshFromServer()`). The stale copy stays on screen until Reload, or the next refresh, removes it, so nothing vanishes mid-edit.
+  - A 404 when deleting a keyed Ledger override or cleared flag is already-absent and now stays silent; before, it showed the connection banner.
+  - `pgDelete` now returns a promise.
+
 ## [7.4.0] — 2026-11-09
 
 ### Fixed

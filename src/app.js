@@ -36,6 +36,7 @@ import {
     renderPayoffGanttChart as renderPayoffGanttChartFeature
 } from './charts.js';
 import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres, SessionExpiredError } from './storage.js';
+import { initLiveRefresh, refreshFromServer as refreshFromServerFeature } from './liveRefresh.js';
 import { showServerUnreachable } from './serverUnreachableGate.js';
 import { requestLogin } from './loginGate.js';
 import { showPgMigrationModal, showLegacyDataCleanupModal } from './pgMigrationModal.js';
@@ -299,6 +300,9 @@ export class DebtTrackerApp {
         this.updateUI();
         this.updateFormVisibility();
         this.switchPage('health');
+        // #575: from here on, other tabs' writes and returning to this tab
+        // re-read the server.
+        initLiveRefresh(this);
     }
 
     // The readiness marker (issue #422) also goes up while boot waits at a
@@ -494,6 +498,11 @@ export class DebtTrackerApp {
      */
     refreshCurrentPageData() {
         return renderPageDataFeature(this, this._currentPage, { resetToDefaults: false });
+    }
+
+    // Re-read the server in place (#575/#565); see liveRefresh.js.
+    refreshFromServer() {
+        return refreshFromServerFeature(this);
     }
 
     /**

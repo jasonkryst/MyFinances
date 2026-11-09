@@ -54,6 +54,8 @@ export const MUTATE_SCOPE = {
     'src/ledgerKeyRemap.js': true,
     // #578: optimistic-concurrency diff/conflict helpers.
     'src/recordVersions.js': true,
+    // #575: refresh-on-focus / cross-tab refresh decisions.
+    'src/refreshPolicy.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

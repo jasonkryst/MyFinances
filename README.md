@@ -370,7 +370,11 @@ src/
   ├─ sanitizers.js         — Sanitizers for persisted/imported record shapes
   ├─ dataExport.js         — JSON/CSV export & import
   ├─ dataTransferModal.js  — Postgres-to-local data transfer modal
-  ├─ postgresSync.js       — Per-resource Postgres mutation helpers (pgPost/pgPatch/pgDelete)
+  ├─ postgresSync.js       — Per-resource Postgres mutation helpers (pgPost/pgPatch/pgDelete); diff-only, versioned PATCH
+  ├─ recordVersions.js     — Pure diff/conflict helpers for row-versioned PATCHes (#578)
+  ├─ liveRefresh.js        — Cross-tab and on-focus refresh (#575)
+  ├─ refreshPolicy.js      — Pure refresh decisions (threshold, deferral, view state)
+  ├─ ledgerKeyRemap.js     — Pure Ledger override/cleared key remapping on import (#520)
   ├─ postgresImport.js     — loadFromPostgres() fan-out to all 15 resource endpoints
   ├─ pgMigrationModal.js   — One-time local→Postgres migration modal
   ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only)

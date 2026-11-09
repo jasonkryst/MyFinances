@@ -1857,4 +1857,6 @@ export default {
     "sync.conflictMessageUnnamed": "Este elemento se modificó en otra pestaña o dispositivo mientras lo editabas. ¿Conservar tus cambios o usar la otra versión?",
     "sync.conflictKeepMine": "Conservar mis cambios",
     "sync.conflictUseTheirs": "Usar la otra versión",
+    "sync.goneBanner": "Este elemento se modificó o se eliminó en otra pestaña o dispositivo.",
+    "sync.goneReload": "Recargar",
 };

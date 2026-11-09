@@ -17,6 +17,7 @@ services:
     #       memory: 64M
     environment:
       GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
+      REFRESH_ON_FOCUS_SECONDS: ${REFRESH_ON_FOCUS_SECONDS:-}
     read_only: true
     tmpfs:
       - /tmp

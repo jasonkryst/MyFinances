@@ -1000,6 +1000,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.5.0 — 2026-11-09',
+        items: [
+            '<strong>Your tabs stay up to date:</strong> a change saved in one tab now shows up in your other tabs of the same browser within about a second.',
+            '<strong>Changes from your other devices appear when you come back:</strong> a tab you return to after a minute or more re-reads your data, without interrupting anything you are typing or editing.',
+            '<strong>A clear message for items deleted elsewhere:</strong> if you edit or delete something that was already deleted in another tab or device, MyFinances says so and offers a Reload, instead of blaming your connection.'
+        ]
+    },
+    {
         version: '7.4.0 — 2026-11-09',
         items: [
             '<strong>Edits from two tabs or devices no longer undo each other:</strong> saving a change now sends only what you changed. If you rename a debt on your laptop and update its balance on your phone, both changes are kept.',
@@ -1352,6 +1360,24 @@ export function showNetWorthMilestone(message) {
 // stacked); the dismiss button hides it until the next failure.
 export function showSyncErrorBanner() {
     document.getElementById('syncErrorBanner')?.classList.remove('hidden');
+}
+
+// #565: a PATCH/DELETE found the record already deleted elsewhere. Distinct
+// from the connection banner; Reload re-reads the server in place.
+export function showRecordGoneBanner(app) {
+    const banner = document.getElementById('recordGoneBanner');
+    if (!banner) return;
+    const hide = () => banner.classList.add('hidden');
+    const reload = document.getElementById('recordGoneReloadBtn');
+    if (reload) {
+        reload.onclick = () => {
+            hide();
+            if (typeof app?.refreshFromServer === 'function') app.refreshFromServer();
+        };
+    }
+    const dismiss = document.getElementById('recordGoneDismiss');
+    if (dismiss) dismiss.onclick = hide;
+    banner.classList.remove('hidden');
 }
 
 let _emailTestToastTimer = null;
