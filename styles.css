@@ -8747,7 +8747,7 @@ body.dark-mode .settings-danger-title { color: #f87171; }
 #accountMenuEmail.hidden + .account-menu-divider { display: none; }
 
 /* C4: confirmation dialogs must sit above Settings (Clear All Data is launched from it) */
-#deleteConfirmModal { z-index: 10010; }
+#deleteConfirmModal, #syncConflictModal { z-index: 10010; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UX C (#428) — mobile density: filter disclosures, collapsible add forms,

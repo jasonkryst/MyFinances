@@ -1,6 +1,6 @@
 // Server persistence: boot probe, load from and save to the PostgreSQL API.
 
-import { pgDeleteAll } from './postgresSync.js';
+import { pgDeleteAll, seedShadows } from './postgresSync.js';
 import { buildPlanSettingsPatch } from './planSettingsPatch.js';
 import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
@@ -70,7 +70,9 @@ async function _probeSetupStatus() {
     return { reachable: true, hasSession: false, needsSetup: body.needsSetup };
 }
 
-const POSTGRES_RESOURCE_ENDPOINTS = {
+// Exported for postgresSync.js's record shadows (#578): it reads this at call
+// time only, so the storage.js <-> postgresSync.js import cycle stays safe.
+export const POSTGRES_RESOURCE_ENDPOINTS = {
     persons: '/api/persons',
     debts: '/api/debts',
     accounts: '/api/accounts',
@@ -145,6 +147,8 @@ export async function loadFromPostgres(app) {
     app.retirementTargetDate = planSettings.retirementTargetDate ?? null;
     app.homePurchasePlan = planSettings.homePurchasePlan ?? null;
     app.budgetCategories = planSettings.budgetCategories ?? {};
+    // The loaded rows are the server-confirmed copies PATCHes diff against (#578).
+    seedShadows(app);
 }
 
 function _readPlanInputs() {

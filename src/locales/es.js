@@ -1852,4 +1852,9 @@ export default {
     "pgMigration.remove": "Eliminar",
     "sync.errorBanner": "No se pudo guardar tu último cambio: revisa tu conexión. Recarga para ver lo que está guardado.",
     "sync.dismiss": "Descartar",
+    "sync.conflictTitle": "Cambiado en otro lugar",
+    "sync.conflictMessage": "«{name}» se modificó en otra pestaña o dispositivo mientras lo editabas. ¿Conservar tus cambios o usar la otra versión?",
+    "sync.conflictMessageUnnamed": "Este elemento se modificó en otra pestaña o dispositivo mientras lo editabas. ¿Conservar tus cambios o usar la otra versión?",
+    "sync.conflictKeepMine": "Conservar mis cambios",
+    "sync.conflictUseTheirs": "Usar la otra versión",
 };

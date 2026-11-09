@@ -52,6 +52,8 @@ export const MUTATE_SCOPE = {
     'src/concurrency.js': true,
     // #520: Ledger override/cleared key remapping on import.
     'src/ledgerKeyRemap.js': true,
+    // #578: optimistic-concurrency diff/conflict helpers.
+    'src/recordVersions.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

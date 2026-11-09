@@ -1852,4 +1852,9 @@ export default {
     "pgMigration.remove": "Usuń",
     "sync.errorBanner": "Nie udało się zapisać ostatniej zmiany — sprawdź połączenie. Odśwież stronę, aby zobaczyć zapisane dane.",
     "sync.dismiss": "Zamknij",
+    "sync.conflictTitle": "Zmieniono w innym miejscu",
+    "sync.conflictMessage": "„{name}” zmieniono w innej karcie lub na innym urządzeniu podczas edycji. Zachować Twoje zmiany czy użyć drugiej wersji?",
+    "sync.conflictMessageUnnamed": "Ten element zmieniono w innej karcie lub na innym urządzeniu podczas edycji. Zachować Twoje zmiany czy użyć drugiej wersji?",
+    "sync.conflictKeepMine": "Zachowaj moje zmiany",
+    "sync.conflictUseTheirs": "Użyj drugiej wersji",
 };
