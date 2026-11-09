@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.3.1] — 2026-11-09
+
+### Fixed
+- **Importing a backup no longer orphans Ledger overrides and Cleared flags** (issue #520). These are keyed `type|sourceId|accountId|date`. A replace or merge import, and the legacy browser-data transfer, gave every record a new server id but stored the keys unchanged, so overrides and Cleared state silently stopped applying and balances and forecasts went back to template amounts.
+  - Both id segments of every key are now rewritten through the same id maps the records went through. Ledger `interest` rows map through the account ids, and `savings` rows are matched across emergency and sinking funds by the key's account. The logic lives in the new pure `src/ledgerKeyRemap.js` (Jest-tested, in the Stryker scope at 100%).
+  - In a merge, a record that matches an existing one by name keeps the imported keys on that existing record.
+  - Keys whose record or account isn't in the file, or that are malformed, are dropped instead of being stored as orphans. The import result lists one summary warning for each kind (Ledger Override, Ledger Cleared Flag).
+  - Keys already orphaned by an earlier import can't be recovered automatically. Re-importing the original backup restores them.
+
 ## [7.3.0] — 2026-11-08
 
 ### Fixed

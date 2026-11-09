@@ -13,6 +13,8 @@ The in-flight count is recorded by wrapping window.fetch, so it measures what
 the app actually sends.
 """
 
+import datetime
+
 import pytest
 
 from tests.conftest import seed_state, wait_for_api
@@ -49,12 +51,15 @@ _IMPORT_JS = """async ({ mode, overrides, cleared, accounts }) => {
         ledgerClearedTransactions: {},
         settings: [{ key: 'reconciliationAdjustsBalance', value: false }],
     };
+    // Keys must resolve to an imported record or they are dropped (#520):
+    // interest rows use the account's own id as their source, so one account
+    // backs any number of keys, one per distinct date.
+    const day = i => new Date(Date.UTC(2020, 0, 1) + i * 86400000).toISOString().slice(0, 10);
     for (let i = 0; i < overrides; i++) {
-        const d = `2025-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`;
-        state.ledgerAmountOverrides[`income|${i}|100|${d}`] = { amount: i, originalAmount: i + 1, date: d };
+        state.ledgerAmountOverrides[`interest|100|100|${day(i)}`] = { amount: i, originalAmount: i + 1, date: day(i) };
     }
     for (let i = 0; i < cleared; i++) {
-        state.ledgerClearedTransactions[`bill|${i}|100|2025-06-01`] = { clearedAt: '2025-06-02T00:00:00.000Z' };
+        state.ledgerClearedTransactions[`interest|100|100|${day(i)}`] = { clearedAt: '2025-06-02T00:00:00.000Z' };
     }
     const clean = sanitizeParsedState(state);
     const run = mode === 'merge' ? mergeForPostgres : replaceForPostgres;
@@ -105,8 +110,8 @@ def test_failed_import_rollback_is_bounded_and_restores_prior_data(app_page):
     """A failing replace import rolls back by re-posting the previous dataset
     through the same pool; the prior overrides and account come back."""
     page = app_page
-    prior = {f'expense|{i}|1|2025-02-{1 + i % 28:02d}': {'amount': i, 'date': f'2025-02-{1 + i % 28:02d}'}
-             for i in range(300)}
+    dates = [(datetime.date(2019, 1, 1) + datetime.timedelta(days=i)).isoformat() for i in range(300)]
+    prior = {f'interest|1|1|{d}': {'amount': i, 'date': d} for i, d in enumerate(dates)}
     seed_state(page, {
         'version': '3.0',
         'accounts': [{'id': 1, 'name': 'Prior Account', 'type': 'Checking', 'startingBalance': 5}],
@@ -128,10 +133,13 @@ def test_failed_import_rollback_is_bounded_and_restores_prior_data(app_page):
     stats = _inflight(page)
     assert stats['max'] <= LIMIT, stats
     overrides = wait_for_api(page, '/api/ledger-overrides', lambda d: len(d) == 300, timeout=30)
-    assert {o['overrideKey'] if 'overrideKey' in o else o.get('key') for o in overrides} == set(prior), \
-        'rollback should restore exactly the previous overrides'
     accounts = wait_for_api(page, '/api/accounts', lambda d: len(d) == 1)
     assert accounts[0]['name'] == 'Prior Account'
+    # The rollback re-posts the account under a new id and remaps the keys
+    # with it (#520), so compare the dates and the restored account's id.
+    acct = accounts[0]['id']
+    assert {o['overrideKey'] for o in overrides} == {f'interest|{acct}|{acct}|{d}' for d in dates}, \
+        'rollback should restore exactly the previous overrides, keyed to the restored account'
 
 
 @pytest.mark.feature

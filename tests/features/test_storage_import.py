@@ -582,9 +582,12 @@ def test_import_drops_ledger_override_with_non_finite_amount(app_page):
     result = page.evaluate("""async () => {
         const app = window.app;
         const mod = await import('/src/dataExport.js');
+        // Every key references an imported debt and account, so only the
+        // amount decides what survives (unresolvable keys are dropped, #520).
         const payload = {
-            debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
-                      accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
+            accounts: [{ id: 1, name: 'Anchor Checking', type: 'Checking', startingBalance: 100 }],
+            debts: [1, 2, 3].map(id => ({ id, name: `Anchor Debt ${id}`, debtType: 'creditCard', accountId: 1,
+                      accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 })),
             ledgerAmountOverrides: {
                 'debt|1|1|2026-06-18': { amount: 'not-a-number', transactionName: 'Bad Override' },
                 'debt|2|1|2026-06-18': { amount: [1, 2], transactionName: 'Also Bad' },
@@ -592,17 +595,18 @@ def test_import_drops_ledger_override_with_non_finite_amount(app_page):
             }
         };
         const file = new File([JSON.stringify(payload)], 'badoverride.json', { type: 'application/json' });
-        return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ overrides: app.ledgerAmountOverrides }), 300);
-        });
+        await new Promise(resolve => mod.importAllJSON(app, file, {
+            onImported: resolve, onImportError: resolve, onInvalidJSON: resolve, onNoData: resolve,
+        }));
+        const debt3 = app.debts.find(d => d.name === 'Anchor Debt 3');
+        return { overrides: app.ledgerAmountOverrides, debt3Id: debt3 && debt3.id, accountId: app.accounts[0]?.id };
     }""")
 
     overrides = result['overrides']
-    assert 'debt|1|1|2026-06-18' not in overrides, "Override with NaN amount should be dropped"
-    assert 'debt|2|1|2026-06-18' not in overrides, "Override with non-numeric string amount should be dropped"
-    assert 'debt|3|1|2026-06-18' in overrides, "Override with a valid amount should be retained"
-    good = overrides['debt|3|1|2026-06-18']
+    assert len(overrides) == 1, f"Only the valid override should be retained: {overrides}"
+    good_key = f"debt|{result['debt3Id']}|{result['accountId']}|2026-06-18"
+    assert good_key in overrides, f"Override with a valid amount should be retained (remapped): {overrides}"
+    good = overrides[good_key]
     assert good['amount'] == 250
     assert '<' not in good['transactionName'] and '>' not in good['transactionName'], \
         "transactionName should have unsafe characters stripped"
