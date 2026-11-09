@@ -291,7 +291,7 @@ If you discover a security vulnerability:
 
 1. **Do not** create a public GitHub issue
 2. **Do not** share vulnerability details publicly
-3. **Contact** the repository owner privately
+3. **Report it privately** through [GitHub private vulnerability reporting](https://github.com/jasonkryst/MyFinances/security/advisories/new)
 4. **Include** steps to reproduce and impact assessment
 5. **Wait** for confirmation before public disclosure
 
@@ -347,7 +347,7 @@ Remaining considerations:
 
 ## Security Contacts
 
-For security-related questions or concerns, please contact the repository maintainer.
+Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/jasonkryst/MyFinances/security/advisories/new). For other security questions, use [Discussions](https://github.com/jasonkryst/MyFinances/discussions).
 
 ---
 
