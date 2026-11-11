@@ -144,6 +144,45 @@ async def test_legacy_import_failure_keeps_key(pg_page, base_url):
     assert await _key(pg_page) is not None
 
 
+async def test_legacy_import_retry_after_failure_succeeds(pg_page, base_url):
+    """#467: a failed transfer leaves the modal usable, and clicking Transfer
+    again imports everything and removes the legacy key."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+
+    attempts = {"n": 0}
+
+    async def fail_first_post(route):
+        if route.request.method == "POST":
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                await route.fulfill(status=500, content_type="application/json", body='{"error":"boom"}')
+                return
+        await route.continue_()
+
+    await pg_page.route("**/api/accounts", fail_first_post)
+    await pg_page.click("#pgMigrationTransferBtn")
+    await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
+    # Still usable: both actions are enabled again and nothing was removed.
+    assert await pg_page.locator("#pgMigrationTransferBtn").is_enabled()
+    assert await pg_page.locator("#pgMigrationSkipBtn").is_enabled()
+    assert await _key(pg_page) is not None
+
+    await pg_page.click("#pgMigrationTransferBtn")
+    await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=15000)
+    assert attempts["n"] >= 2, "the retry never reached the server"
+    assert not await pg_page.locator("#pgMigrationError").is_visible()
+
+    # The server holds the data, not just the in-memory app state.
+    await pg_page.reload()
+    await pg_page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    assert any(a["name"] == "Legacy Checking" for a in await _accounts(pg_page, base_url))
+    debts = await (await pg_page.request.get(f"{base_url}/api/debts")).json()
+    assert any(d["name"] == "Legacy Debt" for d in debts)
+    assert await _key(pg_page) is None
+    assert not await pg_page.locator("#pgMigrationModal").is_visible()
+
+
 async def test_legacy_import_failure_returns_focus_to_transfer(pg_page, base_url):
     """#490: the Transfer button is disabled while loading, which drops focus to
     <body>. After a failure focus is back on it, so Enter retries."""
