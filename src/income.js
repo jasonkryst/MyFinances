@@ -18,7 +18,7 @@ import {
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
 import { t, getIntlLocale } from './i18n.js';
 
@@ -266,9 +266,7 @@ export async function addIncome(app) {
     }
 
     const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
-    app.incomes.push(income);
-    const saved = await pgPost(app, '/api/incomes', income);
-    if (saved?.id) income.id = saved.id;
+    if (!(await pgCreate(app, 'incomes', '/api/incomes', income))) return null;
     app.renderIncomeList();
     document.getElementById('incomeForm').reset();
 }
@@ -358,9 +356,7 @@ export async function addBonus(app) {
     if (!date)                        { await showAlertModal(t('income.bonusErrDate')); return; }
 
     const bonus = { id: Date.now(), name, amount, date, category, accountId, purpose };
-    app.bonuses.push(bonus);
-    const saved = await pgPost(app, '/api/bonuses', bonus);
-    if (saved?.id) bonus.id = saved.id;
+    if (!(await pgCreate(app, 'bonuses', '/api/bonuses', bonus))) return null;
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
     document.getElementById('bonusForm').reset();

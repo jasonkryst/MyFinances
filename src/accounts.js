@@ -2,7 +2,7 @@
 
 import { formatCurrency, normalizeText, normalizeMultilineText, sanitizeFiniteNumber, escapeHtml, setCollapsibleOpen } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
 import { isHistoryTrackedAccount, HISTORY_TRACKED_ACCOUNT_TYPES } from './balanceHistoryCore.js';
@@ -457,9 +457,8 @@ export async function addAccount(app) {
     if (isNaN(startingBalance)) { await showAlertModal(t('accounts.errStartingBalance')); return; }
 
     const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes };
-    app.accounts.push(account);
-    const saved = await pgPost(app, '/api/accounts', account);
-    if (saved?.id) account.id = saved.id;
+    // Listed (and offered in every account dropdown) only once it has its server id (#593).
+    if (!(await pgCreate(app, 'accounts', '/api/accounts', account))) return null;
     await recordBalanceHistory(app, { kind: 'account', id: account.id });
     app.renderAccountsList();
     app.renderNetWorthWidget();

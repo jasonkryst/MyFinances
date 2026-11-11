@@ -259,6 +259,9 @@ async def test_recurring_day_of_month_bounds(async_app_page):
     await page.select_option('#recurringAccount', label='Recurring Bounds Test (Checking)')
     await page.fill('#recurringStartDate', '2026-01-01')
     await page.click('#recurringFormSubmit')
+    # The template joins app.recurringTemplates only once its POST is saved (#460).
+    await page.wait_for_function(
+        "() => (window.app.recurringTemplates || []).some(t => t.name === 'Bounds Test Sub')", timeout=10000)
 
     day_value = await page.evaluate("""() => {
         const app = window.app;
@@ -382,15 +385,16 @@ async def test_reconciliation_rejects_non_numeric_balance(async_app_page):
 async def test_reconciliation_accepts_negative_balance(async_app_page):
     """applyReconciliation accepts a negative statement balance for liability-style accounts."""
     page = async_app_page
+    # Seeded through the server: since #460 a reconciliation for an account the
+    # server never saw is rejected and not kept.
+    await seed_state_async(page, {
+        "accounts": [{"id": 7502, "name": "Recon Credit Card", "type": "Credit Card", "startingBalance": -500}],
+    })
 
     result = await page.evaluate("""async () => {
         const app = window.app;
-        app.accounts = [{ id: 7502, name: 'Recon Credit Card', type: 'Credit Card', startingBalance: -500 }];
-        app.incomes = []; app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.reconciliations = [];
         app.settings = [{ key: 'reconciliationAdjustsBalance', value: true }];
-        const res = await app.applyReconciliation(7502, -650.25, '', '2026-06-10');
+        const res = await app.applyReconciliation(app.accounts[0].id, -650.25, '', '2026-06-10');
         return {
             success: res.success,
             balance: app.accounts[0].startingBalance,

@@ -505,7 +505,9 @@ def test_recurring_missing_start_date_via_ui_defaults_to_today(app_page):
     page.select_option('#recurringFrequency', 'monthly')
     page.select_option('#recurringAccount', str(page.evaluate("() => window._acct")))
     # Deliberately leave #recurringStartDate blank
-    page.click('#recurringFormSubmit')
+    page.click('#recurringFormSubmit')  # submit-no-wait: waited on below
+    # The template joins app.recurringTemplates only once its POST is saved (#460).
+    page.wait_for_function("() => (window.app.recurringTemplates || []).some(x => x.name === 'No Start Date Sub')")
 
     result = page.evaluate("""() => {
         const app = window.app;

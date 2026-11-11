@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.5.1] — 2026-11-11
+
+### Fixed
+- **A new record is only shown once the server has saved it** (issues #460, #593). Every add (accounts, debts, income, bonuses, bills, expenses, people, recurring templates, emergency and sinking funds, transfers, reconciliations, retirement snapshots, plan history) now goes through `pgCreate` in `src/postgresSync.js`. It POSTs first and adds the record to `app.*` with the server's id.
+  - **Failed saves leave nothing behind (#460).** A 5xx or network error used to keep the record on screen under a temporary `Date.now()` id; later edits to it went nowhere. Now the record is never added, the sync-error banner shows, and the form (or the transfer, snapshot or reconcile modal) stays filled for a retry. A failed reconciliation also leaves the account balance unchanged.
+  - **No temporary ids in dropdowns (#593).** A just-created account is offered for linking only once it has its server id, so an income or recurring template linked to it is no longer rejected with `400 VALIDATION_FAILED`.
+  - **Balance history** drops an entry the server didn't save, instead of keeping it under a local id that a later PATCH would 404 on.
+- **Forms are locked while a save is pending** (issue #459). The new `withBusy` helper in `src/utils.js` marks the form or modal `aria-busy`, disables its buttons, selects and checkboxes, and makes its text fields read-only until the save settles. A second submit in the meantime is ignored, so a double click creates one record, and nothing typed during the wait is lost to the form reset.
+
 ## [7.5.0] — 2026-11-09
 
 ### Added

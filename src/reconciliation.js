@@ -1,12 +1,12 @@
 // Account reconciliation: compare tracked balances against statement balances,
 // log adjustments, and surface expected transactions since the last reconciliation.
 
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO, formatShortDate, dateToISO, isCollapsibleOpen } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeDateISO, escapeHtml, todayISO, formatShortDate, dateToISO, isCollapsibleOpen, withBusy } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showReconSaveProgressModal } from './ui.js';
 import { t, accountTypeLabel, categoryLabel } from './i18n.js';
 
@@ -199,9 +199,6 @@ export async function applyReconciliation(app, accountId, statementBalance, note
 
     const previousBalance = account.startingBalance;
     const adjustsBalance = getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false);
-    if (adjustsBalance) {
-        account.startingBalance = balance;
-    }
 
     const entry = {
         id: Date.now(),
@@ -215,15 +212,18 @@ export async function applyReconciliation(app, accountId, statementBalance, note
         note: normalizeText(note, 200),
         createdAt: new Date().toISOString()
     };
-    app.reconciliations.push(entry);
+    // Saved first (#460): a failed save changes nothing, keeps the saved
+    // partial progress and leaves the form filled for a retry.
+    if (!app.reconciliations) app.reconciliations = [];
+    if (!(await pgCreate(app, 'reconciliations', '/api/reconciliations', entry))) return { success: false };
     // Completing a reconciliation (from either the modal or the Reconcile
     // page's inline card form) supersedes any saved partial progress for
     // this account (issue #343).
     clearReconInProgress(accountId);
-
-    const saved = await pgPost(app, '/api/reconciliations', entry);
-    if (saved?.id) entry.id = saved.id;
-    if (adjustsBalance) pgPatch(app, `/api/accounts/${accountId}`, account);
+    if (adjustsBalance) {
+        account.startingBalance = balance;
+        pgPatch(app, `/api/accounts/${accountId}`, account);
+    }
     if (typeof app.renderReconciliationPage === 'function') app.renderReconciliationPage();
     if (typeof app.renderAccountsList === 'function') app.renderAccountsList();
     if (typeof app.renderNetWorthWidget === 'function') app.renderNetWorthWidget();
@@ -326,7 +326,7 @@ function attachReconcileCardEvents(app, accountId) {
 
     const reconBtn = document.querySelector(`[data-recon-action="reconcile"][data-recon-id="${accountId}"]`);
     if (reconBtn) {
-        reconBtn.onclick = () => reconcileAccount(app, accountId);
+        reconBtn.onclick = () => withBusy(reconBtn.closest('.recon-card'), () => reconcileAccount(app, accountId));
     }
 
     const startInput = document.getElementById(`recon-start-${accountId}`);
@@ -537,13 +537,13 @@ export function openReconcileModal(app, accountId) {
         close();
     };
 
-    confirmBtn.onclick = async () => {
+    confirmBtn.onclick = () => withBusy(modal, async () => {
         const result = await applyReconciliation(app, accountId, balanceInput.value, noteInput.value, {
             statementStartDate: startInput.value,
             statementEndDate: endInput.value
         });
         if (result.success) close();
-    };
+    });
 
     cancelBtn.onclick = attemptClose;
     closeBtn.onclick = attemptClose;

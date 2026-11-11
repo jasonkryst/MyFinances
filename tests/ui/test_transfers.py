@@ -8,6 +8,16 @@ and from/to validation.
 
 import pytest
 
+from tests.conftest import accept_creates_for_local_parents
+
+
+@pytest.fixture(autouse=True)
+def _accept_local_parent_creates(request):
+    """These tests inject accounts that exist only in memory; see
+    accept_creates_for_local_parents (tests/conftest.py, #460)."""
+    if 'app_page' in request.fixturenames:
+        accept_creates_for_local_parents(request.getfixturevalue('app_page'), '**/api/transfers')
+
 
 def _seed_two_accounts(page, switch_to='accounts'):
     page.evaluate(f"""() => {{

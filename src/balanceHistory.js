@@ -40,7 +40,13 @@ export async function recordBalanceHistory(app, owner) {
     app.balanceHistory = result.entries;
     if (result.action === 'insert') {
         const saved = await pgPost(app, '/api/balance-history', result.target);
-        if (saved?.id) result.target.id = saved.id;
+        if (saved?.id == null) {
+            // Never keep an unsaved entry under its local id (#460): a later
+            // PATCH to it would 404 and report the entry as deleted elsewhere.
+            app.balanceHistory = app.balanceHistory.filter(e => e !== result.target);
+            return null;
+        }
+        result.target.id = saved.id;
     } else {
         pgPatch(app, `/api/balance-history/${result.target.id}`, result.target);
     }
@@ -83,9 +89,13 @@ export async function seedMissingBalanceHistory(app) {
     app.balanceHistory = [...history, ...withIds];
     // Bounded (#519): the first boot after a large import seeds one entry per
     // debt and account. pgPost reports its own failures, so none rejects here.
+    const failed = new Set();
     await mapWithConcurrency(withIds, IMPORT_CONCURRENCY, async entry => {
         const saved = await pgPost(app, '/api/balance-history', entry);
-        if (saved?.id) entry.id = saved.id;
+        if (saved?.id == null) failed.add(entry);
+        else entry.id = saved.id;
     });
-    return withIds.length;
+    // Unsaved entries are dropped (#460); the next load seeds them again.
+    if (failed.size) app.balanceHistory = app.balanceHistory.filter(e => !failed.has(e));
+    return withIds.length - failed.size;
 }
