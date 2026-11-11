@@ -308,6 +308,7 @@ jobs:
             tests/features/test_live_refresh.py \
             tests/features/test_env_config_script.py \
             tests/features/test_pending_saves.py \
+            tests/features/test_clear_all_order.py \
             -v
       - name: Stop stack
         if: always()
