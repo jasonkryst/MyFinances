@@ -12,6 +12,11 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - **No temporary ids in dropdowns (#593).** A just-created account is offered for linking only once it has its server id, so an income or recurring template linked to it is no longer rejected with `400 VALIDATION_FAILED`.
   - **Balance history** drops an entry the server didn't save, instead of keeping it under a local id that a later PATCH would 404 on.
 - **Forms are locked while a save is pending** (issue #459). The new `withBusy` helper in `src/utils.js` marks the form or modal `aria-busy`, disables its buttons, selects and checkboxes, and makes its text fields read-only until the save settles. A second submit in the meantime is ignored, so a double click creates one record, and nothing typed during the wait is lost to the form reset.
+- **Frontend container no longer reports unhealthy** (issue #530, PR #541, thanks @Aryanban). The healthcheck in `Dockerfile` and `docker-compose.yml` now targets `http://127.0.0.1:80/`. `localhost` resolved to `::1` first, and nginx listens only on IPv4. No IPv6 listener was added, because nginx fails to start on hosts with IPv6 turned off.
+- **The legacy-import prompt lists its counts as a sentence** (issue #513, PR #561, thanks @venki4518). It uses `Intl.ListFormat` with the active locale: "1 debt and 1 account", "1 deuda y 1 cuenta". The Backup & Restore import summary keeps its comma join until its English strings are translated.
+
+### Tests
+- **Retrying a failed legacy-data transfer** (issue #467, PR #483, thanks @hrithiksaini99). The first transfer fails, the modal stays usable, and the retry imports everything and removes the legacy key. Persistence is checked after a reload.
 
 ## [7.5.0] — 2026-11-09
 
