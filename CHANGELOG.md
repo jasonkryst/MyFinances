@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.5.3] — 2026-11-11
+
+### Security
+- **Dev toolchain: minimatch pinned to `^11.0.8`** (Dependabot alert #33, GHSA-g3hv-75wg-m249). Jest, Stryker and `test-exclude` pulled minimatch 9.0.9 and 10.2.6, both open to a glob-pattern denial of service; an npm `overrides` entry in `package.json` now resolves every copy to 11.0.8. Dev-only: none of this ships to the browser or the server image. The low-severity deepmerge alert (#27, via `jest-config`) has no patched release and only ever merges our own Jest config.
+
 ## [7.5.2] — 2026-11-11
 
 ### Fixed
