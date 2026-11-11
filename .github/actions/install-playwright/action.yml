@@ -1,0 +1,37 @@
+name: Install Playwright Chromium
+description: >
+  Installs Playwright's Chromium and installs its system libraries through apt
+  only when the browser can't launch without them. GitHub's Ubuntu image already
+  ships Chrome and its libraries, so apt normally never runs; an Ubuntu mirror
+  outage then no longer fails every Playwright job before a test runs. Expects
+  Python and tests/requirements.txt to be installed already.
+runs:
+  using: composite
+  steps:
+    - name: Install Chromium
+      shell: bash
+      run: playwright install chromium
+    - name: Install system libraries only if Chromium can't launch
+      shell: bash
+      run: |
+        launches() {
+          python - <<'PY'
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            p.chromium.launch().close()
+        PY
+        }
+        if launches; then
+          echo "Chromium launches with the runner's libraries; skipping apt."
+          exit 0
+        fi
+        echo "::warning::Chromium can't launch with the runner's libraries; installing them with apt."
+        for attempt in 1 2; do
+          if timeout 600 playwright install-deps chromium; then break; fi
+          echo "::warning::playwright install-deps failed (attempt $attempt)."
+          sleep 15
+        done
+        if ! launches; then
+          echo "::error::Chromium still can't launch. Its system libraries are missing and apt couldn't install them (is the Ubuntu mirror down?)."
+          exit 1
+        fi
