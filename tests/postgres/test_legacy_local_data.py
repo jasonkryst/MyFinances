@@ -64,6 +64,41 @@ async def test_empty_db_shows_migration_modal(pg_page, base_url):
     assert not await pg_page.locator("#setupWizardModal").is_visible()
 
 
+LEGACY_INCOME = {"id": 3, "name": "Legacy Pay", "amount": 1000, "firstPayDate": "2026-01-01",
+                 "frequency": "monthly", "accountId": 2}
+
+
+async def test_migration_counts_use_a_localized_list(pg_page, base_url):
+    """#513: the counts read as a sentence ("X and Y"), not a bare comma join."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    counts = await pg_page.locator("#pgMigrationCounts").text_content()
+    assert counts.strip() == "Found: 1 debt and 1 account.", counts
+
+
+async def test_migration_counts_list_of_three(pg_page, base_url):
+    legacy = {**LEGACY, "incomes": [LEGACY_INCOME]}
+    await _boot_with_legacy(pg_page, base_url, json.dumps(legacy))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    counts = await pg_page.locator("#pgMigrationCounts").text_content()
+    assert counts.strip() == "Found: 1 debt, 1 account, and 1 income record.", counts
+
+
+async def test_migration_counts_list_follows_the_locale(pg_page, base_url):
+    """The conjunction is the active locale's, never an English "and" in Spanish."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.evaluate("localStorage.setItem('debtTrackerLocale', 'es')")
+    await pg_page.reload()
+    await pg_page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    try:
+        counts = await pg_page.locator("#pgMigrationCounts").text_content()
+        assert counts.strip() == "Encontrado: 1 deuda y 1 cuenta.", counts
+        assert " and " not in counts
+    finally:
+        await pg_page.evaluate("localStorage.removeItem('debtTrackerLocale')")
+
+
 async def test_legacy_import_moves_data_and_removes_key(pg_page, base_url):
     await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
     await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
