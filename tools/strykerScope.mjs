@@ -56,6 +56,8 @@ export const MUTATE_SCOPE = {
     'src/recordVersions.js': true,
     // #575: refresh-on-focus / cross-tab refresh decisions.
     'src/refreshPolicy.js': true,
+    // #608: child-first deletion layers for Clear All Data.
+    'src/resourceDeletion.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

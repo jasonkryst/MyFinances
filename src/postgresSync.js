@@ -3,6 +3,7 @@ import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner, showSyncConflictModal, showRecordGoneBanner } from './ui.js';
 import { mapWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 import { createShadowStore, diffFields, classifyConflict, itemPath } from './recordVersions.js';
+import { deletionLayers } from './resourceDeletion.js';
 
 // Last server-confirmed copy of every record, keyed by item path (#578).
 const shadows = createShadowStore();
@@ -32,28 +33,6 @@ export function pendingWriteCount() {
 export function currentWriteGeneration() {
     return writeGeneration;
 }
-
-const ALL_RESOURCE_PATHS = [
-    '/api/persons',
-    '/api/debts',
-    '/api/accounts',
-    '/api/incomes',
-    '/api/bonuses',
-    '/api/bills',
-    '/api/expenses',
-    '/api/recurring-templates',
-    '/api/emergency-funds',
-    '/api/sinking-funds',
-    '/api/reconciliations',
-    '/api/plan-history',
-    '/api/retirement-snapshots',
-    '/api/transfers',
-    '/api/ledger-overrides',
-    '/api/ledger-cleared',
-    '/api/net-worth-snapshots',
-    '/api/balance-history',
-    '/api/settings',
-];
 
 // One request, with the 401 → sign in → retry-once flow. Never throws and
 // never shows the banner: returns { ok, status, body } (status 0 on a network
@@ -309,11 +288,19 @@ const DEFAULT_PLAN_SETTINGS = {
 
 export async function pgDeleteAll(app) {
     shadows.clear();
-    // Bounded like the import that usually follows it (#519); about 20 requests.
-    const requests = [
-        ...ALL_RESOURCE_PATHS.map(path => () => pgFetch(app, 'DELETE', path)),
+    // Children before parents (#608): deleting accounts while a child table is
+    // being deleted makes the foreign keys' SET NULL/CASCADE lock the same rows
+    // in the opposite order, and Postgres aborts one request with a deadlock.
+    // Each layer is bounded like the import that usually follows it (#519).
+    const [firstLayer, ...laterLayers] = deletionLayers();
+    const deleteAll = path => () => pgFetch(app, 'DELETE', path);
+    // Plan settings and milestones reference no collection, so they ride with the first layer.
+    await mapWithConcurrency([
+        ...firstLayer.map(deleteAll),
         () => pgFetch(app, 'DELETE', '/api/plan-settings/milestones'),
         () => pgFetch(app, 'PATCH', '/api/plan-settings', DEFAULT_PLAN_SETTINGS)
-    ];
-    await mapWithConcurrency(requests, IMPORT_CONCURRENCY, request => request());
+    ], IMPORT_CONCURRENCY, request => request());
+    for (const layer of laterLayers) {
+        await mapWithConcurrency(layer.map(deleteAll), IMPORT_CONCURRENCY, request => request());
+    }
 }

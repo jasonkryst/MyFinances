@@ -9,6 +9,18 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Security
 - **Dev toolchain: minimatch pinned to `^11.0.8`** (Dependabot alert #33, GHSA-g3hv-75wg-m249). Jest, Stryker and `test-exclude` pulled minimatch 9.0.9 and 10.2.6, both open to a glob-pattern denial of service; an npm `overrides` entry in `package.json` now resolves every copy to 11.0.8. Dev-only: none of this ships to the browser or the server image. The low-severity deepmerge alert (#27, via `jest-config`) has no patched release and only ever merges our own Jest config.
 
+## [7.5.2] — 2026-11-11
+
+### Fixed
+- **Clear All Data and replace-mode import no longer deadlock in Postgres** (issue #608). `pgDeleteAll` sent all ~20 collection DELETEs together, 6 in flight. `DELETE FROM accounts` runs its foreign keys' `SET NULL`/`CASCADE` on 13 child tables, so when a child table was being deleted at the same moment, Postgres aborted one request with `deadlock detected`. The result was a 500, a sync-error banner and part of the data left behind. It also caused intermittent test failures, since every test resets through it.
+  - **Deletion now runs in child-first layers:** every collection nothing references, in parallel (along with plan settings and milestones), then debts and persons, then accounts. A parent is only deleted once nothing references it.
+  - **The layers come from the new pure `src/resourceDeletion.js`** (`RESOURCE_TABLES`, `RESOURCE_PARENTS`, `deletionLayers`). Jest covers it with a Stryker score of 100%. `ALL_RESOURCE_PATHS` moved there from `postgresSync.js`.
+  - **`server/test/resourceDeletion.test.js`:**
+    - compares `RESOURCE_PARENTS` with the database's real foreign keys in both directions;
+    - checks that every collection is mounted on a route for its declared table, and that no table-backed route is missing;
+    - wipes seeded data in layers five times over.
+  - **`tests/features/test_clear_all_order.py`** logs when each DELETE starts and ends during a real `pgDeleteAll`. It asserts that no parent starts before its children finish, that every collection is deleted once, and that the server ends up empty. On the old code it fails with 16 ordering violations.
+
 ## [7.5.1] — 2026-11-11
 
 ### Fixed
