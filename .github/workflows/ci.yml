@@ -64,7 +64,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -95,7 +95,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_ledger.py -v
       - name: Stop stack
@@ -119,7 +119,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_reconciliation.py tests/features/test_recurring_income.py -v
       - name: Stop stack
@@ -146,7 +146,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -183,7 +183,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -210,7 +210,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -247,7 +247,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -287,7 +287,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -330,7 +330,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -361,7 +361,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -396,7 +396,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -433,7 +433,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/integration -v
       - name: Stop stack
@@ -459,7 +459,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -490,7 +490,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -532,7 +532,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -573,7 +573,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
@@ -607,7 +607,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/security -v
       - name: Stop stack
@@ -635,7 +635,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - name: Run Postgres bootstrap tests
         run: pytest tests/postgres -v
@@ -662,7 +662,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
       - run: pip install -r tests/requirements.txt
-      - run: playwright install --with-deps chromium
+      - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/a11y -v
       - name: Stop stack

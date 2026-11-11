@@ -135,6 +135,51 @@ def test_not_gating_exemptions_are_still_post_merge_only():
             f'{job} now runs on PRs, so it must be added to `{AGGREGATOR}.needs`')
 
 
+# ── Playwright install without a hard apt dependency ─────────────────────────
+# `playwright install --with-deps` runs apt on every job, so an Ubuntu mirror
+# outage failed all 19 Playwright jobs before a test ran (2026-11-11).
+# .github/actions/install-playwright installs the browser and runs apt only
+# when Chromium can't launch with the runner's own libraries.
+INSTALL_ACTION = './.github/actions/install-playwright'
+
+
+def _job_block(job):
+    text = CI_YML.read_text(encoding='utf-8')
+    return re.search(rf'^  {job}:\s*\n(.*?)(?=^  \S|\Z)', text, re.MULTILINE | re.DOTALL).group(1)
+
+
+@pytest.mark.feature
+def test_no_job_installs_playwright_with_apt_directly():
+    text = CI_YML.read_text(encoding='utf-8')
+    assert 'playwright install --with-deps' not in text, (
+        f'Use `uses: {INSTALL_ACTION}` instead of `playwright install --with-deps`, '
+        'so an Ubuntu mirror outage does not fail the job.')
+
+
+@pytest.mark.feature
+def test_every_pytest_job_installs_playwright_through_the_action():
+    missing = []
+    for job in _ci_jobs():
+        block = _job_block(job)
+        runs_pytest = re.search(r'^\s+(?:- run:\s*)?\|?\s*pytest\b', block, re.MULTILINE) or 'run: pytest' in block
+        if runs_pytest and f'uses: {INSTALL_ACTION}' not in block:
+            missing.append(job)
+    assert not missing, f'These jobs run pytest without `uses: {INSTALL_ACTION}`:\n  ' + '\n  '.join(missing)
+
+
+@pytest.mark.feature
+def test_install_action_checks_the_launch_before_apt():
+    """Negative: the action must try a real Chromium launch first and only then fall
+    back to apt, or it is just --with-deps again."""
+    action = (REPO_ROOT / '.github' / 'actions' / 'install-playwright' / 'action.yml').read_text(encoding='utf-8')
+    assert 'playwright install chromium' in action
+    assert '--with-deps' not in action
+    launch = action.index('p.chromium.launch()')
+    apt = action.index('playwright install-deps chromium')
+    assert launch < apt, 'the launch check must come before the apt fallback'
+    assert 'timeout ' in action, 'the apt fallback needs a timeout so a dead mirror cannot hang the job'
+
+
 @pytest.mark.feature
 def test_job_parser_sees_known_jobs():
     """Negative/sanity: prove the parser isn't silently returning nothing."""
