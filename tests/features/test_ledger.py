@@ -6,7 +6,15 @@ Tests transaction history, filtering, and overrides.
 
 import pytest
 
-from tests.conftest import wait_for_api, submit_account_form
+from tests.conftest import accept_creates_for_local_parents, wait_for_api, submit_account_form
+
+
+@pytest.fixture(autouse=True)
+def _accept_local_parent_creates(request):
+    """The reconciliation tests here inject accounts that exist only in memory; see
+    accept_creates_for_local_parents (tests/conftest.py, #460)."""
+    if 'app_page' in request.fixturenames:
+        accept_creates_for_local_parents(request.getfixturevalue('app_page'), '**/api/reconciliations')
 
 
 @pytest.mark.feature
