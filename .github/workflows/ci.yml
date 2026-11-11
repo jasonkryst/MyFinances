@@ -254,6 +254,7 @@ jobs:
             tests/features/test_storage_import.py \
             tests/features/test_i18n.py \
             tests/features/test_i18n_coverage.py \
+            tests/features/test_html_lang.py \
             tests/features/test_pwa.py \
             tests/features/test_issue_93_expense_save.py \
             tests/features/test_server_only_storage.py \
@@ -301,6 +302,11 @@ jobs:
             tests/features/test_recurring_paid_ledger_sync.py \
             tests/features/test_reports_nav_groups.py \
             tests/features/test_category_budgets.py \
+            tests/features/test_plan_settings_partial_save.py \
+            tests/features/test_import_concurrency.py \
+            tests/features/test_row_version_conflicts.py \
+            tests/features/test_live_refresh.py \
+            tests/features/test_env_config_script.py \
             -v
       - name: Stop stack
         if: always()
@@ -372,7 +378,8 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml.
+  # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml,
+  # and test_async_submit_guard.py, a static scan for account/debt Submit clicks with no wait (#592).
   test-features-k:
     needs: build-images
     runs-on: ubuntu-latest
@@ -399,6 +406,9 @@ jobs:
             tests/features/test_code_splitting.py \
             tests/features/test_harness.py \
             tests/features/test_ci_shard_coverage.py \
+            tests/features/test_async_submit_guard.py \
+            tests/features/test_skip_guard.py \
+            tests/features/test_community_files.py \
             -v
       - name: Stop stack
         if: always()
@@ -458,6 +468,7 @@ jobs:
             tests/ui/test_setup_wizard.py \
             tests/ui/test_remaining_pages_print.py \
             tests/ui/test_reports_nav.py \
+            tests/ui/test_contrast_fixes.py \
             -v
       - name: Stop stack
         if: always()

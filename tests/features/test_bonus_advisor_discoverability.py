@@ -95,7 +95,6 @@ def _seed_surplus(page):
             id: 9001, name: 'Main Job', amount: 10000, frequency: 'monthly',
             accountId: null, startDate: null, endDate: null, notes: ''
         }];
-        window.app.saveToStorage();
     }""")
 
 

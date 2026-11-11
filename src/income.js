@@ -267,7 +267,6 @@ export async function addIncome(app) {
 
     const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.incomes.push(income);
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/incomes', income);
     if (saved?.id) income.id = saved.id;
     app.renderIncomeList();
@@ -277,7 +276,6 @@ export async function addIncome(app) {
 // Delete an income source
 export function deleteIncome(app, incomeId) {
     app.incomes = app.incomes.filter(i => i.id !== incomeId);
-    app.saveToStorage();
     pgDelete(app, `/api/incomes/${incomeId}`);
     app.renderIncomeList();
     app.renderStrategyIncomeWidget();
@@ -339,7 +337,6 @@ export async function saveEditIncome(app, incomeId) {
 
     app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.editingIncomeId = null;
-    app.saveToStorage();
     pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
     app.renderIncomeList();
     app.renderStrategyIncomeWidget();
@@ -362,7 +359,6 @@ export async function addBonus(app) {
 
     const bonus = { id: Date.now(), name, amount, date, category, accountId, purpose };
     app.bonuses.push(bonus);
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/bonuses', bonus);
     if (saved?.id) bonus.id = saved.id;
     app.renderBonusList();
@@ -374,7 +370,6 @@ export async function addBonus(app) {
 
 export function deleteBonus(app, bonusId) {
     app.bonuses = app.bonuses.filter(b => b.id !== bonusId);
-    app.saveToStorage();
     pgDelete(app, `/api/bonuses/${bonusId}`);
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
@@ -420,7 +415,6 @@ export async function saveEditBonus(app, bonusId) {
     if (idx === -1) return;
     app.bonuses[idx] = { ...app.bonuses[idx], name, amount, date, category, accountId, purpose };
     app.editingBonusId = null;
-    app.saveToStorage();
     pgPatch(app, `/api/bonuses/${app.bonuses[idx].id}`, app.bonuses[idx]);
     app.renderBonusList();
     app.renderStrategyIncomeWidget();

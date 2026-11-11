@@ -266,10 +266,6 @@
     display: none;
 }
 
-.cancel-edit-btn {
-    display: none;
-}
-
 .form-group.no-margin {
     margin: 0;
 }
@@ -864,6 +860,7 @@ body.dark-mode {
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-muted: #a8b3c7;
+    --danger-text: #f87171; /* 5.3:1 on #1e293b cards (#484) */
     --card-bg: #1e293b;
     --text-color: #f1f5f9;
     --bg-color: #0f172a;
@@ -981,11 +978,6 @@ body.dark-mode .cal-day-label {
     color: #64748b;
 }
 
-/* ── Comparison table best row ── */
-body.dark-mode .comparison-table tr.comparison-best td {
-    color: #86efac;
-}
-
 /* ── Input validation ── */
 body.dark-mode .input-error {
     background: #3b0f0f !important;
@@ -1054,7 +1046,7 @@ body.dark-mode .cal-page-label {
     outline: 2px solid var(--danger-color);
 }
 .error-message {
-    color: var(--danger-color);
+    color: var(--danger-text);
     font-size: 0.95em;
     margin-top: 2px;
     margin-bottom: 8px;
@@ -1084,6 +1076,10 @@ body.dark-mode .cal-page-label {
     --success-active: #166534;
     --danger-color: #dc2626;
     --danger-hover: #b91c1c;
+    /* Error *text*. --danger-color is also a background under white text
+       (.btn-danger, .btn-delete), so dark mode can't lighten it; this token
+       can (#484). */
+    --danger-text: #dc2626;
     --secondary-color: #64748b;
     --secondary-hover: #475569;
     --light-bg: #f8fafc;
@@ -1130,6 +1126,7 @@ body.dark-mode.high-contrast-mode {
     --success-active: #66ffaa;
     --danger-color: #ff6b6b;
     --danger-hover: #ff9999;
+    --danger-text: #ff6b6b;
     --secondary-color: #d4d4d4;
     --secondary-hover: #ffffff;
     --light-bg: #000000;
@@ -1379,9 +1376,6 @@ body.dark-mode .header-icon-btn:hover {
     background: rgba(255,255,255,0.12);
     color: #fff;
 }
-
-/* Keep old class names harmless if referenced elsewhere */
-.header-toolbar-btn { display: none; }
 
 /* ── Account menu dropdown ───────────────────────────────────────────────── */
 .account-menu-wrap {
@@ -1927,13 +1921,13 @@ body.dark-mode .results-tab-btn--active {
     border-radius: 3px;
     padding: 2px 4px;
     margin-top: 2px;
-    background: #059669;
+    background: #047857; /* white on #059669 was 3.8:1 */
     color: #fff;
     font-size: 0.68rem;
     line-height: 1.3;
     overflow: hidden;
     cursor: default;
-    border-left: 3px solid #047857;
+    border-left: 3px solid #065f46;
 }
 
 body.dark-mode .cal-income-event {
@@ -3163,13 +3157,13 @@ tbody tr:last-child td {
 
 .amount small {
     display: block;
-    color: #059669;
+    color: #047857;
     font-weight: 600;
     margin-top: 4px;
 }
 
 .stimulus-amount {
-    color: #059669;
+    color: #047857;
     font-weight: 600;
 }
 
@@ -3178,7 +3172,10 @@ body.dark-mode .stimulus-amount {
 }
 
 .principal {
-    color: #059669;
+    color: #047857;
+}
+body.dark-mode .principal {
+    color: #34d399;
 }
 
 .interest {
@@ -3381,11 +3378,6 @@ body.dark-mode .ledger-nav-btn:hover { background: #334155; }
 
     .header-toolbar-divider {
         display: none;
-    }
-
-    .header-toolbar-btn {
-        padding: 4px 8px;
-        font-size: 0.72rem;
     }
 
     .debt-details {
@@ -3716,9 +3708,6 @@ body.dark-mode .debt-progress-note { color: #fbbf24; }
 .comparison-table tr.comparison-current td {
     font-weight: 600;
     background: #eff6ff;
-}
-.comparison-table tr.comparison-best td {
-    color: #166534;
 }
 .strat-badge {
     display: inline-block;
@@ -4217,7 +4206,7 @@ body.dark-mode .target-result--warn .target-result-payment {
 .income-card-amount {
     font-weight: 700;
     font-size: 1.1rem;
-    color: #059669;
+    color: #047857;
     white-space: nowrap;
 }
 
@@ -4579,7 +4568,7 @@ body.dark-mode .bonus-card--current { background: #052e16; }
 .bonus-card-amount {
     font-weight: 700;
     font-size: 1rem;
-    color: #d97706;
+    color: #b45309; /* #d97706 was 3.2:1 on white (#488) */
 }
 body.dark-mode .bonus-card-amount { color: #fbbf24; }
 
@@ -4838,26 +4827,15 @@ body.dark-mode .nw-widget-breakdown { color: #cbd5e1; }
 .strategy-net--negative strong { color: #7f1d1d; }
 body.dark-mode .strategy-net--positive { background: #064e3b; color: #a7f3d0; }
 body.dark-mode .strategy-net--negative { background: #450a0a; color: #fca5a5; }
-.strategy-net-breakdown { font-size: 0.78rem; opacity: 0.8; }
+.strategy-net-breakdown { font-size: 0.78rem; } /* no opacity: it fell to 4.3:1 (#489) */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BUDGET PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Two-column layout */
-.budget-two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 24px;
-}
 .budget-col { display: flex; flex-direction: column; }
-@media (max-width: 768px) {
-    .budget-two-col { grid-template-columns: 1fr; }
-}
 
 /* Column heading card */
-.budget-col-card,
 .budget-form-card {
     background: #fff;
     border: 1px solid #e5e7eb;
@@ -4866,7 +4844,6 @@ body.dark-mode .strategy-net--negative { background: #450a0a; color: #fca5a5; }
     margin-bottom: 12px;
     overflow: hidden;
 }
-body.dark-mode .budget-col-card,
 body.dark-mode .budget-form-card {
     background: #1e293b;
     border-color: #334155;
@@ -4923,14 +4900,12 @@ body.dark-mode .budget-form-toggle--open {
 }
 
 /* Legacy h3 inside budget cards (kept for non-collapsible uses) */
-.budget-col-card h3,
 .budget-form-card h3 {
     margin: 0 0 16px 0;
     font-size: 1rem;
     font-weight: 700;
     color: #1e293b;
 }
-body.dark-mode .budget-col-card h3,
 body.dark-mode .budget-form-card h3 { color: #f1f5f9; }
 
 /* Form grid inside budget forms */
@@ -4997,11 +4972,6 @@ body.dark-mode .budget-card-name { color: #f1f5f9; }
     font-size: 0.95rem;
 }
 body.dark-mode .budget-card-amount { color: #2dd4bf; }
-.budget-card-period {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: #94a3b8;
-}
 .budget-card-meta {
     font-size: 0.78rem;
     color: #64748b;
@@ -5372,15 +5342,18 @@ body.dark-mode .rpt-tab-bar {
     text-transform: uppercase;
     padding: 2px 8px;
     border-radius: 999px;
-    background: hsla(var(--primary-hsl), 0.10);
-    border: 1px solid hsla(var(--primary-hsl), 0.25);
-    color: var(--primary-color);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
     align-self: flex-start;
-    opacity: 0.55;
-    transition: opacity 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
+/* The active group is a filled pill (#487). Inactive labels used to be dimmed
+   with opacity, which put this 10px text at 2.3:1. */
 .rpt-tab-group:has(.rpt-tab-btn--active) .rpt-tab-group-label {
-    opacity: 1;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
 }
 
 .rpt-tab-group-tabs {
@@ -6522,7 +6495,7 @@ body.dark-mode .retire-limit-badge--over { background: #450a0a; color: #fca5a5; 
    dark-mode card background (~2.83:1); reuse the established lighter
    dark-mode link color (body.dark-mode .health-link). */
 body.dark-mode .acct-balance-breakdown-btn { color: #60a5fa; }
-.acct-balance--pos { color: #059669; }
+.acct-balance--pos { color: #047857; }
 .acct-balance--neg { color: #dc2626; }
 body.dark-mode .acct-balance--pos { color: #34d399; }
 body.dark-mode .acct-balance--neg { color: #f87171; }
@@ -6634,7 +6607,7 @@ body.dark-mode .acct-replacement-group {
 .acct-mf-type { color: var(--text-muted); font-size: 0.78rem; }
 .acct-mf-start, .acct-mf-proj { font-weight: 600; text-align: right; }
 .acct-mf-diff { font-weight: 700; text-align: right; }
-.acct-mf-diff--pos { color: #059669; }
+.acct-mf-diff--pos { color: #047857; }
 .acct-mf-diff--neg { color: #dc2626; }
 body.dark-mode .acct-mf-diff--pos { color: #34d399; }
 body.dark-mode .acct-mf-diff--neg { color: #f87171; }
@@ -6814,7 +6787,7 @@ body.dark-mode .recurring-card-name { color: #f1f5f9; }
     font-size: 1.05rem;
     font-weight: 700;
 }
-.recurring-amount--pos { color: #059669; }
+.recurring-amount--pos { color: #047857; }
 .recurring-amount--neg { color: #dc2626; }
 body.dark-mode .recurring-amount--pos { color: #34d399; }
 body.dark-mode .recurring-amount--neg { color: #f87171; }
@@ -7114,10 +7087,10 @@ body.dark-mode .sinking-card--funded { border-color: #34d399; }
 .sinking-card--archived { opacity: 0.65; }
 .sinking-order-tag { display: inline-block; font-size: 0.72rem; font-weight: 600; color: #6b7280; background: #f3f4f6; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
 body.dark-mode .sinking-order-tag { background: #334155; color: #94a3b8; }
-.sinking-complete-btn { background: #059669; color: #fff; border-color: #059669; }
-.sinking-complete-btn:hover { background: #047857; border-color: #047857; }
-.debt-paid-off-btn { background: #059669; color: #fff; border-color: #059669; }
-.debt-paid-off-btn:hover { background: #047857; border-color: #047857; }
+.sinking-complete-btn { background: #047857; color: #fff; border-color: #047857; } /* white on #059669 was 3.8:1 */
+.sinking-complete-btn:hover { background: #065f46; border-color: #065f46; }
+.debt-paid-off-btn { background: #047857; color: #fff; border-color: #047857; }
+.debt-paid-off-btn:hover { background: #065f46; border-color: #065f46; }
 .progress-fill--funded { background: linear-gradient(90deg, #059669, #10b981); }
 body.dark-mode .progress-fill--funded { background: linear-gradient(90deg, #34d399, #6ee7b7); }
 .savings-archived-row { margin: 8px 0 4px; }
@@ -7128,7 +7101,7 @@ body.dark-mode .progress-fill--funded { background: linear-gradient(90deg, #34d3
 .hp-header-actions { display: flex; gap: 8px; align-items: center; }
 .hp-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
 .hp-card h4 { margin: 0 0 10px; font-size: 0.95rem; }
-.hp-pmi-clear, .hp-qualifies { color: #059669; font-weight: 600; }
+.hp-pmi-clear, .hp-qualifies { color: #047857; font-weight: 600; }
 body.dark-mode .hp-pmi-clear, body.dark-mode .hp-qualifies { color: #86efac; }
 
 @media (max-width: 768px) {
@@ -7595,7 +7568,7 @@ body.dark-mode .health-threshold-input { background: var(--input-bg, #1e293b); }
 }
 .recon-diff-label { color: var(--text-secondary); font-weight: 500; }
 .recon-diff--pos  { color: var(--success-color); }
-.recon-diff--neg  { color: var(--danger-color); }
+.recon-diff--neg  { color: var(--danger-text); }
 .recon-diff--zero { color: var(--text-secondary); }
 
 .kbd-group-title {
@@ -7638,7 +7611,7 @@ body.dark-mode .health-threshold-input { background: var(--input-bg, #1e293b); }
     gap: 0 12px;
 }
 .recon-range-error {
-    color: var(--danger-color);
+    color: var(--danger-text);
     font-size: 0.85rem;
     margin: 0 0 12px;
 }
@@ -7938,7 +7911,11 @@ body.dark-mode .acct-breakdown-amt--neg { color: #fca5a5; }
 /* var(--primary-color) is too dark against the dark-mode page background for
    small 10px text (WCAG 1.4.3 fails at ~3.45:1); use the lighter dark-mode
    link color already established elsewhere (body.dark-mode .health-link). */
-body.dark-mode .rpt-tab-group-label { color: #60a5fa; }
+body.dark-mode .rpt-tab-group:has(.rpt-tab-btn--active) .rpt-tab-group-label {
+    background: #60a5fa;
+    border-color: #60a5fa;
+    color: #0f172a;
+}
 
 @media (max-width: 640px) {
     .spending-hero-row    { grid-template-columns: 1fr; }
@@ -8381,7 +8358,7 @@ body.dark-mode .login-gate-header {
     outline: 2px solid transparent; /* keep a forced-colors fallback */
 }
 .login-gate-error {
-    color: var(--danger-color, #dc3545);
+    color: var(--danger-text, #dc2626);
     font-size: 0.875rem;
     min-height: 1.25rem;
     margin: 0.25rem 0 0.75rem;
@@ -8437,6 +8414,14 @@ body.dark-mode .login-gate-header {
 .login-gate .link-btn:focus-visible {
     text-decoration-color: currentColor;
 }
+/* Dark mode: the light-theme primary is 2.8:1 on the dark card (#485, #486). */
+body.dark-mode .link-btn { color: #60a5fa; }
+body.dark-mode .link-btn:hover,
+body.dark-mode .link-btn:focus-visible { color: #93c5fd; }
+body.dark-mode .login-gate-form .form-control:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px #60a5fa;
+}
 
 /* Installed PWA: same flat, edge-to-edge treatment as .container — drop the
    gradient backdrop and floating-card chrome. The header band becomes a hero
@@ -8480,7 +8465,7 @@ body.dark-mode .login-gate-header {
     }
 }
 .pg-migration-error {
-    color: var(--danger-color, #dc2626);
+    color: var(--danger-text, #dc2626);
     font-size: 0.875rem;
     margin: 0.5rem 0;
 }
@@ -8668,13 +8653,6 @@ body.dark-mode .bva-pos { color: #86efac; }
     margin-bottom: 10px;
 }
 
-/* C3c: shared button variants */
-.btn-ghost {
-    background: transparent;
-    color: var(--primary-color);
-    border: 1px solid transparent;
-}
-.btn-ghost:hover { background: rgba(37,99,235,0.08); }
 body.dark-mode .btn-secondary,
 body.dark-mode .btn-edit {
     border: 1px solid #64748b;
@@ -8769,7 +8747,7 @@ body.dark-mode .settings-danger-title { color: #f87171; }
 #accountMenuEmail.hidden + .account-menu-divider { display: none; }
 
 /* C4: confirmation dialogs must sit above Settings (Clear All Data is launched from it) */
-#deleteConfirmModal { z-index: 10010; }
+#deleteConfirmModal, #syncConflictModal { z-index: 10010; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UX C (#428) — mobile density: filter disclosures, collapsible add forms,

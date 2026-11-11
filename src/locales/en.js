@@ -5,8 +5,6 @@ export default {
 
     'toolbar.commandPaletteTitle': 'Quick jump (Ctrl+K)',
     'toolbar.commandPaletteAriaLabel': 'Open quick jump command palette',
-    'toolbar.dataTransferTitle': 'Backup & Restore',
-    'toolbar.dataTransferAriaLabel': 'Backup and restore data',
     'toolbar.settingsTitle': 'Settings',
     'toolbar.settingsAriaLabel': 'Open settings',
     'toolbar.helpTitle': 'Open usage guide',
@@ -1883,4 +1881,11 @@ export default {
     "pgMigration.remove": "Remove it",
     "sync.errorBanner": "Couldn't save your last change — check your connection. Reload to see what's saved.",
     "sync.dismiss": "Dismiss",
+    "sync.conflictTitle": "Changed elsewhere",
+    "sync.conflictMessage": "“{name}” was changed in another tab or device while you were editing it. Keep your changes, or use the other version?",
+    "sync.conflictMessageUnnamed": "This item was changed in another tab or device while you were editing it. Keep your changes, or use the other version?",
+    "sync.conflictKeepMine": "Keep my changes",
+    "sync.conflictUseTheirs": "Use the other version",
+    "sync.goneBanner": "This item was changed or deleted in another tab or device.",
+    "sync.goneReload": "Reload",
 };

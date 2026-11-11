@@ -8,7 +8,7 @@ screen-reader users get the same information sighted users get from the chart.
 
 import pytest
 
-from tests.conftest import assert_no_errors, current_month_iso, create_debt
+from tests.conftest import assert_no_errors, current_month_iso, create_debt, submit_account_form
 
 
 def _assert_sr_table(page, canvas_id, min_rows=1):
@@ -32,7 +32,7 @@ def test_health_gauges_have_sr_tables(app_page, account_data, income_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
@@ -75,7 +75,7 @@ def test_forecast_chart_has_sr_table(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
@@ -93,7 +93,7 @@ def test_networth_trend_chart_has_sr_table(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     # Capture a snapshot so the net worth trend chart renders (it only renders
     # when snapshots exist, so without this the canvas and its SR table are absent).
@@ -119,7 +119,7 @@ def test_strategy_schedule_charts_have_sr_tables(app_page, debt_data, income_dat
     page.fill('#accountName', 'Chart A11y Checking')
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '1000')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     create_debt(page, debt_data)
 
@@ -188,7 +188,7 @@ def test_reports_incomeexp_charts_have_sr_tables(app_page, account_data, income_
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -220,7 +220,7 @@ def test_reports_moneyflow_chart_has_sr_table(app_page, account_data, income_dat
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -250,7 +250,7 @@ def test_reports_networth_composition_chart_has_sr_table(app_page, account_data)
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)

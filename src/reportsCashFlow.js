@@ -98,7 +98,7 @@ export function renderReportsIncomeExp(app) {
 
     const stats = [
         { label: t('reports.statIncomeMonth', { month: monthLabel }), value: totalIncome, cls: 'rpt-stat--income' },
-        { label: t('reports.statBills'), value: totalBills, cls: 'rpt-stat--bills' },
+        ...(app.bills?.length > 0 ? [{ label: t('reports.statBills'), value: totalBills, cls: 'rpt-stat--bills' }] : []),
         { label: t('reports.statExpenseBudgets'), value: totalExpenses, cls: 'rpt-stat--exp' },
         { label: t('reports.statRecurringCosts'), value: totalRecurring, cls: 'rpt-stat--recurring' },
         { label: t('reports.statSavingsContrib'), value: totalSavings, cls: 'rpt-stat--savings' },

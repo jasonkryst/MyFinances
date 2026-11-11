@@ -145,6 +145,11 @@ export async function showPgMigrationModal(app, localJson) {
                 setLoading(false);
                 els.error.textContent = t('pgMigration.failed');
                 els.error.classList.remove('hidden');
+                // The button had focus and was disabled while loading, which
+                // drops focus to <body> (#490). Put it back so Enter retries
+                // and Tab stays inside the dialog; the error is announced by
+                // its live region.
+                els.transferBtn.focus();
             }
         };
         els.skipBtn.onclick = () => {

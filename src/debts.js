@@ -156,7 +156,6 @@ export async function addDebt(app) {
     }
 
     app.debts.push(debt);
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/debts', debt);
     if (saved?.id) debt.id = saved.id;
     await recordBalanceHistory(app, { kind: 'debt', id: debt.id });
@@ -173,7 +172,6 @@ export async function deleteDebt(app, debtId) {
     removeHistoryForOwner(app, { kind: 'debt', id: debtId });
     if (app.editingDebtId === debtId) app.editingDebtId = null;
 
-    app.saveToStorage();
     pgDelete(app, `/api/debts/${debtId}`);
     recalculateIfConfigured(app);
     app.updateUI();
@@ -241,7 +239,6 @@ export async function archiveDebt(app, debtId) {
 
     debt.archived = true;
     debt.updatedAt = todayISO();
-    app.saveToStorage();
     pgPatch(app, `/api/debts/${debtId}`, { archived: true, updatedAt: debt.updatedAt });
     recalculateIfConfigured(app);
     app.updateUI();
@@ -253,7 +250,6 @@ export async function unarchiveDebt(app, debtId) {
 
     debt.archived = false;
     debt.updatedAt = todayISO();
-    app.saveToStorage();
     pgPatch(app, `/api/debts/${debtId}`, { archived: false, updatedAt: debt.updatedAt });
     recalculateIfConfigured(app);
     app.updateUI();
@@ -334,7 +330,6 @@ export async function updateDebtBalance(app, debtId, newBalance, newMinPayment) 
         app.debts[idx].minimumPayment = newMinPayment;
     }
     app.debts[idx].updatedAt = todayISO();
-    app.saveToStorage();
     pgPatch(app, `/api/debts/${app.debts[idx].id}`, app.debts[idx]);
     await recordBalanceHistory(app, { kind: 'debt', id: app.debts[idx].id });
     recalculateIfConfigured(app);
@@ -384,7 +379,6 @@ export async function saveEdit(app) {
         nextPaymentDue
     };
 
-    app.saveToStorage();
     pgPatch(app, `/api/debts/${app.debts[idx].id}`, app.debts[idx]);
     await recordBalanceHistory(app, { kind: 'debt', id: app.debts[idx].id });
     app.updateUI();
@@ -932,7 +926,6 @@ export function renderDebtsList(app) {
             const d = app.debts.find(x => x.id === id);
             if (d) { d.archived = true; pgPatch(app, `/api/debts/${id}`, d); }
         }
-        app.saveToStorage();
         renderDebtsList(app);
     });
 
@@ -962,7 +955,6 @@ export function renderDebtsList(app) {
         if (!ok) return;
         for (const id of ids) pgDelete(app, `/api/debts/${id}`);
         app.debts = app.debts.filter(d => !ids.includes(d.id));
-        app.saveToStorage();
         renderDebtsList(app);
         app.refreshCurrentPageData?.();
     });
@@ -1113,7 +1105,6 @@ export async function saveInlineEdit(app, debtId) {
         }
 
         debt.updatedAt = todayISO();
-        app.saveToStorage();
         pgPatch(app, `/api/debts/${debt.id}`, debt);
         await recordBalanceHistory(app, { kind: 'debt', id: debt.id });
         app.editingDebtId = null;

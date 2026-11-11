@@ -109,6 +109,36 @@ async def test_legacy_import_failure_keeps_key(pg_page, base_url):
     assert await _key(pg_page) is not None
 
 
+async def test_legacy_import_failure_returns_focus_to_transfer(pg_page, base_url):
+    """#490: the Transfer button is disabled while loading, which drops focus to
+    <body>. After a failure focus is back on it, so Enter retries."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+
+    async def fail_post(route):
+        if route.request.method == "POST":
+            await route.fulfill(status=500, content_type="application/json", body='{"error":"boom"}')
+        else:
+            await route.continue_()
+
+    await pg_page.route("**/api/accounts", fail_post)
+    await pg_page.focus("#pgMigrationTransferBtn")
+    await pg_page.keyboard.press("Enter")
+    await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
+
+    active = await pg_page.evaluate("() => document.activeElement && document.activeElement.id")
+    assert active == "pgMigrationTransferBtn", f"focus was lost to {active!r}"
+    assert await pg_page.evaluate("() => document.activeElement !== document.body")
+    assert await pg_page.locator("#pgMigrationTransferBtn").is_enabled()
+
+    # Enter now retries from where the user is.
+    await pg_page.unroute("**/api/accounts", fail_post)
+    await pg_page.keyboard.press("Enter")
+    await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=15000)
+    assert await _key(pg_page) is None
+    assert any(a["name"] == "Legacy Checking" for a in await _accounts(pg_page, base_url))
+
+
 async def test_nonempty_db_shows_cleanup_variant(pg_page, base_url):
     await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY), server_has_data=True)
     await pg_page.locator("#pgLegacyDownloadBtn").wait_for(state="visible", timeout=15000)
@@ -151,3 +181,45 @@ async def test_unparseable_legacy_key_removed_silently(pg_page, base_url):
     await _boot_with_legacy(pg_page, base_url, "{not json")
     assert not await pg_page.locator("#pgMigrationModal").is_visible()
     assert await _key(pg_page) is None
+
+
+async def test_legacy_import_remaps_ledger_keys(pg_page, base_url):
+    """#520: the legacy transfer goes through replaceForPostgres, so v6 keys
+    built from local ids are rewritten to the new server ids and still apply;
+    a key whose record isn't in the data is dropped, not stored as an orphan."""
+    import copy
+    import datetime
+    today = datetime.date.today()
+    day = f"{today.year}-{today.month:02d}-15"
+    legacy = copy.deepcopy(LEGACY)
+    legacy["recurringTemplates"] = [{
+        "id": 3, "name": "Legacy Rent", "amount": 1500, "frequency": "monthly", "dayOfMonth": 15,
+        "type": "subscription", "category": "Housing", "accountId": 2}]
+    legacy["ledgerAmountOverrides"] = {
+        f"recurring|3|2|{day}": {"amount": -1900, "originalAmount": -1500, "accountId": 2, "date": day},
+        f"recurring|999|2|{day}": {"amount": -1, "originalAmount": -1, "accountId": 2, "date": day},
+    }
+    legacy["ledgerClearedTransactions"] = {f"recurring|3|2|{day}": {"clearedAt": "2025-11-01T12:00:00.000Z"}}
+
+    await _boot_with_legacy(pg_page, base_url, json.dumps(legacy))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    await pg_page.click("#pgMigrationTransferBtn")
+    await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=15000)
+    await pg_page.reload()
+    await pg_page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+
+    acct_id = next(a["id"] for a in await _accounts(pg_page, base_url) if a["name"] == "Legacy Checking")
+    tmpl_id = next(t["id"] for t in await (await pg_page.request.get(f"{base_url}/api/recurring-templates")).json()
+                   if t["name"] == "Legacy Rent")
+    expected = f"recurring|{tmpl_id}|{acct_id}|{day}"
+    overrides = [o["overrideKey"] for o in await (await pg_page.request.get(f"{base_url}/api/ledger-overrides")).json()]
+    cleared = [c["clearedKey"] for c in await (await pg_page.request.get(f"{base_url}/api/ledger-cleared")).json()]
+    assert overrides == [expected], overrides
+    assert cleared == [expected], cleared
+
+    row = await pg_page.evaluate("""async key => {
+        const mod = await import('/src/ledgerTransactions.js');
+        const r = mod.getLedgerTransactions(window.app).find(t => t.transactionId === key);
+        return r ? { amount: r.amount, hasOverride: r.hasOverride, cleared: r.cleared } : null;
+    }""", expected)
+    assert row == {"amount": -1900, "hasOverride": True, "cleared": True}, row

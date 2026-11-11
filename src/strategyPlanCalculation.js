@@ -122,7 +122,7 @@ export async function calculatePaymentPlanFromInputs(app) {
             app.displayPaymentPlan();
             await recordPlanHistoryEntry(app, monthlyPayment, strategy);
             app.renderPlanHistory();
-            app.saveToStorage();
+            app.saveToStorage(['monthlyPayment', 'strategy']);
         },
         onError: (err) => {
             showAlertModal(err && err.message ? err.message : t('strategy.alertCalcFailed'));
@@ -285,7 +285,7 @@ export function calculateRequiredPayment(app) {
         document.getElementById('applyTargetPayment').addEventListener('click', () => {
             document.getElementById('monthlyPayment').value = requiredPayment;
             document.getElementById('paymentStrategy').value = strategy;
-            app.saveToStorage();
+            app.saveToStorage(['monthlyPayment', 'strategy']);
 
             // Recalculate and display the full plan
             recalculatePaymentPlan(app, {

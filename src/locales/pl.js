@@ -3,8 +3,6 @@ export default {
 
     'toolbar.commandPaletteTitle': 'Szybkie przejście (Ctrl+K)',
     'toolbar.commandPaletteAriaLabel': 'Otwórz panel szybkich poleceń',
-    'toolbar.dataTransferTitle': 'Kopia Zapasowa i Przywracanie',
-    'toolbar.dataTransferAriaLabel': 'Utwórz kopię zapasową i przywróć dane',
     'toolbar.settingsTitle': 'Ustawienia',
     'toolbar.settingsAriaLabel': 'Otwórz ustawienia',
     'toolbar.helpTitle': 'Otwórz przewodnik użytkowania',
@@ -1854,4 +1852,11 @@ export default {
     "pgMigration.remove": "Usuń",
     "sync.errorBanner": "Nie udało się zapisać ostatniej zmiany — sprawdź połączenie. Odśwież stronę, aby zobaczyć zapisane dane.",
     "sync.dismiss": "Zamknij",
+    "sync.conflictTitle": "Zmieniono w innym miejscu",
+    "sync.conflictMessage": "„{name}” zmieniono w innej karcie lub na innym urządzeniu podczas edycji. Zachować Twoje zmiany czy użyć drugiej wersji?",
+    "sync.conflictMessageUnnamed": "Ten element zmieniono w innej karcie lub na innym urządzeniu podczas edycji. Zachować Twoje zmiany czy użyć drugiej wersji?",
+    "sync.conflictKeepMine": "Zachowaj moje zmiany",
+    "sync.conflictUseTheirs": "Użyj drugiej wersji",
+    "sync.goneBanner": "Ten element zmieniono lub usunięto w innej karcie lub na innym urządzeniu.",
+    "sync.goneReload": "Odśwież",
 };

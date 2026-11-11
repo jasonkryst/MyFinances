@@ -4,6 +4,116 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.5.0] — 2026-11-09
+
+### Added
+- **Refresh across tabs and on returning to a tab** (issue #575). The design is in `docs/superpowers/specs/2026-11-09-row-version-and-refresh-design.md`.
+  - **Same-browser tabs.** Every successful write fires `myfinances:data-written`. The new `src/liveRefresh.js` relays it on a `BroadcastChannel`, and other tabs of the same browser refresh within about a second; the writing tab doesn't refresh itself.
+  - **Returning to a tab.** A tab hidden for at least `REFRESH_ON_FOCUS_SECONDS` (default 60; 0 means every return) re-reads the server when it is shown again.
+    - The value is configured through env: `docker-compose.yml`, then `docker-entrypoint.d/40-ga-env-config.sh`, then `window.__ENV__`.
+    - The script accepts whole seconds only, strips leading zeros, and drops anything else with a warning. It also gained `ENV_CONFIG_OUT` for tests.
+  - **How a refresh runs.** It loads into a scratch object and applies the result only if no write started meanwhile, then re-seeds the record shadows (#578), reconciles recurring paid state and re-renders the open page.
+    - The user's Ledger filters and sort and Forecast range are kept.
+    - It waits while a save is pending, an inline edit or dialog is open, or focus is in a text field.
+    - The pure decisions are in `src/refreshPolicy.js` (Jest-tested, Stryker 100%).
+
+### Fixed
+- **Records deleted elsewhere no longer show "check your connection"** (issue #565). A PATCH or DELETE that finds the record gone (404) now shows `#recordGoneBanner`, "This item was changed or deleted in another tab or device", with a Reload action (`app.refreshFromServer()`). The stale copy stays on screen until Reload, or the next refresh, removes it, so nothing vanishes mid-edit.
+  - A 404 when deleting a keyed Ledger override or cleared flag is already-absent and now stays silent; before, it showed the connection banner.
+  - `pgDelete` now returns a promise.
+
+## [7.4.0] — 2026-11-09
+
+### Fixed
+- **A stale tab or device no longer reverts edits made elsewhere** (issue #563). Every record edit used to PATCH the whole in-memory record, so a tab loaded earlier wrote back old values for fields it never touched. For example, tab A renamed a debt, stale tab B changed its balance, and the server ended up with the old name.
+
+### Added
+- **Optimistic concurrency with a row version** (issue #578).
+  - **Server.** Migration `1755600000032` adds `row_version` to every CRUD table. `crudRouter` returns it as `rowVersion` and increments it on each PATCH.
+    - A PATCH carrying a `rowVersion` is checked atomically in the UPDATE. A stale version gets `409 CONFLICT` with the current row and writes nothing.
+    - A PATCH without one is still accepted unchecked, so a tab on the cached pre-upgrade app keeps working until it reloads.
+    - A malformed version is rejected with 400.
+  - **Client.** `postgresSync.js` keeps the last server-confirmed copy of each record and diffs every `pgPatch` body against it. It sends only the changed fields plus the version, and sends nothing when nothing changed. PATCHes to one record are queued, so rapid edits don't conflict with each other. No call site changed.
+  - **Conflicts.** On a 409, changes the other side made to different fields are merged in and the edit is resent. When both sides changed the same field, the new `#syncConflictModal` asks: "Keep my changes" or "Use the other version". Escape keeps the other version.
+  - **New module.** The pure diff and conflict helpers live in `src/recordVersions.js` (Jest-tested, in the Stryker scope at 100%).
+- **Design spec:** `docs/superpowers/specs/2026-11-09-row-version-and-refresh-design.md`. It also covers the follow-up cross-tab refresh (#575, #565).
+
+## [7.3.1] — 2026-11-09
+
+### Fixed
+- **Importing a backup no longer orphans Ledger overrides and Cleared flags** (issue #520). These are keyed `type|sourceId|accountId|date`. A replace or merge import, and the legacy browser-data transfer, gave every record a new server id but stored the keys unchanged, so overrides and Cleared state silently stopped applying and balances and forecasts went back to template amounts.
+  - Both id segments of every key are now rewritten through the same id maps the records went through. Ledger `interest` rows map through the account ids, and `savings` rows are matched across emergency and sinking funds by the key's account. The logic lives in the new pure `src/ledgerKeyRemap.js` (Jest-tested, in the Stryker scope at 100%).
+  - In a merge, a record that matches an existing one by name keeps the imported keys on that existing record.
+  - Keys whose record or account isn't in the file, or that are malformed, are dropped instead of being stored as orphans. The import result lists one summary warning for each kind (Ledger Override, Ledger Cleared Flag).
+  - Keys already orphaned by an earlier import can't be recovered automatically. Re-importing the original backup restores them.
+
+## [7.3.0] — 2026-11-08
+
+### Fixed
+- **Large imports no longer fail with `ERR_INSUFFICIENT_RESOURCES`** (issue #519). Replace and merge imports, their rollbacks, the legacy browser-data transfer, `pgDeleteAll` and balance-history seeding sent one request per record with a bare `Promise.all`. A backup with 2,000 Ledger overrides and 1,000 cleared flags put about 3,000 requests in flight; Chromium aborted some, the import failed, and the rollback (same fan-out) could fail too, leaving the server partly wiped. Every fan-out now goes through a pool of 6 (`IMPORT_CONCURRENCY`).
+  - New pure `src/concurrency.js`: `mapWithConcurrency` (order-preserving; after the first failure it starts nothing new, lets running requests settle, then throws, so nothing is still writing when the rollback starts) and `mapSettledWithConcurrency` (the merge rollback's deletes). Jest-tested and in the Stryker scope.
+  - The CRUD collections are now posted one collection at a time, each through the pool, instead of all collections at once.
+- **Ledger Clear filters resets the page size** (found via #544). It removed the stored filters, page size included, but left the in-memory page size, so the old size stayed until the next reload.
+
+### Tests
+- **Element-missing skips are now failures** (issue #544). Two Ledger Clear-filters tests looked for `#clearFiltersBtn` (the app's id is `#ledgerClearFiltersBtn`) and skipped on every run. They also needed an active filter, since the button only renders while one is set. `test_ledger_filter_persistence.py` now seeds real server data, waits on state instead of sleeping, and adds a negative test (no button without an active filter). The other 14 `if not el: pytest.skip(...)` guards (in `test_p1_batch2.py`, `test_validation_modals.py` and `test_spending_ui.py`) are asserts.
+- New `tests/features/test_skip_guard.py` (shard K): a static scan fails on any `pytest.skip` guarded by a missing-element check (`if not el`, `is None`, `query_selector`, `locator`, `is_visible`, `.count()`). Date- and environment-dependent skips are unaffected. A genuine case can opt out with `# skip-ok: <reason>`.
+- New `tests/features/test_import_concurrency.py`: a 2,000-override + 1,000-cleared replace import succeeds with at most 6 write requests in flight (recorded by wrapping `fetch`); merge is bounded; a failing import's rollback is bounded and restores the prior data; after a failure no further requests start; an empty import sends no record writes.
+- New `tests/unit/concurrency.test.js`.
+- **#543 verified:** community PR #562 (thanks @Aryanban) made `test_plan_history.py` wait for the history entry. Ten consecutive local runs pass, and recent `main` CI runs are green.
+
+## [7.2.0] — 2026-11-08
+
+### Accessibility
+- **Dark-mode error text passes contrast** (issue #484). A new `--danger-text` token (`#dc2626` light, `#f87171` dark, `#ff6b6b` high contrast) is used for error text: `.login-gate-error` (sign-in and Settings → Security), `.pg-migration-error`, `.error-message`, `.recon-range-error` and `.recon-diff--neg`. Dark error text was `#dc2626` on `#1e293b` (3.0:1); it is now 5.3:1. `--danger-color` itself is unchanged, because it is also the background of white-text danger buttons. `styles-csp-classes.css` had its own hard-coded `.pg-migration-error` colour, which now uses the token too.
+- **"Forgot password?" link and the sign-in focus ring in dark mode** (issues #485, #486). `.link-btn` is `#60a5fa` (5.75:1; `#93c5fd` on hover/focus), and a focused sign-in field gets a `#60a5fa` border and a 3px solid ring instead of a 2.8:1 border and an 18% halo.
+- **Reports tab-group labels are no longer faded** (issue #487). Inactive labels were dimmed with `opacity: 0.55` (2.3:1 light, 3.0:1 dark). They are now an outlined muted-text label, and the active group's label is a filled pill (primary blue with white text; `#60a5fa` with dark text in dark mode).
+- **Positive amounts in light mode** (issue #488). Green amount text moves from `#059669` (3.8:1 on white) to `#047857` (5.5:1): account balances, Money Flow differences, income cards, recurring inflows, Plan schedule principal/stimulus, and Home Purchase status. Bonus amounts move from `#d97706` (3.2:1) to `#b45309` (5.0:1). `.principal` gets a dark-mode colour, which it never had. Dark mode is otherwise unchanged.
+- **Same problems elsewhere, fixed while here:** the "Mark complete"/"Paid off" buttons and the calendar income chip (white on `#059669`, 3.8:1) now use `#047857` (5.5:1); Ledger income amounts (`.text-income`) and the schedule's stimulus badge use `#047857` in light mode; and dark-mode Ledger expense amounts (`.text-expense`) move from `#ef4444` (4.0:1) to `#f87171` (5.3:1).
+- **Plan net breakdown** (issue #489): `.strategy-net-breakdown` drops `opacity: 0.8` (4.3:1 → 6.8:1).
+- **`<html lang>` follows the UI language** (issue #497, WCAG 3.1.1). `i18n.js` sets `document.documentElement.lang` when it loads (so the sign-in and unreachable screens are covered) and on every `setLocale()`.
+- **Focus returns to Transfer after a failed legacy-data import** (issue #490). The button was disabled while loading, which dropped focus to `<body>`; now Enter retries straight away.
+
+### Tests
+- New `tests/ui/test_contrast_fixes.py` (shard `test-ui-a`) measures rendered contrast from computed styles, compositing translucent backgrounds and ancestor opacity (`tests/ui/contrast_utils.py`), in light and dark mode. Negative cases: light-mode error text and `--danger-color`/`.btn-delete` are unchanged, high contrast keeps its own red, positive and negative balances stay distinguishable.
+- New `tests/features/test_html_lang.py`: lang after a Settings change and after reload (es, pl), back to English, an unknown locale and a tampered stored locale fall back to `en`, and the sign-in screen already has the right lang.
+- `tests/postgres/test_legacy_local_data.py`: a failed import leaves focus on Transfer, and Enter retries successfully.
+- `tests/ui/test_reports_nav.py`: the active group label is filled; inactive labels are no longer dimmed.
+
+## [7.1.0] — 2026-11-08
+
+### Fixed
+- **A stale tab or device no longer overwrites plan settings** (issue #564). `saveToStorage(app, fields)` now PATCHes only the plan-settings fields it is given (`monthlyPayment`, `strategy`, `perMonthStimulus`, `ledgerSettings`, `forecastSettings`, `retirementTargetDate`, `homePurchasePlan`, `budgetCategories`). Before, every save sent the whole row, so a tab opened earlier reverted category budgets, the home purchase plan, the retirement target and the strategy set elsewhere. The server already accepted partial PATCHes.
+  - The Plan form's payment and strategy are read from the page only when those fields are saved (Calculate, "Use this amount"), so an amount typed but never calculated is no longer saved as a side effect.
+  - Called with no known field, `saveToStorage` sends nothing and logs a warning, so a forgotten argument can never fall back to writing the whole row.
+  - The PATCH body is built by the new pure `src/planSettingsPatch.js` (Jest-tested, in the Stryker scope).
+- **Schedule-table stimulus amounts are saved** (issue #595). Editing a month's stimulus called `saveToStorage()`, whose body never included `perMonthStimulus`, so the value was lost on reload.
+- **Awarded net worth milestones are saved** (issue #596). Awarding one called `saveToStorage()`, which never sent milestones; it now POSTs `/api/plan-settings/milestones`.
+
+### Performance
+- **Record changes no longer PATCH `/api/plan-settings`** (issue #521). About 70 add/edit/delete/archive/Cleared paths called `saveToStorage()` after their own record request, doubling the requests of each edit. Those calls are removed; the records were always written by their own `pgPost`/`pgPatch`/`pgDelete`.
+  - Ledger filter and sort changes, which only reached the server as a side effect of those calls, now save `ledgerSettings` explicitly. During a Spending cross-navigation the user's own filters are stored, as the device copy already did.
+
+### Tests
+- New `tests/features/test_plan_settings_partial_save.py`: two-tab staleness (budget vs. strategy, account add vs. retirement/home plan), no plan-settings PATCH from record mutations, single-field PATCH bodies, Ledger sort, stimulus and milestone persistence, and no request without a known field.
+- New `tests/unit/planSettingsPatch.test.js`; `tests/unit/storage.test.js` covers the field-scoped save.
+- Tests that called `app.saveToStorage()` after seeding records in memory dropped the call (it never saved records); tests that save plan settings now name the field.
+
+## [7.0.1] — 2026-11-08
+
+### Tests / CI
+- **Tests no longer race async saves** (issue #592). Since 7.0.0, adding an account or debt waits for the server before it swaps in the real id, re-renders and closes the form. Tests that clicked Submit and moved on could pick the account's temporary id in an income dropdown (the server rejected the income with a 400), or click the Add Debt toggle while the form was still open and close it. Both failed CI intermittently.
+  - New `tests/conftest.py` helpers: `submit_account_form` and `submit_debt_form` (plus `_async` twins) click Submit and wait for the save to finish; `open_debt_form` opens the Add Debt form only when it is closed. `create_account` and `create_debt` use them.
+  - Every account and debt Submit click in `tests/` now waits, or is marked `# submit-no-wait: <reason>` where the save is meant not to finish (validation rejections, deliberately failed requests).
+  - New `tests/features/test_async_submit_guard.py` (shard K) fails CI when a Submit click on either form is not followed by a wait.
+  - The guard exposed a test that tested nothing: `test_xss_in_debt_name` left a credit card's required fields blank, so validation rejected it and no debt was created, and it read a class (`.debt-card-name`) that debt cards don't use. It now creates the debt and checks that the name renders as inert text with no injected `onload` element.
+  - The negative fixed-amount debt test now checks `app.debts` and that the form stays open, instead of the page text straight after Submit.
+- **Plan-history tests wait for the history entry** (issue #543, PR #562, community contribution). They read `app.planHistory` before the server POST had returned.
+
+### Maintenance
+- **Docker:** the root `.dockerignore` now excludes `node_modules/` at any depth and `server/test/`, and the server image sets ownership with `COPY --chown` instead of a separate `chown -R` layer (issue #532, PR #542, community contribution).
+- **Unused code removed:** two unreferenced `toolbar.dataTransfer*` locale keys and several dead CSS rules (issue #537, PR #540, community contribution).
+
 ## [7.0.0] — 2026-11-03
 
 ### BREAKING

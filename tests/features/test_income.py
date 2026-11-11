@@ -5,6 +5,7 @@ Tests income source creation and calculations.
 """
 
 import pytest
+from tests.conftest import open_debt_form, submit_debt_form
 
 BASE_URL = "http://localhost:32900/"
 
@@ -359,8 +360,7 @@ def _create_debt_for_advisor(page):
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
     page.wait_for_selector('[data-liabilities-subtab="debts"].active', timeout=5000)
-    page.click('#debtFormToggle')
-    page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+    open_debt_form(page)
     page.fill('#debtName', 'Advisor Test Debt')
     page.select_option('#debtType', 'creditCard')
     page.fill('#accountBalance', '2000')
@@ -541,15 +541,14 @@ def _create_three_debts_for_elimination(page):
         ('Debt C', '5000', '15', '150'),
     ]
     for name, balance, rate, min_pmt in debts:
-        page.click('#debtFormToggle')
-        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+        open_debt_form(page)
         page.fill('#debtName', name)
         page.select_option('#debtType', 'creditCard')
         page.fill('#accountBalance', balance)
         page.fill('#interestRate', rate)
         page.fill('#minimumPayment', min_pmt)
         page.fill('#dueDate', '15')
-        page.click('#debtFormSubmit')
+        submit_debt_form(page)
 
 
 @pytest.mark.feature
@@ -647,8 +646,7 @@ def _create_debts_for_advice_interest_filter(page):
         ('Interest Bearing Card', '400', '18', '30'),
     ]
     for name, balance, rate, min_pmt in debts:
-        page.click('#debtFormToggle')
-        page.wait_for_selector('#debtFormBody:not([hidden])', timeout=5000)
+        open_debt_form(page)
         page.fill('#debtName', name)
         page.select_option('#debtType', 'creditCard')
         page.fill('#accountBalance', balance)

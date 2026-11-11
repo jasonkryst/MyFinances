@@ -3,8 +3,6 @@ export default {
 
     'toolbar.commandPaletteTitle': 'Salto rápido (Ctrl+K)',
     'toolbar.commandPaletteAriaLabel': 'Abrir paleta de comandos de salto rápido',
-    'toolbar.dataTransferTitle': 'Copia de Seguridad y Restauración',
-    'toolbar.dataTransferAriaLabel': 'Hacer copia de seguridad y restaurar datos',
     'toolbar.settingsTitle': 'Configuración',
     'toolbar.settingsAriaLabel': 'Abrir configuración',
     'toolbar.helpTitle': 'Abrir guía de uso',
@@ -1854,4 +1852,11 @@ export default {
     "pgMigration.remove": "Eliminar",
     "sync.errorBanner": "No se pudo guardar tu último cambio: revisa tu conexión. Recarga para ver lo que está guardado.",
     "sync.dismiss": "Descartar",
+    "sync.conflictTitle": "Cambiado en otro lugar",
+    "sync.conflictMessage": "«{name}» se modificó en otra pestaña o dispositivo mientras lo editabas. ¿Conservar tus cambios o usar la otra versión?",
+    "sync.conflictMessageUnnamed": "Este elemento se modificó en otra pestaña o dispositivo mientras lo editabas. ¿Conservar tus cambios o usar la otra versión?",
+    "sync.conflictKeepMine": "Conservar mis cambios",
+    "sync.conflictUseTheirs": "Usar la otra versión",
+    "sync.goneBanner": "Este elemento se modificó o se eliminó en otra pestaña o dispositivo.",
+    "sync.goneReload": "Recargar",
 };

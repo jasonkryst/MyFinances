@@ -136,7 +136,7 @@ Located in `src/debtCalculator.js` (classic script, exposed as global `DebtCalcu
 
 ### Storage & data persistence
 - **The server is the only store.** At boot `init()` probes the server, shows the login gate if there is no session, then `loadFromPostgres(app)` loads all `app.*` state. Every mutation is written back over the REST API through `pgPost`/`pgPatch`/`pgDelete`/`pgPut` (`postgresSync.js`), right after the in-memory change. Updates are optimistic; a failed write shows the sync error banner. A 401 re-opens the login gate and retries the write once.
-- `saveToStorage(app)` (name kept for its call sites) only PATCHes the `/api/plan-settings` scalars (payment, strategy, ledger/forecast settings, retirement target, home purchase plan, category budgets).
+- `saveToStorage(app, fields)` (name is historical) PATCHes only the named `/api/plan-settings` fields, e.g. `app.saveToStorage(['budgetCategories'])` (issue #564); `PLAN_SETTINGS_FIELDS` in `src/planSettingsPatch.js` lists them. Record mutations never call it (#521); they write their own record through `postgresSync.js`. With no known field it sends nothing.
 - Every record type has a `sanitize*` function in `sanitizers.js` that enforces types, bounds and allowed enums, using the shared primitives from `utils.js`: `normalizeText`, `sanitizeFiniteNumber`, `sanitizeInteger`, `sanitizeDateISO`. It runs on import and, server-side, on every write.
 - **A new persisted field needs a sanitizer entry, a migration and a `columns` entry in its `server/src/routes/*.js` route**, or the server silently drops it.
 - JSON export/import (format version `"3.0"`, 2 MB import limit) lives in `dataExport.js`; import goes through `postgresImport.js`.
@@ -170,10 +170,10 @@ All dynamic styling must go through CSS classes/variables defined in `styles.css
 - `normalizeText` (strips `<>"`` ` + control chars + trims + enforces max length) is used in sanitizers, not as an HTML-output escape — use `escapeHtml` for rendering.
 
 ### Sanitizing new data fields
-The full sanitizer pipeline lives in `storage.js`. When adding a field to any record type:
+The sanitizers live in `sanitizers.js`. When adding a field to any record type:
 1. Add it to the relevant `sanitize*` function with an appropriate `sanitize*` call.
 2. Add it to `sanitizeParsedState`'s reconstruction of the record array.
-3. Add it to `saveToStorage`'s serialized payload.
+3. Add a migration and a `columns` entry in its `server/src/routes/*.js` route, or the server drops it. (A new plan-settings field instead needs a builder in `src/planSettingsPatch.js` and handling in `server/src/routes/planSettings.js`.)
 
 Enum fields must be validated against an explicit allowlist (see `sanitizeRecurringTemplate` for frequency/type validation pattern).
 

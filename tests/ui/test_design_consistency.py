@@ -107,7 +107,7 @@ def test_clear_all_data_moved_to_settings(app_page):
 def test_clear_all_data_cancel_does_nothing_confirm_clears(app_page):
     page = app_page
     page.evaluate("""() => { window.app.accounts = [{id: 1, name: 'Keep Me', type: 'Checking',
-        startingBalance: 10, archived: false}]; window.app.saveToStorage(); }""")
+        startingBalance: 10, archived: false}]; }""")
     open_settings(page)
     switch_settings_tab(page, 'data')
     page.click('#clearDataBtn')

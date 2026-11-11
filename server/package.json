@@ -13,10 +13,10 @@
     "test": "node --test --test-concurrency=1"
   },
   "dependencies": {
-    "argon2": "^0.45.1",
+    "argon2": "^0.45.2",
     "cookie-parser": "^1.4.7",
     "express": "^5.3.0",
-    "express-rate-limit": "^8.7.2",
+    "express-rate-limit": "^8.7.3",
     "node-pg-migrate": "^9.0.0",
     "nodemailer": "^10.3.1",
     "pg": "^8.23.1"

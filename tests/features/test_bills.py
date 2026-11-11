@@ -91,7 +91,6 @@ def test_bills_factor_into_account_projected_balance(app_page):
         app.bills = [{ id: 1, name: 'Rent', amount: 500, dueDay: 1,
                        category: 'Rent / Mortgage', accountId: 1 }];
         app.incomes = []; app.debts = []; app.expenses = []; app.recurringTemplates = [];
-        app.saveToStorage();
         app.switchPage('accounts');
     }""")
 
