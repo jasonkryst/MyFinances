@@ -312,6 +312,37 @@ def seed_state_from_app(page) -> None:
     seed_state(page, _json.loads(raw))
 
 
+_LOCAL_PARENT_IDS = iter(range(1_900_000_000, 2_000_000_000))
+
+
+def accept_creates_for_local_parents(page, *patterns):
+    """For tests that inject in-memory-only parent records (e.g. an account the server
+    never saw) and then create a child of it. Each POST to `patterns` goes to the real
+    server first; only when the server rejects it with 400 (the parent id isn't one it
+    owns) is it answered as a successful create, echoing the body with a fresh id.
+
+    Since #460 a create the server rejects is never added to app.*, so without this the
+    child would vanish. A POST with real parents still persists for real. Prefer
+    seed_state for new tests; this keeps the older in-memory tests testing client logic.
+    """
+    def handler(route):
+        request = route.request
+        if request.method != 'POST':
+            route.continue_()
+            return
+        response = route.fetch()
+        if response.status != 400:
+            route.fulfill(response=response)
+            return
+        body = dict(request.post_data_json or {})
+        body['id'] = next(_LOCAL_PARENT_IDS)
+        body['rowVersion'] = 1
+        route.fulfill(status=201, content_type='application/json', body=json.dumps(body))
+
+    for pattern in patterns:
+        page.route(pattern, handler)
+
+
 def wait_for_api(page, path, check, timeout=10.0):
     """Poll an authenticated GET `path` from the page until `check(json)` is truthy.
 

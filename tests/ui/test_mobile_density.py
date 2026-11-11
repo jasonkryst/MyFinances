@@ -8,6 +8,8 @@ tab strip, Reconcile accordion. Each behavior is asserted on a phone viewport
 
 import pytest
 
+from tests.conftest import accept_creates_for_local_parents
+
 PHONE = {"width": 390, "height": 844}
 DESKTOP = {"width": 1440, "height": 900}
 
@@ -144,6 +146,8 @@ def test_account_form_collapsed_then_opens_and_submits(app_page):
 @pytest.mark.ui
 def test_income_form_collapsed_then_opens_and_submits(app_page):
     page = app_page
+    # SEED's accounts exist only in memory (#460).
+    accept_creates_for_local_parents(page, '**/api/incomes')
     _go(page, 'income', PHONE)
     page.wait_for_selector('#incomeFormToggle', state='visible')
     assert not _visible(page, '#incomeName')

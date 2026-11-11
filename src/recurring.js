@@ -13,7 +13,7 @@ import {
     isRecurringInflow
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
@@ -661,7 +661,6 @@ export async function addRecurringTemplate(app) {
     if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
     if (!accountId) { await showAlertModal(tr('recurring.errAccount')); return; }
 
-    if (!app.recurringTemplates) app.recurringTemplates = [];
     const tmpl = {
         id: Date.now(),
         name,
@@ -679,10 +678,7 @@ export async function addRecurringTemplate(app) {
         paidMonths: [],
         paidAmounts: {}
     };
-    app.recurringTemplates.push(tmpl);
-
-    const saved = await pgPost(app, '/api/recurring-templates', tmpl);
-    if (saved?.id) tmpl.id = saved.id;
+    if (!(await pgCreate(app, 'recurringTemplates', '/api/recurring-templates', tmpl))) return null;
     app.renderRecurringPage();
     document.getElementById('recurringForm')?.reset();
 }

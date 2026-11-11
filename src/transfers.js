@@ -7,9 +7,9 @@
 // correct for transfers automatically, the same way they already are for
 // the recurring-template transfer type.
 
-import { sanitizeFiniteNumber, sanitizeDateISO, normalizeText, todayISO } from './utils.js';
+import { sanitizeFiniteNumber, sanitizeDateISO, normalizeText, todayISO, withBusy } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showDeleteConfirmModal } from './ui.js';
 import { renderLedgerPage } from './ledger.js';
 import { t } from './i18n.js';
@@ -45,10 +45,8 @@ export async function addTransfer(app, fromAccountId, toAccountId, amount, date,
         memo: normalizeText(memo, 200),
         createdAt: new Date().toISOString()
     };
-    app.transfers.push(entry);
-
-    const saved = await pgPost(app, '/api/transfers', entry);
-    if (saved?.id) entry.id = saved.id;
+    // A failed save keeps the modal open with its values for a retry (#460).
+    if (!(await pgCreate(app, 'transfers', '/api/transfers', entry))) return { success: false };
     refreshAfterTransferChange(app);
 
     return { success: true, entry };
@@ -142,7 +140,7 @@ export function openTransferModal(app, { fromAccountId = null, editId = null } =
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
-    confirmBtn.onclick = async () => {
+    confirmBtn.onclick = () => withBusy(modal, async () => {
         const from = parseInt(fromSelect.value, 10);
         const to = parseInt(toSelect.value, 10);
         const amount = sanitizeFiniteNumber(amountInput.value, NaN);
@@ -150,7 +148,7 @@ export function openTransferModal(app, { fromAccountId = null, editId = null } =
             ? await editTransfer(app, editing.id, { fromAccountId: from, toAccountId: to, amount, date: dateInput.value, memo: memoInput.value })
             : await addTransfer(app, from, to, amount, dateInput.value, memoInput.value);
         if (result.success) close();
-    };
+    });
 
     cancelBtn.onclick = close;
     closeBtn.onclick = close;

@@ -6,8 +6,8 @@ import {
     computeScenarioRates, computeRetirementProjectionScenarios, computeRetirementProjectionSeries,
     computeCoastFire, DEFAULT_CONSERVATIVE_DELTA, DEFAULT_AGGRESSIVE_DELTA
 } from './retirementCalculator.js';
-import { pgPost, pgDelete, pgPatch } from './postgresSync.js';
-import { formatCurrency, formatMonthYear, formatShortDate, escapeHtml, todayISO, renderChartDataTable } from './utils.js';
+import { pgCreate, pgDelete, pgPatch } from './postgresSync.js';
+import { formatCurrency, formatMonthYear, formatShortDate, escapeHtml, todayISO, renderChartDataTable, withBusy } from './utils.js';
 import {
     getSetting, setSetting, RETIREMENT_WITHDRAWAL_RATE,
     RETIREMENT_SCENARIO_CONSERVATIVE_DELTA, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA,
@@ -54,10 +54,9 @@ export function getSnapshotsForAccount(app, accountId) {
 // annualSalary is only populated for pension accounts; balance/contribution remain 0 for those.
 export async function addRetirementSnapshot(app, accountId, date, balance, contribution, annualSalary = null) {
     const snapshot = { id: Date.now(), accountId, date, balance, contribution, annualSalary };
-    app.retirementSnapshots.push(snapshot);
-    const saved = await pgPost(app, '/api/retirement-snapshots', snapshot);
-    if (saved?.id) snapshot.id = saved.id;
+    if (!(await pgCreate(app, 'retirementSnapshots', '/api/retirement-snapshots', snapshot))) return null;
     app.renderRetirementPage();
+    return snapshot;
 }
 
 export function deleteRetirementSnapshot(app, id) {
@@ -215,20 +214,22 @@ export function openRetirementSnapshotModal(app, accountId) {
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
-    confirmBtn.onclick = async () => {
+    confirmBtn.onclick = () => withBusy(modal, async () => {
+        let saved;
         if (isPension) {
             const annualSalary = Number(salaryInput.value);
             if (!Number.isFinite(annualSalary) || annualSalary < 0) return;
             const monthlyContribution = annualSalary * (Number(account.pensionContributionRatePct) || 0) / 1200;
-            await app.addRetirementSnapshot(accountId, dateInput.value || todayISO(), 0, monthlyContribution, annualSalary);
+            saved = await app.addRetirementSnapshot(accountId, dateInput.value || todayISO(), 0, monthlyContribution, annualSalary);
         } else {
             const balance = Number(balanceInput.value);
             const contribution = Number(contributionInput.value) || 0;
             if (!Number.isFinite(balance) || balance < 0) return;
-            await app.addRetirementSnapshot(accountId, dateInput.value || todayISO(), balance, contribution, null);
+            saved = await app.addRetirementSnapshot(accountId, dateInput.value || todayISO(), balance, contribution, null);
         }
-        close();
-    };
+        // A failed save keeps the modal open with the values, so the user can retry (#460).
+        if (saved) close();
+    });
     cancelBtn.onclick = close;
     closeBtn.onclick = close;
     modal.onclick = (event) => { if (event.target === modal) close(); };

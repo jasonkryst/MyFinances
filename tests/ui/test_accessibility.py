@@ -6,7 +6,7 @@ Tests keyboard navigation, ARIA labels, and screen reader compatibility.
 
 import pytest
 
-from tests.conftest import create_debt, seed_state, submit_account_form
+from tests.conftest import accept_creates_for_local_parents, create_debt, seed_state, submit_account_form
 
 def _calculate_plan(page, debt_data):
     """Create a debt and run a payment plan so the Results tab bar renders."""
@@ -171,6 +171,8 @@ def test_reconcile_inputs_have_labels(app_page):
 def test_reconcile_action_buttons_are_buttons(app_page):
     """Reconcile and delete-history actions are rendered as <button> elements."""
     page = app_page
+    # The account below exists only in memory (#460).
+    accept_creates_for_local_parents(page, '**/api/reconciliations')
 
     page.evaluate("""async () => {
         const app = window.app;

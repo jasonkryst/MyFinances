@@ -1,6 +1,6 @@
 // Family member (person) management
 import { normalizeText, escapeHtml, formatCurrency } from './utils.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
 import { renderOwnershipControl, getDebtShare, removePersonFromDebt } from './debtOwnership.js';
 import { t, plural } from './i18n.js';
@@ -204,9 +204,7 @@ export async function addPerson(app) {
     if (!name) { await showAlertModal(t('people.errName')); return; }
 
     const person = { id: Date.now(), name };
-    app.persons.push(person);
-    const saved = await pgPost(app, '/api/persons', person);
-    if (saved?.id) person.id = saved.id;
+    if (!(await pgCreate(app, 'persons', '/api/persons', person))) return null;
     refreshPersonSelectors(app);
     app.renderPeopleList();
     document.getElementById('personForm')?.reset();

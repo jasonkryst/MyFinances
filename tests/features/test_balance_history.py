@@ -135,17 +135,22 @@ def test_inline_edit_records_and_unchanged_save_does_not(app_page, debt_data):
 @pytest.mark.feature
 def test_fixed_amount_change_is_recorded(app_page):
     page = app_page
-    page.evaluate("""() => {
-        window.app.debts = [{ id: 42, name: 'Daycare', debtType: 'fixedAmount', fixedAmount: 900, minimumPayment: 900,
-                              fixedStartDate: '2026-01-01', fixedEndDate: '2027-01-01' }];
-        window.app.balanceHistory = [{ id: 1, debtId: 42, accountId: null, date: '2026-01-01', balance: null, minimumPayment: 900 }];
-        window.app.updateUI();
-    }""")
+    # Seeded through the server: the new history entry is POSTed, and since
+    # #460 an entry the server rejects (an in-memory-only debt) is dropped.
+    seed_state(page, {
+        'debts': [{'id': 42, 'name': 'Daycare', 'debtType': 'fixedAmount', 'fixedAmount': 900, 'minimumPayment': 900,
+                   'fixedStartDate': '2026-01-01', 'fixedEndDate': '2027-01-01'}],
+        'balanceHistory': [{'id': 1, 'debtId': 42, 'accountId': None, 'date': '2026-01-01',
+                            'balance': None, 'minimumPayment': 900}],
+    })
+    _reload_app(page)
+    debt_id = _only_debt_id(page)
     page.click('button[data-page="liabilities"]')
-    page.evaluate("() => window.app.startEdit(42)")
-    page.fill('#inline-fixed-amount-42', '950')
-    page.evaluate("() => window.app.saveInlineEdit(42)")
-    history = _debt_history(page, 42)
+    page.evaluate(f"() => window.app.startEdit({debt_id})")
+    page.fill(f'#inline-fixed-amount-{debt_id}', '950')
+    page.evaluate(f"() => window.app.saveInlineEdit({debt_id})")
+    page.wait_for_function(f"() => window.app.balanceHistory.filter(e => e.debtId === {debt_id}).length === 2")
+    history = _debt_history(page, debt_id)
     assert [(h['balance'], h['minimumPayment']) for h in history] == [(None, 900), (None, 950)]
 
 

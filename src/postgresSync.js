@@ -241,6 +241,21 @@ export async function pgPost(app, path, body) {
     return created;
 }
 
+// Create a record and add it to app[collection] only once the server has
+// assigned its id (#460, #593). Until then the record is in no collection, so
+// no dropdown can offer it and nothing can link to a temporary id. On failure
+// it is never added; pgFetch has already shown the sync-error banner, and the
+// caller keeps its form filled so the user can retry. Returns the record with
+// its server id, or null.
+export async function pgCreate(app, collection, path, record) {
+    const saved = await pgPost(app, path, record);
+    if (saved?.id == null) return null;
+    record.id = saved.id;
+    if (!Array.isArray(app[collection])) app[collection] = [];
+    app[collection].push(record);
+    return record;
+}
+
 // Fire-and-forget for most callers, but returns a promise that settles when
 // this record's queued PATCH (and any conflict prompt) is done.
 export function pgPatch(app, path, body) {

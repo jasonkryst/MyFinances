@@ -3,7 +3,7 @@
 import { formatCurrency, formatLongDate, escapeHtml } from './utils.js';
 import { t, plural } from './i18n.js';
 import { showAlertModal } from './ui.js';
-import { pgPost, pgDelete } from './postgresSync.js';
+import { pgCreate, pgDelete } from './postgresSync.js';
 
 function computeDebtFingerprint(debts) {
     return (debts || [])
@@ -35,12 +35,9 @@ export async function recordPlanHistoryEntry(app, monthlyPayment, strategy) {
         createdAt: new Date().toISOString()
     };
 
-    app.planHistory = app.planHistory || [];
-
-    const saved = await pgPost(app, '/api/plan-history', entry);
-    if (saved) entry.id = saved.id;
-
-    app.planHistory.push(entry);
+    // Only a saved entry joins the history (#460); a failed save already
+    // showed the sync-error banner, and the plan itself still renders.
+    if (!(await pgCreate(app, 'planHistory', '/api/plan-history', entry))) return;
 
     const overflow = app.planHistory.length - PLAN_HISTORY_CAP;
     if (overflow > 0) {

@@ -1,7 +1,7 @@
 ﻿// Bills and expenses
 import { formatCurrency, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
 import { renderCategoryBudgetsPanel } from './categoryBudgets.js';
 import { t, categoryLabel, getIntlLocale, plural } from './i18n.js';
@@ -358,9 +358,7 @@ export async function addBill(app) {
         return;
     }
     const bill = { id: Date.now(), name, amount, dueDay, category, accountId };
-    app.bills.push(bill);
-    const saved = await pgPost(app, '/api/bills', bill);
-    if (saved?.id) bill.id = saved.id;
+    if (!(await pgCreate(app, 'bills', '/api/bills', bill))) return null;
     document.getElementById('billForm').reset();
     // Collapse the form after adding
     const billBody = document.getElementById('billFormBody');
@@ -419,9 +417,7 @@ export async function addExpense(app) {
         return;
     }
     const expense = { id: Date.now(), name, budgetAmount, date: dateStr, category, accountId };
-    app.expenses.push(expense);
-    const saved = await pgPost(app, '/api/expenses', expense);
-    if (saved?.id) expense.id = saved.id;
+    if (!(await pgCreate(app, 'expenses', '/api/expenses', expense))) return null;
     document.getElementById('expenseForm').reset();
     // Collapse the form after adding
     const expBody = document.getElementById('expenseFormBody');

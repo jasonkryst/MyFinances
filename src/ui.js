@@ -3,7 +3,7 @@ import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
-import { APP_VERSION, escapeHtml, isCollapsibleOpen, setCollapsibleOpen, refreshFilterDisclosureCounts } from './utils.js';
+import { APP_VERSION, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts } from './utils.js';
 import { getZeroAmountPolicy, THEMES } from './settings.js';
 export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
@@ -152,7 +152,7 @@ export function initializeEventListeners(app) {
             if (app.editingDebtId) {
                 app.saveEdit();
             } else {
-                app.addDebt();
+                withBusy(debtForm, () => app.addDebt());
             }
         });
     }
@@ -239,7 +239,7 @@ export function initializeEventListeners(app) {
     if (accountForm) {
         accountForm.addEventListener('submit', e => {
             e.preventDefault();
-            app.addAccount();
+            withBusy(accountForm, () => app.addAccount());
         });
     }
 
@@ -247,7 +247,7 @@ export function initializeEventListeners(app) {
     if (incomeForm) {
         incomeForm.addEventListener('submit', e => {
             e.preventDefault();
-            app.addIncome();
+            withBusy(incomeForm, () => app.addIncome());
         });
     }
 
@@ -255,7 +255,7 @@ export function initializeEventListeners(app) {
     if (personForm) {
         personForm.addEventListener('submit', e => {
             e.preventDefault();
-            app.addPerson();
+            withBusy(personForm, () => app.addPerson());
         });
     }
 
@@ -263,7 +263,7 @@ export function initializeEventListeners(app) {
     if (expenseForm) {
         expenseForm.addEventListener('submit', e => {
             e.preventDefault();
-            app.addExpense();
+            withBusy(expenseForm, () => app.addExpense());
         });
     }
 
@@ -271,7 +271,7 @@ export function initializeEventListeners(app) {
     if (bonusForm) {
         bonusForm.addEventListener('submit', e => {
             e.preventDefault();
-            app.addBonus();
+            withBusy(bonusForm, () => app.addBonus());
         });
     }
 
@@ -286,7 +286,7 @@ export function initializeEventListeners(app) {
     if (recurringForm) {
         recurringForm.addEventListener('submit', e => {
             e.preventDefault();
-            app.addRecurringTemplate();
+            withBusy(recurringForm, () => app.addRecurringTemplate());
         });
     }
 

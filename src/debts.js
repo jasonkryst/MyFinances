@@ -2,7 +2,7 @@
 import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, todayISO, buildPersonPillsHtml } from './utils.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showArchiveConfirmModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
@@ -155,9 +155,7 @@ export async function addDebt(app) {
         debt.creditLimit = creditLimit;
     }
 
-    app.debts.push(debt);
-    const saved = await pgPost(app, '/api/debts', debt);
-    if (saved?.id) debt.id = saved.id;
+    if (!(await pgCreate(app, 'debts', '/api/debts', debt))) return null;
     await recordBalanceHistory(app, { kind: 'debt', id: debt.id });
     recalculateIfConfigured(app);
     app.updateUI();

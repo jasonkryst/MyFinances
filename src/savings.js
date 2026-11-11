@@ -1,7 +1,7 @@
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy } from './utils.js';
 import { t } from './i18n.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
-import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 import { getSetting, setSetting, SHOW_ARCHIVED_SINKING_FUNDS } from './settings.js';
 import { renderHomePurchaseContent, attachHomePurchaseEventListeners } from './homePurchase.js';
@@ -429,7 +429,7 @@ export function attachSavingsEventListeners(app) {
   if (emergencyForm) {
     emergencyForm.addEventListener('submit', e => {
       e.preventDefault();
-      addEmergencyFund(app);
+      withBusy(emergencyForm, () => addEmergencyFund(app));
     });
   }
 
@@ -438,7 +438,7 @@ export function attachSavingsEventListeners(app) {
   if (sinkingForm) {
     sinkingForm.addEventListener('submit', e => {
       e.preventDefault();
-      addSinkingFund(app);
+      withBusy(sinkingForm, () => addSinkingFund(app));
     });
   }
 
@@ -539,9 +539,7 @@ async function addEmergencyFund(app) {
     pgPatch(app, `/api/emergency-funds/${existingFund.id}`, existingFund);
   } else {
     const fund = { id: Date.now(), accountId, targetAmount, currentAmount, monthlyContribution, autoContribute, autoSyncBalance, notes };
-    app.emergencyFunds.push(fund);
-      const saved = await pgPost(app, '/api/emergency-funds', fund);
-      if (saved?.id) fund.id = saved.id;
+    if (!(await pgCreate(app, 'emergencyFunds', '/api/emergency-funds', fund))) return null;
   }
 
   renderSavingsPage(app);
@@ -666,9 +664,7 @@ async function addSinkingFund(app) {
     completedDate: null
   };
 
-  app.sinkingFunds.push(fund);
-    const saved = await pgPost(app, '/api/sinking-funds', fund);
-    if (saved?.id) fund.id = saved.id;
+  if (!(await pgCreate(app, 'sinkingFunds', '/api/sinking-funds', fund))) return null;
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
 }

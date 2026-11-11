@@ -11,7 +11,15 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import seed_state
+from tests.conftest import accept_creates_for_local_parents, seed_state
+
+
+@pytest.fixture(autouse=True)
+def _accept_local_parent_creates(request):
+    """These tests inject accounts that exist only in memory; see
+    accept_creates_for_local_parents (tests/conftest.py, #460)."""
+    if 'app_page' in request.fixturenames:
+        accept_creates_for_local_parents(request.getfixturevalue('app_page'), '**/api/reconciliations')
 
 
 def _seed_reconciliation_account(page, adjusts_balance=True):

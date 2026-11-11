@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.5.0';
+export const APP_VERSION = '7.5.1';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -562,6 +562,32 @@ export function isRecurringInflow(template) {
 // module-level so re-rendered markup (the Ledger rebuilds its filter bar on
 // every change) can restore the state with isCollapsibleOpen().
 const _collapsibleState = new Map();
+
+// Lock a form or modal while its save is pending (#459). A second submit
+// while busy is ignored (returns undefined without calling fn), so a double
+// click can't create two records. Text fields go read-only rather than
+// disabled, so the focused field keeps focus and nothing typed mid-save is
+// lost to the form reset; buttons, selects and checkboxes are disabled.
+// Only controls this call changed are restored.
+export async function withBusy(root, fn) {
+    if (!root) return fn();
+    if (root.getAttribute('aria-busy') === 'true') return undefined;
+    root.setAttribute('aria-busy', 'true');
+    const locked = [];
+    for (const el of root.querySelectorAll('input, textarea, select, button')) {
+        const isText = el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'reset', 'file'].includes(el.type));
+        const prop = isText ? 'readOnly' : 'disabled';
+        if (el[prop]) continue;
+        el[prop] = true;
+        locked.push([el, prop]);
+    }
+    try {
+        return await fn();
+    } finally {
+        for (const [el, prop] of locked) el[prop] = false;
+        root.removeAttribute('aria-busy');
+    }
+}
 
 export function isCollapsibleOpen(bodyId, defaultOpen = false) {
     return _collapsibleState.has(bodyId) ? _collapsibleState.get(bodyId) : defaultOpen;

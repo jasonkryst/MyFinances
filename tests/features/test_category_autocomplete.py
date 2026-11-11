@@ -6,7 +6,15 @@ Covers datalist presence, default option population, and free-text entry.
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import accept_creates_for_local_parents, assert_no_errors
+
+
+@pytest.fixture(autouse=True)
+def _accept_local_parent_creates(request):
+    """The recurring tests here inject an account that exists only in memory; see
+    accept_creates_for_local_parents (tests/conftest.py, #460)."""
+    if 'app_page' in request.fixturenames:
+        accept_creates_for_local_parents(request.getfixturevalue('app_page'), '**/api/recurring-templates')
 
 
 # ── Recurring templates form ────────────────────────────────────────────────────
