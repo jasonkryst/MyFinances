@@ -239,6 +239,22 @@ This only applies to the Docker deployment above. If you serve the frontend
 files some other way, hand-write an `env-config.js` containing
 `window.__ENV__ = { GA_MEASUREMENT_ID: "G-XXXXXXXXXX" };` alongside `index.html`.
 
+### Refreshing data across tabs and devices (Optional)
+
+Open tabs keep themselves up to date:
+
+- **Same browser:** a change saved in one tab shows up in your other tabs of the same browser within about a second.
+- **Other devices:** a tab that has been in the background re-reads the server when you return to it. By default it does this after 60 seconds away. Set `REFRESH_ON_FOCUS_SECONDS` in `.env` to change that:
+
+  ```sh
+  # .env
+  REFRESH_ON_FOCUS_SECONDS=120   # whole seconds; 0 = refresh on every return
+  ```
+
+The same startup script that writes `GA_MEASUREMENT_ID` writes this value into `env-config.js`. An empty or non-numeric value falls back to 60.
+
+A refresh never interrupts you. It waits while a save is in progress, an edit form or dialog is open, or you are typing, and it keeps your Ledger filters and Forecast range.
+
 ## PostgreSQL Server Setup (Required)
 
 Since 7.0.0 the PostgreSQL server is the only storage. The browser keeps no

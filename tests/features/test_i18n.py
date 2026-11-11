@@ -10,7 +10,7 @@ Spanish (es) and Polish (pl); other pages remain English.
 
 import pytest
 
-from tests.conftest import BASE_URL
+from tests.conftest import BASE_URL, submit_account_form
 
 
 @pytest.mark.feature
@@ -155,7 +155,7 @@ def test_health_gauge_sr_tables_translate(app_page, account_data, income_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.evaluate("() => window.app.setLocale('es')")
     page.click('button[data-page="health"]')
@@ -321,7 +321,7 @@ def test_surplus_sparkline_caption_uses_t_in_spanish(app_page, account_data, inc
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.evaluate("() => window.app.setLocale('es')")
     page.click('button[data-page="health"]')
@@ -354,7 +354,7 @@ def test_surplus_sparkline_caption_english_default(app_page, account_data):
     page.fill('#accountName', account_data["name"])
     page.select_option('#accountType', label=account_data["type"])
     page.fill('#accountStartingBalance', account_data["balance"])
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
 
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)

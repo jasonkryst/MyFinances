@@ -47,7 +47,7 @@ def test_export_then_import_round_trips_retirement_data(app_page):
 
     account_id = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').id")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', 10500, 300)")
-    page.evaluate("() => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(); }")
+    page.evaluate("() => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(['retirementTargetDate']); }")
 
     exported = page.evaluate("""
         () => {
@@ -189,7 +189,7 @@ def _add_account_with_target_date(page, balance=1000000, rate='7', target_date='
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', {balance}, 0)")
     page.evaluate(f"""() => {{
         window.app.retirementTargetDate = '{target_date}';
-        window.app.saveToStorage();
+        window.app.saveToStorage(['retirementTargetDate']);
         window.app.renderRetirementPage();
     }}""")
     page.click('button[data-page="retirement"]')
@@ -277,7 +277,7 @@ def test_reload_persists_retirement_data(app_page):
     _add_retirement_account(page)
     account_id = page.evaluate("() => window.app.accounts.find(a => a.type === 'Retirement').id")
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', 10000, 300)")
-    page.evaluate("() => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(); }")
+    page.evaluate("() => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(['retirementTargetDate']); }")
 
     page.reload(wait_until="networkidle")
     snapshots = page.evaluate("() => window.app.retirementSnapshots")
@@ -495,7 +495,6 @@ def test_pension_sanitizer_accepts_valid_fields(app_page):
     """sanitizeAccount correctly round-trips all pension fields through storage."""
     page = app_page
     _add_pension_account(page, salary="95000", contrib_rate="8", vesting="3", benefit="1500", service="7")
-    page.evaluate("() => window.app.saveToStorage()")
     page.reload(wait_until="networkidle")
 
     acct = page.evaluate("() => window.app.accounts.find(a => a.retirementSubtype === 'Pension')")
@@ -651,7 +650,6 @@ def test_pension_card_has_no_limit_section(app_page):
             pensionYearsOfService: 10, minimumPayment: 0,
             catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false
         });
-        window.app.saveToStorage();
     }""")
     page.click('button[data-page="retirement"]')
     page.wait_for_selector('#retirementSection.active', timeout=5000)
@@ -824,7 +822,7 @@ def _add_account_with_long_horizon(page, rate='7', target_date='2060-01-01', bal
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', {balance}, {contribution})")
     page.evaluate(f"""() => {{
         window.app.retirementTargetDate = '{target_date}';
-        window.app.saveToStorage();
+        window.app.saveToStorage(['retirementTargetDate']);
         window.app.renderRetirementPage();
     }}""")
     page.click('button[data-page="retirement"]')
@@ -1018,7 +1016,7 @@ def test_pension_only_setup_has_no_projection_chart_and_equal_scenario_values(ap
     page.evaluate(f"() => window.app.addRetirementSnapshot({account_id}, '2026-01-01', 0, 500, 100000)")
     page.evaluate("""() => {
         window.app.retirementTargetDate = '2050-01-01';
-        window.app.saveToStorage();
+        window.app.saveToStorage(['retirementTargetDate']);
         window.app.renderRetirementPage();
     }""")
     page.click('button[data-page="retirement"]')

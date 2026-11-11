@@ -221,7 +221,6 @@ export async function applyReconciliation(app, accountId, statementBalance, note
     // this account (issue #343).
     clearReconInProgress(accountId);
 
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/reconciliations', entry);
     if (saved?.id) entry.id = saved.id;
     if (adjustsBalance) pgPatch(app, `/api/accounts/${accountId}`, account);
@@ -257,7 +256,6 @@ export function reconcileAccount(app, accountId) {
 
 export function deleteReconciliationEntry(app, id) {
     app.reconciliations = (app.reconciliations || []).filter(r => r.id !== id);
-    app.saveToStorage();
     pgDelete(app, `/api/reconciliations/${id}`);
     if (typeof app.renderReconciliationPage === 'function') app.renderReconciliationPage();
 }

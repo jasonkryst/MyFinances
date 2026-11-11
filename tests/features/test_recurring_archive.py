@@ -361,7 +361,6 @@ def test_archived_flag_survives_storage_round_trip(app_page):
     _seed_template(page, template_id=9002, archived=True, name="Persist Archived")
 
     # Save + reload
-    page.evaluate("() => window.app.saveToStorage()")
     page.reload(wait_until="networkidle")
     page.wait_for_selector('button[data-page="recurring"]', timeout=5000)
     page.click('button[data-page="recurring"]')

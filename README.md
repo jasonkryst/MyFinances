@@ -9,7 +9,7 @@ _A modern, privacy-first web app to track accounts, debts, income, and spending,
 
 Self-hosted: your data lives in your own PostgreSQL server. MyFinances runs as a small Docker stack (nginx + Node.js API + PostgreSQL) that you deploy yourself (see [DEPLOYMENT.md](DEPLOYMENT.md)); the calculations run in your browser, and your data syncs across every device you sign in from. Since 7.0.0 the server is required: browser-only storage was removed.
 
-**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: August 31, 2026 (before 7.0.0 made the server mandatory) | **Last Scan**: Static security scan passed (0 HIGH, 0 MEDIUM)
+**Security Status**: ✅ Production-Ready | **Risk Level**: LOW | **Audit Date**: November 4, 2026 (v7.0.0, [report](docs/audit/security/SECURITY_AUDIT_2026-11-04.md)) | **Last Scan**: 0 HIGH, 0 MEDIUM; CodeQL 0 open alerts
 
 ---
 
@@ -370,7 +370,11 @@ src/
   ├─ sanitizers.js         — Sanitizers for persisted/imported record shapes
   ├─ dataExport.js         — JSON/CSV export & import
   ├─ dataTransferModal.js  — Postgres-to-local data transfer modal
-  ├─ postgresSync.js       — Per-resource Postgres mutation helpers (pgPost/pgPatch/pgDelete)
+  ├─ postgresSync.js       — Per-resource Postgres mutation helpers (pgPost/pgPatch/pgDelete); diff-only, versioned PATCH
+  ├─ recordVersions.js     — Pure diff/conflict helpers for row-versioned PATCHes (#578)
+  ├─ liveRefresh.js        — Cross-tab and on-focus refresh (#575)
+  ├─ refreshPolicy.js      — Pure refresh decisions (threshold, deferral, view state)
+  ├─ ledgerKeyRemap.js     — Pure Ledger override/cleared key remapping on import (#520)
   ├─ postgresImport.js     — loadFromPostgres() fan-out to all 15 resource endpoints
   ├─ pgMigrationModal.js   — One-time local→Postgres migration modal
   ├─ breakEven.js          — Per-debt break-even calculation engine (plan vs. min-only)
@@ -668,23 +672,12 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the Docker stack, secrets, reverse proxy,
 
 ## 📞 Support & Contributions
 
-### Security Issues
-If you discover a security vulnerability:
-1. **Do not** create a public GitHub issue
-2. Contact the repository owner privately
-3. Include steps to reproduce + impact assessment
-4. See [SECURITY.md](SECURITY.md) for details
-
-### Bug Reports
-Open an issue with steps to reproduce, browser version, and OS. Run the test suite and include output.
-
-### Contributions
-- All changes should pass the security and feature test suites
-- Add tests for new features (security, feature, and UI coverage)
-- Follow the existing modular pattern: feature logic in a module function `featureFn(app, ...)`, thin wrapper on `DebtTrackerApp`
-- All user-supplied strings rendered via `innerHTML` must use `escapeHtml()`
-- New persisted fields must have a `sanitize*` entry in `storage.js`
-- See [SECURITY.md](SECURITY.md) for security guidelines and [ROADMAP.md](ROADMAP.md) for planned work
+- **Questions and ideas:** [Discussions](https://github.com/jasonkryst/MyFinances/discussions)
+- **Bugs, feature requests and accessibility barriers:** [open an issue](https://github.com/jasonkryst/MyFinances/issues/new/choose) using one of the forms
+- **Security vulnerabilities:** report them [privately](https://github.com/jasonkryst/MyFinances/security/advisories/new), never in a public issue; see [SECURITY.md](SECURITY.md#vulnerability-reporting)
+- **Contributing code, tests or translations:** see [CONTRIBUTING.md](CONTRIBUTING.md) and [ROADMAP.md](ROADMAP.md)
+- **Accessibility commitment and known limitations:** [ACCESSIBILITY.md](ACCESSIBILITY.md)
+- Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ---
 
@@ -692,4 +685,4 @@ Open an issue with steps to reproduce, browser version, and OS. Run the test sui
 
 ---
 
-*MyFinances v4.45.0 — Updated September 4, 2026*
+*See [CHANGELOG.md](CHANGELOG.md) for the current version and release history.*

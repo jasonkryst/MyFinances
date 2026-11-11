@@ -468,6 +468,16 @@ describe('sanitizeRetirementSnapshot', () => {
         const result = sanitizeRetirementSnapshot({ accountId: 1, date: '2026-01-01', balance: -500 }, 1);
         expect(result.balance).toBe(0);
     });
+
+    test('round-trips annualSalary null as null', () => {
+        const result = sanitizeRetirementSnapshot({ accountId: 5, annualSalary: null }, 42);
+        expect(result.annualSalary).toBeNull();
+    });
+
+    test('preserves valid annualSalary numeric value', () => {
+        const result = sanitizeRetirementSnapshot({ accountId: 5, annualSalary: 75000 }, 42);
+        expect(result.annualSalary).toBe(75000);
+    });
 });
 
 describe('sanitizeAccount minimumPayment', () => {

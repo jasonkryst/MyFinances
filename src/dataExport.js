@@ -423,7 +423,7 @@ export function importAllJSON(app, file, options = {}) {
         let postgresAddedDebts = 0;
         try {
             if (shouldReplace) {
-                await replaceForPostgres(app, clean, incomingStrategy);
+                await replaceForPostgres(app, clean, incomingStrategy, warnings);
             } else {
                 // Duplicate-by-name debts are counted
                 // before the merge so the banner can report what was skipped.
@@ -434,7 +434,7 @@ export function importAllJSON(app, file, options = {}) {
                     if (existingDebtNames.has(key)) { postgresSkippedDebts++; } else { added++; }
                 }
                 postgresAddedDebts = added;
-                await mergeForPostgres(app, clean, incomingStrategy);
+                await mergeForPostgres(app, clean, incomingStrategy, warnings);
             }
         } catch {
             if (typeof onImportError === 'function') onImportError();

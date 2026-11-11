@@ -175,7 +175,7 @@ body.dark-mode .amount-originally {
 }
 
 .stimulus-badge {
-    color: #059669;
+    color: #047857;
     font-size: 0.9em;
     display: block;
     margin-top: 4px;
@@ -279,11 +279,11 @@ body.dark-mode .result-payment {
 }
 
 body.dark-mode .text-expense {
-    color: #ef4444;
+    color: #f87171; /* #ef4444 was 4.0:1 on the dark card */
 }
 
 .text-income {
-    color: #059669;
+    color: #047857; /* #059669 was 3.8:1 on white */
 }
 
 body.dark-mode .text-income {
@@ -526,6 +526,28 @@ body.dark-mode .text-income {
     flex-shrink: 0;
 }
 
+/* #565: record deleted elsewhere (informational, not an error) */
+.sync-error-banner.record-gone-banner {
+    align-items: center;
+    background: #1e293b;
+}
+
+.record-gone-reload {
+    background: transparent;
+    border: 1px solid #fff;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    padding: 4px 10px;
+    flex-shrink: 0;
+}
+
+.record-gone-reload:hover,
+.record-gone-reload:focus-visible {
+    background: rgba(255, 255, 255, 0.15);
+}
+
 .email-test-toast {
     position: fixed;
     bottom: 16px;
@@ -565,7 +587,7 @@ body.dark-mode .text-income {
 
 /* Migration modal inline error */
 .pg-migration-error {
-    color: #dc2626;
+    color: var(--danger-text, #dc2626); /* lighter in dark mode (#484) */
     font-size: 0.875rem;
     margin-top: 8px;
 }

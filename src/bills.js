@@ -359,7 +359,6 @@ export async function addBill(app) {
     }
     const bill = { id: Date.now(), name, amount, dueDay, category, accountId };
     app.bills.push(bill);
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/bills', bill);
     if (saved?.id) bill.id = saved.id;
     document.getElementById('billForm').reset();
@@ -374,7 +373,6 @@ export async function addBill(app) {
 // Delete a bill by id.
 export function deleteBill(app, id) {
     app.bills = app.bills.filter(b => b.id !== id);
-    app.saveToStorage();
     pgDelete(app, `/api/bills/${id}`);
     renderBudgetPage(app);
 }
@@ -398,7 +396,6 @@ export async function saveEditBill(app, id) {
     if (!name || isNaN(amount) || amount < 0) { await showAlertModal(t('expenses.errBillInvalid')); return; }
     app.bills[idx] = { ...app.bills[idx], name, amount, dueDay, category, accountId };
     app.editingBillId = null;
-    app.saveToStorage();
     pgPatch(app, `/api/bills/${app.bills[idx].id}`, app.bills[idx]);
     renderBudgetPage(app);
 }
@@ -423,7 +420,6 @@ export async function addExpense(app) {
     }
     const expense = { id: Date.now(), name, budgetAmount, date: dateStr, category, accountId };
     app.expenses.push(expense);
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/expenses', expense);
     if (saved?.id) expense.id = saved.id;
     document.getElementById('expenseForm').reset();
@@ -438,7 +434,6 @@ export async function addExpense(app) {
 // Delete an expense by id.
 export function deleteExpense(app, id) {
     app.expenses = app.expenses.filter(e => e.id !== id);
-    app.saveToStorage();
     pgDelete(app, `/api/expenses/${id}`);
     renderBudgetPage(app);
 }
@@ -463,7 +458,6 @@ export async function saveEditExpense(app, id) {
     if (!name || !rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) < 0 || !dateStr) { await showAlertModal(t('expenses.errExpenseInvalid')); return; }
     app.expenses[idx] = { ...app.expenses[idx], name, budgetAmount, date: dateStr, category, accountId };
     app.editingExpenseId = null;
-    app.saveToStorage();
     pgPatch(app, `/api/expenses/${app.expenses[idx].id}`, app.expenses[idx]);
     renderBudgetPage(app);
 }

@@ -73,7 +73,6 @@ def test_clear_all_data_resets_history(app_page):
     page = app_page
     page.evaluate("""() => {
         window.app.balanceHistory = [{ id: 1, debtId: 1, accountId: null, date: '2026-09-01', balance: 1, minimumPayment: 1 }];
-        window.app.saveToStorage();
     }""")
     page.evaluate("() => import('/src/storage.js').then(m => m.clearAllData(window.app))")
     assert _history(page) == []

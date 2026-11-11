@@ -128,7 +128,7 @@ export function displayPaymentSchedule(app) {
             stimInput.addEventListener('change', (e) => {
                 const v = parseFloat(e.target.value);
                 app.perMonthStimulus[mi] = isNaN(v) ? 0 : v;
-                app.saveToStorage();
+                app.saveToStorage(['perMonthStimulus']);
                 const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
                 const strategy = document.getElementById('paymentStrategy').value;
                 if (monthlyPayment && !isNaN(monthlyPayment) && monthlyPayment > 0) {

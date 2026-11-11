@@ -48,7 +48,7 @@ def _seed(page, accounts, snapshots, bills=1000, settings=None, years=30, target
         app.expenses = []; app.incomes = []; app.debts = []; app.recurringTemplates = [];
         app.settings = {json.dumps(settings or [])};
         app.retirementTargetDate = {'`${y + ' + str(years) + '}-01-01`' if target_date else 'null'};
-        app.saveToStorage();
+        app.saveToStorage(['retirementTargetDate']);
         app.switchPage('retirement');
         await app.renderRetirementPage();
     }}""")

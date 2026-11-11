@@ -218,7 +218,7 @@ async function saveHomePurchasePlan(app) {
         housingCostEstimate: sanitizeFiniteNumber(document.getElementById('hpHousingCostEstimate').value, 0, { min: 0 }),
         notes: normalizeText(document.getElementById('hpNotes').value, 500)
     };
-    app.saveToStorage();
+    app.saveToStorage(['homePurchasePlan']);
     app.renderSavingsPage();
     app.attachSavingsEventListeners();
 }
@@ -226,7 +226,7 @@ async function saveHomePurchasePlan(app) {
 async function clearHomePurchasePlan(app) {
     if (!await showDeleteConfirmModal(t('homePurchase.confirmClear'))) return;
     app.homePurchasePlan = null;
-    app.saveToStorage();
+    app.saveToStorage(['homePurchasePlan']);
     app.renderSavingsPage();
     app.attachSavingsEventListeners();
 }

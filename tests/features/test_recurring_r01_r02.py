@@ -17,7 +17,6 @@ def _seed_recurring(page, templates, *, account_id=8801):
         app.accounts = [{{ id: {account_id}, name: 'Test Account', type: 'Checking', startingBalance: 1000 }}];
         app.recurringTemplates = {json.dumps(templates)};
         app.incomes = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.saveToStorage();
         app.switchPage('recurring');
     }}""")
     page.wait_for_selector('#recurringSection.active', timeout=5000)

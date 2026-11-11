@@ -292,7 +292,8 @@ export function renderRecurringPage(app) {
     // #434: legacy paidMonths/paidAmounts and ledger-side Cleared changes made
     // outside the Ledger UI (import, injected state) are folded in before any
     // paid/overdue state is read below.
-    if (reconcileRecurringPaidState(app)) app.saveToStorage();
+    // It persists the templates it changes itself.
+    reconcileRecurringPaidState(app);
 
     refreshCategoryDatalist(app);
     renderUpcomingThisMonthPanel(app);
@@ -680,7 +681,6 @@ export async function addRecurringTemplate(app) {
     };
     app.recurringTemplates.push(tmpl);
 
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/recurring-templates', tmpl);
     if (saved?.id) tmpl.id = saved.id;
     app.renderRecurringPage();
@@ -690,7 +690,6 @@ export async function addRecurringTemplate(app) {
 export function deleteRecurringTemplate(app, id) {
     if (!app.recurringTemplates) return;
     app.recurringTemplates = app.recurringTemplates.filter(t => t.id !== id);
-    app.saveToStorage();
     pgDelete(app, `/api/recurring-templates/${id}`);
     app.renderRecurringPage();
 }
@@ -702,7 +701,6 @@ export function pauseRecurringTemplate(app, id, paused, pauseUntil = null) {
     if (!t) return;
     t.paused = paused;
     t.pauseUntil = paused ? (pauseUntil || null) : null;
-    app.saveToStorage();
     pgPatch(app, `/api/recurring-templates/${id}`, t);
     app.renderRecurringPage();
 }
@@ -778,7 +776,6 @@ export function skipRecurringOccurrence(app, id, monthKey, unskip = false) {
     } else if (!t.skippedMonths.includes(monthKey)) {
         t.skippedMonths.push(monthKey);
     }
-    app.saveToStorage();
     pgPatch(app, `/api/recurring-templates/${id}`, t);
     app.renderRecurringPage();
 }
@@ -824,7 +821,6 @@ export async function saveEditRecurring(app, id) {
     };
 
     app.editingRecurringId = null;
-    app.saveToStorage();
     pgPatch(app, `/api/recurring-templates/${id}`, app.recurringTemplates[idx]);
     app.renderRecurringPage();
 }
@@ -839,7 +835,6 @@ export function archiveRecurringTemplate(app, id) {
     const t = app.recurringTemplates?.find(x => x.id === id);
     if (!t) return;
     t.archived = true;
-    app.saveToStorage();
     pgPatch(app, `/api/recurring-templates/${id}`, { archived: true });
     app.renderRecurringPage();
 }
@@ -848,7 +843,6 @@ export function unarchiveRecurringTemplate(app, id) {
     const t = app.recurringTemplates?.find(x => x.id === id);
     if (!t) return;
     t.archived = false;
-    app.saveToStorage();
     pgPatch(app, `/api/recurring-templates/${id}`, { archived: false });
     app.renderRecurringPage();
 }

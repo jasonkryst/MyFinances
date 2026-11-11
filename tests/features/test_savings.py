@@ -7,7 +7,7 @@ Consolidated from duplicate test files.
 
 import pytest
 
-from tests.conftest import wait_for_api
+from tests.conftest import wait_for_api, submit_account_form
 
 BASE_URL = "http://localhost:32900/"
 
@@ -146,7 +146,7 @@ def _add_account_for_ef(page, name='EF Sync Account'):
     page.fill('#accountName', name)
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '2500')
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     page.wait_for_timeout(300)
 
 

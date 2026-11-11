@@ -58,7 +58,6 @@ export function setSetting(app, key, value) {
     } else {
         app.settings.push({ key, value });
     }
-    app.saveToStorage();
     // Encoded: bct:<category> keys carry free-text category names, and a
     // settings import (#326) can supply them, so a raw '/' or '?' must not
     // be able to retarget the request. Matches postgresImport.js.

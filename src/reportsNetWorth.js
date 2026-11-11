@@ -2,7 +2,7 @@
 
 import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
-import { pgPut } from './postgresSync.js';
+import { pgPut, pgPost } from './postgresSync.js';
 import { t, getIntlLocale } from './i18n.js';
 
 function toMonthKey(value) {
@@ -143,7 +143,6 @@ export function captureNetWorthSnapshot(app, options = {}) {
         app.monthlySnapshots.push(snapshot);
     }
     app.monthlySnapshots.sort((a, b) => a.date.localeCompare(b.date));
-    app.saveToStorage();
     pgPut(app, `/api/net-worth-snapshots/${snapshot.date}`, snapshot);
 
     if (!options.skipMilestone && baseline !== null) {
@@ -155,7 +154,9 @@ export function captureNetWorthSnapshot(app, options = {}) {
             if (alreadyAwarded || gainPrev >= threshold) continue;
             app.netWorthMilestonesAwarded.push(threshold);
             app.showNetWorthMilestone(t('reports.nwMilestoneReached', { amount: formatCurrency(threshold) }));
-            app.saveToStorage();
+            // Milestones live in their own table, not the plan-settings row;
+            // before #564 this called saveToStorage(), which never sent them.
+            pgPost(app, '/api/plan-settings/milestones', { milestone: threshold });
         }
     }
 

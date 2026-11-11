@@ -7,9 +7,21 @@ def _go_to_reports(page):
     page.wait_for_selector('#reportsSection.active', timeout=5000)
 
 
+_LABEL_STYLES_JS = """(name) => {
+    for (const g of document.querySelectorAll('.rpt-tab-group')) {
+        const label = g.querySelector('.rpt-tab-group-label');
+        if (label && label.textContent.trim() === name) {
+            const cs = window.getComputedStyle(label);
+            return { opacity: parseFloat(cs.opacity), bg: cs.backgroundColor, color: cs.color };
+        }
+    }
+    return null;
+}"""
+
+
 @pytest.mark.ui
 def test_active_group_label_highlights_when_tab_in_group_is_active(app_page):
-    """When a tab is active, its parent group label chip reaches full opacity (opacity=1)."""
+    """When a tab is active, its group label becomes a filled pill (#487)."""
     page = app_page
     _go_to_reports(page)
     page.wait_for_selector('#rptPanel-calendar.rpt-tab-panel--active', timeout=5000)
@@ -17,61 +29,28 @@ def test_active_group_label_highlights_when_tab_in_group_is_active(app_page):
     # Click a Trends tab — Money Flow
     page.click('[data-rptab="moneyflow"]')
     page.wait_for_selector('#rptPanel-moneyflow.rpt-tab-panel--active', timeout=5000)
-    # Wait for the 150ms CSS opacity transition to complete before reading computed style
-    page.wait_for_function(
-        """() => {
-            const groups = document.querySelectorAll('.rpt-tab-group');
-            for (const g of groups) {
-                const label = g.querySelector('.rpt-tab-group-label');
-                if (label && label.textContent.trim() === 'Trends') {
-                    return parseFloat(window.getComputedStyle(label).opacity) >= 0.95;
-                }
-            }
-            return false;
-        }""",
-        timeout=2000
-    )
+    primary = page.evaluate("() => getComputedStyle(document.querySelector('.rpt-tab-btn--active')).backgroundColor")
+    # Wait out the 150ms background transition before comparing.
+    page.wait_for_function(f"(n) => ({_LABEL_STYLES_JS})(n)?.bg === {primary!r}", arg='Trends', timeout=2000)
 
-    # The Trends group label should be full opacity (has active child)
-    trends_opacity = page.evaluate("""
-        () => {
-            const groups = document.querySelectorAll('.rpt-tab-group');
-            for (const g of groups) {
-                const label = g.querySelector('.rpt-tab-group-label');
-                if (label && label.textContent.trim() === 'Trends') {
-                    return parseFloat(window.getComputedStyle(g.querySelector('.rpt-tab-group-label')).opacity);
-                }
-            }
-            return null;
-        }
-    """)
-    assert trends_opacity is not None, "Trends group label not found"
-    assert trends_opacity == pytest.approx(1.0, abs=0.05), \
-        f"Expected Trends label opacity=1.0 when active, got {trends_opacity}"
+    trends = page.evaluate(_LABEL_STYLES_JS, 'Trends')
+    assert trends is not None, "Trends group label not found"
+    assert trends['opacity'] == pytest.approx(1.0)
+    assert trends['color'] != trends['bg']
 
 
 @pytest.mark.ui
-def test_inactive_group_label_is_dimmed(app_page):
-    """Group labels whose group does not contain the active tab are dimmed (opacity < 1)."""
+def test_inactive_group_label_is_not_dimmed_but_unfilled(app_page):
+    """Inactive group labels are no longer dimmed with opacity (it put the
+    10px text at 2.3:1, #487); they are an unfilled outline instead."""
     page = app_page
     _go_to_reports(page)
 
-    # Calendar is active by default — Activity group is full opacity, others are dimmed
-    planning_opacity = page.evaluate("""
-        () => {
-            const groups = document.querySelectorAll('.rpt-tab-group');
-            for (const g of groups) {
-                const label = g.querySelector('.rpt-tab-group-label');
-                if (label && label.textContent.trim() === 'Planning') {
-                    return parseFloat(window.getComputedStyle(label).opacity);
-                }
-            }
-            return null;
-        }
-    """)
-    assert planning_opacity is not None, "Planning group label not found"
-    assert planning_opacity < 0.9, \
-        f"Expected Planning label to be dimmed when Calendar is active, got opacity={planning_opacity}"
+    # Calendar is active by default, so Planning is inactive.
+    planning = page.evaluate(_LABEL_STYLES_JS, 'Planning')
+    assert planning is not None, "Planning group label not found"
+    assert planning['opacity'] == pytest.approx(1.0), planning
+    assert planning['bg'] in ('rgba(0, 0, 0, 0)', 'transparent'), planning
 
 
 @pytest.mark.ui

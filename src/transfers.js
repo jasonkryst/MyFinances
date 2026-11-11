@@ -47,7 +47,6 @@ export async function addTransfer(app, fromAccountId, toAccountId, amount, date,
     };
     app.transfers.push(entry);
 
-    app.saveToStorage();
     const saved = await pgPost(app, '/api/transfers', entry);
     if (saved?.id) entry.id = saved.id;
     refreshAfterTransferChange(app);
@@ -71,7 +70,6 @@ export async function editTransfer(app, id, { fromAccountId, toAccountId, amount
     entry.date = sanitizeDateISO(date) || todayISO();
     entry.memo = normalizeText(memo, 200);
 
-    app.saveToStorage();
     await pgPatch(app, `/api/transfers/${id}`, entry);
     refreshAfterTransferChange(app);
 
@@ -83,7 +81,6 @@ export async function deleteTransfer(app, id) {
     if (!confirmed) return { success: false };
 
     app.transfers = (app.transfers || []).filter(t => t.id !== id);
-    app.saveToStorage();
     pgDelete(app, `/api/transfers/${id}`);
     refreshAfterTransferChange(app);
 

@@ -78,7 +78,7 @@ a.retirementSnapshots = [
 ];
 a.retirementTargetDate='2054-06-01';
 a.homePurchasePlan=null;
-a.saveToStorage(); a.updateUI();
+a.saveToStorage(['retirementTargetDate', 'homePurchasePlan']); a.updateUI();
 return a.debts.length;
 }
 """

@@ -509,7 +509,6 @@ export function attachSavingsEventListeners(app) {
     toggleArchivedBtn.addEventListener('click', () => {
       const current = getSetting(app, SHOW_ARCHIVED_SINKING_FUNDS, false);
       setSetting(app, SHOW_ARCHIVED_SINKING_FUNDS, !current);
-      app.saveToStorage();
       renderSavingsPage(app);
       attachSavingsEventListeners(app);
     });
@@ -537,12 +536,10 @@ async function addEmergencyFund(app) {
   const existingFund = app.emergencyFunds.find(f => f.accountId === accountId);
   if (existingFund) {
     Object.assign(existingFund, { targetAmount, currentAmount, monthlyContribution, autoContribute, autoSyncBalance, notes });
-    app.saveToStorage();
     pgPatch(app, `/api/emergency-funds/${existingFund.id}`, existingFund);
   } else {
     const fund = { id: Date.now(), accountId, targetAmount, currentAmount, monthlyContribution, autoContribute, autoSyncBalance, notes };
     app.emergencyFunds.push(fund);
-    app.saveToStorage();
       const saved = await pgPost(app, '/api/emergency-funds', fund);
       if (saved?.id) fund.id = saved.id;
   }
@@ -559,7 +556,6 @@ async function deleteEmergencyFund(app, fundId) {
   const fund = app.emergencyFunds.find(f => String(f.id) === String(fundId));
   const numericId = fund?.id ?? fundId;
   app.emergencyFunds = app.emergencyFunds.filter(f => String(f.id) !== String(fundId));
-  app.saveToStorage();
   pgDelete(app, `/api/emergency-funds/${numericId}`);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
@@ -580,7 +576,6 @@ async function openContributeEmergency(app, fundId) {
   const fund = app.emergencyFunds.find(f => String(f.id) === String(fundId));
   if (fund) {
     fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
-    app.saveToStorage();
     pgPatch(app, `/api/emergency-funds/${fund.id}`, fund);
     renderSavingsPage(app);
     attachSavingsEventListeners(app);
@@ -672,7 +667,6 @@ async function addSinkingFund(app) {
   };
 
   app.sinkingFunds.push(fund);
-  app.saveToStorage();
     const saved = await pgPost(app, '/api/sinking-funds', fund);
     if (saved?.id) fund.id = saved.id;
   renderSavingsPage(app);
@@ -737,7 +731,6 @@ function archiveSinkingFund(app, fundId) {
   if (!fund) return;
   fund.archived = true;
   fund.completedDate = new Date().toISOString().slice(0, 10);
-  app.saveToStorage();
   pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
@@ -751,7 +744,6 @@ function unarchiveSinkingFund(app, fundId) {
   if (!fund) return;
   fund.archived = false;
   fund.completedDate = null;
-  app.saveToStorage();
   pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
@@ -763,7 +755,6 @@ function unarchiveSinkingFund(app, fundId) {
 async function deleteSinkingFund(app, fundId) {
   if (!await showDeleteConfirmModal(t('savings.confirmDeleteSinking'))) return;
   app.sinkingFunds = app.sinkingFunds.filter(f => f.id !== fundId);
-  app.saveToStorage();
   pgDelete(app, `/api/sinking-funds/${fundId}`);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
@@ -784,7 +775,6 @@ async function openContributeSinking(app, fundId) {
   const fund = app.sinkingFunds.find(f => f.id === fundId);
   if (fund) {
     fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
-    app.saveToStorage();
     pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
     renderSavingsPage(app);
     attachSavingsEventListeners(app);
