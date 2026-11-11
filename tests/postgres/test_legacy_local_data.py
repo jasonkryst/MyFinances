@@ -64,6 +64,41 @@ async def test_empty_db_shows_migration_modal(pg_page, base_url):
     assert not await pg_page.locator("#setupWizardModal").is_visible()
 
 
+LEGACY_INCOME = {"id": 3, "name": "Legacy Pay", "amount": 1000, "firstPayDate": "2026-01-01",
+                 "frequency": "monthly", "accountId": 2}
+
+
+async def test_migration_counts_use_a_localized_list(pg_page, base_url):
+    """#513: the counts read as a sentence ("X and Y"), not a bare comma join."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    counts = await pg_page.locator("#pgMigrationCounts").text_content()
+    assert counts.strip() == "Found: 1 debt and 1 account.", counts
+
+
+async def test_migration_counts_list_of_three(pg_page, base_url):
+    legacy = {**LEGACY, "incomes": [LEGACY_INCOME]}
+    await _boot_with_legacy(pg_page, base_url, json.dumps(legacy))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    counts = await pg_page.locator("#pgMigrationCounts").text_content()
+    assert counts.strip() == "Found: 1 debt, 1 account, and 1 income record.", counts
+
+
+async def test_migration_counts_list_follows_the_locale(pg_page, base_url):
+    """The conjunction is the active locale's, never an English "and" in Spanish."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.evaluate("localStorage.setItem('debtTrackerLocale', 'es')")
+    await pg_page.reload()
+    await pg_page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    try:
+        counts = await pg_page.locator("#pgMigrationCounts").text_content()
+        assert counts.strip() == "Encontrado: 1 deuda y 1 cuenta.", counts
+        assert " and " not in counts
+    finally:
+        await pg_page.evaluate("localStorage.removeItem('debtTrackerLocale')")
+
+
 async def test_legacy_import_moves_data_and_removes_key(pg_page, base_url):
     await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
     await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
@@ -107,6 +142,45 @@ async def test_legacy_import_failure_keeps_key(pg_page, base_url):
     await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
     assert await pg_page.locator("#pgMigrationModal").is_visible()
     assert await _key(pg_page) is not None
+
+
+async def test_legacy_import_retry_after_failure_succeeds(pg_page, base_url):
+    """#467: a failed transfer leaves the modal usable, and clicking Transfer
+    again imports everything and removes the legacy key."""
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+
+    attempts = {"n": 0}
+
+    async def fail_first_post(route):
+        if route.request.method == "POST":
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                await route.fulfill(status=500, content_type="application/json", body='{"error":"boom"}')
+                return
+        await route.continue_()
+
+    await pg_page.route("**/api/accounts", fail_first_post)
+    await pg_page.click("#pgMigrationTransferBtn")
+    await pg_page.locator("#pgMigrationError").wait_for(state="visible", timeout=15000)
+    # Still usable: both actions are enabled again and nothing was removed.
+    assert await pg_page.locator("#pgMigrationTransferBtn").is_enabled()
+    assert await pg_page.locator("#pgMigrationSkipBtn").is_enabled()
+    assert await _key(pg_page) is not None
+
+    await pg_page.click("#pgMigrationTransferBtn")
+    await pg_page.locator("#pgMigrationModal").wait_for(state="hidden", timeout=15000)
+    assert attempts["n"] >= 2, "the retry never reached the server"
+    assert not await pg_page.locator("#pgMigrationError").is_visible()
+
+    # The server holds the data, not just the in-memory app state.
+    await pg_page.reload()
+    await pg_page.wait_for_selector('html[data-app-ready="true"]', state="attached", timeout=30000)
+    assert any(a["name"] == "Legacy Checking" for a in await _accounts(pg_page, base_url))
+    debts = await (await pg_page.request.get(f"{base_url}/api/debts")).json()
+    assert any(d["name"] == "Legacy Debt" for d in debts)
+    assert await _key(pg_page) is None
+    assert not await pg_page.locator("#pgMigrationModal").is_visible()
 
 
 async def test_legacy_import_failure_returns_focus_to_transfer(pg_page, base_url):
