@@ -9,6 +9,8 @@ import json
 import tempfile
 import os
 
+from tests.conftest import seed_state_async, submit_account_form, submit_account_form_async, submit_debt_form_async, open_debt_form_async
+
 BASE_URL = "http://localhost:32900/"
 
 
@@ -25,8 +27,9 @@ async def test_xss_in_account_name(async_app_page):
     await page.fill('#accountName', '<script>alert("xss")</script>')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
-    
+    await submit_account_form_async(page)
+    await page.wait_for_selector('.acct-card-name', timeout=10000)
+
     # Check if script was rendered as text (escaped)
     account_text = await page.evaluate("""
         () => document.querySelector('.acct-card-name')?.textContent
@@ -69,23 +72,30 @@ async def test_xss_in_debt_name(async_app_page):
     # Navigate to debts
     await page.click('button[data-page="liabilities"]')
     await page.click('[data-liabilities-subtab="debts"]')
-    await page.click('#debtFormToggle')
+    await open_debt_form_async(page)
     
     # Attempt XSS with event handler
     await page.fill('#debtName', '<svg onload=alert("xss")>')
     await page.select_option('#debtType', 'creditCard')
     await page.fill('#accountBalance', '2000')
     await page.fill('#interestRate', '18')
-    await page.click('#debtFormSubmit')
-    
-    # Verify svg tag was escaped
+    # Credit cards also require a minimum payment and due date. Without them
+    # validation rejected the submit, no debt was created, and the assertions
+    # below passed without testing anything (found by the #592 submit guard).
+    await page.fill('#minimumPayment', '50')
+    await page.fill('#dueDate', '15')
+    await submit_debt_form_async(page)
+    await page.wait_for_selector('#debtsList .debt-name', timeout=10000)
+
+    # The debt must exist, its name must render as inert text, and no element
+    # carrying the onload handler may have been injected into the list.
     debt_text = await page.evaluate("""
-        () => {
-            const cards = document.querySelectorAll('.debt-card-name');
-            return cards.length > 0 ? cards[0].textContent : '';
-        }
+        () => document.querySelector('#debtsList .debt-name')?.textContent || ''
     """)
+    assert 'svg onload' in debt_text, f"Debt was not created with the payload name: {debt_text!r}"
     assert '<svg' not in debt_text, "SVG tag was not escaped!"
+    injected = await page.evaluate("() => document.querySelectorAll('#debtsList [onload]').length")
+    assert injected == 0, "An element with an onload handler was injected into the debt list"
 
 
 @pytest.mark.security
@@ -169,12 +179,6 @@ async def test_malicious_json_import(async_app_page):
             debts_count = await page.evaluate('() => document.querySelectorAll(".debt-card").length')
             assert debts_count > 0, "Debt was not imported"
             
-            # Check localStorage was sanitized
-            stored_data = await page.evaluate('() => localStorage.getItem("myfinances-data-v3")')
-            if stored_data:
-                parsed = json.loads(stored_data)
-                # Verify scripts are not present in rendered HTML
-                assert parsed, "No data in localStorage"
     finally:
         os.unlink(temp_file)
 
@@ -286,7 +290,7 @@ async def test_xss_in_emergency_fund_notes(async_app_page):
     await page.fill('#accountName', 'EF Checking')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '1000')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -356,18 +360,13 @@ async def test_ledger_override_amount_extreme_values(async_app_page):
         console_errors.append(msg.text) if msg.type == 'error' else None
     ))
 
-    await page.evaluate("""() => {
-        const app = window.app;
-        const today = new Date();
-        app.accounts = [{ id: 7002, name: 'Override Bounds', type: 'Checking', startingBalance: 1000 }];
-        app.bills = [{
-            id: 71, name: 'Rent', dueDay: today.getDate(), amount: 50, category: 'Other', accountId: 7002
-        }];
-        app.incomes = []; app.expenses = []; app.debts = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.ledgerAmountOverrides = {};
-        app.switchPage('ledger');
-    }""")
+    from datetime import date
+    await seed_state_async(page, {
+        'accounts': [{'id': 7002, 'name': 'Override Bounds', 'type': 'Checking', 'startingBalance': 1000}],
+        'bills': [{'id': 71, 'name': 'Rent', 'dueDay': date.today().day, 'amount': 50,
+                   'category': 'Other', 'accountId': 7002}],
+    })
+    await page.evaluate("() => window.app.switchPage('ledger')")
 
     override_btn = await page.query_selector('[data-ledger-override]')
     assert override_btn, "Expected an override button for the bill transaction"
@@ -620,7 +619,7 @@ async def test_xss_in_recurring_template_name(async_app_page):
     await page.fill('#accountName', 'Recurring Name XSS')
     await page.select_option('#accountType', 'Checking')
     await page.fill('#accountStartingBalance', '500')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
 
     await page.click('button[data-page="recurring"]')
     await page.wait_for_selector('#recurringSection.active', timeout=5000)
@@ -654,7 +653,7 @@ async def test_xss_in_sinking_fund_name_and_notes(async_app_page):
     await page.fill('#accountName', 'Sinking XSS')
     await page.select_option('#accountType', 'Savings')
     await page.fill('#accountStartingBalance', '0')
-    await page.click('#accountFormSubmit')
+    await submit_account_form_async(page)
 
     await page.click('button[data-page="savings"]')
     await page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -755,7 +754,7 @@ def test_xss_in_account_notes_is_inert(app_page):
     page.fill('#accountName', 'Form XSS')
     page.fill('#accountStartingBalance', '5')
     page.fill('#accountNotes', payload)
-    page.click('#accountFormSubmit')
+    submit_account_form(page)
     page.wait_for_selector('.acct-card:has-text("Form XSS")', timeout=5000)
     stored = page.evaluate("() => window.app.accounts.find(a => a.name === 'Form XSS').notes")
     assert '<' not in stored and '>' not in stored and '"' not in stored

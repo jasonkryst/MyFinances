@@ -9,16 +9,37 @@ import {
 // only where a password is *set* (first-run setup, reset link), never to the
 // sign-in form.
 
-export async function showLoginGate(app) {
+// `options.needsSetup` (boolean) skips the setup-status request when the
+// caller already knows the answer: init()'s probeServer() just asked, and that
+// route is rate-limited (20 requests per 15 minutes).
+// One shared in-flight login request: several saves failing with 401 at once
+// must open a single gate (one set of handlers, one setup-status request).
+// showLoginGate resolves after sign-in, which clears the slot.
+let _loginPromise = null;
+// Every caller must go through here (never showLoginGate directly): a second
+// showLoginGate while a gate is open replaces form.onsubmit, so the first
+// promise would never resolve. `options` is forwarded to showLoginGate.
+export function requestLogin(app, options = {}) {
+    if (!_loginPromise) {
+        _loginPromise = showLoginGate(app, options).finally(() => { _loginPromise = null; });
+    }
+    return _loginPromise;
+}
+
+export async function showLoginGate(app, options = {}) {
     let needsSetup = false;
-    try {
-        const statusRes = await fetch('/auth/setup-status');
-        if (statusRes.ok) {
-            const data = await statusRes.json();
-            needsSetup = data.needsSetup === true;
+    if (typeof options.needsSetup === 'boolean') {
+        needsSetup = options.needsSetup;
+    } else {
+        try {
+            const statusRes = await fetch('/auth/setup-status');
+            if (statusRes.ok) {
+                const data = await statusRes.json();
+                needsSetup = data.needsSetup === true;
+            }
+        } catch (err) {
+            console.error('[loginGate] setup-status fetch error:', err);
         }
-    } catch (err) {
-        console.error('[loginGate] setup-status fetch error:', err);
     }
 
     const gate = document.getElementById('loginGate');

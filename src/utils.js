@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '6.67.0';
+export const APP_VERSION = '7.5.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -52,6 +52,7 @@ export function normalizeMultilineText(value, maxLen = 500) {
 }
 
 export function sanitizeFiniteNumber(value, fallback = 0, { min = null, max = null } = {}) {
+    if (value === null || value === undefined || value === '') return fallback;
     const n = Number(value);
     if (!Number.isFinite(n)) return fallback;
     if (min !== null && n < min) return min;

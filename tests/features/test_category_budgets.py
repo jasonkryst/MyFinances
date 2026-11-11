@@ -10,6 +10,8 @@ import json
 
 import pytest
 
+from tests.conftest import wait_for_api
+
 
 SEED_JS = """() => {
     const app = window.app;
@@ -181,9 +183,8 @@ def test_add_new_category_budget_and_reset_buttons_are_labelled(app_page):
 def test_budget_persists_across_reload(app_page):
     page = app_page
     _seed(page)
-    page.evaluate("() => { window.app.budgetCategories = { Housing: { mode: 'fixed', amount: 2000 } }; window.app.saveToStorage(); }")
-    page.wait_for_function(
-        "() => (localStorage.getItem('debtTrackerData') || '').includes('budgetCategories')", timeout=5000)
+    page.evaluate("() => { window.app.budgetCategories = { Housing: { mode: 'fixed', amount: 2000 } }; window.app.saveToStorage(['budgetCategories']); }")
+    wait_for_api(page, '/api/plan-settings', lambda d: d.get('budgetCategories', {}).get('Housing') == {'mode': 'fixed', 'amount': 2000})
     page.reload(wait_until='networkidle')
     assert page.evaluate("() => window.app.budgetCategories") == {'Housing': {'mode': 'fixed', 'amount': 2000}}
 

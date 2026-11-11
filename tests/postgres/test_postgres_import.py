@@ -5,6 +5,8 @@ Run: pytest tests/postgres/test_postgres_import.py -v
 import json
 import pytest
 
+from tests.postgres.conftest import sign_in
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -22,13 +24,8 @@ async def _wait_for_app_ready(page):
 
 
 async def _login(page, base_url, credentials):
-    await page.goto(base_url)
-    await page.locator('#loginGate').wait_for(state='visible', timeout=8000)
-    await page.fill('#loginGateEmail', credentials['email'])
-    await page.fill('#loginGatePassword', credentials['password'])
-    async with page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
-        await page.click('.login-gate-submit')
-    await page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
+    # Session comes from the shared harness (no per-test UI login); server data is wiped first.
+    await sign_in(page, base_url, wipe=True)
     await _wait_for_app_ready(page)
 
 
@@ -73,7 +70,7 @@ async def _run_import(page, json_str, replace=True):
         return new Promise(resolve => {
             mod.importAllJSON(app, file, {
                 requestImportMode: () => shouldReplace,
-                onImported:    parts  => resolve({ ok: true, parts }),
+                onImported:    (parts, warnings) => resolve({ ok: true, parts, warnings: warnings || [] }),
                 onInvalidJSON: ()     => resolve({ ok: false, reason: 'invalid_json' }),
                 onNoData:      ()     => resolve({ ok: false, reason: 'no_data' }),
                 onTooLarge:    ()     => resolve({ ok: false, reason: 'too_large' }),
@@ -483,12 +480,12 @@ HOME_PLAN = {
 
 
 async def test_postgres_home_purchase_plan_persists_across_reload(pg_page, base_url, credentials):
-    """Saving a plan via app.saveToStorage() PATCHes plan-settings and survives a reload."""
+    """Saving a plan via app.saveToStorage(['homePurchasePlan']) PATCHes plan-settings and survives a reload."""
     logs = _capture_console(pg_page)
     await _login(pg_page, base_url, credentials)
     await _wipe_all(pg_page, base_url)
 
-    await pg_page.evaluate("(plan) => { window.app.homePurchasePlan = plan; return window.app.saveToStorage(); }", HOME_PLAN)
+    await pg_page.evaluate("(plan) => { window.app.homePurchasePlan = plan; return window.app.saveToStorage(['homePurchasePlan']); }", HOME_PLAN)
     await pg_page.wait_for_timeout(1500)
 
     plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
@@ -500,7 +497,7 @@ async def test_postgres_home_purchase_plan_persists_across_reload(pg_page, base_
     assert loaded == HOME_PLAN, f'Plan not loaded after reload: {loaded}. Console: {logs}'
 
     # Clearing the plan persists null server-side
-    await pg_page.evaluate("() => { window.app.homePurchasePlan = null; return window.app.saveToStorage(); }")
+    await pg_page.evaluate("() => { window.app.homePurchasePlan = null; return window.app.saveToStorage(['homePurchasePlan']); }")
     await pg_page.wait_for_timeout(1500)
     plan = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
     assert plan.get('homePurchasePlan') is None, f'Plan not cleared. Plan: {plan}. Console: {logs}'
@@ -612,5 +609,193 @@ async def test_postgres_home_purchase_plan_invalid_payloads_sanitized(pg_page, b
     assert r.status in (401, 403)
     stored = await (await _api_get(pg_page, base_url, '/api/plan-settings')).json()
     assert stored.get('homePurchasePlan') is not None
+
+    await _wipe_all(pg_page, base_url)
+
+
+# ─── Ledger key remapping on import (issue #520) ─────────────────────────────
+#
+# Override/cleared keys are `type|sourceId|accountId|date`. Records get new
+# server ids on import, so the keys must be rewritten or they stop matching
+# any ledger row.
+
+async def _api_put(page, base_url, path, body):
+    csrf = await _csrf(page)
+    return await page.request.put(f'{base_url}{path}', data=body, headers={'X-CSRF-Token': csrf})
+
+
+async def _ledger_rows(page):
+    """The app's own ledger rows (what the Ledger page renders)."""
+    return await page.evaluate("""async () => {
+        const mod = await import('/src/ledgerTransactions.js');
+        return mod.getLedgerTransactions(window.app)
+            .filter(r => r.transactionId)
+            .map(r => ({ id: r.transactionId, type: r.type, sourceId: r.sourceId,
+                         hasOverride: r.hasOverride, amount: r.amount, cleared: r.cleared }));
+    }""")
+
+
+async def _reload(page):
+    await page.reload()
+    await _wait_for_app_ready(page)
+
+
+async def _seed_records(page, base_url):
+    """Account + recurring template + debt. Returns the account id."""
+    acct = await _api_post(page, base_url, '/api/accounts', {
+        'name': 'Remap Checking', 'type': 'Checking', 'startingBalance': 5000})
+    assert acct.status == 201, await acct.text()
+    acct_id = (await acct.json())['id']
+    tmpl = await _api_post(page, base_url, '/api/recurring-templates', {
+        'name': 'Remap Rent', 'amount': 1500, 'frequency': 'monthly', 'dayOfMonth': 15,
+        'type': 'subscription', 'category': 'Housing', 'accountId': acct_id})
+    assert tmpl.status == 201, await tmpl.text()
+    debt = await _api_post(page, base_url, '/api/debts', {
+        'name': 'Remap Visa', 'debtType': 'creditCard', 'accountBalance': 2000,
+        'interestRate': 19.99, 'minimumPayment': 75, 'dueDate': 10, 'accountId': acct_id})
+    assert debt.status == 201, await debt.text()
+    await _reload(page)
+    return acct_id
+
+
+async def _seed_keyed_ledger(page, base_url):
+    """Seed records, then one override on the template's first ledger row and
+    one cleared flag on the debt's. Returns the two keys."""
+    acct_id = await _seed_records(page, base_url)
+    rows = await _ledger_rows(page)
+    rent = next((r for r in rows if r['type'] == 'recurring'), None)
+    visa = next((r for r in rows if r['type'] == 'debt'), None)
+    assert rent and visa, f'Seeded ledger rows missing: {rows}'
+    res = await _api_put(page, base_url, f"/api/ledger-overrides/{rent['id']}", {
+        'amount': -1900, 'originalAmount': -1500, 'transactionName': 'Remap Rent',
+        'accountId': acct_id, 'date': rent['id'].split('|')[3]})
+    assert res.ok, await res.text()
+    res = await _api_put(page, base_url, f"/api/ledger-cleared/{visa['id']}",
+                         {'clearedAt': '2025-11-01T12:00:00.000Z'})
+    assert res.ok, await res.text()
+    await _reload(page)
+    return rent['id'], visa['id']
+
+
+async def _server_keys(page, base_url):
+    overrides = await (await _api_get(page, base_url, '/api/ledger-overrides')).json()
+    cleared = await (await _api_get(page, base_url, '/api/ledger-cleared')).json()
+    return ([o['overrideKey'] for o in overrides], [c['clearedKey'] for c in cleared])
+
+
+async def _app_keys(page):
+    return await page.evaluate(
+        "[Object.keys(window.app.ledgerAmountOverrides), Object.keys(window.app.ledgerClearedTransactions)]")
+
+
+def _assert_keys_apply(rows, override_keys, cleared_keys, logs):
+    row_ids = {r['id'] for r in rows}
+    assert override_keys and all(k in row_ids for k in override_keys), \
+        f'Orphaned override keys {override_keys}; ledger ids {sorted(row_ids)[:20]}. Console: {logs}'
+    assert cleared_keys and all(k in row_ids for k in cleared_keys), \
+        f'Orphaned cleared keys {cleared_keys}. Console: {logs}'
+    rent = next(r for r in rows if r['id'] in override_keys)
+    assert rent['type'] == 'recurring' and rent['hasOverride'] and rent['amount'] == -1900, rent
+    visa = next(r for r in rows if r['id'] in cleared_keys)
+    assert visa['type'] == 'debt' and visa['cleared'], visa
+
+
+def _ledger_warnings(result):
+    return {w['recordType']: w for w in result['warnings'] if w['recordType'].startswith('Ledger')}
+
+
+async def test_postgres_replace_import_remaps_ledger_keys(pg_page, base_url, credentials):
+    """#520 positive: after export, wipe and replace import, the override and
+    cleared keys carry the new ids and still apply to their ledger rows."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    await _wipe_all(pg_page, base_url)
+    old_override, old_cleared = await _seed_keyed_ledger(pg_page, base_url)
+    exported = await _capture_export(pg_page)
+
+    await _wipe_all(pg_page, base_url)
+    await _reload(pg_page)
+    result = await _run_import(pg_page, exported, replace=True)
+    assert result['ok'], f'Import failed: {result}. Console: {logs}'
+    assert not _ledger_warnings(result), result['warnings']
+
+    # In-memory state right after the import...
+    app_overrides, app_cleared = await _app_keys(pg_page)
+    _assert_keys_apply(await _ledger_rows(pg_page), app_overrides, app_cleared, logs)
+    # ...and what the server holds after a reload.
+    await _reload(pg_page)
+    override_keys, cleared_keys = await _server_keys(pg_page, base_url)
+    assert old_override not in override_keys and old_cleared not in cleared_keys, \
+        f'Old-id keys survived the import: {override_keys} {cleared_keys}'
+    assert len(override_keys) == 1 and len(cleared_keys) == 1, (override_keys, cleared_keys)
+    _assert_keys_apply(await _ledger_rows(pg_page), override_keys, cleared_keys, logs)
+
+    await _wipe_all(pg_page, base_url)
+
+
+async def test_postgres_merge_import_attaches_ledger_keys_to_existing_records(pg_page, base_url, credentials):
+    """#520 positive: merge import into a server that already holds same-named
+    records under different ids attaches the imported keys to those records
+    and doesn't duplicate them."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    await _wipe_all(pg_page, base_url)
+    await _seed_keyed_ledger(pg_page, base_url)
+    exported = await _capture_export(pg_page)
+
+    # Recreate the same-named records under new ids, with no keys.
+    await _wipe_all(pg_page, base_url)
+    acct_id = await _seed_records(pg_page, base_url)
+    assert await _server_keys(pg_page, base_url) == ([], [])
+
+    result = await _run_import(pg_page, exported, replace=False)
+    assert result['ok'], f'Merge failed: {result}. Console: {logs}'
+    assert not _ledger_warnings(result), result['warnings']
+    await _reload(pg_page)
+
+    templates = await (await _api_get(pg_page, base_url, '/api/recurring-templates')).json()
+    assert [t['name'] for t in templates] == ['Remap Rent'], f'Template duplicated: {templates}'
+    override_keys, cleared_keys = await _server_keys(pg_page, base_url)
+    assert len(override_keys) == 1 and len(cleared_keys) == 1, (override_keys, cleared_keys)
+    assert override_keys[0].startswith(f"recurring|{templates[0]['id']}|{acct_id}|"), override_keys
+    _assert_keys_apply(await _ledger_rows(pg_page), override_keys, cleared_keys, logs)
+
+    await _wipe_all(pg_page, base_url)
+
+
+async def test_postgres_import_drops_unresolvable_ledger_keys_with_warning(pg_page, base_url, credentials):
+    """#520 negative: keys whose record or account isn't in the file, or that
+    are malformed, are dropped with one summary warning per map, never stored."""
+    logs = _capture_console(pg_page)
+    await _login(pg_page, base_url, credentials)
+    await _wipe_all(pg_page, base_url)
+    await _seed_keyed_ledger(pg_page, base_url)
+    payload = json.loads(await _capture_export(pg_page))
+
+    acct_id = payload['accounts'][0]['id']
+    tmpl_id = payload['recurringTemplates'][0]['id']
+    orphan = {'amount': -5, 'originalAmount': -1, 'accountId': acct_id, 'date': '2025-11-15'}
+    payload['ledgerAmountOverrides'][f'recurring|987654321|{acct_id}|2025-11-15'] = orphan   # unknown record
+    payload['ledgerAmountOverrides'][f'recurring|{tmpl_id}|987654321|2025-11-15'] = orphan   # unknown account
+    payload['ledgerAmountOverrides']['not-a-ledger-key'] = orphan                             # malformed
+    payload['ledgerClearedTransactions'][f'debt|987654321|{acct_id}|2025-11-10'] = \
+        {'clearedAt': '2025-11-01T12:00:00.000Z'}
+
+    await _wipe_all(pg_page, base_url)
+    await _reload(pg_page)
+    result = await _run_import(pg_page, json.dumps(payload), replace=True)
+    assert result['ok'], f'Import failed: {result}. Console: {logs}'
+    warnings = _ledger_warnings(result)
+    assert warnings.get('Ledger Override', {}).get('recordName') == '3 entries', result['warnings']
+    assert warnings['Ledger Override']['kind'] == 'rejected'
+    assert warnings.get('Ledger Cleared Flag', {}).get('recordName') == '1 entry', result['warnings']
+
+    await _reload(pg_page)
+    override_keys, cleared_keys = await _server_keys(pg_page, base_url)
+    assert len(override_keys) == 1 and len(cleared_keys) == 1, (override_keys, cleared_keys)
+    assert not any('987654321' in k or k == 'not-a-ledger-key' for k in override_keys + cleared_keys), \
+        (override_keys, cleared_keys)
+    # The valid keys still made it across.
+    _assert_keys_apply(await _ledger_rows(pg_page), override_keys, cleared_keys, logs)
 
     await _wipe_all(pg_page, base_url)

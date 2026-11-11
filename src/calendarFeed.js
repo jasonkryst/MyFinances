@@ -184,20 +184,28 @@ export function downloadIcs(app) {
 }
 
 async function fetchToken() {
-    const res = await fetch('/api/calendar/token');
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.token || null;
+    try {
+        const res = await fetch('/api/calendar/token');
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.token || null;
+    } catch {
+        return null;  // offline or aborted: the dialog still opens and the ICS download still works
+    }
 }
 
 async function postToken() {
-    const res = await fetch('/api/calendar/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() }
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.token || null;
+    try {
+        const res = await fetch('/api/calendar/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() }
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.token || null;
+    } catch {
+        return null;  // offline or aborted: leave the Generate button ready to try again
+    }
 }
 
 function subscriptionUrl(token) {
@@ -238,17 +246,13 @@ export function initCalendarFeedModal(app) {
 
         const section = document.getElementById('calendarSubscriptionSection');
         if (section) {
-            if (app._storageBackendKind === 'postgres') {
-                section.classList.remove('hidden');
-                const urlRow = document.getElementById('calendarTokenUrlRow');
-                const genBtn = document.getElementById('calendarGenerateTokenBtn');
-                if (urlRow) urlRow.classList.add('hidden');
-                if (genBtn) { genBtn.classList.remove('hidden'); genBtn.disabled = false; genBtn.textContent = 'Generate subscription link'; }
-                const token = await fetchToken();
-                if (token) setTokenUrl(token);
-            } else {
-                section.classList.add('hidden');
-            }
+            section.classList.remove('hidden');
+            const urlRow = document.getElementById('calendarTokenUrlRow');
+            const genBtn = document.getElementById('calendarGenerateTokenBtn');
+            if (urlRow) urlRow.classList.add('hidden');
+            if (genBtn) { genBtn.classList.remove('hidden'); genBtn.disabled = false; genBtn.textContent = 'Generate subscription link'; }
+            const token = await fetchToken();
+            if (token) setTokenUrl(token);
         }
 
         const downloadBtn = document.getElementById('calendarDownloadBtn');

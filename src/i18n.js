@@ -1,7 +1,7 @@
 // Locale storage, string lookup with fallback, and static-markup translation.
 // The locale *preference* is stored directly in localStorage under its own
-// key (like debtTrackerTheme/debtTrackerStorageBackend) — a device display
-// preference, not financial data, independent of app.storageAdapter.
+// key (like debtTrackerTheme) — a device display
+// preference, not financial data, and never sent to the server.
 import en from './locales/en.js';
 import es from './locales/es.js';
 import pl from './locales/pl.js';
@@ -77,6 +77,16 @@ function readStoredLocale() {
 
 let currentLocale = readStoredLocale();
 
+// WCAG 3.1.1 (issue #497): <html lang> must name the language the UI is shown
+// in, or screen readers read Spanish/Polish text with English pronunciation.
+// Set at module load (before any gate or page renders) and on every setLocale.
+export function applyDocumentLanguage() {
+    if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.lang = currentLocale;
+    }
+}
+applyDocumentLanguage();
+
 export function setLocalePreference(code) {
     const normalized = LOCALE_CODES.includes(code) ? code : DEFAULT_LOCALE;
     try {
@@ -134,6 +144,7 @@ export function setLocale(app, code) {
     const previous = currentLocale;
     currentLocale = LOCALE_CODES.includes(code) ? code : DEFAULT_LOCALE;
     setLocalePreference(currentLocale);
+    applyDocumentLanguage();
     applyStaticTranslations();
     if (previous !== currentLocale && app && typeof app.refreshCurrentPageData === 'function') {
         app.refreshCurrentPageData();

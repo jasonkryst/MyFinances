@@ -16,7 +16,7 @@ Covers:
 """
 
 import pytest
-from tests.conftest import assert_no_errors, BASE_URL
+from tests.conftest import assert_no_errors, BASE_URL, seed_state
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -43,7 +43,6 @@ def _seed_calendar_data(page):
             accountId: 1,
             date: new Date(today.getFullYear(), today.getMonth(), 10)
         }];
-        app.saveToStorage();
     }""")
 
 
@@ -197,7 +196,6 @@ def test_paid_months_excluded_from_feed(app_page):
             accountId: null, targetAccountId: null, startDate: null, endDate: null,
             paused: false, skippedMonths: [], paidMonths: ['{paid_month}']
         }}];
-        app.saveToStorage();
     }}""")
     content, _ = _download_ics(page)
 
@@ -218,7 +216,6 @@ def test_empty_app_state_produces_valid_ics(app_page):
         app.debts = [];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, download = _download_ics(page)
 
@@ -251,7 +248,6 @@ def test_bill_without_due_day_is_skipped(app_page):
         app.debts = [];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     assert 'SUMMARY:Bill - NoDayBill' not in content
@@ -270,7 +266,6 @@ def test_debt_without_due_date_is_skipped(app_page):
                        debtType: 'creditCard', accountId: null, originalBalance: 1000 }];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     assert 'SUMMARY:Debt - NoDueDebt' not in content
@@ -315,7 +310,7 @@ def test_archived_debt_excluded_when_setting_never_set(app_page):
     """No settings entry at all behaves like 'off' -- archived debts are omitted."""
     page = app_page
     _seed_archived_debts(page, False)
-    page.evaluate("() => { window.app.settings = []; window.app.saveToStorage(); }")
+    page.evaluate("() => { window.app.settings = []; }")
     content, _ = _download_ics(page)
     assert 'ArchivedVisa' not in content
     assert 'SUMMARY:Debt - ActiveLoan' in content
@@ -345,7 +340,6 @@ def _seed_incomes(page, incomes):
         app.recurringTemplates = [];
         app.expenses = [];
         app.incomes = incomes;
-        app.saveToStorage();
     }""", incomes)
 
 
@@ -499,7 +493,6 @@ def test_paused_recurring_template_is_skipped(app_page):
             accountId: null, targetAccountId: null, startDate: null, endDate: null,
             paused: true, skippedMonths: [], paidMonths: []
         }];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     assert 'SUMMARY:Subscription - PausedSub' not in content
@@ -517,7 +510,6 @@ def test_ics_escapes_special_characters_in_names(app_page):
         app.debts = [];
         app.recurringTemplates = [];
         app.expenses = [];
-        app.saveToStorage();
     }""")
     content, _ = _download_ics(page)
     # In ICS, commas and semicolons in values must be escaped
@@ -550,23 +542,34 @@ def test_ics_xss_payload_in_name_does_not_appear_verbatim(app_page):
     output — at minimum the angle brackets must be absent (normalizeText strips them).
     """
     page = app_page
-    page.evaluate("""() => {
-        const app = window.app;
-        // normalizeText() in sanitizers.js strips < > ` " from names
-        app.recurringTemplates = [{
-            id: 1, name: '<script>alert(1)</script>Evil', type: 'subscription',
-            amount: 1, frequency: 'monthly', dayOfMonth: 1, category: 'Other',
-            accountId: null, targetAccountId: null, startDate: null, endDate: null,
-            paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.bills = [];
-        app.debts = [];
-        app.expenses = [];
-        app.accounts = [];
-        // Save and reload so normalizeText sanitization runs on load
-        app.saveToStorage();
-        app.loadFromStorage();
-    }""")
+    # normalizeText() in sanitizers.js strips < > ` " from names on the way in
+    seed_state(page, {'recurringTemplates': [{
+        'id': 1, 'name': '<script>alert(1)</script>Evil', 'type': 'subscription',
+        'amount': 1, 'frequency': 'monthly', 'dayOfMonth': 1, 'category': 'Other',
+        'accountId': None, 'targetAccountId': None, 'startDate': None, 'endDate': None,
+        'paused': False, 'skippedMonths': [], 'paidMonths': [],
+    }]})
     content, _ = _download_ics(page)
     assert '<script>' not in content
     assert '</script>' not in content
+
+
+@pytest.mark.feature
+def test_a_token_network_error_does_not_break_the_dialog(app_page):
+    """Aborting GET /api/calendar/token must not leave an unhandled rejection or block the download."""
+    page = app_page
+    _seed_calendar_data(page)
+    page.evaluate("""() => {
+        window.__unhandled = [];
+        window.addEventListener('unhandledrejection', e => window.__unhandled.push(String(e.reason)));
+    }""")
+    page.route('**/api/calendar/token', lambda route: route.abort())
+
+    _open_calendar_modal(page)
+    page.wait_for_timeout(200)  # let the rejected fetch settle
+
+    assert page.evaluate("window.__unhandled") == [], page.evaluate("window.__unhandled")
+    assert page.is_visible('#calendarFeedModal')
+    with page.expect_download() as dl_info:
+        page.click('#calendarDownloadBtn')
+    assert dl_info.value.suggested_filename.endswith('.ics')

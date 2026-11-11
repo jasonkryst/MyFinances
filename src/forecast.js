@@ -370,7 +370,7 @@ export function renderCashFlowForecast(app) {
     if (accountSelect) {
         accountSelect.onchange = () => {
             app._forecastAccountId = accountSelect.value;
-            app.saveToStorage();
+            app.saveToStorage(['forecastSettings']);
             renderCashFlowForecast(app);
         };
     }
@@ -379,7 +379,7 @@ export function renderCashFlowForecast(app) {
     if (thresholdInput) {
         thresholdInput.onchange = () => {
             app._forecastNotableThresholdPct = sanitizeFiniteNumber(thresholdInput.value, 130, { min: 100, max: 500 });
-            app.saveToStorage();
+            app.saveToStorage(['forecastSettings']);
             renderCashFlowForecast(app);
         };
     }

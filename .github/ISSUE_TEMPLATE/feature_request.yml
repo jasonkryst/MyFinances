@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest a new feature or an improvement to an existing one.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! If you'd like to talk it through first, [Discussions](https://github.com/jasonkryst/MyFinances/discussions) is a good place.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you're trying to do and what gets in the way today.
+      placeholder: When I plan next month, I can't see ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: How you imagine it working. Sketches and examples are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Workarounds you use now, or other ways this could be solved.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the app?
+      multiple: true
+      options:
+        - Health
+        - Accounts
+        - Income
+        - Debts and budget
+        - Recurring
+        - Savings
+        - Plan (payoff strategy)
+        - Reports
+        - Ledger
+        - Reconcile
+        - Retirement
+        - Settings, import and export
+        - Server, Docker or deployment
+        - Other
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to work on this myself.

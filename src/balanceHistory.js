@@ -6,6 +6,7 @@
 
 import { todayISO } from './utils.js';
 import { pgPost, pgPatch, pgDelete } from './postgresSync.js';
+import { mapWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 import {
     buildHistoryEntry, upsertHistoryEntry, seedHistoryForDebt, seedHistoryForAccount,
     isHistoryTrackedAccount, entryBelongsTo, sortHistory
@@ -37,14 +38,11 @@ export async function recordBalanceHistory(app, owner) {
     if (result.action === 'none') return result.target;
 
     app.balanceHistory = result.entries;
-    app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        if (result.action === 'insert') {
-            const saved = await pgPost(app, '/api/balance-history', result.target);
-            if (saved?.id) result.target.id = saved.id;
-        } else {
-            pgPatch(app, `/api/balance-history/${result.target.id}`, result.target);
-        }
+    if (result.action === 'insert') {
+        const saved = await pgPost(app, '/api/balance-history', result.target);
+        if (saved?.id) result.target.id = saved.id;
+    } else {
+        pgPatch(app, `/api/balance-history/${result.target.id}`, result.target);
     }
     return result.target;
 }
@@ -55,8 +53,7 @@ export function getBalanceHistory(app, owner) {
 
 export function deleteBalanceHistoryEntry(app, id) {
     app.balanceHistory = (app.balanceHistory || []).filter(e => e.id !== id);
-    app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/balance-history/${id}`);
+    pgDelete(app, `/api/balance-history/${id}`);
 }
 
 // Local mirror of the server's ON DELETE CASCADE — no DELETE requests needed.
@@ -84,12 +81,11 @@ export async function seedMissingBalanceHistory(app) {
 
     const withIds = seeded.map(e => ({ id: nextLocalId(), ...e }));
     app.balanceHistory = [...history, ...withIds];
-    app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        await Promise.all(withIds.map(async entry => {
-            const saved = await pgPost(app, '/api/balance-history', entry);
-            if (saved?.id) entry.id = saved.id;
-        }));
-    }
+    // Bounded (#519): the first boot after a large import seeds one entry per
+    // debt and account. pgPost reports its own failures, so none rejects here.
+    await mapWithConcurrency(withIds, IMPORT_CONCURRENCY, async entry => {
+        const saved = await pgPost(app, '/api/balance-history', entry);
+        if (saved?.id) entry.id = saved.id;
+    });
     return withIds.length;
 }

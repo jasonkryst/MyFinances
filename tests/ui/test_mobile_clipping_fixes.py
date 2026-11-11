@@ -7,6 +7,7 @@ Net Worth stat cards. The broad sweep lives in test_mobile_no_card_clipping.py.
 
 import pytest
 from tests.ui.test_mobile_no_card_clipping import SEED, PHONE
+from tests.conftest import seed_state_from_app
 
 DESKTOP = {"width": 1440, "height": 900}
 
@@ -34,7 +35,7 @@ CONTRAST_JS = """() => {
 def seeded(app_page):
     page = app_page
     page.evaluate(SEED)
-    page.reload()
+    seed_state_from_app(page)
     return page
 
 

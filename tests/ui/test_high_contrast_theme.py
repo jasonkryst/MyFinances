@@ -97,16 +97,18 @@ def test_high_contrast_persists_across_reload(app_page):
 
 
 @pytest.mark.ui
-def test_corrupted_theme_value_does_not_apply_high_contrast(page):
+def test_corrupted_theme_value_does_not_apply_high_contrast(page, stack_user):
     """Negative case: a garbage debtTrackerTheme value (e.g. from an old/
     corrupted write) must not apply dark-mode or high-contrast-mode, and
     must not crash the app. Mirrors
     test_dark_mode.py::test_dark_mode_corrupted_localStorage_value_falls_back_safely
     for the new 3-way theme."""
-    from tests.conftest import BASE_URL
+    from tests.conftest import BASE_URL, ensure_session, wait_for_app_ready
 
+    ensure_session(page.context)  # a bare page would show the login gate
     page.add_init_script("window.localStorage.setItem('debtTrackerTheme', 'solarized');")
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
 
     assert_no_errors(page)
     classes = page.evaluate("() => document.body.className")
@@ -208,7 +210,7 @@ def test_high_contrast_focus_visible_outline_is_bold(app_page):
 
 @pytest.mark.ui
 def test_pg_modal_content_uses_dark_surface_in_high_contrast(app_page):
-    """pgMigrationModal and pgSwitchConfirmModal .modal-content must not be
+    """pgMigrationModal's .modal-content must not be
     white in high-contrast mode — var(--bg-secondary) is #111111 in that
     tier (issue #120)."""
     page = app_page
@@ -216,7 +218,7 @@ def test_pg_modal_content_uses_dark_surface_in_high_contrast(app_page):
     page.select_option('#themeSwitcher', 'high-contrast')
     page.wait_for_selector('body.high-contrast-mode', timeout=5000)
 
-    for modal_id in ['pgMigrationModal', 'pgSwitchConfirmModal']:
+    for modal_id in ['pgMigrationModal']:
         bg = page.evaluate(f"""
             () => getComputedStyle(
                 document.querySelector('#{modal_id} .modal-content')

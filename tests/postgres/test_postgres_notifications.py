@@ -1,5 +1,7 @@
 import pytest
-from playwright.async_api import async_playwright, expect
+from playwright.async_api import expect
+
+from tests.postgres.conftest import sign_in
 
 pytestmark = pytest.mark.asyncio
 
@@ -18,63 +20,12 @@ async def _latest_mailpit_message(page):
 
 
 async def _login(page, base_url, credentials):
-    await page.goto(base_url)
-    gate = page.locator('#loginGate')
-    await gate.wait_for(state='visible', timeout=8000)
-    await page.fill('#loginGateEmail', credentials['email'])
-    await page.fill('#loginGatePassword', credentials['password'])
-    async with page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
-        await page.click('.login-gate-submit')
-    await gate.wait_for(state='hidden', timeout=12000)
+    # Session comes from the shared harness (no per-test UI login).
+    await sign_in(page, base_url)
     await page.wait_for_selector('#topNav', state='visible', timeout=8000)
-    # #topNav becomes visible before app.init() finishes awaiting
-    # loadFromPostgres()'s 15-endpoint fan-out and wiring up the settings
-    # modal's click handlers (initSettingsModalFeature); wait for the
-    # network to go quiet so #settingsBtn is actually interactive.
+    # init can still be wiring up the settings modal's handlers; wait for the network to
+    # go quiet so #settingsBtn is actually interactive.
     await page.wait_for_load_state('networkidle', timeout=15000)
-
-
-async def test_send_test_email_button_hidden_for_non_postgres_backend(base_url, bypass_postgres_detection_once):
-    """Since issue #164, a fresh browser hitting this real Postgres-backed
-    origin is normally auto-detected and forced straight to the login gate,
-    which would make it impossible to reach Settings in local mode at all
-    (see test_postgres_forced_detection.py). bypass_postgres_detection_once
-    simulates a transient detection miss so the browser lands in local mode
-    long enough to open Settings and check the email-test button stays
-    hidden there, which is what this test is actually about.
-    """
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        ctx = await browser.new_context()
-        await ctx.route(base_url + '/', bypass_postgres_detection_once())
-        # Pre-populate localStorage so app has existing data → _isFirstRun is
-        # false → the first-run setup wizard does not appear and block the
-        # #settingsBtn click (same pattern as
-        # test_postgres_bootstrap.test_settings_postgres_option_reloads_to_gate).
-        await ctx.add_init_script("""
-            window.localStorage.setItem('debtTrackerData', JSON.stringify({
-                debts:[], accounts:[], incomes:[], bills:[], expenses:[],
-                ledgerAmountOverrides:{}, ledgerClearedTransactions:{}, recurringTemplates:[], emergencyFunds:[],
-                sinkingFunds:[], reconciliations:[], settings:[], monthlySnapshots:[],
-                netWorthMilestonesAwarded:[], perMonthStimulus:[],
-                monthlyPayment:null, strategy:null,
-                ledgerSettings:{accountFilter:'all',dateRange:'all',sortKey:'date',sortDir:'desc'},
-                forecastSettings:{rangeMonths:1,accountId:'total',notableThresholdPct:130},
-                timestamp:'2026-01-01T00:00:00.000Z'
-            }));
-        """)
-        page = await ctx.new_page()
-        await page.goto(base_url)
-        await page.wait_for_selector('#topNav', state='visible', timeout=8000)
-        await page.evaluate("() => document.getElementById('settingsBtn').click()")
-        await page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
-        # Click the Notifications tab first (#322): the group would also be
-        # invisible on the default Appearance tab regardless of its own
-        # hidden class, so an is_visible() check without this would pass
-        # vacuously instead of proving the backend-gated hide actually works.
-        await page.click('[data-settings-tab="notifications"]')
-        assert await page.locator('#settingsEmailTestGroup').evaluate("el => el.classList.contains('hidden')")
-        await browser.close()
 
 
 async def test_send_test_email_delivers_to_mailpit(pg_page, base_url, credentials):

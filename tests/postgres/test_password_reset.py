@@ -3,7 +3,7 @@
 API tests use httpx against the running Docker stack (localhost:32900).
 UI tests use Playwright via the pg_page fixture.
 
-Requires: docker compose up (postgres stack at localhost:32900).
+Requires: docker compose up (postgres stack; POSTGRES_TEST_BASE_URL, default localhost:32900).
 """
 import re
 import pytest
@@ -12,7 +12,7 @@ from playwright.async_api import expect
 
 pytestmark = pytest.mark.asyncio
 
-BASE = 'http://localhost:32900'
+from tests.postgres.conftest import BASE_URL as BASE
 
 
 async def test_forgot_password_always_returns_200_for_unknown_email():

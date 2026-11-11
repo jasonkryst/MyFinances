@@ -37,19 +37,15 @@ export async function recordPlanHistoryEntry(app, monthlyPayment, strategy) {
 
     app.planHistory = app.planHistory || [];
 
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/plan-history', entry);
-        if (saved) entry.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/plan-history', entry);
+    if (saved) entry.id = saved.id;
 
     app.planHistory.push(entry);
 
     const overflow = app.planHistory.length - PLAN_HISTORY_CAP;
     if (overflow > 0) {
         const trimmed = app.planHistory.splice(0, overflow);
-        if (app._storageBackendKind === 'postgres') {
-            trimmed.forEach(t => pgDelete(app, `/api/plan-history/${t.id}`));
-        }
+        trimmed.forEach(t => pgDelete(app, `/api/plan-history/${t.id}`));
     }
 }
 
@@ -126,7 +122,7 @@ export async function calculatePaymentPlanFromInputs(app) {
             app.displayPaymentPlan();
             await recordPlanHistoryEntry(app, monthlyPayment, strategy);
             app.renderPlanHistory();
-            app.saveToStorage();
+            app.saveToStorage(['monthlyPayment', 'strategy']);
         },
         onError: (err) => {
             showAlertModal(err && err.message ? err.message : t('strategy.alertCalcFailed'));
@@ -289,7 +285,7 @@ export function calculateRequiredPayment(app) {
         document.getElementById('applyTargetPayment').addEventListener('click', () => {
             document.getElementById('monthlyPayment').value = requiredPayment;
             document.getElementById('paymentStrategy').value = strategy;
-            app.saveToStorage();
+            app.saveToStorage(['monthlyPayment', 'strategy']);
 
             // Recalculate and display the full plan
             recalculatePaymentPlan(app, {

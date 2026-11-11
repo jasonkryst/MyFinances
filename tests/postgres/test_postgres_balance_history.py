@@ -103,7 +103,7 @@ async def test_merge_import_maps_to_existing_debt(pg_page, base_url, credentials
 
 async def test_seeding_persists_to_db_and_shows_no_toast(pg_page, base_url, credentials):
     """Regression for #232: seeding on first load must POST entries to the DB and
-    must not trigger a sync error toast. Covers the case where debt.updatedAt is
+    must not trigger a sync error banner. Covers the case where debt.updatedAt is
     a full ISO timestamp from the Postgres API (not a bare YYYY-MM-DD)."""
     await _login(pg_page, base_url, credentials)
     await _reset(pg_page, base_url)
@@ -122,6 +122,5 @@ async def test_seeding_persists_to_db_and_shows_no_toast(pg_page, base_url, cred
     # date must be YYYY-MM-DD, not a full timestamp
     assert len(seeded[0]['date']) == 10 and 'T' not in seeded[0]['date']
 
-    # No sync error toast should appear (issue #232)
-    toast = await pg_page.query_selector('#pgErrorToast')
-    assert toast is None, "sync error toast appeared during load-time seeding (issue #232)"
+    # No sync error banner should appear (issue #232)
+    assert not await pg_page.is_visible('#syncErrorBanner'), "sync error banner appeared during load-time seeding (issue #232)"

@@ -17,6 +17,8 @@ none exists. See ROADMAP.md for the tracked follow-up.
 
 import pytest
 
+from tests.conftest import seed_state, wait_for_api
+
 
 @pytest.mark.feature
 def test_no_reachable_bill_add_ui(app_page):
@@ -54,7 +56,7 @@ def test_bills_survive_import_with_sanitization(app_page):
         const file = new File([JSON.stringify(payload)], 'bills.json', { type: 'application/json' });
         return new Promise(resolve => {
             mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ bills: app.bills }), 300);
+            setTimeout(() => resolve({ bills: app.bills, checkingId: (app.accounts.find(a => a.name === 'Checking') || {}).id }), 300);
         });
     }""")
 
@@ -62,7 +64,7 @@ def test_bills_survive_import_with_sanitization(app_page):
     assert len(bills) == 1
     assert bills[0]['name'] == 'Electricity'
     assert bills[0]['amount'] == 120
-    assert bills[0]['accountId'] == 1
+    assert bills[0]['accountId'] == result['checkingId']
 
 
 @pytest.mark.feature
@@ -70,18 +72,12 @@ def test_bills_included_in_storage_export_payload(app_page):
     """Bills array is present in the JSON export payload structure."""
     page = app_page
 
-    page.evaluate("""() => {
-        window.app.bills = [{ id: 1, name: 'Internet', amount: 60, dueDay: 1,
-                               category: 'Internet / Phone', accountId: null }];
-        window.app.saveToStorage();
-    }""")
+    seed_state(page, {'bills': [{'id': 1, 'name': 'Internet', 'amount': 60, 'dueDay': 1,
+                                 'category': 'Internet / Phone', 'accountId': None}]})
 
-    raw = page.evaluate("() => localStorage.getItem('debtTrackerData')")
-    assert raw is not None
-    import json
-    parsed = json.loads(raw)
-    assert 'bills' in parsed
-    assert any(b['name'] == 'Internet' for b in parsed['bills'])
+    # Server-backed: the bill is in the API and loads back into app.bills after the reload.
+    wait_for_api(page, '/api/bills', lambda rows: any(b['name'] == 'Internet' for b in rows))
+    assert page.evaluate("() => window.app.bills.some(b => b.name === 'Internet' && b.amount === 60)")
 
 
 @pytest.mark.feature
@@ -95,7 +91,6 @@ def test_bills_factor_into_account_projected_balance(app_page):
         app.bills = [{ id: 1, name: 'Rent', amount: 500, dueDay: 1,
                        category: 'Rent / Mortgage', accountId: 1 }];
         app.incomes = []; app.debts = []; app.expenses = []; app.recurringTemplates = [];
-        app.saveToStorage();
         app.switchPage('accounts');
     }""")
 

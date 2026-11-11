@@ -8,6 +8,8 @@ months, account selection, and horizon switching.
 
 import pytest
 
+from tests.conftest import seed_state, wait_for_api
+
 BASE_URL = "http://localhost:32900/"
 
 
@@ -429,14 +431,8 @@ def test_forecast_settings_persist_after_reload(app_page):
     """Forecast horizon and notable threshold settings persist across a page reload."""
     page = app_page
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.accounts = [{ id: 9001, name: 'Checking', type: 'Checking', startingBalance: 5000 }];
-        app.incomes = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
-        app.saveToStorage();
-        app.switchPage('reports');
-    }""")
+    seed_state(page, {'accounts': [{'id': 9001, 'name': 'Checking', 'type': 'Checking', 'startingBalance': 5000}]})
+    page.evaluate("() => window.app.switchPage('reports')")
 
     page.click('[data-rptab="forecast"]')
     page.wait_for_selector('#rptPanel-forecast.rpt-tab-panel--active', timeout=5000)
@@ -445,6 +441,9 @@ def test_forecast_settings_persist_after_reload(app_page):
 
     page.fill('#forecastThresholdInput', '200')
     page.dispatch_event('#forecastThresholdInput', 'change')
+    # Forecast settings are saved to the server fire-and-forget: wait for them before reloading.
+    wait_for_api(page, '/api/plan-settings',
+                 lambda d: (d.get('forecastSettings') or {}).get('rangeMonths') == 3)
 
     page.reload(wait_until="networkidle")
 
@@ -473,7 +472,7 @@ def test_forecast_settings_export_import_roundtrip(app_page):
         app._forecastRangeMonths = 12;
         app._forecastAccountId = 'total';
         app._forecastNotableThresholdPct = 250;
-        app.saveToStorage();
+        app.saveToStorage(['forecastSettings']);
     }""")
 
     result = page.evaluate("""async () => {

@@ -8,21 +8,19 @@ override-aware. Zero/negative balances and sub-cent interest generate
 nothing.
 """
 
+import json
+
 import pytest
+
+from tests.conftest import seed_state, wait_for_api
 
 
 def _seed_account(page, rate, balance=1000):
     """Replace app state with a single Savings account and save."""
-    page.evaluate("""([rate, balance]) => {
-        const app = window.app;
-        app.accounts = [{ id: 1, name: 'HYSA', type: 'Savings',
-                          startingBalance: balance, interestRate: rate }];
-        app.incomes = []; app.bonuses = []; app.debts = []; app.bills = [];
-        app.expenses = []; app.recurringTemplates = [];
-        app.emergencyFunds = []; app.sinkingFunds = [];
-        app.reconciliations = []; app.ledgerAmountOverrides = {};
-        app.saveToStorage();
-    }""", [rate, balance])
+    seed_state(page, {'accounts': [{'id': 1, 'name': 'HYSA', 'type': 'Savings',
+                                    'startingBalance': balance, 'interestRate': rate}]})
+    # The server assigns the account id; expose it for snippets that need it.
+    page.evaluate("() => { window._acct = window.app.accounts[0].id; }")
 
 
 def _interest_txs(page):
@@ -104,7 +102,7 @@ def test_interest_transaction_id_is_deterministic(app_page):
         const y = prevMonthEnd.getFullYear();
         const m = String(prevMonthEnd.getMonth() + 1).padStart(2, '0');
         const d = String(prevMonthEnd.getDate()).padStart(2, '0');
-        return { actual: txs[0].transactionId, expected: `interest|1|1|${y}-${m}-${d}` };
+        return { actual: txs[0].transactionId, expected: `interest|${window._acct}|${window._acct}|${y}-${m}-${d}` };
     }""")
 
     assert result["actual"] == result["expected"], \
@@ -150,7 +148,7 @@ def test_interest_included_in_projected_account_balance(app_page):
     page = app_page
     _seed_account(page, rate=12, balance=1000)
 
-    balance = page.evaluate("() => window.app.computeAccountBalance(1)")
+    balance = page.evaluate("() => window.app.computeAccountBalance(window._acct)")
     assert abs(balance - 1010.00) < 0.001, \
         f"Projected balance should include $10 interest: {balance}"
 
@@ -170,7 +168,6 @@ def test_interest_only_after_balance_turns_positive(app_page):
         app.bonuses = []; app.debts = []; app.bills = []; app.expenses = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.reconciliations = []; app.ledgerAmountOverrides = {};
-        app.saveToStorage();
     }""")
 
     txs = _interest_txs(page)
@@ -223,14 +220,13 @@ def test_interest_is_projection_only_not_persisted(app_page):
     page.evaluate("""async () => {
         const mod = await import('/src/ledgerTransactions.js');
         mod.getLedgerTransactions(window.app);
-        window.app.saveToStorage();
     }""")
 
-    stored = page.evaluate("() => localStorage.getItem('debtTrackerData')")
-    assert '"type":"interest"' not in stored and "'type':'interest'" not in stored, \
-        "Interest transactions must not be persisted"
-    assert '"interestRate":12' in stored.replace(" ", ""), \
-        "The account's interestRate should be persisted"
+    # Server-backed: the account's rate is persisted, ledger-generated interest rows are not.
+    accounts = wait_for_api(page, '/api/accounts', lambda rows: any(a['name'] == 'HYSA' for a in rows))
+    stored = json.dumps(accounts)
+    assert '"type": "interest"' not in stored, "Interest transactions must not be persisted"
+    assert next(a for a in accounts if a['name'] == 'HYSA')['interestRate'] == 12,         "The account's interestRate should be persisted"
 
 
 # ---------- accounts UI ----------
@@ -265,7 +261,6 @@ def test_edit_account_interest_rate_inline(app_page):
         const app = window.app;
         app.accounts = [{ id: 1, name: 'EditMe', type: 'Savings',
                           startingBalance: 500, interestRate: 1 }];
-        app.saveToStorage();
         app.switchPage('accounts');
     }""")
     page.wait_for_selector('text=EditMe')
@@ -376,7 +371,7 @@ def test_interest_compounds_in_account_forecast_series(app_page):
 
     incomes = page.evaluate("""async () => {
         const mod = await import('/src/ledgerTransactions.js');
-        const series = mod.getAccountForecastSeries(window.app, 1, 3);
+        const series = mod.getAccountForecastSeries(window.app, window._acct, 3);
         // series[0] is 'Now'; forecast months are indices 1..3
         return series.slice(1).map(s => s.income);
     }""")
@@ -414,7 +409,6 @@ def test_sub_cent_rate_shows_no_badge(app_page):
         const app = window.app;
         app.accounts = [{ id: 1, name: 'Tiny Rate', type: 'Savings',
                           startingBalance: 1000, interestRate: 0.001 }];
-        app.saveToStorage();
         app.switchPage('accounts');
     }""")
     page.wait_for_selector('text=Tiny Rate')

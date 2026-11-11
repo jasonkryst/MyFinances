@@ -170,8 +170,6 @@ def test_imported_bct_key_cannot_retarget_postgres_request(app_page):
             return realFetch(url, opts);
         };
         const app = window.app;
-        const prevKind = app._storageBackendKind;
-        app._storageBackendKind = 'postgres';
         try {
             const sb = await import('/src/settingsBackup.js');
             sb.importSettingsText(app, JSON.stringify({
@@ -180,7 +178,6 @@ def test_imported_bct_key_cannot_retarget_postgres_request(app_page):
             }));
             await new Promise(r => setTimeout(r, 50));
         } finally {
-            app._storageBackendKind = prevKind;
             window.fetch = realFetch;
         }
         return seen;

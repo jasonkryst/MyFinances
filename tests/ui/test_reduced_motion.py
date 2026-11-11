@@ -8,13 +8,13 @@ its render/update animations.
 
 import pytest
 
-from tests.conftest import create_debt, SKIP_FIRST_RUN_WIZARD_SCRIPT
+from tests.conftest import BASE_URL, create_debt, ensure_session, reset_server_state, wait_for_app_ready
 
 
 def _make_tracked_page(browser, reduced_motion=None):
     ctx = browser.new_context(reduced_motion=reduced_motion)
+    ensure_session(ctx)
     page = ctx.new_page()
-    page.add_init_script(SKIP_FIRST_RUN_WIZARD_SCRIPT)
     page.console_errors = []
     page.page_errors = []
     page.on('console', lambda msg: page.console_errors.append(msg.text)
@@ -33,7 +33,8 @@ def _assert_no_errors(page):
 def test_css_transition_duration_collapses_under_reduced_motion(browser):
     """A reduced-motion context shrinks transition-duration on an animated element."""
     ctx, page = _make_tracked_page(browser, reduced_motion='reduce')
-    page.goto('http://localhost:32900/', wait_until='networkidle', timeout=60000)
+    page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
+    wait_for_app_ready(page)
 
     duration = page.evaluate("""
         () => {
@@ -54,8 +55,10 @@ def test_css_transition_duration_collapses_under_reduced_motion(browser):
 def test_chart_animation_disabled_under_reduced_motion(browser, debt_data):
     """Chart.defaults.animation is false when the OS prefers reduced motion."""
     ctx, page = _make_tracked_page(browser, reduced_motion='reduce')
-    page.goto('http://localhost:32900/', wait_until='networkidle', timeout=60000)
+    page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
+    wait_for_app_ready(page)
 
+    reset_server_state(page)
     create_debt(page, debt_data)
     page.click('button[data-page="strategy"]')
     page.wait_for_selector('#strategySection.active', timeout=5000)

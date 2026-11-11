@@ -16,6 +16,8 @@ Coverage:
 import pytest
 from datetime import date
 
+from tests.conftest import reset_server_state, seed_state, wait_for_api
+
 BASE_URL = "http://localhost:32900/"
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
@@ -110,8 +112,7 @@ def _seed_recurring(page, *, name="Netflix", amount="15"):
 def test_empty_state_debts_no_data(app_page):
     """#276 — Debts page shows empty state with CTA when no debts exist."""
     page = app_page
-    page.evaluate("() => { const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}'); d.debts = []; localStorage.setItem('debtTrackerData', JSON.stringify(d)); }")
-    page.reload(wait_until="networkidle")
+    reset_server_state(page)  # first-run: nothing on the server
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -125,8 +126,7 @@ def test_empty_state_debts_no_data(app_page):
 def test_empty_state_debts_cta_opens_form(app_page):
     """#276 — Clicking the debts empty state CTA reveals the add-debt form."""
     page = app_page
-    page.evaluate("() => { const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}'); d.debts = []; localStorage.setItem('debtTrackerData', JSON.stringify(d)); }")
-    page.reload(wait_until="networkidle")
+    reset_server_state(page)  # first-run: nothing on the server
 
     page.click('button[data-page="liabilities"]')
     page.click('[data-liabilities-subtab="debts"]')
@@ -140,8 +140,7 @@ def test_empty_state_debts_cta_opens_form(app_page):
 def test_empty_state_accounts_no_data(app_page):
     """#276 — Accounts page shows empty state with CTA when no accounts exist."""
     page = app_page
-    page.evaluate("() => { const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}'); d.accounts = []; localStorage.setItem('debtTrackerData', JSON.stringify(d)); }")
-    page.reload(wait_until="networkidle")
+    reset_server_state(page)  # first-run: nothing on the server
 
     page.click('button[data-page="accounts"]')
     page.wait_for_selector('#accountsSection.active', timeout=5000)
@@ -154,8 +153,7 @@ def test_empty_state_accounts_no_data(app_page):
 def test_empty_state_income_no_data(app_page):
     """#276 — Income page shows empty state with CTA when no income exists."""
     page = app_page
-    page.evaluate("() => { const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}'); d.incomes = []; localStorage.setItem('debtTrackerData', JSON.stringify(d)); }")
-    page.reload(wait_until="networkidle")
+    reset_server_state(page)  # first-run: nothing on the server
 
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
@@ -168,12 +166,7 @@ def test_empty_state_income_no_data(app_page):
 def test_empty_state_health_no_data(app_page):
     """#276 — Health dashboard shows setup CTA when completely empty."""
     page = app_page
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        d.accounts = []; d.debts = []; d.incomes = []; d.emergencyFunds = [];
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    reset_server_state(page)  # first-run: nothing on the server
 
     page.click('button[data-page="health"]')
     page.wait_for_selector('#healthSection.active', timeout=5000)
@@ -186,8 +179,7 @@ def test_empty_state_health_no_data(app_page):
 def test_empty_state_ledger_no_data(app_page):
     """#276 — Ledger shows compact empty state message inside table when empty."""
     page = app_page
-    page.evaluate("() => { const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}'); d.accounts = []; d.debts = []; d.incomes = []; localStorage.setItem('debtTrackerData', JSON.stringify(d)); }")
-    page.reload(wait_until="networkidle")
+    reset_server_state(page)  # first-run: nothing on the server
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
@@ -289,10 +281,7 @@ def test_bulk_archive_debts(app_page):
     # Debt should be archived (not visible unless show-archived is on)
     debt_card = page.query_selector('.debt-card:not(.debt-card--editing)')
     # Either it's archived (still visible) or hidden — either way bulk action ran
-    archived_data = page.evaluate(
-        "() => (JSON.parse(localStorage.getItem('debtTrackerData') || '{}').debts || []).some(d => d.archived)"
-    )
-    assert archived_data, "No debt was archived after bulk archive"
+    wait_for_api(page, '/api/debts', lambda rows: any(d.get('archived') for d in rows))
 
 
 @pytest.mark.feature
@@ -323,9 +312,7 @@ def test_bulk_delete_debts(app_page):
     page = app_page
     _seed_debt(page, name="Bulk Delete Debt")
 
-    initial_count = page.evaluate(
-        "() => (JSON.parse(localStorage.getItem('debtTrackerData') || '{}').debts || []).length"
-    )
+    initial_count = len(wait_for_api(page, '/api/debts', lambda rows: len(rows) >= 1))
 
     cb = page.query_selector('.debt-row-select')
     assert cb, "Checkbox not found"
@@ -340,10 +327,8 @@ def test_bulk_delete_debts(app_page):
     page.click('#deleteConfirmBtn')
     page.wait_for_timeout(500)
 
-    final_count = page.evaluate(
-        "() => (JSON.parse(localStorage.getItem('debtTrackerData') || '{}').debts || []).length"
-    )
-    assert final_count < initial_count, "Debt count did not decrease after bulk delete"
+    final = wait_for_api(page, '/api/debts', lambda rows: len(rows) < initial_count)
+    assert len(final) < initial_count, "Debt count did not decrease after bulk delete"
 
 
 # ─── #285 Ledger Cross-Navigation ────────────────────────────────────────────
@@ -352,19 +337,13 @@ def test_bulk_delete_debts(app_page):
 def test_ledger_cross_nav_debt_btn_present(app_page):
     """#285 — Debt rows in the ledger show a cross-nav ↗ button."""
     page = app_page
-    _seed_account(page, name="Nav Account")
-    # Inject a debt linked to the account
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        const acct = (d.accounts || [])[0];
-        if (!acct) return;
-        d.debts = d.debts || [];
-        d.debts.push({ id: 9901, name: 'Nav Debt', debtType: 'creditCard', accountBalance: 1000,
-            interestRate: 15, minimumPayment: 50, dueDate: 15, accountId: acct.id,
-            archived: false, priority: null });
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    # Add a debt linked to the account (seeded through the API; replaces the UI-made account)
+    seed_state(page, {
+        'accounts': [{'id': 1, 'name': 'Nav Account', 'type': 'Checking', 'startingBalance': 1000}],
+        'debts': [{'id': 9901, 'name': 'Nav Debt', 'debtType': 'creditCard', 'accountBalance': 1000,
+                   'interestRate': 15, 'minimumPayment': 50, 'dueDate': 15, 'accountId': 1,
+                   'archived': False, 'priority': None}],
+    })
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
@@ -400,18 +379,12 @@ def test_ledger_cross_nav_income_btn_present(app_page):
 def test_ledger_cross_nav_debt_navigates(app_page):
     """#285 — Clicking a debt cross-nav button switches to Liabilities page."""
     page = app_page
-    _seed_account(page, name="DebtNav Account")
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        const acct = (d.accounts || [])[0];
-        if (!acct) return;
-        d.debts = d.debts || [];
-        d.debts.push({ id: 9902, name: 'NavDebt2', debtType: 'creditCard', accountBalance: 500,
-            interestRate: 12, minimumPayment: 30, dueDate: 10, accountId: acct.id,
-            archived: false, priority: null });
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    seed_state(page, {
+        'accounts': [{'id': 1, 'name': 'DebtNav Account', 'type': 'Checking', 'startingBalance': 1000}],
+        'debts': [{'id': 9902, 'name': 'NavDebt2', 'debtType': 'creditCard', 'accountBalance': 500,
+                   'interestRate': 12, 'minimumPayment': 30, 'dueDate': 10, 'accountId': 1,
+                   'archived': False, 'priority': None}],
+    })
 
     page.click('button[data-page="ledger"]')
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
@@ -421,8 +394,7 @@ def test_ledger_cross_nav_debt_navigates(app_page):
     page.wait_for_timeout(500)
 
     nav_btn = page.query_selector('[data-ledger-nav-type="debt"]')
-    if not nav_btn:
-        pytest.skip("No debt nav button visible — no debt transactions in window")
+    assert nav_btn, "No debt nav button visible — no debt transactions in window"
 
     nav_btn.click()
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
@@ -439,8 +411,7 @@ def test_recurring_mark_paid_opens_modal(app_page):
 
     # The mark-paid button only appears when the recurring template has occurrences this month
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible (no occurrence this month)")
+    assert mark_btn, "Mark-paid button not visible (no occurrence this month)"
 
     mark_btn.click()
     page.wait_for_selector('#recurringMarkPaidModal', timeout=5000)
@@ -457,8 +428,7 @@ def test_recurring_mark_paid_default_amount_prefilled(app_page):
     _seed_recurring(page, name="Prefill Test", amount="42")
 
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible")
+    assert mark_btn, "Mark-paid button not visible"
 
     mark_btn.click()
     page.wait_for_selector('#recurringActualAmountInput', timeout=5000)
@@ -474,8 +444,7 @@ def test_recurring_mark_paid_with_actual_amount(app_page):
     _seed_recurring(page, name="Actual Amount Test", amount="50")
 
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible")
+    assert mark_btn, "Mark-paid button not visible"
 
     mark_btn.click()
     page.wait_for_selector('#recurringActualAmountInput', timeout=5000)
@@ -502,20 +471,18 @@ def test_recurring_mark_paid_cancel_no_change(app_page):
     _seed_recurring(page, name="Cancel Mark Test", amount="20")
 
     mark_btn = page.query_selector('[data-recurring-action="mark-paid"]')
-    if not mark_btn:
-        pytest.skip("Mark-paid button not visible")
+    assert mark_btn, "Mark-paid button not visible"
 
     mark_btn.click()
     page.wait_for_selector('#recurringMarkPaidCancelBtn', timeout=5000)
     page.click('#recurringMarkPaidCancelBtn')
-    page.wait_for_timeout(500)  # outlast the 300ms saveToStorage debounce so a wrongful write would be visible
+    page.wait_for_timeout(500)  # give a wrongful template PATCH time to land
 
     month_key = f"{date.today().year}-{date.today().month:02d}"
-    paid = page.evaluate(f"""() => {{
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{{}}');
-        const t = (d.recurringTemplates || []).find(x => x.name === 'Cancel Mark Test');
-        return (t?.paidMonths || []).includes('{month_key}');
-    }}""")
+    rows = wait_for_api(page, '/api/recurring-templates',
+                        lambda rows: any(t['name'] == 'Cancel Mark Test' for t in rows))
+    t = next(t for t in rows if t['name'] == 'Cancel Mark Test')
+    paid = month_key in (t.get('paidMonths') or [])
     assert not paid, "Template should not be marked paid after cancel"
 
 
@@ -543,17 +510,8 @@ def test_sinking_fund_order_stored(app_page):
     page.click('#sinkingFormSubmit')
     page.wait_for_selector('#sinkingList >> text=Ordered Fund', timeout=10000)
 
-    # saveToStorage is debounced: the account save just before this opens a window,
-    # so the fund lands in a trailing write a moment later — poll for it.
-    page.wait_for_function("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        return (d.sinkingFunds || []).some(x => x.name === 'Ordered Fund');
-    }""", timeout=5000)
-    stored_order = page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        const f = (d.sinkingFunds || []).find(x => x.name === 'Ordered Fund');
-        return f?.order;
-    }""")
+    rows = wait_for_api(page, '/api/sinking-funds', lambda rows: any(x['name'] == 'Ordered Fund' for x in rows))
+    stored_order = next(x for x in rows if x['name'] == 'Ordered Fund').get('order')
     assert stored_order == 3, f"Expected order=3, got {stored_order!r}"
 
 
@@ -563,16 +521,13 @@ def test_sinking_fund_order_stored(app_page):
 def test_sinking_fund_complete_btn_shown_when_funded(app_page):
     """#308 — 'Complete this goal' button appears on fully funded sinking funds."""
     page = app_page
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        // sanitizeSinkingFund callers drop funds without an accountId, so seed an account too
-        d.accounts = [{ id: 8800, name: 'Sinking Seed Acct', type: 'Checking', startingBalance: 1000 }];
-        d.sinkingFunds = d.sinkingFunds || [];
-        d.sinkingFunds.push({ id: 8801, name: 'Fully Funded', targetAmount: 500, accountId: 8800,
-            currentAmount: 500, monthlyAllocation: 50, order: 0, archived: false, completedDate: null });
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    # sanitizeSinkingFund drops funds without an accountId, so seed an account too
+    seed_state(page, {
+        'accounts': [{'id': 8800, 'name': 'Sinking Seed Acct', 'type': 'Checking', 'startingBalance': 1000}],
+        'sinkingFunds': [{'id': 8801, 'name': 'Fully Funded', 'targetAmount': 500, 'accountId': 8800,
+                          'currentAmount': 500, 'monthlyAllocation': 50, 'order': 0,
+                          'archived': False, 'completedDate': None}],
+    })
 
     _open_sinking_tab(page)
 
@@ -595,16 +550,13 @@ def test_sinking_fund_complete_btn_not_shown_when_not_funded(app_page):
 def test_sinking_fund_archive_completes(app_page):
     """#308 — Clicking Archive in completion modal archives the sinking fund."""
     page = app_page
-    page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        // sanitizeSinkingFund callers drop funds without an accountId, so seed an account too
-        d.accounts = [{ id: 8800, name: 'Sinking Seed Acct', type: 'Checking', startingBalance: 1000 }];
-        d.sinkingFunds = d.sinkingFunds || [];
-        d.sinkingFunds.push({ id: 8802, name: 'Complete Archive', targetAmount: 200, accountId: 8800,
-            currentAmount: 200, monthlyAllocation: 20, order: 0, archived: false, completedDate: null });
-        localStorage.setItem('debtTrackerData', JSON.stringify(d));
-    }""")
-    page.reload(wait_until="networkidle")
+    # sanitizeSinkingFund drops funds without an accountId, so seed an account too
+    seed_state(page, {
+        'accounts': [{'id': 8800, 'name': 'Sinking Seed Acct', 'type': 'Checking', 'startingBalance': 1000}],
+        'sinkingFunds': [{'id': 8802, 'name': 'Complete Archive', 'targetAmount': 200, 'accountId': 8800,
+                          'currentAmount': 200, 'monthlyAllocation': 20, 'order': 0,
+                          'archived': False, 'completedDate': None}],
+    })
 
     _open_sinking_tab(page)
 
@@ -613,12 +565,8 @@ def test_sinking_fund_archive_completes(app_page):
     page.click('#scArchiveBtn')
     page.wait_for_timeout(500)
 
-    archived = page.evaluate("""() => {
-        const d = JSON.parse(localStorage.getItem('debtTrackerData') || '{}');
-        const f = (d.sinkingFunds || []).find(x => x.name === 'Complete Archive');
-        return f?.archived === true;
-    }""")
-    assert archived, "Sinking fund was not archived after completion modal Archive"
+    wait_for_api(page, '/api/sinking-funds',
+                 lambda rows: any(x['name'] == 'Complete Archive' and x.get('archived') is True for x in rows))
 
 
 # ─── #310 Focus-Trap on Modals ────────────────────────────────────────────────

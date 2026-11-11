@@ -2,7 +2,7 @@
 
 ## Project overview
 
-MyFinances is a **privacy-first, client-side-only** personal finance tracker (debt payoff planning, accounts, income, budgets, savings, net worth, cash flow forecasting). It is **vanilla ES6+ JavaScript with no build step, no framework, and no backend**. All data lives in browser `localStorage`. The only external dependency is Chart.js, loaded via CDN.
+MyFinances is a **privacy-first, self-hosted** personal finance tracker (debt payoff planning, accounts, income, budgets, savings, net worth, cash flow forecasting). The frontend is **vanilla ES6+ JavaScript with no build step and no framework**. Since v7.0.0 the self-hosted Node.js + PostgreSQL server (`server/`) is the **only storage**: the app needs the Docker stack (nginx + server + Postgres) and keeps no financial data in browser storage. The only external frontend dependency is Chart.js, loaded via CDN.
 
 ---
 
@@ -10,11 +10,11 @@ MyFinances is a **privacy-first, client-side-only** personal finance tracker (de
 
 ### Serve locally
 ```bash
-python -m http.server 32900
-# or
 docker compose up -d   # http://localhost:32900
 ```
-Tests hard-code `BASE_URL = "http://localhost:32900/"` in `tests/conftest.py`. **The server must be running before any test run.**
+A plain static file server no longer works: the app needs the API. See `DEPLOYMENT.md` and `setup.sh`/`setup.ps1` for the required secrets.
+
+Every Playwright test runs against a real stack (`TEST_BASE_URL`, default `http://localhost:32900/`) and wipes that stack's server data, so **never point tests at a deployment holding real data**. Create the test user once per fresh stack with `server/scripts/create-user.js` (see CLAUDE.md "Tests"). Run only one pytest process per stack.
 
 ### Tests (Playwright + pytest)
 ```bash
@@ -91,7 +91,9 @@ computeAccountBalance(accountId, year, month) {
 |---|---|
 | `app.js` | `DebtTrackerApp` class — state, delegation methods, startup sequence |
 | `debtCalculator.js` | Pure payoff engine (global, classic script) |
-| `storage.js` | `localStorage` read/write, JSON export/import, CSV export, all `sanitize*` functions |
+| `storage.js` | Boot probe, `loadFromPostgres`, `saveToStorage` (plan-settings PATCH), `clearAllData` |
+| `postgresSync.js` | `pgPost`/`pgPatch`/`pgDelete`/`pgPut` REST writes called after each in-memory mutation |
+| `sanitizers.js` / `dataExport.js` | `sanitize*` record functions; JSON/CSV export and import |
 | `utils.js` | Shared helpers: `escapeHtml`, `formatCurrency`, `normalizeText`, `sanitizeFiniteNumber`, `sanitizeInteger`, `sanitizeDateISO`, `todayISO`, `renderChartDataTable`, income payday math |
 | `ui.js` | `initializeEventListeners`, `switchPage`, `switchTab`, `updateUI`, `updateFormVisibility`, theme toggling, modal focus trapping |
 | `accounts.js` | Account CRUD, `computeAccountBalance`, `refreshAccountSelectors` |
@@ -133,14 +135,12 @@ Located in `src/debtCalculator.js` (classic script, exposed as global `DebtCalcu
 - Keep this file free of DOM/state access forever.
 
 ### Storage & data persistence
-- `storage.js` persists to `localStorage` under key `debtTrackerData` (current export format version `"4.0.0"`, runtime format `"3.0"`-compatible).
-- `saveToStorage(app)` serializes all state arrays plus `forecastSettings`, `ledgerSettings`, and the two DOM inputs (`#monthlyPayment`, `#paymentStrategy`).
-- `loadFromStorage(app)` parses, passes through `sanitizeParsedState()`, and assigns clean values back to `app.*`.
-- Every record type has a corresponding private `sanitize*` function in `storage.js` that enforces types, bounds, and allowed enum values. All call the shared primitives from `utils.js`: `normalizeText`, `sanitizeFiniteNumber`, `sanitizeInteger`, `sanitizeDateISO`.
-- **New persisted fields must be added to the relevant `sanitize*` function** or they will be silently dropped on import/reload.
-- Post-sanitization filters (in `sanitizeParsedState`): debts must have a `name`; incomes must have a `name` and `firstPayDate`; bonuses must have a `name` and `date`; etc.
-- Storage quota: warns at ~80% of an estimated 5 MB ceiling; calls `app.showStorageQuotaWarning(usageInfo)` once per session; shows an error on a hard `setItem` failure.
-- Import: max 2 MB; supports legacy v1.0 (debts-only) files in addition to current format.
+- **The server is the only store.** At boot `init()` probes the server, shows the login gate if there is no session, then `loadFromPostgres(app)` loads all `app.*` state. Every mutation is written back over the REST API through `pgPost`/`pgPatch`/`pgDelete`/`pgPut` (`postgresSync.js`), right after the in-memory change. Updates are optimistic; a failed write shows the sync error banner. A 401 re-opens the login gate and retries the write once.
+- `saveToStorage(app, fields)` (name is historical) PATCHes only the named `/api/plan-settings` fields, e.g. `app.saveToStorage(['budgetCategories'])` (issue #564); `PLAN_SETTINGS_FIELDS` in `src/planSettingsPatch.js` lists them. Record mutations never call it (#521); they write their own record through `postgresSync.js`. With no known field it sends nothing.
+- Every record type has a `sanitize*` function in `sanitizers.js` that enforces types, bounds and allowed enums, using the shared primitives from `utils.js`: `normalizeText`, `sanitizeFiniteNumber`, `sanitizeInteger`, `sanitizeDateISO`. It runs on import and, server-side, on every write.
+- **A new persisted field needs a sanitizer entry, a migration and a `columns` entry in its `server/src/routes/*.js` route**, or the server silently drops it.
+- JSON export/import (format version `"3.0"`, 2 MB import limit) lives in `dataExport.js`; import goes through `postgresImport.js`.
+- Browsers that still hold pre-7.0 `debtTrackerData` get a one-time import (empty server) or download-or-remove (non-empty server) prompt.
 
 ### Ledger transaction system
 `ledger.js` is the central data bus:
@@ -170,10 +170,10 @@ All dynamic styling must go through CSS classes/variables defined in `styles.css
 - `normalizeText` (strips `<>"`` ` + control chars + trims + enforces max length) is used in sanitizers, not as an HTML-output escape — use `escapeHtml` for rendering.
 
 ### Sanitizing new data fields
-The full sanitizer pipeline lives in `storage.js`. When adding a field to any record type:
+The sanitizers live in `sanitizers.js`. When adding a field to any record type:
 1. Add it to the relevant `sanitize*` function with an appropriate `sanitize*` call.
 2. Add it to `sanitizeParsedState`'s reconstruction of the record array.
-3. Add it to `saveToStorage`'s serialized payload.
+3. Add a migration and a `columns` entry in its `server/src/routes/*.js` route, or the server drops it. (A new plan-settings field instead needs a builder in `src/planSettingsPatch.js` and handling in `server/src/routes/planSettings.js`.)
 
 Enum fields must be validated against an explicit allowlist (see `sanitizeRecurringTemplate` for frequency/type validation pattern).
 
@@ -219,8 +219,8 @@ Returns `{ monthlyTotal, paydaysByIncome }`. The `monthlyTotal` field is the agg
 ## Test conventions
 
 ### Fixtures
-- **`app_page`** (sync) / **`async_app_page`** (async): navigates to the app and seeds `localStorage` to bypass the first-run setup wizard. Use for nearly all tests.
-- **`page`** / **`async_page`**: raw page with no seeding. Use only when testing the setup wizard or first-run behavior — clear storage yourself before use.
+- **`app_page`** (sync) / **`async_app_page`** (async): signs in to the test stack, wipes server data and seeds a setting so the first-run setup wizard stays away. Use for nearly all tests.
+- **`page`** / **`async_page`**: raw page with no sign-in. Use only when testing the login gate or first-run behavior.
 - Standard data fixtures: `account_data`, `debt_data`, `income_data`, `expense_data`, `recurring_data`, `health_data`.
 - Helper functions in `conftest.py`: `create_account(page, data)`, `create_debt(page, data)`, `create_income(page, data)`, `assert_no_errors(page)`.
 
@@ -231,7 +231,7 @@ Returns `{ monthlyTotal, paydaysByIncome }`. The `monthlyTotal` field is the agg
 Most feature tests use sync fixtures (`app_page`). Security tests use async fixtures (`async_app_page`). `pytest.ini` sets `asyncio_mode = auto` — async tests need no special decorator.
 
 ### Accessing app state in tests
-Inject data by calling `page.evaluate(js)` with JavaScript that mutates `window.app.*` or `localStorage` directly, then trigger a re-render with `app.updateUI()` or `app.switchPage(...)`.
+Seed server data with `seed_state(page, state)`, or mutate `window.app.*` via `page.evaluate(js)`; use `wait_for_api(page, path, check)` to prove a fire-and-forget write reached the server. Then trigger a re-render with `app.updateUI()` or `app.switchPage(...)`.
 
 ### Console errors
 The `page` and `async_page` fixtures collect console errors (excluding favicon 404s) into `page.console_errors`. Call `assert_no_errors(page)` at the end of tests where clean console output matters.

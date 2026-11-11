@@ -11,20 +11,20 @@ import re
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, seed_state
 
 
-def _seed(page, templates, incomes=None):
-    """Reset state to one account + the given recurring templates (JS array literal)."""
-    page.evaluate(f"""() => {{
-        const app = window.app;
-        app.accounts = [{{ id: 8800, name: 'RI Checking', type: 'Checking', startingBalance: 1000 }}];
-        app.incomes = {incomes or '[]'};
-        app.bonuses = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.emergencyFunds = []; app.sinkingFunds = []; app.transfers = [];
-        app.ledgerAmountOverrides = {{}};
-        app.recurringTemplates = {templates};
-    }}""")
+def _seed(page, templates, incomes=None, extra_accounts=()):
+    """Seed one account + the given recurring templates/incomes (JS array literals)
+    through the server. The account's server id is exposed as window._acct."""
+    tpls = page.evaluate("() => (" + templates + ")")
+    incs = page.evaluate("() => (" + (incomes or '[]') + ")")
+    seed_state(page, {
+        'accounts': [{'id': 8800, 'name': 'RI Checking', 'type': 'Checking', 'startingBalance': 1000}, *extra_accounts],
+        'incomes': incs,
+        'recurringTemplates': tpls,
+    })
+    page.evaluate("() => { window._acct = window.app.accounts.find(a => a.name === 'RI Checking').id; }")
 
 
 def _tmpl(tid, name, ttype, amount, frequency='monthly', extra=''):
@@ -99,7 +99,7 @@ def test_add_income_template_via_form(app_page):
     page.select_option('#recurringType', 'income')
     page.fill('#recurringAmount', '250')
     page.fill('#recurringStartDate', '2026-01-01')
-    page.select_option('#recurringAccount', '8800')
+    page.select_option('#recurringAccount', str(page.evaluate("() => window._acct")))
     page.click('#recurringFormSubmit')
     page.wait_for_selector('#recurringList .recurring-card', timeout=5000)
     t = page.evaluate("() => window.app.recurringTemplates[0]")
@@ -112,14 +112,14 @@ def test_add_income_template_via_form(app_page):
 def test_income_template_is_positive_ledger_inflow_and_raises_balance(app_page):
     page = app_page
     _seed(page, "[]")
-    before = page.evaluate("""() => { const n = new Date(); return window.app.computeAccountBalance(8800, n.getFullYear(), n.getMonth()); }""")
+    before = page.evaluate("""() => { const n = new Date(); return window.app.computeAccountBalance(window._acct, n.getFullYear(), n.getMonth()); }""")
     _seed(page, "[" + _tmpl(1, 'Retainer', 'income', 500) + "]")
     res = page.evaluate("""async () => {
         const n = new Date();
         const txs = await import('/src/ledgerTransactions.js').then(m => m.getLedgerTransactions(window.app));
         const t = txs.find(x => x.name === 'Retainer' && String(x.date).startsWith(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`));
         return { amount: t && t.amount, category: t && t.category,
-                 bal: window.app.computeAccountBalance(8800, n.getFullYear(), n.getMonth()) };
+                 bal: window.app.computeAccountBalance(window._acct, n.getFullYear(), n.getMonth()) };
     }""")
     assert res['amount'] == 500
     assert res['category'] == 'Other'  # explicit category respected
@@ -129,7 +129,10 @@ def test_income_template_is_positive_ledger_inflow_and_raises_balance(app_page):
 @pytest.mark.feature
 def test_income_default_category_is_income(app_page):
     page = app_page
-    _seed(page, "[" + _tmpl(1, 'Retainer', 'income', 500).replace("category: 'Other'", "category: ''") + "]")
+    _seed(page, "[" + _tmpl(1, 'Retainer', 'income', 500) + "]")
+    # The server's sanitizer already defaults a blank category to 'Other', so blank it in memory
+    # (no write) to exercise the ledger's own income default.
+    page.evaluate("() => { window.app.recurringTemplates.find(t => t.name === 'Retainer').category = ''; }")
     cat = page.evaluate("""async () => {
         const txs = await import('/src/ledgerTransactions.js').then(m => m.getLedgerTransactions(window.app));
         return txs.find(x => x.name === 'Retainer').category;
@@ -207,10 +210,17 @@ def test_health_ignores_archived_paused_and_transfer(app_page, extra, ttype):
     page = app_page
     _seed(page, "[]")
     base, _ = _health_net(page)
-    tmpl = _tmpl(1, 'Ignored', ttype, 700, extra=extra)
+    archived = 'archived: true' in extra
+    tmpl = _tmpl(1, 'Ignored', ttype, 700, extra=extra.replace(', archived: true', ''))
+    extra_accounts = ()
     if ttype == 'transfer':
         tmpl = tmpl.replace('targetAccountId: null', 'targetAccountId: 8801')
-    _seed(page, "[" + tmpl + "]")
+        extra_accounts = ({'id': 8801, 'name': 'RI Savings', 'type': 'Savings', 'startingBalance': 0},)
+    _seed(page, "[" + tmpl + "]", extra_accounts=extra_accounts)
+    if archived:
+        # Recurring templates' `archived` flag has no Postgres column (app gap, see task report),
+        # so it can't come back from the server: set it in memory (no write).
+        page.evaluate("() => { window.app.recurringTemplates.find(t => t.name === 'Ignored').archived = true; }")
     net, _ = _health_net(page)
     assert net == pytest.approx(base)
 
@@ -263,17 +273,22 @@ def test_sanitizer_keeps_income_and_rejects_unknown_type(app_page):
 @pytest.mark.feature
 def test_income_type_survives_storage_and_import_sanitize_round_trip(app_page):
     page = app_page
-    _seed(page, "[" + _tmpl(1, 'Retainer', 'income', 500) + "," + _tmpl(2, 'Old refund', 'reimbursement', 20) + "]")
-    page.evaluate("() => window.app.saveToStorage()")
-    page.wait_for_function("() => (localStorage.getItem('debtTrackerData') || '').includes('Retainer')", timeout=5000)
+    seed_state(page, {
+        'accounts': [{'id': 8800, 'name': 'RI Checking', 'type': 'Checking', 'startingBalance': 1000}],
+        'recurringTemplates': [
+            {'id': 1, 'name': 'Retainer', 'type': 'income', 'amount': 500, 'frequency': 'monthly', 'dayOfMonth': 15, 'startDate': '2026-01-01', 'endDate': None, 'category': 'Other', 'accountId': 8800, 'targetAccountId': None, 'paused': False, 'archived': False, 'skippedMonths': [], 'paidMonths': [], 'paidAmounts': {}},
+            {'id': 2, 'name': 'Old refund', 'type': 'reimbursement', 'amount': 20, 'frequency': 'monthly', 'dayOfMonth': 15, 'startDate': '2026-01-01', 'endDate': None, 'category': 'Other', 'accountId': 8800, 'targetAccountId': None, 'paused': False, 'archived': False, 'skippedMonths': [], 'paidMonths': [], 'paidAmounts': {}},
+        ],
+    })
     types = page.evaluate("""async () => {
-        window.app.loadFromStorage();
         const m = await import('/src/sanitizers.js');
         const imported = m.sanitizeParsedState({ recurringTemplates: JSON.parse(JSON.stringify(window.app.recurringTemplates)) });
-        return { loaded: window.app.recurringTemplates.map(t => t.type), imported: imported.recurringTemplates.map(t => t.type) };
+        const byName = list => Object.fromEntries(list.map(t => [t.name, t.type]));
+        return { loaded: byName(window.app.recurringTemplates), imported: byName(imported.recurringTemplates) };
     }""")
-    assert types['loaded'] == ['income', 'reimbursement']
-    assert types['imported'] == ['income', 'reimbursement']
+    expected = {'Retainer': 'income', 'Old refund': 'reimbursement'}
+    assert types['loaded'] == expected
+    assert types['imported'] == expected
 
 
 # --- Calendar feed ------------------------------------------------------------
@@ -303,7 +318,7 @@ def test_zero_amount_policy_treats_income_like_other_types(app_page):
     page.select_option('#recurringType', 'income')
     page.fill('#recurringAmount', '0')
     page.fill('#recurringStartDate', '2026-01-01')
-    page.select_option('#recurringAccount', '8800')
+    page.select_option('#recurringAccount', str(page.evaluate("() => window._acct")))
     page.click('#recurringFormSubmit')
     page.wait_for_selector('#recurringList .recurring-card', timeout=5000)
     assert page.evaluate("() => window.app.recurringTemplates[0].type") == 'income'

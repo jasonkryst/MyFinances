@@ -5,7 +5,7 @@ and emits income paydays — the same behavior as the client-side ICS download
 (tests/features/test_calendar_feed.py), since the two generators are separate
 copies of the same logic.
 
-Requires: docker compose up (postgres stack at localhost:32900).
+Requires: docker compose up (postgres stack; POSTGRES_TEST_BASE_URL, default localhost:32900).
 """
 import asyncio
 from datetime import date

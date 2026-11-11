@@ -47,11 +47,8 @@ export async function addTransfer(app, fromAccountId, toAccountId, amount, date,
     };
     app.transfers.push(entry);
 
-    app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        const saved = await pgPost(app, '/api/transfers', entry);
-        if (saved?.id) entry.id = saved.id;
-    }
+    const saved = await pgPost(app, '/api/transfers', entry);
+    if (saved?.id) entry.id = saved.id;
     refreshAfterTransferChange(app);
 
     return { success: true, entry };
@@ -73,10 +70,7 @@ export async function editTransfer(app, id, { fromAccountId, toAccountId, amount
     entry.date = sanitizeDateISO(date) || todayISO();
     entry.memo = normalizeText(memo, 200);
 
-    app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') {
-        await pgPatch(app, `/api/transfers/${id}`, entry);
-    }
+    await pgPatch(app, `/api/transfers/${id}`, entry);
     refreshAfterTransferChange(app);
 
     return { success: true, entry };
@@ -87,8 +81,7 @@ export async function deleteTransfer(app, id) {
     if (!confirmed) return { success: false };
 
     app.transfers = (app.transfers || []).filter(t => t.id !== id);
-    app.saveToStorage();
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/transfers/${id}`);
+    pgDelete(app, `/api/transfers/${id}`);
     refreshAfterTransferChange(app);
 
     return { success: true };

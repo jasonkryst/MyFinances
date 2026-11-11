@@ -6,7 +6,7 @@ Tests recurring transaction templates and auto-generation.
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, seed_state
 
 
 def _open_recurring_form(page):
@@ -17,16 +17,36 @@ def _open_recurring_form(page):
     page.wait_for_selector('#recurringFormBody:not([hidden])', timeout=5000)
 
 
-def _seed_account(page, account_id=7201, name="Recurring Test Account"):
-    """Create a bare account via app state so recurring templates can link to it."""
-    page.evaluate(f"""() => {{
-        const app = window.app;
-        app.accounts = [{{ id: {account_id}, name: '{name}', type: 'Checking', startingBalance: 1000 }}];
-        app.recurringTemplates = [];
-        app.incomes = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.emergencyFunds = []; app.sinkingFunds = [];
-        app.switchPage('recurring');
-    }}""")
+def _seed_account(page, name="Recurring Test Account"):
+    """Create a bare account on the server so recurring templates can link to it.
+
+    Exposes its server-assigned id as window._acct and returns it."""
+    return _seed_templates(page, "[]", name=name)[0]
+
+
+def _seed_templates(page, templates_js, name="Recurring Test Account"):
+    """Seed one account plus the given templates (a JS array literal) through the server.
+
+    Templates reference accountId 7201; the import remaps it onto the real account.
+    Returns (account_id, {seed_id: server_id}) -- also exposed in the page as
+    window._acct / window._rid so evaluate snippets can use them."""
+    templates = page.evaluate("() => (" + templates_js + ")")
+    seed_state(page, {
+        'accounts': [{'id': 7201, 'name': name, 'type': 'Checking', 'startingBalance': 1000}],
+        'recurringTemplates': templates,
+    })
+    ids = page.evaluate("""(tpls) => {
+        const rid = {};
+        for (const t of tpls) {
+            const m = window.app.recurringTemplates.find(x => x.name === t.name);
+            if (m) rid[t.id] = m.id;
+        }
+        window._rid = rid;
+        window._acct = window.app.accounts.find(a => a.name === arguments_name).id;
+        return [window._acct, rid];
+    }""".replace('arguments_name', repr(name)), templates)
+    page.evaluate("() => window.app.switchPage('recurring')")
+    return ids[0], {int(k): v for k, v in ids[1].items()}
 
 
 def _fill_recurring_form(page, name, amount, frequency, start_date, account_id, rec_type="subscription"):
@@ -70,8 +90,9 @@ def test_create_recurring_template_monthly(app_page):
     _seed_account(page)
     _open_recurring_form(page)
 
-    _fill_recurring_form(page, 'Netflix', '15.99', 'monthly', '2026-05-01', 7201)
+    _fill_recurring_form(page, 'Netflix', '15.99', 'monthly', '2026-05-01', page.evaluate("() => window._acct"))
     page.click('#recurringFormSubmit')
+    page.wait_for_selector('#recurringList .recurring-card-name', timeout=10000)  # add awaits the POST
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Netflix', "New monthly template should appear in the recurring list"
@@ -92,8 +113,9 @@ def test_create_recurring_template_biweekly(app_page):
     _seed_account(page)
     _open_recurring_form(page)
 
-    _fill_recurring_form(page, 'Lawn Care', '40', 'biweekly', '2026-05-04', 7201)
+    _fill_recurring_form(page, 'Lawn Care', '40', 'biweekly', '2026-05-04', page.evaluate("() => window._acct"))
     page.click('#recurringFormSubmit')
+    page.wait_for_selector('#recurringList .recurring-card-name', timeout=10000)  # add awaits the POST
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Lawn Care', "New biweekly template should appear in the recurring list"
@@ -111,8 +133,9 @@ def test_create_recurring_template_weekly(app_page):
     _seed_account(page)
     _open_recurring_form(page)
 
-    _fill_recurring_form(page, 'Cleaning Service', '25', 'weekly', '2026-05-06', 7201)
+    _fill_recurring_form(page, 'Cleaning Service', '25', 'weekly', '2026-05-06', page.evaluate("() => window._acct"))
     page.click('#recurringFormSubmit')
+    page.wait_for_selector('#recurringList .recurring-card-name', timeout=10000)  # add awaits the POST
 
     card_name = page.evaluate('() => document.querySelector("#recurringList .recurring-card-name")?.textContent || ""')
     assert card_name == 'Cleaning Service', "New weekly template should appear in the recurring list"
@@ -127,22 +150,16 @@ def test_create_recurring_template_weekly(app_page):
 def test_recurring_pause_state_persists_after_reload(app_page):
     """Pausing a recurring template persists through a full page reload (storage round-trip)."""
     page = app_page
-    _seed_account(page)
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
+    rid = _seed_templates(page, """[{
             id: 8801, name: 'Gym Membership', type: 'subscription', amount: 30,
             frequency: 'monthly', dayOfMonth: 1, category: 'Health',
             accountId: 7201, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }""")
+        }]""")[1]
 
-    pause_btn = page.query_selector('[data-recurring-action="pause"][data-recurring-id="8801"]')
+    pause_btn = page.query_selector(f'[data-recurring-action="pause"][data-recurring-id="{rid[8801]}"]')
     assert pause_btn, "Expected a Pause button on the seeded active template"
     pause_btn.click()
 
@@ -171,22 +188,16 @@ def test_recurring_pause_state_persists_after_reload(app_page):
 def test_recurring_pause_modal_opens_with_date_field(app_page):
     """Clicking Pause opens a modal with an optional resume-date input, rather than pausing immediately."""
     page = app_page
-    _seed_account(page)
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
+    rid = _seed_templates(page, """[{
             id: 8901, name: 'Streaming Sub', type: 'subscription', amount: 12,
             frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
             accountId: 7201, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }""")
+        }]""")[1]
 
-    page.click('[data-recurring-action="pause"][data-recurring-id="8901"]')
+    page.click(f'[data-recurring-action="pause"][data-recurring-id="{rid[8901]}"]')
     page.wait_for_selector('#recurringPauseModal', timeout=5000)
 
     date_input = page.query_selector('#recurringPauseUntilInput')
@@ -194,7 +205,7 @@ def test_recurring_pause_modal_opens_with_date_field(app_page):
     assert date_input.get_attribute('type') == 'date', "Resume-date input should be a date picker"
 
     # Pausing is not applied until confirmed
-    is_paused = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8901).paused")
+    is_paused = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === window._rid[8901]).paused")
     assert is_paused is False, "Template should not be paused until the modal is confirmed"
 
     page.click('#recurringPauseCancelBtn')
@@ -205,27 +216,21 @@ def test_recurring_pause_modal_opens_with_date_field(app_page):
 def test_recurring_pause_with_resume_date_stores_pause_until(app_page):
     """Confirming the pause modal with a resume date stores pauseUntil on the template."""
     page = app_page
-    _seed_account(page)
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
+    rid = _seed_templates(page, """[{
             id: 8902, name: 'Gym', type: 'subscription', amount: 40,
             frequency: 'monthly', dayOfMonth: 1, category: 'Health',
             accountId: 7201, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }""")
+        }]""")[1]
 
-    page.click('[data-recurring-action="pause"][data-recurring-id="8902"]')
+    page.click(f'[data-recurring-action="pause"][data-recurring-id="{rid[8902]}"]')
     page.wait_for_selector('#recurringPauseModal', timeout=5000)
     page.fill('#recurringPauseUntilInput', '2099-12-31')
     page.click('#recurringPauseConfirmBtn')
 
-    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8902)")
+    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === window._rid[8902])")
     assert tmpl['paused'] is True, "Template should be paused after confirming"
     assert tmpl['pauseUntil'] == '2099-12-31', "pauseUntil should be stored as entered"
 
@@ -237,26 +242,20 @@ def test_recurring_pause_with_resume_date_stores_pause_until(app_page):
 def test_recurring_pause_without_resume_date_is_indefinite(app_page):
     """Confirming the pause modal with no date leaves pauseUntil null (indefinite pause)."""
     page = app_page
-    _seed_account(page)
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
+    rid = _seed_templates(page, """[{
             id: 8903, name: 'Indefinite Pause Sub', type: 'subscription', amount: 20,
             frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
             accountId: 7201, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }""")
+        }]""")[1]
 
-    page.click('[data-recurring-action="pause"][data-recurring-id="8903"]')
+    page.click(f'[data-recurring-action="pause"][data-recurring-id="{rid[8903]}"]')
     page.wait_for_selector('#recurringPauseModal', timeout=5000)
     page.click('#recurringPauseConfirmBtn')
 
-    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8903)")
+    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === window._rid[8903])")
     assert tmpl['paused'] is True
     assert tmpl['pauseUntil'] is None, "pauseUntil should be null when no date was entered"
 
@@ -265,20 +264,14 @@ def test_recurring_pause_without_resume_date_is_indefinite(app_page):
 def test_recurring_pause_until_in_future_stays_paused(app_page):
     """A template paused with a future pauseUntil date still shows Paused and has no this-month occurrence."""
     page = app_page
-    _seed_account(page)
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
+    rid = _seed_templates(page, """[{
             id: 8904, name: 'Future Resume', type: 'subscription', amount: 10,
             frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
             accountId: 7201, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: true, pauseUntil: '2099-01-01', skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }""")
+        }]""")[1]
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' in badge_text, "Template paused with a future resume date should still show Paused"
@@ -291,54 +284,42 @@ def test_recurring_pause_until_in_future_stays_paused(app_page):
 def test_recurring_pause_until_in_past_auto_resumes(app_page):
     """A template whose pauseUntil date has already passed is treated as active again, with no manual unpause."""
     page = app_page
-    _seed_account(page)
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
+    rid = _seed_templates(page, """[{
             id: 8905, name: 'Auto Resumed Sub', type: 'subscription', amount: 25,
             frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
             accountId: 7201, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: true, pauseUntil: '2020-01-01', skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }""")
+        }]""")[1]
 
     badge_text = page.evaluate('() => document.querySelector("#recurringList .recurring-badge")?.textContent || ""')
     assert 'Paused' not in badge_text, \
         "A pauseUntil date in the past should make the template render as active, not Paused"
 
-    pause_btn = page.query_selector('[data-recurring-action="pause"][data-recurring-id="8905"]')
+    pause_btn = page.query_selector(f'[data-recurring-action="pause"][data-recurring-id="{rid[8905]}"]')
     assert pause_btn, "An auto-resumed template should show a Pause button again, not Resume"
-    assert page.query_selector('[data-recurring-action="unpause"][data-recurring-id="8905"]') is None
+    assert page.query_selector(f'[data-recurring-action="unpause"][data-recurring-id="{rid[8905]}"]') is None
 
 
 @pytest.mark.feature
 def test_recurring_manual_unpause_clears_pause_until(app_page):
     """Manually resuming a template clears any stored pauseUntil date."""
     page = app_page
-    _seed_account(page)
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
+    rid = _seed_templates(page, """[{
             id: 8906, name: 'Manual Resume Sub', type: 'subscription', amount: 18,
             frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
             accountId: 7201, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: true, pauseUntil: '2099-06-15', skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.switchPage('recurring');
-    }""")
+        }]""")[1]
 
-    resume_btn = page.query_selector('[data-recurring-action="unpause"][data-recurring-id="8906"]')
+    resume_btn = page.query_selector(f'[data-recurring-action="unpause"][data-recurring-id="{rid[8906]}"]')
     assert resume_btn, "Expected a Resume button on the paused template"
     resume_btn.click()
 
-    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === 8906)")
+    tmpl = page.evaluate("() => window.app.recurringTemplates.find(t => t.id === window._rid[8906])")
     assert tmpl['paused'] is False
     assert tmpl['pauseUntil'] is None, "Manual unpause should clear pauseUntil"
 
@@ -347,30 +328,29 @@ def test_recurring_manual_unpause_clears_pause_until(app_page):
 def test_recurring_skip_month_excludes_only_that_month(app_page):
     """Skipping a specific month excludes that month's occurrence from the ledger while leaving other months intact."""
     page = app_page
-    _seed_account(page)
+    _seed_templates(page, """[{
+        id: 9001, name: 'Internet Bill', type: 'subscription', amount: 60,
+        frequency: 'monthly', dayOfMonth: 1, category: 'Utilities',
+        accountId: 7201, targetAccountId: null,
+        startDate: '2026-01-01', endDate: null,
+        paused: false, skippedMonths: [], paidMonths: []
+    }]""")
 
     result = page.evaluate("""async () => {
         const app = window.app;
         const ledgerMod = await import('/src/ledgerTransactions.js');
-        app.recurringTemplates = [{
-            id: 9001, name: 'Internet Bill', type: 'subscription', amount: 60,
-            frequency: 'monthly', dayOfMonth: 1, category: 'Utilities',
-            accountId: 7201, targetAccountId: null,
-            startDate: '2026-01-01', endDate: null,
-            paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
+        const tid = window._rid[9001];
 
         // Skip June 2026 only
-        app.skipRecurringOccurrence(9001, '2026-06', false);
+        app.skipRecurringOccurrence(tid, '2026-06', false);
 
         return {
-            juneCount: ledgerMod.getLedgerTransactionsForMonth(app, 2026, 5, 7201)
-                .filter(tx => tx.sourceId === 9001).length,
-            julyCount: ledgerMod.getLedgerTransactionsForMonth(app, 2026, 6, 7201)
-                .filter(tx => tx.sourceId === 9001).length,
-            mayCount: ledgerMod.getLedgerTransactionsForMonth(app, 2026, 4, 7201)
-                .filter(tx => tx.sourceId === 9001).length
+            juneCount: ledgerMod.getLedgerTransactionsForMonth(app, 2026, 5, window._acct)
+                .filter(tx => tx.sourceId === tid).length,
+            julyCount: ledgerMod.getLedgerTransactionsForMonth(app, 2026, 6, window._acct)
+                .filter(tx => tx.sourceId === tid).length,
+            mayCount: ledgerMod.getLedgerTransactionsForMonth(app, 2026, 4, window._acct)
+                .filter(tx => tx.sourceId === tid).length
         };
     }""")
 
@@ -389,18 +369,17 @@ def test_recurring_template_linked_to_account_affects_balance(app_page):
 
     result = page.evaluate("""() => {
         const app = window.app;
-        const balanceBefore = app.computeAccountBalance(7201, 2026, 5);
+        const balanceBefore = app.computeAccountBalance(window._acct, 2026, 5);
 
         app.recurringTemplates = [{
             id: 9101, name: 'Streaming Sub', type: 'subscription', amount: 50,
             frequency: 'monthly', dayOfMonth: 1, category: 'Subscription',
-            accountId: 7201, targetAccountId: null,
+            accountId: window._acct, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
         }];
-        app.saveToStorage();
 
-        const balanceAfter = app.computeAccountBalance(7201, 2026, 5);
+        const balanceAfter = app.computeAccountBalance(window._acct, 2026, 5);
         return { balanceBefore, balanceAfter };
     }""")
 
@@ -420,18 +399,17 @@ def test_recurring_reimbursement_linked_to_account_increases_balance(app_page):
 
     result = page.evaluate("""() => {
         const app = window.app;
-        const balanceBefore = app.computeAccountBalance(7201, 2026, 5);
+        const balanceBefore = app.computeAccountBalance(window._acct, 2026, 5);
 
         app.recurringTemplates = [{
             id: 9102, name: 'Expense Reimbursement', type: 'reimbursement', amount: 75,
             frequency: 'monthly', dayOfMonth: 1, category: 'Reimbursement',
-            accountId: 7201, targetAccountId: null,
+            accountId: window._acct, targetAccountId: null,
             startDate: '2026-01-01', endDate: null,
             paused: false, skippedMonths: [], paidMonths: []
         }];
-        app.saveToStorage();
 
-        const balanceAfter = app.computeAccountBalance(7201, 2026, 5);
+        const balanceAfter = app.computeAccountBalance(window._acct, 2026, 5);
         return { balanceBefore, balanceAfter };
     }""")
 
@@ -451,7 +429,7 @@ def test_recurring_invalid_amount_rejected_via_ui(app_page):
     _seed_account(page)
     _open_recurring_form(page)
 
-    _fill_recurring_form(page, 'Bad Amount Sub', '-5', 'monthly', '2026-05-01', 7201)
+    _fill_recurring_form(page, 'Bad Amount Sub', '-5', 'monthly', '2026-05-01', page.evaluate("() => window._acct"))
     page.click('#recurringFormSubmit')
 
     templates_count = page.evaluate('() => (window.app.recurringTemplates || []).length')
@@ -465,22 +443,19 @@ def test_recurring_negative_amount_sanitized_on_direct_save(app_page):
     page = app_page
     _seed_account(page)
 
+    seed_state(page, {
+        'accounts': [{'id': 7201, 'name': 'Recurring Test Account', 'type': 'Checking', 'startingBalance': 1000}],
+        'recurringTemplates': [{
+            'id': 9201, 'name': 'Negative Amount', 'type': 'subscription', 'amount': -25,
+            'frequency': 'monthly', 'dayOfMonth': 1, 'category': 'Other',
+            'accountId': 7201, 'targetAccountId': None,
+            'startDate': '2026-01-01', 'endDate': None,
+            'paused': False, 'skippedMonths': [], 'paidMonths': [],
+        }],
+    })
     result = page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
-            id: 9201, name: 'Negative Amount', type: 'subscription', amount: -25,
-            frequency: 'monthly', dayOfMonth: 1, category: 'Other',
-            accountId: 7201, targetAccountId: null,
-            startDate: '2026-01-01', endDate: null,
-            paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-
-        // Reload from storage to force sanitization to run
-        const raw = localStorage.getItem('debtTrackerData');
-        app.loadFromStorage();
-        const reloaded = app.recurringTemplates.find(t => t.id === 9201) || app.recurringTemplates[0];
-        return { amount: reloaded ? reloaded.amount : null, rawHadNegative: raw.includes('-25') };
+        const reloaded = window.app.recurringTemplates.find(t => t.name === 'Negative Amount');
+        return { amount: reloaded ? reloaded.amount : null };
     }""")
 
     assert result['amount'] is not None, "Template should survive the storage round-trip"
@@ -496,18 +471,18 @@ def test_recurring_invalid_start_date_sanitized_to_null(app_page):
     page = app_page
     _seed_account(page)
 
+    seed_state(page, {
+        'accounts': [{'id': 7201, 'name': 'Recurring Test Account', 'type': 'Checking', 'startingBalance': 1000}],
+        'recurringTemplates': [{
+            'id': 9301, 'name': 'Bad Start Date', 'type': 'subscription', 'amount': 10,
+            'frequency': 'monthly', 'dayOfMonth': 1, 'category': 'Other',
+            'accountId': 7201, 'targetAccountId': None,
+            'startDate': 'not-a-date', 'endDate': None,
+            'paused': False, 'skippedMonths': [], 'paidMonths': [],
+        }],
+    })
     result = page.evaluate("""() => {
-        const app = window.app;
-        app.recurringTemplates = [{
-            id: 9301, name: 'Bad Start Date', type: 'subscription', amount: 10,
-            frequency: 'monthly', dayOfMonth: 1, category: 'Other',
-            accountId: 7201, targetAccountId: null,
-            startDate: 'not-a-date', endDate: null,
-            paused: false, skippedMonths: [], paidMonths: []
-        }];
-        app.saveToStorage();
-        app.loadFromStorage();
-        const reloaded = app.recurringTemplates.find(t => t.id === 9301) || app.recurringTemplates[0];
+        const reloaded = window.app.recurringTemplates.find(t => t.name === 'Bad Start Date');
         return { startDate: reloaded ? reloaded.startDate : 'MISSING' };
     }""")
 
@@ -528,7 +503,7 @@ def test_recurring_missing_start_date_via_ui_defaults_to_today(app_page):
     page.select_option('#recurringType', 'subscription')
     page.fill('#recurringAmount', '12')
     page.select_option('#recurringFrequency', 'monthly')
-    page.select_option('#recurringAccount', '7201')
+    page.select_option('#recurringAccount', str(page.evaluate("() => window._acct")))
     # Deliberately leave #recurringStartDate blank
     page.click('#recurringFormSubmit')
 

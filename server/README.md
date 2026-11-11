@@ -1,8 +1,9 @@
-﻿# MyFinances Server (Phase 1)
+﻿# MyFinances Server
 
-Self-hosted Node.js + PostgreSQL backend for MyFinances multi-device sync.
-Optional — the browser app works fully without this; see the root
-`CLAUDE.md` for how it fits into the overall architecture.
+Self-hosted Node.js + PostgreSQL API for MyFinances. Since 7.0.0 it is
+**required**: it is the app's only storage, and the browser keeps no financial
+data. See the root `CLAUDE.md` ("Storage (PostgreSQL)") for how the frontend
+boots against it.
 
 ## First-time setup
 
@@ -16,7 +17,7 @@ stack, runs migrations, and creates the admin user in one step:
     # Windows
     .\setup.ps1
 
-See the "PostgreSQL Backend Deployment" section in `DEPLOYMENT.md` for
+See the "PostgreSQL Server Setup (Required)" section in `DEPLOYMENT.md` for
 full prerequisites and Portainer GitOps wiring.
 
 ## Local development (bare Node, no Docker)
@@ -27,9 +28,10 @@ Set `DATABASE_URL` directly and run the server without the Docker entrypoint:
     npm install
     npm run migrate up
     npm start
-    # Then open http://localhost:4000 in a browser (default PORT; override via the PORT env var)
-    # The app will show a setup wizard to create the first user.
-    # Alternatively, run:  node scripts/create-user.js  for headless setup.
+    # Serves the API only on http://localhost:4000 (default PORT; override via the PORT env var).
+    # The frontend is served by the stack's nginx container, which proxies /api/, /auth/
+    # and /calendar.ics here; run the full stack (docker compose up -d) to use the app.
+    # Create the first user with:  node scripts/create-user.js
 
 ## Tests
 

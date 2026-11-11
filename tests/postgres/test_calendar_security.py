@@ -1,13 +1,13 @@
 """Server-side security tests for the calendar feed public endpoint (issue #212).
 
-Requires: docker compose up (postgres stack at localhost:32900).
+Requires: docker compose up (postgres stack; POSTGRES_TEST_BASE_URL, default localhost:32900).
 Tests verify response headers and token lifecycle behavior.
 """
 import pytest
 
 pytestmark = pytest.mark.asyncio
 
-BASE = 'http://localhost:32900'
+from tests.postgres.conftest import BASE_URL as BASE, sign_in
 
 
 async def _wait_for_app_ready(page):
@@ -18,13 +18,8 @@ async def _wait_for_app_ready(page):
 
 
 async def _login(page, base_url, credentials):
-    await page.goto(base_url)
-    await page.locator('#loginGate').wait_for(state='visible', timeout=8000)
-    await page.fill('#loginGateEmail', credentials['email'])
-    await page.fill('#loginGatePassword', credentials['password'])
-    async with page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
-        await page.click('.login-gate-submit')
-    await page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
+    # Session comes from the shared harness (no per-test UI login).
+    await sign_in(page, base_url)
     await _wait_for_app_ready(page)
 
 

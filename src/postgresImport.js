@@ -1,8 +1,14 @@
 import { getCsrfCookie } from './storage.js';
-import { pgDeleteAll, pgDeleteMilestones } from './postgresSync.js';
-import { showPgErrorToast } from './ui.js';
+import { pgDeleteAll, pgDeleteMilestones, seedShadows } from './postgresSync.js';
+import { showSyncErrorBanner } from './ui.js';
 import { sanitizeFiniteNumber, normalizeText } from './utils.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
+import { mapWithConcurrency, mapSettledWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
+import { remapLedgerEntries, ledgerKeyDropWarning } from './ledgerKeyRemap.js';
+
+// Every per-record fan-out below goes through this pool (#519): an unbounded
+// Promise.all of a few thousand requests made Chromium abort some of them.
+const pool = (items, fn) => mapWithConcurrency(items, IMPORT_CONCURRENCY, fn);
 
 // CRUD resources that carry accountId / targetAccountId FK references
 const CRUD_RESOURCES = [
@@ -45,6 +51,56 @@ function remapFk(record, idMap, personIdMap = {}) {
         r.ownershipSplit = Object.fromEntries(Object.entries(r.ownershipSplit).filter(([k]) => personIdMap[k] != null).map(([k, v]) => [personIdMap[k], v]));
     }
     return r;
+}
+
+// Map(String(oldId) -> newId) from records zipped with their POST responses.
+function idPairs(records, results) {
+    const m = new Map();
+    (records || []).forEach((r, i) => {
+        const rec = results?.[i];
+        if (rec && r?.id != null) m.set(String(r.id), rec.id);
+    });
+    return m;
+}
+
+// Savings rows (#520) need each fund's export-time account to disambiguate
+// emergency vs sinking fund ids; see ledgerKeyRemap.js.
+function savingsPairs(records, results) {
+    const out = [];
+    (records || []).forEach((r, i) => {
+        const rec = results?.[i];
+        if (rec && r?.id != null) out.push({ oldId: r.id, newId: rec.id, oldAccountId: r.accountId ?? null });
+    });
+    return out;
+}
+
+// Rewrite the override/cleared keys (`type|sourceId|accountId|date`) to the
+// new server ids (#520). Keys whose record or account isn't in the import are
+// dropped, with one summary warning per map when the caller collects them.
+function remapKeyedEntries(src, ledgerIdMaps, warnings) {
+    const o = remapLedgerEntries(Object.entries(src.ledgerAmountOverrides || {}), ledgerIdMaps);
+    const c = remapLedgerEntries(Object.entries(src.ledgerClearedTransactions || {}), ledgerIdMaps);
+    if (Array.isArray(warnings)) {
+        for (const w of [ledgerKeyDropWarning('Ledger Override', o.dropped), ledgerKeyDropWarning('Ledger Cleared Flag', c.dropped)]) {
+            if (w) warnings.push(w);
+        }
+    }
+    return { overrideEntries: o.entries, clearedEntries: c.entries };
+}
+
+// The keyed upserts (PUT is idempotent, so safe in replace and merge) as
+// thunks, so the caller's pool decides when each request starts.
+function keyedPuts(src, overrideEntries, clearedEntries, idMap, personIdMap) {
+    return [
+        ...overrideEntries.map(([key, val]) => () =>
+            apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap, personIdMap))),
+        ...clearedEntries.map(([key, val]) => () =>
+            apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)),
+        ...(src.monthlySnapshots || []).map(s => () =>
+            apiFetch('PUT', `/api/net-worth-snapshots/${encodeURIComponent(s.date)}`, s)),
+        ...(src.settings || []).map(s => () =>
+            apiFetch('PUT', `/api/settings/${encodeURIComponent(s.key)}`, s)),
+    ];
 }
 
 // Throws on non-OK responses so callers can catch and rollback.
@@ -109,11 +165,9 @@ function snapshotAppState(app) {
 
 // Post accounts first (to get server IDs), then post all other resources with
 // remapped FK references.  Returns idMap for app.* update after success.
-async function postAllResources(data) {
+async function postAllResources(data, warnings) {
     // Accounts first -- server assigns bigserial IDs we need for FK remapping
-    const accountResults = await Promise.all(
-        (data.accounts || []).map(acc => apiFetch('POST', '/api/accounts', acc))
-    );
+    const accountResults = await pool(data.accounts || [], acc => apiFetch('POST', '/api/accounts', acc));
 
     const idMap = {};
     (data.accounts || []).forEach((acc, i) => {
@@ -121,47 +175,34 @@ async function postAllResources(data) {
     });
 
     // Persons second — IDs needed for personId/personIds FK remapping on debts/incomes
-    const personResults = await Promise.all(
-        (data.persons || []).map(p => apiFetch('POST', '/api/persons', p))
-    );
+    const personResults = await pool(data.persons || [], p => apiFetch('POST', '/api/persons', p));
     const personIdMap = {};
     (data.persons || []).forEach((p, i) => {
         if (personResults[i]) personIdMap[p.id] = personResults[i].id;
     });
 
-    // All non-account/person CRUD arrays in parallel with remapped FK references
-    const resourceResults = await Promise.all(
-        CRUD_RESOURCES.map(({ field, path }) =>
-            Promise.all(
-                (data[field] || []).map(record => apiFetch('POST', path, remapFk(record, idMap, personIdMap)))
-            )
-        )
-    );
+    // All non-account/person CRUD arrays with remapped FK references, one
+    // resource at a time so the pool bounds the total in flight.
+    const resourceResults = [];
+    for (const { field, path } of CRUD_RESOURCES) {
+        resourceResults.push(await pool(data[field] || [],
+            record => apiFetch('POST', path, remapFk(record, idMap, personIdMap))));
+    }
 
-    // Keyed resources -- PUT is always upsert, safe in both replace and merge
-    const overrideEntries = Object.entries(data.ledgerAmountOverrides || {});
-    const clearedEntries = Object.entries(data.ledgerClearedTransactions || {});
-    await Promise.all([
-        ...overrideEntries.map(([key, val]) =>
-            apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap, personIdMap))
-        ),
-        ...clearedEntries.map(([key, val]) =>
-            apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)
-        ),
-        ...(data.monthlySnapshots || []).map(s =>
-            apiFetch('PUT', `/api/net-worth-snapshots/${encodeURIComponent(s.date)}`, s)
-        ),
-        ...(data.settings || []).map(s =>
-            apiFetch('PUT', `/api/settings/${encodeURIComponent(s.key)}`, s)
-        ),
-    ]);
+    // Keyed resources -- PUT is always upsert, safe in both replace and merge.
+    // Their keys embed record and account ids, so remap them first (#520).
+    const ledgerIdMaps = { accounts: new Map(Object.entries(idMap).map(([k, v]) => [String(k), v])) };
+    CRUD_RESOURCES.forEach(({ field }, i) => { ledgerIdMaps[field] = idPairs(data[field], resourceResults[i]); });
+    ledgerIdMaps.savings = [
+        ...savingsPairs(data.emergencyFunds, resourceResults[CRUD_RESOURCES.findIndex(r => r.field === 'emergencyFunds')]),
+        ...savingsPairs(data.sinkingFunds, resourceResults[CRUD_RESOURCES.findIndex(r => r.field === 'sinkingFunds')]),
+    ];
+    const { overrideEntries, clearedEntries } = remapKeyedEntries(data, ledgerIdMaps, warnings);
+    await pool(keyedPuts(data, overrideEntries, clearedEntries, idMap, personIdMap), put => put());
 
     // Milestones -- ON CONFLICT DO NOTHING server-side, safe to call in both modes
-    await Promise.all(
-        (data.netWorthMilestonesAwarded || []).map(m =>
-            apiFetch('POST', '/api/plan-settings/milestones', { milestone: m })
-        )
-    );
+    await pool(data.netWorthMilestonesAwarded || [],
+        m => apiFetch('POST', '/api/plan-settings/milestones', { milestone: m }));
 
     // Plan-settings scalars
     await apiFetch('PATCH', '/api/plan-settings', {
@@ -183,10 +224,9 @@ async function postAllResources(data) {
         const rec = resourceResults[debtsIndex][i];
         if (rec) debtIdMap.set(d.id, rec.id);
     });
-    const balanceHistoryResults = await Promise.all(
-        remapHistoryOwners(data.balanceHistory || [], debtIdMap, accountIdMapFrom(idMap))
-            .map(h => apiFetch('POST', '/api/balance-history', h))
-    );
+    const balanceHistoryResults = await pool(
+        remapHistoryOwners(data.balanceHistory || [], debtIdMap, accountIdMapFrom(idMap)),
+        h => apiFetch('POST', '/api/balance-history', h));
 
     return { accountResults, personResults, resourceResults, balanceHistoryResults, idMap, personIdMap, overrideEntries, clearedEntries };
 }
@@ -273,7 +313,7 @@ async function doReplaceRollback(app, snapshot) {
         applyResultsToApp(app, snapshotToPostData(snapshot), results);
     } catch (rollbackErr) {
         console.error('[pgImport] Rollback also failed — data may be inconsistent:', rollbackErr);
-        showPgErrorToast();
+        showSyncErrorBanner();
     }
 }
 
@@ -281,7 +321,8 @@ async function doReplaceRollback(app, snapshot) {
 
 // Replace-mode import: wipe server, re-post everything from clean, rollback to
 // snapshot on any failure.
-export async function replaceForPostgres(app, clean, incomingStrategy) {
+// `warnings` (optional) collects import warnings, e.g. dropped ledger keys.
+export async function replaceForPostgres(app, clean, incomingStrategy, warnings) {
     const snapshot = snapshotAppState(app);
 
     const data = {
@@ -292,19 +333,22 @@ export async function replaceForPostgres(app, clean, incomingStrategy) {
 
     try {
         await pgDeleteAll(app);
-        const results = await postAllResources(data);
+        const results = await postAllResources(data, warnings);
         applyResultsToApp(app, data, results);
     } catch (err) {
         console.error('[pgImport] Replace failed, rolling back:', err);
         await doReplaceRollback(app, snapshot);
-        showPgErrorToast();
+        showSyncErrorBanner();
         throw err;
+    } finally {
+        // Every collection now holds server rows (imported or restored) (#578).
+        seedShadows(app);
     }
 }
 
 // Merge-mode import: POST only new records (by name), PUT keyed resources,
 // rollback only newly created records on failure.
-export async function mergeForPostgres(app, clean, incomingStrategy) {
+export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
     const snapshot = snapshotAppState(app);
     const newlyCreatedPaths = [];
 
@@ -324,9 +368,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
         }
 
         // POST new accounts, collect server IDs
-        const newAccountResults = await Promise.all(
-            newAccounts.map(acc => apiFetch('POST', '/api/accounts', acc))
-        );
+        const newAccountResults = await pool(newAccounts, acc => apiFetch('POST', '/api/accounts', acc));
         newAccounts.forEach((acc, i) => {
             const rec = newAccountResults[i];
             if (rec) {
@@ -348,9 +390,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
                 newPersons.push(p);
             }
         }
-        const newPersonResults = await Promise.all(
-            newPersons.map(p => apiFetch('POST', '/api/persons', p))
-        );
+        const newPersonResults = await pool(newPersons, p => apiFetch('POST', '/api/persons', p));
         newPersons.forEach((p, i) => {
             const rec = newPersonResults[i];
             if (rec) {
@@ -360,24 +400,40 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             }
         });
 
-        // POST new records for each CRUD resource (dedup by name where applicable)
+        // POST new records for each CRUD resource (dedup by name where applicable).
+        // ledgerIdMaps records where every incoming id ended up (#520): a
+        // name-matched record resolves to the existing one, a posted record to
+        // its new id, so imported Ledger keys attach to the surviving record.
+        const ledgerIdMaps = { accounts: new Map(Object.entries(idMap).map(([k, v]) => [String(k), v])), savings: [] };
         for (const { field, path } of CRUD_RESOURCES) {
             const dedup = MERGE_DEDUP_BY_NAME.has(field);
-            const existingNames = dedup
-                ? new Set((app[field] || []).map(r => r.name?.toLowerCase()))
+            const existingByName = dedup
+                ? new Map((app[field] || []).map(r => [r.name?.toLowerCase(), r.id]))
                 : null;
+            const fieldMap = new Map();
 
-            const toPost = (clean[field] || [])
-                .filter(r => !dedup || !existingNames.has(r.name?.toLowerCase()))
-                .map(r => remapFk(r, idMap, personIdMap));
+            const incoming = [];
+            for (const r of (clean[field] || [])) {
+                const existingId = dedup ? existingByName.get(r.name?.toLowerCase()) : undefined;
+                if (existingId != null) {
+                    if (r?.id != null) fieldMap.set(String(r.id), existingId);
+                } else {
+                    incoming.push(r);
+                }
+            }
 
-            const results = await Promise.all(toPost.map(r => apiFetch('POST', path, r)));
+            const results = await pool(incoming.map(r => remapFk(r, idMap, personIdMap)), r => apiFetch('POST', path, r));
             results.forEach(rec => {
                 if (rec) {
                     newlyCreatedPaths.push(`${path}/${rec.id}`);
                     app[field].push(rec);
                 }
             });
+            for (const [k, v] of idPairs(incoming, results)) fieldMap.set(k, v);
+            ledgerIdMaps[field] = fieldMap;
+            if (field === 'emergencyFunds' || field === 'sinkingFunds') {
+                ledgerIdMaps.savings.push(...savingsPairs(incoming, results));
+            }
         }
 
         // Balance history: debts are name-deduped, so resolve each incoming
@@ -388,7 +444,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             app.balanceHistory || [],
             remapHistoryOwners(clean.balanceHistory || [], debtIdMap, accountIdMapFrom(idMap))
         );
-        const historyResults = await Promise.all(historyToPost.map(h => apiFetch('POST', '/api/balance-history', h)));
+        const historyResults = await pool(historyToPost, h => apiFetch('POST', '/api/balance-history', h));
         historyResults.forEach(rec => {
             if (rec) {
                 newlyCreatedPaths.push(`/api/balance-history/${rec.id}`);
@@ -396,23 +452,9 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             }
         });
 
-        // Keyed resources -- always upsert (safe merge semantics)
-        const overrideEntries = Object.entries(clean.ledgerAmountOverrides || {});
-        const clearedEntries = Object.entries(clean.ledgerClearedTransactions || {});
-        await Promise.all([
-            ...overrideEntries.map(([key, val]) =>
-                apiFetch('PUT', `/api/ledger-overrides/${encodeURIComponent(key)}`, remapFk(val, idMap, personIdMap))
-            ),
-            ...clearedEntries.map(([key, val]) =>
-                apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)
-            ),
-            ...(clean.monthlySnapshots || []).map(s =>
-                apiFetch('PUT', `/api/net-worth-snapshots/${encodeURIComponent(s.date)}`, s)
-            ),
-            ...(clean.settings || []).map(s =>
-                apiFetch('PUT', `/api/settings/${encodeURIComponent(s.key)}`, s)
-            ),
-        ]);
+        // Keyed resources -- always upsert (safe merge semantics), keys remapped (#520)
+        const { overrideEntries, clearedEntries } = remapKeyedEntries(clean, ledgerIdMaps, warnings);
+        await pool(keyedPuts(clean, overrideEntries, clearedEntries, idMap, personIdMap), put => put());
 
         // Merge keyed resources into app state
         for (const [key, val] of overrideEntries) {
@@ -433,11 +475,8 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
 
         // Milestones -- additive, ON CONFLICT DO NOTHING server-side
         const existingMilestones = new Set(app.netWorthMilestonesAwarded || []);
-        await Promise.all(
-            (clean.netWorthMilestonesAwarded || []).map(m =>
-                apiFetch('POST', '/api/plan-settings/milestones', { milestone: m })
-            )
-        );
+        await pool(clean.netWorthMilestonesAwarded || [],
+            m => apiFetch('POST', '/api/plan-settings/milestones', { milestone: m }));
         for (const m of (clean.netWorthMilestonesAwarded || [])) {
             if (!existingMilestones.has(m)) {
                 (app.netWorthMilestonesAwarded = app.netWorthMilestonesAwarded || []).push(m);
@@ -511,12 +550,12 @@ export async function mergeForPostgres(app, clean, incomingStrategy) {
             _forecastNotableThresholdPct: snapshot.forecastSettings.notableThresholdPct
         });
         // Delete only the records created in this session
-        await Promise.allSettled(
-            newlyCreatedPaths.map(path =>
-                fetch(path, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfCookie() } })
-            )
-        );
-        showPgErrorToast();
+        await mapSettledWithConcurrency(newlyCreatedPaths, IMPORT_CONCURRENCY,
+            path => fetch(path, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfCookie() } }));
+        showSyncErrorBanner();
         throw err;
+    } finally {
+        // Kept and newly created records are all server rows (#578).
+        seedShadows(app);
     }
 }

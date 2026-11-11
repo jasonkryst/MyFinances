@@ -4,6 +4,8 @@ Run: pytest tests/postgres/test_postgres_mutations.py -v
 """
 import pytest
 
+from tests.postgres.conftest import sign_in
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -23,13 +25,8 @@ async def _wait_for_app_ready(page):
 
 
 async def _login(page, base_url, credentials):
-    await page.goto(base_url)
-    await page.locator('#loginGate').wait_for(state='visible', timeout=8000)
-    await page.fill('#loginGateEmail', credentials['email'])
-    await page.fill('#loginGatePassword', credentials['password'])
-    async with page.expect_response(lambda r: '/auth/login' in r.url, timeout=10000):
-        await page.click('.login-gate-submit')
-    await page.locator('#loginGate').wait_for(state='hidden', timeout=12000)
+    # Session comes from the shared harness (no per-test UI login); server data is wiped first.
+    await sign_in(page, base_url, wipe=True)
     await _wait_for_app_ready(page)
 
 
@@ -343,7 +340,7 @@ async def test_retirement_target_date_persists(pg_page, base_url, credentials):
         timeout=8000
     ):
         await pg_page.evaluate("""
-            () => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(); }
+            () => { window.app.retirementTargetDate = '2050-01-01'; window.app.saveToStorage(['retirementTargetDate']); }
         """)
 
     await pg_page.reload()

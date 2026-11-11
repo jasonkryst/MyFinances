@@ -12,6 +12,8 @@ wrapper, which hardcodes alert()/confirm()-based callbacks.
 
 import pytest
 
+from tests.conftest import seed_state
+
 
 @pytest.mark.feature
 def test_import_malformed_json_triggers_invalid_callback(app_page):
@@ -580,9 +582,12 @@ def test_import_drops_ledger_override_with_non_finite_amount(app_page):
     result = page.evaluate("""async () => {
         const app = window.app;
         const mod = await import('/src/dataExport.js');
+        // Every key references an imported debt and account, so only the
+        // amount decides what survives (unresolvable keys are dropped, #520).
         const payload = {
-            debts: [{ id: 1, name: 'Anchor Debt', debtType: 'creditCard',
-                      accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 }],
+            accounts: [{ id: 1, name: 'Anchor Checking', type: 'Checking', startingBalance: 100 }],
+            debts: [1, 2, 3].map(id => ({ id, name: `Anchor Debt ${id}`, debtType: 'creditCard', accountId: 1,
+                      accountBalance: 100, interestRate: 5, minimumPayment: 10, dueDate: 1 })),
             ledgerAmountOverrides: {
                 'debt|1|1|2026-06-18': { amount: 'not-a-number', transactionName: 'Bad Override' },
                 'debt|2|1|2026-06-18': { amount: [1, 2], transactionName: 'Also Bad' },
@@ -590,17 +595,18 @@ def test_import_drops_ledger_override_with_non_finite_amount(app_page):
             }
         };
         const file = new File([JSON.stringify(payload)], 'badoverride.json', { type: 'application/json' });
-        return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ overrides: app.ledgerAmountOverrides }), 300);
-        });
+        await new Promise(resolve => mod.importAllJSON(app, file, {
+            onImported: resolve, onImportError: resolve, onInvalidJSON: resolve, onNoData: resolve,
+        }));
+        const debt3 = app.debts.find(d => d.name === 'Anchor Debt 3');
+        return { overrides: app.ledgerAmountOverrides, debt3Id: debt3 && debt3.id, accountId: app.accounts[0]?.id };
     }""")
 
     overrides = result['overrides']
-    assert 'debt|1|1|2026-06-18' not in overrides, "Override with NaN amount should be dropped"
-    assert 'debt|2|1|2026-06-18' not in overrides, "Override with non-numeric string amount should be dropped"
-    assert 'debt|3|1|2026-06-18' in overrides, "Override with a valid amount should be retained"
-    good = overrides['debt|3|1|2026-06-18']
+    assert len(overrides) == 1, f"Only the valid override should be retained: {overrides}"
+    good_key = f"debt|{result['debt3Id']}|{result['accountId']}|2026-06-18"
+    assert good_key in overrides, f"Override with a valid amount should be retained (remapped): {overrides}"
+    good = overrides[good_key]
     assert good['amount'] == 250
     assert '<' not in good['transactionName'] and '>' not in good['transactionName'], \
         "transactionName should have unsafe characters stripped"
@@ -892,12 +898,7 @@ def test_interest_rate_survives_storage_round_trip(app_page):
     """A valid interestRate persists through saveToStorage -> reload."""
     page = app_page
 
-    page.evaluate("""() => {
-        const app = window.app;
-        app.accounts = [{ id: 1, name: 'HYSA', type: 'Savings', startingBalance: 1000, interestRate: 4.5 }];
-        app.saveToStorage();
-    }""")
-    page.reload(wait_until="networkidle")
+    seed_state(page, {'accounts': [{'id': 1, 'name': 'HYSA', 'type': 'Savings', 'startingBalance': 1000, 'interestRate': 4.5}]})
 
     rate = page.evaluate("() => window.app.accounts[0]?.interestRate")
     assert rate == 4.5, f"interestRate lost on reload: {rate}"

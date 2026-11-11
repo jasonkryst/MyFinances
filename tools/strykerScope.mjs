@@ -46,6 +46,16 @@ export const MUTATE_SCOPE = {
     'src/balanceHistoryCore.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).
     'src/passwordPolicy.js': true,
+    // #564: partial plan-settings PATCH body builder.
+    'src/planSettingsPatch.js': true,
+    // #519: bounded request pool for import/rollback fan-outs.
+    'src/concurrency.js': true,
+    // #520: Ledger override/cleared key remapping on import.
+    'src/ledgerKeyRemap.js': true,
+    // #578: optimistic-concurrency diff/conflict helpers.
+    'src/recordVersions.js': true,
+    // #575: refresh-on-focus / cross-tab refresh decisions.
+    'src/refreshPolicy.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

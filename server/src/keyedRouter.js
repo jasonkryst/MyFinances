@@ -86,5 +86,6 @@ export function createKeyedResource({ table, keyColumn, keyField, columns, sanit
         }
     });
 
+    router.crudConfig = { table, columns, sanitize };
     return router;
 }

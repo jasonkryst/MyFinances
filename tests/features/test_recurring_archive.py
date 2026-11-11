@@ -9,23 +9,24 @@ templates are excluded from calculations and the calendar feed, and that the
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, seed_state
+
+
+_ACCT = {'id': 8100, 'name': 'Archive Test Account', 'type': 'Checking', 'startingBalance': 1000}
 
 
 def _seed_account(page, account_id=8100, name="Archive Test Account"):
-    """Seed a bare account and clear other data so tests run against a clean slate."""
-    page.evaluate(f"""() => {{
-        const app = window.app;
-        app.accounts = [{{ id: {account_id}, name: '{name}', type: 'Checking', startingBalance: 1000 }}];
-        app.recurringTemplates = [];
-        app.incomes = []; app.bills = []; app.expenses = []; app.debts = [];
-        app.emergencyFunds = []; app.sinkingFunds = [];
-        app.switchPage('recurring');
-    }}""")
+    """Seed a bare account on the server (clean slate); its real id goes in window._acct."""
+    _ACCT.update(id=account_id, name=name)
+    seed_state(page, {'accounts': [dict(_ACCT)]})
+    page.evaluate("""() => {
+        window._acct = window.app.accounts[0].id;
+        window.app.switchPage('recurring');
+    }""")
 
 
 def _add_template_via_ui(page, name="Netflix", amount="15.99", frequency="monthly",
-                          start_date="2026-01-01", account_id=8100):
+                          start_date="2026-01-01", account_id=None):
     """Navigate to recurring page and add a template through the form."""
     page.click('button[data-page="recurring"]')
     page.wait_for_selector('#recurringSection.active', timeout=5000)
@@ -35,35 +36,41 @@ def _add_template_via_ui(page, name="Netflix", amount="15.99", frequency="monthl
     page.fill('#recurringAmount', str(amount))
     page.select_option('#recurringFrequency', frequency)
     page.fill('#recurringStartDate', start_date)
+    if account_id is None:
+        account_id = page.evaluate("() => window._acct")
     page.select_option('#recurringAccount', str(account_id))
     page.click('#recurringFormSubmit')
-    page.wait_for_selector('#recurringList .recurring-card', timeout=5000)
+    page.wait_for_selector('#recurringList .recurring-card', timeout=10000)
 
 
 def _seed_template(page, template_id=9001, name="Seeded Sub", archived=False,
                    account_id=8100):
-    """Inject a recurring template directly into app state (faster than UI)."""
-    archived_val = 'true' if archived else 'false'
-    page.evaluate(f"""() => {{
+    """Seed a recurring template (with the account) on the server.
+
+    `archived` has no Postgres column (app gap, see task report), so an archived seed is
+    applied in memory after the server load rather than through the API."""
+    # Tests flip "show archived" in memory before seeding; seeding reloads the page, so carry it over.
+    show = page.evaluate("() => (window.app.settings || []).find(s => s.key === 'showArchivedRecurring')?.value === true")
+    seed_state(page, {
+        'accounts': [dict(_ACCT)],
+        'recurringTemplates': [{
+            'id': template_id, 'name': name, 'type': 'subscription', 'amount': 20,
+            'frequency': 'monthly', 'dayOfMonth': 1, 'startDate': '2026-01-01', 'category': 'Other',
+            'accountId': _ACCT['id'], 'archived': archived, 'paused': False,
+            'skippedMonths': [], 'paidMonths': [],
+        }],
+    })
+    page.evaluate("""([archived, show]) => {
         const app = window.app;
-        const now = new Date();
-        app.recurringTemplates = [{{
-            id: {template_id},
-            name: '{name}',
-            type: 'subscription',
-            amount: 20,
-            frequency: 'monthly',
-            dayOfMonth: 1,
-            startDate: '2026-01-01',
-            category: 'Other',
-            accountId: {account_id},
-            archived: {archived_val},
-            paused: false,
-            skippedMonths: [],
-            paidMonths: []
-        }}];
+        window._acct = app.accounts[0].id;
+        if (show) {
+            const row = app.settings.find(s => s.key === 'showArchivedRecurring');
+            if (row) row.value = true; else app.settings.push({ key: 'showArchivedRecurring', value: true });
+        }
+        if (archived) app.recurringTemplates.forEach(t => { t.archived = true; });
+        app.switchPage('recurring');
         app.renderRecurringPage();
-    }}""")
+    }""", [archived, show])
 
 
 # ─── Archive button ───────────────────────────────────────────────────────────
@@ -348,13 +355,12 @@ def test_archived_count_note_shows_correct_count(app_page):
 
 @pytest.mark.feature
 def test_archived_flag_survives_storage_round_trip(app_page):
-    """Archived flag persists through saveToStorage / loadFromStorage cycle."""
+    """Archived flag persists through a save to and load from the server."""
     page = app_page
     _seed_account(page)
     _seed_template(page, template_id=9002, archived=True, name="Persist Archived")
 
     # Save + reload
-    page.evaluate("() => window.app.saveToStorage()")
     page.reload(wait_until="networkidle")
     page.wait_for_selector('button[data-page="recurring"]', timeout=5000)
     page.click('button[data-page="recurring"]')

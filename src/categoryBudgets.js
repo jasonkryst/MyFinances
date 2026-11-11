@@ -127,7 +127,7 @@ export function setCategoryBudget(app, rawName, mode, rawAmount) {
         return { ok: false, error: t('catBudgets.errMax', { max: BUDGET_CATEGORY_MAX_ENTRIES }) };
     }
     app.budgetCategories = { ...current, [name]: { mode, amount } };
-    app.saveToStorage();
+    app.saveToStorage(['budgetCategories']);
     return { ok: true, name };
 }
 
@@ -136,7 +136,7 @@ export function resetCategoryBudget(app, name) {
     if (!Object.prototype.hasOwnProperty.call(current, name)) return;
     delete current[name];
     app.budgetCategories = current;
-    app.saveToStorage();
+    app.saveToStorage(['budgetCategories']);
 }
 
 // ── Liabilities -> Budget panel ────────────────────────────────────────────

@@ -34,15 +34,13 @@ export function setLedgerAmountOverride(app, transactionId, amount, metadata = {
         memo: metadata.memo || ''
     };
     app.ledgerAmountOverrides[transactionId] = entry;
-    if (app._storageBackendKind === 'postgres') {
-        pgPut(app, `/api/ledger-overrides/${transactionId}`, { ...entry, overrideKey: transactionId });
-    }
+    pgPut(app, `/api/ledger-overrides/${encodeURIComponent(transactionId)}`, { ...entry, overrideKey: transactionId });
 }
 
 export function clearLedgerAmountOverride(app, transactionId) {
     if (!transactionId || !app.ledgerAmountOverrides) return;
     delete app.ledgerAmountOverrides[transactionId];
-    if (app._storageBackendKind === 'postgres') pgDelete(app, `/api/ledger-overrides/${transactionId}`);
+    pgDelete(app, `/api/ledger-overrides/${encodeURIComponent(transactionId)}`);
 }
 
 export function openLedgerOverrideModal(app, tx, onApplied) {
@@ -93,7 +91,6 @@ export function openLedgerOverrideModal(app, tx, onApplied) {
             date: tx.date,
             memo: memoInput ? memoInput.value : ''
         });
-        app.saveToStorage();
         close();
         if (typeof onApplied === 'function') onApplied();
         if (typeof app.renderReportsPage === 'function') app.renderReportsPage();

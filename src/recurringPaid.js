@@ -104,7 +104,7 @@ function _syncPaidMonth(app, tmpl, year, month) {
 }
 
 function _persistTemplate(app, tmpl) {
-    if (app._storageBackendKind === 'postgres') pgPatch(app, `/api/recurring-templates/${tmpl.id}`, tmpl);
+    pgPatch(app, `/api/recurring-templates/${tmpl.id}`, tmpl);
 }
 
 // Sets one occurrence's paid state on every leg. When `actualAmount` is a
@@ -157,7 +157,6 @@ export function markRecurringPaid(app, id, monthKey, unmark = false, actualAmoun
     }
     _syncPaidMonth(app, tmpl, year, month);
     if (tmpl.paidAmounts) delete tmpl.paidAmounts[monthKey];
-    app.saveToStorage();
     _persistTemplate(app, tmpl);
     app.renderRecurringPage();
 }
@@ -182,7 +181,6 @@ export function applyRecurringPaidEdits(app, id, monthKey, edits) {
     }
     _syncPaidMonth(app, tmpl, year, month);
     if (tmpl.paidAmounts) delete tmpl.paidAmounts[monthKey];
-    app.saveToStorage();
     _persistTemplate(app, tmpl);
     app.renderRecurringPage();
 }
@@ -225,7 +223,7 @@ function _syncMonths(app, months) {
  *      a legacy paidAmounts entry into overrides where none exist yet.
  *   2. Drop the migrated paidAmounts map.
  *   3. Re-derive paidMonths for every month with a cleared recurring leg.
- * Returns true if anything changed (the caller saves).
+ * Persists every template it changes; returns true if anything changed.
  */
 export function reconcileRecurringPaidState(app) {
     const changed = new Set();

@@ -31,6 +31,9 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    document.getElementById('syncErrorBannerDismiss')?.addEventListener('click', () => {
+        document.getElementById('syncErrorBanner')?.classList.add('hidden');
+    });
     // #428: mobile collapsibles (add forms, filter disclosures). Delegated so
     // markup that is re-rendered (Ledger filters) keeps working.
     document.addEventListener('click', e => {
@@ -460,7 +463,7 @@ export function initializeEventListeners(app) {
             const nextRange = parseInt(forecastRangeBtn.getAttribute('data-forecast-range'), 10);
             if ([1, 2, 3, 6, 12].includes(nextRange)) {
                 app._forecastRangeMonths = nextRange;
-                app.saveToStorage();
+                app.saveToStorage(['forecastSettings']);
                 app.renderReportsPage();
             }
             return;
@@ -577,7 +580,7 @@ export function updateAccountMenuEmail(app) {
         }
     }
     if (logoutItem) {
-        logoutItem.classList.toggle('hidden', app._storageBackendKind !== 'postgres');
+        logoutItem.classList.remove('hidden');
     }
 }
 
@@ -916,34 +919,6 @@ export function showMilestone(debtName) {
     window.setTimeout(() => host.remove(), 1800);
 }
 
-export function showStorageQuotaWarning(usage) {
-    if (document.getElementById('storageQuotaBanner')) return;
-
-    const banner = document.createElement('div');
-    banner.id = 'storageQuotaBanner';
-    banner.className = 'storage-quota-banner';
-    banner.setAttribute('role', 'alert');
-
-    const text = document.createElement('span');
-    if (usage.writeFailed) {
-        text.textContent = 'Your saved data could not be written to browser storage — it may be full. Export a backup now to avoid losing data.';
-    } else {
-        const mb = (usage.bytes / (1024 * 1024)).toFixed(1);
-        const pct = Math.round(usage.pct * 100);
-        text.textContent = `Your saved data is using about ${mb} MB (${pct}% of typical browser storage limits). Consider exporting a backup and trimming old records.`;
-    }
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'storage-quota-banner-close';
-    closeBtn.setAttribute('aria-label', 'Dismiss storage warning');
-    closeBtn.textContent = '×';
-    closeBtn.addEventListener('click', () => banner.remove());
-
-    banner.appendChild(text);
-    banner.appendChild(closeBtn);
-    document.body.appendChild(banner);
-}
-
 export function showUpdateAvailableBanner(waitingWorker) {
     if (document.getElementById('swUpdateBanner')) return;
 
@@ -1024,6 +999,52 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.5.0 — 2026-11-09',
+        items: [
+            '<strong>Your tabs stay up to date:</strong> a change saved in one tab now shows up in your other tabs of the same browser within about a second.',
+            '<strong>Changes from your other devices appear when you come back:</strong> a tab you return to after a minute or more re-reads your data, without interrupting anything you are typing or editing.',
+            '<strong>A clear message for items deleted elsewhere:</strong> if you edit or delete something that was already deleted in another tab or device, MyFinances says so and offers a Reload, instead of blaming your connection.'
+        ]
+    },
+    {
+        version: '7.4.0 — 2026-11-09',
+        items: [
+            '<strong>Edits from two tabs or devices no longer undo each other:</strong> saving a change now sends only what you changed. If you rename a debt on your laptop and update its balance on your phone, both changes are kept.',
+            '<strong>You choose when both sides changed the same thing:</strong> if another tab or device changed the same detail while you were editing, MyFinances asks whether to keep your changes or use the other version, instead of silently overwriting one of them.'
+        ]
+    },
+    {
+        version: '7.3.0 — 2026-11-08',
+        items: [
+            '<strong>Large backups import reliably:</strong> restoring a backup, or moving old browser data, with years of Ledger amount changes and cleared marks no longer fails part-way. MyFinances now sends a few requests at a time instead of thousands at once, and if an import does fail, putting your previous data back works the same way.',
+            '<strong>Clear filters on the Ledger</strong> now also resets the number of rows per page.'
+        ]
+    },
+    {
+        version: '7.2.0 — 2026-11-08',
+        items: [
+            '<strong>Easier-to-read text in dark mode:</strong> error messages, the “Forgot password?” link and the focus outline on the sign-in fields now stand out clearly against the dark background.',
+            '<strong>Clearer amounts and labels:</strong> positive balances, income and bonus amounts use slightly darker colours in light mode, and the Reports tab groups are no longer faded; the group you are in is shown as a filled label.',
+            '<strong>Better screen reader support:</strong> the page now tells screen readers which language it is shown in, so Spanish and Polish are read with the right pronunciation, and keyboard focus stays in place after a failed import of old browser data.'
+        ]
+    },
+    {
+        version: '7.1.0 — 2026-11-08',
+        items: [
+            '<strong>Several tabs or devices no longer undo each other’s settings</strong> (issues #564, #521): saving a change now sends only that setting. A tab left open from earlier can no longer quietly revert your category budgets, home purchase plan, retirement target date or payoff strategy.',
+            '<strong>Fewer requests per edit:</strong> adding, editing or deleting a record no longer re-saves all your plan settings as well.',
+            '<strong>Two settings that were never saved now are:</strong> one-off stimulus amounts typed into the Plan payment schedule, and net worth milestones you have reached.'
+        ]
+    },
+    {
+        version: '7.0.0 — 2026-11-03',
+        items: [
+            '<strong>MyFinances now runs only against your own MyFinances server.</strong> Browser-only storage is gone, so your data always lives on the server and syncs across devices. If the server cannot be reached, you see a clear screen with a “Try again” button.',
+            '<strong>One-time prompt to move browser-only data:</strong> after you sign in, MyFinances offers to import any data left in this browser from an earlier version. If the server already has data, you can download the data in this browser as a backup, or remove it.',
+            '<strong>Save problems are never silent:</strong> if a change fails to save, a banner tells you right away.'
+        ]
+    },
     {
         version: '6.67.0 — 2026-11-03',
         items: [
@@ -1334,23 +1355,29 @@ export function showNetWorthMilestone(message) {
     window.setTimeout(() => host.remove(), 2600);
 }
 
-let _pgErrorToastTimer = null;
+// Persistent sync-error banner (v7.0.0, spec section 6). The markup lives in
+// index.html, hidden by default. Showing is idempotent (one banner, never
+// stacked); the dismiss button hides it until the next failure.
+export function showSyncErrorBanner() {
+    document.getElementById('syncErrorBanner')?.classList.remove('hidden');
+}
 
-export function showPgErrorToast() {
-    if (_pgErrorToastTimer !== null) {
-        clearTimeout(_pgErrorToastTimer);
-    } else {
-        const el = document.createElement('div');
-        el.id = 'pgErrorToast';
-        el.className = 'pg-error-toast';
-        el.setAttribute('role', 'alert');
-        el.textContent = 'Sync error — your change may not have been saved to the server.';
-        document.body.appendChild(el);
+// #565: a PATCH/DELETE found the record already deleted elsewhere. Distinct
+// from the connection banner; Reload re-reads the server in place.
+export function showRecordGoneBanner(app) {
+    const banner = document.getElementById('recordGoneBanner');
+    if (!banner) return;
+    const hide = () => banner.classList.add('hidden');
+    const reload = document.getElementById('recordGoneReloadBtn');
+    if (reload) {
+        reload.onclick = () => {
+            hide();
+            if (typeof app?.refreshFromServer === 'function') app.refreshFromServer();
+        };
     }
-    _pgErrorToastTimer = setTimeout(() => {
-        document.getElementById('pgErrorToast')?.remove();
-        _pgErrorToastTimer = null;
-    }, 5000);
+    const dismiss = document.getElementById('recordGoneDismiss');
+    if (dismiss) dismiss.onclick = hide;
+    banner.classList.remove('hidden');
 }
 
 let _emailTestToastTimer = null;
@@ -1417,6 +1444,57 @@ export function showDeleteConfirmModal(message, confirmLabel = t('common.delete'
         modal.classList.remove('hidden');
         modal.focus();  // immediate focus ensures onkeydown fires for Escape
         setTimeout(() => cancelBtn.focus(), 30);
+    });
+}
+
+// A record changed in another tab or device while this tab edited the same
+// field (#578). Resolves true for "Keep my changes", false for "Use the other
+// version". Escape picks the other version: it overwrites nothing on the server.
+export function showSyncConflictModal(recordName) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('syncConflictModal');
+        const messageEl = document.getElementById('syncConflictMessage');
+        const keepBtn = document.getElementById('syncConflictKeepBtn');
+        const theirsBtn = document.getElementById('syncConflictTheirsBtn');
+        if (!modal || !keepBtn || !theirsBtn) { resolve(false); return; }
+        if (messageEl) {
+            messageEl.textContent = recordName
+                ? t('sync.conflictMessage', { name: recordName })
+                : t('sync.conflictMessageUnnamed');
+        }
+
+        const lastFocused = document.activeElement;
+        const dismiss = (keepMine) => {
+            keepBtn.onclick = null;
+            theirsBtn.onclick = null;
+            modal.onkeydown = null;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex-visible');
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            resolve(keepMine);
+        };
+
+        keepBtn.onclick = () => dismiss(true);
+        theirsBtn.onclick = () => dismiss(false);
+        modal.onkeydown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); dismiss(false); return; }
+            if (event.key === 'Tab') {
+                const first = keepBtn;
+                const last = theirsBtn;
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        modal.classList.add('flex-visible');
+        modal.classList.remove('hidden');
+        modal.focus();
+        setTimeout(() => theirsBtn.focus(), 30);
     });
 }
 
