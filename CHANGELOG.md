@@ -18,6 +18,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Tests
 - **Retrying a failed legacy-data transfer** (issue #467, PR #483, thanks @hrithiksaini99). The first transfer fails, the modal stays usable, and the retry imports everything and removes the legacy key. Persistence is checked after a reload.
 
+### CI
+- **Playwright jobs no longer depend on the Ubuntu package mirror** (PR #607). The new `.github/actions/install-playwright` installs Chromium, checks that it launches with the runner's own libraries, and runs apt (`playwright install-deps`, with a timeout and one retry) only if it doesn't. On 2026-11-11 a mirror outage failed all 19 Playwright jobs before a test ran.
+
 ## [7.5.0] — 2026-11-09
 
 ### Added
