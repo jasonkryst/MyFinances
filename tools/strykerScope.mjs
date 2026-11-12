@@ -37,8 +37,11 @@ export const MUTATE_SCOPE = {
         'sanitizeLedgerClearedTransactions', 'sanitizeEmergencyFund', 'sanitizeSinkingFund',
         'sanitizeNetWorthSnapshot', 'sanitizeForecastSettings', 'sanitizeSetting', 'sanitizeRetirementSnapshot',
         'sanitizeBalanceHistoryEntry', 'sanitizeReconciliation', 'sanitizePlanHistoryEntry',
-        'sanitizeManualTransaction', 'isValidManualTransaction',
+        'sanitizeManualTransaction', 'isValidManualTransaction', 'isValidTransfer', 'isValidReconciliation',
+        'isValidRecurringTemplate',
     ],
+    // #569: the shared settings key/value allowlist (browser export + server).
+    'src/settingsSchema.js': ['validateExportedSetting', 'isAllowedSetting'],
     'src/retirementCalculator.js': [
         'computeRetirementProjection', 'splitGrowthFromContribution', 'getContributionLimit',
         'computeYtdContributions', 'computeMonthlyWithdrawal', 'computeScenarioRates',

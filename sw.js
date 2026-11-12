@@ -3,7 +3,7 @@
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v7.6.2';
+const CACHE_NAME = 'myfinances-v7.6.3';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 
@@ -25,7 +25,7 @@ const PRECACHE_URLS = [
     '/src/reportsCalendar.js', '/src/reportsCashFlow.js', '/src/reportsMoneyFlowSankey.js', '/src/reportsNetWorth.js', '/src/reportsSummary.js',
     '/src/reportsVariance.js', '/src/retirement.js', '/src/retirementCalculator.js',
     '/src/sanitizers.js', '/src/savings.js', '/src/serviceWorker.js',
-    '/src/settings.js', '/src/settingsBackup.js', '/src/setupWizard.js', '/src/spending.js', '/src/storage.js',
+    '/src/settings.js', '/src/settingsBackup.js', '/src/settingsSchema.js', '/src/setupWizard.js', '/src/spending.js', '/src/storage.js',
     '/src/calendarFeed.js',
     '/src/loginGate.js', '/src/people.js', '/src/pgMigrationModal.js', '/src/concurrency.js', '/src/ledgerKeyRemap.js', '/src/mergeDedupe.js', '/src/recordVersions.js', '/src/refreshPolicy.js', '/src/resourceDeletion.js', '/src/liveRefresh.js', '/src/planSettingsPatch.js', '/src/postgresSync.js', '/src/postgresImport.js',
     '/src/serverUnreachableGate.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',

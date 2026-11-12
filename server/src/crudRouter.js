@@ -104,7 +104,7 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
                 return conflict(res, existing.rows[0]);
             }
             const merged = { ...rowToJson(existing.rows[0]), ...body };
-            const clean = sanitize(merged, existing.rows[0].id);
+            const clean = sanitize(merged, existing.rows[0].id, { patchedFields: Object.keys(body) });
             if (!clean) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Invalid payload' } });
             }

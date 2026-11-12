@@ -661,6 +661,8 @@ export async function addRecurringTemplate(app) {
     if (!name) { await showAlertModal(tr('recurring.errName')); return; }
     if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
     if (!accountId) { await showAlertModal(tr('recurring.errAccount')); return; }
+    // #569: the server rejects a transfer without a distinct target account.
+    if (type === 'transfer' && (!targetAccountId || targetAccountId === accountId)) { await showAlertModal(tr('recurring.errTransferTarget')); return; }
 
     const tmpl = {
         id: Date.now(),
@@ -810,6 +812,7 @@ export async function saveEditRecurring(app, id) {
 
     if (!name) { await showAlertModal(tr('recurring.errName')); return; }
     if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
+    if (type === 'transfer' && (!accountId || !targetAccountId || targetAccountId === accountId)) { await showAlertModal(tr('recurring.errTransferTarget')); return; }
 
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],

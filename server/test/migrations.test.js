@@ -147,3 +147,77 @@ test('plan_settings accepts a nullable budget_categories jsonb', async () => {
     ({ rows } = await pool.query('SELECT budget_categories FROM plan_settings WHERE user_id = $1', [user.id]));
     assert.equal(rows[0].budget_categories.Housing.amount, 2000);
 });
+
+// #568: transfers CHECK constraint (migration 1755600000034).
+async function transferFixture() {
+    await resetDb();
+    const user = await createTestUser();
+    const a = (await pool.query("INSERT INTO accounts (user_id, name, type) VALUES ($1, 'A', 'checking') RETURNING id", [user.id])).rows[0].id;
+    const b = (await pool.query("INSERT INTO accounts (user_id, name, type) VALUES ($1, 'B', 'savings') RETURNING id", [user.id])).rows[0].id;
+    return { user, a, b };
+}
+const insertTransfer = (userId, from, to, amount) => pool.query(
+    "INSERT INTO transfers (user_id, from_account_id, to_account_id, amount, date) VALUES ($1, $2, $3, $4, '2026-08-01') RETURNING id",
+    [userId, from, to, amount]);
+
+test('transfers CHECK: invalid inserts fail with a check violation, valid ones pass', async () => {
+    const { user, a, b } = await transferFixture();
+    await assert.rejects(insertTransfer(user.id, a, a, 5), { code: '23514' });
+    await assert.rejects(insertTransfer(user.id, a, b, 0), { code: '23514' });
+    await assert.rejects(insertTransfer(user.id, a, b, -5), { code: '23514' });
+    await assert.rejects(insertTransfer(user.id, a, b, 'NaN'), { code: '23514' });
+    await insertTransfer(user.id, a, b, 5);
+});
+
+test('transfers CHECK: deleting accounts (SET NULL, even both sides) still works', async () => {
+    const { user, a, b } = await transferFixture();
+    const { rows } = await insertTransfer(user.id, a, b, 5);
+    await pool.query('DELETE FROM accounts WHERE id = $1', [a]);
+    await pool.query('DELETE FROM accounts WHERE id = $1', [b]);
+    const t = (await pool.query('SELECT from_account_id, to_account_id FROM transfers WHERE id = $1', [rows[0].id])).rows[0];
+    assert.equal(t.from_account_id, null);
+    assert.equal(t.to_account_id, null);
+});
+
+test('transfers CHECK: deleting an account still works when a legacy invalid transfer references it', async () => {
+    const { user, a, b } = await transferFixture();
+    const mig = await import('../migrations/1755600000034_add-transfer-checks.js');
+    const run = async (fn) => { const stmts = []; await fn({ sql: s => stmts.push(s) }); for (const s of stmts) await pool.query(s); };
+    await run(mig.down);
+    try {
+        const neg = (await insertTransfer(user.id, a, b, -5)).rows[0].id; // legacy: negative amount
+        const same = (await insertTransfer(user.id, b, b, 7)).rows[0].id; // legacy: same account
+        await run(mig.up);
+        await pool.query('DELETE FROM accounts WHERE id = $1', [a]); // SET NULL rewrite of `neg`
+        await pool.query('DELETE FROM accounts WHERE id = $1', [b]); // SET NULL rewrite of both
+        const left = (await pool.query('SELECT id, from_account_id, to_account_id FROM transfers WHERE id = ANY($1) ORDER BY id', [[neg, same]])).rows;
+        assert.deepEqual(left.map(r => [r.from_account_id, r.to_account_id]), [[null, null], [null, null]]);
+    } finally {
+        await run(mig.up);
+        await resetDb();
+    }
+});
+
+test('transfers CHECK migration: down then up is clean, up is idempotent, and an existing invalid row does not block it (NOT VALID)', async () => {
+    const { user, a } = await transferFixture();
+    const mig = await import('../migrations/1755600000034_add-transfer-checks.js');
+    const run = async (fn) => {
+        const stmts = [];
+        await fn({ sql: s => stmts.push(s) });
+        for (const s of stmts) await pool.query(s);
+    };
+    const exists = async () => (await pool.query(
+        "SELECT 1 FROM pg_constraint WHERE conname = 'transfers_amount_positive_distinct_accounts'")).rowCount === 1;
+    assert.equal(await exists(), true);
+    await run(mig.up); // idempotent
+    await run(mig.down);
+    assert.equal(await exists(), false);
+    await run(mig.down); // down is idempotent too
+    await insertTransfer(user.id, a, a, -9); // legacy invalid row
+    await run(mig.up); // must not scan it
+    assert.equal(await exists(), true);
+    await assert.rejects(insertTransfer(user.id, a, a, 5), { code: '23514' });
+    const { rows } = await pool.query('SELECT convalidated FROM pg_constraint WHERE conname = $1', ['transfers_amount_positive_distinct_accounts']);
+    assert.equal(rows[0].convalidated, false);
+    await resetDb();
+});

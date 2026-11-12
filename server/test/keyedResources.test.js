@@ -51,16 +51,16 @@ test('net-worth-snapshots: PUT upserts by date, GET lists, DELETE removes', asyn
 });
 
 test('settings: PUT upserts by key with a JSON value', async () => {
-    const res = await fetch(`${baseUrl}/api/settings/theme`, {
-        method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({ value: 'dark' })
+    const res = await fetch(`${baseUrl}/api/settings/zeroAmountPolicy`, {
+        method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({ value: 'warn' })
     });
     assert.equal(res.status, 200);
     const list = await (await fetch(`${baseUrl}/api/settings`, { headers: { Cookie: cookies } })).json();
-    assert.equal(list[0].value, 'dark');
+    assert.equal(list[0].value, 'warn');
 });
 
 test('settings: rejects an unsupported value type', async () => {
-    const res = await fetch(`${baseUrl}/api/settings/theme`, {
+    const res = await fetch(`${baseUrl}/api/settings/zeroAmountPolicy`, {
         method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({ value: { nested: true } })
     });
     assert.equal(res.status, 400);
@@ -177,3 +177,46 @@ test('net-worth-snapshots: delete all returns 401 without auth', async () => {
     const res = await fetch(`${baseUrl}/api/net-worth-snapshots`, { method: 'DELETE' });
     assert.equal(res.status, 401);
 });
+
+// #569: the settings route only accepts keys/values the app itself writes.
+async function putSetting(key, value) {
+    return fetch(`${baseUrl}/api/settings/${encodeURIComponent(key)}`, {
+        method: 'PUT', headers: csrfHeaders(), body: JSON.stringify({ value })
+    });
+}
+
+test('settings: an unknown key is a 400 and nothing is stored', async () => {
+    assert.equal((await putSetting('totallyUnknown', 'x')).status, 400);
+    assert.equal((await putSetting('debtTrackerStorageBackend', 'postgres')).status, 400);
+    assert.equal((await putSetting('__proto__', 1)).status, 400);
+    const list = await (await fetch(`${baseUrl}/api/settings`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.length, 0);
+});
+
+test('settings: a 5,000-character value for an unknown key is a 400', async () => {
+    assert.equal((await putSetting('junk', 'a'.repeat(5000))).status, 400);
+    assert.equal((await putSetting('zeroAmountPolicy', 'a'.repeat(5000))).status, 400);
+});
+
+for (const [key, value] of [
+    ['fireMultiplier', 5000], ['fireMultiplier', 0], ['zeroAmountPolicy', 'nope'], ['surplusWindowDays', 3],
+    ['surplusCushionPct', 101], ['showArchivedDebts', 'yes'], ['ledgerExportColumns', 'date,bogus'],
+    ['surplusAccountId', 0], ['surplusAccountId', 1.5], ['surplusAccountId', 'abc'],
+    ['bct:groceries:healthy', 150], ['bct:groceries:other', 5]
+]) {
+    test(`settings: ${key}=${JSON.stringify(value)} is a 400`, async () => {
+        assert.equal((await putSetting(key, value)).status, 400);
+    });
+}
+
+for (const [key, value] of [
+    ['fireMultiplier', 28], ['zeroAmountPolicy', 'block'], ['surplusWindowDays', 90], ['showArchivedDebts', true],
+    ['reconciliationAdjustsBalance', false], ['ledgerExportColumns', 'date,amount'], ['surplusAccountId', 7],
+    ['bct:groceries:healthy', 50], ['bct:groceries:warn', 99.5], ['healthHousingCostOverride', 1500]
+]) {
+    test(`settings: ${key}=${JSON.stringify(value)} is a 200`, async () => {
+        const res = await putSetting(key, value);
+        assert.equal(res.status, 200);
+        assert.deepEqual((await res.json()).value, value);
+    });
+}
