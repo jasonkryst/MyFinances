@@ -2,9 +2,8 @@ import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import {
     escapeHtml, formatCurrency, renderChartDataTable, getReportDate, PINNED_COLORS,
     getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel,
-    formatMonthLong, formatMonthYear
+    formatMonthLong, formatMonthYear, isTransferLegTx
 } from './utils.js';
-import { isTransferLegTx } from './utils.js';
 import { t, plural, categoryLabel, getIntlLocale } from './i18n.js';
 import { loadLedgerFilters } from './ledger.js';
 

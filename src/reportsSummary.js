@@ -4,9 +4,9 @@ import {
     formatCurrency,
     escapeHtml,
     getReportDate,
-    formatMonthLong
+    formatMonthLong,
+    isTransferLegTx
 } from './utils.js';
-import { isTransferLegTx } from './utils.js';
 import { t } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { getSnapshotSeries } from './reportsNetWorth.js';

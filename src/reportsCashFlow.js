@@ -5,9 +5,9 @@ import {
     escapeHtml,
     getReportDate,
     renderChartDataTable,
-    formatMonthLong
+    formatMonthLong,
+    isTransferLegTx
 } from './utils.js';
-import { isTransferLegTx } from './utils.js';
 import { t, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
