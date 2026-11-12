@@ -189,9 +189,19 @@ def test_beforeunload_is_prevented_only_while_a_write_is_pending(app_page):
     # Stop holding before releasing: the app can send its own background
     # plan-settings save after boot, and a route left in place would hold that
     # one forever (seen in CI as pending stuck at 1).
+    # Release first, then unroute: unroute itself resolves any request it is
+    # still holding, so a route released after it raises "already handled".
+    def release_all():
+        for route in list(held):
+            try:
+                route.continue_()
+            except Exception as exc:  # resolved by unroute in between
+                if 'already handled' not in str(exc):
+                    raise
+        held.clear()
+    release_all()
     page.unroute(PLAN_SETTINGS)
-    for route in held:
-        route.continue_()
+    release_all()
     # Wait for an idle moment and dispatch in the same task, so no write can
     # start between reading the count and the unload check.
     result = page.evaluate("""async () => {
