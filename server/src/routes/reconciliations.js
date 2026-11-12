@@ -1,9 +1,11 @@
 import { createCrudResource } from '../crudRouter.js';
-import { sanitizeReconciliation } from '../sanitizers/index.js';
+import { sanitizeReconciliation, isValidReconciliation } from '../sanitizers/index.js';
+import { validatedSanitizer } from '../validity.js';
 
 export default createCrudResource({
     table: 'reconciliations',
-    sanitize: sanitizeReconciliation,
+    // #568: an account and a finite statementBalance, like import.
+    sanitize: validatedSanitizer(sanitizeReconciliation, isValidReconciliation, ['accountId', 'statementBalance']),
     requiredFields: ['accountId', 'statementBalance'],
     foreignKeys: { accountId: 'accounts' },
     columns: {

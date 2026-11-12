@@ -1,6 +1,7 @@
 // Sanitizers for persisted/imported record shapes — run on both load and import.
 
 import { normalizeText, normalizeMultilineText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
+import { isAllowedSetting } from './settingsSchema.js';
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
@@ -556,6 +557,30 @@ export function isValidManualTransaction(tx) {
         && Number.isFinite(tx.amount) && tx.amount !== 0 && Math.abs(tx.amount) <= 1e9;
 }
 
+// The single validity rules for transfers, reconciliations and recurring
+// templates (#568, #569), shared by import (sanitizeParsedState) and the
+// server routes, like isValidManualTransaction.
+export function isValidTransfer(t) {
+    return !!t && t.fromAccountId !== null && t.toAccountId !== null && t.fromAccountId !== t.toAccountId
+        && Number.isFinite(t.amount) && t.amount > 0 && t.amount <= 1e9;
+}
+
+export function isValidReconciliation(r) {
+    return !!r && r.accountId !== null && Number.isFinite(r.statementBalance);
+}
+
+// A name is required; a transfer template also needs a distinct target
+// account and a positive amount (the Ledger would otherwise post a one-legged
+// outflow). Other types keep allowing $0: that is the user's zeroAmountPolicy
+// (#412), enforced client-side.
+export function isValidRecurringTemplate(r) {
+    if (!r || !r.name) return false;
+    if (r.type === 'transfer') {
+        return r.targetAccountId !== null && r.targetAccountId !== r.accountId && r.amount > 0;
+    }
+    return true;
+}
+
 export function sanitizePlanHistoryEntry(record, idFallback) {
     const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
         ? record.createdAt
@@ -622,7 +647,7 @@ export function sanitizeParsedState(parsed = {}, warnings) {
         expenses: _sanitizeRecordArray(parsed.expenses, sanitizeExpense, now + 3000, e => !!e.name && !!e.date, 'Expense', 'name', warnings, ['id', 'date']),
         ledgerAmountOverrides: sanitizeLedgerOverrides(parsed.ledgerAmountOverrides || {}, warnings),
         ledgerClearedTransactions: sanitizeLedgerClearedTransactions(parsed.ledgerClearedTransactions || {}, warnings),
-        recurringTemplates: _sanitizeRecordArray(parsed.recurringTemplates, sanitizeRecurringTemplate, now + 4000, r => !!r.name, 'Recurring Template', 'name', warnings),
+        recurringTemplates: _sanitizeRecordArray(parsed.recurringTemplates, sanitizeRecurringTemplate, now + 4000, isValidRecurringTemplate, 'Recurring Template', 'name', warnings),
         emergencyFunds: _sanitizeRecordArray(parsed.emergencyFunds, sanitizeEmergencyFund, now + 4500, e => !!e.accountId, 'Emergency Fund',
             (raw, i) => raw?.accountId != null ? `Emergency Fund (account ${raw.accountId})` : `Emergency Fund #${i + 1}`, warnings),
         sinkingFunds: _sanitizeRecordArray(parsed.sinkingFunds, sanitizeSinkingFund, now + 5000, s => !!s.name && !!s.accountId, 'Sinking Fund', 'name', warnings),
@@ -642,21 +667,21 @@ export function sanitizeParsedState(parsed = {}, warnings) {
             clearedFilter: ['all', 'uncleared', 'cleared'].includes(parsed?.ledgerSettings?.clearedFilter) ? parsed.ledgerSettings.clearedFilter : 'all'
         },
         forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
-        reconciliations: _sanitizeRecordArray(parsed.reconciliations, sanitizeReconciliation, now + 5500, r => r.accountId !== null && Number.isFinite(r.statementBalance),
+        reconciliations: _sanitizeRecordArray(parsed.reconciliations, sanitizeReconciliation, now + 5500, isValidReconciliation,
             'Reconciliation', (raw, i) => raw?.date ? `Reconciliation ${raw.date}` : `Reconciliation #${i + 1}`, warnings),
         planHistory: _sanitizeRecordArray(parsed.planHistory, sanitizePlanHistoryEntry, now + 6000, h => h.monthlyPayment > 0 && !!h.strategy,
             'Plan History', (raw, i) => raw?.strategy ? `Plan (${raw.strategy})` : `Plan History #${i + 1}`, warnings),
         retirementSnapshots: _sanitizeRecordArray(parsed.retirementSnapshots, sanitizeRetirementSnapshot, now + 6500, s => s.accountId !== null,
             'Retirement Snapshot', (raw, i) => raw?.date ? `Retirement Snapshot ${raw.date}` : `Retirement Snapshot #${i + 1}`, warnings),
         transfers: _sanitizeRecordArray(parsed.transfers, sanitizeTransfer, now + 7500,
-            t => t.fromAccountId !== null && t.toAccountId !== null && t.fromAccountId !== t.toAccountId && Number.isFinite(t.amount) && t.amount > 0,
+            isValidTransfer,
             'Transfer', (raw, i) => raw?.date ? `Transfer ${raw.date}` : `Transfer #${i + 1}`, warnings),
         manualTransactions: _sanitizeRecordArray(parsed.manualTransactions, sanitizeManualTransaction, now + 8500, isValidManualTransaction,
             'Transaction', (raw, i) => raw?.name ? String(raw.name) : `Transaction #${i + 1}`, warnings),
         retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
         homePurchasePlan: sanitizeHomePurchasePlan(parsed.homePurchasePlan, warnings),
         budgetCategories: sanitizeBudgetCategories(parsed.budgetCategories, warnings),
-        settings: _sanitizeValueArray(parsed.settings, sanitizeSetting, Boolean, 'Setting', (raw, i) => raw?.key ? String(raw.key) : `Setting #${i + 1}`, warnings),
+        settings: _sanitizeValueArray(parsed.settings, sanitizeSetting, s => Boolean(s) && isAllowedSetting(s.key, s.value), 'Setting', (raw, i) => raw?.key ? String(raw.key) : `Setting #${i + 1}`, warnings),
         balanceHistory: _sanitizeRecordArray(parsed.balanceHistory, sanitizeBalanceHistoryEntry, now + 8000, Boolean,
             'Balance History', (raw, i) => raw?.date ? `Balance History ${raw.date}` : `Balance History #${i + 1}`, warnings)
     };

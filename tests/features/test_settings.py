@@ -8,7 +8,7 @@ the data format version bump to 4.0.0.
 
 import pytest
 
-from tests.conftest import seed_state, wait_for_api
+from tests.conftest import close_settings, open_settings, seed_state, switch_settings_tab, wait_for_api
 
 
 @pytest.mark.feature
@@ -65,16 +65,19 @@ def test_set_setting_updates_existing_entry_in_place(app_page):
 @pytest.mark.feature
 def test_sanitize_setting_drops_invalid_entries_keeps_valid(app_page):
     """sanitizeSetting (via the seed/import path) drops entries with empty keys
-    or non-primitive values, keeping valid boolean/number/string entries."""
+    or non-primitive values, and (#569) any key/value the settings allowlist
+    refuses (unknown key, out-of-range value), keeping valid entries."""
     page = app_page
 
     # JSON has no functions: the function-valued entry reaches the importer as {key} with no value.
     seed_state(page, {
         'settings': [
             {'key': '', 'value': True},
+            {'key': 'showArchivedDebts', 'value': True},
+            {'key': 'fireMultiplier', 'value': 42},
+            {'key': 'zeroAmountPolicy', 'value': 'warn'},
             {'key': 'validBool', 'value': True},
-            {'key': 'validNumber', 'value': 42},
-            {'key': 'validString', 'value': 'hello'},
+            {'key': 'fireMultiplier', 'value': 5000},
             {'key': 'invalidObject', 'value': {'nested': 1}},
             {'key': 'invalidFunction'},
             {'value': True},
@@ -82,19 +85,21 @@ def test_sanitize_setting_drops_invalid_entries_keeps_valid(app_page):
     })
     result = page.evaluate("() => window.app.settings.filter(s => s.key !== 'reconciliationAdjustsBalance')")
 
-    keys = sorted(s['key'] for s in result)
-    assert keys == ['validBool', 'validNumber', 'validString']
+    assert sorted((s['key'], s['value']) for s in result) == [
+        ('fireMultiplier', 42), ('showArchivedDebts', True), ('zeroAmountPolicy', 'warn')]
 
 
 @pytest.mark.feature
-def test_sanitize_setting_truncates_oversized_string_value(app_page):
-    """An oversized string setting value is truncated rather than rejected."""
+def test_oversized_setting_value_is_not_imported(app_page):
+    """An oversized string value is truncated by sanitizeSetting, then refused
+    by the allowlist (#569) rather than stored."""
     page = app_page
 
-    seed_state(page, {'settings': [{'key': 'longSetting', 'value': 'x' * 500}]})
-    result = page.evaluate("() => window.app.settings.find(s => s.key === 'longSetting').value.length")
+    seed_state(page, {'settings': [{'key': 'ledgerExportColumns', 'value': 'x' * 500},
+                                   {'key': 'longSetting', 'value': 'x' * 500}]})
+    result = page.evaluate("() => window.app.settings.filter(s => s.key !== 'reconciliationAdjustsBalance').length")
 
-    assert result <= 200
+    assert result == 0
 
 
 @pytest.mark.feature
@@ -211,20 +216,16 @@ def test_ledger_export_columns_setting_round_trips_through_storage(app_page):
 
 
 @pytest.mark.feature
-def test_ledger_export_columns_setting_with_garbage_value_is_bounded_string(app_page):
-    """Even if localStorage/import contains a garbage value for
-    ledgerExportColumns, sanitizeSetting still constrains it to a bounded
-    string (<=200 chars) rather than allowing arbitrary objects through —
-    the read-time whitelist in openLedgerExportModal then filters it against
-    the known column keys."""
+def test_ledger_export_columns_setting_with_garbage_value_is_not_imported(app_page):
+    """A garbage ledgerExportColumns value (unknown column keys) is refused at
+    import (#569: the server would answer 400), so it never reaches the app;
+    a valid list still round-trips."""
     page = app_page
 
     seed_state(page, {'settings': [{'key': 'ledgerExportColumns', 'value': 'bogus,columns,not,real'}]})
-    result = page.evaluate("() => window.app.getSetting('ledgerExportColumns', null)")
-
-    # sanitizeSetting accepts any bounded string value at the storage layer;
-    # the column whitelist is enforced at read-time in openLedgerExportModal.
-    assert result == 'bogus,columns,not,real'
+    assert page.evaluate("() => window.app.getSetting('ledgerExportColumns', null)") is None
+    seed_state(page, {'settings': [{'key': 'ledgerExportColumns', 'value': 'date,amount'}]})
+    assert page.evaluate("() => window.app.getSetting('ledgerExportColumns', null)") == 'date,amount'
 
 
 # ── Settings modal tabbed layout (#322) ─────────────────────────────────────────
@@ -329,3 +330,83 @@ def test_settings_modal_focus_falls_back_when_first_control_is_hidden(app_page):
     )
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'settingsModalCloseBtn'
+
+
+# --- #569: the server now rejects unknown settings keys / out-of-range values.
+# Every setting the app itself writes must still be accepted.
+
+_EVERY_APP_WRITTEN_SETTING = {
+    'reconciliationAdjustsBalance': False,
+    'showArchivedDebts': True,
+    'showArchivedRecurring': True,
+    'showArchivedAccounts': True,
+    'showArchivedSinkingFunds': True,
+    'autoNwSnapshot': False,
+    'zeroAmountPolicy': 'warn',
+    'healthHousingCostOverride': 1850.5,
+    'fireMultiplier': 28,
+    'surplusAccountId': 424242,
+    'surplusWindowDays': 60,
+    'surplusCushionPct': 15,
+    'retirementWithdrawalRate': 3.5,
+    'retirementScenarioConservativeDelta': -3,
+    'retirementScenarioAggressiveDelta': 4,
+    'retirementCoastTarget': 1250000,
+    'ledgerExportColumns': 'date,account,amount',
+    'bct:groceries:healthy': 55,
+    'bct:groceries:warn': 85.5,
+}
+
+
+@pytest.mark.feature
+def test_every_setting_the_app_writes_is_accepted_by_the_server(app_page):
+    """setSetting for each real key (what the controls call): the server stores
+    it and no sync-error banner appears."""
+    page = app_page
+    expected = dict(_EVERY_APP_WRITTEN_SETTING)
+    page.evaluate("(m) => { for (const [k, v] of Object.entries(m)) window.app.setSetting(k, v); }", expected)
+    wait_for_api(page, '/api/settings',
+                 lambda rows: all(any(r['key'] == k and r['value'] == v for r in rows) for k, v in expected.items()),
+                 timeout=20.0)
+    assert page.locator('#syncErrorBanner').is_visible() is False
+
+
+@pytest.mark.feature
+def test_settings_modal_toggles_still_save_against_the_stricter_server(app_page):
+    """Drive the real Settings modal controls (Done saves them)."""
+    page = app_page
+    open_settings(page)
+    switch_settings_tab(page, 'advanced')
+    page.select_option('#settingZeroAmountPolicy', 'block')
+    switch_settings_tab(page, 'data')
+    for sel in ('#settingShowArchivedDebts', '#settingShowArchivedRecurring', '#settingAutoNwSnapshot'):
+        page.evaluate("(s) => { const el = document.querySelector(s); el.checked = !el.checked; }", sel)
+    close_settings(page)
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(r['key'] == 'zeroAmountPolicy' and r['value'] == 'block' for r in rows)
+                 and any(r['key'] == 'showArchivedDebts' for r in rows)
+                 and any(r['key'] == 'autoNwSnapshot' for r in rows))
+    assert page.locator('#syncErrorBanner').is_visible() is False
+
+
+@pytest.mark.feature
+def test_health_fire_and_surplus_controls_save_against_the_stricter_server(app_page):
+    page = app_page
+    page.evaluate("""() => {
+        window.app.accounts = [{ id: 424242, name: 'Surplus Acct', type: 'Checking', startingBalance: 1000 }];
+        window.app.switchPage('health');
+    }""")
+    page.wait_for_selector('#healthFireMultiplier', timeout=10000)
+    page.fill('#healthFireMultiplier', '30')
+    page.dispatch_event('#healthFireMultiplier', 'change')
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(r['key'] == 'fireMultiplier' and r['value'] == 30 for r in rows))
+    page.wait_for_selector('#healthSurplusWindow', state='attached', timeout=10000)
+    page.fill('#healthSurplusWindow', '45')
+    page.dispatch_event('#healthSurplusWindow', 'change')
+    page.fill('#healthSurplusCushion', '12')
+    page.dispatch_event('#healthSurplusCushion', 'change')
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(r['key'] == 'surplusWindowDays' and r['value'] == 45 for r in rows)
+                 and any(r['key'] == 'surplusCushionPct' and r['value'] == 12 for r in rows))
+    assert page.locator('#syncErrorBanner').is_visible() is False

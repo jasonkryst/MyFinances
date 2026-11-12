@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.6.3] — 2026-11-12
+
+### Fixed
+- **The server now enforces the rules that only the import path checked** (issues #568, #569). `POST /api/transfers` accepted the same account on both sides, a zero, negative or missing amount; `POST /api/reconciliations` accepted a missing `statementBalance`; a `transfer` recurring template with no target account was stored and the Ledger then posted a one-legged outflow. All now answer `400`.
+  - **One rule, two callers.** `isValidTransfer`, `isValidReconciliation` and `isValidRecurringTemplate` in `src/sanitizers.js` are used by both `sanitizeParsedState` (import) and the server routes, like `isValidManualTransaction`. A PATCH is validated on the merged record, so editing a record into an invalid state is a `400` too; a PATCH that touches none of the validity fields is let through, so a legacy invalid row stays editable. $0 subscriptions and income stay allowed (the `zeroAmountPolicy` is a client-side preference).
+  - **Recurring form.** Adding or editing a transfer template now asks for a target account different from the source before saving.
+  - **Import.** An imported targetless transfer template is dropped with a warning, as an invalid transfer already was.
+- **Unknown settings keys are rejected** (issue #569). `PUT /api/settings/<key>` stored any key with any value. The schema (key constants, per-key validators, the `bct:` pattern) moved into the pure `src/settingsSchema.js`, shared by the settings export and the server, which now answers `400` unless `isAllowedSetting(key, value)` accepts it. Beyond the export schema, `surplusAccountId` (a positive integer) is allowed because the Health page writes it. Settings imports drop refused entries with a warning instead of failing mid-import.
+
+### Security
+- Migration `1755600000034_add-transfer-checks.js` adds `transfers_amount_positive_distinct_accounts` (`amount > 0`, not `NaN`, `from_account_id <> to_account_id`) as `NOT VALID`: existing rows are neither scanned nor changed, only new writes are checked. `<>` (not `IS DISTINCT FROM`) keeps account deletion working, since the foreign keys are `ON DELETE SET NULL`. `down()` drops the constraint and discards nothing.
+
 ## [7.6.0] — 2026-11-11
 
 ### Added

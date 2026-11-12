@@ -499,18 +499,19 @@ async def test_sanitize_setting_rejects_xss_and_object_values(async_app_page):
         {'key': 'objectValue', 'value': {'evil': True}},
         {'key': 'arrayValue', 'value': [1, 2, 3]},
         {'key': 'boolValue', 'value': True},
+        {'key': 'zeroAmountPolicy', 'value': '<script>alert(1)</script>'},
+        {'key': 'showArchivedDebts', 'value': True},
         {'key': '<img src=x onerror=alert(1)>', 'value': 'attempted key xss'},
     ]})
     result = await page.evaluate("() => window.app.settings")
 
-    by_key = {s['key']: s for s in result}
-    assert 'objectValue' not in by_key, "Object values must be dropped"
-    assert 'arrayValue' not in by_key, "Array values must be dropped"
-    assert by_key['boolValue']['value'] is True
-    assert '<' not in by_key['xssString']['value'] and '>' not in by_key['xssString']['value'], (
-        "normalizeText should strip angle brackets from string setting values"
-    )
-    assert all('<' not in k and '>' not in k for k in by_key), "normalizeText should strip angle brackets from setting keys too"
+    # #569: unknown keys and values outside a key's allowed range are refused
+    # outright (the server would answer 400), so none of the hostile entries
+    # survive; only the valid known entry does.
+    by_key = {s['key']: s for s in result if s['key'] != 'reconciliationAdjustsBalance'}
+    assert list(by_key) == ['showArchivedDebts'], by_key
+    assert by_key['showArchivedDebts']['value'] is True
+    assert all('<' not in k and '>' not in k for k in by_key)
 
 
 @pytest.mark.security

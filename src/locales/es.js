@@ -1227,6 +1227,7 @@ export default {
     'recurring.cancelAria': 'Cancelar la edición de {name}',
     'recurring.errAmount': 'Introduce un importe válido (0 o mayor).',
     'recurring.errTransferAmount': 'Las transferencias deben tener un importe mayor que $0.',
+    'recurring.errTransferTarget': 'Una transferencia necesita una cuenta de destino distinta de la cuenta de origen.',
     'recurring.errName': 'Introduce un nombre.',
     'recurring.errAccount': 'Selecciona una cuenta.',
     'recurring.pauseTitle': 'Pausar elemento recurrente',

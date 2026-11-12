@@ -5,6 +5,7 @@ import { sanitizeFiniteNumber, normalizeText } from './utils.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
 import { mapWithConcurrency, mapSettledWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 import { remapLedgerEntries, ledgerKeyDropWarning } from './ledgerKeyRemap.js';
+import { isAllowedSetting } from './settingsSchema.js';
 
 // Every per-record fan-out below goes through this pool (#519): an unbounded
 // Promise.all of a few thousand requests made Chromium abort some of them.
@@ -99,7 +100,7 @@ function keyedPuts(src, overrideEntries, clearedEntries, idMap, personIdMap) {
             apiFetch('PUT', `/api/ledger-cleared/${encodeURIComponent(key)}`, val)),
         ...(src.monthlySnapshots || []).map(s => () =>
             apiFetch('PUT', `/api/net-worth-snapshots/${encodeURIComponent(s.date)}`, s)),
-        ...(src.settings || []).map(s => () =>
+        ...(src.settings || []).filter(s => isAllowedSetting(s.key, s.value)).map(s => () =>
             apiFetch('PUT', `/api/settings/${encodeURIComponent(s.key)}`, s)),
     ];
 }

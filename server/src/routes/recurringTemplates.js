@@ -1,9 +1,11 @@
 import { createCrudResource } from '../crudRouter.js';
-import { sanitizeRecurringTemplate } from '../sanitizers/index.js';
+import { sanitizeRecurringTemplate, isValidRecurringTemplate } from '../sanitizers/index.js';
+import { validatedSanitizer } from '../validity.js';
 
 export default createCrudResource({
     table: 'recurring_templates',
-    sanitize: sanitizeRecurringTemplate,
+    // #569: a transfer template needs a distinct target and a positive amount.
+    sanitize: validatedSanitizer(sanitizeRecurringTemplate, isValidRecurringTemplate, ['name', 'type', 'amount', 'accountId', 'targetAccountId']),
     requiredFields: ['name'],
     foreignKeys: { accountId: 'accounts', targetAccountId: 'accounts' },
     columns: {

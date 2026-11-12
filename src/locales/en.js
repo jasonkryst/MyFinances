@@ -1252,6 +1252,7 @@ export default {
     'recurring.cancelAria': 'Cancel editing {name}',
     'recurring.errAmount': 'Please enter a valid amount (0 or greater).',
     'recurring.errTransferAmount': 'Transfers must have an amount greater than $0.',
+    'recurring.errTransferTarget': 'A transfer needs a target account that is different from the source account.',
     'recurring.errName': 'Please enter a name.',
     'recurring.errAccount': 'Please select an account.',
     'recurring.pauseTitle': 'Pause Recurring Item',

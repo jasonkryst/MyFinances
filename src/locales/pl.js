@@ -1227,6 +1227,7 @@ export default {
     'recurring.cancelAria': 'Anuluj edycję: {name}',
     'recurring.errAmount': 'Wpisz prawidłową kwotę (0 lub większą).',
     'recurring.errTransferAmount': 'Przelewy muszą mieć kwotę większą niż $0.',
+    'recurring.errTransferTarget': 'Przelew wymaga konta docelowego innego niż konto źródłowe.',
     'recurring.errName': 'Wpisz nazwę.',
     'recurring.errAccount': 'Wybierz konto.',
     'recurring.pauseTitle': 'Wstrzymaj pozycję cykliczną',

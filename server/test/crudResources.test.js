@@ -475,3 +475,128 @@ test('/api/manual-transactions: deleting the account keeps the row with a null a
     const list = await (await fetch(`${baseUrl}/api/manual-transactions`, { headers: { Cookie: cookies } })).json();
     assert.equal(list.find(r => r.id === created.id).accountId, null);
 });
+
+// #568: transfers, reconciliations and #569 recurring transfers share one
+// validity rule with import (isValidTransfer etc.).
+async function postJson(path, body) {
+    return fetch(`${baseUrl}${path}`, { method: 'POST', headers: csrfHeaders(), body: JSON.stringify(body) });
+}
+async function patchJson(path, id, body) {
+    return fetch(`${baseUrl}${path}/${id}`, { method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify(body) });
+}
+async function listOf(path) {
+    return (await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookies } })).json();
+}
+
+for (const [label, body] of [
+    ['the same from and to account', () => ({ fromAccountId: accountId, toAccountId: accountId, amount: 50 })],
+    ['a zero amount', () => ({ fromAccountId: accountId, toAccountId: accountId2, amount: 0 })],
+    ['a negative amount', () => ({ fromAccountId: accountId, toAccountId: accountId2, amount: -50 })],
+    ['a missing amount', () => ({ fromAccountId: accountId, toAccountId: accountId2 })],
+    ['a non-numeric amount', () => ({ fromAccountId: accountId, toAccountId: accountId2, amount: 'abc' })],
+    ['an amount over 1e9', () => ({ fromAccountId: accountId, toAccountId: accountId2, amount: 2e9 })],
+]) {
+    test(`/api/transfers: rejects ${label}`, async () => {
+        const res = await postJson('/api/transfers', { date: '2026-08-01', ...body() });
+        assert.equal(res.status, 400);
+        assert.equal((await listOf('/api/transfers')).length, 0);
+    });
+}
+
+test('/api/transfers: a valid transfer is created', async () => {
+    const res = await postJson('/api/transfers', { fromAccountId: accountId, toAccountId: accountId2, amount: 25, date: '2026-08-01' });
+    assert.equal(res.status, 201);
+});
+
+test('/api/transfers: a PATCH into an invalid state is a 400 and the row is unchanged; a memo PATCH is a 200', async () => {
+    const created = await (await postJson('/api/transfers', { fromAccountId: accountId, toAccountId: accountId2, amount: 25, date: '2026-08-01' })).json();
+    assert.equal((await patchJson('/api/transfers', created.id, { toAccountId: accountId })).status, 400);
+    assert.equal((await patchJson('/api/transfers', created.id, { amount: -1 })).status, 400);
+    assert.equal((await patchJson('/api/transfers', created.id, { amount: 0 })).status, 400);
+    let row = (await listOf('/api/transfers'))[0];
+    assert.equal(row.toAccountId, accountId2);
+    assert.equal(Number(row.amount), 25);
+    const ok = await patchJson('/api/transfers', created.id, { memo: 'rent' });
+    assert.equal(ok.status, 200);
+    row = (await listOf('/api/transfers'))[0];
+    assert.equal(row.memo, 'rent');
+});
+
+test('/api/transfers: a legacy invalid row (stored before the rule) can still be PATCHed on its memo', async () => {
+    await pool.query('ALTER TABLE transfers DROP CONSTRAINT IF EXISTS transfers_amount_positive_distinct_accounts');
+    try {
+        const { rows } = await pool.query(
+            `INSERT INTO transfers (user_id, from_account_id, to_account_id, amount, date)
+             SELECT user_id, id, id, -5, '2026-08-01' FROM accounts WHERE id = $1 RETURNING id`, [accountId]);
+        assert.equal((await patchJson('/api/transfers', rows[0].id, { memo: 'still editable' })).status, 200);
+        assert.equal((await patchJson('/api/transfers', rows[0].id, { amount: -6 })).status, 400);
+    } finally {
+        await resetDb();
+        await pool.query(`ALTER TABLE transfers ADD CONSTRAINT transfers_amount_positive_distinct_accounts
+            CHECK (amount > 0 AND amount <> 'NaN'::numeric AND from_account_id <> to_account_id) NOT VALID`);
+    }
+});
+
+test('/api/reconciliations: a missing or non-numeric statementBalance is a 400', async () => {
+    for (const extra of [{}, { statementBalance: 'abc' }, { statementBalance: null }, { statementBalance: '' }]) {
+        const res = await postJson('/api/reconciliations', { accountId, date: '2026-08-01', ...extra });
+        assert.equal(res.status, 400, JSON.stringify(extra));
+    }
+    assert.equal((await listOf('/api/reconciliations')).length, 0);
+});
+
+test('/api/reconciliations: valid (including a negative or zero balance) is created; a PATCH to a null balance is a 400', async () => {
+    const zero = await postJson('/api/reconciliations', { accountId, date: '2026-08-01', statementBalance: 0 });
+    assert.equal(zero.status, 201);
+    const neg = await (await postJson('/api/reconciliations', { accountId, date: '2026-08-02', statementBalance: -250.5 })).json();
+    assert.equal(Number(neg.statementBalance), -250.5);
+    assert.equal((await patchJson('/api/reconciliations', neg.id, { statementBalance: null })).status, 400);
+    assert.equal((await patchJson('/api/reconciliations', neg.id, { statementBalance: 'abc' })).status, 400);
+    assert.equal(Number((await listOf('/api/reconciliations')).find(r => r.id === neg.id).statementBalance), -250.5);
+    assert.equal((await patchJson('/api/reconciliations', neg.id, { note: 'ok' })).status, 200);
+});
+
+function transferTemplate(extra) {
+    return { name: 'Move', type: 'transfer', amount: 100, frequency: 'monthly', dayOfMonth: 1, accountId, targetAccountId: accountId2, ...extra };
+}
+
+for (const [label, extra] of [
+    ['no targetAccountId', { targetAccountId: undefined }],
+    ['a null targetAccountId', { targetAccountId: null }],
+    ['target equal to the account', { targetAccountId: accountId }],
+    ['a zero amount', { amount: 0 }],
+    ['a missing amount', { amount: undefined }],
+]) {
+    test(`/api/recurring-templates: a transfer with ${label} is a 400`, async () => {
+        const res = await postJson('/api/recurring-templates', transferTemplate(extra));
+        assert.equal(res.status, 400);
+        assert.equal((await listOf('/api/recurring-templates')).length, 0);
+    });
+}
+
+test('/api/recurring-templates: a valid transfer is a 201; a $0 subscription and a $0 income stay 201 (zeroAmountPolicy is client-side)', async () => {
+    assert.equal((await postJson('/api/recurring-templates', transferTemplate({}))).status, 201);
+    assert.equal((await postJson('/api/recurring-templates', { name: 'Free trial', type: 'subscription', amount: 0, frequency: 'monthly', accountId })).status, 201);
+    assert.equal((await postJson('/api/recurring-templates', { name: 'Gift', type: 'income', amount: 0, frequency: 'monthly', accountId })).status, 201);
+    assert.equal((await postJson('/api/recurring-templates', { name: 'Sub without target', type: 'subscription', amount: 5, accountId })).status, 201);
+    assert.equal((await postJson('/api/recurring-templates', { type: 'subscription', amount: 5, accountId })).status, 400);
+});
+
+test('/api/recurring-templates: a PATCH that removes a transfer\'s target is a 400; changing it to a subscription is a 200', async () => {
+    const created = await (await postJson('/api/recurring-templates', transferTemplate({}))).json();
+    assert.equal((await patchJson('/api/recurring-templates', created.id, { targetAccountId: null })).status, 400);
+    assert.equal((await patchJson('/api/recurring-templates', created.id, { targetAccountId: accountId })).status, 400);
+    assert.equal((await patchJson('/api/recurring-templates', created.id, { amount: 0 })).status, 400);
+    assert.equal((await patchJson('/api/recurring-templates', created.id, { type: 'subscription' })).status, 200);
+    const row = (await listOf('/api/recurring-templates'))[0];
+    assert.equal(row.type, 'subscription');
+    assert.equal(row.targetAccountId, accountId2);
+});
+
+test('/api/recurring-templates: a legacy targetless transfer template can still be paused', async () => {
+    const { rows } = await pool.query(
+        `INSERT INTO recurring_templates (user_id, name, type, amount, frequency, account_id)
+         SELECT user_id, 'Legacy', 'transfer', 10, 'monthly', id FROM accounts WHERE id = $1 RETURNING id`, [accountId]);
+    assert.equal((await patchJson('/api/recurring-templates', rows[0].id, { paused: true })).status, 200);
+    assert.equal((await patchJson('/api/recurring-templates', rows[0].id, { amount: 0 })).status, 400);
+});
