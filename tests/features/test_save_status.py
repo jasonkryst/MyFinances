@@ -186,10 +186,21 @@ def test_beforeunload_is_prevented_only_while_a_write_is_pending(app_page):
         if held:
             break
         page.wait_for_timeout(100)
-    held[0].continue_()
-    page.wait_for_function("async () => (await import('/src/postgresSync.js')).pendingWriteCount() === 0", timeout=8000)
+    # Stop holding before releasing: the app can send its own background
+    # plan-settings save after boot, and a route left in place would hold that
+    # one forever (seen in CI as pending stuck at 1).
+    page.unroute(PLAN_SETTINGS)
+    for route in held:
+        route.continue_()
+    # Wait for an idle moment and dispatch in the same task, so no write can
+    # start between reading the count and the unload check.
     result = page.evaluate("""async () => {
-        const pending = (await import('/src/postgresSync.js')).pendingWriteCount();
+        const sync = await import('/src/postgresSync.js');
+        const deadline = Date.now() + 8000;
+        while (sync.pendingWriteCount() !== 0 && Date.now() < deadline) {
+            await new Promise(r => setTimeout(r, 50));
+        }
+        const pending = sync.pendingWriteCount();
         const e = new Event('beforeunload', { cancelable: true });
         window.dispatchEvent(e);
         return { pending, prevented: e.defaultPrevented };
