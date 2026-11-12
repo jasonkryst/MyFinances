@@ -12,6 +12,10 @@ const {
     dailyCompoundInterest,
     computeNetIncomeAmount,
     computeMonthlyIncomeForMonth,
+    computeMonthlyBonusesForMonth,
+    getBonusDatesInMonth,
+    getNextBonusDate,
+    getBonusesByDayForMonth,
 } = require('../../src/utils.js');
 
 describe('formatCurrency', () => {
@@ -257,5 +261,131 @@ describe('isTransferLegTx (issue #566)', () => {
     test('false for null and undefined', () => {
         expect(isTransferLegTx(null)).toBe(false);
         expect(isTransferLegTx(undefined)).toBe(false);
+    });
+});
+
+describe('getBonusDatesInMonth (#290)', () => {
+    const oneTime = { date: '2026-12-15', amount: 100 };
+    const annual = { date: '2026-12-15', amount: 100, recurringAnnually: true };
+    const ymd = (list) => list.map(d => [d.getFullYear(), d.getMonth(), d.getDate()]);
+
+    test('a one-time bonus occurs only in its own month', () => {
+        expect(ymd(getBonusDatesInMonth(oneTime, 2026, 11))).toEqual([[2026, 11, 15]]);
+        expect(getBonusDatesInMonth(oneTime, 2027, 11)).toEqual([]);
+        expect(getBonusDatesInMonth(oneTime, 2026, 10)).toEqual([]);
+        expect(getBonusDatesInMonth(oneTime, 2025, 11)).toEqual([]);
+    });
+
+    test('an annual bonus occurs in the same month every year', () => {
+        expect(ymd(getBonusDatesInMonth(annual, 2026, 11))).toEqual([[2026, 11, 15]]);
+        expect(ymd(getBonusDatesInMonth(annual, 2027, 11))).toEqual([[2027, 11, 15]]);
+        expect(ymd(getBonusDatesInMonth(annual, 2040, 11))).toEqual([[2040, 11, 15]]);
+        expect(getBonusDatesInMonth(annual, 2027, 10)).toEqual([]);
+        expect(getBonusDatesInMonth(annual, 2027, 0)).toEqual([]);
+    });
+
+    test('an annual bonus does not occur before its start year', () => {
+        expect(getBonusDatesInMonth(annual, 2025, 11)).toEqual([]);
+        expect(getBonusDatesInMonth(annual, 2000, 11)).toEqual([]);
+    });
+
+    test('recurUntil is inclusive of its own year when the occurrence is on or before it', () => {
+        const b = { ...annual, recurUntil: '2028-12-15' };
+        expect(ymd(getBonusDatesInMonth(b, 2028, 11))).toEqual([[2028, 11, 15]]);
+        expect(getBonusDatesInMonth(b, 2029, 11)).toEqual([]);
+        const later = { ...annual, recurUntil: '2028-12-31' };
+        expect(ymd(getBonusDatesInMonth(later, 2028, 11))).toEqual([[2028, 11, 15]]);
+    });
+
+    test('recurUntil before that year\'s occurrence excludes that year', () => {
+        const b = { ...annual, recurUntil: '2028-12-14' };
+        expect(ymd(getBonusDatesInMonth(b, 2027, 11))).toEqual([[2027, 11, 15]]);
+        expect(getBonusDatesInMonth(b, 2028, 11)).toEqual([]);
+    });
+
+    test('recurUntil is ignored on a one-time bonus', () => {
+        const b = { ...oneTime, recurUntil: '2030-01-01' };
+        expect(getBonusDatesInMonth(b, 2027, 11)).toEqual([]);
+        expect(ymd(getBonusDatesInMonth(b, 2026, 11))).toEqual([[2026, 11, 15]]);
+    });
+
+    test('Feb 29 falls on Feb 28 in non-leap years and Feb 29 in leap years', () => {
+        const leap = { date: '2024-02-29', amount: 1, recurringAnnually: true };
+        expect(ymd(getBonusDatesInMonth(leap, 2024, 1))).toEqual([[2024, 1, 29]]);
+        expect(ymd(getBonusDatesInMonth(leap, 2025, 1))).toEqual([[2025, 1, 28]]);
+        expect(ymd(getBonusDatesInMonth(leap, 2028, 1))).toEqual([[2028, 1, 29]]);
+        expect(getBonusDatesInMonth(leap, 2025, 2)).toEqual([]);
+    });
+
+    test('a missing, empty or invalid date yields nothing', () => {
+        expect(getBonusDatesInMonth({ amount: 1, recurringAnnually: true }, 2026, 11)).toEqual([]);
+        expect(getBonusDatesInMonth({ date: '', recurringAnnually: true }, 2026, 11)).toEqual([]);
+        expect(getBonusDatesInMonth({ date: 'junk' }, 2026, 11)).toEqual([]);
+        expect(getBonusDatesInMonth(null, 2026, 11)).toEqual([]);
+    });
+
+    test('tolerates a legacy full ISO timestamp', () => {
+        expect(ymd(getBonusDatesInMonth({ date: '2026-12-15T05:00:00.000Z' }, 2026, 11))).toEqual([[2026, 11, 15]]);
+    });
+});
+
+describe('getNextBonusDate (#290)', () => {
+    const at = (y, m, d) => new Date(y, m, d, 9, 30);
+    const ymd = (d) => d && [d.getFullYear(), d.getMonth(), d.getDate()];
+
+    test('a one-time bonus: its date when upcoming or today, null once past', () => {
+        const b = { date: '2026-12-15' };
+        expect(ymd(getNextBonusDate(b, at(2026, 5, 1)))).toEqual([2026, 11, 15]);
+        expect(ymd(getNextBonusDate(b, at(2026, 11, 15)))).toEqual([2026, 11, 15]);
+        expect(getNextBonusDate(b, at(2026, 11, 16))).toBeNull();
+    });
+
+    test('an annual bonus: next occurrence this year or next', () => {
+        const b = { date: '2024-12-15', recurringAnnually: true };
+        expect(ymd(getNextBonusDate(b, at(2026, 5, 1)))).toEqual([2026, 11, 15]);
+        expect(ymd(getNextBonusDate(b, at(2026, 11, 15)))).toEqual([2026, 11, 15]);
+        expect(ymd(getNextBonusDate(b, at(2026, 11, 16)))).toEqual([2027, 11, 15]);
+    });
+
+    test('an annual bonus that starts in the future returns its first date', () => {
+        const b = { date: '2030-03-10', recurringAnnually: true };
+        expect(ymd(getNextBonusDate(b, at(2026, 5, 1)))).toEqual([2030, 2, 10]);
+    });
+
+    test('an ended series returns null', () => {
+        const b = { date: '2024-12-15', recurringAnnually: true, recurUntil: '2025-12-15' };
+        expect(getNextBonusDate(b, at(2026, 0, 1))).toBeNull();
+        expect(ymd(getNextBonusDate(b, at(2025, 5, 1)))).toEqual([2025, 11, 15]);
+    });
+
+    test('Feb 29 clamps in a non-leap year', () => {
+        const b = { date: '2024-02-29', recurringAnnually: true };
+        expect(ymd(getNextBonusDate(b, at(2026, 0, 1)))).toEqual([2026, 1, 28]);
+    });
+
+    test('no date returns null', () => {
+        expect(getNextBonusDate({ recurringAnnually: true }, new Date())).toBeNull();
+    });
+});
+
+describe('bonus consumers use the shared rule (#290)', () => {
+    const annual = { id: 1, name: 'Y', date: '2025-12-20', amount: 1000, recurringAnnually: true };
+    const once = { id: 2, name: 'T', date: '2025-12-05', amount: 200 };
+
+    test('computeMonthlyBonusesForMonth sums annual and one-time bonuses', () => {
+        expect(computeMonthlyBonusesForMonth([annual, once], 2025, 11)).toBe(1200);
+        expect(computeMonthlyBonusesForMonth([annual, once], 2026, 11)).toBe(1000);
+        expect(computeMonthlyBonusesForMonth([annual, once], 2026, 10)).toBe(0);
+        expect(computeMonthlyBonusesForMonth(undefined, 2026, 11)).toBe(0);
+    });
+
+    test('computeMonthlyIncomeForMonth includes a future annual bonus', () => {
+        expect(computeMonthlyIncomeForMonth([], [annual], 2031, 11).monthlyTotal).toBe(1000);
+    });
+
+    test('getBonusesByDayForMonth places the occurrence on its day', () => {
+        const byDay = getBonusesByDayForMonth([annual, once], 2027, 11);
+        expect(Object.keys(byDay)).toEqual(['20']);
+        expect(byDay[20]).toEqual([annual]);
     });
 });

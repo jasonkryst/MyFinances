@@ -648,9 +648,52 @@ describe('sanitizeReconciliation statement range (issue #275)', () => {
 });
 
 describe('sanitizeBonus', () => {
+    describe('annual recurrence (#290)', () => {
+        const base = { name: 'Year-end', amount: 100, date: '2026-12-15' };
+
+        test('defaults to a one-time bonus with no end date', () => {
+            const r = sanitizeBonus(base, 1);
+            expect(r.recurringAnnually).toBe(false);
+            expect(r.recurUntil).toBeNull();
+        });
+
+        test('keeps recurringAnnually and a valid recurUntil', () => {
+            const r = sanitizeBonus({ ...base, recurringAnnually: true, recurUntil: '2030-12-15' }, 1);
+            expect(r.recurringAnnually).toBe(true);
+            expect(r.recurUntil).toBe('2030-12-15');
+        });
+
+        test('keeps recurUntil equal to the date', () => {
+            expect(sanitizeBonus({ ...base, recurringAnnually: true, recurUntil: '2026-12-15' }, 1).recurUntil).toBe('2026-12-15');
+        });
+
+        test('drops recurUntil when the bonus is not recurring', () => {
+            expect(sanitizeBonus({ ...base, recurringAnnually: false, recurUntil: '2030-12-15' }, 1).recurUntil).toBeNull();
+            expect(sanitizeBonus({ ...base, recurUntil: '2030-12-15' }, 1).recurUntil).toBeNull();
+        });
+
+        test('drops recurUntil that is before the date', () => {
+            const r = sanitizeBonus({ ...base, recurringAnnually: true, recurUntil: '2026-12-14' }, 1);
+            expect(r.recurringAnnually).toBe(true);
+            expect(r.recurUntil).toBeNull();
+        });
+
+        test('drops recurUntil when the date itself is invalid', () => {
+            expect(sanitizeBonus({ ...base, date: 'nope', recurringAnnually: true, recurUntil: '2030-12-15' }, 1).recurUntil).toBeNull();
+        });
+
+        test('coerces garbage: only a real boolean true recurs, a bad end date is dropped', () => {
+            expect(sanitizeBonus({ ...base, recurringAnnually: 'true' }, 1).recurringAnnually).toBe(false);
+            expect(sanitizeBonus({ ...base, recurringAnnually: 1 }, 1).recurringAnnually).toBe(false);
+            expect(sanitizeBonus({ ...base, recurringAnnually: null }, 1).recurringAnnually).toBe(false);
+            expect(sanitizeBonus({ ...base, recurringAnnually: true, recurUntil: 'garbage' }, 1).recurUntil).toBeNull();
+            expect(sanitizeBonus({ ...base, recurringAnnually: true, recurUntil: 12345 }, 1).recurUntil).toBeNull();
+        });
+    });
+
     test('passes through a well-formed record', () => {
         const result = sanitizeBonus({ id: 3, name: 'Q4 Bonus', amount: 2500, date: '2026-12-01', category: 'Work', accountId: 7, purpose: 'cashFlow' }, 1);
-        expect(result).toEqual({ id: 3, name: 'Q4 Bonus', amount: 2500, date: '2026-12-01', category: 'Work', accountId: 7, purpose: 'cashFlow' });
+        expect(result).toEqual({ id: 3, name: 'Q4 Bonus', amount: 2500, date: '2026-12-01', category: 'Work', accountId: 7, purpose: 'cashFlow', recurringAnnually: false, recurUntil: null });
     });
 
     test('applies idFallback and defaults for an empty record', () => {

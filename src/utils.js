@@ -407,14 +407,62 @@ export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
     return dates;
 }
 
+// Parses the leading YYYY-MM-DD of a bonus date string (also tolerates a
+// legacy full ISO timestamp). Returns { y, m (0-based), d } or null.
+function _parseBonusYmd(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ''));
+    if (!match) return null;
+    return { y: Number(match[1]), m: Number(match[2]) - 1, d: Number(match[3]) };
+}
+
+function _ymdKey(y, m, d) {
+    return y * 10000 + m * 100 + d;
+}
+
+// The occurrence of a bonus in a given year, or null (issue #290). A one-time
+// bonus occurs only in its own year. An annual bonus (recurringAnnually) occurs
+// on `date`'s month and day in `date`'s year and every later year, through
+// `recurUntil` (inclusive) when set. A Feb 29 date falls on Feb 28 in
+// non-leap years (clamped to the month's last day).
+function _bonusOccurrenceInYear(bonus, year) {
+    const start = _parseBonusYmd(bonus?.date);
+    if (!start || year < start.y) return null;
+    if (!bonus.recurringAnnually && year !== start.y) return null;
+    const lastDay = new Date(year, start.m + 1, 0).getDate();
+    const day = Math.min(start.d, lastDay);
+    const until = bonus.recurringAnnually ? _parseBonusYmd(bonus.recurUntil) : null;
+    if (until && _ymdKey(year, start.m, day) > _ymdKey(until.y, until.m, until.d)) return null;
+    return new Date(year, start.m, day);
+}
+
+// THE single rule for when a bonus lands (issue #290). Every per-month bonus
+// consumer must go through this; never compare `bonus.date`'s month directly.
+// Returns the occurrence dates (local midnight) in the month: zero or one.
+export function getBonusDatesInMonth(bonus, year, month) {
+    const occurrence = _bonusOccurrenceInYear(bonus, year);
+    return occurrence && occurrence.getMonth() === month ? [occurrence] : [];
+}
+
+// The first occurrence on or after `fromDate` (date part only), or null when
+// the bonus has none left (a one-time bonus in the past, or an ended series).
+export function getNextBonusDate(bonus, fromDate) {
+    const from = fromDate instanceof Date ? fromDate : new Date();
+    const fromKey = _ymdKey(from.getFullYear(), from.getMonth(), from.getDate());
+    const start = _parseBonusYmd(bonus?.date);
+    if (!start) return null;
+    const firstYear = Math.max(from.getFullYear(), start.y);
+    for (let year = firstYear; year <= firstYear + 1; year++) {
+        const occurrence = _bonusOccurrenceInYear(bonus, year);
+        if (occurrence && _ymdKey(occurrence.getFullYear(), occurrence.getMonth(), occurrence.getDate()) >= fromKey) {
+            return occurrence;
+        }
+    }
+    return null;
+}
+
 export function computeMonthlyBonusesForMonth(bonuses, year, month) {
     return (bonuses || []).reduce((sum, b) => {
-        if (!b.date) return sum;
-        const d = new Date(b.date + 'T12:00:00');
-        if (d.getFullYear() === year && d.getMonth() === month) {
-            return sum + (b.amount || 0);
-        }
-        return sum;
+        return sum + getBonusDatesInMonth(b, year, month).length * (b.amount || 0);
     }, 0);
 }
 
@@ -522,10 +570,8 @@ export function getExpensesByDayForMonth(expenses, year, month) {
 export function getBonusesByDayForMonth(bonuses, year, month) {
     const dayBonuses = {};
     for (const b of (bonuses || [])) {
-        if (!b.date) continue;
-        const bd = new Date(b.date + 'T12:00:00');
-        if (bd.getFullYear() === year && bd.getMonth() === month) {
-            const day = bd.getDate();
+        for (const occurrence of getBonusDatesInMonth(b, year, month)) {
+            const day = occurrence.getDate();
             if (!dayBonuses[day]) dayBonuses[day] = [];
             dayBonuses[day].push(b);
         }

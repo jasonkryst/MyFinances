@@ -9,6 +9,11 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Changed
 - **Confirm before a weekend-rule change moves paid or adjusted Ledger entries** (issue #624). In the inline edit of a recurring template or a debt, changing "If due on a weekend" now counts the item's Cleared and amount-override Ledger entries whose date the new rule would move, and asks first ("Change rule" / Cancel, Escape cancels) when there are any. Cancel aborts the whole save and restores the select; with nothing affected it saves without asking. The add forms never prompt. The count is the pure `countEntriesMovedByWeekendRule` in `src/weekendRule.js`. Strings are `weekend.confirmMove*` in en/es/pl.
 
+## [7.11.0] — 2026-11-12
+
+### Added
+- **Recurring annual bonuses** (issue #290). A bonus can now repeat every year (`recurringAnnually`) with an optional inclusive end date (`recurUntil`). It occurs on its date's month and day in that year and every later year; a Feb 29 date falls on Feb 28 in non-leap years. One shared rule, `getBonusDatesInMonth()` in `src/utils.js`, now decides when a bonus lands, and the monthly income total, the Ledger (each year's occurrence has its own override and Cleared key), the Plan calendar, Health, Forecast, account projections and the reports all use it. `getNextBonusDate()` gives the next occurrence for the Income page, which shows an "Every year" badge, an "until" date and the next date, with the checkbox and Until date in both the add form and the inline editor. Existing bonuses stay one-time. Server: migration `1755600000037` adds `bonuses.recurring_annually` (default false) and `bonuses.recur_until`; rolling it back drops the recurrence settings.
+
 ## [7.10.0] — 2026-11-12
 
 ### Added

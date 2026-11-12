@@ -71,6 +71,9 @@ SEEDED_STATE = {
         {'id': 1, 'name': '⟦Refund⟧', 'amount': 2000, 'date': _TODAY, 'category': 'Tax Refund',
          'accountId': 1, 'purpose': 'cashFlow'},
         {'id': 2, 'name': '⟦Gift⟧', 'amount': 100, 'date': '2025-06-01', 'category': '⟦Gift⟧', 'purpose': 'savings'},
+        # #290: an annual bonus with an end date renders the badge, "until" and next date.
+        {'id': 3, 'name': '⟦Year-end⟧', 'amount': 4000, 'date': '2025-12-15', 'category': 'Bonus',
+         'recurringAnnually': True, 'recurUntil': '2030-12-15'},
     ],
     'emergencyFunds': [
         {'id': 1, 'accountId': 7, 'targetAmount': 15000, 'currentAmount': 5000, 'monthlyContribution': 250,
@@ -700,7 +703,7 @@ TRANSLATED_PAGES = {
         """async () => {
             window.app.switchPage('income');
             window.app.editingIncomeId = 1;
-            window.app.editingBonusId = 1;
+            window.app.editingBonusId = (window.app.bonuses.find(b => b.recurringAnnually) || { id: 1 }).id;
             window.app.renderIncomeList();
             window.app.renderBonusList();
         }""",

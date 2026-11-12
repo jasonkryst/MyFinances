@@ -13,6 +13,8 @@ export default createCrudResource({
         date: 'date',
         category: 'category',
         accountId: 'account_id',
-        purpose: 'purpose'
+        purpose: 'purpose',
+        recurringAnnually: 'recurring_annually',
+        recurUntil: 'recur_until'
     }
 });
