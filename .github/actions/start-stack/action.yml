@@ -4,6 +4,14 @@ description: >
   server + Postgres with docker compose, pre-creates the test user, and exports
   the TEST_* / POSTGRES_TEST_* variables the pytest harness reads. Honors an
   inherited COMPOSE_FILE (test-postgres adds the mailpit override).
+  Wait/retry policy (#469): (1) before `up`, wait up to 30 s for host port 32900
+  to be free, else print `ss -ltnp` / `docker ps -a` and fail; (2) after `up`,
+  wait up to 120 s for the frontend to answer on :32900, then up to 120 s for the
+  server container to report healthy; (3) if either wait fails, print
+  diagnostics (`docker compose ps -a` and the last 200 log lines of every
+  service, Postgres included), run `docker compose down -v`, wait for the port
+  again and try `up` exactly once more; a second failure fails the step. The
+  "Create test user" step prints the server logs if it fails.
 runs:
   using: composite
   steps:
@@ -23,24 +31,65 @@ runs:
     - name: Start stack
       shell: bash
       run: |
-        docker compose up -d --no-build
-        for i in $(seq 1 60); do
-          curl -sf http://localhost:32900/ > /dev/null && break
-          sleep 2
-        done
-        curl -sf http://localhost:32900/ > /dev/null || { docker compose logs; exit 1; }
-        for i in $(seq 1 60); do
-          docker inspect --format='{{.State.Health.Status}}' myfinances-server 2>/dev/null | grep -q "^healthy$" && break
-          sleep 2
-        done
-        docker inspect --format='{{.State.Health.Status}}' myfinances-server | grep -q "^healthy$" || { docker compose logs server; exit 1; }
+        # Not `-e`: every failure below must reach the diagnostics before exiting.
+        set +e
+        PORT=32900
+        diagnostics() {
+          echo "::group::Stack diagnostics ($1)"
+          docker compose ps -a
+          docker compose logs --no-color --tail 200
+          echo "::endgroup::"
+        }
+        wait_port_free() {
+          for _ in $(seq 1 15); do
+            ss -ltn 2>/dev/null | grep -q ":$PORT " || return 0
+            sleep 2
+          done
+          echo "::error::Port $PORT is still in use after 30 s"
+          ss -ltnp 2>/dev/null
+          docker ps -a
+          return 1
+        }
+        wait_ready() {
+          for _ in $(seq 1 60); do
+            curl -sf "http://localhost:$PORT/" > /dev/null && break
+            sleep 2
+          done
+          curl -sf "http://localhost:$PORT/" > /dev/null || { echo "::warning::Frontend did not answer on :$PORT within 120 s"; return 1; }
+          for _ in $(seq 1 60); do
+            docker inspect --format='{{.State.Health.Status}}' myfinances-server 2>/dev/null | grep -q "^healthy$" && return 0
+            sleep 2
+          done
+          echo "::warning::myfinances-server did not become healthy within 120 s"
+          return 1
+        }
+        start_once() {
+          wait_port_free || return 1
+          docker compose up -d --no-build || return 1
+          wait_ready
+        }
+        if ! start_once; then
+          diagnostics "attempt 1 failed"
+          echo "Retrying once after docker compose down -v"
+          docker compose down -v
+          if ! start_once; then
+            diagnostics "attempt 2 failed"
+            echo "::error::Stack did not start after one retry"
+            exit 1
+          fi
+        fi
     - name: Create test user
       shell: bash
       env:
         TEST_EMAIL: testuser@example.com
         TEST_PASSWORD: ci-Test-Passphrase-2026!
       run: |
-        printf '%s\n%s\n' "$TEST_EMAIL" "$TEST_PASSWORD" | docker compose run --rm -T server node scripts/create-user.js
+        if ! printf '%s\n%s\n' "$TEST_EMAIL" "$TEST_PASSWORD" | docker compose run --rm -T server node scripts/create-user.js; then
+          echo "::error::create-user.js failed; server logs follow"
+          docker compose ps -a
+          docker compose logs --no-color --tail 200 server
+          exit 1
+        fi
     - name: Export test environment
       shell: bash
       run: |

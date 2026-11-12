@@ -2,4 +2,4 @@ playwright
 pytest
 pytest-asyncio
 httpx
-
+pytest-timeout
