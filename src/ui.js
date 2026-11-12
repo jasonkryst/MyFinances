@@ -9,6 +9,7 @@ export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
+import { withProjectionCache } from './projectionCache.js';
 
 const LAST_SEEN_VERSION_KEY = 'debtTrackerLastSeenVersion';
 
@@ -802,7 +803,13 @@ export function switchPage(app, pageName) {
  * subtab, Reports resetting its month offset) — an in-place refresh leaves
  * those alone so the user's current view isn't yanked out from under them.
  */
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
+    return withProjectionCache(app, () => renderPageDataUncached(app, pageName, { resetToDefaults }));
+}
+
+function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     if (pageName === 'health') app.renderHealthDashboard();
     if (pageName === 'accounts') {
         app.renderAccountsList();
@@ -863,7 +870,13 @@ export function renderPageData(app, pageName, { resetToDefaults = true } = {}) {
     refreshFilterDisclosureCounts();
 }
 
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function updateUI(app) {
+    return withProjectionCache(app, () => updateUIUncached(app));
+}
+
+function updateUIUncached(app) {
     if (app._savedMonthlyPayment) {
         const mpEl = document.getElementById('monthlyPayment');
         if (mpEl && !mpEl.value) mpEl.value = app._savedMonthlyPayment;

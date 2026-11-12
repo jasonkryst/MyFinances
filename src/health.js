@@ -6,6 +6,7 @@ import {
     getSetting, setSetting, SURPLUS_ACCOUNT_ID, SURPLUS_WINDOW_DAYS, SURPLUS_CUSHION_PCT,
     HOUSING_COST_OVERRIDE, budgetThresholdKey, getFireMultiplier, computeFireNumber, FIRE_MULTIPLIER, FIRE_MULTIPLIER_MAX
 } from './settings.js';
+import { withProjectionCache } from './projectionCache.js';
 
 // Persists allocation slider position across renderSurplusSection re-renders (0–100 = % to debt).
 let _surplusDebtPct = 100;
@@ -909,7 +910,13 @@ function formatPayoffDate(value) {
     return isNaN(d.getTime()) ? '' : formatShortDate(d);
 }
 
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function renderHealthDashboard(app) {
+    return withProjectionCache(app, () => renderHealthDashboardUncached(app));
+}
+
+function renderHealthDashboardUncached(app) {
     const section = document.getElementById('healthSection');
     if (!section) return;
 

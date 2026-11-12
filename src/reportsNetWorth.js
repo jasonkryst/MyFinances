@@ -4,6 +4,7 @@ import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderCh
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut, pgPost } from './postgresSync.js';
 import { t, getIntlLocale } from './i18n.js';
+import { withProjectionCache } from './projectionCache.js';
 
 function toMonthKey(value) {
     return String(value || '').slice(0, 7);
@@ -119,7 +120,13 @@ export function computeNetWorthProjection(app, horizonMonths) {
     return points;
 }
 
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function captureNetWorthSnapshot(app, options = {}) {
+    return withProjectionCache(app, () => captureNetWorthSnapshotUncached(app, options));
+}
+
+function captureNetWorthSnapshotUncached(app, options = {}) {
     const now = options.date ? new Date(options.date) : new Date();
     if (Number.isNaN(now.getTime())) return null;
 
@@ -167,7 +174,13 @@ export function captureNetWorthSnapshot(app, options = {}) {
     return snapshot;
 }
 
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function renderNetWorthWidget(app) {
+    return withProjectionCache(app, () => renderNetWorthWidgetUncached(app));
+}
+
+function renderNetWorthWidgetUncached(app) {
     const container = document.getElementById('netWorthWidget');
     if (!container) return;
 
@@ -200,7 +213,13 @@ export function renderNetWorthWidget(app) {
         </div>`;
 }
 
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function renderReportsNetWorth(app) {
+    return withProjectionCache(app, () => renderReportsNetWorthUncached(app));
+}
+
+function renderReportsNetWorthUncached(app) {
     const container = document.getElementById('reportsNetWorth');
     if (!container) return;
 
