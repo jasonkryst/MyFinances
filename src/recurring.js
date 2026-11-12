@@ -13,7 +13,7 @@ import {
     isRecurringInflow
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
-import { applyWeekendRule, sanitizeWeekendRule } from './weekendRule.js';
+import { applyWeekendRule, sanitizeWeekendRule, countEntriesMovedByWeekendRule } from './weekendRule.js';
 import { buildWeekendRuleOptionsHtml, weekendRuleLabel } from './weekendRuleUi.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
@@ -827,6 +827,20 @@ export async function saveEditRecurring(app, id) {
     if (!name) { await showAlertModal(tr('recurring.errName')); return; }
     if (!(await validateRecurringAmount(app, rawAmount, type, name))) return;
     if (type === 'transfer' && (!accountId || !targetAccountId || targetAccountId === accountId)) { await showAlertModal(tr('recurring.errTransferTarget')); return; }
+
+    // #624: a rule change moves occurrence dates, orphaning Cleared/override entries keyed by the old date.
+    // Cancel aborts the whole save (other edited fields stay in the open form) and restores the select.
+    const moved = countEntriesMovedByWeekendRule({
+        kind: 'recurring', item: app.recurringTemplates[idx], newRule: weekendRule,
+        clearedKeys: Object.keys(app.ledgerClearedTransactions || {}),
+        overrideKeys: Object.keys(app.ledgerAmountOverrides || {}),
+        getRecurringDates: getRecurringOccurrencesInMonth
+    });
+    if (moved > 0 && !(await showDeleteConfirmModal(plural('weekend.confirmMove', moved), tr('weekend.confirmMoveBtn')))) {
+        const ruleEl = document.getElementById(`re-weekend-${id}`);
+        if (ruleEl) ruleEl.value = sanitizeWeekendRule(app.recurringTemplates[idx].weekendRule);
+        return;
+    }
 
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],

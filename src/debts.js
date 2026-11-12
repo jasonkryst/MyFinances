@@ -1,5 +1,5 @@
 // Debt management and calculations
-import { sanitizeWeekendRule } from './weekendRule.js';
+import { sanitizeWeekendRule, countEntriesMovedByWeekendRule } from './weekendRule.js';
 import { buildWeekendRuleOptionsHtml, weekendRuleLabel } from './weekendRuleUi.js';
 import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, todayISO, buildPersonPillsHtml } from './utils.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
@@ -1051,6 +1051,21 @@ export function cancelInlineEdit(app) {
 export async function saveInlineEdit(app, debtId) {
     const debt = app.debts.find(d => d.id === debtId);
     if (!debt) return;
+
+    // #624: confirm before a rule change orphans Cleared/override entries keyed by the old date.
+    // Runs before any field is applied, so Cancel aborts the whole save and restores the select.
+    const ruleEl = document.getElementById(`inline-weekend-${debtId}`);
+    if (ruleEl) {
+        const moved = countEntriesMovedByWeekendRule({
+            kind: 'debt', item: debt, newRule: ruleEl.value,
+            clearedKeys: Object.keys(app.ledgerClearedTransactions || {}),
+            overrideKeys: Object.keys(app.ledgerAmountOverrides || {})
+        });
+        if (moved > 0 && !(await showDeleteConfirmModal(plural('weekend.confirmMove', moved), t('weekend.confirmMoveBtn')))) {
+            ruleEl.value = sanitizeWeekendRule(debt.weekendRule);
+            return;
+        }
+    }
 
     try {
         const nameEl = document.getElementById(`inline-name-${debtId}`);
