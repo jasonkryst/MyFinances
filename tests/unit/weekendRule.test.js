@@ -1,6 +1,6 @@
 // Issue #165: weekend due-date shift. applyWeekendRule is the single rule used
 // by the ledger, Recurring, the .ics feeds and the Plan calendar.
-import { applyWeekendRule, getDebtDueDateInMonth, sanitizeWeekendRule, WEEKEND_RULES } from '../../src/weekendRule.js';
+import { applyWeekendRule, countEntriesMovedByWeekendRule, getDebtDueDateInMonth, sanitizeWeekendRule, WEEKEND_RULES } from '../../src/weekendRule.js';
 import { getRecurringOccurrencesInMonth } from '../../src/recurring.js';
 import { sanitizeDebt, sanitizeRecurringTemplate } from '../../src/sanitizers.js';
 
@@ -174,5 +174,63 @@ describe('weekendRule sanitizing', () => {
         expect(sanitizeDebt({ weekendRule: 'after' }, 1).weekendRule).toBe('after');
         expect(sanitizeDebt({}, 1).weekendRule).toBe('none');
         expect(sanitizeDebt({ weekendRule: 'sideways' }, 1).weekendRule).toBe('none');
+    });
+});
+
+// #624: entries a rule change would orphan
+describe('countEntriesMovedByWeekendRule', () => {
+    // Nov 14 2026 is a Saturday, Nov 12 a Thursday.
+    const monthly = (t, y, m) => [applyWeekendRule(new Date(y, m, t.dayOfMonth, 12), t.weekendRule)];
+    const tmpl = { id: 7, dayOfMonth: 14, weekendRule: 'none' };
+    const debt = { id: 7, dueDate: 14, weekendRule: 'none' };
+    const run = (over) => countEntriesMovedByWeekendRule({ kind: 'recurring', item: tmpl, newRule: 'before', getRecurringDates: monthly, ...over });
+
+    test('a cleared Saturday entry moves when none -> before', () => {
+        expect(run({ clearedKeys: ['recurring|7|1|2026-11-14'] })).toBe(1);
+    });
+    test('an override entry counts', () => {
+        expect(run({ overrideKeys: ['recurring|7|1|2026-11-14'] })).toBe(1);
+    });
+    test('cleared plus override on the same date count once', () => {
+        expect(run({ clearedKeys: ['recurring|7|1|2026-11-14'], overrideKeys: ['recurring|7|1|2026-11-14'] })).toBe(1);
+    });
+    test('two months count two', () => {
+        // 2026-08-15 and 2026-11-15 are a Saturday and a Sunday
+        expect(run({ item: { ...tmpl, dayOfMonth: 15 }, clearedKeys: ['recurring|7|1|2026-08-15', 'recurring|7|1|2026-11-15'] })).toBe(2);
+    });
+    test('a weekday occurrence never counts', () => {
+        expect(run({ item: { ...tmpl, dayOfMonth: 12 }, clearedKeys: ['recurring|7|1|2026-11-12'] })).toBe(0);
+    });
+    test('an unchanged rule counts 0', () => {
+        expect(run({ newRule: 'none', clearedKeys: ['recurring|7|1|2026-11-14'] })).toBe(0);
+    });
+    test('an entry on a date the old rule did not produce counts 0', () => {
+        expect(run({ clearedKeys: ['recurring|7|1|2026-11-13'] })).toBe(0);
+    });
+    test('entries of another item or type are ignored', () => {
+        expect(run({ clearedKeys: ['recurring|8|1|2026-11-14', 'debt|7|1|2026-11-14', 'manual|7|1|2026-11-14'] })).toBe(0);
+    });
+    test('after -> before moves an entry already on the Monday', () => {
+        expect(run({ item: { ...tmpl, weekendRule: 'after' }, clearedKeys: ['recurring|7|1|2026-11-16'] })).toBe(1);
+    });
+    test('after -> none: Monday entry moves back to Saturday', () => {
+        expect(run({ item: { ...tmpl, weekendRule: 'after' }, newRule: 'none', clearedKeys: ['recurring|7|1|2026-11-16'] })).toBe(1);
+    });
+    test('month edge: Saturday the 1st with before stays inside the month', () => {
+        // 2026-08-01 is a Saturday; before -> Monday the 3rd, so the entry on the 1st moves.
+        expect(run({ item: { ...tmpl, dayOfMonth: 1 }, clearedKeys: ['recurring|7|1|2026-08-01'] })).toBe(1);
+    });
+    test('debts behave the same way', () => {
+        const d = (over) => countEntriesMovedByWeekendRule({ kind: 'debt', item: debt, newRule: 'after', ...over });
+        expect(d({ clearedKeys: ['debt|7|1|2026-11-14'] })).toBe(1);
+        expect(d({ overrideKeys: ['debt|7|1|2026-11-14'], clearedKeys: ['debt|7|1|2026-11-14'] })).toBe(1);
+        expect(d({ item: { ...debt, dueDate: 12 }, clearedKeys: ['debt|7|1|2026-11-12'] })).toBe(0);
+        expect(d({ clearedKeys: ['recurring|7|1|2026-11-14'] })).toBe(0);
+        expect(d({ newRule: 'none', clearedKeys: ['debt|7|1|2026-11-14'] })).toBe(0);
+    });
+    test('bad input returns 0', () => {
+        expect(countEntriesMovedByWeekendRule({ kind: 'other', item: tmpl, newRule: 'before' })).toBe(0);
+        expect(countEntriesMovedByWeekendRule({ kind: 'debt', item: null, newRule: 'before' })).toBe(0);
+        expect(run({ clearedKeys: ['garbage', 'recurring|7|1|bad-date'] })).toBe(0);
     });
 });

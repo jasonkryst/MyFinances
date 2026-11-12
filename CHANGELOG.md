@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.11.1] — 2026-11-12
+
+### Changed
+- **Confirm before a weekend-rule change moves paid or adjusted Ledger entries** (issue #624). In the inline edit of a recurring template or a debt, changing "If due on a weekend" now counts the item's Cleared and amount-override Ledger entries whose date the new rule would move, and asks first ("Change rule" / Cancel, Escape cancels) when there are any. Cancel aborts the whole save and restores the select; with nothing affected it saves without asking. The add forms never prompt. The count is the pure `countEntriesMovedByWeekendRule` in `src/weekendRule.js`. Strings are `weekend.confirmMove*` in en/es/pl.
+
 ## [7.11.0] — 2026-11-12
 
 ### Added
