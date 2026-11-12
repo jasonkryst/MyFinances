@@ -31,7 +31,7 @@ const PRECACHE_URLS = [
     '/src/serverUnreachableGate.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
     '/src/strategyPlanCalculation.js', '/src/strategyScheduleTable.js', '/src/strategySummaryTable.js', '/src/ui.js',
     '/src/utils.js', '/src/balanceHistoryCore.js', '/src/balanceHistory.js', '/src/balanceHistoryModal.js',
-    '/src/transfers.js', '/src/passwordPolicy.js', '/src/passwordUi.js', '/src/securitySettings.js',
+    '/src/transfers.js', '/src/projectionCache.js', '/src/passwordPolicy.js', '/src/passwordUi.js', '/src/securitySettings.js',
     '/src/locales/en.js', '/src/locales/es.js', '/src/locales/pl.js',
 ];
 
