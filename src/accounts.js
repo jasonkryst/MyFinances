@@ -90,7 +90,7 @@ export function computeAccountBalance(app, accountId, year = null, month = null)
 // figure — reuses the exact same getLedgerTransactionsForMonth() list that
 // computeAccountBalance() sums, so the running balance in the modal always
 // reconciles with the card's displayed total.
-const BREAKDOWN_TYPE_ICONS = { income: '💵', bonus: '🎁', debt: '💳', bill: '🧾', recurring: '🔄', expense: '💸', savings: '💰', transfer: '⇄' };
+const BREAKDOWN_TYPE_ICONS = { income: '💵', bonus: '🎁', debt: '💳', bill: '🧾', recurring: '🔄', expense: '💸', savings: '💰', transfer: '⇄', manual: '✍️' };
 
 export function renderAccountBalanceBreakdown(app, accountId, triggerEl = null) {
     const modal = document.getElementById('acctBreakdownModal');

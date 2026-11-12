@@ -208,6 +208,24 @@ export function buildProjectedAccountTransactions(app, startYear, startMonth, mo
             });
         }
 
+        // Manual one-off transactions (#584): actuals entered in the Ledger.
+        // One signed leg on the record's own date, so balances, Reports and
+        // Forecast include them like any other source.
+        for (const mt of app.manualTransactions || []) {
+            if (!mt.date) continue;
+            const mDate = new Date(`${String(mt.date).slice(0, 10)}T00:00:00`);
+            if (mDate.getFullYear() !== year || mDate.getMonth() !== month) continue;
+            addTx({
+                accountId: mt.accountId,
+                date: mDate,
+                name: mt.name || t('ledger.txManual'),
+                amount: Number(mt.amount),
+                type: 'manual',
+                sourceId: mt.id,
+                category: mt.category || 'Other'
+            });
+        }
+
         for (const tmpl of (app.recurringTemplates || []).filter(r => !r.archived)) {
             const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
             for (const occDate of occurrences) {

@@ -292,7 +292,7 @@ _APP_STATE_KEYS = (
     "accounts", "persons", "debts", "incomes", "bonuses", "bills", "expenses",
     "ledgerAmountOverrides", "ledgerClearedTransactions", "recurringTemplates",
     "emergencyFunds", "sinkingFunds", "reconciliations", "planHistory",
-    "retirementSnapshots", "transfers", "balanceHistory", "retirementTargetDate",
+    "retirementSnapshots", "transfers", "manualTransactions", "balanceHistory", "retirementTargetDate",
     "homePurchasePlan", "budgetCategories", "monthlySnapshots",
     "netWorthMilestonesAwarded", "perMonthStimulus",
 )

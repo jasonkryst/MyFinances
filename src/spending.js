@@ -22,6 +22,8 @@ export function categoryColor(name) {
 
 function _catForTx(tx) {
     if (tx.type === 'bill' || tx.type === 'expense') return tx.category || 'Other';
+    // Manual transactions (#584): an outflow is spending in its category.
+    if (tx.type === 'manual') return tx.amount < 0 ? (tx.category || 'Other') : null;
     if (tx.type === 'recurring' && tx.amount < 0) return tx.category || 'Other';
     if (tx.type === 'debt') return 'Debt Payments';
     if (tx.type === 'savings' && tx.amount < 0) return 'Savings'; // ledger always emits negative; guard against future withdrawals

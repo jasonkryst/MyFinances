@@ -43,7 +43,7 @@ function computeSnapshotMetrics(app, snapshotDate = new Date()) {
             debtPaymentMade += Math.abs(tx.amount || 0);
             continue;
         }
-        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest' || (tx.type === 'recurring' && tx.amount > 0)) {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest' || (tx.type === 'recurring' && tx.amount > 0) || (tx.type === 'manual' && tx.amount > 0)) {
             incomeReceived += Math.abs(tx.amount || 0);
         }
     }

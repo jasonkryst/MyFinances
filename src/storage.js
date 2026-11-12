@@ -87,6 +87,7 @@ export const POSTGRES_RESOURCE_ENDPOINTS = {
     planHistory: '/api/plan-history',
     retirementSnapshots: '/api/retirement-snapshots',
     transfers: '/api/transfers',
+    manualTransactions: '/api/manual-transactions',
     balanceHistory: '/api/balance-history'
 };
 
@@ -263,6 +264,7 @@ export async function clearAllData(app, options = {}) {
     app.planHistory = [];
     app.retirementSnapshots = [];
     app.transfers = [];
+    app.manualTransactions = [];
     app.retirementTargetDate = null;
     app.homePurchasePlan = null;
     app.budgetCategories = {};

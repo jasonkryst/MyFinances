@@ -26,6 +26,12 @@ export function computeMonthCashFlowTotals(app, year, month) {
             income += tx.amount;
             continue;
         }
+        // Manual transactions (#584): inflow is income, outflow is an expense.
+        if (tx.type === 'manual') {
+            if (tx.amount >= 0) income += tx.amount;
+            else expenses += Math.abs(tx.amount);
+            continue;
+        }
         if (tx.type === 'bill') {
             bills += Math.abs(tx.amount || 0);
             continue;
@@ -109,7 +115,7 @@ export function renderReportsIncomeExp(app) {
 
     const incomeBySource = {};
     for (const tx of monthTxs) {
-        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
+        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest' || (tx.type === 'manual' && tx.amount > 0)) {
             incomeBySource[tx.name] = (incomeBySource[tx.name] || 0) + tx.amount;
         }
     }
@@ -134,7 +140,7 @@ export function renderReportsIncomeExp(app) {
 
     const expCats = {};
     for (const tx of monthTxs) {
-        if (tx.type !== 'expense') continue;
+        if (tx.type !== 'expense' && !(tx.type === 'manual' && tx.amount < 0)) continue;
         const cat = tx.category || 'Other';
         expCats[cat] = (expCats[cat] || 0) + Math.abs(tx.amount || 0);
     }

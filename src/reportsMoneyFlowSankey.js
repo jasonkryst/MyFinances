@@ -9,7 +9,7 @@ const INCOME_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669', '#
 
 const OUTFLOW_GROUPS = [
     { icon: '🧾', color: '#f59e0b', match: tx => tx.type === 'bill', key: tx => tx.category || 'Other', isCategory: true },
-    { icon: '💸', color: '#8b5cf6', match: tx => tx.type === 'expense', key: tx => tx.category || 'Other', isCategory: true },
+    { icon: '💸', color: '#8b5cf6', match: tx => tx.type === 'expense' || (tx.type === 'manual' && tx.amount < 0), key: tx => tx.category || 'Other', isCategory: true },
     { icon: '🔄', color: '#06b6d4', match: tx => tx.type === 'recurring' && tx.amount < 0, key: tx => tx.category || 'Other', isCategory: true },
     { icon: '💳', color: '#ef4444', match: tx => tx.type === 'debt', key: tx => tx.name || t('reports.sankeyDebt') },
     { icon: '💰', color: '#10b981', match: tx => tx.type === 'savings', key: tx => tx.name || t('reports.sankeySavings') }
@@ -37,7 +37,7 @@ export function computeMoneyFlowSankeyData(app, year, month) {
     const incomeBySource = {};
     for (const tx of monthTxs) {
         const isIncome = tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest' ||
-            (tx.type === 'recurring' && tx.amount >= 0);
+            (tx.type === 'recurring' && tx.amount >= 0) || (tx.type === 'manual' && tx.amount > 0);
         if (!isIncome) continue;
         incomeBySource[tx.name] = (incomeBySource[tx.name] || 0) + tx.amount;
     }

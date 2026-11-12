@@ -15,6 +15,7 @@ import reconciliationsRouter from './routes/reconciliations.js';
 import planHistoryRouter from './routes/planHistory.js';
 import retirementSnapshotsRouter from './routes/retirementSnapshots.js';
 import transfersRouter from './routes/transfers.js';
+import manualTransactionsRouter from './routes/manualTransactions.js';
 import balanceHistoryRouter from './routes/balanceHistory.js';
 import netWorthSnapshotsRouter from './routes/netWorthSnapshots.js';
 import settingsRouter from './routes/settings.js';
@@ -69,6 +70,7 @@ export function createApp() {
     api.use('/plan-history', planHistoryRouter);
     api.use('/retirement-snapshots', retirementSnapshotsRouter);
     api.use('/transfers', transfersRouter);
+    api.use('/manual-transactions', manualTransactionsRouter);
     api.use('/balance-history', balanceHistoryRouter);
     api.use('/net-worth-snapshots', netWorthSnapshotsRouter);
     api.use('/settings', settingsRouter);

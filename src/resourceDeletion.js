@@ -18,6 +18,7 @@ export const RESOURCE_TABLES = {
     '/api/plan-history': 'plan_history',
     '/api/retirement-snapshots': 'retirement_snapshots',
     '/api/transfers': 'transfers',
+    '/api/manual-transactions': 'manual_transactions',
     '/api/ledger-overrides': 'ledger_amount_overrides',
     '/api/ledger-cleared': 'ledger_cleared_transactions',
     '/api/net-worth-snapshots': 'net_worth_snapshots',
@@ -45,6 +46,7 @@ export const RESOURCE_PARENTS = {
     '/api/reconciliations': ['/api/accounts'],
     '/api/retirement-snapshots': ['/api/accounts'],
     '/api/transfers': ['/api/accounts'],
+    '/api/manual-transactions': ['/api/accounts'],
     '/api/ledger-overrides': ['/api/accounts'],
     '/api/balance-history': ['/api/accounts', '/api/debts'],
 };

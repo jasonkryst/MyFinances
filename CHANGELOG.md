@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.6.0] — 2026-11-11
+
+### Added
+- **Manual one-off transactions in the Ledger** (issue #584). An "Add Transaction" button on the Ledger toolbar opens a modal with account, Expense/Income, a positive amount, date, description, category (with the shared category suggestions) and an optional memo. The amount is stored signed (negative means money out).
+  - **Everywhere at once.** `buildProjectedAccountTransactions()` emits each record as one `type: 'manual'` leg on its own date, keyed `manual|<id>|<accountId>|<date>`, so account balances, Forecast, Net Worth and every report include it. The reports classify a manual outflow like an expense (Spending under its category, Cash Flow, Variance, Summary, the Money Flow Sankey, the Calendar) and an inflow as income.
+  - **Actuals, not budgets.** Derived category budgets (`computeDerivedBudgetByCategory`) skip manual transactions. Otherwise an unplanned purchase would raise its category's budget by exactly the overspend and hide it.
+  - **Cleared by default, never overridden.** A new record is marked Cleared, since it already happened. Its Ledger row shows a "Manual" badge and inline Edit/Delete instead of the override button, so the record itself is the one place its amount lives. An edit that moves the date or account carries the Cleared flag over to the new key, and a delete removes it.
+  - **Validation in one place.** `sanitizeManualTransaction()` and `isValidManualTransaction()` (`src/sanitizers.js`) require an account, a description, and a finite non-zero amount up to 1e9. Import uses them, and so does the server route: an invalid POST or PATCH is a 400, never stored. Errors in the modal show inline, and a failed save keeps it filled for a retry (#460).
+  - **Storage.** Migration `1755600000033` adds `manual_transactions` (with `row_version`; `account_id` `ON DELETE SET NULL` like every other account FK) behind `/api/manual-transactions`. The collection rides JSON export/import (orphans dropped with a warning), replace/merge import with account and ledger-key remapping (`SOURCE_MAP_BY_TYPE` gains `manual`), rollbacks, Clear All Data and live refresh. `src/manualTransactions.js` is lazy-loaded and precached by the service worker.
+  - **Strings** in en/es/pl. The i18n render guard covers the modal (add with a validation error, and edit).
+  - **Tests:** `tests/unit/manualTransactions.test.js` (sanitizer and validator, import and orphan rules, Ledger generation, balances, Spending, derived budgets, Cash Flow and Summary classification); server route tests in `crudResources.test.js` (shared CRUD/IDOR cases, plus rejection of a zero, non-numeric, missing or oversized amount and a blank name, a PATCH to zero, and account deletion) and `fieldParity.test.js`; `tests/features/test_manual_transactions.py` (add expense and income, inline validation, failed save, edit with the Cleared key carried over, delete with cancel, reload, reports, a real JSON export → import round trip, Clear All, keyboard, account preselect).
+
 ## [7.5.3] — 2026-11-11
 
 ### Security

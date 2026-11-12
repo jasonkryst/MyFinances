@@ -14,6 +14,7 @@ function maps(extra = {}) {
         bills: m({ 14: 214 }),
         expenses: m({ 15: 215 }),
         transfers: m({ 16: 216 }),
+        manualTransactions: m({ 17: 217 }),
         recurringTemplates: m({ 2004: 4334 }),
         savings: [],
         ...extra,
@@ -28,6 +29,7 @@ describe('remapLedgerKey: positive', () => {
         ['bill|14|5|2025-11-03', 'bill|214|105|2025-11-03'],
         ['expense|15|5|2025-11-01', 'expense|215|105|2025-11-01'],
         ['transfer|16|6|2025-11-09', 'transfer|216|106|2025-11-09'],
+        ['manual|17|5|2025-11-12', 'manual|217|105|2025-11-12'],
         ['recurring|2004|5|2025-11-22', 'recurring|4334|105|2025-11-22'],
     ])('rewrites both id segments of %s', (key, expected) => {
         expect(remapLedgerKey(key, maps())).toBe(expected);

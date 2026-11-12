@@ -30,6 +30,7 @@ const SAMPLE = {
     retirementSnapshots: { accountId: 1 },
     sinkingFunds: { name: 'S' },
     transfers: { fromAccountId: 1, toAccountId: 2, amount: 1 },
+    manualTransactions: { accountId: 1, name: 'Coffee', amount: -4.5, category: 'Dining' },
     balanceHistory: { accountId: 1, date: '2026-01-01', balance: 1 },
     ledgerCleared: { clearedAt: '2026-01-01T00:00:00.000Z' },
     netWorthSnapshots: { date: '2026-01-01', totalAssets: 1 }

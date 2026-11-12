@@ -267,6 +267,7 @@ export function renderLedgerPage(app) {
         </select></div>`;
     filterHtml += `</div>`;
     filterHtml += `<button id="ledgerExportCsvBtn" class="btn btn-secondary btn-small" type="button">⬇️ ${escapeHtml(t('ledger.exportCsv'))}</button>`;
+    filterHtml += `<button id="ledgerAddTransactionBtn" class="btn btn-secondary btn-small" type="button">＋ ${escapeHtml(t('ledger.addTransactionBtn'))}</button>`;
     filterHtml += `<button id="ledgerTransferBtn" class="btn btn-secondary btn-small" type="button">⇄ ${escapeHtml(t('ledger.transferBtn'))}</button>`;
     if (selectedAccount !== 'all') {
         filterHtml += `<button id="reconcileFromLedgerBtn" class="btn btn-secondary btn-small" data-ledger-reconcile="${escapeHtml(String(selectedAccount))}">🔄 ${escapeHtml(t('ledger.reconcileAccount'))}</button>`;
@@ -366,8 +367,11 @@ export function renderLedgerPage(app) {
             // zero-sum guarantee, since both legs always come from the one
             // `amount` field on the underlying transfer record.
             const isTransfer = tx.type === 'transfer';
+            // Manual transactions (#584) are actuals: edit the record itself
+            // rather than overriding it, so there is one way to change it.
+            const isManual = tx.type === 'manual';
             const canClear = !tx.isRollover && !isReconciliation && !!tx.transactionId;
-            const canOverride = canClear && !isTransfer;
+            const canOverride = canClear && !isTransfer && !isManual;
             const amountColorClass = isReconciliation ? '' : (tx.amount < 0 ? 'text-expense' : 'text-income');
             const reconDiffClass = isReconciliation && tx.meta
                 ? (tx.meta.difference > 0 ? 'recon-diff--pos' : tx.meta.difference < 0 ? 'recon-diff--neg' : 'recon-diff--zero')
@@ -430,9 +434,14 @@ export function renderLedgerPage(app) {
                 ? `🔄 ${escapeHtml(tx.name || '')} <span class="text-muted-secondary">(${formatCurrency(tx.meta.previousBalance)} → ${formatCurrency(tx.meta.statementBalance)})</span>${reconInfoIcon}`
                 : isTransfer
                     ? `⇄ ${escapeHtml(tx.name || '')}`
+                : isManual
+                    ? `${escapeHtml(tx.name || '')} <span class="ledger-manual-badge">${escapeHtml(t('ledger.manualBadge'))}</span>`
                     : `${isRecurringTransfer ? '⇄ ' : ''}${escapeHtml(tx.name || '')}${txPersonPill ? `<br>${txPersonPill}` : ''}${navIcon}`;
             const transferActions = isTransfer
                 ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-transfer-edit="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.editTransferAria', { name: tx.name || '' }))}">${escapeHtml(t('common.edit'))}</button><button class="ledger-override-clear-btn" data-ledger-transfer-delete="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.deleteTransferAria', { name: tx.name || '' }))}">${escapeHtml(t('common.delete'))}</button></div>`
+                : '';
+            const manualActions = isManual
+                ? `<div class="ledger-override-actions"><button class="ledger-override-btn" data-ledger-manual-edit="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.editManualAria', { name: tx.name || '' }))}">${escapeHtml(t('common.edit'))}</button><button class="ledger-override-clear-btn" data-ledger-manual-delete="${tx.sourceId}" aria-label="${escapeHtml(t('ledger.deleteManualAria', { name: tx.name || '' }))}">${escapeHtml(t('common.delete'))}</button></div>`
                 : '';
             const overrideKeys = isVariableIncome && !tx.hasOverride ? null
                 : isVariableIncome && tx.hasOverride ? { text: 'ledger.editActual', aria: 'ledger.editActualAria' }
@@ -453,7 +462,7 @@ export function renderLedgerPage(app) {
                 <td data-col="date"${ch('date')}>${tx.date ? formatShortDate(tx.date) : ''}</td>
                 <td data-col="account"${ch('account')}>${escapeHtml(tx.account || '')}</td>
                 <td data-col="name"${ch('name')}>${nameCell}</td>
-                <td data-col="amount" class="text-right ${amountColorClass}"${ch('amount')}>${amountCell}${overrideActions}${transferActions}</td>
+                <td data-col="amount" class="text-right ${amountColorClass}"${ch('amount')}>${amountCell}${overrideActions}${transferActions}${manualActions}</td>
                 <td data-col="balance" class="text-right"${ch('balance')}>${formatCurrency(tx.balance)}</td>
                 <td data-col="cleared" class="text-center"${ch('cleared')}>${clearedCell}</td>
             </tr>`;
@@ -630,6 +639,19 @@ export function renderLedgerPage(app) {
         };
     });
 
+    container.querySelectorAll('[data-ledger-manual-edit]').forEach(btn => {
+        btn.onclick = () => {
+            const id = parseInt(btn.getAttribute('data-ledger-manual-edit'), 10);
+            app.openManualTransactionModal({ editId: id });
+        };
+    });
+    container.querySelectorAll('[data-ledger-manual-delete]').forEach(btn => {
+        btn.onclick = async () => {
+            const id = parseInt(btn.getAttribute('data-ledger-manual-delete'), 10);
+            await app.deleteManualTransaction(id);
+        };
+    });
+
     container.querySelectorAll('[data-ledger-nav-type]').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -717,6 +739,13 @@ export function renderLedgerPage(app) {
     const exportCsvBtn = container.querySelector('#ledgerExportCsvBtn');
     if (exportCsvBtn) {
         exportCsvBtn.onclick = () => openLedgerExportModal(app);
+    }
+
+    const addTransactionBtn = container.querySelector('#ledgerAddTransactionBtn');
+    if (addTransactionBtn) {
+        addTransactionBtn.onclick = () => {
+            app.openManualTransactionModal(selectedAccount !== 'all' ? { accountId: parseInt(selectedAccount, 10) } : {});
+        };
     }
 
     const transferBtn = container.querySelector('#ledgerTransferBtn');

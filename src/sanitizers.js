@@ -527,6 +527,35 @@ export function sanitizeTransfer(record, idFallback) {
     };
 }
 
+// Manual one-off transaction (#584): a dated actual the user entered in the
+// Ledger. `amount` is signed (negative = money out); the UI takes a direction
+// plus a positive amount. Like sanitizeTransfer there is no clamp: an invalid
+// amount stays NaN so isValidManualTransaction() rejects it instead of
+// silently turning it into a different amount.
+export function sanitizeManualTransaction(record, idFallback) {
+    const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
+        ? record.createdAt
+        : new Date().toISOString();
+    return {
+        id: sanitizeInteger(record?.id, idFallback),
+        accountId: sanitizeInteger(record?.accountId, null),
+        date: sanitizeDateISO(record?.date) || todayISO(),
+        amount: sanitizeFiniteNumber(record?.amount, NaN),
+        name: normalizeText(record?.name, 100),
+        category: normalizeText(record?.category, 40) || 'Other',
+        memo: normalizeText(record?.memo, 200),
+        createdAt
+    };
+}
+
+// The single validity rule for a manual transaction, shared by import
+// (sanitizeParsedState) and the server route: an account, a name and a
+// finite, non-zero amount within the app's 1e9 cap.
+export function isValidManualTransaction(tx) {
+    return !!tx && tx.accountId !== null && !!tx.name
+        && Number.isFinite(tx.amount) && tx.amount !== 0 && Math.abs(tx.amount) <= 1e9;
+}
+
 export function sanitizePlanHistoryEntry(record, idFallback) {
     const createdAt = typeof record?.createdAt === 'string' && !Number.isNaN(new Date(record.createdAt).getTime())
         ? record.createdAt
@@ -622,6 +651,8 @@ export function sanitizeParsedState(parsed = {}, warnings) {
         transfers: _sanitizeRecordArray(parsed.transfers, sanitizeTransfer, now + 7500,
             t => t.fromAccountId !== null && t.toAccountId !== null && t.fromAccountId !== t.toAccountId && Number.isFinite(t.amount) && t.amount > 0,
             'Transfer', (raw, i) => raw?.date ? `Transfer ${raw.date}` : `Transfer #${i + 1}`, warnings),
+        manualTransactions: _sanitizeRecordArray(parsed.manualTransactions, sanitizeManualTransaction, now + 8500, isValidManualTransaction,
+            'Transaction', (raw, i) => raw?.name ? String(raw.name) : `Transaction #${i + 1}`, warnings),
         retirementTargetDate: sanitizeDateISO(parsed.retirementTargetDate),
         homePurchasePlan: sanitizeHomePurchasePlan(parsed.homePurchasePlan, warnings),
         budgetCategories: sanitizeBudgetCategories(parsed.budgetCategories, warnings),
@@ -652,6 +683,18 @@ export function sanitizeParsedState(parsed = {}, warnings) {
             warnings.push({
                 recordType: 'Transfer',
                 recordName: t.date ? `Transfer ${t.date}` : `Transfer #${idx + 1}`,
+                kind: 'rejected',
+                reason: 'References an account that no longer exists after import — not imported.'
+            });
+        }
+        return keep;
+    });
+    state.manualTransactions = state.manualTransactions.filter((tx, idx) => {
+        const keep = accountIds.has(tx.accountId);
+        if (!keep && warnings) {
+            warnings.push({
+                recordType: 'Transaction',
+                recordName: tx.name || `Transaction #${idx + 1}`,
                 kind: 'rejected',
                 reason: 'References an account that no longer exists after import — not imported.'
             });
