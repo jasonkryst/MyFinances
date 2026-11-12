@@ -193,6 +193,7 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
 
 - **Recurring income type** (issue #252) — `income` is a fourth recurring-template `type`: `subscription | income | reimbursement | transfer`. Direction is encoded in `type`, not a separate field.
   - **Existing data.** `reimbursement` templates are unchanged, only relabeled "Reimbursement". `income` is labeled "Income" with default category `Income`.
+  - **Transfer legs (#566).** A `transfer` template's two legs stay `type:'recurring'` but carry `isTransferLeg: true` (set in `addTx`, copied by the Ledger output builders). Every report classifier (Summary, Cash Flow, Money Flow, Variance, Spending/`spendingCategoryForTx`, the Sankey, the Net Worth projection) must skip `isTransferLegTx(tx)` (`utils.js`, also true for one-off `type:'transfer'`); balances still use the legs.
   - **Single inflow check.** `isRecurringInflow(tmpl)` (`utils.js`, hoisted function) is true for `income`/`reimbursement`. It is used by `ledgerTransactions.js`, which posts a positive `type:'recurring'` transaction that Accounts/Forecast/Reports/Spending inherit, and by the Recurring card's `+`/`recurring-amount--pos` styling.
   - **Sanitizer.** `sanitizeRecurringTemplate` whitelists `income`; unknown types fall back to `subscription`.
   - **Postgres.** Migration `1755600000028` swaps `recurring_templates_type_check`. Its `down()` first rewrites `income` rows to `reimbursement`, so rollback on a populated table never fails.

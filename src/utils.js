@@ -568,6 +568,15 @@ export function isRecurringInflow(template) {
     return template?.type === 'income' || template?.type === 'reimbursement';
 }
 
+/**
+ * True for a ledger leg that moves money between the user's own accounts (issue #566):
+ * a one-off transfer (type 'transfer') or a recurring transfer template's leg
+ * (type 'recurring' + isTransferLeg). Reports must never count these as income or spending.
+ */
+export function isTransferLegTx(tx) {
+    return !!tx && (tx.type === 'transfer' || tx.isTransferLeg === true);
+}
+
 // ── Mobile collapsibles & filter disclosures (issue #428) ────────────────
 // A `[data-collapse-toggle="<bodyId>"]` button controls the element with that
 // id. Below 768px the body is hidden by CSS unless it carries `.is-open`; on

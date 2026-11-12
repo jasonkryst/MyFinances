@@ -11,6 +11,11 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - **Repeats inside one file** are collapsed too: a file listing the same debt twice now creates one debt. Ledger override and cleared keys for the repeat attach to the surviving record.
   - **Result message** lists the skipped count for every type ("Merge complete. Skipped duplicates: Debts: 1, Transfers: 1."), in English, Spanish and Polish.
 
+## [7.6.1] — 2026-11-12
+
+### Fixed
+- **Recurring transfers no longer count as income or spending in Reports** (issue #566). A recurring template of type `transfer` posts a negative leg on the source account and a positive leg on the target, both `type: 'recurring'`, and the Reports aggregators read the positive leg as income and the negative one as spending (a $300 savings sweep inflated Reports income, appeared as a source in the Money Flow Sankey and as "Savings" spending). The legs now carry `isTransferLeg`, and the shared `isTransferLegTx(tx)` predicate (`utils.js`) makes Summary, Cash Flow, Money Flow, Variance, Spending, derived category budgets, the Money Flow Sankey and the Net Worth projection's income skip them. Account balances, Forecast and Ledger running balances are unchanged, and Reports income now matches Health's cash-flow income plus interest.
+
 ## [7.6.0] — 2026-11-11
 
 ### Added
