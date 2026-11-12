@@ -23,6 +23,7 @@ export function toLedgerTxOutput(app, tx) {
         balance: tx.balance,
         type: tx.type,
         isTransferLeg: tx.isTransferLeg === true,
+        counterpartAccountId: tx.counterpartAccountId ?? null,
         category: tx.category,
         sourceId: tx.sourceId,
         transactionId: tx.transactionId,
@@ -77,7 +78,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
         interestBalances[acct.id] = Number(acct.startingBalance) || 0;
     }
 
-    function addTx({ accountId, date, name, amount, type, sourceId, category, isTransferLeg }) {
+    function addTx({ accountId, date, name, amount, type, sourceId, category, isTransferLeg, counterpartAccountId }) {
         const key = accountId && accountMap[accountId] ? accountId : UNLINKED_KEY;
         const txDate = new Date(date);
         const tx = {
@@ -89,6 +90,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
             category
         };
         if (isTransferLeg) tx.isTransferLeg = true;
+        if (counterpartAccountId !== undefined && counterpartAccountId !== null) tx.counterpartAccountId = counterpartAccountId;
         tx.transactionId = makeLedgerTransactionId({
             accountId: key,
             date: txDate,
@@ -213,7 +215,8 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                 amount: -Math.abs(Number(xfer.amount)),
                 type: 'transfer',
                 sourceId: xfer.id,
-                category: 'Transfer'
+                category: 'Transfer',
+                counterpartAccountId: xfer.toAccountId
             });
             addTx({
                 accountId: xfer.toAccountId,
@@ -222,7 +225,8 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                 amount: Math.abs(Number(xfer.amount)),
                 type: 'transfer',
                 sourceId: xfer.id,
-                category: 'Transfer'
+                category: 'Transfer',
+                counterpartAccountId: xfer.fromAccountId
             });
         }
 
@@ -266,7 +270,8 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                         type: 'recurring',
                         sourceId: tmpl.id,
                         category: tmpl.category || 'Transfer',
-                        isTransferLeg: true
+                        isTransferLeg: true,
+                        counterpartAccountId: tmpl.targetAccountId
                     });
                     addTx({
                         accountId: tmpl.targetAccountId,
@@ -276,7 +281,8 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                         type: 'recurring',
                         sourceId: tmpl.id,
                         category: tmpl.category || 'Transfer',
-                        isTransferLeg: true
+                        isTransferLeg: true,
+                        counterpartAccountId: tmpl.accountId
                     });
                 } else {
                     addTx({
@@ -413,6 +419,7 @@ export function getLedgerTransactionsForMonth(app, year, month, accountId = null
                 overrideAmount: amount !== tx.originalAmount ? amount : null,
                 type: tx.type,
                 isTransferLeg: tx.isTransferLeg === true,
+        counterpartAccountId: tx.counterpartAccountId ?? null,
                 category: tx.category,
                 sourceId: tx.sourceId,
                 transactionId: tx.transactionId,
@@ -573,6 +580,7 @@ export function getLedgerTransactions(app) {
                 balance: tx.balance,
                 type: tx.type,
                 isTransferLeg: tx.isTransferLeg === true,
+        counterpartAccountId: tx.counterpartAccountId ?? null,
                 category: tx.category,
                 sourceId: tx.sourceId,
                 transactionId: tx.transactionId,
