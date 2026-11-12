@@ -578,7 +578,6 @@ jobs:
             tests/ui/test_charts.py \
             tests/ui/test_debt_actions.py \
             tests/ui/test_mobile_density.py \
-            tests/ui/test_mobile_no_card_clipping.py \
             tests/ui/test_mobile_clipping_fixes.py \
             --maxfail=15 \
             -v
@@ -654,6 +653,7 @@ jobs:
             tests/ui/test_reports_date_range.py \
             tests/ui/test_debt_card_layout.py \
             tests/ui/test_css_integrity.py \
+            tests/ui/test_mobile_no_card_clipping.py \
             --maxfail=15 \
             -v
       - name: Stop stack
