@@ -1,7 +1,8 @@
 // Ledger transaction aggregation: pure computation, no DOM.
 
 import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurringInflow, formatMonthYear, getBonusDatesInMonth } from './utils.js';
-import { t } from './i18n.js';
+import { t, categoryLabel } from './i18n.js';
+import { matchesLedgerSearch, buildLedgerMemoLookup, normalizeLedgerSearchTerm } from './ledgerSearch.js';
 import { getDebtDueDateInMonth } from './weekendRule.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
@@ -646,6 +647,12 @@ export function getFilteredSortedLedgerTransactions(app) {
             }
             return true;
         });
+    }
+
+    // #586: free-text search (session-only view state, never persisted).
+    if (normalizeLedgerSearchTerm(app._ledgerSearch)) {
+        const memoLookup = buildLedgerMemoLookup(app);
+        transactions = transactions.filter(tx => matchesLedgerSearch(tx, app._ledgerSearch, memoLookup, categoryLabel));
     }
 
     const clearedFilter = app._ledgerClearedFilter || 'all';

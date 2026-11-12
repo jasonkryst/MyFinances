@@ -9186,3 +9186,64 @@ body.dark-mode .bonus-recur-badge { background: #0c4a6e; color: #bae6fd; }
     color: var(--text-muted);
 }
 
+/* ── Save status chip (#576) and Ledger search (#586) ─────────────────── */
+.save-status {
+    display: inline-flex;
+    align-items: center;
+}
+.save-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.save-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    flex-shrink: 0;
+}
+.save-status-chip[data-state="saving"] .save-status-dot {
+    opacity: 0.6;
+}
+.save-status-chip[data-state="saved"] .save-status-dot {
+    background: #86efac;
+}
+.save-status-chip[data-state="error"] {
+    background: #fff;
+    color: #b91c1c;
+}
+.save-status-chip[data-state="error"] .save-status-dot {
+    background: #b91c1c;
+}
+@media (max-width: 600px) {
+    /* Phone: dot only; the text stays available to assistive tech. */
+    .save-status-chip {
+        padding: 6px;
+    }
+    .save-status-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+        white-space: nowrap;
+    }
+}
+.ledger-search-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}

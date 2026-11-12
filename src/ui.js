@@ -7,6 +7,7 @@ import { APP_VERSION, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpe
 import { getZeroAmountPolicy, THEMES } from './settings.js';
 export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
+import { initSaveStatusChip } from './saveStatusChip.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
@@ -32,6 +33,7 @@ export function applyTheme(theme) {
 
 export function initializeEventListeners(app) {
     initCommandPalette(app);
+    initSaveStatusChip();
     document.getElementById('syncErrorBannerDismiss')?.addEventListener('click', () => {
         document.getElementById('syncErrorBanner')?.classList.add('hidden');
     });
@@ -1024,6 +1026,14 @@ const WHATS_NEW_ENTRIES = [
             '<strong>Annual bonuses:</strong> on the Income page, a bonus can now <em>Repeat every year</em>. Enter it once and it lands on the same month and day every year, instead of needing a new entry each December.',
             '<strong>It shows up in the future:</strong> repeating bonuses count in your monthly income, the Ledger, account projections, Forecast and the reports for every coming year. A bonus dated Feb 29 lands on Feb 28 in other years.',
             '<strong>Optional end date:</strong> set an <em>Until</em> date if the bonus will stop. Repeating bonuses carry an <em>Every year</em> badge and show their next date. Your existing one-time bonuses are unchanged.'
+        ]
+    },
+    {
+        version: '7.10.0 — 2026-11-12',
+        items: [
+            '<strong>Find any transaction fast:</strong> the Ledger has a new Search box. Type part of a name, category or memo and only the matching rows stay. It counts as an active filter, and Clear Filters empties it.',
+            '<strong>Know your edits are saved:</strong> a small <em>Saving…</em> / <em>All changes saved</em> indicator now sits in the top bar. If a save fails it says <em>Not saved</em> instead.',
+            '<strong>No lost edits on close:</strong> if you close or reload the tab while something is still saving, your browser now asks before leaving.'
         ]
     },
     {

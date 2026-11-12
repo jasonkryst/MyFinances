@@ -165,6 +165,10 @@ function persistLedgerFilters(app) {
     app.saveToStorage(['ledgerSettings']);
 }
 
+// Search input debounce (#586); the timer survives re-renders of the markup.
+const LEDGER_SEARCH_DEBOUNCE_MS = 200;
+let ledgerSearchTimer = null;
+
 // Render the Ledger page
 export function renderLedgerPage(app) {
     // --- Begin: renderLedgerPage logic from app.js ---
@@ -207,6 +211,9 @@ export function renderLedgerPage(app) {
     if (selectedDateRange !== 'around7') activeFilterCount++;
     if (selectedClearedFilter !== 'all') activeFilterCount++;
     if (selectedCategory !== 'all') activeFilterCount++;
+    // #586: the search term (session-only) counts as an active filter.
+    const searchTerm = typeof app._ledgerSearch === 'string' ? app._ledgerSearch : '';
+    if (searchTerm.trim()) activeFilterCount++;
 
     // #315: category options come from the full unfiltered transaction set,
     // same convention as the Account <select> (built from app.accounts, not
@@ -220,6 +227,8 @@ export function renderLedgerPage(app) {
     filterHtml += `<div class="filter-controls">`;
     filterHtml += `<button type="button" class="filters-disclosure-toggle${activeFilterCount > 0 ? ' filters-disclosure-toggle--active' : ''}${filtersOpen ? ' is-open' : ''}" id="ledgerFiltersToggle" data-collapse-toggle="ledgerFiltersBody" data-filters-count="server" aria-expanded="${filtersOpen}" aria-controls="ledgerFiltersBody">${buildFiltersLabel(activeFilterCount)}</button>`;
     filterHtml += `<div class="filters-disclosure-body${filtersOpen ? ' is-open' : ''}" id="ledgerFiltersBody">`;
+    filterHtml += `<div class="fd-field fd-field--wide"><label for="ledgerSearchInput" class="filter-label">${escapeHtml(t('ledger.searchLabel'))}</label>
+        <input type="search" id="ledgerSearchInput" class="ledger-search-input" maxlength="100" autocomplete="off" value="${escapeHtml(searchTerm)}" placeholder="${escapeHtml(t('ledger.searchPlaceholder'))}"></div>`;
     if (accounts.length > 0) {
         filterHtml += `<div class="fd-field"><label for="ledgerAccountFilter" class="filter-label">${escapeHtml(t('filters.account'))}</label>
             <select id="ledgerAccountFilter" class="select-styled">
@@ -509,6 +518,28 @@ export function renderLedgerPage(app) {
             document.querySelector('.rpt-tab-btn[data-rptab="spending"]')?.click();
         };
     }
+    const searchEl = container.querySelector('#ledgerSearchInput');
+    if (searchEl) {
+        // The page re-renders its markup, so put focus and caret back after a
+        // render the search itself caused.
+        if (app._ledgerSearchRefocus) {
+            const caret = app._ledgerSearchRefocus.caret;
+            app._ledgerSearchRefocus = null;
+            searchEl.focus();
+            try { searchEl.setSelectionRange(caret, caret); } catch (_) { /* not supported for this input */ }
+        }
+        searchEl.oninput = () => {
+            clearTimeout(ledgerSearchTimer);
+            ledgerSearchTimer = setTimeout(() => {
+                const el = document.getElementById('ledgerSearchInput');
+                if (!el) return;
+                app._ledgerSearch = el.value;
+                app._ledgerPage = 1;
+                app._ledgerSearchRefocus = document.activeElement === el ? { caret: el.selectionStart ?? el.value.length } : null;
+                renderLedgerPage(app);
+            }, LEDGER_SEARCH_DEBOUNCE_MS);
+        };
+    }
     const acctFilter = container.querySelector('#ledgerAccountFilter');
     if (acctFilter) {
         acctFilter.onchange = (e) => {
@@ -562,6 +593,7 @@ export function renderLedgerPage(app) {
             app._ledgerDateRange = 'around7';
             app._ledgerClearedFilter = 'all';
             app._ledgerCategoryFilter = 'all';
+            app._ledgerSearch = '';
             // The stored copy (page size included) is removed below, so reset
             // page size too; otherwise it reverted only on the next reload (#544).
             app._ledgerPageSize = 25;

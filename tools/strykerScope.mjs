@@ -67,6 +67,10 @@ export const MUTATE_SCOPE = {
     'src/refreshPolicy.js': true,
     // #608: child-first deletion layers for Clear All Data.
     'src/resourceDeletion.js': true,
+    // #586: Ledger free-text search predicate.
+    'src/ledgerSearch.js': true,
+    // #576: Saving/Saved chip state reducer.
+    'src/saveStatus.js': true,
     // #518: render-scoped projection cache.
     'src/projectionCache.js': true,
 };
