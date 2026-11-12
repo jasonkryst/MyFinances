@@ -1,4 +1,8 @@
-jest.mock('../../src/postgresSync.js', () => ({ pgDeleteAll: jest.fn(() => Promise.resolve()) }));
+jest.mock('../../src/postgresSync.js', () => ({
+    pgDeleteAll: jest.fn(() => Promise.resolve()),
+    // The real one counts the write for the Saving chip (#576); here it just runs it.
+    trackWrite: jest.fn(fn => fn()),
+}));
 
 const { saveToStorage, probeServer } = require('../../src/storage.js');
 

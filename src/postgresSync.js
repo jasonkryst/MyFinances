@@ -31,6 +31,32 @@ export function pendingWriteCount() {
     return writesInFlight + patchQueues.size;
 }
 
+// Fired on window whenever the pending count changes or a write fails, so the
+// Saving/Saved chip (#576) needs no polling. detail: { pending, failed }.
+export const WRITES_CHANGED_EVENT = 'myfinances:writes-changed';
+
+function notifyWritesChanged(failed = false) {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(WRITES_CHANGED_EVENT, { detail: { pending: pendingWriteCount(), failed } }));
+}
+
+// Count a write made outside pgRequest (storage.js's plan-settings PATCH) as
+// pending. `fn` returns a promise; a resolved `false` or a rejection counts as
+// a failed write.
+export async function trackWrite(fn) {
+    writesInFlight++; writeGeneration++;
+    notifyWritesChanged();
+    let ok = false;
+    try {
+        const result = await fn();
+        ok = result !== false;
+        return result;
+    } finally {
+        writesInFlight--;
+        notifyWritesChanged(!ok);
+    }
+}
+
 export function currentWriteGeneration() {
     return writeGeneration;
 }
@@ -40,7 +66,7 @@ export function currentWriteGeneration() {
 // error) so callers can treat a 409 differently from a failure.
 async function pgRequest(app, method, path, body) {
     const isWrite = method !== 'GET';
-    if (isWrite) { writesInFlight++; writeGeneration++; }
+    if (isWrite) { writesInFlight++; writeGeneration++; notifyWritesChanged(); }
     try {
         // The csrf cookie is re-read per attempt: signing in issues a new one.
         const send = () => fetch(path, {
@@ -71,11 +97,12 @@ async function pgRequest(app, method, path, body) {
     } catch (err) {
         return { ok: false, status: 0, body: null, error: err };
     } finally {
-        if (isWrite) writesInFlight--;
+        if (isWrite) { writesInFlight--; notifyWritesChanged(); }
     }
 }
 
 function reportFailure(method, path, res) {
+    notifyWritesChanged(true);
     if (res.status === 0) console.error(`[postgresSync] ${method} ${path} error:`, res.error);
     else console.error(`[postgresSync] ${method} ${path} failed: ${res.status}`, res.body);
     showSyncErrorBanner();
@@ -167,7 +194,7 @@ async function sendPatch(app, path, body) {
             shadows.set(path, res.body);
             return res.body;
         }
-        if (res.status === 404) recordGone(app, path);
+        if (res.status === 404) { recordGone(app, path); notifyWritesChanged(true); }
         else reportFailure('PATCH', path, res);
         return null;
     }
@@ -184,6 +211,7 @@ async function sendPatch(app, path, body) {
         }
         if (res.status === 404) {
             recordGone(app, path);
+            notifyWritesChanged(true);
             return null;
         }
         const theirs = res.body?.current;
@@ -253,7 +281,10 @@ export function pgPatch(app, path, body) {
     const run = (patchQueues.get(path) || Promise.resolve()).then(guarded);
     const tail = run.catch(() => {});
     patchQueues.set(path, tail);
-    tail.then(() => { if (patchQueues.get(path) === tail) patchQueues.delete(path); });
+    notifyWritesChanged();
+    tail.then(() => {
+        if (patchQueues.get(path) === tail) { patchQueues.delete(path); notifyWritesChanged(); }
+    });
     return run;
 }
 

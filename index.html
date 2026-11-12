@@ -51,6 +51,10 @@
         <header>
             <div class="header-top">
                 <div class="header-toolbar">
+                    <!-- #576: Saving / All changes saved. The live region always exists; only the chip inside toggles. -->
+                    <span id="saveStatus" class="save-status" role="status" aria-live="polite">
+                        <span id="saveStatusChip" class="save-status-chip hidden" data-state="idle"><span class="save-status-dot" aria-hidden="true"></span><span id="saveStatusText" class="save-status-text"></span></span>
+                    </span>
                     <button id="commandPaletteBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.commandPaletteTitle,aria-label:toolbar.commandPaletteAriaLabel" title="Quick jump (Ctrl+K)" aria-label="Open quick jump command palette">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </button>

@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.10.0] — 2026-11-12
+
+### Added
+- **Ledger free-text search** (issue #586). A Search box in the Ledger filter bar keeps rows whose name, category (stored or translated label) or memo contains the term, case-insensitively. Memo comes from the source record (one-off transfers and manual transactions). It counts as an active filter in the mobile disclosure, resets the page to 1, and Clear Filters empties it. The term lives in memory only and is never written to browser storage. The predicate is the pure `matchesLedgerSearch` in `src/ledgerSearch.js`.
+- **"Saving… / All changes saved" indicator** (issue #576). A status chip in the header toolbar (a polite live region) follows `pendingWriteCount()` through a new `myfinances:writes-changed` event. A failed write ends as "Not saved", never "saved". Plan-settings saves (`saveToStorage`) are now counted as pending writes too. While a write is pending, closing the tab triggers the browser's `beforeunload` confirmation. The state machine is the pure `reduceSaveStatus` in `src/saveStatus.js`.
+
 ## [7.9.0] — 2026-11-12
 
 ### Added
