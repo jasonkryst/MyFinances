@@ -301,7 +301,6 @@ jobs:
       - run: |
           pytest \
             tests/features/test_health.py \
-            tests/features/test_settings.py \
             tests/features/test_settings_backup.py \
             tests/features/test_validation_modals.py \
             tests/features/test_versioning.py \
@@ -311,7 +310,6 @@ jobs:
             tests/features/test_plan_settings_partial_save.py \
             tests/features/test_import_concurrency.py \
             tests/features/test_row_version_conflicts.py \
-            tests/features/test_live_refresh.py \
             tests/features/test_env_config_script.py \
             tests/features/test_pending_saves.py \
             tests/features/test_clear_all_order.py \
@@ -386,6 +384,8 @@ jobs:
             tests/features/test_ledger_filter_persistence.py \
             tests/features/test_data_export.py \
             tests/features/test_report_range_utils.py \
+            tests/features/test_settings.py \
+            tests/features/test_live_refresh.py \
             --maxfail=15 \
             -v
       - name: Stop stack
