@@ -5,7 +5,8 @@ import {
     escapeHtml,
     getReportDate,
     renderChartDataTable,
-    formatMonthLong
+    formatMonthLong,
+    isTransferLegTx
 } from './utils.js';
 import { t, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
@@ -40,6 +41,7 @@ export function computeMonthCashFlowTotals(app, year, month) {
             expenses += Math.abs(tx.amount || 0);
             continue;
         }
+        if (isTransferLegTx(tx)) continue; // #566
         if (tx.type === 'recurring') {
             if (tx.amount >= 0) {
                 income += tx.amount;
@@ -152,7 +154,7 @@ export function renderReportsIncomeExp(app) {
 
     const recCats = {};
     for (const tx of monthTxs) {
-        if (tx.type !== 'recurring' || tx.amount >= 0) continue;
+        if (tx.type !== 'recurring' || tx.amount >= 0 || isTransferLegTx(tx)) continue;
         const cat = tx.category || 'Other';
         recCats[cat] = (recCats[cat] || 0) + Math.abs(tx.amount);
     }

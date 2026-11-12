@@ -151,6 +151,7 @@ jobs:
       - run: |
           pytest \
             tests/features/test_reports.py \
+            tests/features/test_reports_transfer_legs.py \
             tests/features/test_debt_calculator.py \
             tests/features/test_break_even.py \
             tests/features/test_networth.py \
@@ -158,6 +159,7 @@ jobs:
             tests/features/test_people.py \
             tests/features/test_debt_ownership_split.py \
             tests/features/test_import_person_remap.py \
+            tests/features/test_merge_import_dedupe.py \
             -v
       - name: Stop stack
         if: always()

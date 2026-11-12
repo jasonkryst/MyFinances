@@ -28,7 +28,7 @@ export const MUTATE_SCOPE = {
     'src/utils.js': [
         'formatCurrency', 'normalizeText', 'normalizeMultilineText', 'sanitizeFiniteNumber',
         'parseFiniteOrNull', 'formatShortDate', 'formatMonthYear', 'sanitizeInteger', 'sanitizeDateISO',
-        'dateToISO', 'dailyCompoundInterest', 'computeNetIncomeAmount', 'computeMonthlyIncomeForMonth', 'withBusy',
+        'dateToISO', 'dailyCompoundInterest', 'computeNetIncomeAmount', 'computeMonthlyIncomeForMonth', 'withBusy', 'isTransferLegTx',
     ],
     'src/sanitizers.js': [
         'sanitizePerson', 'sanitizeAccount', 'sanitizeDebt', 'sanitizeOwnershipSplit', 'remapDebtPersonRefs',
@@ -56,6 +56,8 @@ export const MUTATE_SCOPE = {
     'src/concurrency.js': true,
     // #520: Ledger override/cleared key remapping on import.
     'src/ledgerKeyRemap.js': true,
+    // #567/#478: merge-mode natural-key dedupe.
+    'src/mergeDedupe.js': true,
     // #578: optimistic-concurrency diff/conflict helpers.
     'src/recordVersions.js': true,
     // #575: refresh-on-focus / cross-tab refresh decisions.

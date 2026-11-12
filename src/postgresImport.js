@@ -4,6 +4,7 @@ import { showSyncErrorBanner } from './ui.js';
 import { sanitizeFiniteNumber, normalizeText } from './utils.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
 import { mapWithConcurrency, mapSettledWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
+import { planMerge } from './mergeDedupe.js';
 import { remapLedgerEntries, ledgerKeyDropWarning } from './ledgerKeyRemap.js';
 import { isAllowedSetting } from './settingsSchema.js';
 
@@ -27,12 +28,6 @@ const CRUD_RESOURCES = [
     { field: 'transfers',           path: '/api/transfers' },
     { field: 'manualTransactions',  path: '/api/manual-transactions' },
 ];
-
-// Resources deduplicated by name in merge mode (same logic as localStorage merge)
-const MERGE_DEDUP_BY_NAME = new Set([
-    'debts', 'incomes', 'bonuses', 'bills',
-    'recurringTemplates', 'sinkingFunds'
-]);
 
 function accountIdMapFrom(idMap) {
     return new Map(Object.entries(idMap).map(([localId, serverId]) => [Number(localId), serverId]));
@@ -355,23 +350,20 @@ export async function replaceForPostgres(app, clean, incomingStrategy, warnings)
 export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
     const snapshot = snapshotAppState(app);
     const newlyCreatedPaths = [];
+    // Records skipped as duplicates, per collection (#567, #478).
+    const skipped = {};
+    const noteSkipped = (field, n) => { if (n > 0) skipped[field] = (skipped[field] || 0) + n; };
 
     try {
-        // Build idMap from existing server accounts by name
+        // Accounts and persons dedupe by name against existing rows and
+        // against earlier repeats in the file (planMerge in mergeDedupe.js).
         const idMap = {};
-        const existingAccountNames = new Map(app.accounts.map(a => [a.name.toLowerCase(), a.id]));
-        const newAccounts = [];
-
-        for (const acc of (clean.accounts || [])) {
-            const existingId = existingAccountNames.get(acc.name.toLowerCase());
-            if (existingId != null) {
-                idMap[acc.id] = existingId;
-            } else {
-                newAccounts.push(acc);
-            }
-        }
+        const accPlan = planMerge('accounts', app.accounts, clean.accounts || []);
+        for (const [inId, existingId] of accPlan.matched) if (inId != null) idMap[inId] = existingId;
+        noteSkipped('accounts', accPlan.skipped);
 
         // POST new accounts, collect server IDs
+        const newAccounts = accPlan.toPost;
         const newAccountResults = await pool(newAccounts, acc => apiFetch('POST', '/api/accounts', acc));
         newAccounts.forEach((acc, i) => {
             const rec = newAccountResults[i];
@@ -381,19 +373,15 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
                 app.accounts.push(rec);
             }
         });
-
-        // Build personIdMap from existing persons by name (merge dedup)
-        const personIdMap = {};
-        const existingPersonNames = new Map((app.persons || []).map(p => [p.name.toLowerCase(), p.id]));
-        const newPersons = [];
-        for (const p of (clean.persons || [])) {
-            const existingId = existingPersonNames.get(p.name.toLowerCase());
-            if (existingId != null) {
-                personIdMap[p.id] = existingId;
-            } else {
-                newPersons.push(p);
-            }
+        for (const [repeatId, firstId] of accPlan.repeats) {
+            if (repeatId != null && idMap[firstId] != null) idMap[repeatId] = idMap[firstId];
         }
+
+        const personIdMap = {};
+        const personPlan = planMerge('persons', app.persons || [], clean.persons || []);
+        for (const [inId, existingId] of personPlan.matched) if (inId != null) personIdMap[inId] = existingId;
+        noteSkipped('persons', personPlan.skipped);
+        const newPersons = personPlan.toPost;
         const newPersonResults = await pool(newPersons, p => apiFetch('POST', '/api/persons', p));
         newPersons.forEach((p, i) => {
             const rec = newPersonResults[i];
@@ -403,6 +391,9 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
                 (app.persons = app.persons || []).push(rec);
             }
         });
+        for (const [repeatId, firstId] of personPlan.repeats) {
+            if (repeatId != null && personIdMap[firstId] != null) personIdMap[repeatId] = personIdMap[firstId];
+        }
 
         // POST new records for each CRUD resource (dedup by name where applicable).
         // ledgerIdMaps records where every incoming id ended up (#520): a
@@ -410,23 +401,17 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
         // its new id, so imported Ledger keys attach to the surviving record.
         const ledgerIdMaps = { accounts: new Map(Object.entries(idMap).map(([k, v]) => [String(k), v])), savings: [] };
         for (const { field, path } of CRUD_RESOURCES) {
-            const dedup = MERGE_DEDUP_BY_NAME.has(field);
-            const existingByName = dedup
-                ? new Map((app[field] || []).map(r => [r.name?.toLowerCase(), r.id]))
-                : null;
             const fieldMap = new Map();
+            // FK parts of the natural keys are remapped first, so they compare
+            // against the server ids the existing records hold.
+            const originals = new Map((clean[field] || []).map(r => [r?.id, r]));
+            const plan = planMerge(field, app[field] || [],
+                (clean[field] || []).map(r => remapFk(r, idMap, personIdMap)));
+            noteSkipped(field, plan.skipped);
+            for (const [inId, existingId] of plan.matched) if (inId != null) fieldMap.set(String(inId), existingId);
+            const incoming = plan.toPost.map(r => originals.get(r?.id) ?? r);
 
-            const incoming = [];
-            for (const r of (clean[field] || [])) {
-                const existingId = dedup ? existingByName.get(r.name?.toLowerCase()) : undefined;
-                if (existingId != null) {
-                    if (r?.id != null) fieldMap.set(String(r.id), existingId);
-                } else {
-                    incoming.push(r);
-                }
-            }
-
-            const results = await pool(incoming.map(r => remapFk(r, idMap, personIdMap)), r => apiFetch('POST', path, r));
+            const results = await pool(plan.toPost, r => apiFetch('POST', path, r));
             results.forEach(rec => {
                 if (rec) {
                     newlyCreatedPaths.push(`${path}/${rec.id}`);
@@ -434,6 +419,10 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
                 }
             });
             for (const [k, v] of idPairs(incoming, results)) fieldMap.set(k, v);
+            // In-file repeats resolve to the record that was posted for them (#478).
+            for (const [repeatId, firstId] of plan.repeats) {
+                if (repeatId != null && fieldMap.has(String(firstId))) fieldMap.set(String(repeatId), fieldMap.get(String(firstId)));
+            }
             ledgerIdMaps[field] = fieldMap;
             if (field === 'emergencyFunds' || field === 'sinkingFunds') {
                 ledgerIdMaps.savings.push(...savingsPairs(incoming, results));
@@ -516,6 +505,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
             budgetCategories: app.budgetCategories ?? {}
         });
 
+        return { skipped };
     } catch (err) {
         console.error('[pgImport] Merge failed, rolling back newly created records:', err);
         // Restore in-memory state from snapshot

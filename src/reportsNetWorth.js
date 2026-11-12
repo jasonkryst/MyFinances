@@ -1,6 +1,6 @@
 // Net worth snapshots: capture, series aggregation, dashboard widget, and reports-page timeline
 
-import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
+import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml, isTransferLegTx } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut, pgPost } from './postgresSync.js';
 import { t, getIntlLocale } from './i18n.js';
@@ -44,6 +44,7 @@ function computeSnapshotMetrics(app, snapshotDate = new Date()) {
             debtPaymentMade += Math.abs(tx.amount || 0);
             continue;
         }
+        if (isTransferLegTx(tx)) continue; // #566
         if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest' || (tx.type === 'recurring' && tx.amount > 0) || (tx.type === 'manual' && tx.amount > 0)) {
             incomeReceived += Math.abs(tx.amount || 0);
         }

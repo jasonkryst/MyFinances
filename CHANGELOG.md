@@ -16,6 +16,18 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Security
 - Migration `1755600000034_add-transfer-checks.js` adds `transfers_amount_positive_distinct_accounts` (`amount > 0`, not `NaN`, `from_account_id <> to_account_id`) as `NOT VALID`: existing rows are neither scanned nor changed, only new writes are checked. The rule applies only while both accounts are set, so deleting an account (the foreign keys are `ON DELETE SET NULL`) always works, even when a legacy invalid transfer references it. `down()` drops the constraint and discards nothing.
 
+## [7.6.2] — 2026-11-12
+
+### Fixed
+- **Merge import no longer duplicates records** (issues #567, #478). Merge mode used to dedupe only debts, income sources, bonuses, bills, recurring items and sinking funds, by name, so re-importing your own export doubled expenses, emergency funds, transfers, retirement snapshots and more. Every collection now dedupes by a natural key in the new pure `src/mergeDedupe.js`: name (accounts, people, debts, income, bonuses, bills, recurring items, sinking funds), name + date (expenses), account (emergency funds), from + to + amount + date (transfers), account + date (retirement snapshots), account + statement end date (reconciliations), creation time (plan history) and account + date + amount + name (manual transactions). Account references are remapped before comparing, so a re-import creates zero new records.
+  - **Repeats inside one file** are collapsed too: a file listing the same debt twice now creates one debt. Ledger override and cleared keys for the repeat attach to the surviving record.
+  - **Result message** lists the skipped count for every type ("Merge complete. Skipped duplicates: Debts: 1, Transfers: 1."), in English, Spanish and Polish.
+
+## [7.6.1] — 2026-11-12
+
+### Fixed
+- **Recurring transfers no longer count as income or spending in Reports** (issue #566). A recurring template of type `transfer` posts a negative leg on the source account and a positive leg on the target, both `type: 'recurring'`, and the Reports aggregators read the positive leg as income and the negative one as spending (a $300 savings sweep inflated Reports income, appeared as a source in the Money Flow Sankey and as "Savings" spending). The legs now carry `isTransferLeg`, and the shared `isTransferLegTx(tx)` predicate (`utils.js`) makes Summary, Cash Flow, Money Flow, Variance, Spending, derived category budgets, the Money Flow Sankey and the Net Worth projection's income skip them. Account balances, Forecast and Ledger running balances are unchanged, and Reports income now matches Health's cash-flow income plus interest.
+
 ## [7.6.0] — 2026-11-11
 
 ### Added

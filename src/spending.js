@@ -2,7 +2,7 @@ import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import {
     escapeHtml, formatCurrency, renderChartDataTable, getReportDate, PINNED_COLORS,
     getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel,
-    formatMonthLong, formatMonthYear
+    formatMonthLong, formatMonthYear, isTransferLegTx
 } from './utils.js';
 import { t, plural, categoryLabel, getIntlLocale } from './i18n.js';
 import { loadLedgerFilters } from './ledger.js';
@@ -21,6 +21,7 @@ export function categoryColor(name) {
 }
 
 function _catForTx(tx) {
+    if (isTransferLegTx(tx)) return null; // #566: own-account transfers are not spending
     if (tx.type === 'bill' || tx.type === 'expense') return tx.category || 'Other';
     // Manual transactions (#584): an outflow is spending in its category.
     if (tx.type === 'manual') return tx.amount < 0 ? (tx.category || 'Other') : null;
