@@ -414,6 +414,15 @@
                                     </div>
                                 </div>
 
+                                <div class="form-group credit-card-field">
+                                    <label for="debtWeekendRule" data-i18n="weekend.label">If due on a weekend</label>
+                                    <select id="debtWeekendRule">
+                                        <option value="none" data-i18n="weekend.none">Keep the date</option>
+                                        <option value="before" data-i18n="weekend.before">Friday before</option>
+                                        <option value="after" data-i18n="weekend.after">Monday after</option>
+                                    </select>
+                                </div>
+
                                 <div class="form-group">
                                     <label for="debtNextPaymentDue"><span data-i18n="debts.nextDueLabel">Next Payment Due Date</span>
                                         <span class="help-icon" tabindex="0" aria-label="Optional: the specific date your next payment is due." data-i18n-attr="aria-label:debts.nextDueHelp">?</span>
@@ -1194,6 +1203,14 @@
                                 <div class="form-group">
                                     <label for="recurringDayOfMonth" data-i18n="recurring.dayLabel">Day of Month</label>
                                     <input type="number" id="recurringDayOfMonth" placeholder="1–31" min="1" max="31">
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurringWeekendRule" data-i18n="weekend.label">If due on a weekend</label>
+                                    <select id="recurringWeekendRule">
+                                        <option value="none" data-i18n="weekend.none">Keep the date</option>
+                                        <option value="before" data-i18n="weekend.before">Friday before</option>
+                                        <option value="after" data-i18n="weekend.after">Monday after</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label for="recurringCategory" data-i18n="recurring.categoryLabel">Category</label>

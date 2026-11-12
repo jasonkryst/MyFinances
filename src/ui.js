@@ -1019,11 +1019,19 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
-        version: '7.8.0 — 2026-11-12',
+        version: '7.11.0 — 2026-11-12',
         items: [
             '<strong>Annual bonuses:</strong> on the Income page, a bonus can now <em>Repeat every year</em>. Enter it once and it lands on the same month and day every year, instead of needing a new entry each December.',
             '<strong>It shows up in the future:</strong> repeating bonuses count in your monthly income, the Ledger, account projections, Forecast and the reports for every coming year. A bonus dated Feb 29 lands on Feb 28 in other years.',
             '<strong>Optional end date:</strong> set an <em>Until</em> date if the bonus will stop. Repeating bonuses carry an <em>Every year</em> badge and show their next date. Your existing one-time bonuses are unchanged.'
+        ]
+    },
+    {
+        version: '7.9.0 — 2026-11-12',
+        items: [
+            '<strong>Weekend due dates:</strong> recurring items and debts have a new <em>If due on a weekend</em> setting. Keep the date, or move it to the Friday before or the Monday after.',
+            '<strong>It applies everywhere:</strong> the Ledger, paid and overdue tracking, the Plan calendar and your calendar feeds all use the moved date.',
+            '<strong>Always the same month:</strong> a date never moves into another month. Saturday the 1st with Friday before goes to Monday the 3rd instead.'
         ]
     },
     {

@@ -4,10 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
-## [7.8.0] — 2026-11-12
+## [7.11.0] — 2026-11-12
 
 ### Added
-- **Recurring annual bonuses** (issue #290). A bonus can now repeat every year (`recurringAnnually`) with an optional inclusive end date (`recurUntil`). It occurs on its date's month and day in that year and every later year; a Feb 29 date falls on Feb 28 in non-leap years. One shared rule, `getBonusDatesInMonth()` in `src/utils.js`, now decides when a bonus lands, and the monthly income total, the Ledger (each year's occurrence has its own override and Cleared key), the Plan calendar, Health, Forecast, account projections and the reports all use it. `getNextBonusDate()` gives the next occurrence for the Income page, which shows an "Every year" badge, an "until" date and the next date, with the checkbox and Until date in both the add form and the inline editor. Existing bonuses stay one-time. Server: migration `1755600000035` adds `bonuses.recurring_annually` (default false) and `bonuses.recur_until`; rolling it back drops the recurrence settings.
+- **Recurring annual bonuses** (issue #290). A bonus can now repeat every year (`recurringAnnually`) with an optional inclusive end date (`recurUntil`). It occurs on its date's month and day in that year and every later year; a Feb 29 date falls on Feb 28 in non-leap years. One shared rule, `getBonusDatesInMonth()` in `src/utils.js`, now decides when a bonus lands, and the monthly income total, the Ledger (each year's occurrence has its own override and Cleared key), the Plan calendar, Health, Forecast, account projections and the reports all use it. `getNextBonusDate()` gives the next occurrence for the Income page, which shows an "Every year" badge, an "until" date and the next date, with the checkbox and Until date in both the add form and the inline editor. Existing bonuses stay one-time. Server: migration `1755600000037` adds `bonuses.recurring_annually` (default false) and `bonuses.recur_until`; rolling it back drops the recurrence settings.
+
+## [7.9.0] — 2026-11-12
+
+### Added
+- **Weekend due-date shift** (issue #165). Recurring templates and debts have a new "If due on a weekend" setting: Keep the date (the default, so nothing existing changes), Friday before, or Monday after. A due date that falls on a Saturday or Sunday moves accordingly, and an occurrence never leaves its month: Saturday the 1st with "Friday before" goes to Monday the 3rd, and Sunday the 31st with "Monday after" goes to Friday the 29th. The shifted date is used everywhere the due date is: the Ledger and everything built on it, Recurring paid tracking and overdue detection, the Plan calendar and payoff dates, the client `.ics` download and the webcal feed. One pure helper, `applyWeekendRule` in `src/weekendRule.js`, is shared by the browser and the server. Recurring and debt cards show the rule when one is set.
+- **Known limit:** changing a template's rule moves its occurrence dates, so Ledger override and Cleared entries for the old dates become orphans and that month may drop out of paid until it is marked paid again (the same as editing the day).
+- **Postgres:** migration `1755600000036_add-weekend-rule.js` adds `weekend_rule text NOT NULL DEFAULT 'none'` (with a CHECK constraint) to `recurring_templates` and `debts`. Rolling it back discards the saved rules.
 
 ## [7.6.5] — 2026-11-12
 

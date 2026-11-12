@@ -222,11 +222,11 @@ test('transfers CHECK migration: down then up is clean, up is idempotent, and an
     await resetDb();
 });
 
-// #290: bonus annual recurrence (migration 1755600000035).
+// #290: bonus annual recurrence (migration 1755600000037).
 test('bonus recurrence migration: columns exist with defaults, up is idempotent, down is clean', async () => {
     await resetDb();
     const user = await createTestUser();
-    const mig = await import('../migrations/1755600000035_add-bonus-annual-recurrence.js');
+    const mig = await import('../migrations/1755600000037_add-bonus-annual-recurrence.js');
     const run = async (fn) => {
         const stmts = [];
         await fn({ sql: s => stmts.push(s) });

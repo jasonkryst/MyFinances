@@ -59,6 +59,8 @@ export const MUTATE_SCOPE = {
     'src/ledgerKeyRemap.js': true,
     // #567/#478: merge-mode natural-key dedupe.
     'src/mergeDedupe.js': true,
+    // #165: weekend due-date shift (shared by the browser and the server calendar feed).
+    'src/weekendRule.js': true,
     // #578: optimistic-concurrency diff/conflict helpers.
     'src/recordVersions.js': true,
     // #575: refresh-on-focus / cross-tab refresh decisions.

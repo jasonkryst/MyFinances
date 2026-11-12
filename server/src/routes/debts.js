@@ -19,6 +19,7 @@ export default createCrudResource({
         minimumPayment: 'minimum_payment',
         originalMinimumPayment: 'original_minimum_payment',
         dueDate: 'due_date',
+        weekendRule: 'weekend_rule',
         debtStartDate: 'debt_start_date',
         fixedAmount: 'fixed_amount',
         fixedStartDate: 'fixed_start_date',
