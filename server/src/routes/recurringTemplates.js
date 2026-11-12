@@ -15,6 +15,7 @@ export default createCrudResource({
         amount: 'amount',
         frequency: 'frequency',
         dayOfMonth: 'day_of_month',
+        weekendRule: 'weekend_rule',
         category: 'category',
         accountId: 'account_id',
         targetAccountId: 'target_account_id',

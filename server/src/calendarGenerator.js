@@ -5,6 +5,9 @@
 // DOM-dependent imports that can't run in Node.
 
 import { query } from './db.js';
+// #165: shared with the browser; a pure leaf module under src/ (the Docker
+// image copies it to /src, like the sanitizers).
+import { applyWeekendRule } from '../../src/weekendRule.js';
 
 const WINDOW_MONTHS = 12;
 
@@ -68,6 +71,9 @@ function getOccurrences(template, year, month) {
             cur = new Date(cur.getTime() + interval * MS);
         }
     }
+    // #165: weekend shift, mirrors src/recurring.js.
+    const rule = template.weekendRule;
+    if (rule === 'before' || rule === 'after') return dates.map(d => applyWeekendRule(d, rule));
     return dates;
 }
 
@@ -162,8 +168,8 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
     const [acctRes, billsRes, debtsRes, recurringRes, expensesRes, incomesRes, showArchivedRes] = await Promise.all([
         query('SELECT id, name FROM accounts WHERE user_id = $1', [userId]),
         query('SELECT id, name, amount, due_day, category, account_id FROM bills WHERE user_id = $1', [userId]),
-        query('SELECT id, name, minimum_payment, due_date, category, account_id, archived FROM debts WHERE user_id = $1', [userId]),
-        query('SELECT id, name, type, amount, frequency, day_of_month, category, account_id, start_date, end_date, paused, pause_until, skipped_months, paid_months FROM recurring_templates WHERE user_id = $1', [userId]),
+        query('SELECT id, name, minimum_payment, due_date, weekend_rule, category, account_id, archived FROM debts WHERE user_id = $1', [userId]),
+        query('SELECT id, name, type, amount, frequency, day_of_month, weekend_rule, category, account_id, start_date, end_date, paused, pause_until, skipped_months, paid_months FROM recurring_templates WHERE user_id = $1', [userId]),
         query('SELECT id, name, budget_amount, date, category, account_id FROM expenses WHERE user_id = $1', [userId]),
         query('SELECT id, name, amount, first_pay_date, frequency, account_id FROM incomes WHERE user_id = $1', [userId]),
         query("SELECT value FROM settings WHERE user_id = $1 AND key = 'showArchivedDebts'", [userId]),
@@ -205,7 +211,8 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                     : debt.next_payment_due.toISOString().slice(0, 10);
             } else if (debt.due_date) {
                 const d = Math.min(debt.due_date, daysInMo);
-                dateStr = isoDateStr(y, mo, d);
+                const due = applyWeekendRule(new Date(y, mo, d, 12), debt.weekend_rule);
+                dateStr = isoDateStr(y, mo, due.getDate());
             } else {
                 continue;
             }
@@ -227,6 +234,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                 endDate: row.end_date || null,
                 frequency: row.frequency,
                 dayOfMonth: row.day_of_month,
+                weekendRule: row.weekend_rule,
             };
             const occs = getOccurrences(template, y, mo);
             const typeLabel = row.type === 'reimbursement' ? 'Reimbursement'

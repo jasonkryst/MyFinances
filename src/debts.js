@@ -1,4 +1,6 @@
 // Debt management and calculations
+import { sanitizeWeekendRule } from './weekendRule.js';
+import { buildWeekendRuleOptionsHtml, weekendRuleLabel } from './weekendRuleUi.js';
 import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompoundInterest, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, todayISO, buildPersonPillsHtml } from './utils.js';
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
@@ -151,6 +153,7 @@ export async function addDebt(app) {
         debt.minimumPayment = minimumPayment;
         debt.originalMinimumPayment = minimumPayment;
         debt.dueDate = dueDate;
+        debt.weekendRule = sanitizeWeekendRule(document.getElementById('debtWeekendRule')?.value);
         debt.debtStartDate = debtStartDate;
         debt.creditLimit = creditLimit;
     }
@@ -370,6 +373,7 @@ export async function saveEdit(app) {
         priority,
         minimumPayment,
         dueDate,
+        weekendRule: sanitizeWeekendRule(document.getElementById('debtWeekendRule')?.value ?? app.debts[idx].weekendRule),
         creditLimit,
         personIds,
         ownershipSplit: sanitizeOwnershipSplit(app.debts[idx].ownershipSplit, personIds),
@@ -698,6 +702,7 @@ export function renderDebtsList(app) {
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editInterest'))}</strong> <input id="inline-interest-${debt.id}" type="number" step="0.01" value="${debt.interestRate}">% </div>
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editMinPayment'))}</strong> <input id="inline-min-${debt.id}" type="number" step="0.01" value="${debt.minimumPayment}"></div>
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editDueDate'))}</strong> <input id="inline-due-${debt.id}" type="number" min="1" max="31" value="${debt.dueDate}"></div>
+                        <div class="debt-detail"><strong>${escapeHtml(t('weekend.label'))}</strong> <select id="inline-weekend-${debt.id}">${buildWeekendRuleOptionsHtml(debt.weekendRule)}</select></div>
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editPriority'))}</strong> <input id="inline-priority-${debt.id}" type="number" min="1" max="100" value="${debt.priority || ''}"></div>
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editDateOpened'))}</strong> <input id="inline-start-date-cc-${debt.id}" type="date" value="${debt.debtStartDate || ''}"></div>
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editCreditLimit'))}</strong> <input id="inline-credit-limit-${debt.id}" type="number" step="0.01" min="0" placeholder="${escapeHtml(t('debts.creditLimitOptional'))}" value="${debt.creditLimit != null ? debt.creditLimit : ''}"></div>`;
@@ -798,6 +803,7 @@ export function renderDebtsList(app) {
                         ${debtDetailTile(escapeHtml(t('debts.tileInterest')), `${debt.interestRate.toFixed(2)}%
                             <span class="text-monthly-interest">≈ ${escapeHtml(t('debts.perMonth', { amount: formatCurrency(monthlyInterest) }))}</span>`)}
                         ${debtDetailTile(escapeHtml(t('debts.tileDueDate')), escapeHtml(t('debts.dueDayValue', { day: getDayOrdinal(debt.dueDate) })))}
+                        ${debt.weekendRule && debt.weekendRule !== 'none' ? debtDetailTile(escapeHtml(t('weekend.tile')), escapeHtml(weekendRuleLabel(debt.weekendRule))) : ''}
                         ${debt.nextPaymentDue ? debtDetailTile(escapeHtml(t('debts.tileNextDue')), formatShortDate(debt.nextPaymentDue)) : ''}
                         ${debt.debtStartDate ? debtDetailTile(escapeHtml(t('debts.tileOpened')), formatShortDate(debt.debtStartDate)) : ''}
                         ${iptd ? `
@@ -1086,6 +1092,8 @@ export async function saveInlineEdit(app, debtId) {
             if (intEl) debt.interestRate = sanitizeFiniteNumber(intEl.value, 0, { min: 0, max: 100 });
             if (minEl) debt.minimumPayment = sanitizeFiniteNumber(minEl.value, 0, { min: 0 });
             if (dueEl) debt.dueDate = sanitizeInteger(dueEl.value, null, { min: 1, max: 31 });
+            const weekendEl = document.getElementById(`inline-weekend-${debtId}`);
+            if (weekendEl) debt.weekendRule = sanitizeWeekendRule(weekendEl.value);
             if (priorityEl) debt.priority = sanitizeInteger(priorityEl.value, null, { min: 1, max: 100 });
             if (startDateEl) debt.debtStartDate = sanitizeDateISO(startDateEl.value);
             if (limitEl) debt.creditLimit = limitEl.value ? sanitizeFiniteNumber(limitEl.value, null, { min: 0 }) : null;

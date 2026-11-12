@@ -1013,6 +1013,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.9.0 — 2026-11-12',
+        items: [
+            '<strong>Weekend due dates:</strong> recurring items and debts have a new <em>If due on a weekend</em> setting. Keep the date, or move it to the Friday before or the Monday after.',
+            '<strong>It applies everywhere:</strong> the Ledger, paid and overdue tracking, the Plan calendar and your calendar feeds all use the moved date.',
+            '<strong>Always the same month:</strong> a date never moves into another month. Saturday the 1st with Friday before goes to Monday the 3rd instead.'
+        ]
+    },
+    {
         version: '7.6.0 — 2026-11-11',
         items: [
             '<strong>Record what actually happened:</strong> a new <em>Add Transaction</em> button in the Ledger lets you enter a one-off purchase, refund or cash withdrawal on any account and date, as money out or money in.',
