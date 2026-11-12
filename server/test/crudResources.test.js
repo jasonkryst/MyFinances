@@ -522,18 +522,27 @@ test('/api/transfers: a PATCH into an invalid state is a 400 and the row is unch
     assert.equal(row.memo, 'rent');
 });
 
-test('/api/transfers: a legacy invalid row (stored before the rule) can still be PATCHed on its memo', async () => {
-    await pool.query('ALTER TABLE transfers DROP CONSTRAINT IF EXISTS transfers_amount_positive_distinct_accounts');
+test('/api/transfers: a legacy invalid row is a clean 400 on any PATCH (never a 500), and can be fixed or deleted', async () => {
+    // Store the row as it could have been stored before the rule, then put the
+    // NOT VALID constraint back exactly as migration 034 does: production keeps
+    // it in place, so the route must never send an UPDATE it would reject.
+    const mig = await import('../migrations/1755600000034_add-transfer-checks.js');
+    const runMigration = async (fn) => { const stmts = []; await fn({ sql: s => stmts.push(s) }); for (const s of stmts) await pool.query(s); };
+    await runMigration(mig.down);
     try {
         const { rows } = await pool.query(
             `INSERT INTO transfers (user_id, from_account_id, to_account_id, amount, date)
-             SELECT user_id, id, id, -5, '2026-08-01' FROM accounts WHERE id = $1 RETURNING id`, [accountId]);
-        assert.equal((await patchJson('/api/transfers', rows[0].id, { memo: 'still editable' })).status, 200);
-        assert.equal((await patchJson('/api/transfers', rows[0].id, { amount: -6 })).status, 400);
+             SELECT user_id, $1, $2, -5, '2026-08-01' FROM accounts WHERE id = $1 RETURNING id`, [accountId, accountId2]);
+        const id = rows[0].id;
+        await runMigration(mig.up);
+        assert.equal((await patchJson('/api/transfers', id, { memo: 'unrelated edit' })).status, 400);
+        assert.equal((await patchJson('/api/transfers', id, { amount: -6 })).status, 400);
+        const fixed = await patchJson('/api/transfers', id, { amount: 5 });
+        assert.equal(fixed.status, 200);
+        assert.equal(Number((await fixed.json()).amount), 5);
+        assert.equal((await patchJson('/api/transfers', id, { memo: 'now editable' })).status, 200);
     } finally {
-        await resetDb();
-        await pool.query(`ALTER TABLE transfers ADD CONSTRAINT transfers_amount_positive_distinct_accounts
-            CHECK (amount > 0 AND amount <> 'NaN'::numeric AND from_account_id <> to_account_id) NOT VALID`);
+        await runMigration(mig.up);
     }
 });
 

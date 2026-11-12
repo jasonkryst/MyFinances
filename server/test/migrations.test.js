@@ -179,6 +179,25 @@ test('transfers CHECK: deleting accounts (SET NULL, even both sides) still works
     assert.equal(t.to_account_id, null);
 });
 
+test('transfers CHECK: deleting an account still works when a legacy invalid transfer references it', async () => {
+    const { user, a, b } = await transferFixture();
+    const mig = await import('../migrations/1755600000034_add-transfer-checks.js');
+    const run = async (fn) => { const stmts = []; await fn({ sql: s => stmts.push(s) }); for (const s of stmts) await pool.query(s); };
+    await run(mig.down);
+    try {
+        const neg = (await insertTransfer(user.id, a, b, -5)).rows[0].id; // legacy: negative amount
+        const same = (await insertTransfer(user.id, b, b, 7)).rows[0].id; // legacy: same account
+        await run(mig.up);
+        await pool.query('DELETE FROM accounts WHERE id = $1', [a]); // SET NULL rewrite of `neg`
+        await pool.query('DELETE FROM accounts WHERE id = $1', [b]); // SET NULL rewrite of both
+        const left = (await pool.query('SELECT id, from_account_id, to_account_id FROM transfers WHERE id = ANY($1) ORDER BY id', [[neg, same]])).rows;
+        assert.deepEqual(left.map(r => [r.from_account_id, r.to_account_id]), [[null, null], [null, null]]);
+    } finally {
+        await run(mig.up);
+        await resetDb();
+    }
+});
+
 test('transfers CHECK migration: down then up is clean, up is idempotent, and an existing invalid row does not block it (NOT VALID)', async () => {
     const { user, a } = await transferFixture();
     const mig = await import('../migrations/1755600000034_add-transfer-checks.js');
