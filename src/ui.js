@@ -1015,11 +1015,19 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
-        version: '7.7.0 — 2026-11-12',
+        version: '7.10.0 — 2026-11-12',
         items: [
             '<strong>Find any transaction fast:</strong> the Ledger has a new Search box. Type part of a name, category or memo and only the matching rows stay. It counts as an active filter, and Clear Filters empties it.',
             '<strong>Know your edits are saved:</strong> a small <em>Saving…</em> / <em>All changes saved</em> indicator now sits in the top bar. If a save fails it says <em>Not saved</em> instead.',
             '<strong>No lost edits on close:</strong> if you close or reload the tab while something is still saving, your browser now asks before leaving.'
+        ]
+    },
+    {
+        version: '7.9.0 — 2026-11-12',
+        items: [
+            '<strong>Weekend due dates:</strong> recurring items and debts have a new <em>If due on a weekend</em> setting. Keep the date, or move it to the Friday before or the Monday after.',
+            '<strong>It applies everywhere:</strong> the Ledger, paid and overdue tracking, the Plan calendar and your calendar feeds all use the moved date.',
+            '<strong>Always the same month:</strong> a date never moves into another month. Saturday the 1st with Friday before goes to Monday the 3rd instead.'
         ]
     },
     {

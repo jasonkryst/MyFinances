@@ -4,11 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
-## [7.7.0] — 2026-11-12
+## [7.10.0] — 2026-11-12
 
 ### Added
 - **Ledger free-text search** (issue #586). A Search box in the Ledger filter bar keeps rows whose name, category (stored or translated label) or memo contains the term, case-insensitively. Memo comes from the source record (one-off transfers and manual transactions). It counts as an active filter in the mobile disclosure, resets the page to 1, and Clear Filters empties it. The term lives in memory only and is never written to browser storage. The predicate is the pure `matchesLedgerSearch` in `src/ledgerSearch.js`.
 - **"Saving… / All changes saved" indicator** (issue #576). A status chip in the header toolbar (a polite live region) follows `pendingWriteCount()` through a new `myfinances:writes-changed` event. A failed write ends as "Not saved", never "saved". Plan-settings saves (`saveToStorage`) are now counted as pending writes too. While a write is pending, closing the tab triggers the browser's `beforeunload` confirmation. The state machine is the pure `reduceSaveStatus` in `src/saveStatus.js`.
+
+## [7.9.0] — 2026-11-12
+
+### Added
+- **Weekend due-date shift** (issue #165). Recurring templates and debts have a new "If due on a weekend" setting: Keep the date (the default, so nothing existing changes), Friday before, or Monday after. A due date that falls on a Saturday or Sunday moves accordingly, and an occurrence never leaves its month: Saturday the 1st with "Friday before" goes to Monday the 3rd, and Sunday the 31st with "Monday after" goes to Friday the 29th. The shifted date is used everywhere the due date is: the Ledger and everything built on it, Recurring paid tracking and overdue detection, the Plan calendar and payoff dates, the client `.ics` download and the webcal feed. One pure helper, `applyWeekendRule` in `src/weekendRule.js`, is shared by the browser and the server. Recurring and debt cards show the rule when one is set.
+- **Known limit:** changing a template's rule moves its occurrence dates, so Ledger override and Cleared entries for the old dates become orphans and that month may drop out of paid until it is marked paid again (the same as editing the day).
+- **Postgres:** migration `1755600000036_add-weekend-rule.js` adds `weekend_rule text NOT NULL DEFAULT 'none'` (with a CHECK constraint) to `recurring_templates` and `debts`. Rolling it back discards the saved rules.
 
 ## [7.6.5] — 2026-11-12
 

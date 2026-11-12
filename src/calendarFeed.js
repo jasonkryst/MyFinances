@@ -2,6 +2,7 @@
 // recurring templates, expenses, and income paydays.
 
 import { getRecurringOccurrencesInMonth } from './recurring.js';
+import { applyWeekendRule } from './weekendRule.js';
 import { getCsrfCookie } from './storage.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { getIncomePaydaysInMonth } from './utils.js';
@@ -105,7 +106,9 @@ export function generateIcs(app) {
                 dateStr = debt.nextPaymentDue;
             } else if (debt.dueDate) {
                 const d = Math.min(debt.dueDate, daysInMo);
-                dateStr = isoDateStr(y, mo, d);
+                // #165: shift a weekend due day per the debt's weekendRule.
+                const due = applyWeekendRule(new Date(y, mo, d, 12), debt.weekendRule);
+                dateStr = isoDateStr(y, mo, due.getDate());
             } else {
                 continue;
             }

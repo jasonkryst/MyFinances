@@ -2,6 +2,7 @@
 
 import { normalizeText, normalizeMultilineText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
 import { isAllowedSetting } from './settingsSchema.js';
+import { sanitizeWeekendRule } from './weekendRule.js';
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
@@ -193,6 +194,7 @@ export function sanitizeDebt(record, idFallback) {
         minimumPayment,
         originalMinimumPayment,
         dueDate,
+        weekendRule: sanitizeWeekendRule(record?.weekendRule),
         debtStartDate: sanitizeDateISO(record?.debtStartDate),
         fixedAmount: sanitizeFiniteNumber(record?.fixedAmount, minimumPayment, { min: 0 }),
         fixedStartDate: sanitizeDateISO(record?.fixedStartDate),
@@ -400,6 +402,7 @@ export function sanitizeRecurringTemplate(record, idFallback) {
         amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
         frequency,
         dayOfMonth: sanitizeInteger(record?.dayOfMonth, null, { min: 1, max: 31 }),
+        weekendRule: sanitizeWeekendRule(record?.weekendRule),
         category: normalizeText(record?.category, 40) || 'Other',
         accountId: sanitizeInteger(record?.accountId, null),
         targetAccountId: sanitizeInteger(record?.targetAccountId, null),
