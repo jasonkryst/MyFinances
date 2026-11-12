@@ -1,7 +1,7 @@
 // Cash Flow Forecasting: project account balances forward and surface
 // notable months, negative-balance warnings, and lowest/highest points.
 
-import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate } from './utils.js';
+import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate, isTransferLegTx } from './utils.js';
 import { t, plural } from './i18n.js';
 import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { withProjectionCache } from './projectionCache.js';
@@ -13,11 +13,25 @@ export function getForecastAssetAccounts(app) {
     return (app.accounts || []).filter(acct => !LIABILITY_TYPES.includes(acct.type));
 }
 
+// #616: a transfer leg whose two sides are both forecast asset accounts moves
+// money between the user's own accounts. It is neither income nor outflow for
+// the total view. A transfer to a liability account (card, loan) is not
+// internal. assetAccountIds is a Set of String ids.
+export function isInternalTransferLeg(tx, assetAccountIds) {
+    if (!isTransferLegTx(tx)) return false;
+    const a = tx.accountId;
+    const b = tx.counterpartAccountId;
+    if (a === null || a === undefined || b === null || b === undefined) return false;
+    if (String(a) === String(b)) return false;
+    return assetAccountIds.has(String(a)) && assetAccountIds.has(String(b));
+}
+
 // Exported for tests (#518).
 export function computeForecastSeries(app, accountSetting, monthsAhead) {
     const assetAccounts = getForecastAssetAccounts(app);
 
     if (accountSetting === 'total') {
+        const assetIds = new Set(assetAccounts.map(a => String(a.id)));
         const perAcctSeriesList = assetAccounts.map(acct => getAccountForecastSeries(app, acct.id, monthsAhead));
 
         let combined = perAcctSeriesList[0].map(entry => ({ ...entry }));
@@ -48,6 +62,14 @@ export function computeForecastSeries(app, accountSetting, monthsAhead) {
             const monthTxs = [];
             for (const acct of assetAccounts) {
                 monthTxs.push(...(byAccount.get(String(acct.id)) || []));
+            }
+            // #616: drop internal transfer legs from Income/Outflow. Both legs
+            // are removed, so net and balance are unchanged. The walk below
+            // keeps them (same-day legs net to zero).
+            for (const tx of monthTxs) {
+                if (!isInternalTransferLeg(tx, assetIds)) continue;
+                if (tx.amount >= 0) combined[i].income -= tx.amount;
+                else combined[i].outflow -= Math.abs(tx.amount);
             }
             monthTxs.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -110,9 +132,11 @@ function getOutflowDrivers(app, accountSetting, year, month) {
     const assetAccounts = getForecastAssetAccounts(app);
     let txs;
     if (accountSetting === 'total') {
+        const assetIds = new Set(assetAccounts.map(a => String(a.id)));
         txs = [];
         for (const acct of assetAccounts) {
-            txs.push(...getLedgerTransactionsForMonth(app, year, month, acct.id));
+            txs.push(...getLedgerTransactionsForMonth(app, year, month, acct.id)
+                .filter(tx => !isInternalTransferLeg(tx, assetIds))); // #616
         }
     } else {
         const acct = assetAccounts.find(a => String(a.id) === String(accountSetting));

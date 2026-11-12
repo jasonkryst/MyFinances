@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.6.5] — 2026-11-12
+
+### Fixed
+- **The Forecast total view no longer counts transfers between your own asset accounts** (issue #616). A one-off or recurring transfer from checking to savings added the same amount to both Income and Outflow in the total view, inflated the notable-month threshold and could be named as a month's top outflow driver. Transfer legs now carry `counterpartAccountId`, and the total view drops a leg when both sides are forecast asset accounts. Net and balance are unchanged. A transfer to a credit card or loan is still a real outflow, and the single-account view is unchanged.
+
+### Tests
+- **The `refreshPolicy` source-scan guard works on CRLF checkouts** (issue #617). It ended `loadFromPostgres` at the first end-of-function match, which never matches CRLF text, so on Windows it ran on into `clearAllData` and failed. Line endings are normalized first, and the slicing is a function with LF, CRLF and missing-field cases.
+
 ## [7.6.4] — 2026-11-12
 
 ### CI

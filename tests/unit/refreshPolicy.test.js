@@ -112,12 +112,49 @@ describe('withoutViewState', () => {
         expect(withoutViewState(all)).toEqual({});
     });
 
+    // #617: normalize CRLF first, or the end-of-function match never hits on
+    // Windows checkouts and the slice runs on into clearAllData.
+    function assignedViewFields(src) {
+        const lf = src.replace(/\r\n/g, '\n');
+        const body = lf.slice(lf.indexOf('export async function loadFromPostgres'));
+        const fn = body.slice(0, body.indexOf('\n}\n'));
+        return [...new Set([...fn.matchAll(/app\.(_(?:ledger|forecast)\w+)\s*=/g)].map(m => m[1]))].sort();
+    }
+
     test('guard: matches every _ledger*/_forecast* field loadFromPostgres assigns', () => {
         const src = require('fs').readFileSync(require('path').join(__dirname, '../../src/storage.js'), 'utf8');
-        const body = src.slice(src.indexOf('export async function loadFromPostgres'));
-        const assigned = [...new Set([...body.slice(0, body.indexOf('\n}\n')).matchAll(/app\.(_(?:ledger|forecast)\w+)\s*=/g)].map(m => m[1]))];
+        const assigned = assignedViewFields(src);
         expect(assigned.length).toBeGreaterThan(0);
-        expect(assigned.sort()).toEqual([...VIEW_STATE_FIELDS].sort());
+        expect(assigned).toEqual([...VIEW_STATE_FIELDS].sort());
+        // Same result whatever the checkout's line endings.
+        expect(assignedViewFields(src.replace(/\r?\n/g, '\r\n'))).toEqual(assigned);
+    });
+
+    test('guard slicing stops at the end of loadFromPostgres for LF and CRLF', () => {
+        const lf = [
+            'export async function loadFromPostgres(app) {',
+            '    app._ledgerPage = 1;',
+            '}',
+            '',
+            'export function clearAllData(app) {',
+            '    app._ledgerPageSize = 50;',
+            '}',
+            ''
+        ].join('\n');
+        expect(assignedViewFields(lf)).toEqual(['_ledgerPage']);
+        expect(assignedViewFields(lf.replace(/\n/g, '\r\n'))).toEqual(['_ledgerPage']);
+    });
+
+    test('guard fails when loadFromPostgres assigns a field missing from VIEW_STATE_FIELDS', () => {
+        const src = [
+            'export async function loadFromPostgres(app) {',
+            '    app._ledgerNewFilter = 1;',
+            '}',
+            ''
+        ].join('\r\n');
+        const assigned = assignedViewFields(src);
+        expect(assigned).toEqual(['_ledgerNewFilter']);
+        expect(assigned).not.toEqual([...VIEW_STATE_FIELDS].sort());
     });
 
     test('non-object input yields an empty object', () => {
