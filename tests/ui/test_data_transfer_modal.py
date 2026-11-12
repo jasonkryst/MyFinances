@@ -346,7 +346,7 @@ def test_merge_with_skipped_duplicates_shows_duplicate_count_not_generic_message
         page.wait_for_selector('#importResultBanner:not(.hidden)', timeout=15000)
 
         banner_text = page.inner_text('#importResultBanner')
-        assert 'Skipped 1 duplicate' in banner_text
+        assert 'Skipped duplicates' in banner_text and 'Debts: 1' in banner_text
     finally:
         os.unlink(temp_file)
 

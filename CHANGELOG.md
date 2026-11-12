@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.6.2] — 2026-11-12
+
+### Fixed
+- **Merge import no longer duplicates records** (issues #567, #478). Merge mode used to dedupe only debts, income sources, bonuses, bills, recurring items and sinking funds, by name, so re-importing your own export doubled expenses, emergency funds, transfers, retirement snapshots and more. Every collection now dedupes by a natural key in the new pure `src/mergeDedupe.js`: name (accounts, people, debts, income, bonuses, bills, recurring items, sinking funds), name + date (expenses), account (emergency funds), from + to + amount + date (transfers), account + date (retirement snapshots), account + statement end date (reconciliations), creation time (plan history) and account + date + amount + name (manual transactions). Account references are remapped before comparing, so a re-import creates zero new records.
+  - **Repeats inside one file** are collapsed too: a file listing the same debt twice now creates one debt. Ledger override and cleared keys for the repeat attach to the surviving record.
+  - **Result message** lists the skipped count for every type ("Merge complete. Skipped duplicates: Debts: 1, Transfers: 1."), in English, Spanish and Polish.
+
 ## [7.6.0] — 2026-11-11
 
 ### Added

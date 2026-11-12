@@ -158,6 +158,7 @@ jobs:
             tests/features/test_people.py \
             tests/features/test_debt_ownership_split.py \
             tests/features/test_import_person_remap.py \
+            tests/features/test_merge_import_dedupe.py \
             -v
       - name: Stop stack
         if: always()

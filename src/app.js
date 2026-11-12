@@ -706,8 +706,11 @@ export class DebtTrackerApp {
             onNoData: () => showImportResult('error', 'No recognisable data found in the selected file.'),
             requestImportMode: (parts) => requestImportModeChoice(parts),
             onImported: (parts, warnings) => showImportResult('success', `Imported: ${parts.join(', ')}.`, warnings),
-            onMergeDuplicates: (addedCount, skippedCount, warnings) => {
-                showImportResult('success', `Merged ${addedCount} debt(s). Skipped ${skippedCount} duplicate name(s).`, warnings);
+            onMergeDuplicates: (skipped, warnings) => {
+                const list = Object.entries(skipped)
+                    .map(([field, count]) => t('import.mergeSkippedItem', { label: t(`import.skippedType.${field}`), count }))
+                    .join(', ');
+                showImportResult('success', t('import.mergeSkipped', { list }), warnings);
             },
             onTooLarge: (maxBytes) => {
                 showImportResult('error', `Import file is too large. Maximum supported size is ${Math.round(maxBytes / 1024)} KB.`);

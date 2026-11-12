@@ -422,22 +422,13 @@ export function importAllJSON(app, file, options = {}) {
             ? await requestImportMode(parts)
             : true;
 
-        let postgresSkippedDebts = 0;
-        let postgresAddedDebts = 0;
+        let mergeSkipped = null;
         try {
             if (shouldReplace) {
                 await replaceForPostgres(app, clean, incomingStrategy, warnings);
             } else {
-                // Duplicate-by-name debts are counted
-                // before the merge so the banner can report what was skipped.
-                const existingDebtNames = new Set((app.debts || []).map(d => d.name?.toLowerCase()));
-                let added = 0;
-                for (const d of validDebts) {
-                    const key = d.name.toLowerCase();
-                    if (existingDebtNames.has(key)) { postgresSkippedDebts++; } else { added++; }
-                }
-                postgresAddedDebts = added;
-                await mergeForPostgres(app, clean, incomingStrategy, warnings);
+                // The merge reports what it skipped as duplicates, per collection (#567).
+                mergeSkipped = (await mergeForPostgres(app, clean, incomingStrategy, warnings)).skipped;
             }
         } catch {
             if (typeof onImportError === 'function') onImportError();
@@ -454,8 +445,8 @@ export function importAllJSON(app, file, options = {}) {
         await seedMissingBalanceHistory(app);
         app.updateUI();
         app.refreshCurrentPageData();
-        if (postgresSkippedDebts > 0 && typeof onMergeDuplicates === 'function') {
-            onMergeDuplicates(postgresAddedDebts, postgresSkippedDebts, warnings);
+        if (mergeSkipped && Object.keys(mergeSkipped).length > 0 && typeof onMergeDuplicates === 'function') {
+            onMergeDuplicates(mergeSkipped, warnings);
             mergeDuplicatesReported = true;
         }
         if (!mergeDuplicatesReported && typeof onImported === 'function') {
