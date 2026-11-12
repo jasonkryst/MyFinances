@@ -609,3 +609,42 @@ test('/api/recurring-templates: a legacy targetless transfer template can still 
     assert.equal((await patchJson('/api/recurring-templates', rows[0].id, { paused: true })).status, 200);
     assert.equal((await patchJson('/api/recurring-templates', rows[0].id, { amount: 0 })).status, 400);
 });
+
+test('/api/bonuses: recurringAnnually and recurUntil round-trip on POST and PATCH; an old-shape POST gets defaults (#290)', async () => {
+    const post = (body) => fetch(`${baseUrl}/api/bonuses`, { method: 'POST', headers: csrfHeaders(), body: JSON.stringify(body) });
+    const oldRes = await post({ name: 'Old shape', amount: 100, date: '2026-12-15', category: 'Bonus', accountId });
+    assert.equal(oldRes.status, 201);
+    const old = await oldRes.json();
+    assert.equal(old.recurringAnnually, false);
+    assert.equal(old.recurUntil, null);
+
+    const createRes = await post({ name: 'Year-end', amount: 5000, date: '2026-12-15', category: 'Bonus', accountId, recurringAnnually: true, recurUntil: '2030-12-15' });
+    assert.equal(createRes.status, 201);
+    const created = await createRes.json();
+    assert.equal(created.recurringAnnually, true);
+    assert.equal(created.recurUntil, '2030-12-15');
+
+    const list = await (await fetch(`${baseUrl}/api/bonuses`, { headers: csrfHeaders() })).json();
+    const listed = list.find(b => b.id === created.id);
+    assert.equal(listed.recurringAnnually, true);
+    assert.equal(listed.recurUntil, '2030-12-15');
+
+    const patchRes = await fetch(`${baseUrl}/api/bonuses/${created.id}`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ recurUntil: '2028-12-15' })
+    });
+    assert.equal(patchRes.status, 200);
+    assert.equal((await patchRes.json()).recurUntil, '2028-12-15');
+
+    // Back to one-time: the end date is dropped with it.
+    const offRes = await fetch(`${baseUrl}/api/bonuses/${created.id}`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ recurringAnnually: false })
+    });
+    assert.equal(offRes.status, 200);
+    const off = await offRes.json();
+    assert.equal(off.recurringAnnually, false);
+    assert.equal(off.recurUntil, null);
+
+    // A recurUntil before the date is dropped, not stored.
+    const badRes = await post({ name: 'Bad until', amount: 1, date: '2026-12-15', accountId, recurringAnnually: true, recurUntil: '2026-01-01' });
+    assert.equal((await badRes.json()).recurUntil, null);
+});

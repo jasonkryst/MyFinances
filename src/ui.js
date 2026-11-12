@@ -270,6 +270,12 @@ export function initializeEventListeners(app) {
 
     const bonusForm = document.getElementById('bonusForm');
     if (bonusForm) {
+        // #290: the "Until" date only shows while "Repeats every year" is checked.
+        const bonusUntilGroup = document.getElementById('bonusUntilGroup');
+        bonusForm.addEventListener('change', e => {
+            if (e.target.id === 'bonusRecurring' && bonusUntilGroup) bonusUntilGroup.hidden = !e.target.checked;
+        });
+        bonusForm.addEventListener('reset', () => { if (bonusUntilGroup) bonusUntilGroup.hidden = true; });
         bonusForm.addEventListener('submit', e => {
             e.preventDefault();
             withBusy(bonusForm, () => app.addBonus());
@@ -1012,6 +1018,14 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.8.0 — 2026-11-12',
+        items: [
+            '<strong>Annual bonuses:</strong> on the Income page, a bonus can now <em>Repeat every year</em>. Enter it once and it lands on the same month and day every year, instead of needing a new entry each December.',
+            '<strong>It shows up in the future:</strong> repeating bonuses count in your monthly income, the Ledger, account projections, Forecast and the reports for every coming year. A bonus dated Feb 29 lands on Feb 28 in other years.',
+            '<strong>Optional end date:</strong> set an <em>Until</em> date if the bonus will stop. Repeating bonuses carry an <em>Every year</em> badge and show their next date. Your existing one-time bonuses are unchanged.'
+        ]
+    },
     {
         version: '7.6.0 — 2026-11-11',
         items: [

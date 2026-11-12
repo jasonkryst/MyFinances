@@ -9163,3 +9163,26 @@ body.dark-mode .ledger-manual-badge { background: #312e81; color: #c7d2fe; }
     margin-right: 16px;
     font-weight: 400;
 }
+
+/* Recurring annual bonus (#290) */
+.bonus-recur-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.bonus-recur-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: #e0f2fe;
+    color: #075985;
+}
+body.dark-mode .bonus-recur-badge { background: #0c4a6e; color: #bae6fd; }
+.bonus-next-occurrence {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+

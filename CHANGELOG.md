@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.8.0] — 2026-11-12
+
+### Added
+- **Recurring annual bonuses** (issue #290). A bonus can now repeat every year (`recurringAnnually`) with an optional inclusive end date (`recurUntil`). It occurs on its date's month and day in that year and every later year; a Feb 29 date falls on Feb 28 in non-leap years. One shared rule, `getBonusDatesInMonth()` in `src/utils.js`, now decides when a bonus lands, and the monthly income total, the Ledger (each year's occurrence has its own override and Cleared key), the Plan calendar, Health, Forecast, account projections and the reports all use it. `getNextBonusDate()` gives the next occurrence for the Income page, which shows an "Every year" badge, an "until" date and the next date, with the checkbox and Until date in both the add form and the inline editor. Existing bonuses stay one-time. Server: migration `1755600000035` adds `bonuses.recurring_annually` (default false) and `bonuses.recur_until`; rolling it back drops the recurrence settings.
+
 ## [7.6.5] — 2026-11-12
 
 ### Fixed

@@ -29,6 +29,7 @@ export const MUTATE_SCOPE = {
         'formatCurrency', 'normalizeText', 'normalizeMultilineText', 'sanitizeFiniteNumber',
         'parseFiniteOrNull', 'formatShortDate', 'formatMonthYear', 'sanitizeInteger', 'sanitizeDateISO',
         'dateToISO', 'dailyCompoundInterest', 'computeNetIncomeAmount', 'computeMonthlyIncomeForMonth', 'withBusy', 'isTransferLegTx',
+        'getBonusDatesInMonth', 'getNextBonusDate', 'computeMonthlyBonusesForMonth', 'getBonusesByDayForMonth',
     ],
     'src/sanitizers.js': [
         'sanitizePerson', 'sanitizeAccount', 'sanitizeDebt', 'sanitizeOwnershipSplit', 'remapDebtPersonRefs',

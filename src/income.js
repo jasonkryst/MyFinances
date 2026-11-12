@@ -5,6 +5,8 @@ import {
     getNextIncomePayDates,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth,
+    getBonusDatesInMonth,
+    getNextBonusDate,
     computeNetIncomeAmount,
     normalizeText,
     sanitizeFiniteNumber,
@@ -350,12 +352,15 @@ export async function addBonus(app) {
     const accountId = parseInt(document.getElementById('bonusAccount')?.value) || null;
     const rawPurpose = document.getElementById('bonusPurpose')?.value;
     const purpose   = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
+    const recurringAnnually = !!document.getElementById('bonusRecurring')?.checked;
+    const recurUntil = recurringAnnually ? sanitizeDateISO(document.getElementById('bonusUntil')?.value) : null;
 
     if (!name)                        { await showAlertModal(t('income.bonusErrName')); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errAmountGreater')); return; }
     if (!date)                        { await showAlertModal(t('income.bonusErrDate')); return; }
+    if (recurUntil && recurUntil < date) { await showAlertModal(t('income.bonusErrUntil')); return; }
 
-    const bonus = { id: Date.now(), name, amount, date, category, accountId, purpose };
+    const bonus = { id: Date.now(), name, amount, date, category, accountId, purpose, recurringAnnually, recurUntil };
     if (!(await pgCreate(app, 'bonuses', '/api/bonuses', bonus))) return null;
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
@@ -392,6 +397,8 @@ export async function saveEditBonus(app, bonusId) {
     const catEl       = document.getElementById(`be-category-${bonusId}`);
     const accountEl   = document.getElementById(`be-account-${bonusId}`);
     const purposeEl   = document.getElementById(`be-purpose-${bonusId}`);
+    const recurEl     = document.getElementById(`be-recurring-${bonusId}`);
+    const untilEl     = document.getElementById(`be-until-${bonusId}`);
     if (!nameEl || !amtEl || !dateEl || !catEl) return;
 
     const name = normalizeText(nameEl.value, 80);
@@ -402,14 +409,17 @@ export async function saveEditBonus(app, bonusId) {
     const accountId = accountEl && accountEl.value ? parseInt(accountEl.value) : null;
     const rawPurpose = purposeEl?.value;
     const purpose = (rawPurpose === 'cashFlow' || rawPurpose === 'savings') ? rawPurpose : null;
+    const recurringAnnually = !!recurEl?.checked;
+    const recurUntil = recurringAnnually ? sanitizeDateISO(untilEl?.value) : null;
 
     if (!name) { await showAlertModal(t('income.bonusErrName')); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errAmountGreater')); return; }
     if (!date) { await showAlertModal(t('income.bonusErrDate')); return; }
+    if (recurUntil && recurUntil < date) { await showAlertModal(t('income.bonusErrUntil')); return; }
 
     const idx = app.bonuses.findIndex(b => b.id === bonusId);
     if (idx === -1) return;
-    app.bonuses[idx] = { ...app.bonuses[idx], name, amount, date, category, accountId, purpose };
+    app.bonuses[idx] = { ...app.bonuses[idx], name, amount, date, category, accountId, purpose, recurringAnnually, recurUntil };
     app.editingBonusId = null;
     pgPatch(app, `/api/bonuses/${app.bonuses[idx].id}`, app.bonuses[idx]);
     app.renderBonusList();
@@ -429,10 +439,23 @@ export function renderBonusList(app) {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
+    // The occurrence of a bonus in `year` (null when none). An annual bonus (#290)
+    // has one in every year from its first date through its end date (or, with no
+    // end, through this year), so it is listed under each of those years.
+    const occurrenceInYear = (b, year) =>
+        getBonusDatesInMonth(b, year, new Date(b.date + 'T12:00:00').getMonth())[0] || null;
+    const bonusYears = b => {
+        const firstYear = new Date(b.date + 'T12:00:00').getFullYear();
+        if (!b.recurringAnnually) return [firstYear];
+        const years = [];
+        for (let y = firstYear; y <= Math.max(firstYear, currentYear); y++) {
+            if (occurrenceInYear(b, y)) years.push(y);
+        }
+        return years.length ? years : [firstYear];
+    };
+
     // Build sorted list of years that have at least one bonus entry
-    const availableYears = [...new Set(
-        app.bonuses.map(b => new Date(b.date + 'T12:00:00').getFullYear())
-    )].sort((a, b) => a - b);
+    const availableYears = [...new Set(app.bonuses.flatMap(bonusYears))].sort((a, b) => a - b);
 
     // Clamp filter to an actually-present year when navigating
     if (_bonusFilterYear !== null && !availableYears.includes(_bonusFilterYear)) {
@@ -441,7 +464,7 @@ export function renderBonusList(app) {
 
     const filtered = _bonusFilterYear === null
         ? app.bonuses
-        : app.bonuses.filter(b => new Date(b.date + 'T12:00:00').getFullYear() === _bonusFilterYear);
+        : app.bonuses.filter(b => bonusYears(b).includes(_bonusFilterYear));
 
     const yearIdx = _bonusFilterYear !== null ? availableYears.indexOf(_bonusFilterYear) : -1;
     const prevYear = yearIdx > 0 ? availableYears[yearIdx - 1] : null;
@@ -475,9 +498,11 @@ export function renderBonusList(app) {
     const cardsHtml = filtered.length === 0
         ? `<p class="text-muted-secondary" style="padding:12px 0;font-size:0.9rem;">${_bonusFilterYear !== null ? t('income.bonusNoEntriesYear', { year: _bonusFilterYear }) : t('income.bonusNoEntriesPeriod')}</p>`
         : filtered.map(b => {
-            const d = new Date(b.date + 'T12:00:00');
-            const isThisMonth = d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-            const dateStr = formatShortDate(d);
+            // The shown date is the occurrence in the year being viewed for an annual
+            // bonus (its first date under All time); isThisMonth uses the shared rule.
+            const shown = (b.recurringAnnually && _bonusFilterYear !== null && occurrenceInYear(b, _bonusFilterYear)) || new Date(b.date + 'T12:00:00');
+            const isThisMonth = getBonusDatesInMonth(b, currentYear, currentMonth).length > 0;
+            const dateStr = formatShortDate(shown);
             const badgeCls = catBadgeClass[b.category] || 'bonus-cat--other';
 
             if (app.editingBonusId === b.id) {
@@ -520,6 +545,16 @@ export function renderBonusList(app) {
                                 <option value="savings"  ${b.purpose==='savings'  ?'selected':''}>🏦 ${t('income.bonusPurposeSavings')}</option>
                             </select>
                         </div>
+                        <div class="form-group form-no-margin">
+                            <label class="label-compact bonus-recur-toggle" for="be-recurring-${b.id}">
+                                <input type="checkbox" id="be-recurring-${b.id}" data-bonus-recur-toggle="${b.id}" ${b.recurringAnnually ? 'checked' : ''}>
+                                <span>${t('income.bonusRecurLabel')}</span>
+                            </label>
+                        </div>
+                        <div class="form-group form-no-margin" id="be-until-group-${b.id}"${b.recurringAnnually ? '' : ' hidden'}>
+                            <label class="label-compact" for="be-until-${b.id}">${t('income.bonusUntilLabel')}</label>
+                            <input type="date" id="be-until-${b.id}" value="${escapeHtml(b.recurUntil || '')}" class="form-full-width">
+                        </div>
                     </div>
                     <div class="income-edit-actions margin-top-auto">
                         <button class="btn btn-primary btn-small" data-bonus-action="save" data-bonus-id="${b.id}" aria-label="${escapeHtml(t('entity.saveChangesAria', { name: b.name }))}">${t('common.save')}</button>
@@ -533,12 +568,23 @@ export function renderBonusList(app) {
                 ? `<span class="bonus-purpose-badge ${purposeMeta.cls}">${escapeHtml(purposeMeta.label)}</span>`
                 : '';
 
+            let recurBadge = '';
+            if (b.recurringAnnually) {
+                const next = getNextBonusDate(b, now);
+                const untilText = b.recurUntil ? ' ' + t('income.bonusBadgeUntil', { date: formatShortDate(new Date(b.recurUntil + 'T12:00:00')) }) : '';
+                const nextText = next
+                    ? t('income.bonusNextOccurrence', { date: formatShortDate(next) })
+                    : t('income.bonusSeriesEnded');
+                recurBadge = `<span class="bonus-recur-badge" data-bonus-recur-badge>🔁 ${escapeHtml(t('income.bonusBadgeEveryYear'))}${escapeHtml(untilText)}</span>`
+                    + ` <span class="bonus-next-occurrence">${escapeHtml(nextText)}</span>`;
+            }
+
             return `
             <div class="bonus-card${isThisMonth ? ' bonus-card--current' : ''}">
                 <div class="bonus-card-info">
                     <span class="bonus-card-name">${escapeHtml(b.name)}</span>
                     <span class="bonus-card-amount">${formatCurrency(b.amount)}</span>
-                    <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(labelFor(BONUS_CATEGORY_KEYS, b.category))}</span>${purposeBadge ? ' ' + purposeBadge : ''}</span>
+                    <span class="bonus-card-meta">${escapeHtml(dateStr)} &nbsp;·&nbsp; <span class="bonus-cat-badge ${badgeCls}">${escapeHtml(labelFor(BONUS_CATEGORY_KEYS, b.category))}</span>${purposeBadge ? ' ' + purposeBadge : ''}${recurBadge ? ' ' + recurBadge : ''}</span>
                     ${isThisMonth ? `<span class="bonus-this-month-tag">✅ ${t('income.bonusIncludedThisMonth')}</span>` : ''}
                 </div>
                 <div class="debt-actions">
@@ -554,6 +600,13 @@ export function renderBonusList(app) {
             ${filterHtml}
             ${cardsHtml}
         </div>`;
+
+    container.onchange = event => {
+        const toggle = event.target.closest('[data-bonus-recur-toggle]');
+        if (!toggle) return;
+        const group = document.getElementById(`be-until-group-${toggle.getAttribute('data-bonus-recur-toggle')}`);
+        if (group) group.hidden = !toggle.checked;
+    };
 
     container.onclick = event => {
         const navEl = event.target.closest('[data-bonus-year-nav]');

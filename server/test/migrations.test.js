@@ -221,3 +221,33 @@ test('transfers CHECK migration: down then up is clean, up is idempotent, and an
     assert.equal(rows[0].convalidated, false);
     await resetDb();
 });
+
+// #290: bonus annual recurrence (migration 1755600000035).
+test('bonus recurrence migration: columns exist with defaults, up is idempotent, down is clean', async () => {
+    await resetDb();
+    const user = await createTestUser();
+    const mig = await import('../migrations/1755600000035_add-bonus-annual-recurrence.js');
+    const run = async (fn) => {
+        const stmts = [];
+        await fn({ sql: s => stmts.push(s) });
+        for (const s of stmts) await pool.query(s);
+    };
+    const cols = async () => (await pool.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = 'bonuses' AND column_name IN ('recurring_annually','recur_until')")).rowCount;
+    try {
+        assert.equal(await cols(), 2);
+        await run(mig.up); // idempotent
+        const { rows } = await pool.query(
+            "INSERT INTO bonuses (user_id, name, amount, date) VALUES ($1, 'B', 1, '2026-12-01') RETURNING recurring_annually, recur_until", [user.id]);
+        assert.equal(rows[0].recurring_annually, false);
+        assert.equal(rows[0].recur_until, null);
+        await run(mig.down);
+        assert.equal(await cols(), 0);
+        await run(mig.down); // down is idempotent too
+        await pool.query("INSERT INTO bonuses (user_id, name, amount, date) VALUES ($1, 'C', 1, '2026-12-01')", [user.id]);
+    } finally {
+        await run(mig.up);
+        await resetDb();
+    }
+    assert.equal(await cols(), 2);
+});
