@@ -91,7 +91,7 @@ def test_every_pytest_job_has_maxfail_and_a_15_minute_cap():
 def test_ci_has_pytest_jobs_for_the_guard_to_check():
     """Sanity: the parser must see the Playwright jobs, or the guard above is vacuous."""
     jobs = {j for j, b in split_jobs(CI_YML.read_text(encoding='utf-8')).items() if runs_pytest(b)}
-    assert {'test-features-a', 'test-features-l', 'test-ui-a', 'test-postgres', 'test-a11y',
+    assert {'test-features-a', 'test-features-l', 'test-features-m', 'test-ui-a', 'test-postgres', 'test-a11y',
             'test-security', 'test-integration'} <= jobs
     assert not ({'test-unit', 'test-server', 'mutation-testing', 'lighthouse'} & jobs)
 

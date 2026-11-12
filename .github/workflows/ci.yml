@@ -40,7 +40,7 @@ jobs:
   # including the ~90 s of setup), well inside the 15 min job timeout (#527).
   # Per-file seconds come from the per-test timestamps in a green run's job log.
   # F/G hold the slow ledger/reconciliation files; I holds test_performance;
-  # K holds the static guards (CLAUDE.md names it); L is the i18n render guard.
+  # K holds the static guards (CLAUDE.md names it); L and M are the i18n render guard.
   # Every pytest job passes --maxfail=15 so a broken stack stops the job early
   # (#551); the per-test 120 s timeout comes from pytest.ini (pytest-timeout).
   # ---------------------------------------------------------------------------
@@ -432,9 +432,10 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  # L: the i18n pseudo-locale render guard (#527), split out of test_i18n_coverage.py (170 parametrized
-  # page x state renders, ~340 s). It grows as pages are added to TRANSLATED_PAGES; split it by `state`
-  # (seeded / empty) into two jobs when it nears the shard budget (~360 s of pytest).
+  # L and M: the i18n pseudo-locale render guard (#527), split out of test_i18n_coverage.py and then
+  # by data state: L = seeded (+ the two control tests), M = empty, ~170-200 s of pytest each. Both grow
+  # as pages are added to TRANSLATED_PAGES (tests/features/i18n_render_support.py); split by page
+  # name next if either nears the shard budget (~360 s of pytest).
   test-features-l:
     needs: build-images
     runs-on: ubuntu-latest
@@ -454,6 +455,29 @@ jobs:
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_i18n_render_guard.py --maxfail=15 -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
+
+  test-features-m:
+    needs: build-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
+      - uses: ./.github/actions/install-playwright
+      - uses: ./.github/actions/start-stack
+      - run: pytest tests/features/test_i18n_render_guard_empty.py --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
@@ -856,6 +880,7 @@ jobs:
       - test-features-j
       - test-features-k
       - test-features-l
+      - test-features-m
       - test-integration
       - test-ui-a
       - test-ui-b

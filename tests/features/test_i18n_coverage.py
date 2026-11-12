@@ -4,8 +4,9 @@ i18n dictionary-parity guards (issue #317): es.js/pl.js carry exactly en.js's ke
 set, every translation keeps the same {placeholder} tokens as its English source,
 and no value is an untranslated English stub.
 
-The pseudo-locale render guard (TRANSLATED_PAGES, NON_TRANSLATABLE) lives in
-test_i18n_render_guard.py (issue #527).
+The pseudo-locale render guard lives in test_i18n_render_guard.py and
+test_i18n_render_guard_empty.py; TRANSLATED_PAGES and NON_TRANSLATABLE are in
+i18n_render_support.py (issue #527).
 """
 
 import pytest
