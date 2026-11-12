@@ -37,6 +37,7 @@ export const MUTATE_SCOPE = {
         'sanitizeLedgerClearedTransactions', 'sanitizeEmergencyFund', 'sanitizeSinkingFund',
         'sanitizeNetWorthSnapshot', 'sanitizeForecastSettings', 'sanitizeSetting', 'sanitizeRetirementSnapshot',
         'sanitizeBalanceHistoryEntry', 'sanitizeReconciliation', 'sanitizePlanHistoryEntry',
+        'sanitizeManualTransaction', 'isValidManualTransaction',
     ],
     'src/retirementCalculator.js': [
         'computeRetirementProjection', 'splitGrowthFromContribution', 'getContributionLimit',

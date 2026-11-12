@@ -47,6 +47,14 @@ function csrfHeaders() {
 
 export const cases = [
     {
+        path: '/api/manual-transactions',
+        validPayload: () => ({ name: 'Coffee', amount: -4.5, date: '2026-08-03', category: 'Dining', memo: 'with Sam', accountId }),
+        updatePayload: { amount: -6 },
+        updatedField: 'amount',
+        updatedValue: -6,
+        invalidPayload: () => ({ name: 'Coffee', amount: -4.5 })
+    },
+    {
         path: '/api/bills',
         validPayload: () => ({ name: 'Rent', amount: 1200, dueDay: 1, category: 'Housing', accountId }),
         updatePayload: { amount: 1300 },
@@ -417,4 +425,53 @@ test('/api/accounts: notes, catchUpEligible and hsaCoverageType round-trip; bad 
         method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ notes: '' })
     });
     assert.equal((await patchRes.json()).notes, '');
+});
+
+// Manual transactions (#584): the route applies the same validity rule as import.
+async function postManual(body) {
+    return fetch(`${baseUrl}/api/manual-transactions`, { method: 'POST', headers: csrfHeaders(), body: JSON.stringify(body) });
+}
+
+test('/api/manual-transactions: keeps the sign, category and memo', async () => {
+    const res = await postManual({ accountId, name: 'Refund', amount: 25.5, date: '2026-08-04', category: 'Shopping', memo: 'returned shoes' });
+    assert.equal(res.status, 201);
+    const row = await res.json();
+    assert.equal(row.amount, 25.5);
+    assert.equal(row.date, '2026-08-04');
+    assert.equal(row.category, 'Shopping');
+    assert.equal(row.memo, 'returned shoes');
+    assert.equal(row.rowVersion, 1);
+});
+
+for (const [label, body] of [
+    ['a zero amount', { name: 'Zero', amount: 0 }],
+    ['a non-numeric amount', { name: 'NaN', amount: 'abc' }],
+    ['a missing amount', { name: 'None' }],
+    ['an amount over 1e9', { name: 'Huge', amount: 2e9 }],
+    ['a blank name', { name: '   ', amount: -5 }],
+]) {
+    test(`/api/manual-transactions: rejects ${label}`, async () => {
+        const res = await postManual({ accountId, date: '2026-08-04', ...body });
+        assert.equal(res.status, 400);
+        const list = await (await fetch(`${baseUrl}/api/manual-transactions`, { headers: { Cookie: cookies } })).json();
+        assert.equal(list.length, 0);
+    });
+}
+
+test('/api/manual-transactions: a PATCH to a zero amount is rejected and nothing changes', async () => {
+    const created = await (await postManual({ accountId, name: 'Lunch', amount: -12, date: '2026-08-05' })).json();
+    const res = await fetch(`${baseUrl}/api/manual-transactions/${created.id}`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ amount: 0 })
+    });
+    assert.equal(res.status, 400);
+    const list = await (await fetch(`${baseUrl}/api/manual-transactions`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list[0].amount, -12);
+});
+
+test('/api/manual-transactions: deleting the account keeps the row with a null account', async () => {
+    const created = await (await postManual({ accountId: accountId2, name: 'Gas', amount: -40, date: '2026-08-06' })).json();
+    const del = await fetch(`${baseUrl}/api/accounts/${accountId2}`, { method: 'DELETE', headers: csrfHeaders() });
+    assert.equal(del.status, 204);
+    const list = await (await fetch(`${baseUrl}/api/manual-transactions`, { headers: { Cookie: cookies } })).json();
+    assert.equal(list.find(r => r.id === created.id).accountId, null);
 });

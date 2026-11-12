@@ -13,6 +13,10 @@ function _classifyMonthTotals(txs) {
             income += tx.amount;
         } else if (tx.type === 'expense') {
             expenses += Math.abs(tx.amount || 0);
+        } else if (tx.type === 'manual') {
+            // #584: inflow is income, outflow is an expense.
+            if (tx.amount >= 0) income += tx.amount;
+            else expenses += Math.abs(tx.amount);
         } else if (tx.type === 'recurring' && tx.amount < 0) {
             recurring += Math.abs(tx.amount);
         } else if (tx.type === 'recurring' && tx.amount >= 0) {

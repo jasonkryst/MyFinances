@@ -24,6 +24,7 @@ const CRUD_RESOURCES = [
     { field: 'planHistory',        path: '/api/plan-history' },
     { field: 'retirementSnapshots', path: '/api/retirement-snapshots' },
     { field: 'transfers',           path: '/api/transfers' },
+    { field: 'manualTransactions',  path: '/api/manual-transactions' },
 ];
 
 // Resources deduplicated by name in merge mode (same logic as localStorage merge)
@@ -136,6 +137,7 @@ function snapshotAppState(app) {
         planHistory:           (app.planHistory || []).map(r => ({ ...r })),
         retirementSnapshots:   (app.retirementSnapshots || []).map(r => ({ ...r })),
         transfers:             (app.transfers || []).map(r => ({ ...r })),
+        manualTransactions:    (app.manualTransactions || []).map(r => ({ ...r })),
         balanceHistory:        (app.balanceHistory || []).map(r => ({ ...r })),
         ledgerAmountOverrides: { ...app.ledgerAmountOverrides },
         ledgerClearedTransactions: { ...app.ledgerClearedTransactions },
@@ -289,6 +291,7 @@ function snapshotToPostData(snapshot) {
         planHistory:           snapshot.planHistory,
         retirementSnapshots:   snapshot.retirementSnapshots,
         transfers:             snapshot.transfers,
+        manualTransactions:    snapshot.manualTransactions || [],
         balanceHistory:        snapshot.balanceHistory,
         ledgerAmountOverrides: snapshot.ledgerAmountOverrides,
         ledgerClearedTransactions: snapshot.ledgerClearedTransactions,
@@ -529,6 +532,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
             planHistory:          snapshot.planHistory,
             retirementSnapshots:  snapshot.retirementSnapshots,
             transfers:            snapshot.transfers,
+            manualTransactions:   snapshot.manualTransactions || [],
             retirementTargetDate: snapshot.retirementTargetDate,
             homePurchasePlan:     snapshot.homePurchasePlan,
             budgetCategories:     snapshot.budgetCategories,

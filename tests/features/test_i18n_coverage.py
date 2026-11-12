@@ -88,6 +88,8 @@ SEEDED_STATE = {
                          'monthlyContribution': 500, 'housingCostEstimate': 2500, 'notes': '⟦Dream house⟧'},
     'transfers': [{'id': 1, 'fromAccountId': 7, 'toAccountId': 6, 'amount': 200, 'date': _TODAY,
                    'memo': '⟦Savings top-up⟧'}],
+    'manualTransactions': [{'id': 1, 'accountId': 6, 'amount': -12.5, 'date': _TODAY,
+                            'name': '⟦Coffee beans⟧', 'category': '⟦Groceries⟧', 'memo': '⟦Farmers market⟧'}],
     'balanceHistory': [
         {'id': 1, 'accountId': 6, 'date': '2026-01-31', 'balance': -900, 'minimumPayment': 30},
         {'id': 2, 'accountId': 6, 'date': '2026-02-28', 'balance': -800, 'minimumPayment': 35},
@@ -401,7 +403,7 @@ _LEDGER_SEED = """
 """
 
 _LEDGER_ROOTS = ['#ledgerSection']
-_LEDGER_MODAL_ROOTS = ['#ledgerOverrideModal', '#ledgerExportModal', '#ledgerMarkAllClearedModal']
+_LEDGER_MODAL_ROOTS = ['#ledgerOverrideModal', '#ledgerExportModal', '#ledgerMarkAllClearedModal', '#manualTxModal']
 
 TRANSLATED_PAGES = {
     'ledger': (
@@ -429,6 +431,21 @@ TRANSLATED_PAGES = {
         "async () => {" + _LEDGER_SEED + """
             const tx = lt.getFilteredSortedLedgerTransactions(app).find(t => t.transactionId && t.type === 'debt');
             if (tx) ov.openLedgerOverrideModal(app, tx, () => {});
+        }""",
+    ),
+    'ledger-manual-tx-modal': (
+        _LEDGER_ROOTS + _LEDGER_MODAL_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            await app.openManualTransactionModal({});
+            document.getElementById('manualTxConfirmBtn').click();
+            await new Promise(r => setTimeout(r, 100));
+        }""",
+    ),
+    'ledger-manual-tx-edit-modal': (
+        _LEDGER_ROOTS + _LEDGER_MODAL_ROOTS,
+        "async () => {" + _LEDGER_SEED + """
+            const mt = app.manualTransactions[0];
+            if (mt) await app.openManualTransactionModal({ editId: mt.id });
         }""",
     ),
     'ledger-export-modal': (

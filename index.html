@@ -1482,6 +1482,47 @@
         </div>
     </div>
     <!-- Transfer Modal (issue #248) - add/edit a one-off transfer between two accounts -->
+    <div id="manualTxModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="manualTxModalTitle" tabindex="-1">
+        <div class="modal-content">
+            <button id="manualTxCloseBtn" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>
+            <h3 id="manualTxModalTitle" data-i18n="manualTx.title">Add Transaction</h3>
+            <div class="form-group modal-form-group">
+                <label for="manualTxAccount" data-i18n="manualTx.accountLabel">Account</label>
+                <select id="manualTxAccount"></select>
+            </div>
+            <fieldset class="form-group modal-form-group manual-tx-direction">
+                <legend data-i18n="manualTx.directionLabel">Type</legend>
+                <label class="manual-tx-direction-option"><input type="radio" name="manualTxDirection" id="manualTxExpense" value="expense" checked> <span data-i18n="manualTx.expense">Expense (money out)</span></label>
+                <label class="manual-tx-direction-option"><input type="radio" name="manualTxDirection" id="manualTxIncome" value="income"> <span data-i18n="manualTx.income">Income (money in)</span></label>
+            </fieldset>
+            <div class="form-group modal-form-group">
+                <label for="manualTxAmount" data-i18n="manualTx.amountLabel">Amount ($)</label>
+                <input type="number" id="manualTxAmount" step="0.01" min="0.01" placeholder="0.00" inputmode="decimal">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="manualTxDate" data-i18n="manualTx.dateLabel">Date</label>
+                <input type="date" id="manualTxDate">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="manualTxName" data-i18n="manualTx.nameLabel">Description</label>
+                <input type="text" id="manualTxName" maxlength="100" autocomplete="off">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="manualTxCategory" data-i18n="manualTx.categoryLabel">Category</label>
+                <input type="text" id="manualTxCategory" maxlength="40" list="categoryOptions" autocomplete="off">
+            </div>
+            <div class="form-group modal-form-group">
+                <label for="manualTxMemo" data-i18n="manualTx.memoLabel">Memo (optional)</label>
+                <input type="text" id="manualTxMemo" maxlength="200">
+            </div>
+            <p id="manualTxError" class="recon-range-error hidden" role="alert"></p>
+            <div class="modal-actions">
+                <button id="manualTxConfirmBtn" class="btn btn-success" data-i18n="manualTx.addBtn">Add Transaction</button>
+                <button id="manualTxCancelBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div id="transferModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="transferModalTitle" tabindex="-1">
         <div class="modal-content">
             <button id="transferModalCloseBtn" aria-label="Close" class="modal-close" data-i18n-attr="aria-label:common.close">&times;</button>

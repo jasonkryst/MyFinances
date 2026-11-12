@@ -22,6 +22,7 @@ const SOURCE_MAP_BY_TYPE = new Map([
     ['bill', 'bills'],
     ['expense', 'expenses'],
     ['transfer', 'transfers'],
+    ['manual', 'manualTransactions'],
     ['recurring', 'recurringTemplates'],
     ['interest', 'accounts'],
 ]);

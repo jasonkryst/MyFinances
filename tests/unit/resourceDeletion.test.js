@@ -8,7 +8,7 @@ const {
 
 describe('the declared collections', () => {
     test('every path is an /api/ collection mapped to a table', () => {
-        expect(ALL_RESOURCE_PATHS.length).toBe(19);
+        expect(ALL_RESOURCE_PATHS.length).toBe(20);
         for (const path of ALL_RESOURCE_PATHS) {
             expect(path).toMatch(/^\/api\/[a-z-]+$/);
             expect(RESOURCE_TABLES[path]).toMatch(/^[a-z_]+$/);
@@ -17,7 +17,7 @@ describe('the declared collections', () => {
     });
 
     test('the parent map matches the schema\'s foreign keys', () => {
-        // Mirrors information_schema as of migration 032; server/test/resourceDeletion.test.js
+        // Mirrors information_schema as of migration 033; server/test/resourceDeletion.test.js
         // checks the map against the live database, so update both when a foreign key changes.
         const accounts = ['/api/accounts'];
         expect(RESOURCE_PARENTS).toEqual({
@@ -32,6 +32,7 @@ describe('the declared collections', () => {
             '/api/reconciliations': accounts,
             '/api/retirement-snapshots': accounts,
             '/api/transfers': accounts,
+            '/api/manual-transactions': accounts,
             '/api/ledger-overrides': accounts,
             '/api/balance-history': ['/api/accounts', '/api/debts'],
         });
@@ -53,6 +54,7 @@ describe('the declared collections', () => {
             '/api/plan-history': 'plan_history',
             '/api/retirement-snapshots': 'retirement_snapshots',
             '/api/transfers': 'transfers',
+            '/api/manual-transactions': 'manual_transactions',
             '/api/ledger-overrides': 'ledger_amount_overrides',
             '/api/ledger-cleared': 'ledger_cleared_transactions',
             '/api/net-worth-snapshots': 'net_worth_snapshots',

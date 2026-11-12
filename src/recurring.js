@@ -273,6 +273,7 @@ function getKnownCategories(app) {
         ...(app.recurringTemplates || []).map(t => t.category),
         ...(app.bills || []).map(b => b.category),
         ...(app.expenses || []).map(e => e.category),
+        ...(app.manualTransactions || []).map(m => m.category),
     ].filter(Boolean);
     return [...new Set([...DEFAULT_CATEGORIES, ...used])].sort();
 }

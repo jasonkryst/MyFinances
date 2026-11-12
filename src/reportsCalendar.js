@@ -39,7 +39,7 @@ export function renderReportsCalendar(app) {
 
     for (const tx of monthTxs) {
         const day = new Date(tx.date).getDate();
-        if (tx.type === 'income' || tx.type === 'interest') {
+        if (tx.type === 'income' || tx.type === 'interest' || (tx.type === 'manual' && tx.amount >= 0)) {
             if (!dayIncome[day]) dayIncome[day] = [];
             dayIncome[day].push(tx);
             continue;
@@ -54,7 +54,7 @@ export function renderReportsCalendar(app) {
             dayBills[day].push(tx);
             continue;
         }
-        if (tx.type === 'expense') {
+        if (tx.type === 'expense' || tx.type === 'manual') {
             if (!dayExpenses[day]) dayExpenses[day] = [];
             dayExpenses[day].push(tx);
             continue;

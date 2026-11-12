@@ -37,6 +37,7 @@ export function exportAllJSON(app) {
         planHistory: app.planHistory || [],
         retirementSnapshots: app.retirementSnapshots || [],
         transfers: app.transfers || [],
+        manualTransactions: app.manualTransactions || [],
         balanceHistory: app.balanceHistory || [],
         retirementTargetDate: app.retirementTargetDate || null,
         homePurchasePlan: app.homePurchasePlan || null,
@@ -381,6 +382,7 @@ export function importAllJSON(app, file, options = {}) {
         const incomingPlanHistory = clean.planHistory;
         const incomingRetirementSnapshots = clean.retirementSnapshots;
         const incomingTransfers = clean.transfers || [];
+        const incomingManualTransactions = clean.manualTransactions || [];
         const incomingRetirementTargetDate = clean.retirementTargetDate;
         const incomingHomePurchasePlan = clean.homePurchasePlan;
         const incomingMonthlySnapshots = clean.monthlySnapshots;
@@ -397,7 +399,7 @@ export function importAllJSON(app, file, options = {}) {
             || incomingSinkingFunds.length > 0 || incomingReconciliations.length > 0
             || incomingPlanHistory.length > 0
             || incomingMonthlySnapshots.length > 0 || incomingNetWorthMilestones.length > 0
-            || incomingRetirementSnapshots.length > 0 || incomingTransfers.length > 0 || !!incomingRetirementTargetDate || !!incomingHomePurchasePlan
+            || incomingRetirementSnapshots.length > 0 || incomingTransfers.length > 0 || incomingManualTransactions.length > 0 || !!incomingRetirementTargetDate || !!incomingHomePurchasePlan
             || !!incomingStrategy?.monthlyPayment || !!incomingStrategy?.paymentStrategy;
         if (!hasData) {
             if (typeof onNoData === 'function') onNoData();
@@ -413,6 +415,7 @@ export function importAllJSON(app, file, options = {}) {
         if (incomingRecurringTemplates.length) parts.push(`${incomingRecurringTemplates.length} recurring item(s)`);
         if (incomingRetirementSnapshots.length) parts.push(`${incomingRetirementSnapshots.length} retirement snapshot(s)`);
         if (incomingTransfers.length) parts.push(`${incomingTransfers.length} transfer(s)`);
+        if (incomingManualTransactions.length) parts.push(`${incomingManualTransactions.length} transaction(s)`);
         if (incomingStrategy?.monthlyPayment || incomingStrategy?.paymentStrategy) parts.push('strategy settings');
 
         const shouldReplace = typeof requestImportMode === 'function'

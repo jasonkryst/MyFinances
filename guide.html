@@ -632,6 +632,16 @@
 
                 <div class="guide-note">When an override is saved, the ledger keeps the original amount for history, recalculates running balance, and updates Reports totals/charts and account projections.</div>
 
+                <h3>Adding a Transaction</h3>
+                <p>The Ledger shows what your accounts, income, debts and recurring items are expected to do. To record something that actually happened outside those plans, such as an unplanned purchase, a refund or a cash withdrawal, use <strong>Add Transaction</strong> in the Ledger toolbar.</p>
+                <ul>
+                    <li>Pick the account, choose <em>Expense (money out)</em> or <em>Income (money in)</em>, and enter a positive amount, the date and a description. Category and memo are optional; the category field suggests the ones you already use</li>
+                    <li>The transaction moves that account's balance and shows up in Spending, Cash Flow, the Calendar, Forecast and the other reports</li>
+                    <li>It counts toward what you spent in its category but not toward that category's budget, so an unplanned purchase shows as over budget</li>
+                    <li>It is marked Cleared right away, and its row carries a <em>Manual</em> badge with Edit and Delete buttons. Change its amount with Edit; manual transactions have no Override</li>
+                    <li>If the Ledger is filtered to one account, the form starts with that account selected</li>
+                </ul>
+
                 <h3>Marking Transactions Cleared</h3>
                 <p>For non-rollover entries, the Cleared column has a checkbox to record whether the transaction has actually posted to the account.</p>
                 <ol>
@@ -675,7 +685,7 @@
                 <ol>
                     <li>Open the Backup &amp; Restore button in the top-right toolbar (Export is the default tab)</li>
                     <li>Click Export Backup</li>
-                    <li>Backup includes accounts, debts, income, expenses, recurring templates, strategy settings, net worth snapshots, net worth milestone state, ledger amount overrides, and ledger cleared status</li>
+                    <li>Backup includes accounts, debts, income, expenses, recurring templates, manual transactions, strategy settings, net worth snapshots, net worth milestone state, ledger amount overrides, and ledger cleared status</li>
                     <li>Store the downloaded backup file safely</li>
                 </ol>
 

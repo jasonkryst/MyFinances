@@ -73,6 +73,11 @@ export function loadTransfersModule() {
     return loadOnce('transfers', () => import('./transfers.js'));
 }
 
+// Manual one-off transactions (#584): the Add/Edit modal, loaded on first use.
+export function loadManualTransactionsModule() {
+    return loadOnce('manualTransactions', () => import('./manualTransactions.js'));
+}
+
 export function loadStrategyCalendarModule() {
     return loadOnce('strategyCalendar', () => import('./strategyCalendar.js'));
 }

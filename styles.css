@@ -9131,3 +9131,35 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
     font-weight: 600;
     color: var(--text-primary);
 }
+
+/* Manual one-off transactions (#584): Ledger badge and the modal's direction choice. */
+.ledger-manual-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #e0e7ff;
+    color: #3730a3;
+    vertical-align: middle;
+}
+body.dark-mode .ledger-manual-badge { background: #312e81; color: #c7d2fe; }
+.manual-tx-direction {
+    border: 0;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
+}
+.manual-tx-direction legend {
+    font-weight: 600;
+    margin-bottom: 6px;
+    padding: 0;
+}
+.manual-tx-direction-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 16px;
+    font-weight: 400;
+}

@@ -29,6 +29,9 @@ function _isFixed(entry) {
 export function computeDerivedBudgetByCategory(app, year, month) {
     const out = new Map();
     for (const tx of getLedgerTransactionsForMonth(app, year, month)) {
+        // Manual transactions (#584) are actuals, not scheduled amounts:
+        // counting them would raise the budget by exactly the overspend.
+        if (tx.type === 'manual') continue;
         const cat = spendingCategoryForTx({ ...tx, amount: tx.originalAmount });
         if (!cat) continue;
         out.set(cat, (out.get(cat) || 0) + Math.abs(tx.originalAmount || 0));

@@ -1013,6 +1013,15 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.6.0 — 2026-11-11',
+        items: [
+            '<strong>Record what actually happened:</strong> a new <em>Add Transaction</em> button in the Ledger lets you enter a one-off purchase, refund or cash withdrawal on any account and date, as money out or money in.',
+            '<strong>It counts everywhere:</strong> these transactions move your account balances and show up in Spending, Cash Flow, the Calendar, Forecast and the other reports. They are marked Cleared, since they already happened.',
+            '<strong>Unplanned spending stays visible:</strong> they count toward what you spent in a category, not toward its budget, so an unplanned purchase shows as over budget instead of quietly raising it.',
+            '<strong>Easy to fix:</strong> use Edit or Delete on the transaction’s Ledger row. They are included in backups and imports.'
+        ]
+    },
+    {
         version: '7.5.0 — 2026-11-09',
         items: [
             '<strong>Your tabs stay up to date:</strong> a change saved in one tab now shows up in your other tabs of the same browser within about a second.',

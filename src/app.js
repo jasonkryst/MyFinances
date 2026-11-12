@@ -103,6 +103,7 @@ import {
     loadRetirementModule,
     loadReconciliationModule,
     loadTransfersModule,
+    loadManualTransactionsModule,
     loadStrategyCalendarModule,
     loadReportsSubModules
 } from './lazyModules.js';
@@ -138,7 +139,7 @@ import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { initCalendarFeedModal } from './calendarFeed.js';
-import { applyStaticTranslations, setLocale as setLocaleFeature } from './i18n.js';
+import { applyStaticTranslations, setLocale as setLocaleFeature, t } from './i18n.js';
 import {
     addPerson as addPersonFeature,
     deletePerson as deletePersonFeature,
@@ -174,6 +175,7 @@ export class DebtTrackerApp {
         this.planHistory = [];
         this.retirementSnapshots = [];
         this.transfers = [];
+        this.manualTransactions = [];
         this.retirementTargetDate = null;
         this.homePurchasePlan = null;
         this.budgetCategories = {};
@@ -335,7 +337,7 @@ export class DebtTrackerApp {
         const serverIsEmpty = [
             this.debts, this.accounts, this.incomes, this.bills, this.expenses,
             this.recurringTemplates, this.emergencyFunds, this.sinkingFunds,
-            this.reconciliations, this.persons, this.transfers, this.balanceHistory,
+            this.reconciliations, this.persons, this.transfers, this.manualTransactions, this.balanceHistory,
         ].every(c => !Array.isArray(c) || c.length === 0);
         // Boot waits on the prompt; flag readiness so tooling can tell that apart from a hang.
         this._markReadyBehindGate();
@@ -1166,6 +1168,32 @@ export class DebtTrackerApp {
         } catch (err) {
             console.error('Failed to load transfers module', err);
             showAlertModal("Couldn't load the Transfer feature. Check your connection and try again.");
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  MANUAL TRANSACTIONS (issue #584), lazy-loaded like transfers
+    // ═════════════════════════════════════════════════════════════════════════
+
+    async addManualTransaction(fields) {
+        const mod = await loadManualTransactionsModule();
+        return mod.addManualTransaction(this, fields);
+    }
+    async editManualTransaction(id, fields) {
+        const mod = await loadManualTransactionsModule();
+        return mod.editManualTransaction(this, id, fields);
+    }
+    async deleteManualTransaction(id) {
+        const mod = await loadManualTransactionsModule();
+        return mod.deleteManualTransaction(this, id);
+    }
+    async openManualTransactionModal(options) {
+        try {
+            const mod = await loadManualTransactionsModule();
+            return mod.openManualTransactionModal(this, options);
+        } catch (err) {
+            console.error('Failed to load manual transactions module', err);
+            showAlertModal(t('manualTx.loadFailed'));
         }
     }
 
