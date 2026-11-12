@@ -13,6 +13,8 @@ import {
     isRecurringInflow
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
+import { applyWeekendRule, sanitizeWeekendRule } from './weekendRule.js';
+import { buildWeekendRuleOptionsHtml, weekendRuleLabel } from './weekendRuleUi.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
@@ -133,6 +135,9 @@ export function getRecurringOccurrencesInMonth(template, year, month) {
         }
     }
 
+    // #165: optional weekend shift (stays inside the month).
+    const rule = template.weekendRule;
+    if (rule === 'before' || rule === 'after') return dates.map(d => applyWeekendRule(d, rule));
     return dates;
 }
 
@@ -153,7 +158,8 @@ function isOverdue(template, now) {
     if (Array.isArray(template.skippedMonths) && template.skippedMonths.includes(monthKey)) return false;
 
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const dueDay = Math.min(dom, daysInMonth);
+    // #165: overdue is judged against the weekend-shifted due date.
+    const dueDay = applyWeekendRule(new Date(year, month, Math.min(dom, daysInMonth), 12), template.weekendRule).getDate();
     return now.getDate() > dueDay;
 }
 
@@ -524,6 +530,7 @@ function _buildReadCard(app, t, year, month, monthKey) {
             <span class="recurring-meta-item">🏦 ${accountLine}</span>
             <span class="recurring-meta-item">🏷 ${escapeHtml(categoryLabel(t.category || 'Other'))}</span>
             ${t.startDate ? `<span class="recurring-meta-item">📅 ${escapeHtml(tr('recurring.since', { date: t.startDate }))}</span>` : ''}
+            ${t.weekendRule && t.weekendRule !== 'none' ? `<span class="recurring-meta-item">🗓 ${escapeHtml(tr('weekend.meta', { rule: weekendRuleLabel(t.weekendRule) }))}</span>` : ''}
             ${t.endDate ? `<span class="recurring-meta-item">🔚 ${escapeHtml(tr('recurring.until', { date: t.endDate }))}</span>` : ''}
         </div>
         <div class="recurring-card-status">
@@ -594,6 +601,10 @@ function _buildEditCard(app, t) {
                 <input type="number" id="re-day-${t.id}" value="${t.dayOfMonth || ''}" min="1" max="31">
             </div>
             <div class="form-group recurring-edit-field">
+                <label for="re-weekend-${t.id}">${escapeHtml(tr('weekend.label'))}</label>
+                <select id="re-weekend-${t.id}">${buildWeekendRuleOptionsHtml(t.weekendRule)}</select>
+            </div>
+            <div class="form-group recurring-edit-field">
                 <label>${escapeHtml(tr('recurring.categoryLabel'))}</label>
                 <input type="text" id="re-cat-${t.id}" list="categoryOptions" value="${escapeHtml(t.category || 'Other')}" autocomplete="off">
             </div>
@@ -652,6 +663,7 @@ export async function addRecurringTemplate(app) {
     const amount = sanitizeFiniteNumber(String(rawAmount ?? '').trim() === '' ? NaN : rawAmount, NaN, { min: 0 });
     const frequency = document.getElementById('recurringFrequency')?.value || 'monthly';
     const dayOfMonth = sanitizeInteger(document.getElementById('recurringDayOfMonth')?.value, 1, { min: 1, max: 31 });
+    const weekendRule = sanitizeWeekendRule(document.getElementById('recurringWeekendRule')?.value);
     const category = normalizeText(document.getElementById('recurringCategory')?.value, 40) || 'Other';
     const accountId = parseInt(document.getElementById('recurringAccount')?.value, 10) || null;
     const targetAccountId = parseInt(document.getElementById('recurringTargetAccount')?.value, 10) || null;
@@ -671,6 +683,7 @@ export async function addRecurringTemplate(app) {
         amount,
         frequency,
         dayOfMonth,
+        weekendRule,
         category,
         accountId,
         targetAccountId: targetAccountId && targetAccountId !== accountId ? targetAccountId : null,
@@ -804,6 +817,7 @@ export async function saveEditRecurring(app, id) {
     const amount = sanitizeFiniteNumber(String(rawAmount ?? '').trim() === '' ? NaN : rawAmount, NaN, { min: 0 });
     const frequency = document.getElementById(`re-freq-${id}`)?.value || 'monthly';
     const dayOfMonth = sanitizeInteger(document.getElementById(`re-day-${id}`)?.value, 1, { min: 1, max: 31 });
+    const weekendRule = sanitizeWeekendRule(document.getElementById(`re-weekend-${id}`)?.value);
     const category = normalizeText(document.getElementById(`re-cat-${id}`)?.value, 40) || 'Other';
     const accountId = parseInt(document.getElementById(`re-acct-${id}`)?.value, 10) || null;
     const targetAccountId = parseInt(document.getElementById(`re-tacct-${id}`)?.value, 10) || null;
@@ -816,7 +830,7 @@ export async function saveEditRecurring(app, id) {
 
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],
-        name, type, amount, frequency, dayOfMonth, category,
+        name, type, amount, frequency, dayOfMonth, weekendRule, category,
         accountId, targetAccountId, startDate, endDate
     };
 

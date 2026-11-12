@@ -10,6 +10,7 @@ import {
     formatPlanMonth
 } from './utils.js';
 import { t } from './i18n.js';
+import { applyWeekendRule } from './weekendRule.js';
 import { computeBreakEven } from './breakEven.js';
 
 function renderDebtSummaryTable(app) {
@@ -164,6 +165,7 @@ export function displayDebtSummary(app) {
                     minDue: orig.minimumPayment || 0,
                     interestRate: orig.interestRate || 0,
                     dueDate: orig.dueDate || null,
+                    weekendRule: orig.weekendRule || 'none',
                     isFixedAmount: orig.debtType === 'fixedAmount',
                     totalPaid: 0,
                     principalPaid: 0,
@@ -183,7 +185,7 @@ export function displayDebtSummary(app) {
             const summaryEntry = debtSummaryMap[payment.debtName];
             const dueDay = summaryEntry.dueDate;
             const payoffDateWithDueDay = (date) => (dueDay
-                ? new Date(date.getFullYear(), date.getMonth(), dueDay)
+                ? applyWeekendRule(new Date(date.getFullYear(), date.getMonth(), dueDay), summaryEntry.weekendRule)
                 : date);
 
             // Track last payment date for fixed-amount debts (used as completion date)

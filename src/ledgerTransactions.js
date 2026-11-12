@@ -2,6 +2,7 @@
 
 import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurringInflow, formatMonthYear } from './utils.js';
 import { t } from './i18n.js';
+import { getDebtDueDateInMonth } from './weekendRule.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getOverrideAmount, getEffectiveAmount } from './ledgerOverrides.js';
@@ -151,7 +152,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
 
         for (const debt of (app.debts || []).filter(d => !d.archived)) {
             if (debt.dueDate && debt.minimumPayment) {
-                const due = new Date(year, month, debt.dueDate);
+                const due = getDebtDueDateInMonth(debt, year, month);
                 addTx({
                     accountId: debt.accountId,
                     date: due,

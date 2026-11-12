@@ -9,6 +9,7 @@ import {
     escapeHtml
 } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
+import { applyWeekendRule } from './weekendRule.js';
 
 /**
  * Render the payment calendar for a given page (1 month per page).
@@ -45,7 +46,12 @@ export function renderCalendarView(app, page = 0) {
         for (const payment of monthData.payments) {
             if (payment.payment <= 0) continue;
             const orig = app.debts.find(dbt => dbt.name === payment.debtName);
-            const dueDay = orig?.dueDate || 1;
+            let dueDay = orig?.dueDate || 1;
+            // #165: place the payment on the weekend-shifted day.
+            if (orig?.dueDate && orig.weekendRule && orig.weekendRule !== 'none') {
+                const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                dueDay = applyWeekendRule(new Date(d.getFullYear(), d.getMonth(), Math.min(dueDay, dim), 12), orig.weekendRule).getDate();
+            }
             monthMap.get(key).payments.push({
                 name: payment.debtName,
                 payment: payment.payment,
