@@ -59,6 +59,8 @@ export const MUTATE_SCOPE = {
     'src/refreshPolicy.js': true,
     // #608: child-first deletion layers for Clear All Data.
     'src/resourceDeletion.js': true,
+    // #518: render-scoped projection cache.
+    'src/projectionCache.js': true,
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

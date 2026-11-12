@@ -77,10 +77,23 @@ export function formatShortDate(value) {
 // Formats a bare "YYYY-MM-DD" string, an ISO datetime string, or a Date object as "Mon YYYY".
 // Bare dates are padded with T12:00:00 before parsing so they don't roll back a day in
 // negative-UTC-offset timezones (new Date("2026-07-15") parses as UTC midnight).
+// toLocaleDateString(locale, options) builds a new Intl.DateTimeFormat on every
+// call, which dominated Forecast's per-account month labels (#518). One cached
+// formatter per locale; the locale is part of the key, so a switch still works.
+const monthYearFormatters = new Map();
+
 export function formatMonthYear(value) {
     const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
     const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
-    return date.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
+    // format() throws on an invalid date where toLocaleDateString returned this.
+    if (Number.isNaN(date.getTime())) return 'Invalid Date';
+    const locale = getIntlLocale();
+    let formatter = monthYearFormatters.get(locale);
+    if (!formatter) {
+        formatter = new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' });
+        monthYearFormatters.set(locale, formatter);
+    }
+    return formatter.format(date);
 }
 
 // Long-form date ("January 15, 2026") in the active locale. Matches

@@ -8,6 +8,7 @@ import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js
 import { isHistoryTrackedAccount, HISTORY_TRACKED_ACCOUNT_TYPES } from './balanceHistoryCore.js';
 import { getSetting, setSetting, SHOW_ARCHIVED_ACCOUNTS } from './settings.js';
 import { t, accountTypeLabel, getIntlLocale } from './i18n.js';
+import { withProjectionCache } from './projectionCache.js';
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', Retirement: '🏛️', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -184,7 +185,13 @@ export function renderAccountBalanceBreakdown(app, accountId, triggerEl = null) 
     modal.focus();
 }
 
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function renderAccountsList(app) {
+    return withProjectionCache(app, () => renderAccountsListUncached(app));
+}
+
+function renderAccountsListUncached(app) {
     const container = document.getElementById('accountList');
     if (!container) return;
 
@@ -222,13 +229,18 @@ export function renderAccountsList(app) {
     // Apply sort
     const sortBy = document.getElementById('accountSortBy')?.value || '';
     if (sortBy) {
+        // Each balance once, not twice per comparison (#518).
+        const balanceById = new Map();
+        if (sortBy === 'balance-desc' || sortBy === 'balance-asc') {
+            for (const acct of displayAccounts) balanceById.set(acct.id, app.computeAccountBalance(acct.id));
+        }
         displayAccounts = [...displayAccounts].sort((a, b) => {
             if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
             if (sortBy === 'name-desc') return (b.name || '').localeCompare(a.name || '');
             if (sortBy === 'type-asc') return (a.type || '').localeCompare(b.type || '');
             if (sortBy === 'balance-desc' || sortBy === 'balance-asc') {
-                const va = app.computeAccountBalance(a.id);
-                const vb = app.computeAccountBalance(b.id);
+                const va = balanceById.get(a.id);
+                const vb = balanceById.get(b.id);
                 return sortBy === 'balance-desc' ? vb - va : va - vb;
             }
             if (sortBy === 'apy-desc') return (b.interestRate || 0) - (a.interestRate || 0);

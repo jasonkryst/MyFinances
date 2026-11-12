@@ -16,6 +16,16 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - **Strings** in en/es/pl. The i18n render guard covers the modal (add with a validation error, and edit).
   - **Tests:** `tests/unit/manualTransactions.test.js` (sanitizer and validator, import and orphan rules, Ledger generation, balances, Spending, derived budgets, Cash Flow and Summary classification); server route tests in `crudResources.test.js` (shared CRUD/IDOR cases, plus rejection of a zero, non-numeric, missing or oversized amount and a blank name, a PATCH to zero, and account deletion) and `fieldParity.test.js`; `tests/features/test_manual_transactions.py` (add expense and income, inline validation, failed save, edit with the Cleared key carried over, delete with cancel, reload, reports, a real JSON export → import round trip, Clear All, keyboard, account preselect).
 
+## [7.5.4] — 2026-11-11
+
+### Performance
+- **Balances and the Forecast no longer rebuild every account's ledger per account** (issue #518). `computeAccountBalance()` asked for one account's month but built the projection for all of them, and Forecast, the Accounts balance sort, Health and Net Worth called it once per account (Forecast also once per month).
+  - **Render-scoped cache.** The new leaf module `src/projectionCache.js` memoizes `buildProjectedAccountTransactions()` by window, but only inside a synchronous `withProjectionCache(app, fn)` scope. `renderPageData`, `updateUI`, the Reports tab dispatcher, Forecast, Accounts, Health and the Net Worth renders and snapshot open one. Outside a scope nothing is cached, so data changed between renders is never served stale.
+  - **Invalidation.** Every write helper (`pgPost`, `pgCreate`, `pgPatch`, `pgDelete`, `pgPut`, which carry every add, edit, delete, override and Cleared change) drops the open scope's entries, for the rare render that changes data part-way through.
+  - **Also:** the Accounts balance sort computes each balance once instead of twice per comparison; the Forecast total's intra-month low reads each month once for all accounts (regrouped in account order, so same-day ties walk as before); `formatMonthYear` reuses one `Intl.DateTimeFormat` per locale.
+  - **Measured** in Chromium on the audit dataset (30 accounts, 200 recurring templates, 50 debts): Forecast total at 12 months takes 82 ms (the audit measured 991 ms) with 13 projection builds instead of one per account per month; all 30 account balances take 1.3 ms (was 18 ms); the Accounts balance sort builds once per render. Values are unchanged.
+  - **Tests:** `tests/unit/projectionCache.test.js` (scope, nesting, invalidation, equality with uncached results, build counts, the old intra-month-low walk) and `tests/features/test_projection_cache.py` (build counts and timing of the real renders, sort order, override and new-record invalidation).
+
 ## [7.5.3] — 2026-11-11
 
 ### Security

@@ -6,6 +6,7 @@ import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { getOverrideAmount, getEffectiveAmount } from './ledgerOverrides.js';
 import { isCleared, getClearedAt } from './ledgerCleared.js';
+import { getCachedProjection } from './projectionCache.js';
 
 export function toLedgerTxOutput(app, tx) {
     const overrideAmount = getOverrideAmount(app, tx.transactionId);
@@ -45,7 +46,22 @@ export function makeLedgerTransactionId(tx) {
 // from the per-account ledger view and per-account balance calculations.
 const UNLINKED_KEY = '__unlinked__';
 
+// Number of real (uncached) projection builds since load. Read by tests to
+// prove a render builds once instead of once per account (#518).
+let projectionBuildCount = 0;
+export function getProjectionBuildCount() {
+    return projectionBuildCount;
+}
+
+// Inside a withProjectionCache() scope (projectionCache.js) the same window is
+// built once and shared; callers must treat the returned map as read-only.
 export function buildProjectedAccountTransactions(app, startYear, startMonth, monthsToProject = 12) {
+    return getCachedProjection(app, `${startYear}|${startMonth}|${monthsToProject}`,
+        () => buildProjectionUncached(app, startYear, startMonth, monthsToProject));
+}
+
+function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
+    projectionBuildCount++;
     const accountMap = {};
     for (const acct of app.accounts || []) {
         accountMap[acct.id] = { ...acct, txs: [] };
