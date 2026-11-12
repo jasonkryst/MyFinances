@@ -1,6 +1,6 @@
 // Server persistence: boot probe, load from and save to the PostgreSQL API.
 
-import { pgDeleteAll, seedShadows } from './postgresSync.js';
+import { pgDeleteAll, seedShadows, trackWrite } from './postgresSync.js';
 import { buildPlanSettingsPatch } from './planSettingsPatch.js';
 import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
@@ -188,7 +188,8 @@ export function saveToStorage(app, fields) {
         },
         body
     });
-    return send().then(async first => {
+    // Counted as a pending write so the Saving chip and the unload warning see it (#576).
+    return trackWrite(() => send().then(async first => {
         let res = first;
         if (res.status === 401) {
             // Several saves can fail at once; one gate is enough. Retry once
@@ -206,7 +207,7 @@ export function saveToStorage(app, fields) {
         console.error('Error saving plan settings to Postgres:', err);
         showSyncErrorBanner();
         return false;
-    });
+    }));
 }
 
 // Legacy incomes predating the income/account linking feature may have no

@@ -387,6 +387,8 @@ jobs:
             tests/features/test_settings.py \
             tests/features/test_live_refresh.py \
             tests/features/test_forecast_transfers.py \
+            tests/features/test_ledger_search.py \
+            tests/features/test_save_status.py \
             --maxfail=15 \
             -v
       - name: Stop stack
