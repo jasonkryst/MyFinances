@@ -113,7 +113,7 @@ describe('withoutViewState', () => {
     });
 
     test('guard: matches every _ledger*/_forecast* field loadFromPostgres assigns', () => {
-        const src = require('fs').readFileSync(require('path').join(__dirname, '../../src/storage.js'), 'utf8');
+        const src = require('fs').readFileSync(require('path').join(__dirname, '../../src/storage.js'), 'utf8').replace(/\r\n/g, '\n');
         const body = src.slice(src.indexOf('export async function loadFromPostgres'));
         const assigned = [...new Set([...body.slice(0, body.indexOf('\n}\n')).matchAll(/app\.(_(?:ledger|forecast)\w+)\s*=/g)].map(m => m[1]))];
         expect(assigned.length).toBeGreaterThan(0);
