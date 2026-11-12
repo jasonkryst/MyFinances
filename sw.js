@@ -3,7 +3,7 @@
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v7.5.3';
+const CACHE_NAME = 'myfinances-v7.5.4';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 
@@ -31,7 +31,7 @@ const PRECACHE_URLS = [
     '/src/serverUnreachableGate.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
     '/src/strategyPlanCalculation.js', '/src/strategyScheduleTable.js', '/src/strategySummaryTable.js', '/src/ui.js',
     '/src/utils.js', '/src/balanceHistoryCore.js', '/src/balanceHistory.js', '/src/balanceHistoryModal.js',
-    '/src/transfers.js', '/src/passwordPolicy.js', '/src/passwordUi.js', '/src/securitySettings.js',
+    '/src/transfers.js', '/src/projectionCache.js', '/src/passwordPolicy.js', '/src/passwordUi.js', '/src/securitySettings.js',
     '/src/locales/en.js', '/src/locales/es.js', '/src/locales/pl.js',
 ];
 

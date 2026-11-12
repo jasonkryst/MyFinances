@@ -4,6 +4,7 @@ import { showSyncErrorBanner, showSyncConflictModal, showRecordGoneBanner } from
 import { mapWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 import { createShadowStore, diffFields, classifyConflict, itemPath } from './recordVersions.js';
 import { deletionLayers } from './resourceDeletion.js';
+import { invalidateProjectionCache } from './projectionCache.js';
 
 // Last server-confirmed copy of every record, keyed by item path (#578).
 const shadows = createShadowStore();
@@ -214,6 +215,7 @@ async function sendPatch(app, path, body) {
 }
 
 export async function pgPost(app, path, body) {
+    invalidateProjectionCache();
     const created = await pgFetch(app, 'POST', path, body);
     const createdPath = itemPath(path, created?.id);
     if (createdPath) shadows.set(createdPath, created);
@@ -232,12 +234,16 @@ export async function pgCreate(app, collection, path, record) {
     record.id = saved.id;
     if (!Array.isArray(app[collection])) app[collection] = [];
     app[collection].push(record);
+    invalidateProjectionCache();
     return record;
 }
 
 // Fire-and-forget for most callers, but returns a promise that settles when
 // this record's queued PATCH (and any conflict prompt) is done.
 export function pgPatch(app, path, body) {
+    // Every write follows an in-memory mutation; drop any projection a render
+    // in progress has memoized (#518).
+    invalidateProjectionCache();
     // Callers mostly don't await this, so it must never reject: an unexpected
     // error is reported like any other failed save.
     const guarded = () => sendPatch(app, path, body).catch(err => {
@@ -253,6 +259,7 @@ export function pgPatch(app, path, body) {
 
 // Returns a promise that settles when the DELETE is done (callers may ignore it).
 export async function pgDelete(app, path) {
+    invalidateProjectionCache();
     shadows.delete(path);
     const res = await pgRequest(app, 'DELETE', path);
     if (res.ok) return;
@@ -268,6 +275,7 @@ export async function pgDelete(app, path) {
 }
 
 export function pgPut(app, path, body) {
+    invalidateProjectionCache();
     pgFetch(app, 'PUT', path, body);
 }
 

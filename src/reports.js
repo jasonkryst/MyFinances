@@ -7,6 +7,7 @@ import { renderCashFlowForecast } from './forecast.js';
 import { renderReportsSpending } from './spending.js';
 import { renderReportsNetWorth } from './reportsNetWorth.js';
 import { loadReportsSubModules } from './lazyModules.js';
+import { withProjectionCache } from './projectionCache.js';
 
 export function prevReportMonth(app) {
     app._reportMonthOffset--;
@@ -72,14 +73,20 @@ export async function renderReportsPage(app) {
     const activeTab = activeBtn?.getAttribute('data-rptab') || 'calendar';
 
     if (STATIC_REPORT_TAB_RENDERERS[activeTab]) {
-        for (const render of STATIC_REPORT_TAB_RENDERERS[activeTab]) render(app);
+        withProjectionCache(app, () => {
+            for (const render of STATIC_REPORT_TAB_RENDERERS[activeTab]) render(app);
+        });
         return;
     }
 
     const tab = LAZY_REPORT_TABS.has(activeTab) ? activeTab : 'calendar';
     try {
         const renderers = await getLazyReportRenderers(tab);
-        for (const render of renderers) render(app);
+        // One projection cache for the whole tab (#518); the module load
+        // above has already resolved, so this part is synchronous.
+        withProjectionCache(app, () => {
+            for (const render of renderers) render(app);
+        });
     } catch (err) {
         console.error(`Failed to load Reports module for tab "${tab}"`, err);
         renderLazyLoadError(`rptPanel-${tab}`, 'this report');

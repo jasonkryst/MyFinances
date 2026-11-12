@@ -4,6 +4,7 @@
 import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate } from './utils.js';
 import { t, plural } from './i18n.js';
 import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+import { withProjectionCache } from './projectionCache.js';
 
 const LIABILITY_TYPES = ['Credit Card', 'Loan'];
 const HORIZON_OPTIONS = [1, 2, 3, 6, 12];
@@ -12,7 +13,8 @@ export function getForecastAssetAccounts(app) {
     return (app.accounts || []).filter(acct => !LIABILITY_TYPES.includes(acct.type));
 }
 
-function computeForecastSeries(app, accountSetting, monthsAhead) {
+// Exported for tests (#518).
+export function computeForecastSeries(app, accountSetting, monthsAhead) {
     const assetAccounts = getForecastAssetAccounts(app);
 
     if (accountSetting === 'total') {
@@ -34,9 +36,18 @@ function computeForecastSeries(app, accountSetting, monthsAhead) {
         // days. Re-merge every account's transactions for the month in
         // chronological order and walk the combined running balance.
         for (let i = 1; i < combined.length; i++) {
+            // One read of the month for every account (#518), regrouped in
+            // assetAccounts order so same-day ties walk exactly as before.
+            const byAccount = new Map();
+            for (const tx of getLedgerTransactionsForMonth(app, combined[i].year, combined[i].month)) {
+                if (tx.accountId === null) continue;
+                const key = String(tx.accountId);
+                if (!byAccount.has(key)) byAccount.set(key, []);
+                byAccount.get(key).push(tx);
+            }
             const monthTxs = [];
             for (const acct of assetAccounts) {
-                monthTxs.push(...getLedgerTransactionsForMonth(app, combined[i].year, combined[i].month, acct.id));
+                monthTxs.push(...(byAccount.get(String(acct.id)) || []));
             }
             monthTxs.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -194,7 +205,13 @@ function renderForecastChart(app, series, stats) {
     });
 }
 
+// Render-scoped projection cache (#518): every balance this render reads
+// shares one projection build instead of one per account.
 export function renderCashFlowForecast(app) {
+    return withProjectionCache(app, () => renderCashFlowForecastUncached(app));
+}
+
+function renderCashFlowForecastUncached(app) {
     const container = document.getElementById('reportsCashFlowForecast');
     if (!container) return;
 
