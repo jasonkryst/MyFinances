@@ -265,11 +265,15 @@ def test_modal_keyboard_escape_closes_and_enter_submits(app_page):
     page.focus('#ledgerAddTransactionBtn')
     page.keyboard.press('Enter')
     page.wait_for_selector('#manualTxModal:not(.hidden)')
+    # The modal moves focus inside itself 30 ms after opening; its key
+    # handler only sees keys pressed from inside it.
+    page.wait_for_selector('#manualTxAccount:focus')
     page.keyboard.press('Escape')
     page.wait_for_selector('#manualTxModal.hidden', state='attached')
     assert page.evaluate("() => document.activeElement.id") == 'ledgerAddTransactionBtn'
 
     page.click('#ledgerAddTransactionBtn')
+    page.wait_for_selector('#manualTxAccount:focus')  # let the auto-focus settle first
     _fill_modal(page, account=ids['a'], amount='3.25', name='Parking', date=_local_today(page))
     page.focus('#manualTxName')
     page.keyboard.press('Enter')
