@@ -6,6 +6,7 @@ import {
     getReportDate,
     formatMonthLong
 } from './utils.js';
+import { isTransferLegTx } from './utils.js';
 import { t } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { getSnapshotSeries } from './reportsNetWorth.js';
@@ -18,6 +19,7 @@ export function computeReportsSummaryMetrics(app, rangeType, baseDate = getRepor
     for (const m of months) {
         const txs = getLedgerTransactionsForMonth(app, year, m);
         for (const tx of txs) {
+            if (isTransferLegTx(tx)) continue; // #566: own-account transfers are neither income nor spending
             if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
                 income += tx.amount;
             } else if (tx.type === 'bill') {

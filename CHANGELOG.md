@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.6.1] — 2026-11-12
+
+### Fixed
+- **Recurring transfers no longer count as income or spending in Reports** (issue #566). A recurring template of type `transfer` posts a negative leg on the source account and a positive leg on the target, both `type: 'recurring'`, and the Reports aggregators read the positive leg as income and the negative one as spending (a $300 savings sweep inflated Reports income, appeared as a source in the Money Flow Sankey and as "Savings" spending). The legs now carry `isTransferLeg`, and the shared `isTransferLegTx(tx)` predicate (`utils.js`) makes Summary, Cash Flow, Money Flow, Variance, Spending, derived category budgets, the Money Flow Sankey and the Net Worth projection's income skip them. Account balances, Forecast and Ledger running balances are unchanged, and Reports income now matches Health's cash-flow income plus interest.
+
 ## [7.6.0] — 2026-11-11
 
 ### Added
