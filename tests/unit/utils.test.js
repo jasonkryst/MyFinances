@@ -235,3 +235,27 @@ describe('normalizeMultilineText', () => {
         expect(normalizeMultilineText(['x'])).toBe('');
     });
 });
+
+describe('isTransferLegTx (issue #566)', () => {
+    const { isTransferLegTx } = require('../../src/utils.js');
+
+    test('true for a flagged recurring transfer leg (either sign)', () => {
+        expect(isTransferLegTx({ type: 'recurring', amount: -300, isTransferLeg: true })).toBe(true);
+        expect(isTransferLegTx({ type: 'recurring', amount: 300, isTransferLeg: true })).toBe(true);
+    });
+    test('true for a one-off transfer leg', () => {
+        expect(isTransferLegTx({ type: 'transfer', amount: -50 })).toBe(true);
+        expect(isTransferLegTx({ type: 'transfer', amount: 50 })).toBe(true);
+    });
+    test('false for ordinary recurring, income, manual and other types', () => {
+        expect(isTransferLegTx({ type: 'recurring', amount: -50 })).toBe(false);
+        expect(isTransferLegTx({ type: 'recurring', amount: 100, isTransferLeg: false })).toBe(false);
+        expect(isTransferLegTx({ type: 'income', amount: 3000 })).toBe(false);
+        expect(isTransferLegTx({ type: 'manual', amount: -20 })).toBe(false);
+        expect(isTransferLegTx({ type: 'recurring', amount: -5, isTransferLeg: 'true' })).toBe(false);
+    });
+    test('false for null and undefined', () => {
+        expect(isTransferLegTx(null)).toBe(false);
+        expect(isTransferLegTx(undefined)).toBe(false);
+    });
+});

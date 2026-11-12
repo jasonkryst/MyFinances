@@ -22,6 +22,7 @@ export function toLedgerTxOutput(app, tx) {
         overrideAmount,
         balance: tx.balance,
         type: tx.type,
+        isTransferLeg: tx.isTransferLeg === true,
         category: tx.category,
         sourceId: tx.sourceId,
         transactionId: tx.transactionId,
@@ -76,7 +77,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
         interestBalances[acct.id] = Number(acct.startingBalance) || 0;
     }
 
-    function addTx({ accountId, date, name, amount, type, sourceId, category }) {
+    function addTx({ accountId, date, name, amount, type, sourceId, category, isTransferLeg }) {
         const key = accountId && accountMap[accountId] ? accountId : UNLINKED_KEY;
         const txDate = new Date(date);
         const tx = {
@@ -87,6 +88,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
             sourceId,
             category
         };
+        if (isTransferLeg) tx.isTransferLeg = true;
         tx.transactionId = makeLedgerTransactionId({
             accountId: key,
             date: txDate,
@@ -263,7 +265,8 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                         amount: -Math.abs(Number(tmpl.amount)),
                         type: 'recurring',
                         sourceId: tmpl.id,
-                        category: tmpl.category || 'Transfer'
+                        category: tmpl.category || 'Transfer',
+                        isTransferLeg: true
                     });
                     addTx({
                         accountId: tmpl.targetAccountId,
@@ -272,7 +275,8 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                         amount: Math.abs(Number(tmpl.amount)),
                         type: 'recurring',
                         sourceId: tmpl.id,
-                        category: tmpl.category || 'Transfer'
+                        category: tmpl.category || 'Transfer',
+                        isTransferLeg: true
                     });
                 } else {
                     addTx({
@@ -408,6 +412,7 @@ export function getLedgerTransactionsForMonth(app, year, month, accountId = null
                 hasOverride: amount !== tx.originalAmount,
                 overrideAmount: amount !== tx.originalAmount ? amount : null,
                 type: tx.type,
+                isTransferLeg: tx.isTransferLeg === true,
                 category: tx.category,
                 sourceId: tx.sourceId,
                 transactionId: tx.transactionId,
@@ -567,6 +572,7 @@ export function getLedgerTransactions(app) {
                 originalAmount: tx.originalAmount,
                 balance: tx.balance,
                 type: tx.type,
+                isTransferLeg: tx.isTransferLeg === true,
                 category: tx.category,
                 sourceId: tx.sourceId,
                 transactionId: tx.transactionId,

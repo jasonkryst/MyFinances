@@ -1,14 +1,15 @@
 // Reports page logic: month-to-month (or range-to-range) variance comparison
 
-import { formatCurrency, getReportDate, getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel, escapeHtml } from './utils.js';
+import { formatCurrency, getReportDate, getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel, escapeHtml, isTransferLegTx } from './utils.js';
 import { t } from './i18n.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { renderBudgetVsActualHtml } from './categoryBudgets.js';
 
 // Classifies one month's ledger transactions into the five variance buckets.
-function _classifyMonthTotals(txs) {
+export function _classifyMonthTotals(txs) {
     let income = 0, expenses = 0, recurring = 0, debtMin = 0, savings = 0;
     for (const tx of txs) {
+        if (isTransferLegTx(tx)) continue; // #566
         if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest') {
             income += tx.amount;
         } else if (tx.type === 'expense') {
