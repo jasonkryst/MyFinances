@@ -234,14 +234,22 @@ export function sanitizeIncome(record, idFallback) {
 }
 
 export function sanitizeBonus(record, idFallback) {
+    const date = sanitizeDateISO(record?.date);
+    // #290: recurUntil only means something on an annual bonus, and an end
+    // before the first occurrence is meaningless, so it is dropped (not clamped).
+    const recurringAnnually = record?.recurringAnnually === true;
+    const rawUntil = recurringAnnually ? sanitizeDateISO(record?.recurUntil) : null;
+    const recurUntil = rawUntil && date && rawUntil >= date ? rawUntil : null;
     return {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),
         amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
-        date: sanitizeDateISO(record?.date),
+        date,
         category: normalizeText(record?.category, 40) || 'Other',
         accountId: sanitizeInteger(record?.accountId, null),
-        purpose: (record?.purpose === 'cashFlow' || record?.purpose === 'savings') ? record.purpose : null
+        purpose: (record?.purpose === 'cashFlow' || record?.purpose === 'savings') ? record.purpose : null,
+        recurringAnnually,
+        recurUntil
     };
 }
 

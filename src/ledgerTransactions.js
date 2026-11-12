@@ -1,6 +1,6 @@
 // Ledger transaction aggregation: pure computation, no DOM.
 
-import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurringInflow, formatMonthYear } from './utils.js';
+import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurringInflow, formatMonthYear, getBonusDatesInMonth } from './utils.js';
 import { t, categoryLabel } from './i18n.js';
 import { matchesLedgerSearch, buildLedgerMemoLookup, normalizeLedgerSearchTerm } from './ledgerSearch.js';
 import { getDebtDueDateInMonth } from './weekendRule.js';
@@ -135,19 +135,18 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
         }
 
         for (const bonus of app.bonuses || []) {
-            if (bonus.date && bonus.amount) {
-                const bonusDate = new Date(String(bonus.date).includes('T') ? bonus.date : bonus.date + 'T00:00:00');
-                if (bonusDate.getFullYear() === year && bonusDate.getMonth() === month) {
-                    addTx({
-                        accountId: bonus.accountId,
-                        date: bonusDate,
-                        name: bonus.name || t('ledger.txBonus'),
-                        amount: Number(bonus.amount),
-                        type: 'bonus',
-                        sourceId: bonus.id,
-                        category: bonus.category || 'Bonus'
-                    });
-                }
+            if (!bonus.date || !bonus.amount) continue;
+            // One leg per occurrence (#290); each year's key embeds its own date.
+            for (const bonusDate of getBonusDatesInMonth(bonus, year, month)) {
+                addTx({
+                    accountId: bonus.accountId,
+                    date: bonusDate,
+                    name: bonus.name || t('ledger.txBonus'),
+                    amount: Number(bonus.amount),
+                    type: 'bonus',
+                    sourceId: bonus.id,
+                    category: bonus.category || 'Bonus'
+                });
             }
         }
 

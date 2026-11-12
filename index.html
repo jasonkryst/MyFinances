@@ -734,7 +734,7 @@
                 <!-- ── One-time bonuses / deposits ── -->
                 <div class="bonus-section">
                     <button class="bonus-form-toggle" id="bonusFormToggle" type="button" aria-expanded="false" aria-controls="bonusFormBody">
-                        🎁 <span data-i18n="income.bonusToggle">Add a one-time bonus / deposit</span>
+                        🎁 <span data-i18n="income.bonusToggle">Add a bonus / deposit</span>
                         <span class="bonus-form-chevron">▼</span>
                     </button>
                     <div id="bonusFormBody" hidden>
@@ -776,6 +776,16 @@
                                         <option value="savings" data-i18n="income.bonusPurposeSavingsOpt">🏦 Long-term Savings</option>
                                     </select>
                                 </div>
+                                <div class="form-group no-margin">
+                                    <label class="bonus-recur-toggle" for="bonusRecurring">
+                                        <input type="checkbox" id="bonusRecurring">
+                                        <span data-i18n="income.bonusRecurLabel">Repeats every year</span>
+                                    </label>
+                                </div>
+                                <div class="form-group no-margin" id="bonusUntilGroup" hidden>
+                                    <label for="bonusUntil" data-i18n="income.bonusUntilLabel">Until (optional)</label>
+                                    <input type="date" id="bonusUntil">
+                                </div>
                             </div>
                             <div class="bonus-advice-trigger">
                                 <button type="button" id="bonusAdviceBtn" class="btn btn-secondary btn-small">💡 <span data-i18n="income.bonusAdviceBtn">What should I do with this?</span></button>
@@ -787,7 +797,7 @@
                                 </select>
                             </div>
                             <div id="bonusAdviceResult"></div>
-                            <button type="submit" class="btn btn-success submit-button-margin" data-i18n="income.bonusSubmit">Add One-time Entry</button>
+                            <button type="submit" class="btn btn-success submit-button-margin" data-i18n="income.bonusSubmit">Add Entry</button>
                         </form>
                     </div>
                 </div>
