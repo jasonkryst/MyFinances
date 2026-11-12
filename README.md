@@ -405,7 +405,7 @@ tests/ (778 tests across 81 files)
   │   ├─ test_spending_analysis.py, test_storage_import.py, test_sync_error_banner.py
   │   ├─ test_debt_calculator.py, test_strategy.py, test_settings.py
   │   ├─ test_main_nav_groups.py, test_reports_nav_groups.py, test_versioning.py
-  │   ├─ test_break_even.py, test_interest_income.py, test_i18n.py, test_i18n_coverage.py
+  │   ├─ test_break_even.py, test_interest_income.py, test_i18n.py, test_i18n_coverage.py, test_i18n_render_guard.py
   │   ├─ test_server_only_storage.py, test_pwa.py, test_pwa_icons.py, test_analytics.py
   │   ├─ test_cash_flow_trend.py, test_money_flow_sankey.py, test_validation_modals.py
   │   └─ test_issue_92_export.py, test_issue_93_expense_save.py

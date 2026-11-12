@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.6.4] — 2026-11-12
+
+### CI
+- **Split the slowest shard and rebalanced the rest** (issue #527). `test-features-c` took 15m12s (838 s of pytest), 406 s of it in `test_i18n_coverage.py`. The 170 render-guard tests moved to `tests/features/test_i18n_render_guard.py` in a new shard, `test-features-l` (about 340 s); the key-parity tests stay. Retirement, health and a few other files moved to the shortest shards, so every Playwright shard now projects to about 335 s of pytest or less (`c` 838 to 334 s, `h` 415 to 309 s, `l` new at about 340 s; `d` 124 to 198 s, `g` 57 to 184 s, `i` 105 to 174 s).
+- **A hung test or broken boot now fails fast** (issue #551). `pytest-timeout` caps every test, fixtures included, at 120 s (`pytest.ini`). Every pytest job passes `--maxfail=15`, and the Playwright jobs' `timeout-minutes` dropped from 20 (30 for Postgres) to 15. `tests/features/test_ci_fail_fast.py` guards all of it, with negative controls and a real timeout and `--maxfail` run.
+- **The stack start is more robust** (issue #469). `.github/actions/start-stack` waits up to 30 s for port 32900, retries the start once after `docker compose down -v`, and on any failure prints `docker compose ps -a` and the last 200 log lines of every service. The create-user step prints the server logs if it fails. The policy is documented in the action.
+
 ## [7.6.3] — 2026-11-12
 
 ### Fixed

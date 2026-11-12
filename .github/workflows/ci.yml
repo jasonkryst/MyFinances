@@ -35,23 +35,19 @@ jobs:
           retention-days: 1
 
   # ---------------------------------------------------------------------------
-  # Features — 9 parallel shards. A/F/G split by slow-test file (~25s/test).
-  # B/C/H are the "fast" (~3s/test) files, bin-packed to ~100-115 tests each.
-  # I holds test_performance (render-heavy) in isolation.
-  # New files: test_filter_sort/test_account_menu → A (83 total);
-  #   test_balance_history → E (66 total);
-  #   test_recurring_archive/test_recurring_r01_r02/test_analytics → B (119);
-  #   test_retirement → C (108); test_performance → I (27).
-  # (docs/audit/test/TESTING_AUDIT_2026-09-02.md: B/C had grown to 123 tests
-  # each -- ~3x every other shard -- by accumulating new feature-test files
-  # without ever being rebalanced against each other). Rebalance the same
-  # way if a shard's count creeps back up: collect per-file counts via
-  # `pytest tests/features/<file>.py --collect-only -q`, then bin-pack.
+  # Features — 12 parallel shards (a-l), bin-packed by measured pytest seconds
+  # (not test count): keep every shard under ~360 s of pytest (~7.5 min job
+  # including the ~90 s of setup), well inside the 15 min job timeout (#527).
+  # Per-file seconds come from the per-test timestamps in a green run's job log.
+  # F/G hold the slow ledger/reconciliation files; I holds test_performance;
+  # K holds the static guards (CLAUDE.md names it); L is the i18n render guard.
+  # Every pytest job passes --maxfail=15 so a broken stack stops the job early
+  # (#551); the per-test 120 s timeout comes from pytest.ini (pytest-timeout).
   # ---------------------------------------------------------------------------
   test-features-a:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -73,6 +69,7 @@ jobs:
             tests/features/test_plan_history.py \
             tests/features/test_filter_sort.py \
             tests/features/test_account_menu.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -82,7 +79,7 @@ jobs:
   test-features-f:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -97,16 +94,16 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/features/test_ledger.py -v
+      - run: pytest tests/features/test_ledger.py --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
 
-  # test_reconciliation: 13 slow tests (~25s each in CI); isolated to its own shard.
+  # test_reconciliation (slow) plus the two retirement files moved here from C (#527).
   test-features-g:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -121,7 +118,14 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/features/test_reconciliation.py tests/features/test_recurring_income.py -v
+      - run: |
+          pytest \
+            tests/features/test_reconciliation.py \
+            tests/features/test_recurring_income.py \
+            tests/features/test_retirement.py \
+            tests/features/test_retirement_coast_fire.py \
+            --maxfail=15 \
+            -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
@@ -133,7 +137,7 @@ jobs:
   test-features-e:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -160,6 +164,7 @@ jobs:
             tests/features/test_debt_ownership_split.py \
             tests/features/test_import_person_remap.py \
             tests/features/test_merge_import_dedupe.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -172,7 +177,7 @@ jobs:
   test-features-d:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -191,6 +196,9 @@ jobs:
           pytest \
             tests/features/test_accounts.py \
             tests/features/test_forecast.py \
+            tests/features/test_savings.py \
+            tests/features/test_recurring_paid_ledger_sync.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -199,7 +207,7 @@ jobs:
   test-features-b:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -228,6 +236,7 @@ jobs:
             tests/features/test_recurring_r01_r02.py \
             tests/features/test_analytics.py \
             tests/features/test_zero_amount_policy.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -236,7 +245,7 @@ jobs:
   test-features-c:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -263,11 +272,9 @@ jobs:
             tests/features/test_sync_error_banner.py \
             tests/features/test_spending_analysis.py \
             tests/features/test_bills.py \
-            tests/features/test_retirement.py \
-            tests/features/test_retirement_coast_fire.py \
-            tests/features/test_health_fire_target.py \
             tests/features/test_health_credit_factors.py \
             tests/features/test_refinance_scenario.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -276,7 +283,7 @@ jobs:
   test-features-h:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -293,15 +300,12 @@ jobs:
       - uses: ./.github/actions/start-stack
       - run: |
           pytest \
-            tests/features/test_interest_income.py \
             tests/features/test_health.py \
             tests/features/test_settings.py \
             tests/features/test_settings_backup.py \
             tests/features/test_validation_modals.py \
             tests/features/test_versioning.py \
-            tests/features/test_savings.py \
             tests/features/test_recurring_occurrences.py \
-            tests/features/test_recurring_paid_ledger_sync.py \
             tests/features/test_reports_nav_groups.py \
             tests/features/test_category_budgets.py \
             tests/features/test_plan_settings_partial_save.py \
@@ -312,6 +316,7 @@ jobs:
             tests/features/test_pending_saves.py \
             tests/features/test_clear_all_order.py \
             tests/features/test_projection_cache.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -322,7 +327,7 @@ jobs:
   test-features-i:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -344,6 +349,9 @@ jobs:
             tests/features/test_whats_new.py \
             tests/features/test_app_ready.py \
             tests/features/test_number_clarity.py \
+            tests/features/test_interest_income.py \
+            tests/features/test_health_fire_target.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -353,7 +361,7 @@ jobs:
   test-features-j:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -378,17 +386,19 @@ jobs:
             tests/features/test_ledger_filter_persistence.py \
             tests/features/test_data_export.py \
             tests/features/test_report_range_utils.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
 
   # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml,
-  # and test_async_submit_guard.py, a static scan for account/debt Submit clicks with no wait (#592).
+  # and test_async_submit_guard.py, a static scan for account/debt Submit clicks with no wait (#592),
+  # and test_ci_fail_fast.py (#551/#469: --maxfail, job timeouts, pytest-timeout, start-stack diagnostics).
   test-features-k:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -415,18 +425,20 @@ jobs:
             tests/features/test_async_submit_guard.py \
             tests/features/test_skip_guard.py \
             tests/features/test_community_files.py \
+            tests/features/test_ci_fail_fast.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
 
-  # ---------------------------------------------------------------------------
-  # Integration
-  # ---------------------------------------------------------------------------
-  test-integration:
+  # L: the i18n pseudo-locale render guard (#527), split out of test_i18n_coverage.py (170 parametrized
+  # page x state renders, ~340 s). It grows as pages are added to TRANSLATED_PAGES; split it by `state`
+  # (seeded / empty) into two jobs when it nears the shard budget (~360 s of pytest).
+  test-features-l:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -441,7 +453,33 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/integration -v
+      - run: pytest tests/features/test_i18n_render_guard.py --maxfail=15 -v
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
+
+  # ---------------------------------------------------------------------------
+  # Integration
+  # ---------------------------------------------------------------------------
+  test-integration:
+    needs: build-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
+      - run: pip install -r tests/requirements.txt
+      - uses: ./.github/actions/install-playwright
+      - uses: ./.github/actions/start-stack
+      - run: pytest tests/integration --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
@@ -452,7 +490,7 @@ jobs:
   test-ui-a:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -475,6 +513,7 @@ jobs:
             tests/ui/test_remaining_pages_print.py \
             tests/ui/test_reports_nav.py \
             tests/ui/test_contrast_fixes.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -483,7 +522,7 @@ jobs:
   test-ui-b:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -517,6 +556,7 @@ jobs:
             tests/ui/test_mobile_density.py \
             tests/ui/test_mobile_no_card_clipping.py \
             tests/ui/test_mobile_clipping_fixes.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -525,7 +565,7 @@ jobs:
   test-ui-c:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -557,6 +597,7 @@ jobs:
             tests/ui/test_reduced_motion.py \
             tests/ui/test_guide_theme.py \
             tests/ui/test_design_consistency.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -566,7 +607,7 @@ jobs:
   test-ui-d:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -589,6 +630,7 @@ jobs:
             tests/ui/test_reports_date_range.py \
             tests/ui/test_debt_card_layout.py \
             tests/ui/test_css_integrity.py \
+            --maxfail=15 \
             -v
       - name: Stop stack
         if: always()
@@ -600,7 +642,7 @@ jobs:
   test-security:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -615,18 +657,18 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/security -v
+      - run: pytest tests/security --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
 
   # ---------------------------------------------------------------------------
-  # Postgres (full stack — longer timeout is justified)
+  # Postgres (full stack; ~2 min of pytest, so it gets the same 15 min as every Playwright job)
   # ---------------------------------------------------------------------------
   test-postgres:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       COMPOSE_FILE: docker-compose.yml:docker-compose.mailpit.yml
     steps:
@@ -644,7 +686,7 @@ jobs:
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - name: Run Postgres bootstrap tests
-        run: pytest tests/postgres -v
+        run: pytest tests/postgres --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
@@ -655,7 +697,7 @@ jobs:
   test-a11y:
     needs: build-images
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -670,7 +712,7 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/a11y -v
+      - run: pytest tests/a11y --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v
@@ -813,6 +855,7 @@ jobs:
       - test-features-i
       - test-features-j
       - test-features-k
+      - test-features-l
       - test-integration
       - test-ui-a
       - test-ui-b
