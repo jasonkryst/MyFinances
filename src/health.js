@@ -548,7 +548,7 @@ function renderSurplusSection(app) {
     const dipWarningHtml = (surplus > 0 && minBalance < minimumReserve) ? `
         <div class="health-surplus-dip-warning">
             &#9888; Balance dips to ${escapeHtml(formatCurrency(minBalance))} on
-            ${escapeHtml(minDate instanceof Date ? minDate.toLocaleDateString() : String(minDate))}
+            ${escapeHtml(minDate instanceof Date ? formatShortDate(minDate) : String(minDate))}
             &mdash; below your minimum reserve.
         </div>` : '';
 
@@ -562,7 +562,7 @@ function renderSurplusSection(app) {
         const cls  = tx.originalAmount >= 0 ? 'health-cf-income' : 'health-cf-out';
         return `<div class="health-surplus-tx-row">
             <span class="health-surplus-tx-name">${escapeHtml(tx.name || '')}</span>
-            <span class="health-surplus-tx-date">${escapeHtml(tx.date instanceof Date ? tx.date.toLocaleDateString() : String(tx.date))}</span>
+            <span class="health-surplus-tx-date">${escapeHtml(tx.date instanceof Date ? formatShortDate(tx.date) : String(tx.date))}</span>
             <span class="health-surplus-tx-amt ${cls}">${sign}${escapeHtml(formatCurrency(tx.originalAmount))}</span>
         </div>`;
     }
@@ -661,7 +661,7 @@ function renderSurplusSection(app) {
         app._healthSurplusSparkline = new Chart(sparkCanvas, {
             type: 'line',
             data: {
-                labels: sparkPoints.map(p => p.date instanceof Date ? p.date.toLocaleDateString() : String(p.date)),
+                labels: sparkPoints.map(p => p.date instanceof Date ? formatShortDate(p.date) : String(p.date)),
                 datasets: [
                     {
                         label: 'Projected balance',
@@ -716,7 +716,7 @@ function renderSurplusSection(app) {
             caption: t('health.surplusSparklineCaption', { days: windowDays }),
             columns: ['Date', 'Balance'],
             rows: sparkPoints.map(p => [
-                p.date instanceof Date ? p.date.toLocaleDateString() : String(p.date),
+                p.date instanceof Date ? formatShortDate(p.date) : String(p.date),
                 formatCurrency(p.balance),
             ]),
         });
