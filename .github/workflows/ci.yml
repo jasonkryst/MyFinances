@@ -304,6 +304,7 @@ jobs:
             tests/features/test_settings_backup.py \
             tests/features/test_validation_modals.py \
             tests/features/test_versioning.py \
+            tests/features/test_boot_landing_only.py \
             tests/features/test_recurring_occurrences.py \
             tests/features/test_reports_nav_groups.py \
             tests/features/test_category_budgets.py \

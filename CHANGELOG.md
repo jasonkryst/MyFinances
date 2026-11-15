@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.11.3] — 2026-11-15
+
+### Changed
+- **Boot renders only the landing page** (issue #525). After the data loads, `init()` yields a frame, computes shared state, yields again and then renders Health, instead of rendering the hidden Liabilities list, Plan history and Plan results in the same task. The saved plan is still calculated at boot (Health and the debt cards read its summary), but the Plan results and the Liabilities list render on first visit through `switchPage`. Mutations still call the full `updateUI()`.
+
 ## [7.11.1] — 2026-11-12
 
 ### Changed
