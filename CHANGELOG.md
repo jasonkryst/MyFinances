@@ -12,6 +12,19 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Performance
 - **Cached `Intl` formatters** (issue #525). `formatCurrency`, `formatShortDate`, `formatLongDate`, `formatMonthLong` and `formatReportRangeLabel` (`src/utils.js`) built a new `Intl.NumberFormat`/`DateTimeFormat` on every call; they now keep one per locale (and currency or option set), like `formatMonthYear` since #518. Output is unchanged and a locale or currency switch still takes effect. Measured at 4x CPU throttling on a seeded dataset (3 accounts, 20 debts, 26 recurring items, a saved plan; 5 reloads each), total long-task time during boot went from about 7.1 s on 7.11.1 to about 1.4 s with the landing-page change alone and about 0.76 s with both (longest single task about 6.9 s to about 0.54 s). That dataset is heavier than the issue's audit dataset, whose boot was 1.1 to 1.8 s before.
 
+## [7.11.2] — 2026-11-15
+
+### Changed
+- **Chart.js no longer blocks parsing** (issue #523). Its `<script>` in `index.html` is now `defer`red; it still runs before the module `app.js` (deferred scripts and modules run in document order, ahead of `DOMContentLoaded`), so `Chart` exists when startup applies the reduced-motion defaults. The jsdelivr origin, SRI hash and CSP are unchanged.
+- **Service worker serves precached static assets cache-first** (issue #524). Subresources in `PRECACHE_URLS` come from the versioned cache, so a warm reload no longer sends about 66 conditional requests; `CACHE_NAME` changes every release, so the update banner flow is unchanged. The document (`/`, `/index.html`, every navigation), anything not precached, and the CDN runtime cache behave as before; `/api/`, `/auth/` and `/calendar.ics` stay network-only. The precache now bypasses the HTTP cache (`cache: 'reload'`). With the dev bind-mount override, bump `CACHE_NAME` or unregister the worker to see an edited asset.
+- **Boot fetches `/api/plan-settings` once** (issue #533). `probeServer()` returns the parsed body and `loadFromPostgres(app, { planSettings })` reuses it; after the login gate, `refreshFromServer` and a re-probe it still fetches.
+
+### Fixed
+- Health's surplus projection dates now follow the app language (issue #512, PR #626, thanks @SAY-5).
+
+### Performance
+- **Index on `incomes.person_id`** (issue #535). Migration `1755600000038` adds `idx_incomes_person_id` (idempotent), so deleting a person no longer scans `incomes`. Rollback drops only the index.
+
 ## [7.11.1] — 2026-11-12
 
 ### Changed

@@ -260,7 +260,9 @@ export class DebtTrackerApp {
                 await requestLogin(this, { needsSetup: probe.needsSetup === true });
             }
             try {
-                await loadFromPostgres(this);
+                // Reuse the probe's plan-settings body from a live session; after the
+                // login gate it is absent and gets fetched.
+                await loadFromPostgres(this, { planSettings: probe.hasSession ? probe.planSettings : null });
                 break;
             } catch (err) {
                 // The session expired between probe and load: re-probe, which

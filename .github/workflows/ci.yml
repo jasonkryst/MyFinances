@@ -267,6 +267,7 @@ jobs:
             tests/features/test_i18n_coverage.py \
             tests/features/test_html_lang.py \
             tests/features/test_pwa.py \
+            tests/features/test_perf_523_524_533.py \
             tests/features/test_issue_93_expense_save.py \
             tests/features/test_server_only_storage.py \
             tests/features/test_sync_error_banner.py \
