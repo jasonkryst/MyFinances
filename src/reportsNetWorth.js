@@ -5,6 +5,8 @@ import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut, pgPost } from './postgresSync.js';
 import { t, getIntlLocale } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
+import { buildNetWorthTrend } from './netWorthEstimate.js';
+import { isHistoryTrackedAccount } from './balanceHistoryCore.js';
 
 function toMonthKey(value) {
     return String(value || '').slice(0, 7);
@@ -57,6 +59,43 @@ function computeSnapshotMetrics(app, snapshotDate = new Date()) {
         debtPaymentMade: parseFloat(debtPaymentMade.toFixed(2)),
         incomeReceived: parseFloat(incomeReceived.toFixed(2))
     };
+}
+
+// Today's figures computed the way a snapshot would be, without saving
+// anything (#574): rendering must never persist a point.
+export function computeLiveNetWorth(app, date = new Date()) {
+    return computeSnapshotMetrics(app, date);
+}
+
+// Positive projected balances of accounts whose balance history is NOT
+// recorded (#585). Estimated months hold these flat, because balance history
+// only covers liabilities (debts and Credit Card / Loan accounts).
+function computeUntrackedAssets(app, date) {
+    let total = 0;
+    for (const account of app.accounts || []) {
+        if (isHistoryTrackedAccount(account)) continue;
+        const projected = app.computeAccountBalance(account.id, date.getFullYear(), date.getMonth());
+        if (projected > 0) total += projected;
+    }
+    return total;
+}
+
+// Snapshots plus estimated months (#585) and, with no snapshot at all, a live
+// current point (#574). Empty when the user has no accounts or debts either.
+export function getNetWorthTrend(app, months = 12) {
+    const now = new Date();
+    const hasData = (app.accounts || []).length > 0 || (app.debts || []).length > 0;
+    const snapshots = Array.isArray(app.monthlySnapshots) ? app.monthlySnapshots : [];
+    const hasSnapshot = snapshots.some(s => Number.isFinite(s?.netWorth));
+    const history = Array.isArray(app.balanceHistory) ? app.balanceHistory : [];
+    return buildNetWorthTrend({
+        snapshots,
+        entries: history,
+        baselineAssets: history.length > 0 ? computeUntrackedAssets(app, now) : 0,
+        now: { year: now.getFullYear(), month: now.getMonth() },
+        horizon: months,
+        live: !hasSnapshot && hasData ? computeLiveNetWorth(app, now) : null
+    });
 }
 
 // Projects net worth forward `horizonMonths` from today (issue #335).
@@ -226,7 +265,7 @@ function renderReportsNetWorthUncached(app) {
 
     const horizon = [3, 6, 12].includes(app._netWorthRangeMonths) ? app._netWorthRangeMonths : 6;
     app._netWorthRangeMonths = horizon;
-    const series = getSnapshotSeries(app, horizon);
+    const series = getNetWorthTrend(app, horizon);
 
     const projectionYears = [1, 3, 5].includes(app._netWorthProjectionYears) ? app._netWorthProjectionYears : 3;
     app._netWorthProjectionYears = projectionYears;
@@ -243,6 +282,7 @@ function renderReportsNetWorthUncached(app) {
 
     const latest = series[series.length - 1];
     const first = series[0];
+    const hasEstimates = series.some(s => s.kind === 'estimated');
     const debtDrop = Math.max(0, first.totalLiabilities - latest.totalLiabilities);
     const assetGrowth = latest.totalAssets - first.totalAssets;
     const netChange = latest.netWorth - first.netWorth;
@@ -258,15 +298,22 @@ function renderReportsNetWorthUncached(app) {
     const historyRows = [...series]
         .reverse()
         .map(snapshot => {
-            const displayDate = new Date(`${snapshot.date}T12:00:00`).toLocaleDateString(getIntlLocale(), { month: 'short', day: '2-digit', year: 'numeric' });
+            const isSnap = snapshot.kind === 'snapshot';
+            const displayDate = isSnap
+                ? new Date(`${snapshot.date}T12:00:00`).toLocaleDateString(getIntlLocale(), { month: 'short', day: '2-digit', year: 'numeric' })
+                : new Date(`${snapshot.date}T12:00:00`).toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
+            const kindTag = snapshot.kind === 'estimated'
+                ? ` <span class="nw-estimated-tag">${escapeHtml(t('reports.nwEstimatedTag'))}</span>`
+                : snapshot.kind === 'live' ? ` <span class="nw-estimated-tag">${escapeHtml(t('reports.nwLiveTag'))}</span>` : '';
+            const flow = v => (isSnap ? formatCurrency(v || 0) : '—');
             return `
                 <tr>
-                    <td>${displayDate}</td>
+                    <td>${displayDate}${kindTag}</td>
                     <td>${formatCurrency(snapshot.totalAssets || 0)}</td>
                     <td>${formatCurrency(snapshot.totalLiabilities || 0)}</td>
                     <td>${formatCurrency(snapshot.netWorth || 0)}</td>
-                    <td>${formatCurrency(snapshot.incomeReceived || 0)}</td>
-                    <td>${formatCurrency(snapshot.debtPaymentMade || 0)}</td>
+                    <td>${flow(snapshot.incomeReceived)}</td>
+                    <td>${flow(snapshot.debtPaymentMade)}</td>
                 </tr>`;
         })
         .join('');
@@ -289,7 +336,7 @@ function renderReportsNetWorthUncached(app) {
             </div>
         </div>
         <div class="nw-report-summary">
-            <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwCurrent'))} <small class="nw-snapshot-note">${escapeHtml(t('reports.nwSnapshotNote', { date: formatShortDate(latest.date) }))}</small></span><strong>${formatCurrency(latest.netWorth)}</strong></div>
+            <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwCurrent'))} <small class="nw-snapshot-note">${escapeHtml(latest.kind === 'live' ? t('reports.nwLiveNote') : t('reports.nwSnapshotNote', { date: formatShortDate(latest.date) }))}</small></span><strong>${formatCurrency(latest.netWorth)}</strong></div>
             <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwNetChange', { n: horizon }))}</span><strong class="${netChange >= 0 ? 'nw-change--up' : 'nw-change--down'}">${netChange >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netChange))}</strong></div>
             <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwAssetGrowth'))}</span><strong class="${assetGrowth >= 0 ? 'nw-change--up' : 'nw-change--down'}">${assetGrowth >= 0 ? '+' : '-'}${formatCurrency(Math.abs(assetGrowth))}</strong></div>
             <div class="nw-report-stat"><span>${escapeHtml(t('reports.nwDebtReduction'))}</span><strong>${formatCurrency(debtDrop)}</strong></div>
@@ -299,6 +346,7 @@ function renderReportsNetWorthUncached(app) {
                 <h4 class="rpt-chart-title">${escapeHtml(t('reports.nwTrendTitle'))}</h4>
                 <p class="rpt-chart-sub">${escapeHtml(t('reports.nwTrendSub', { years: projectionYears }))}</p>
                 <div class="rpt-chart-canvas-wrap"><canvas id="rptNetWorthTrendChart"></canvas></div>
+                ${hasEstimates ? `<p class="rpt-chart-sub nw-estimated-note">${escapeHtml(t('reports.nwEstimatedNote'))}</p>` : ''}
                 ${milestonesHtml}
             </div>
             <div class="rpt-chart-card">
@@ -328,7 +376,12 @@ function renderReportsNetWorthUncached(app) {
         </div>`;
 
     const labels = series.map(s => new Date(`${s.date}T12:00:00`).toLocaleDateString(getIntlLocale(), { month: 'short', year: '2-digit' }));
+    // #585: estimated months are drawn as their own dashed dataset; they also
+    // include the neighbouring real points so the segments connect.
+    const isEst = series.map(s => s.kind === 'estimated');
     const netWorthData = series.map(s => s.netWorth);
+    const netWorthRealData = series.map((s, i) => (isEst[i] ? null : s.netWorth));
+    const netWorthEstData = series.map((s, i) => (isEst[i] || isEst[i - 1] || isEst[i + 1] ? s.netWorth : null));
     const debtData = series.map(s => s.totalLiabilities);
 
     // Forward projection (issue #335): a dashed continuation of the Net Worth
@@ -339,7 +392,7 @@ function renderReportsNetWorthUncached(app) {
     // for the milestones list).
     const projectedLabels = projection.map(p => p.label);
     const allLabels = [...labels, ...projectedLabels];
-    const netWorthHistorical = [...netWorthData, ...projection.map(() => null)];
+    const netWorthHistorical = [...netWorthRealData, ...projection.map(() => null)];
     const netWorthProjected = [
         ...labels.map(() => null).slice(0, -1), netWorthData[netWorthData.length - 1],
         ...projection.map(p => p.netWorth)
@@ -377,6 +430,19 @@ function renderReportsNetWorthUncached(app) {
                         borderWidth: 2.2,
                         spanGaps: false
                     },
+                    ...(hasEstimates ? [{
+                        label: t('reports.nwEstimatedLabel'),
+                        data: [...netWorthEstData, ...projection.map(() => null)],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'transparent',
+                        borderDash: [2, 4],
+                        tension: 0.32,
+                        fill: false,
+                        pointRadius: 4,
+                        pointStyle: 'rectRot',
+                        borderWidth: 2,
+                        spanGaps: false
+                    }] : []),
                     {
                         label: t('reports.colLiabilities'),
                         data: [...debtData, ...projection.map(() => null)],
@@ -417,10 +483,10 @@ function renderReportsNetWorthUncached(app) {
 
         renderChartDataTable('rptNetWorthTrendChart', {
             caption: t('reports.nwTrendCaption', { years: projectionYears }),
-            columns: [t('reports.colMonth'), t('reports.colNetWorth'), t('reports.colLiabilities'), t('reports.colProjected')],
+            columns: [t('reports.colMonth'), t('reports.colNetWorth'), t('reports.colLiabilities'), t('reports.colProjected'), t('reports.colEstimated')],
             rows: [
-                ...labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx]), t('reports.no')]),
-                ...projection.map(p => [p.label, formatCurrency(p.netWorth), p.liabilities !== null ? formatCurrency(p.liabilities) : '—', t('reports.yes')])
+                ...labels.map((label, idx) => [label, formatCurrency(netWorthData[idx]), formatCurrency(debtData[idx]), t('reports.no'), isEst[idx] ? t('reports.yes') : t('reports.no')]),
+                ...projection.map(p => [p.label, formatCurrency(p.netWorth), p.liabilities !== null ? formatCurrency(p.liabilities) : '—', t('reports.yes'), t('reports.no')])
             ]
         });
     }
