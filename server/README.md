@@ -118,6 +118,37 @@ session, spends any outstanding reset link and clears the calendar feed token.
 A successful reset now signs out *every* session. The UI is Settings ->
 Security.
 
+## Background jobs (issue #579)
+
+`src/index.js` starts an in-process scheduler (`src/jobs/runner.js`) after the
+server starts listening: one tick 30 seconds after startup, then hourly.
+`createApp()` never starts it, so tests don't run jobs unless they call
+`runJob()` directly.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `JOBS_ENABLED` | `true` | `false` (or `0`/`no`/`off`) starts no jobs. |
+| `TZ` | `UTC` | Time zone of the period keys (`YYYY-MM`, `YYYY-MM-DDTHH`). |
+
+- **Claiming.** Each run claims `(job_name, period_key)` in the `job_runs`
+  table (migration `1755600000039`) with `INSERT ... ON CONFLICT`. The unique
+  key makes a job run once per period across restarts and across several
+  server processes.
+- **Failures.** A thrown error is logged and stored in `job_runs.error`; the
+  server keeps running. The next tick in the same period retries it, up to 5
+  attempts. A run still `running` after 60 minutes (a dead process) can be
+  taken over. Jobs must therefore be idempotent.
+- **Jobs** (`src/jobs/index.js`, the registry where new jobs such as
+  notification triggers (#211) go):
+  - `prune-sessions` (hourly): `DELETE FROM sessions WHERE expires_at < now()`
+    (#536), plus `job_runs` rows that finished over 90 days ago.
+  - `net-worth-snapshot` (monthly): for each user whose `autoNwSnapshot`
+    setting is on and who has no snapshot in the current month, computes the
+    snapshot with the browser's own pure code (`src/netWorthCore.js`) over the
+    data each route's `listForUser()` returns (the same shape as the browser's
+    `loadFromPostgres`), and inserts it through `sanitizeNetWorthSnapshot`
+    without overwriting an existing row. No milestones are awarded.
+
 ## Automated Backups
 
 `docker-compose.yml` includes a `backup` service that runs `pg_dump` on a

@@ -1,113 +1,16 @@
 // Server-side ICS generator for the public calendar.ics endpoint.
-// The occurrence engine below mirrors src/recurring.js::getRecurringOccurrencesInMonth,
-// and getPaydays mirrors src/utils.js::getIncomePaydaysInMonth — both are pure
-// DOM-free calculations, duplicated here because the frontend ES modules carry
-// DOM-dependent imports that can't run in Node.
+// Recurring occurrences and income paydays come from the same pure modules the
+// browser uses (src/recurringOccurrences.js, src/utils.js; #579, part of #526),
+// imported by relative path: the Docker image copies src/ to /src, like the
+// sanitizers. The ICS text helpers below are still a copy of
+// src/calendarFeed.js's (#526).
 
 import { query } from './db.js';
-// #165: shared with the browser; a pure leaf module under src/ (the Docker
-// image copies it to /src, like the sanitizers).
 import { applyWeekendRule } from '../../src/weekendRule.js';
+import { getRecurringOccurrencesInMonth } from '../../src/recurringOccurrences.js';
+import { getIncomePaydaysInMonth } from '../../src/utils.js';
 
 const WINDOW_MONTHS = 12;
-
-// #299: mirrors src/recurring.js::isEffectivelyPaused — a paused template
-// whose pauseUntil date has passed is treated as active.
-function isEffectivelyPaused(template) {
-    if (!template.paused) return false;
-    if (template.pauseUntil) {
-        const today = new Date();
-        const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        if (todayIso >= template.pauseUntil) return false;
-    }
-    return true;
-}
-
-function getOccurrences(template, year, month) {
-    if (isEffectivelyPaused(template)) return [];
-
-    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-    if (Array.isArray(template.skippedMonths) && template.skippedMonths.includes(monthKey)) return [];
-
-    const startDate = template.startDate ? new Date(`${template.startDate}T12:00:00`) : null;
-    const endDate = template.endDate ? new Date(`${template.endDate}T12:00:00`) : null;
-    const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-
-    if (startDate && startDate > monthEnd) return [];
-    if (endDate && endDate < monthStart) return [];
-
-    const freq = template.frequency || 'monthly';
-    const dom = Math.min(Math.max(Number(template.dayOfMonth) || 1, 1), 31);
-    const daysInMo = new Date(year, month + 1, 0).getDate();
-    const dates = [];
-
-    if (freq === 'monthly') {
-        const d = new Date(year, month, Math.min(dom, daysInMo), 12);
-        if ((!startDate || d >= startDate) && (!endDate || d <= endDate)) dates.push(d);
-    } else if (freq === 'quarterly') {
-        if (!startDate) return [];
-        const monthsFromStart = (year - startDate.getFullYear()) * 12 + (month - startDate.getMonth());
-        if (monthsFromStart >= 0 && monthsFromStart % 3 === 0) {
-            const d = new Date(year, month, Math.min(dom, daysInMo), 12);
-            if (!endDate || d <= endDate) dates.push(d);
-        }
-    } else if (freq === 'yearly') {
-        if (!startDate || startDate.getMonth() !== month) return dates;
-        const d = new Date(year, month, Math.min(dom, daysInMo), 12);
-        if (!endDate || d <= endDate) dates.push(d);
-    } else if (freq === 'weekly' || freq === 'biweekly') {
-        if (!startDate) return [];
-        const interval = freq === 'weekly' ? 7 : 14;
-        const MS = 24 * 60 * 60 * 1000;
-        let cur = new Date(startDate);
-        cur.setHours(12, 0, 0, 0);
-        if (cur < monthStart) {
-            const diffDays = Math.ceil((monthStart - cur) / MS);
-            cur = new Date(cur.getTime() + Math.ceil(diffDays / interval) * interval * MS);
-        }
-        while (cur <= monthEnd) {
-            if (!endDate || cur <= endDate) dates.push(new Date(cur));
-            cur = new Date(cur.getTime() + interval * MS);
-        }
-    }
-    // #165: weekend shift, mirrors src/recurring.js.
-    const rule = template.weekendRule;
-    if (rule === 'before' || rule === 'after') return dates.map(d => applyWeekendRule(d, rule));
-    return dates;
-}
-
-function getPaydays(income, year, month) {
-    const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
-    const msPerDay = 24 * 60 * 60 * 1000;
-    const first = new Date((income.firstPayDate || '') + 'T12:00:00');
-    if (isNaN(first.getTime())) return [];
-
-    const paydays = [];
-    const freq = income.frequency;
-
-    if (freq === 'weekly' || freq === 'biweekly' || freq === 'bi-weekly') {
-        const interval = freq === 'weekly' ? 7 : 14;
-        let pay = new Date(first);
-        const periods = Math.floor(Math.floor((monthStart - pay) / msPerDay) / interval);
-        pay = new Date(pay.getTime() + Math.max(0, periods) * interval * msPerDay);
-        while (pay < monthStart) pay = new Date(pay.getTime() + interval * msPerDay);
-        while (pay <= monthEnd) {
-            paydays.push(new Date(pay));
-            pay = new Date(pay.getTime() + interval * msPerDay);
-        }
-    } else if (freq === 'twice_monthly') {
-        const mid = new Date(year, month, 15, 12, 0, 0);
-        const last = new Date(year, month, monthEnd.getDate(), 12, 0, 0);
-        if (mid >= first) paydays.push(mid);
-        if (last >= first) paydays.push(last);
-    } else {
-        const candidate = new Date(year, month, Math.min(first.getDate(), monthEnd.getDate()), 12, 0, 0);
-        if (candidate >= monthStart && candidate <= monthEnd) paydays.push(candidate);
-    }
-    return paydays;
-}
 
 function icsEscape(text) {
     return String(text ?? '')
@@ -236,7 +139,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                 dayOfMonth: row.day_of_month,
                 weekendRule: row.weekend_rule,
             };
-            const occs = getOccurrences(template, y, mo);
+            const occs = getRecurringOccurrencesInMonth(template, y, mo);
             const typeLabel = row.type === 'reimbursement' ? 'Reimbursement'
                 : row.type === 'income' ? 'Income'
                 : row.type === 'transfer' ? 'Transfer' : 'Subscription';
@@ -253,7 +156,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
 
         for (const inc of incomesRes.rows) {
             const income = { firstPayDate: inc.first_pay_date, frequency: inc.frequency };
-            for (const pay of getPaydays(income, y, mo)) {
+            for (const pay of getIncomePaydaysInMonth(income, y, mo)) {
                 const dateStr = isoDateStr(pay.getFullYear(), pay.getMonth(), pay.getDate());
                 events.push(vevent(
                     `income-${inc.id}-${dateStr}@myfinances`,

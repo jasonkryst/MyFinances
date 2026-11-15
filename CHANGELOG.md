@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.13.0] — 2026-11-15
+
+### Added
+- **Server-side background jobs** (issue #579). The server now runs an in-process scheduler (`server/src/jobs/`): one tick about 30 seconds after startup, then hourly. Each job claims its period in a new `job_runs` table (unique on job name + period key), so it runs once per period even across restarts or two server processes. A failed run is logged and recorded with its error, never crashes the server, and is retried on the next tick, up to 5 attempts per period; a run left "running" by a dead process for over an hour can be taken over. The scheduler is on by default; set `JOBS_ENABLED=false` to turn it off. Period keys use the server's local time (`TZ`, UTC in the Docker image). New jobs go in the `JOBS` registry (`server/src/jobs/index.js`), the extension point for notification triggers (#211).
+- **Monthly net-worth snapshot on the server.** For every user with "Auto-capture monthly net worth snapshot" turned on, the server stores the month's snapshot even if the app is never opened. It skips a month that already has a snapshot (the same rule as the app's own capture, now the shared `hasSnapshotInMonth`), never overwrites a row for the same date, writes through `sanitizeNetWorthSnapshot`, and awards no milestones (the app's automatic capture doesn't either).
+- **Expired sessions are pruned hourly** (issue #536), along with `job_runs` history older than 90 days.
+
+### Changed
+- **One shared projection core for the browser and the server.** The pure parts of the Ledger projection moved into DOM-free modules that the server imports by relative path: `src/recurringOccurrences.js` (recurring occurrences and pause state), `src/ledgerStateCore.js` (override and Cleared lookups), `src/projectionCore.js` (`buildProjectedAccountTransactions`, `getLedgerTransactionsForMonth`, `computeAccountBalance`) and `src/netWorthCore.js` (snapshot metrics). The old modules re-export them, so the app behaves exactly as before. The server snapshot is therefore computed by the same code as the app's, over the same data shape (each route's own `listForUser`).
+- **The webcal feed uses the shared occurrence and payday functions** instead of its own copies (part of #526). The ICS text helpers are still duplicated.
+- **Server:** migration `1755600000039` creates `job_runs`; rolling it back drops the run history only.
+
 ## [7.11.1] — 2026-11-12
 
 ### Changed

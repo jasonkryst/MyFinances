@@ -6,17 +6,9 @@
 
 import { pgPut, pgDelete } from './postgresSync.js';
 
-export function isCleared(app, txId) {
-    if (!txId) return false;
-    const map = app.ledgerClearedTransactions || {};
-    return !!map[txId];
-}
-
-export function getClearedAt(app, txId) {
-    if (!txId) return null;
-    const map = app.ledgerClearedTransactions || {};
-    return map[txId]?.clearedAt || null;
-}
+// Pure read-side lookups live in ledgerStateCore.js (shared with the server,
+// #579); re-exported so existing imports keep working.
+export { isCleared, getClearedAt } from './ledgerStateCore.js';
 
 export function setLedgerCleared(app, transactionId, cleared) {
     if (!transactionId) return;

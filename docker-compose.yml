@@ -91,6 +91,12 @@ services:
       # fails open, so it is safe to enable on a box with flaky egress.
       SECURITY_CHECK_BREACHED_PASSWORDS: "${SECURITY_CHECK_BREACHED_PASSWORDS:-false}"
       SECURITY_BREACH_CHECK_URL: "${SECURITY_BREACH_CHECK_URL:-}"
+      # Issue #579: background jobs (monthly net-worth snapshot for users who
+      # turned on auto-capture, hourly pruning of expired sessions). On by
+      # default; set JOBS_ENABLED=false to turn them off. Periods use the
+      # server's local time: set TZ (e.g. Europe/Warsaw) to change it from UTC.
+      JOBS_ENABLED: "${JOBS_ENABLED:-true}"
+      TZ: "${TZ:-UTC}"
     secrets:
       - postgres_password
       - smtp_password

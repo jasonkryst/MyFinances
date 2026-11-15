@@ -73,6 +73,11 @@ export const MUTATE_SCOPE = {
     'src/saveStatus.js': true,
     // #518: render-scoped projection cache.
     'src/projectionCache.js': true,
+    // #579: pure core shared by the browser and the server's snapshot job.
+    'src/recurringOccurrences.js': true,
+    'src/ledgerStateCore.js': true,
+    'src/netWorthCore.js': true,
+    'src/projectionCore.js': ['makeLedgerTransactionId', 'getLedgerTransactionsForMonth', 'computeAccountBalance'],
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

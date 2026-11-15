@@ -70,22 +70,9 @@ export function buildAccountOptionsHtml(accounts, selectedId, { emptyLabel } = {
     return empty + options;
 }
 
-export function computeAccountBalance(app, accountId, year = null, month = null) {
-    const acct = app.accounts.find(a => a.id === accountId);
-    if (!acct) return 0;
-    let balance = Number(acct.startingBalance) || 0;
-
-    const now = new Date();
-    const yr = year !== null ? year : now.getFullYear();
-    const mo = month !== null ? month : now.getMonth();
-    const monthTxs = getLedgerTransactionsForMonth(app, yr, mo, accountId);
-
-    for (const tx of monthTxs) {
-        balance += Number(tx.amount) || 0;
-    }
-
-    return balance;
-}
+// Lives in projectionCore.js (pure, shared with the server, #579);
+// re-exported so existing imports keep working.
+export { computeAccountBalance } from './projectionCore.js';
 
 // #257: transaction-level drill-down backing an account's "Proj. (month)"
 // figure — reuses the exact same getLedgerTransactionsForMonth() list that

@@ -1021,6 +1021,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.13.0 — 2026-11-15',
+        items: [
+            '<strong>Monthly snapshots without opening the app:</strong> with <em>Auto-capture monthly net worth snapshot</em> turned on in Settings, the server now records your net worth early each month, even if you never open MyFinances that month.',
+            '<strong>Same numbers as the app:</strong> the server uses exactly the same calculation as the app, and it never replaces a snapshot you already have for that month.',
+            '<strong>Tidier sign-ins:</strong> expired sign-in sessions are now cleaned up automatically every hour.'
+        ]
+    },
+    {
         version: '7.11.0 — 2026-11-12',
         items: [
             '<strong>Annual bonuses:</strong> on the Income page, a bonus can now <em>Repeat every year</em>. Enter it once and it lands on the same month and day every year, instead of needing a new entry each December.',

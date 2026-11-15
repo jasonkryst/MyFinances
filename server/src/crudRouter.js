@@ -41,13 +41,19 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
         return null;
     }
 
+    // The GET body for one user. Also used by the background jobs (#579) to
+    // load a user's data in exactly the shape the browser receives.
+    async function listForUser(userId) {
+        const { rows } = await query(
+            `SELECT ${selectList} FROM ${table} WHERE user_id = $1 ORDER BY id`,
+            [userId]
+        );
+        return rows.map(rowToJson);
+    }
+
     router.get('/', async (req, res, next) => {
         try {
-            const { rows } = await query(
-                `SELECT ${selectList} FROM ${table} WHERE user_id = $1 ORDER BY id`,
-                [req.userId]
-            );
-            res.json(rows.map(rowToJson));
+            res.json(await listForUser(req.userId));
         } catch (err) {
             next(err);
         }
@@ -164,6 +170,6 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
     });
 
     // Exposed so test/fieldParity.test.js can compare columns to sanitizer output.
-    router.crudConfig = { table, columns, sanitize };
+    router.crudConfig = { table, columns, sanitize, listForUser };
     return router;
 }

@@ -159,6 +159,7 @@ jobs:
             tests/features/test_debt_calculator.py \
             tests/features/test_break_even.py \
             tests/features/test_networth.py \
+            tests/features/test_networth_server_parity.py \
             tests/features/test_balance_history.py \
             tests/features/test_people.py \
             tests/features/test_debt_ownership_split.py \

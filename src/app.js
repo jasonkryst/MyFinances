@@ -136,6 +136,7 @@ import { renderHealthDashboard as renderHealthDashboardFeature } from './health.
 import { openKeyboardShortcutsModal as openKeyboardShortcutsModalFeature } from './keyboardShortcuts.js';
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
+import { hasSnapshotInMonth } from './netWorthCore.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { initCalendarFeedModal } from './calendarFeed.js';
@@ -279,14 +280,8 @@ export class DebtTrackerApp {
 
         // Auto-capture monthly net worth snapshot if enabled
         if (getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
-            const now = new Date();
-            const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const snapshots = Array.isArray(this.monthlySnapshots) ? this.monthlySnapshots : [];
-            const hasCurrentMonth = snapshots.some(s => {
-                const sMonthKey = String(s?.date || '').slice(0, 7);
-                return sMonthKey === monthKey;
-            });
-            if (!hasCurrentMonth) {
+            // Same month rule as the server's monthly snapshot job (#579).
+            if (!hasSnapshotInMonth(this.monthlySnapshots, new Date())) {
                 this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
             }
         }
