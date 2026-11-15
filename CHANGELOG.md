@@ -9,6 +9,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Changed
 - **Boot renders only the landing page** (issue #525). After the data loads, `init()` yields a frame, computes shared state, yields again and then renders Health, instead of rendering the hidden Liabilities list, Plan history and Plan results in the same task. The saved plan is still calculated at boot (Health and the debt cards read its summary), but the Plan results and the Liabilities list render on first visit through `switchPage`. Mutations still call the full `updateUI()`.
 
+### Performance
+- **Cached `Intl` formatters** (issue #525). `formatCurrency`, `formatShortDate`, `formatLongDate`, `formatMonthLong` and `formatReportRangeLabel` (`src/utils.js`) built a new `Intl.NumberFormat`/`DateTimeFormat` on every call; they now keep one per locale (and currency or option set), like `formatMonthYear` since #518. Output is unchanged and a locale or currency switch still takes effect. Measured at 4x CPU throttling on a seeded dataset (3 accounts, 20 debts, 26 recurring items, a saved plan; 5 reloads each), total long-task time during boot went from about 7.1 s on 7.11.1 to about 1.4 s with the landing-page change alone and about 0.76 s with both (longest single task about 6.9 s to about 0.54 s). That dataset is heavier than the issue's audit dataset, whose boot was 1.1 to 1.8 s before.
+
 ## [7.11.1] — 2026-11-12
 
 ### Changed
