@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.12.0] — 2026-11-15
+
+### Added
+- **The Net Worth report is no longer empty before the first snapshot** (issues #574, #585). With accounts or debts but no snapshots, Reports > Net Worth shows a live current point (computed like a snapshot, never saved by rendering) and the forward projection from it. Months without a snapshot are estimated from the balance history (debt and Credit Card / Loan balances; other asset balances are held at today's level, since history never records them), drawn as a dashed line with diamond points, tagged "estimated" in the legend and history table, and marked in the screen-reader table by a new Estimated column. A real snapshot always wins over an estimate for the same month, and months before the first history entry are not estimated. The derivation is the pure `buildNetWorthTrend`/`estimateNetWorthByMonth` in `src/netWorthEstimate.js` (Stryker-scoped). Users with no data still see the empty state.
+- **New users get the monthly net-worth snapshot turned on** (issue #574). First run stores `autoNwSnapshot` as true. Existing users who never set it keep the old default (off), and a stored choice is never overwritten. The automatic capture now also skips an empty dataset, so a $0 snapshot cannot hide the live point.
+
 ## [7.11.1] — 2026-11-12
 
 ### Changed

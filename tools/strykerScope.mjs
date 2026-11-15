@@ -49,6 +49,8 @@ export const MUTATE_SCOPE = {
         'computeRetirementProjectionScenarios', 'computeRetirementProjectionSeries', 'computeCoastFire',
     ],
     'src/balanceHistoryCore.js': true,
+    // #585: estimated net-worth trend points from balance history.
+    'src/netWorthEstimate.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).
     'src/passwordPolicy.js': true,
     // #564: partial plan-settings PATCH body builder.

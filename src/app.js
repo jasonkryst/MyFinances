@@ -270,7 +270,16 @@ export class DebtTrackerApp {
         // empty-data check keeps the wizard (and the silent What's New
         // "seen" mark below) away from them.
         const isFirstRun = this._isFirstRun();
-        if (isFirstRun && !legacyPromptShown) maybeShowSetupWizardFeature(this, true);
+        if (isFirstRun && !legacyPromptShown) {
+            // #574: new users get the monthly net-worth snapshot on. Existing
+            // users keep the old default (off) until they choose otherwise,
+            // because this runs only for an empty dataset with no wizard
+            // setting, and never overrides a stored value.
+            if (!(this.settings || []).some(s => s?.key === AUTO_NW_SNAPSHOT)) {
+                setSettingFeature(this, AUTO_NW_SNAPSHOT, true);
+            }
+            maybeShowSetupWizardFeature(this, true);
+        }
 
         const versionEl = document.getElementById('appVersion');
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
@@ -278,7 +287,10 @@ export class DebtTrackerApp {
         checkWhatsNewFeature(isFirstRun);
 
         // Auto-capture monthly net worth snapshot if enabled
-        if (getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
+        // Skipped while there is nothing to measure: a $0 snapshot would hide
+        // the live point the Net Worth report shows for an empty history (#574).
+        const hasNetWorthData = (this.accounts || []).length > 0 || (this.debts || []).length > 0;
+        if (hasNetWorthData && getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
             const now = new Date();
             const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const snapshots = Array.isArray(this.monthlySnapshots) ? this.monthlySnapshots : [];

@@ -1021,6 +1021,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.12.0 — 2026-11-15',
+        items: [
+            '<strong>Net Worth from day one:</strong> Reports → Net Worth no longer waits for a snapshot. With accounts or debts it shows your live net worth and the forward projection straight away.',
+            '<strong>Estimated history:</strong> months without a snapshot are filled in from your recorded debt and loan balances, drawn dashed and labelled <em>estimated</em> (also in the screen-reader table). A real snapshot always replaces an estimate.',
+            '<strong>Snapshots on for new users:</strong> new installs now capture a monthly net-worth snapshot automatically. If you already use the app, nothing changes; you can toggle it in Settings.'
+        ]
+    },
+    {
         version: '7.11.0 — 2026-11-12',
         items: [
             '<strong>Annual bonuses:</strong> on the Income page, a bonus can now <em>Repeat every year</em>. Enter it once and it lands on the same month and day every year, instead of needing a new entry each December.',
