@@ -843,6 +843,12 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     }
     if (pageName === 'strategy') {
         app.renderStrategyIncomeWidget(); app.renderPlanHistory();
+        if (app._planDisplayPending && app.lastPaymentPlan && app.lastSummary) {
+            // #525: the plan restored at boot, shown on the first visit.
+            const resultsSection = document.getElementById('resultsSection');
+            if (resultsSection) { resultsSection.classList.add('visible'); resultsSection.classList.remove('hidden'); }
+            try { app.displayPaymentPlan(); } catch (err) { console.error('Plan restore failed', err); }
+        }
         if (resetToDefaults) app.resetRefinanceScenario();
         else if (app.lastPaymentPlan && app.lastSummary) {
             // In-place refresh (locale switch, import): re-render the results so their text follows
@@ -880,11 +886,13 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
 
 // Render-scoped projection cache (#518): every balance this render reads
 // shares one projection build instead of one per account.
-export function updateUI(app) {
-    return withProjectionCache(app, () => updateUIUncached(app));
+// `deferHiddenPages` (boot only, #525) computes shared state but skips the DOM
+// work of pages that are not showing; their first visit renders them.
+export function updateUI(app, { deferHiddenPages = false } = {}) {
+    return withProjectionCache(app, () => updateUIUncached(app, deferHiddenPages));
 }
 
-function updateUIUncached(app) {
+function updateUIUncached(app, deferHiddenPages) {
     if (app._savedMonthlyPayment) {
         const mpEl = document.getElementById('monthlyPayment');
         if (mpEl && !mpEl.value) mpEl.value = app._savedMonthlyPayment;
@@ -893,8 +901,8 @@ function updateUIUncached(app) {
         const stratEl = document.getElementById('paymentStrategy');
         if (stratEl) stratEl.value = app._savedStrategy;
     }
-    app.restoreLastPlan();
-    app.renderPlanHistory();
+    app.restoreLastPlan({ display: !deferHiddenPages });
+    if (!deferHiddenPages) app.renderPlanHistory();
 
     if (app.debts.length === 0) {
         document.getElementById('emptyState').classList.add('visible'); document.getElementById('emptyState').classList.remove('hidden');
@@ -902,6 +910,7 @@ function updateUIUncached(app) {
         document.getElementById('emptyState').classList.add('hidden'); document.getElementById('emptyState').classList.remove('visible');
     }
 
+    if (deferHiddenPages) return;
     app.renderDebtsList();
     app.renderNetWorthWidget();
 }
@@ -1026,6 +1035,14 @@ const WHATS_NEW_ENTRIES = [
             '<strong>Monthly snapshots without opening the app:</strong> the server now records your net worth early each month, even if you never open MyFinances that month.',
             '<strong>Same numbers as the app:</strong> the server uses exactly the same calculation as the app, and it never replaces a snapshot you already have for that month.',
             '<strong>Tidier sign-ins:</strong> expired sign-in sessions are now cleaned up automatically every hour.'
+        ]
+    },
+    {
+        version: '7.12.0 — 2026-11-15',
+        items: [
+            '<strong>Net Worth from day one:</strong> Reports → Net Worth no longer waits for a snapshot. With accounts or debts it shows your live net worth and the forward projection straight away.',
+            '<strong>Estimated history:</strong> months without a snapshot are filled in from your recorded debt and loan balances, drawn dashed and labelled <em>estimated</em> (also in the screen-reader table). A real snapshot always replaces an estimate.',
+            '<strong>Snapshots on for new users:</strong> new installs now capture a monthly net-worth snapshot automatically. If you already use the app, nothing changes; you can toggle it in Settings.'
         ]
     },
     {

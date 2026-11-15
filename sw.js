@@ -30,7 +30,7 @@ const PRECACHE_URLS = [
     '/src/loginGate.js', '/src/people.js', '/src/pgMigrationModal.js', '/src/concurrency.js', '/src/ledgerKeyRemap.js', '/src/mergeDedupe.js', '/src/recordVersions.js', '/src/refreshPolicy.js', '/src/resourceDeletion.js', '/src/liveRefresh.js', '/src/planSettingsPatch.js', '/src/postgresSync.js', '/src/postgresImport.js',
     '/src/serverUnreachableGate.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
     '/src/strategyPlanCalculation.js', '/src/strategyScheduleTable.js', '/src/strategySummaryTable.js', '/src/ui.js',
-    '/src/utils.js', '/src/balanceHistoryCore.js', '/src/balanceHistory.js', '/src/balanceHistoryModal.js',
+    '/src/utils.js', '/src/balanceHistoryCore.js', '/src/netWorthEstimate.js', '/src/balanceHistory.js', '/src/balanceHistoryModal.js',
     '/src/transfers.js', '/src/manualTransactions.js', '/src/projectionCache.js', '/src/projectionCore.js', '/src/netWorthCore.js', '/src/recurringOccurrences.js', '/src/ledgerStateCore.js', '/src/ledgerSearch.js', '/src/saveStatus.js', '/src/saveStatusChip.js', '/src/weekendRule.js', '/src/weekendRuleUi.js', '/src/passwordPolicy.js', '/src/passwordUi.js', '/src/securitySettings.js',
     '/src/locales/en.js', '/src/locales/es.js', '/src/locales/pl.js',
 ];
@@ -38,7 +38,10 @@ const PRECACHE_URLS = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(PRECACHE_URLS))
+            // cache: 'reload' bypasses the HTTP cache so a release never
+            // precaches a stale copy of an unchanged filename (the entries are
+            // now served cache-first, #524).
+            .then((cache) => cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' }))))
             .catch((err) => console.error('[sw] precache failed', err))
     );
 });
@@ -93,6 +96,32 @@ async function networkFirst(request) {
     return response;
 }
 
+// Precached static assets are served cache-first (#524): CACHE_NAME changes
+// every release, so the versioned cache is always the right copy for the
+// running release and a warm load makes no request for them. A miss (precache
+// failed, or an asset not in the list) falls through to networkFirst, which
+// also stores it. The document stays network-first so a new release is seen.
+async function cacheFirst(request) {
+    try {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(request);
+        if (cached) return cached;
+    } catch (err) {
+        // Storage unavailable: fall through to the network.
+    }
+    return networkFirst(request);
+}
+
+const CACHE_FIRST_PATHS = new Set(
+    PRECACHE_URLS.filter((url) => url !== '/' && url !== '/index.html')
+);
+
+function isCacheFirstRequest(request, pathname) {
+    // Documents (navigations, including /guide.html) and the entry points
+    // always revalidate; only subresources in the precache list qualify.
+    return request.mode !== 'navigate' && CACHE_FIRST_PATHS.has(pathname);
+}
+
 async function staleWhileRevalidate(request) {
     const cache = await caches.open(CACHE_NAME);
     const cached = await cache.match(request);
@@ -118,10 +147,15 @@ self.addEventListener('fetch', (event) => {
         // from the cache. A cached /api response offline would hide the
         // "Can't reach your server" gate behind stale data, and financial
         // data must not sit in Cache Storage.
-        if (isNetworkOnlyPath(new URL(request.url).pathname)) return;
-        // App-shell filenames are stable between releases. Prefer the network
-        // while online so an active older worker cannot keep serving a stale
-        // release; fall back to the precache only when offline.
+        const { pathname } = new URL(request.url);
+        if (isNetworkOnlyPath(pathname)) return;
+        if (isCacheFirstRequest(request, pathname)) {
+            event.respondWith(cacheFirst(request));
+            return;
+        }
+        // The document and anything not precached: prefer the network while
+        // online so an active older worker cannot keep serving a stale
+        // release; fall back to the cache only when offline.
         event.respondWith(networkFirst(request));
     }
 });

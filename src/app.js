@@ -158,6 +158,17 @@ import {
  * Modularized for modern browser support.
  */
 
+// Yield to the browser so boot work splits into separate tasks (#525). rAF
+// never fires in a background tab, so a timer backs it up.
+function nextFrame() {
+    return new Promise(resolve => {
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(finish);
+        setTimeout(finish, 50);
+    });
+}
+
 export class DebtTrackerApp {
     constructor() {
         this.persons = [];
@@ -250,7 +261,9 @@ export class DebtTrackerApp {
                 await requestLogin(this, { needsSetup: probe.needsSetup === true });
             }
             try {
-                await loadFromPostgres(this);
+                // Reuse the probe's plan-settings body from a live session; after the
+                // login gate it is absent and gets fetched.
+                await loadFromPostgres(this, { planSettings: probe.hasSession ? probe.planSettings : null });
                 break;
             } catch (err) {
                 // The session expired between probe and load: re-probe, which
@@ -271,7 +284,16 @@ export class DebtTrackerApp {
         // empty-data check keeps the wizard (and the silent What's New
         // "seen" mark below) away from them.
         const isFirstRun = this._isFirstRun();
-        if (isFirstRun && !legacyPromptShown) maybeShowSetupWizardFeature(this, true);
+        if (isFirstRun && !legacyPromptShown) {
+            // #574: new users get the monthly net-worth snapshot on. Existing
+            // users keep the old default (off) until they choose otherwise,
+            // because this runs only for an empty dataset with no wizard
+            // setting, and never overrides a stored value.
+            if (!(this.settings || []).some(s => s?.key === AUTO_NW_SNAPSHOT)) {
+                setSettingFeature(this, AUTO_NW_SNAPSHOT, true);
+            }
+            maybeShowSetupWizardFeature(this, true);
+        }
 
         const versionEl = document.getElementById('appVersion');
         if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
@@ -279,7 +301,10 @@ export class DebtTrackerApp {
         checkWhatsNewFeature(isFirstRun);
 
         // Auto-capture monthly net worth snapshot if enabled
-        if (getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
+        // Skipped while there is nothing to measure: a $0 snapshot would hide
+        // the live point the Net Worth report shows for an empty history (#574).
+        const hasNetWorthData = (this.accounts || []).length > 0 || (this.debts || []).length > 0;
+        if (hasNetWorthData && getSettingFeature(this, AUTO_NW_SNAPSHOT, false)) {
             // Same month rule as the server's monthly snapshot job (#579).
             if (!hasSnapshotInMonth(this.monthlySnapshots, new Date())) {
                 this.captureNetWorthSnapshot({ source: 'auto', silent: true, skipMilestone: true });
@@ -294,8 +319,13 @@ export class DebtTrackerApp {
         initSettingsModalFeature(this);
         initDataTransferModal(this);
         initCalendarFeedModal(this);
-        this.updateUI();
+        // #525: split boot into short tasks (data load, then shared state,
+        // then the landing page) and render only the landing page. Hidden
+        // pages render on their first visit (switchPage -> renderPageData).
+        await nextFrame();
+        this.updateUI({ deferHiddenPages: true });
         this.updateFormVisibility();
+        await nextFrame();
         this.switchPage('health');
         // #575: from here on, other tabs' writes and returning to this tab
         // re-read the server.
@@ -358,8 +388,8 @@ export class DebtTrackerApp {
      * load, using the saved monthlyPayment/strategy (issue #162). No-op if a
      * plan is already displayed or no saved plan/debts exist.
      */
-    restoreLastPlan() {
-        return restoreLastPlanFeature(this);
+    restoreLastPlan(opts) {
+        return restoreLastPlanFeature(this, opts);
     }
 
     /**
@@ -475,8 +505,8 @@ export class DebtTrackerApp {
      * - Otherwise hides the empty state, activates the Debts page, and calls
      *   `renderDebtsList()`.
      */
-    updateUI() {
-        return updateUIFeature(this);
+    updateUI(opts) {
+        return updateUIFeature(this, opts);
     }
 
     /**

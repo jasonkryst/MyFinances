@@ -38,8 +38,18 @@ function fetchRoutes(routes) {
 describe('probeServer', () => {
     test('plan-settings 200 means a signed-in session, without touching setup-status', async () => {
         global.fetch = fetchRoutes({ '/api/plan-settings': () => Promise.resolve(res(200, { strategy: 'avalanche' })) });
-        await expect(probeServer()).resolves.toEqual({ reachable: true, hasSession: true });
+        await expect(probeServer()).resolves.toEqual({ reachable: true, hasSession: true, planSettings: { strategy: 'avalanche' } });
         expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('a signed-out probe carries no planSettings (the load must fetch it itself)', async () => {
+        global.fetch = fetchRoutes({
+            '/api/plan-settings': () => Promise.resolve(res(401, { error: 'UNAUTHENTICATED' })),
+            '/auth/setup-status': () => Promise.resolve(res(200, { needsSetup: false })),
+        });
+        const result = await probeServer();
+        expect(result.hasSession).toBe(false);
+        expect(result).not.toHaveProperty('planSettings');
     });
 
     test('401 then setup-status needsSetup:true means first-user setup', async () => {

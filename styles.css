@@ -9247,3 +9247,9 @@ body.dark-mode .bonus-recur-badge { background: #0c4a6e; color: #bae6fd; }
     min-width: 0;
     box-sizing: border-box;
 }
+
+.nw-estimated-tag {
+    font-size: 0.75em;
+    font-style: italic;
+    color: var(--text-muted);
+}

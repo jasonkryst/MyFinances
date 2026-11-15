@@ -30,6 +30,7 @@ export const MUTATE_SCOPE = {
         'parseFiniteOrNull', 'formatShortDate', 'formatMonthYear', 'sanitizeInteger', 'sanitizeDateISO',
         'dateToISO', 'dailyCompoundInterest', 'computeNetIncomeAmount', 'computeMonthlyIncomeForMonth', 'withBusy', 'isTransferLegTx',
         'getBonusDatesInMonth', 'getNextBonusDate', 'computeMonthlyBonusesForMonth', 'getBonusesByDayForMonth',
+        'formatDateCached', 'formatLongDate', 'formatMonthLong', 'formatReportRangeLabel',
     ],
     'src/sanitizers.js': [
         'sanitizePerson', 'sanitizeAccount', 'sanitizeDebt', 'sanitizeOwnershipSplit', 'remapDebtPersonRefs',
@@ -49,6 +50,8 @@ export const MUTATE_SCOPE = {
         'computeRetirementProjectionScenarios', 'computeRetirementProjectionSeries', 'computeCoastFire',
     ],
     'src/balanceHistoryCore.js': true,
+    // #585: estimated net-worth trend points from balance history.
+    'src/netWorthEstimate.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).
     'src/passwordPolicy.js': true,
     // #564: partial plan-settings PATCH body builder.

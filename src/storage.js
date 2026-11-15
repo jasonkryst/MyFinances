@@ -52,7 +52,9 @@ export async function probeServer() {
         // object proves this is the API.
         const body = await res.json();
         if (!body || typeof body !== 'object') return UNREACHABLE;
-        return { reachable: true, hasSession: true };
+        // The body is the plan-settings row; boot hands it to loadFromPostgres
+        // so the first load does not fetch it a second time (#533).
+        return { reachable: true, hasSession: true, planSettings: body };
     } catch {
         return UNREACHABLE;
     }
@@ -114,7 +116,9 @@ async function _getJson(path, signal) {
 // init() then shows the unreachable gate (or re-probes on SessionExpiredError).
 // `seed: false` loads into a scratch object without touching the record
 // shadows (liveRefresh.js decides afterwards whether to apply it).
-export async function loadFromPostgres(app, { seed = true } = {}) {
+// `planSettings` is an already-fetched /api/plan-settings body (from
+// probeServer on a signed-in boot); when absent it is fetched here (#533).
+export async function loadFromPostgres(app, { seed = true, planSettings: knownPlanSettings = null } = {}) {
     const signal = _timeoutSignal(LOAD_TIMEOUT_MS);
     const entries = Object.entries(POSTGRES_RESOURCE_ENDPOINTS);
     const [lists, snapshots, settingsRows, overrides, clearedTransactions, planSettings] = await Promise.all([
@@ -123,7 +127,7 @@ export async function loadFromPostgres(app, { seed = true } = {}) {
         _getJson('/api/settings', signal),
         _getJson('/api/ledger-overrides', signal),
         _getJson('/api/ledger-cleared', signal),
-        _getJson('/api/plan-settings', signal)
+        knownPlanSettings || _getJson('/api/plan-settings', signal)
     ]);
 
     entries.forEach(([field], i) => { app[field] = lists[i]; });

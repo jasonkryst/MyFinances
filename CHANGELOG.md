@@ -16,6 +16,33 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 - **The webcal feed uses the shared occurrence and payday functions** instead of its own copies (part of #526). The ICS text helpers are still duplicated.
 - **Server:** migration `1755600000039` creates `job_runs`; rolling it back drops the run history only.
 
+## [7.12.0] — 2026-11-15
+
+### Added
+- **The Net Worth report is no longer empty before the first snapshot** (issues #574, #585). With accounts or debts but no snapshots, Reports > Net Worth shows a live current point (computed like a snapshot, never saved by rendering) and the forward projection from it. Months without a snapshot are estimated from the balance history (debt and Credit Card / Loan balances; other asset balances are held at today's level, since history never records them), drawn as a dashed line with diamond points, tagged "estimated" in the legend and history table, and marked in the screen-reader table by a new Estimated column. A real snapshot always wins over an estimate for the same month, and months before the first history entry are not estimated. The derivation is the pure `buildNetWorthTrend`/`estimateNetWorthByMonth` in `src/netWorthEstimate.js` (Stryker-scoped). Users with no data still see the empty state.
+- **New users get the monthly net-worth snapshot turned on** (issue #574). First run stores `autoNwSnapshot` as true. Existing users who never set it keep the old default (off), and a stored choice is never overwritten. The automatic capture now also skips an empty dataset, so a $0 snapshot cannot hide the live point.
+
+## [7.11.3] — 2026-11-15
+
+### Changed
+- **Boot renders only the landing page** (issue #525). After the data loads, `init()` yields a frame, computes shared state, yields again and then renders Health, instead of rendering the hidden Liabilities list, Plan history and Plan results in the same task. The saved plan is still calculated at boot (Health and the debt cards read its summary), but the Plan results and the Liabilities list render on first visit through `switchPage`. Mutations still call the full `updateUI()`.
+
+### Performance
+- **Cached `Intl` formatters** (issue #525). `formatCurrency`, `formatShortDate`, `formatLongDate`, `formatMonthLong` and `formatReportRangeLabel` (`src/utils.js`) built a new `Intl.NumberFormat`/`DateTimeFormat` on every call; they now keep one per locale (and currency or option set), like `formatMonthYear` since #518. Output is unchanged and a locale or currency switch still takes effect. Measured at 4x CPU throttling on a seeded dataset (3 accounts, 20 debts, 26 recurring items, a saved plan; 5 reloads each), total long-task time during boot went from about 7.1 s on 7.11.1 to about 1.4 s with the landing-page change alone and about 0.76 s with both (longest single task about 6.9 s to about 0.54 s). That dataset is heavier than the issue's audit dataset, whose boot was 1.1 to 1.8 s before.
+
+## [7.11.2] — 2026-11-15
+
+### Changed
+- **Chart.js no longer blocks parsing** (issue #523). Its `<script>` in `index.html` is now `defer`red; it still runs before the module `app.js` (deferred scripts and modules run in document order, ahead of `DOMContentLoaded`), so `Chart` exists when startup applies the reduced-motion defaults. The jsdelivr origin, SRI hash and CSP are unchanged.
+- **Service worker serves precached static assets cache-first** (issue #524). Subresources in `PRECACHE_URLS` come from the versioned cache, so a warm reload no longer sends about 66 conditional requests; `CACHE_NAME` changes every release, so the update banner flow is unchanged. The document (`/`, `/index.html`, every navigation), anything not precached, and the CDN runtime cache behave as before; `/api/`, `/auth/` and `/calendar.ics` stay network-only. The precache now bypasses the HTTP cache (`cache: 'reload'`). With the dev bind-mount override, bump `CACHE_NAME` or unregister the worker to see an edited asset.
+- **Boot fetches `/api/plan-settings` once** (issue #533). `probeServer()` returns the parsed body and `loadFromPostgres(app, { planSettings })` reuses it; after the login gate, `refreshFromServer` and a re-probe it still fetches.
+
+### Fixed
+- Health's surplus projection dates now follow the app language (issue #512, PR #626, thanks @SAY-5).
+
+### Performance
+- **Index on `incomes.person_id`** (issue #535). Migration `1755600000038` adds `idx_incomes_person_id` (idempotent), so deleting a person no longer scans `incomes`. Rollback drops only the index.
+
 ## [7.11.1] — 2026-11-12
 
 ### Changed

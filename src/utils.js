@@ -17,13 +17,44 @@ export function debounce(fn, waitMs) {
 // Format a number as a currency string using the user's chosen currency code
 // and locale (e.g. 1234.5 → "$1,234.50" for USD/en-US, "€1.234,50" for EUR/es-ES).
 // Both the currency code and locale follow user preferences set in Settings.
+// Building an Intl formatter is far more expensive than using one: an
+// uncached formatCurrency/formatShortDate made up most of Health's boot render
+// (#525). One formatter per locale (and currency, or option set); a locale or
+// currency switch just picks a different cache entry.
+const currencyFormatters = new Map();
+
 export function formatCurrency(value) {
-    return new Intl.NumberFormat(getIntlLocale(), {
-        style: 'currency',
-        currency: getCurrencyCode(),
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(value);
+    const locale = getIntlLocale();
+    const currency = getCurrencyCode();
+    const key = `${locale}|${currency}`;
+    let formatter = currencyFormatters.get(key);
+    if (!formatter) {
+        formatter = new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        currencyFormatters.set(key, formatter);
+    }
+    return formatter.format(value);
+}
+
+const dateFormatters = new Map();
+
+// Formats a Date with a cached Intl.DateTimeFormat for the active locale.
+// `name` identifies the option set; toLocaleDateString returned
+// 'Invalid Date' for an invalid date, where format() throws, so keep that.
+function formatDateCached(date, name, options) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return 'Invalid Date';
+    const locale = getIntlLocale();
+    const key = `${locale}|${name}`;
+    let formatter = dateFormatters.get(key);
+    if (!formatter) {
+        formatter = new Intl.DateTimeFormat(locale, options);
+        dateFormatters.set(key, formatter);
+    }
+    return formatter.format(date);
 }
 
 export function normalizeText(value, maxLen = 120) {
@@ -71,7 +102,7 @@ export function parseFiniteOrNull(value) {
 export function formatShortDate(value) {
     const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
     const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
-    return date.toLocaleDateString(getIntlLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
+    return formatDateCached(date, 'short', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 // Formats a bare "YYYY-MM-DD" string, an ISO datetime string, or a Date object as "Mon YYYY".
@@ -100,7 +131,7 @@ export function formatMonthYear(value) {
 // DebtCalculator.formatDate in English; the calculator itself stays
 // locale-agnostic because CSV exports reuse it.
 export function formatLongDate(date) {
-    return date.toLocaleDateString(getIntlLocale(), { year: 'numeric', month: 'long', day: 'numeric' });
+    return formatDateCached(date, 'long', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 // "January 2026" for the Nth plan month (same offset convention as
@@ -108,7 +139,7 @@ export function formatLongDate(date) {
 export function formatPlanMonth(monthOffset) {
     const start = DebtCalculator.getStartingMonth();
     const target = new Date(start.getFullYear(), start.getMonth() + monthOffset, 1);
-    return target.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
+    return formatDateCached(target, 'monthLong', { month: 'long', year: 'numeric' });
 }
 
 export function sanitizeInteger(value, fallback = null, { min = null, max = null } = {}) {
@@ -198,7 +229,7 @@ export function getPriorEquivalentRangeEnd(year, month, rangeMonths) {
 // year boundary spells out both years, e.g. "Dec 2025 – Feb 2026").
 // "January 2026" for a Date, in the active locale.
 export function formatMonthLong(date) {
-    return date.toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
+    return formatDateCached(date, 'monthLong', { month: 'long', year: 'numeric' });
 }
 
 export function formatReportRangeLabel(year, month, rangeMonths) {
@@ -209,8 +240,10 @@ export function formatReportRangeLabel(year, month, rangeMonths) {
     const months = reportRangeMonthsList(year, month, rangeMonths);
     const start = new Date(months[0].year, months[0].month, 1);
     const sameYear = start.getFullYear() === end.getFullYear();
-    const startLabel = start.toLocaleDateString(getIntlLocale(), sameYear ? { month: 'short' } : { month: 'short', year: 'numeric' });
-    const endLabel = end.toLocaleDateString(getIntlLocale(), { month: 'short', year: 'numeric' });
+    const startLabel = sameYear
+        ? formatDateCached(start, 'monthShort', { month: 'short' })
+        : formatDateCached(start, 'monthYearShort', { month: 'short', year: 'numeric' });
+    const endLabel = formatDateCached(end, 'monthYearShort', { month: 'short', year: 'numeric' });
     return `${startLabel} – ${endLabel}`;
 }
 
