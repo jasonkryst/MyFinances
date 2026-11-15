@@ -1,6 +1,8 @@
 // Net worth snapshots: capture, series aggregation, dashboard widget, and reports-page timeline
 
-import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml, isTransferLegTx } from './utils.js';
+import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
+// #579: snapshot metrics are shared with the server's monthly snapshot job.
+import { computeSnapshotMetrics, buildNetWorthSnapshot, snapshotMonthKey } from './netWorthCore.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgPut, pgPost } from './postgresSync.js';
 import { t, getIntlLocale } from './i18n.js';
@@ -17,48 +19,6 @@ export function getSnapshotSeries(app, months = 12) {
     snapshots.sort((a, b) => a.date.localeCompare(b.date));
     const filtered = snapshots.filter(s => Number.isFinite(s.netWorth));
     return filtered.slice(Math.max(0, filtered.length - months));
-}
-
-function computeSnapshotMetrics(app, snapshotDate = new Date()) {
-    const year = snapshotDate.getFullYear();
-    const month = snapshotDate.getMonth();
-
-    let totalAssets = 0;
-    for (const account of app.accounts || []) {
-        const projected = app.computeAccountBalance(account.id, year, month);
-        if (projected > 0) totalAssets += projected;
-    }
-
-    let totalLiabilities = 0;
-    for (const debt of app.debts || []) {
-        if (debt.debtType === 'fixedAmount') {
-            totalLiabilities += Math.max(0, Number(debt.fixedAmount) || 0);
-            continue;
-        }
-        totalLiabilities += Math.max(0, Number(debt.accountBalance) || 0);
-    }
-
-    const txs = getLedgerTransactionsForMonth(app, year, month);
-    let debtPaymentMade = 0;
-    let incomeReceived = 0;
-    for (const tx of txs) {
-        if (tx.type === 'debt') {
-            debtPaymentMade += Math.abs(tx.amount || 0);
-            continue;
-        }
-        if (isTransferLegTx(tx)) continue; // #566
-        if (tx.type === 'income' || tx.type === 'bonus' || tx.type === 'interest' || (tx.type === 'recurring' && tx.amount > 0) || (tx.type === 'manual' && tx.amount > 0)) {
-            incomeReceived += Math.abs(tx.amount || 0);
-        }
-    }
-
-    return {
-        totalAssets: parseFloat(totalAssets.toFixed(2)),
-        totalLiabilities: parseFloat(totalLiabilities.toFixed(2)),
-        netWorth: parseFloat((totalAssets - totalLiabilities).toFixed(2)),
-        debtPaymentMade: parseFloat(debtPaymentMade.toFixed(2)),
-        incomeReceived: parseFloat(incomeReceived.toFixed(2))
-    };
 }
 
 // Today's figures computed the way a snapshot would be, without saving
@@ -174,13 +134,8 @@ function captureNetWorthSnapshotUncached(app, options = {}) {
     const previousLatest = beforeSeries.length > 0 ? beforeSeries[beforeSeries.length - 1] : null;
     const baseline = beforeSeries.length > 0 ? beforeSeries[0].netWorth : null;
 
-    const metrics = computeSnapshotMetrics(app, now);
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const snapshot = {
-        date: now.toISOString().slice(0, 10),
-        ...metrics,
-        source: options.source === 'manual' ? 'manual' : 'auto'
-    };
+    const monthKey = snapshotMonthKey(now);
+    const snapshot = buildNetWorthSnapshot(app, now, options.source);
 
     if (!Array.isArray(app.monthlySnapshots)) app.monthlySnapshots = [];
     const existingIndex = app.monthlySnapshots.findIndex(s => toMonthKey(s?.date) === monthKey);

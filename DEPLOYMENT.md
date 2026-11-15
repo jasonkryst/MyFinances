@@ -255,6 +255,21 @@ The same startup script that writes `GA_MEASUREMENT_ID` writes this value into `
 
 A refresh never interrupts you. It waits while a save is in progress, an edit form or dialog is open, or you are typing, and it keeps your Ledger filters and Forecast range.
 
+### Background jobs (On by default)
+
+The server runs a few jobs on its own, about 30 seconds after it starts and then every hour:
+
+- **Monthly net-worth snapshot:** the server records each user's net worth for the month, even if nobody opens the app. (The *Auto-capture monthly net worth snapshot* setting only controls the app's own capture when it opens.) A month that already has a snapshot is left alone, and a user with no accounts or debts gets none.
+- **Session pruning:** expired sign-in sessions are deleted every hour.
+
+Each job runs once per period, even across restarts, and a failure is logged and retried on the next hour. To turn every job off, set `JOBS_ENABLED=false` in `.env`. Months and hours follow the server's time zone, UTC unless you set `TZ`:
+
+```sh
+# .env
+JOBS_ENABLED=true      # false turns background jobs off
+TZ=Europe/Warsaw       # optional; default UTC
+```
+
 ## PostgreSQL Server Setup (Required)
 
 Since 7.0.0 the PostgreSQL server is the only storage. The browser keeps no

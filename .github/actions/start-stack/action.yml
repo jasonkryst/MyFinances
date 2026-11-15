@@ -12,6 +12,9 @@ description: >
   service, Postgres included), run `docker compose down -v`, wait for the port
   again and try `up` exactly once more; a second failure fails the step. The
   "Create test user" step prints the server logs if it fails.
+  Background jobs (#579) are off in test stacks (JOBS_ENABLED=false): the first
+  tick would otherwise write a net-worth snapshot mid-test. Server tests call
+  the jobs directly.
 runs:
   using: composite
   steps:
@@ -30,6 +33,8 @@ runs:
         : > secrets/smtp_password.txt
     - name: Start stack
       shell: bash
+      env:
+        JOBS_ENABLED: "false"
       run: |
         # Not `-e`: every failure below must reach the diagnostics before exiting.
         set +e

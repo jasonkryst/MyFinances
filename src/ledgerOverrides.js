@@ -5,18 +5,9 @@ import { pgPut, pgDelete } from './postgresSync.js';
 import { showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { t } from './i18n.js';
 
-export function getOverrideAmount(app, txId) {
-    if (!txId) return null;
-    const map = app.ledgerAmountOverrides || {};
-    const entry = map[txId];
-    if (!entry) return null;
-    return parseFiniteOrNull(entry.amount);
-}
-
-export function getEffectiveAmount(app, tx) {
-    const overrideAmount = getOverrideAmount(app, tx.transactionId);
-    return overrideAmount !== null ? overrideAmount : tx.originalAmount;
-}
+// Pure read-side lookups live in ledgerStateCore.js (shared with the server,
+// #579); re-exported so existing imports keep working.
+export { getOverrideAmount, getEffectiveAmount } from './ledgerStateCore.js';
 
 export function setLedgerAmountOverride(app, transactionId, amount, metadata = {}) {
     if (!transactionId) return;

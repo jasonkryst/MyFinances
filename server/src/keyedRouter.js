@@ -25,10 +25,15 @@ export function createKeyedResource({ table, keyColumn, keyField, columns, sanit
         return null;
     }
 
+    // The GET body for one user; also used by the background jobs (#579).
+    async function listForUser(userId) {
+        const { rows } = await query(`SELECT ${dbColumns.join(', ')} FROM ${table} WHERE user_id = $1`, [userId]);
+        return rows.map(rowToJson);
+    }
+
     router.get('/', async (req, res, next) => {
         try {
-            const { rows } = await query(`SELECT ${dbColumns.join(', ')} FROM ${table} WHERE user_id = $1`, [req.userId]);
-            res.json(rows.map(rowToJson));
+            res.json(await listForUser(req.userId));
         } catch (err) {
             next(err);
         }
@@ -86,6 +91,6 @@ export function createKeyedResource({ table, keyColumn, keyField, columns, sanit
         }
     });
 
-    router.crudConfig = { table, columns, sanitize };
+    router.crudConfig = { table, columns, sanitize, listForUser };
     return router;
 }
