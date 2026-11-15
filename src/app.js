@@ -157,6 +157,17 @@ import {
  * Modularized for modern browser support.
  */
 
+// Yield to the browser so boot work splits into separate tasks (#525). rAF
+// never fires in a background tab, so a timer backs it up.
+function nextFrame() {
+    return new Promise(resolve => {
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(finish);
+        setTimeout(finish, 50);
+    });
+}
+
 export class DebtTrackerApp {
     constructor() {
         this.persons = [];
@@ -301,8 +312,13 @@ export class DebtTrackerApp {
         initSettingsModalFeature(this);
         initDataTransferModal(this);
         initCalendarFeedModal(this);
-        this.updateUI();
+        // #525: split boot into short tasks (data load, then shared state,
+        // then the landing page) and render only the landing page. Hidden
+        // pages render on their first visit (switchPage -> renderPageData).
+        await nextFrame();
+        this.updateUI({ deferHiddenPages: true });
         this.updateFormVisibility();
+        await nextFrame();
         this.switchPage('health');
         // #575: from here on, other tabs' writes and returning to this tab
         // re-read the server.
@@ -365,8 +381,8 @@ export class DebtTrackerApp {
      * load, using the saved monthlyPayment/strategy (issue #162). No-op if a
      * plan is already displayed or no saved plan/debts exist.
      */
-    restoreLastPlan() {
-        return restoreLastPlanFeature(this);
+    restoreLastPlan(opts) {
+        return restoreLastPlanFeature(this, opts);
     }
 
     /**
@@ -482,8 +498,8 @@ export class DebtTrackerApp {
      * - Otherwise hides the empty state, activates the Debts page, and calls
      *   `renderDebtsList()`.
      */
-    updateUI() {
-        return updateUIFeature(this);
+    updateUI(opts) {
+        return updateUIFeature(this, opts);
     }
 
     /**
