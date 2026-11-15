@@ -59,7 +59,7 @@ export default {
     'settings.testEmailHelp': 'Wysyła testową wiadomość na adres Twojego konta, aby sprawdzić konfigurację SMTP serwera.',
     'settings.showArchivedDebtsHelp': 'Gdy włączone, zarchiwizowane długi (całkowicie spłacone) będą widoczne na stronie Zobowiązań. Zarchiwizowane długi są wyłączone ze wszystkich obliczeń oraz z kanału kalendarza, chyba że ta opcja jest włączona.',
     'settings.showArchivedRecurringHelp': 'Gdy włączone, zarchiwizowane szablony cykliczne będą widoczne na stronie Cykliczne. Zarchiwizowane szablony są wyłączone z transakcji księgi, podsumowania przepływów pieniężnych i kanału kalendarza.',
-    'settings.autoNwSnapshotHelp': 'Gdy włączone, migawka wartości netto jest zapisywana automatycznie raz w miesiącu: przez serwer na początku miesiąca, nawet jeśli nie otworzysz aplikacji, albo przy Twojej pierwszej wizycie w danym miesiącu.',
+    'settings.autoNwSnapshotHelp': 'Gdy włączone, migawka wartości netto jest zapisywana automatycznie raz w miesiącu, przy pierwszym uruchomieniu aplikacji w danym miesiącu.',
     'settings.cur.USD': 'USD — dolar amerykański',
     'settings.cur.EUR': 'EUR — euro',
     'settings.cur.GBP': 'GBP — funt brytyjski',

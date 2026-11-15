@@ -1,6 +1,7 @@
-// Monthly net-worth snapshot (#579). For every user who turned on "Auto-capture
-// monthly net worth snapshot" (the autoNwSnapshot setting), store this month's
-// snapshot even if the app is never opened. The values come from the same pure
+// Monthly net-worth snapshot (#579). For every user, store this month's
+// snapshot even if the app is never opened. The per-user autoNwSnapshot setting
+// only governs the app's own capture on load; the server job runs for everyone
+// (JOBS_ENABLED=false turns it off for the whole server). The values come from the same pure
 // code the browser runs (src/netWorthCore.js -> src/projectionCore.js), over
 // the same data shape (loadUserState), so a server snapshot equals the one the
 // app would have captured. A month that already has a snapshot is skipped
@@ -11,7 +12,6 @@
 import { query } from '../db.js';
 import { buildNetWorthSnapshot, hasSnapshotInMonth } from '../../../src/netWorthCore.js';
 import { withProjectionCache } from '../../../src/projectionCache.js';
-import { AUTO_NW_SNAPSHOT } from '../../../src/settingsSchema.js';
 import { sanitizeNetWorthSnapshot } from '../sanitizers/index.js';
 import netWorthSnapshotsRouter from '../routes/netWorthSnapshots.js';
 import { loadUserState } from './loadUserState.js';
@@ -40,12 +40,13 @@ export async function insertSnapshot(userId, snapshot) {
     return rowCount === 1;
 }
 
-// One user's snapshot for `now`. Returns 'disabled', 'exists', 'captured' or
-// 'raced' (another writer stored that date first).
+// One user's snapshot for `now`. Returns 'empty' (no accounts and no debts:
+// a $0 snapshot would block the app's capture for the month and hide the
+// Net Worth report's live point), 'exists', 'captured' or 'raced' (another
+// writer stored that date first).
 export async function captureSnapshotForUser(userId, now = new Date()) {
     const app = await loadUserState(userId);
-    const setting = app.settings.find(s => s.key === AUTO_NW_SNAPSHOT);
-    if (!setting || setting.value !== true) return 'disabled';
+    if (!(app.accounts?.length) && !(app.debts?.length)) return 'empty';
     if (hasSnapshotInMonth(app.monthlySnapshots, now)) return 'exists';
     const snapshot = computeServerSnapshot(app, now);
     return (await insertSnapshot(userId, snapshot)) ? 'captured' : 'raced';
@@ -56,7 +57,7 @@ export const netWorthSnapshotJob = {
     periodKey: monthPeriodKey,
     async run({ now = new Date(), log = console } = {}) {
         const { rows } = await query('SELECT id FROM users ORDER BY id');
-        const counts = { captured: 0, exists: 0, disabled: 0, raced: 0, failed: 0 };
+        const counts = { captured: 0, exists: 0, empty: 0, raced: 0, failed: 0 };
         const errors = [];
         // One user's failure must not stop the others; the period is then
         // marked failed and retried, which skips users already captured.

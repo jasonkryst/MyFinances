@@ -59,7 +59,7 @@ export default {
     'settings.testEmailHelp': 'Envía un correo de prueba a la dirección de tu cuenta para verificar la configuración SMTP del servidor.',
     'settings.showArchivedDebtsHelp': 'Si está activado, las deudas que hayas archivado (totalmente pagadas) se mostrarán en la página de Pasivos. Las deudas archivadas se excluyen de todos los cálculos y del calendario, salvo que esté activado.',
     'settings.showArchivedRecurringHelp': 'Si está activado, las plantillas recurrentes que hayas archivado se mostrarán en la página de Recurrentes. Las plantillas archivadas se excluyen de las transacciones del libro mayor, del resumen de flujo de caja y del calendario.',
-    'settings.autoNwSnapshotHelp': 'Si está activado, se guarda automáticamente una instantánea del patrimonio neto una vez al mes: la guarda el servidor a principios de mes, aunque no abras la aplicación, o se guarda en tu primera visita de ese mes.',
+    'settings.autoNwSnapshotHelp': 'Si está activado, se guardará automáticamente una instantánea del patrimonio neto una vez al mes, en la primera carga de la aplicación de ese mes.',
     'settings.cur.USD': 'USD — dólar estadounidense',
     'settings.cur.EUR': 'EUR — euro',
     'settings.cur.GBP': 'GBP — libra esterlina',

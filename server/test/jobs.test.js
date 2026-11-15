@@ -384,29 +384,43 @@ test('a snapshot in another month does not block this month', async () => {
     assert.equal((await storedSnapshots(user.id)).length, 2);
 });
 
-test('users who left auto-capture off get no snapshot', async () => {
+test('a user with no accounts or debts gets no $0 snapshot', async () => {
+    const user = await signIn('empty@example.com');
+    assert.equal(await captureSnapshotForUser(user.id, NOW), 'empty');
+    assert.deepEqual(await storedSnapshots(user.id), []);
+    await api('POST', '/api/debts', { name: 'Card', debtType: 'creditCard', accountBalance: 300, interestRate: 20, minimumPayment: 25, dueDate: 5 });
+    assert.equal(await captureSnapshotForUser(user.id, NOW), 'captured');
+    assert.deepEqual((await storedSnapshots(user.id)).map(x => x.netWorth), [-300]);
+});
+
+test('the server captures even when the app setting is off or unset', async () => {
+    // autoNwSnapshot governs only the app's own capture on load; the server job
+    // runs for every user (JOBS_ENABLED=false is the server-wide off switch).
     const user = await signIn();
     await seedRichDataset();
     await api('PUT', '/api/settings/autoNwSnapshot', { value: false });
-    assert.equal(await captureSnapshotForUser(user.id, NOW), 'disabled');
+    assert.equal(await captureSnapshotForUser(user.id, NOW), 'captured');
+    assert.equal((await storedSnapshots(user.id)).length, 1);
 
-    await pool.query("DELETE FROM settings WHERE key = 'autoNwSnapshot'");
-    assert.equal(await captureSnapshotForUser(user.id, NOW), 'disabled');
-    assert.deepEqual(await storedSnapshots(user.id), []);
+    const other = await signIn('unset@example.com');
+    await api('POST', '/api/accounts', { name: 'U', type: 'Checking', startingBalance: 5, interestRate: 0 });
+    await pool.query("DELETE FROM settings WHERE user_id = $1 AND key = 'autoNwSnapshot'", [other.id]);
+    assert.equal(await captureSnapshotForUser(other.id, NOW), 'captured');
+    assert.deepEqual((await storedSnapshots(other.id)).map(x => x.netWorth), [5]);
 });
 
-test('the job covers every opted-in user once per month, even when run again', async () => {
+test('the job covers every user once per month, even when run again', async () => {
     const a = await signIn('a@example.com');
     await seedRichDataset();
     const b = await signIn('b@example.com');
     await api('POST', '/api/accounts', { name: 'B', type: 'Checking', startingBalance: 10, interestRate: 0 });
     await api('PUT', '/api/settings/autoNwSnapshot', { value: true });
-    const c = await signIn('c@example.com'); // auto-capture off
+    const c = await signIn('c@example.com'); // no accounts or debts
 
     const first = await runJob(netWorthSnapshotJob, NOW, quietLog);
     assert.equal(first.status, 'succeeded');
     assert.equal(first.periodKey, '2026-11');
-    assert.deepEqual(first.result, { captured: 2, exists: 0, disabled: 1, raced: 0, failed: 0 });
+    assert.deepEqual(first.result, { captured: 2, exists: 0, empty: 1, raced: 0, failed: 0 });
     assert.equal((await runJob(netWorthSnapshotJob, NOW, quietLog)).status, 'skipped');
 
     assert.equal((await storedSnapshots(a.id)).length, 1);

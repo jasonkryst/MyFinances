@@ -142,8 +142,9 @@ server starts listening: one tick 30 seconds after startup, then hourly.
   notification triggers (#211) go):
   - `prune-sessions` (hourly): `DELETE FROM sessions WHERE expires_at < now()`
     (#536), plus `job_runs` rows that finished over 90 days ago.
-  - `net-worth-snapshot` (monthly): for each user whose `autoNwSnapshot`
-    setting is on and who has no snapshot in the current month, computes the
+  - `net-worth-snapshot` (monthly): for each user who has no snapshot in the
+    current month (regardless of the `autoNwSnapshot` setting, which governs
+    only the app's own capture on load), computes the
     snapshot with the browser's own pure code (`src/netWorthCore.js`) over the
     data each route's `listForUser()` returns (the same shape as the browser's
     `loadFromPostgres`), and inserts it through `sanitizeNetWorthSnapshot`

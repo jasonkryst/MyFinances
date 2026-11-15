@@ -1023,7 +1023,7 @@ const WHATS_NEW_ENTRIES = [
     {
         version: '7.13.0 — 2026-11-15',
         items: [
-            '<strong>Monthly snapshots without opening the app:</strong> with <em>Auto-capture monthly net worth snapshot</em> turned on in Settings, the server now records your net worth early each month, even if you never open MyFinances that month.',
+            '<strong>Monthly snapshots without opening the app:</strong> the server now records your net worth early each month, even if you never open MyFinances that month.',
             '<strong>Same numbers as the app:</strong> the server uses exactly the same calculation as the app, and it never replaces a snapshot you already have for that month.',
             '<strong>Tidier sign-ins:</strong> expired sign-in sessions are now cleaned up automatically every hour.'
         ]

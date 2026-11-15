@@ -61,7 +61,7 @@ export default {
     'settings.testEmailHelp': 'Sends a test email to your account\'s address to verify the server\'s SMTP configuration.',
     'settings.showArchivedDebtsHelp': 'When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.',
     'settings.showArchivedRecurringHelp': 'When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.',
-    'settings.autoNwSnapshotHelp': 'When on, a net worth snapshot is captured automatically once per calendar month: by the server early in the month, even if the app is not opened, or on your first visit that month.',
+    'settings.autoNwSnapshotHelp': 'When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.',
     'settings.cur.USD': 'USD — US Dollar',
     'settings.cur.EUR': 'EUR — Euro',
     'settings.cur.GBP': 'GBP — British Pound',

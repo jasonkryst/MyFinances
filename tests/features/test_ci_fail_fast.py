@@ -223,3 +223,12 @@ def test_maxfail_stops_after_the_first_failure(tmp_path):
     assert proc.returncode != 0, out
     assert 'stopping after 1 failures' in out, out
     assert '1 failed' in out and '2 failed' not in out, out
+
+
+def test_start_stack_disables_background_jobs():
+    """#579: a job tick mid-test would add a net-worth snapshot; CI stacks run without jobs."""
+    action = START_STACK.read_text(encoding="utf-8")
+    step = action.split("- name: Start stack", 1)[1].split("- name:", 1)[0]
+    assert re.search(r'JOBS_ENABLED:\s*"false"', step), "start-stack must start the stack with JOBS_ENABLED=false"
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert "JOBS_ENABLED: \"${JOBS_ENABLED:-true}\"" in compose, "docker-compose.yml must pass JOBS_ENABLED through to the server"
