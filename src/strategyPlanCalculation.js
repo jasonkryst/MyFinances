@@ -49,7 +49,7 @@ export async function recordPlanHistoryEntry(app, monthlyPayment, strategy) {
 // Silently restore and display the last-submitted plan on load (issue #162)
 // so the user sees their previous results without re-clicking Calculate.
 // Guarded by the caller to only run once per load (before any plan exists).
-export function restoreLastPlan(app) {
+export function restoreLastPlan(app, { display = true } = {}) {
     if (app.lastPaymentPlan) return;
     if (!app._savedMonthlyPayment || !app._savedStrategy) return;
     const activeDebtsForRestore = app.debts.filter(d => !d.archived);
@@ -64,6 +64,10 @@ export function restoreLastPlan(app) {
         strategy: app._savedStrategy,
         stimulus,
         onSuccess: () => {
+            // #525: a boot that lands on another page keeps the computed plan
+            // (Health and the debt cards read lastSummary) but defers the Plan
+            // page's DOM work to its first visit (renderPageData 'strategy').
+            if (!display) { app._planDisplayPending = true; return; }
             const resultsSection = document.getElementById('resultsSection');
             if (resultsSection) {
                 resultsSection.classList.add('visible'); resultsSection.classList.remove('hidden');

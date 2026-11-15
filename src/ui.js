@@ -843,6 +843,12 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     }
     if (pageName === 'strategy') {
         app.renderStrategyIncomeWidget(); app.renderPlanHistory();
+        if (app._planDisplayPending && app.lastPaymentPlan && app.lastSummary) {
+            // #525: the plan restored at boot, shown on the first visit.
+            const resultsSection = document.getElementById('resultsSection');
+            if (resultsSection) { resultsSection.classList.add('visible'); resultsSection.classList.remove('hidden'); }
+            try { app.displayPaymentPlan(); } catch (err) { console.error('Plan restore failed', err); }
+        }
         if (resetToDefaults) app.resetRefinanceScenario();
         else if (app.lastPaymentPlan && app.lastSummary) {
             // In-place refresh (locale switch, import): re-render the results so their text follows
@@ -880,11 +886,13 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
 
 // Render-scoped projection cache (#518): every balance this render reads
 // shares one projection build instead of one per account.
-export function updateUI(app) {
-    return withProjectionCache(app, () => updateUIUncached(app));
+// `deferHiddenPages` (boot only, #525) computes shared state but skips the DOM
+// work of pages that are not showing; their first visit renders them.
+export function updateUI(app, { deferHiddenPages = false } = {}) {
+    return withProjectionCache(app, () => updateUIUncached(app, deferHiddenPages));
 }
 
-function updateUIUncached(app) {
+function updateUIUncached(app, deferHiddenPages) {
     if (app._savedMonthlyPayment) {
         const mpEl = document.getElementById('monthlyPayment');
         if (mpEl && !mpEl.value) mpEl.value = app._savedMonthlyPayment;
@@ -893,8 +901,8 @@ function updateUIUncached(app) {
         const stratEl = document.getElementById('paymentStrategy');
         if (stratEl) stratEl.value = app._savedStrategy;
     }
-    app.restoreLastPlan();
-    app.renderPlanHistory();
+    app.restoreLastPlan({ display: !deferHiddenPages });
+    if (!deferHiddenPages) app.renderPlanHistory();
 
     if (app.debts.length === 0) {
         document.getElementById('emptyState').classList.add('visible'); document.getElementById('emptyState').classList.remove('hidden');
@@ -902,6 +910,7 @@ function updateUIUncached(app) {
         document.getElementById('emptyState').classList.add('hidden'); document.getElementById('emptyState').classList.remove('visible');
     }
 
+    if (deferHiddenPages) return;
     app.renderDebtsList();
     app.renderNetWorthWidget();
 }

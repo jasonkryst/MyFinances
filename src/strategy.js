@@ -55,6 +55,7 @@ export function displayPaymentPlan(app) {
         console.error('displayPaymentPlan: missing data!');
         return;
     }
+    app._planDisplayPending = false;
     wirePlanStaleBanner(app);
 
     // Update summary
