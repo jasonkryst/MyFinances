@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.11.2] — 2026-11-15
+
+### Changed
+- **Chart.js no longer blocks parsing** (issue #523). Its `<script>` in `index.html` is now `defer`red; it still runs before the module `app.js` (deferred scripts and modules run in document order, ahead of `DOMContentLoaded`), so `Chart` exists when startup applies the reduced-motion defaults. The jsdelivr origin, SRI hash and CSP are unchanged.
+- **Service worker serves precached static assets cache-first** (issue #524). Subresources in `PRECACHE_URLS` come from the versioned cache, so a warm reload no longer sends about 66 conditional requests; `CACHE_NAME` changes every release, so the update banner flow is unchanged. The document (`/`, `/index.html`, every navigation), anything not precached, and the CDN runtime cache behave as before; `/api/`, `/auth/` and `/calendar.ics` stay network-only. The precache now bypasses the HTTP cache (`cache: 'reload'`). With the dev bind-mount override, bump `CACHE_NAME` or unregister the worker to see an edited asset.
+- **Boot fetches `/api/plan-settings` once** (issue #533). `probeServer()` returns the parsed body and `loadFromPostgres(app, { planSettings })` reuses it; after the login gate, `refreshFromServer` and a re-probe it still fetches.
+
+### Fixed
+- Health's surplus projection dates now follow the app language (issue #512, PR #626, thanks @SAY-5).
+
+### Performance
+- **Index on `incomes.person_id`** (issue #535). Migration `1755600000038` adds `idx_incomes_person_id` (idempotent), so deleting a person no longer scans `incomes`. Rollback drops only the index.
+
 ## [7.11.1] — 2026-11-12
 
 ### Changed

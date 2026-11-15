@@ -3,7 +3,7 @@
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v7.11.1';
+const CACHE_NAME = 'myfinances-v7.11.2';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 
@@ -38,7 +38,10 @@ const PRECACHE_URLS = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(PRECACHE_URLS))
+            // cache: 'reload' bypasses the HTTP cache so a release never
+            // precaches a stale copy of an unchanged filename (the entries are
+            // now served cache-first, #524).
+            .then((cache) => cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' }))))
             .catch((err) => console.error('[sw] precache failed', err))
     );
 });
@@ -93,6 +96,32 @@ async function networkFirst(request) {
     return response;
 }
 
+// Precached static assets are served cache-first (#524): CACHE_NAME changes
+// every release, so the versioned cache is always the right copy for the
+// running release and a warm load makes no request for them. A miss (precache
+// failed, or an asset not in the list) falls through to networkFirst, which
+// also stores it. The document stays network-first so a new release is seen.
+async function cacheFirst(request) {
+    try {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(request);
+        if (cached) return cached;
+    } catch (err) {
+        // Storage unavailable: fall through to the network.
+    }
+    return networkFirst(request);
+}
+
+const CACHE_FIRST_PATHS = new Set(
+    PRECACHE_URLS.filter((url) => url !== '/' && url !== '/index.html')
+);
+
+function isCacheFirstRequest(request, pathname) {
+    // Documents (navigations, including /guide.html) and the entry points
+    // always revalidate; only subresources in the precache list qualify.
+    return request.mode !== 'navigate' && CACHE_FIRST_PATHS.has(pathname);
+}
+
 async function staleWhileRevalidate(request) {
     const cache = await caches.open(CACHE_NAME);
     const cached = await cache.match(request);
@@ -118,10 +147,15 @@ self.addEventListener('fetch', (event) => {
         // from the cache. A cached /api response offline would hide the
         // "Can't reach your server" gate behind stale data, and financial
         // data must not sit in Cache Storage.
-        if (isNetworkOnlyPath(new URL(request.url).pathname)) return;
-        // App-shell filenames are stable between releases. Prefer the network
-        // while online so an active older worker cannot keep serving a stale
-        // release; fall back to the precache only when offline.
+        const { pathname } = new URL(request.url);
+        if (isNetworkOnlyPath(pathname)) return;
+        if (isCacheFirstRequest(request, pathname)) {
+            event.respondWith(cacheFirst(request));
+            return;
+        }
+        // The document and anything not precached: prefer the network while
+        // online so an active older worker cannot keep serving a stale
+        // release; fall back to the cache only when offline.
         event.respondWith(networkFirst(request));
     }
 });
