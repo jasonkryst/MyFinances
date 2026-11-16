@@ -21,6 +21,7 @@ import {
 import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
+import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showAlertModal } from './ui.js';
 import { t, getIntlLocale } from './i18n.js';
 
@@ -275,10 +276,22 @@ export async function addIncome(app) {
 
 // Delete an income source
 export function deleteIncome(app, incomeId) {
+    const index = app.incomes.findIndex(i => i.id === incomeId);
+    const record = app.incomes[index];
     app.incomes = app.incomes.filter(i => i.id !== incomeId);
-    pgDelete(app, `/api/incomes/${incomeId}`);
+    const deletion = pgDelete(app, `/api/incomes/${incomeId}`);
     app.renderIncomeList();
     app.renderStrategyIncomeWidget();
+    if (!record) return;
+    offerUndo(t('undo.deleted', { name: record.name || t('undo.unnamed') }), async () => {
+        const restored = await restoreDeletedRecord(app, {
+            collection: 'incomes', path: '/api/incomes', record, index, deletion, ledgerType: 'income',
+        });
+        if (!restored) return false;
+        app.renderIncomeList();
+        app.renderStrategyIncomeWidget();
+        return true;
+    });
 }
 
 // Enter inline-edit mode for an income card
@@ -370,10 +383,22 @@ export async function addBonus(app) {
 }
 
 export function deleteBonus(app, bonusId) {
+    const index = app.bonuses.findIndex(b => b.id === bonusId);
+    const record = app.bonuses[index];
     app.bonuses = app.bonuses.filter(b => b.id !== bonusId);
-    pgDelete(app, `/api/bonuses/${bonusId}`);
+    const deletion = pgDelete(app, `/api/bonuses/${bonusId}`);
     app.renderBonusList();
     app.renderStrategyIncomeWidget();
+    if (!record) return;
+    offerUndo(t('undo.deleted', { name: record.name || t('undo.unnamed') }), async () => {
+        const restored = await restoreDeletedRecord(app, {
+            collection: 'bonuses', path: '/api/bonuses', record, index, deletion, ledgerType: 'bonus',
+        });
+        if (!restored) return false;
+        app.renderBonusList();
+        app.renderStrategyIncomeWidget();
+        return true;
+    });
 }
 
 export function startEditBonus(app, bonusId) {

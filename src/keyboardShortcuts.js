@@ -11,7 +11,8 @@ export const KEYBOARD_SHORTCUTS = [
         group: 'Global',
         items: [
             { keys: [['Ctrl', 'K'], ['⌘', 'K']], description: 'Open or close the command palette' },
-            { keys: [['Esc']], description: 'Close the open dialog, menu, or command palette' }
+            { keys: [['Esc']], description: 'Close the open dialog, menu, or command palette' },
+            { keys: [['Ctrl', 'Z'], ['⌘', 'Z']], description: 'Undo the last delete or archive while its Undo notice is showing' }
         ]
     },
     {

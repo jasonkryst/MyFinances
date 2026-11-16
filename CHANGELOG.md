@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.15.0] — 2026-11-15
+
+### Added
+- **Undo for deletes and archives** (issue #577).
+  - **What shows the notice.** Deleting a debt, income, bonus or recurring item shows an Undo notice for 10 seconds, and so does archiving or unarchiving a debt, recurring item, account or sinking fund.
+  - **Undo of a delete.** The record is re-created (it gets a new server id) at its old place in the list. Its Ledger amount overrides and Cleared flags are moved from the old id to the new one; the pure `src/undoCore.js` (`planLedgerRekey`) is Stryker-scoped. For a debt, the balance history the server deleted with it is re-created too.
+  - **Undo of an (un)archive.** It flips the archive state back.
+  - **Notice behavior.** The notice is in a polite live region. When the deleted item's button disappears with it, focus moves to Undo. The countdown pauses while the pointer or focus is inside the notice. Ctrl/Cmd+Z runs Undo while the notice shows (listed in Keyboard Shortcuts), but not while typing in a field.
+  - **Not covered.** Account deletes, which also unlink or reassign their linked records, are not undoable yet.
+
+### Changed
+- **Savings Contribute uses an in-app dialog** (issue #546) instead of the browser's native `prompt()`, so it follows dark mode, translations and screen readers. An invalid amount shows an inline error and keeps the dialog open; the shared rule is the pure `parseContributionAmount` (`src/utils.js`: above 0, at most 1e9, rounded to cents). Emergency-fund and sinking-fund contributions are now tested end to end.
+
 ## [7.14.0] — 2026-11-15
 
 ### Added

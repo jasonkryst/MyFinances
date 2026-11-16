@@ -9411,3 +9411,66 @@ body.dark-mode .notifications-item-new {
         max-width: none;
     }
 }
+
+/* Undo notice (#577): bottom-centre, above page content, below modals. */
+.undo-toast-region {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    z-index: 9997;
+    max-width: calc(100vw - 32px);
+}
+.undo-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 16px;
+    border-radius: 10px;
+    background: #1f2937;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+    font-size: 0.9rem;
+}
+.undo-toast-message {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.undo-toast-btn {
+    flex-shrink: 0;
+    background: transparent;
+    color: #93c5fd;
+    border: 1px solid #93c5fd;
+    font-weight: 600;
+}
+.undo-toast-btn:hover,
+.undo-toast-btn:focus-visible {
+    background: rgba(147, 197, 253, 0.15);
+}
+.undo-toast-close {
+    flex-shrink: 0;
+    min-width: 32px;
+    min-height: 32px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #e5e7eb;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.undo-toast-close:hover,
+.undo-toast-close:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+}
+body.dark-mode .undo-toast {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+body.dark-mode .undo-toast-btn {
+    color: #1d4ed8;
+    border-color: #1d4ed8;
+}
+body.dark-mode .undo-toast-close {
+    color: #334155;
+}

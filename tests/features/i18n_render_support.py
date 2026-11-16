@@ -537,6 +537,35 @@ TRANSLATED_PAGES = {
             }
         }""",
     ),
+    # #577: the Undo notice (delete, archive, unarchive) and its failure text.
+    'undo-toast': (
+        ['#undoToastRegion'],
+        """async () => {
+            const { t } = await import('/src/i18n.js');
+            const u = await import('/src/undo.js');
+            u.offerUndo(t('undo.deleted', { name: '⟦Visa⟧' }), async () => false);
+            await u.runUndo();
+        }""",
+    ),
+    'undo-toast-archived': (
+        ['#undoToastRegion'],
+        """async () => {
+            const { t } = await import('/src/i18n.js');
+            const u = await import('/src/undo.js');
+            u.offerUndo(t('undo.unnamed') + ' ' + t('undo.archived', { name: '⟦Visa⟧' }), async () => true);
+        }""",
+    ),
+    # #546: the Savings Contribute dialog with its inline error.
+    'savings-contribute-modal': (
+        ['#contributeModal'],
+        """async () => {
+            const { t } = await import('/src/i18n.js');
+            const s = await import('/src/savings.js');
+            s.openContributeModal(t('savings.contributeSinkingDesc', { name: '⟦Vacation⟧' }));
+            await new Promise(r => setTimeout(r, 50));
+            document.getElementById('contributeConfirmBtn').click();
+        }""",
+    ),
     # #211: the toolbar bell's alert list, one item of every type (read,
     # unread and resolved), rendered from injected state.
     'notifications-panel': (
