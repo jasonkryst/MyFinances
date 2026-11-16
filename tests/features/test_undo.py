@@ -84,6 +84,9 @@ def test_undo_debt_delete_restores_record_ledger_keys_and_history(app_page):
     new = next(r for r in debts if r['name'] == 'Visa')
     assert new['id'] != old_id
     assert new['minimumPayment'] == 40 and new['accountBalance'] == 900
+    # The server can hold the row before the page has handled the POST reply
+    # and moved the record back into place, so wait for the local list.
+    page.wait_for_function("(id) => window.app.debts[0] && window.app.debts[0].id === id", arg=new['id'], timeout=5000)
     assert page.evaluate("window.app.debts[0].name") == 'Visa', 'restored at its old place in the list'
 
     old_key = f'debt|{old_id}|{acct}|{KEY_DATE}'
