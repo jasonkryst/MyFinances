@@ -545,6 +545,9 @@ openssl s_client -servername your-domain.com -connect your-domain.com:443 < /dev
 - **Check the account email.** Run `docker compose exec postgres psql -U myfinances -d myfinances -c "select email from users;"`. Since 7.15.1 the email is not case-sensitive.
 - **Set a new password without email.** Run `docker compose run --rm server node scripts/reset-password.js`.
 - **Behind another reverse proxy** (Traefik, Nginx Proxy Manager, Caddy, Cloudflare Tunnel), set `TRUST_PROXY_HOPS=2` in `.env`. Otherwise every device shares one lockout counter.
+  - **Count proxies, not management tools.** Count only proxies that requests pass through. Portainer doesn't count; the stack's own nginx does. For example, internet → Nginx Proxy Manager → this stack's nginx → server is `2`. Cloudflare with proxying on (orange cloud) adds one more.
+  - **No proxy changes are needed.** Nginx Proxy Manager, Traefik and Caddy send `X-Forwarded-For` and `X-Forwarded-Proto` by default. The last quoted field in the stack nginx's access log is the forwarded client address, which shows yours is passed through.
+  - **Only the outer proxy may reach the app.** Don't port-forward the app's own port (32900); publish it only on the LAN, or use a shared Docker network. With 2 trusted hops, a request that bypasses the outer proxy could forge its address and dodge the lockout.
 
 ### CSP Violations
 - Check browser console for CSP errors
