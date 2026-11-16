@@ -124,6 +124,7 @@ jobs:
             tests/features/test_recurring_income.py \
             tests/features/test_retirement.py \
             tests/features/test_retirement_coast_fire.py \
+            tests/features/test_savings_contribute.py \
             --maxfail=15 \
             -v
       - name: Stop stack
@@ -353,6 +354,7 @@ jobs:
             tests/features/test_number_clarity.py \
             tests/features/test_interest_income.py \
             tests/features/test_health_fire_target.py \
+            tests/features/test_undo.py \
             --maxfail=15 \
             -v
       - name: Stop stack

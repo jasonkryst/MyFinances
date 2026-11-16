@@ -5,6 +5,7 @@ import { formatCurrency, getDayOrdinal, computeInterestPaidToDate, dailyCompound
 import { recalculatePaymentPlan } from './strategyPlanCalculation.js';
 import { renderBreakEvenBadge } from './debtBreakEven.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
+import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showDeleteConfirmModal, showAlertModal, showArchiveConfirmModal } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
@@ -169,13 +170,28 @@ export async function deleteDebt(app, debtId) {
     const confirmed = await showDeleteConfirmModal(t('debts.deleteConfirm'));
     if (!confirmed) return;
 
+    const index = app.debts.findIndex(d => d.id === debtId);
+    const record = app.debts[index];
+    // The server deletes the debt's balance history with it (ON DELETE
+    // CASCADE); keep a copy so Undo can re-create it (#577).
+    const history = (app.balanceHistory || []).filter(e => Number(e.debtId) === Number(debtId));
     app.debts = app.debts.filter(d => d.id !== debtId);
     removeHistoryForOwner(app, { kind: 'debt', id: debtId });
     if (app.editingDebtId === debtId) app.editingDebtId = null;
 
-    pgDelete(app, `/api/debts/${debtId}`);
+    const deletion = pgDelete(app, `/api/debts/${debtId}`);
     recalculateIfConfigured(app);
     app.updateUI();
+    if (!record) return;
+    offerUndo(t('undo.deleted', { name: record.name || t('undo.unnamed') }), async () => {
+        const restored = await restoreDeletedRecord(app, {
+            collection: 'debts', path: '/api/debts', record, index, deletion, ledgerType: 'debt', history,
+        });
+        if (!restored) return false;
+        recalculateIfConfigured(app);
+        app.updateUI();
+        return true;
+    });
 }
 
 export function isDebtPaidOff(debt) {
@@ -237,23 +253,27 @@ export async function archiveDebt(app, debtId) {
     if (!debt) return;
     const confirmed = await showArchiveConfirmModal(debt.name);
     if (!confirmed) return;
-
-    debt.archived = true;
-    debt.updatedAt = todayISO();
-    pgPatch(app, `/api/debts/${debtId}`, { archived: true, updatedAt: debt.updatedAt });
-    recalculateIfConfigured(app);
-    app.updateUI();
+    setDebtArchived(app, debtId, true);
 }
 
 export async function unarchiveDebt(app, debtId) {
-    const debt = app.debts.find(d => d.id === debtId);
-    if (!debt) return;
+    setDebtArchived(app, debtId, false);
+}
 
-    debt.archived = false;
+// Archive or unarchive, then offer Undo (#577), which flips it back.
+function setDebtArchived(app, debtId, archived, { offer = true } = {}) {
+    const debt = app.debts.find(d => d.id === debtId);
+    if (!debt) return false;
+    debt.archived = archived;
     debt.updatedAt = todayISO();
-    pgPatch(app, `/api/debts/${debtId}`, { archived: false, updatedAt: debt.updatedAt });
+    pgPatch(app, `/api/debts/${debtId}`, { archived, updatedAt: debt.updatedAt });
     recalculateIfConfigured(app);
     app.updateUI();
+    if (offer) {
+        offerUndo(t(archived ? 'undo.archived' : 'undo.unarchived', { name: debt.name || t('undo.unnamed') }),
+            async () => setDebtArchived(app, debtId, !archived, { offer: false }));
+    }
+    return true;
 }
 
 export function showUpdateBalanceModal(app, debtId) {

@@ -8,6 +8,7 @@ import { getZeroAmountPolicy, THEMES } from './settings.js';
 export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
 import { initSaveStatusChip } from './saveStatusChip.js';
+import { initUndoToast } from './undo.js';
 import { installOwnershipListeners } from './debtOwnership.js';
 import { t } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
@@ -34,6 +35,7 @@ export function applyTheme(theme) {
 export function initializeEventListeners(app) {
     initCommandPalette(app);
     initSaveStatusChip();
+    initUndoToast();
     document.getElementById('syncErrorBannerDismiss')?.addEventListener('click', () => {
         document.getElementById('syncErrorBanner')?.classList.add('hidden');
     });
@@ -1029,6 +1031,14 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.15.0 — 2026-11-15',
+        items: [
+            '<strong>Undo:</strong> deleting a debt, income, bonus or recurring item, or archiving or unarchiving a debt, recurring item, account or sinking fund, now shows an <em>Undo</em> notice for 10 seconds. Undo brings it back with its Ledger history (Cleared marks and amount overrides) and, for a debt, its balance history.',
+            '<strong>Keyboard friendly:</strong> press Ctrl+Z (⌘Z on a Mac) while the notice shows. The countdown pauses while you hover over or focus the notice.',
+            '<strong>Contributions:</strong> Savings <em>Contribute</em> now opens an in-app dialog instead of the browser\'s prompt box, so it matches dark mode, your language and screen readers, and tells you right away if the amount isn\'t valid.'
+        ]
+    },
     {
         version: '7.14.0 — 2026-11-15',
         items: [
