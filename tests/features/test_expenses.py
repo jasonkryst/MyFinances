@@ -7,7 +7,7 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, expect_alert_and_dismiss, wait_for_api
 
 
 def _open_expenses_panel(page):
@@ -161,7 +161,9 @@ def test_add_expense_invalid_amount_rejected(app_page, expense_data):
         category=expense_data["category"],
     )
     page.click('#expenseFormSubmit')
+    expect_alert_and_dismiss(page, 'Please enter a valid expense name, amount, and date.')
 
+    wait_for_api(page, '/api/expenses', lambda rows: not any(r.get('name') == expense_data["name"] for r in rows))
     assert page.query_selector('#expenseList .budget-card') is None, (
         "No expense should be created for an empty amount"
     )
@@ -210,7 +212,9 @@ def test_add_expense_negative_amount_rejected(app_page, expense_data):
         category=expense_data["category"],
     )
     page.click('#expenseFormSubmit')
+    expect_alert_and_dismiss(page, 'Please enter a valid expense name, amount, and date.')
 
+    wait_for_api(page, '/api/expenses', lambda rows: not any(r.get('name') == expense_data["name"] for r in rows))
     assert page.query_selector('#expenseList .budget-card') is None, (
         "A negative amount should be rejected, not silently clamped to 0 and accepted "
         "(actual app behavior: it IS accepted as $0.00 -- see docstring)."
@@ -232,7 +236,9 @@ def test_add_expense_missing_date_rejected(app_page, expense_data):
     # Explicitly clear the date field (HTML date inputs default to empty).
     page.evaluate("document.getElementById('expenseDate').value = ''")
     page.click('#expenseFormSubmit')
+    expect_alert_and_dismiss(page, 'Please enter a valid expense name, amount, and date.')
 
+    wait_for_api(page, '/api/expenses', lambda rows: not any(r.get('name') == expense_data["name"] for r in rows))
     assert page.query_selector('#expenseList .budget-card') is None, (
         "No expense should be created when date is missing"
     )
@@ -256,7 +262,9 @@ def test_add_expense_invalid_date_format_rejected(app_page, expense_data):
     # mirroring how sanitizeDateISO would reject a non ISO-8601 string on import.
     page.evaluate("document.getElementById('expenseDate').value = 'not-a-date'")
     page.click('#expenseFormSubmit')
+    expect_alert_and_dismiss(page, 'Please enter a valid expense name, amount, and date.')
 
+    wait_for_api(page, '/api/expenses', lambda rows: not any(r.get('name') == expense_data["name"] for r in rows))
     assert page.query_selector('#expenseList .budget-card') is None, (
         "No expense should be created when date is invalid"
     )
