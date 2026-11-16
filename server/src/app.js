@@ -88,11 +88,22 @@ export function createApp() {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
     });
 
-    // eslint-disable-next-line no-unused-vars
-    app.use((err, req, res, next) => {
-        console.error(err);
-        res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } });
-    });
+    app.use(errorHandler);
 
     return app;
+}
+
+// Client errors raised by middleware (malformed JSON, oversize body, ...) carry
+// a 4xx status; answer with it instead of a 500 and skip the stack trace.
+// eslint-disable-next-line no-unused-vars
+export function errorHandler(err, req, res, next) {
+    const status = err && (Number.isInteger(err.status) ? err.status : err.statusCode);
+    if (Number.isInteger(status) && status >= 400 && status <= 499) {
+        if (status === 413) {
+            return res.status(413).json({ error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request body too large' } });
+        }
+        return res.status(status).json({ error: { code: 'BAD_REQUEST', message: 'Bad request' } });
+    }
+    console.error(err);
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } });
 }

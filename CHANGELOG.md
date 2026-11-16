@@ -17,6 +17,11 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ### Changed
 - **Savings Contribute uses an in-app dialog** (issue #546) instead of the browser's native `prompt()`, so it follows dark mode, translations and screen readers. An invalid amount shows an inline error and keeps the dialog open; the shared rule is the pure `parseContributionAmount` (`src/utils.js`: above 0, at most 1e9, rounded to cents). Emergency-fund and sinking-fund contributions are now tested end to end.
 
+## [7.14.1] — 2026-11-15
+
+### Fixed
+- **Client body errors return 4xx** (issue #531). A malformed JSON body now gets `400 BAD_REQUEST` and an oversize body (over 1 MB) `413 PAYLOAD_TOO_LARGE`, instead of `500 INTERNAL_ERROR`, and neither logs a stack trace. 5xx behavior is unchanged.
+
 ## [7.14.0] — 2026-11-15
 
 ### Added
