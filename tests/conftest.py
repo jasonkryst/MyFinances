@@ -35,19 +35,66 @@ def current_month_iso(day=1):
 
 
 # Sync fixtures
+class _SharedSyncBrowser:
+    """One Chromium shared by consecutive sync tests (#550).
+
+    Launching Chromium per test cost about 0.7 s each; a new context costs about
+    0.07 s and is just as isolated (cookies, storage, service workers, cache).
+    The sync Playwright driver keeps an event loop running in this thread, which
+    pytest-asyncio cannot run beside, so it is stopped before any async test
+    (pytest_runtest_setup below) and relaunched by the next sync test.
+    """
+
+    def __init__(self):
+        self._playwright = None
+        self._browser = None
+
+    def get(self) -> Browser:
+        if self._browser is None or not self._browser.is_connected():
+            self.stop()
+            self._playwright = sync_playwright().start()
+            self._browser = self._playwright.chromium.launch(headless=HEADLESS)
+        return self._browser
+
+    def stop(self):
+        try:
+            if self._browser is not None and self._browser.is_connected():
+                self._browser.close()
+        finally:
+            self._browser = None
+            if self._playwright is not None:
+                self._playwright.stop()
+                self._playwright = None
+
+
+_SYNC_BROWSER = _SharedSyncBrowser()
+
+
+def _is_async_test(item) -> bool:
+    import inspect
+    fn = getattr(item, "obj", None)
+    return inspect.iscoroutinefunction(fn) or item.get_closest_marker("asyncio") is not None
+
+
+def pytest_runtest_setup(item):
+    if _is_async_test(item):
+        _SYNC_BROWSER.stop()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    _SYNC_BROWSER.stop()
+
+
 @pytest.fixture
 def browser() -> Browser:
-    """Create a browser instance for sync tests."""
-    playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=HEADLESS)
-    yield browser
-    browser.close()
-    playwright.stop()
+    """The shared Chromium (see _SharedSyncBrowser). Tests that take `browser`
+    directly must create and close their own context and never close the browser."""
+    return _SYNC_BROWSER.get()
 
 
 @pytest.fixture
 def page(browser) -> Page:
-    """Create a new page instance for each test."""
+    """A fresh page in its own browser context for each test."""
     page = browser.new_page()
     
     # Track console errors and page errors
@@ -246,6 +293,85 @@ _SEED_JS = """
 """
 
 
+# Mirror of pgDeleteAll() (src/postgresSync.js) over plain HTTP, so app_page
+# can wipe the server before its single page load instead of booting the app,
+# wiping and reloading (#550). The collection order is read from the same
+# src/resourceDeletion.js the browser uses; the extra calls and the plan
+# settings defaults below must match pgDeleteAll, which
+# tests/features/test_harness_reset.py checks.
+_PLAN_SETTINGS_DEFAULTS = {
+    "strategy": None,
+    "monthlyPayment": None,
+    "perMonthStimulus": [],
+    "ledgerSettings": {"accountFilter": "all", "dateRange": "around7", "sortKey": "date", "sortDir": "desc", "clearedFilter": "all"},
+    "forecastSettings": {"rangeMonths": 1, "accountId": "total", "notableThresholdPct": 130},
+    "retirementTargetDate": None,
+    "homePurchasePlan": None,
+    "budgetCategories": {},
+}
+_RESET_EXTRA_CALLS = (
+    ("DELETE", "/api/plan-settings/milestones", None),
+    ("DELETE", "/api/notifications", None),
+    ("PATCH", "/api/plan-settings", _PLAN_SETTINGS_DEFAULTS),
+)
+
+
+def _resource_deletion_layers():
+    """deletionLayers() from src/resourceDeletion.js, computed from its literals."""
+    import re
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(root, "src", "resourceDeletion.js"), encoding="utf-8") as f:
+        src = f.read()
+
+    def block(name):
+        m = re.search(r"export const " + name + r" = \{(.*?)\n\};", src, re.S)
+        if not m:
+            raise RuntimeError(f"tests/conftest.py: could not find {name} in src/resourceDeletion.js")
+        return m.group(1)
+
+    paths = re.findall(r"'(/api/[\w-]+)':", block("RESOURCE_TABLES"))
+    parents = {child: re.findall(r"'(/api/[\w-]+)'", refs)
+               for child, refs in re.findall(r"'(/api/[\w-]+)':\s*\[([^\]]*)\]", block("RESOURCE_PARENTS"))}
+    if not paths:
+        raise RuntimeError("tests/conftest.py: RESOURCE_TABLES parsed empty")
+    remaining = list(paths)
+    layers = []
+    while remaining:
+        referenced = {p for child, refs in parents.items() if child in remaining for p in refs}
+        layer = [p for p in remaining if p not in referenced]
+        if not layer:
+            raise RuntimeError(f"reference cycle among {remaining}")
+        layers.append(layer)
+        remaining = [p for p in remaining if p not in layer]
+    return layers
+
+
+_DELETION_LAYERS = None
+
+
+def reset_server_state_http() -> None:
+    """Wipe every collection, milestones, notifications and plan settings, and
+    store reconciliationAdjustsBalance=false (keeps the setup wizard away), all
+    over HTTP with the cached test-user session. No page is needed."""
+    global _DELETION_LAYERS
+    if _DELETION_LAYERS is None:
+        _DELETION_LAYERS = _resource_deletion_layers()
+    cookies = {c["name"]: c["value"] for c in _valid_session_cookies()}
+
+    def call(method, path, body=None):
+        status, parsed, _ = _http_json(method, path, body, cookies=cookies)
+        if status >= 300:
+            raise RuntimeError(f"reset: {method} {path} -> {status} {parsed}")
+
+    for i, layer in enumerate(_DELETION_LAYERS):
+        for path in layer:
+            call("DELETE", path)
+        if i == 0:
+            for method, path, body in _RESET_EXTRA_CALLS:
+                call(method, path, body)
+    call("PUT", "/api/settings/reconciliationAdjustsBalance", {"value": False})
+
+
 def reset_server_state(page) -> None:
     """Wipe all server data (awaited, not fire-and-forget), keep the wizard from
     blocking, then reload so the app re-reads the now-empty server."""
@@ -391,12 +517,15 @@ def _wrap_reload(page):
 
 @pytest.fixture
 def app_page(page, stack_user) -> Page:
-    """Signed-in page on the real stack with an empty server."""
+    """Signed-in page on the real stack with an empty server.
+
+    The server is wiped over HTTP first, so the app loads once, already empty
+    (#550; it used to load, wipe through the app and reload)."""
     ensure_session(page.context)
+    reset_server_state_http()
     page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
     wait_for_app_ready(page)
     _wrap_reload(page)
-    reset_server_state(page)
     return page
 
 
@@ -450,10 +579,8 @@ async def async_app_page(async_page, stack_user):
     """Signed-in async page on the real stack with an empty server."""
     ready = 'html[data-app-ready="true"]'
     await ensure_session_async(async_page.context)
+    await asyncio.to_thread(reset_server_state_http)
     await async_page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
-    await async_page.wait_for_selector(ready, state="attached", timeout=30000)
-    await async_page.evaluate(_RESET_JS)
-    await async_page.reload()
     await async_page.wait_for_selector(ready, state="attached", timeout=30000)
     return async_page
 

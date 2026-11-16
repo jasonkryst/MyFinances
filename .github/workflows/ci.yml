@@ -438,6 +438,7 @@ jobs:
             tests/features/test_skip_guard.py \
             tests/features/test_community_files.py \
             tests/features/test_ci_fail_fast.py \
+            tests/features/test_harness_reset.py \
             --maxfail=15 \
             -v
       - name: Stop stack
