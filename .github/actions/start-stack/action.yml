@@ -4,8 +4,14 @@ description: >
   server + Postgres with docker compose, pre-creates the test user, and exports
   the TEST_* / POSTGRES_TEST_* variables the pytest harness reads. Honors an
   inherited COMPOSE_FILE (test-postgres adds the mailpit override).
-  Wait/retry policy (#469): (1) before `up`, wait up to 30 s for host port 32900
-  to be free, else print `ss -ltnp` / `docker ps -a` and fail; (2) after `up`,
+  Port 32900 is inside Linux's ephemeral range (32768-60999), so an outgoing
+  connection (the artifact download opens many) can take it as its local
+  port and leave it in TIME_WAIT for 60 s, and Docker's bind then fails with
+  "address already in use" (twice on 2026-11-15/16). So the first step
+  reserves it (ip_local_reserved_ports) before anything else connects out.
+  Wait/retry policy (#469): (1) before `up`, wait up to 90 s until no socket
+  of any state uses port 32900 (`ss -tan`, not just listeners), else print
+  `ss -ltnp` / the sockets / `docker ps -a` and fail; (2) after `up`,
   wait up to 120 s for the frontend to answer on :32900, then up to 120 s for the
   server container to report healthy; (3) if either wait fails, print
   diagnostics (`docker compose ps -a` and the last 200 log lines of every
@@ -18,6 +24,13 @@ description: >
 runs:
   using: composite
   steps:
+    - name: Reserve the stack port
+      shell: bash
+      run: |
+        # Keep the kernel from handing 32900 to an outgoing connection
+        # (see the description). Best effort: a runner without sudo still
+        # gets the socket wait below.
+        sudo sysctl -w net.ipv4.ip_local_reserved_ports=32900 || echo "::warning::could not reserve port 32900"
     - uses: actions/download-artifact@v8
       with:
         name: stack-images
@@ -45,13 +58,19 @@ runs:
           docker compose logs --no-color --tail 200
           echo "::endgroup::"
         }
+        # Any socket using the port as its local port blocks the bind, not
+        # only a listener: an outgoing connection, or one in TIME_WAIT (60 s).
+        port_sockets() {
+          ss -tanH "( sport = :$PORT )" 2>/dev/null
+        }
         wait_port_free() {
-          for _ in $(seq 1 15); do
-            ss -ltn 2>/dev/null | grep -q ":$PORT " || return 0
+          for _ in $(seq 1 45); do
+            [ -z "$(port_sockets)" ] && return 0
             sleep 2
           done
-          echo "::error::Port $PORT is still in use after 30 s"
+          echo "::error::Port $PORT is still in use after 90 s"
           ss -ltnp 2>/dev/null
+          port_sockets
           docker ps -a
           return 1
         }
@@ -77,6 +96,9 @@ runs:
           diagnostics "attempt 1 failed"
           echo "Retrying once after docker compose down -v"
           docker compose down -v
+          # A bind failure can come from a TIME_WAIT socket that outlives the
+          # first wait; give it the rest of its 60 s before trying again.
+          sleep 15
           if ! start_once; then
             diagnostics "attempt 2 failed"
             echo "::error::Stack did not start after one retry"
