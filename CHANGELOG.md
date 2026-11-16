@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.14.1] — 2026-11-15
+
+### Fixed
+- **Client body errors return 4xx** (issue #531). A malformed JSON body now gets `400 BAD_REQUEST` and an oversize body (over 1 MB) `413 PAYLOAD_TOO_LARGE`, instead of `500 INTERNAL_ERROR`, and neither logs a stack trace. 5xx behavior is unchanged.
+
 ## [7.14.0] — 2026-11-15
 
 ### Added
