@@ -109,6 +109,17 @@ them, so an existing shorter password keeps working until it is changed.
   local rules, and on reset only after the token is valid.
 - **No egress:** leave it off (the default), or use a mirror.
 
+### Locked out, or forgot the password
+
+- **Emails are not case-sensitive.** They are stored trimmed and lowercase; sign-in, setup and forgot-password compare the same way (`src/auth/email.js`).
+- **The lockout.** Sign-in allows 5 failed attempts per 15 minutes per address. The app says how many minutes are left (from `Retry-After`), and the server logs `[auth] login rate limit reached for <ip>`. The counter lives in memory, so `docker compose restart server` clears it at once.
+- **Reset the password without email:**
+
+      docker compose run --rm server node scripts/reset-password.js
+
+  It asks for the account email and a new password (or pipe both lines on stdin), applies the sign-up password policy, and signs out every session.
+- **Behind another reverse proxy** (Traefik, Nginx Proxy Manager, Caddy, a tunnel), set `TRUST_PROXY_HOPS=2`. With the default 1, the server sees that proxy's address for every visitor, so every device shares one lockout counter. Never set it higher than the real number of proxies, since each extra hop lets a client forge its address.
+
 ### Change password and sessions
 
 `POST /auth/change-password` (session + CSRF, rate-limited to 5 failures per

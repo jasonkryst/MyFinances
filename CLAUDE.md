@@ -337,13 +337,19 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
 
 - **Password security** (issue #456).
   - **One rule set.** `src/passwordPolicy.js` is pure, has no imports, and is in the Stryker scope. The browser uses it for the meter and pre-submit checks. The server imports it by relative path from `server/src/auth/passwordCheck.js`, which adds the bundled SecLists list (`server/data/common-passwords.txt`, MIT, see `docs/third-party-notices.md`) and the breach check.
-  - **Where it runs.** `checkNewPassword()` must be called wherever a password is *set*: register, reset, change-password and `create-user.js`. Never call it on login; existing shorter passwords must keep working.
+  - **Where it runs.** `checkNewPassword()` must be called wherever a password is *set*: register, reset, change-password, `create-user.js` and `reset-password.js`. Never call it on login; existing shorter passwords must keep working.
   - **Breach check.** `server/src/auth/breachedPasswords.js`: an HIBP k-anonymity range query, off unless `SECURITY_CHECK_BREACHED_PASSWORDS=true`. It fails open and never logs password data. Tests point `SECURITY_BREACH_CHECK_URL` at a local stub server; don't mock global `fetch`, because the server tests use it to call the app.
   - **Errors.** A rejection is `400 VALIDATION_FAILED` plus a `reason` code. The browser localizes by `reason` through `passwordReasonMessage()` in `src/passwordUi.js`. Add a `password.reason.*` key in all three locales for any new reason.
   - **Meter.** `attachPasswordStrengthMeter(input)` is advisory and never blocks a submit. Text in a polite live region is linked by `aria-describedby`; the bar is `aria-hidden`. Never attach it to the sign-in form.
   - **Settings → Security** (`src/securitySettings.js`) is the fifth Settings tab; the change-password form is always shown. Re-opening Settings wipes the fields.
   - **Login gate** strings are `login.*` keys. The i18n render guard scans `.login-gate-body`, not the brand title.
 
+- **Sign-in recovery (7.15.1).**
+  - **Emails.** Account emails go through `normalizeEmail()` (`server/src/auth/email.js`: trim + lowercase) wherever they are stored or looked up, and lookups use `EMAIL_MATCH_SQL` (`lower(btrim(email))`). Never compare `users.email` directly.
+  - **Lockout.** The login limiter (5 failures / 15 min) logs `[auth] login rate limit reached`, and the gate shows the minutes left via `tooManyAttemptsMessage(res)` (`loginGate.js`, from the pure `parseRetryAfterMinutes` in `utils.js`).
+  - **Admin reset.** `server/scripts/reset-password.js` is the no-SMTP reset.
+  - **Proxies.** `TRUST_PROXY_HOPS` (`server/src/trustProxy.js`, default 1) sets `trust proxy`; behind a second reverse proxy it must be 2.
+  - **Tests.** `server/test/loginRecovery.test.js` and `tests/features/test_login_recovery.py`.
 - **Settings-only export/import** (issue #326). This is a separate small file, not part of the full JSON export. Its UI is the Settings backup block in Settings → Data & Storage.
   - **Pure layer.** `buildSettingsExport`/`parseSettingsImport`/`validateExportedSetting` in `settings.js` are DOM-free and Jest-tested. The file format is `{ type: 'settings', version: '1.0', preferences: { theme, locale, currency }, settings: { … } }`, and import accepts major version 1 only.
   - **DOM layer.** `src/settingsBackup.js` handles the download, file read, apply and inline `#settingsBackupStatus` result (built with `textContent` only), and is initialized from `initSettingsModal`.

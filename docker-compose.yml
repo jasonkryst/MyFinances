@@ -97,6 +97,11 @@ services:
       # server's local time: set TZ (e.g. Europe/Warsaw) to change it from UTC.
       JOBS_ENABLED: "${JOBS_ENABLED:-true}"
       TZ: "${TZ:-UTC}"
+      # Reverse proxies in front of the server: 1 = just the bundled nginx.
+      # Behind another proxy (Traefik, Nginx Proxy Manager, Caddy, a tunnel)
+      # set 2, or every visitor shares one login rate limit. Never set it
+      # higher than the real count (it would let clients forge their address).
+      TRUST_PROXY_HOPS: "${TRUST_PROXY_HOPS:-1}"
     secrets:
       - postgres_password
       - smtp_password

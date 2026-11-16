@@ -4,6 +4,22 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.15.1] — 2026-11-16
+
+### Fixed
+- **Sign-in is no longer case-sensitive.**
+  - **The problem.** The account email was compared exactly, so `Jason@…` typed on a phone (keyboards capitalize the first letter) or an address saved with a stray space failed with "Invalid email or password". Five such tries locked sign-in for 15 minutes.
+  - **The fix.** Emails are now trimmed and lowercased when an account is created (`create-user.js`, setup) and when signing in or requesting a reset link (`server/src/auth/email.js`). Lookups compare `lower(btrim(email))`, so an existing account matches either way, and migration `1755600000041` normalizes stored addresses; its `down()` is a no-op.
+  - **Sign-in screen.** The email fields no longer autocapitalize or autocorrect, and the email is sent trimmed.
+- **"Too many attempts" now says how long to wait.** "Try again in 12 minutes." It uses the server's `Retry-After` header on sign-in, setup, forgot-password and reset-password.
+
+### Added
+- **`scripts/reset-password.js`.** It sets a new password from the server host without SMTP (`docker compose run --rm server node scripts/reset-password.js`). It applies the sign-up password policy and signs out every session.
+- **`TRUST_PROXY_HOPS`** (default 1).
+  - **Why.** Behind another reverse proxy (Traefik, Nginx Proxy Manager, Caddy, a tunnel), set it to 2. Otherwise the server sees that proxy's address for every visitor, so all devices share one login limit, and the session cookie's `Secure` flag reads the wrong hop.
+  - **Bad values.** An invalid value logs a warning and falls back to 1.
+- **The server logs when the login limit trips.** The log line names the address and says how to clear the limit (restart the server).
+
 ## [7.15.0] — 2026-11-15
 
 ### Added

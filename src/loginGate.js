@@ -1,5 +1,6 @@
 import { updateAccountMenuEmail } from './ui.js';
-import { t } from './i18n.js';
+import { t, plural } from './i18n.js';
+import { parseRetryAfterMinutes } from './utils.js';
 import {
     attachPasswordStrengthMeter, newPasswordError, passwordResponseMessage, showBreachCheckNote
 } from './passwordUi.js';
@@ -8,6 +9,16 @@ import {
 // index.html, dynamic messages via t() here. The strength meter is attached
 // only where a password is *set* (first-run setup, reset link), never to the
 // sign-in form.
+
+// A 429's message, with the minutes left when the server says (Retry-After,
+// or RateLimit-Reset): "Too many attempts. Try again in 12 minutes."
+export function tooManyAttemptsMessage(res) {
+    const headers = res?.headers;
+    const minutes = headers
+        ? parseRetryAfterMinutes(headers.get('Retry-After') ?? headers.get('RateLimit-Reset'))
+        : null;
+    return minutes ? plural('login.tooManyAttemptsIn', minutes, { count: minutes }) : t('login.tooManyAttempts');
+}
 
 // `options.needsSetup` (boolean) skips the setup-status request when the
 // caller already knows the answer: init()'s probeServer() just asked, and that
@@ -132,7 +143,7 @@ export async function showLoginGate(app, options = {}) {
                 });
             } catch (_) { /* ignore network errors — always show success */ }
             if (res?.status === 429) {
-                if (forgotError) forgotError.textContent = t('login.tooManyAttempts');
+                if (forgotError) forgotError.textContent = tooManyAttemptsMessage(res);
                 if (submitBtn) submitBtn.disabled = false;
                 return;
             }
@@ -170,7 +181,7 @@ export async function showLoginGate(app, options = {}) {
                 const body = await res.json().catch(() => ({}));
                 if (resetError) {
                     resetError.textContent = res.status === 429
-                        ? t('login.tooManyAttempts')
+                        ? tooManyAttemptsMessage(res)
                         : passwordResponseMessage(body, 'login.resetFailed');
                 }
                 if (submitBtn) submitBtn.disabled = false;
@@ -202,7 +213,7 @@ export async function showLoginGate(app, options = {}) {
                     res = await fetch('/auth/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: emailInput.value, password: passwordInput.value })
+                        body: JSON.stringify({ email: emailInput.value.trim(), password: passwordInput.value })
                     });
                 } catch (err) {
                     console.error('[loginGate] register fetch error:', err);
@@ -212,7 +223,7 @@ export async function showLoginGate(app, options = {}) {
                 }
                 if (!res.ok) {
                     if (res.status === 429) {
-                        errorEl.textContent = t('login.tooManyAttempts');
+                        errorEl.textContent = tooManyAttemptsMessage(res);
                     } else if (res.status === 409) {
                         errorEl.textContent = t('login.accountExists');
                     } else {
@@ -228,7 +239,7 @@ export async function showLoginGate(app, options = {}) {
                     res = await fetch('/auth/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: emailInput.value, password: passwordInput.value })
+                        body: JSON.stringify({ email: emailInput.value.trim(), password: passwordInput.value })
                     });
                 } catch (err) {
                     console.error('[loginGate] fetch error:', err);
@@ -239,7 +250,7 @@ export async function showLoginGate(app, options = {}) {
                 console.warn('[loginGate] /auth/login status:', res.status);
                 if (!res.ok) {
                     errorEl.textContent = res.status === 429
-                        ? t('login.tooManyAttempts')
+                        ? tooManyAttemptsMessage(res)
                         : t('login.invalidCredentials');
                     submitBtn.disabled = false;
                     return;

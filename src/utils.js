@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.15.0';
+export const APP_VERSION = '7.15.1';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -173,6 +173,28 @@ export function sanitizeTimestampISO(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
     return date.toISOString();
+}
+
+// Whole minutes until a rate limit lifts, from a 429's Retry-After header
+// (delay-seconds or an HTTP date) or RateLimit-Reset (seconds). At least 1;
+// null when the value is missing or unreadable.
+export function parseRetryAfterMinutes(value, now = Date.now()) {
+    if (value === null || value === undefined) return null;
+    const s = String(value).trim();
+    if (s === '') return null;
+    let seconds;
+    if (/^\d+$/.test(s)) {
+        seconds = Number(s);
+    } else {
+        // An HTTP date names its day and month; Date.parse alone would also
+        // accept bare numbers such as "-5" or "1.5" as years.
+        if (!/[A-Za-z]/.test(s)) return null;
+        const at = Date.parse(s);
+        if (!Number.isFinite(at)) return null;
+        seconds = (at - now) / 1000;
+    }
+    if (!Number.isFinite(seconds)) return null;
+    return Math.max(1, Math.ceil(seconds / 60));
 }
 
 // A Savings contribution (#546): a finite amount above 0 and at most 1e9,

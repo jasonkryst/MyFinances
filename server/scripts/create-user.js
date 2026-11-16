@@ -4,6 +4,7 @@ import { pool } from '../src/db.js';
 import { hashPassword } from '../src/auth/argon2.js';
 import { checkNewPassword, PASSWORD_MIN_LENGTH } from '../src/auth/passwordCheck.js';
 import { sendTemplatedEmail } from '../src/email/send.js';
+import { normalizeEmail } from '../src/auth/email.js';
 
 async function promptTwoLines(emailPrompt, passwordPrompt) {
     stdout.write(emailPrompt);
@@ -26,7 +27,9 @@ async function main() {
         return;
     }
 
-    const [email, password] = await promptTwoLines('Email: ', `Password (min ${PASSWORD_MIN_LENGTH} chars): `);
+    const [rawEmail, password] = await promptTwoLines('Email: ', `Password (min ${PASSWORD_MIN_LENGTH} chars): `);
+    // Stored trimmed and lowercase; sign-in compares the same way.
+    const email = normalizeEmail(rawEmail);
 
     if (!email.includes('@')) {
         console.error('Invalid email.');
