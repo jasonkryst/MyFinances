@@ -9,6 +9,17 @@ import { isHistoryTrackedAccount, HISTORY_TRACKED_ACCOUNT_TYPES } from './balanc
 import { getSetting, setSetting, SHOW_ARCHIVED_ACCOUNTS } from './settings.js';
 import { t, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
+import { sanitizeLowBalanceThreshold } from './sanitizers.js';
+
+// #211: the low-balance alert input. Blank or 0 clears it (null); undefined
+// means invalid input (negative, non-numeric or too large).
+export function readLowBalanceThresholdInput(raw) {
+    const s = String(raw ?? '').trim();
+    if (s === '') return null;
+    const n = Number(s);
+    if (!Number.isFinite(n) || n < 0 || n > 1e12) return undefined;
+    return sanitizeLowBalanceThreshold(n);
+}
 
 export const ACCOUNT_TYPE_ICONS = { Checking: '🏦', Savings: '💰', Cash: '💵', Investment: '📈', Retirement: '🏛️', 'Credit Card': '💳', Loan: '🏠', Other: '🗂️' };
 
@@ -301,6 +312,11 @@ function renderAccountsListUncached(app) {
                     <label class="label-compact" for="ac-notes-${a.id}">${t('accounts.notesLabel')}</label>
                     <textarea id="ac-notes-${a.id}" rows="3" maxlength="500" class="form-full-width" placeholder="${escapeHtml(t('accounts.notesPlaceholder'))}">${escapeHtml(a.notes || '')}</textarea>
                 </div>
+                <div class="form-group form-no-margin">
+                    <label class="label-compact" for="ac-lowbal-${a.id}">${t('accounts.lowBalanceLabel')}</label>
+                    <input type="number" id="ac-lowbal-${a.id}" value="${a.lowBalanceThreshold ?? ''}" step="0.01" min="0" class="form-full-width" aria-describedby="ac-lowbal-help-${a.id}">
+                    <p class="modal-helper-text" id="ac-lowbal-help-${a.id}">${escapeHtml(t('accounts.lowBalanceHelp'))}</p>
+                </div>
                 <div class="acct-edit-actions">
                     <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}" aria-label="${escapeHtml(t('entity.saveChangesAria', { name: a.name }))}">${t('common.save')}</button>
                     <button class="btn btn-secondary btn-small" data-account-action="cancel" aria-label="${escapeHtml(t('entity.cancelEditAria', { name: a.name }))}">${t('common.cancel')}</button>
@@ -345,6 +361,7 @@ function renderAccountsListUncached(app) {
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(a.name)} (${escapeHtml(accountTypeLabel(a.type))})</span>
                     ${a.archived ? `<span class="acct-archived-badge">${t('accounts.archivedBadge')}</span>` : ''}
+                    ${a.lowBalanceThreshold ? `<span class="acct-rate-badge acct-lowbal-badge">🔔 ${escapeHtml(t('accounts.lowBalanceBadge', { amount: formatCurrency(Number(a.lowBalanceThreshold)) }))}</span>` : ''}
                     ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${escapeHtml(t('accounts.apyBadge', { rate: Number(a.interestRate).toFixed(2) }))}</span>` : ''}
                     ${a.type === 'Retirement' && a.retirementSubtype === 'Pension' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(t('accounts.pensionBadge', { salary: formatCurrency(Number(a.pensionAnnualSalary)), rate: Number(a.pensionContributionRatePct).toFixed(1) }))}</span>` : ''}
                     ${a.type === 'Retirement' && a.retirementSubtype !== 'Pension' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(t('accounts.retirementBadge', { subtype: retirementSubtypeLabel(a.retirementSubtype), rate: Number(a.rateOfReturn).toFixed(1) }))}</span>` : ''}
@@ -451,11 +468,13 @@ export async function addAccount(app) {
     const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById('accountPensionYearsOfService')?.value, 0, { min: 0 });
     const minimumPayment = sanitizeFiniteNumber(document.getElementById('accountMinimumPayment')?.value, 0, { min: 0 });
     const notes = normalizeMultilineText(document.getElementById('accountNotes')?.value, 500);
+    const lowBalanceThreshold = readLowBalanceThresholdInput(document.getElementById('accountLowBalanceThreshold')?.value);
 
     if (!name) { await showAlertModal(t('accounts.errName')); return; }
     if (isNaN(startingBalance)) { await showAlertModal(t('accounts.errStartingBalance')); return; }
+    if (lowBalanceThreshold === undefined) { await showAlertModal(t('accounts.errLowBalance')); return; }
 
-    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes };
+    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes, lowBalanceThreshold };
     // Listed (and offered in every account dropdown) only once it has its server id (#593).
     if (!(await pgCreate(app, 'accounts', '/api/accounts', account))) return null;
     await recordBalanceHistory(app, { kind: 'account', id: account.id });
@@ -564,9 +583,11 @@ export async function saveEditAccount(app, id) {
     const pensionYearsOfService = sanitizeFiniteNumber(document.getElementById(`ac-pension-service-${id}`)?.value, 0, { min: 0 });
     const minimumPayment = sanitizeFiniteNumber(document.getElementById(`ac-minpay-${id}`)?.value, 0, { min: 0 });
     const notes = normalizeMultilineText(document.getElementById(`ac-notes-${id}`)?.value, 500);
+    const lowBalanceThreshold = readLowBalanceThresholdInput(document.getElementById(`ac-lowbal-${id}`)?.value);
     if (!name) { await showAlertModal(t('accounts.errName')); return; }
     if (isNaN(startingBalance)) { await showAlertModal(t('accounts.errValidStartingBalance')); return; }
-    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes };
+    if (lowBalanceThreshold === undefined) { await showAlertModal(t('accounts.errLowBalance')); return; }
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes, lowBalanceThreshold };
     app.editingAccountId = null;
     pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);
     await recordBalanceHistory(app, { kind: 'account', id: app.accounts[idx].id });

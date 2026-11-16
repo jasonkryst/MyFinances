@@ -138,10 +138,11 @@ server starts listening: one tick 30 seconds after startup, then hourly.
   server keeps running. The next tick in the same period retries it, up to 5
   attempts. A run still `running` after 60 minutes (a dead process) can be
   taken over. Jobs must therefore be idempotent.
-- **Jobs** (`src/jobs/index.js`, the registry where new jobs such as
-  notification triggers (#211) go):
+- **Jobs** (`src/jobs/index.js`, the registry where new jobs go):
   - `prune-sessions` (hourly): `DELETE FROM sessions WHERE expires_at < now()`
-    (#536), plus `job_runs` rows that finished over 90 days ago.
+    (#536), plus `job_runs` rows that finished over 90 days ago and
+    notifications older than 90 days (an open balance alert is kept).
+  - `notifications` (hourly, #211): see "Notifications" below.
   - `net-worth-snapshot` (monthly): for each user who has no snapshot in the
     current month (regardless of the `autoNwSnapshot` setting, which governs
     only the app's own capture on load), computes the
@@ -184,14 +185,53 @@ docker run --rm \
 Alternatively, copy the `.dump` file out of the volume and use the root-level
 `restore.sh`/`restore.ps1` scripts.
 
+## Notifications (issue #211)
+
+The hourly `notifications` job (`src/jobs/notifications.js`) runs the pure
+rules in `../src/notificationsCore.js` (the browser's own projection code)
+for every user, and raises five kinds of alert:
+
+| Type | When |
+|---|---|
+| `billDueSoon` / `billDueToday` | A debt minimum payment, recurring subscription or legacy bill that isn't Cleared is due within `notifyDaysAhead` days (default 3) or today |
+| `lowBalance` | An account's balance today is at or below its `lowBalanceThreshold` (and above $0) |
+| `zeroBalance` | An account's balance today is at or below $0 |
+| `projectedLow` | Fine today, but projected to reach the threshold ($0 without one) within `notifyDaysAhead` days |
+
+Credit Card, Loan, Retirement and archived accounts are never alerted on.
+
+- **Storage:** rows go in `notifications` (migration `1755600000040`), unique
+  on `(user_id, dedupe_key)`, so a repeated or retried check never repeats an
+  alert.
+- **Balance episodes:** a balance alert has an `episode_key`. It is skipped
+  while an earlier one for the same account and type is open, and resolved
+  (`resolved_at`) by the first check where the condition no longer holds.
+- **Preferences** are ordinary settings, validated by `isAllowedSetting`:
+  - `notifyBillDue`, `notifyLowBalance`, `notifyZeroBalance` and
+    `notifyProjectedLow` are booleans, all on by default.
+  - `notifyDaysAhead` is 0-30.
+  - `notifyChannel` is `both` (the default), `email` or `inApp`.
+  - `notifyDelivery` is `perEvent` (the default) or `digest`.
+- **Email** needs SMTP (below). Alerts are stored as params and the browser
+  translates the in-app text; emails are English, with amounts that carry no
+  currency symbol. A failed send leaves the row `pending`; it is retried on
+  later checks, up to 3 attempts within 48 hours, and never fails the job.
+- **API** (session + CSRF):
+  - `GET /api/notifications` returns the 50 newest in-app alerts,
+    `unreadCount` and `emailConfigured`.
+  - `POST /api/notifications/:id/read` and `POST /api/notifications/read-all`.
+  - `DELETE /api/notifications` (Clear All Data).
+  - `POST /api/notifications/check` runs the check for the signed-in user now
+    (Settings → Check now). It is rate-limited and works with
+    `JOBS_ENABLED=false`.
+
 ## Email notifications (optional)
 
-The server can send email over SMTP — currently just a "send test email"
-action from the app's Settings modal, plus an automatic welcome email when
-an account is created. It's off by default; automated bill/balance
-notifications are a future feature built on top of this foundation. See
-`docs/superpowers/specs/2026-09-03-smtp-email-notifications-design.md`
-for the full design.
+The server can send email over SMTP: the notification alerts above, a "send
+test email" action in the app's Settings modal, and an automatic welcome email
+when an account is created. It's off by default. See
+`docs/superpowers/specs/2026-09-03-smtp-email-notifications-design.md` and
+`docs/superpowers/specs/2026-11-15-notifications-design.md` for the designs.
 
 ### Configuring SMTP
 

@@ -8,6 +8,7 @@ import { requestLogin } from './loginGate.js';
 import { showEmailTestToast } from './ui.js';
 import { initSettingsBackup } from './settingsBackup.js';
 import { initSecuritySettings, refreshSecuritySettingsPanel } from './securitySettings.js';
+import { initNotificationSettings, loadNotificationSettingsForm, saveNotificationSettingsForm } from './notificationSettings.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -60,6 +61,7 @@ export function initSettingsModal(app) {
 
     initSettingsBackup(app);
     initSecuritySettings(app);
+    initNotificationSettings(app);
 
     // #322: tabbed layout — same data-attribute/classList pattern as the
     // Data Transfer modal's Export/Import tabs, under its own class
@@ -98,6 +100,7 @@ export function initSettingsModal(app) {
         if (autoNwSnapshotCheckbox) autoNwSnapshotCheckbox.checked = Boolean(getSetting(app, AUTO_NW_SNAPSHOT, false));
         if (zeroPolicySelect) zeroPolicySelect.value = getZeroAmountPolicy(app);
         refreshSecuritySettingsPanel(app);
+        loadNotificationSettingsForm(app);
         localeSelect.value = getCurrentLocale();
         currencySelect.value = getCurrencyCode();
         modal.classList.add('flex-visible');
@@ -120,6 +123,12 @@ export function initSettingsModal(app) {
     };
 
     const save = () => {
+        // #211: an invalid "Days ahead" keeps Settings open on its tab, unsaved.
+        if (!saveNotificationSettingsForm(app)) {
+            showSettingsTab('notifications');
+            document.getElementById('settingNotifyDaysAhead')?.focus();
+            return;
+        }
         setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
         if (showArchivedCheckbox) setSetting(app, SHOW_ARCHIVED_DEBTS, showArchivedCheckbox.checked);
         if (showArchivedRecurringCheckbox) setSetting(app, SHOW_ARCHIVED_RECURRING, showArchivedRecurringCheckbox.checked);

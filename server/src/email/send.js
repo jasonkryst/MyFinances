@@ -3,8 +3,9 @@ import testEmail from './templates/testEmail.js';
 import welcomeEmail from './templates/welcomeEmail.js';
 import alertEmail from './templates/alertEmail.js';
 import passwordResetEmail from './templates/passwordResetEmail.js';
+import notificationEmail from './templates/notificationEmail.js';
 
-const TEMPLATES = { testEmail, welcomeEmail, alertEmail, passwordResetEmail };
+const TEMPLATES = { testEmail, welcomeEmail, alertEmail, passwordResetEmail, notificationEmail };
 
 export async function sendTemplatedEmail(to, templateName, data = {}) {
     if (!isEmailConfigured()) {

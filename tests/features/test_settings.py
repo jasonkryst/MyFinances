@@ -307,20 +307,21 @@ def test_settings_modal_focus_lands_in_visible_tab(app_page):
 
 @pytest.mark.feature
 def test_settings_modal_focus_falls_back_when_first_control_is_hidden(app_page):
-    """Negative/regression (review finding #5): the Notifications tab's only
-    control (#settingsSendTestEmailBtn) is itself hidden outside Postgres
-    mode. Since the active tab is remembered across reopens, reopening
-    Settings on that tab must fall back to the Close button rather than
+    """Negative/regression (review finding #5): when every control on the
+    active tab is hidden, reopening Settings on that tab (the active tab is
+    remembered across reopens) must fall back to the Close button rather than
     focus()-ing a hidden element, which silently does nothing and leaves
-    focus stuck behind the modal."""
+    focus stuck behind the modal. The Notifications tab once held only the
+    hidden test-email button; since #211 it has visible preferences, so the
+    test hides all of them."""
     page = app_page
     from tests.conftest import open_settings, close_settings, switch_settings_tab
     open_settings(page)
     switch_settings_tab(page, 'notifications')
-    # The button is only shown when the server has email configured; force the "its only
-    # control is hidden" situation this regression test is about, whatever the stack's SMTP state.
-    page.evaluate("() => document.getElementById('settingsSendTestEmailBtn').classList.add('hidden')")
+    page.evaluate("""() => document.querySelectorAll('#settingsPanel-notifications .form-group')
+        .forEach(g => g.classList.add('hidden'))""")
     assert page.is_hidden('#settingsSendTestEmailBtn')
+    assert page.is_hidden('#settingNotifyBillDue')
     close_settings(page)
 
     open_settings(page)
@@ -330,6 +331,21 @@ def test_settings_modal_focus_falls_back_when_first_control_is_hidden(app_page):
     )
     focused_id = page.evaluate('() => document.activeElement.id')
     assert focused_id == 'settingsModalCloseBtn'
+
+
+def test_settings_modal_reopened_on_notifications_focuses_its_first_preference(app_page):
+    """Positive twin (#211): reopening Settings on the Notifications tab
+    focuses its first visible control, the bill-due toggle."""
+    page = app_page
+    from tests.conftest import open_settings, close_settings, switch_settings_tab
+    open_settings(page)
+    switch_settings_tab(page, 'notifications')
+    close_settings(page)
+    open_settings(page)
+    page.wait_for_function(
+        "() => document.activeElement && document.activeElement.id === 'settingNotifyBillDue'",
+        timeout=2000
+    )
 
 
 # --- #569: the server now rejects unknown settings keys / out-of-range values.

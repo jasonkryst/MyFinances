@@ -37,6 +37,20 @@ export const ZERO_AMOUNT_POLICIES = ['allow', 'warn', 'block'];
 export const LEDGER_EXPORT_COLUMN_KEYS_COPY = ['date', 'account', 'name', 'amount', 'category', 'balance', 'type', 'cleared', 'clearedAt'];
 export const LEDGER_EXPORT_COLUMNS = 'ledgerExportColumns';
 
+// #211: notification preferences. Every type is on unless set to false;
+// notificationsCore.js (getNotificationPrefs) applies the defaults.
+export const NOTIFY_BILL_DUE = 'notifyBillDue';
+export const NOTIFY_LOW_BALANCE = 'notifyLowBalance';
+export const NOTIFY_ZERO_BALANCE = 'notifyZeroBalance';
+export const NOTIFY_PROJECTED_LOW = 'notifyProjectedLow';
+export const NOTIFY_DAYS_AHEAD = 'notifyDaysAhead';
+export const NOTIFY_DAYS_AHEAD_DEFAULT = 3;
+export const NOTIFY_DAYS_AHEAD_MAX = 30;
+export const NOTIFY_CHANNEL = 'notifyChannel';
+export const NOTIFY_CHANNELS = ['both', 'email', 'inApp'];
+export const NOTIFY_DELIVERY = 'notifyDelivery';
+export const NOTIFY_DELIVERIES = ['perEvent', 'digest'];
+
 export const BCT_CATEGORY_MAX = 60;
 const isBool = v => typeof v === 'boolean';
 const numberIn = (min, max, { integer = false, minExclusive = false } = {}) => v =>
@@ -62,6 +76,13 @@ export const SETTINGS_EXPORT_SCHEMA = {
     [FIRE_MULTIPLIER]: numberIn(0, FIRE_MULTIPLIER_MAX, { minExclusive: true }),
     [HOUSING_COST_OVERRIDE]: numberIn(0, 1e12),
     [ZERO_AMOUNT_POLICY]: oneOf(ZERO_AMOUNT_POLICIES),
+    [NOTIFY_BILL_DUE]: isBool,
+    [NOTIFY_LOW_BALANCE]: isBool,
+    [NOTIFY_ZERO_BALANCE]: isBool,
+    [NOTIFY_PROJECTED_LOW]: isBool,
+    [NOTIFY_DAYS_AHEAD]: numberIn(0, NOTIFY_DAYS_AHEAD_MAX, { integer: true }),
+    [NOTIFY_CHANNEL]: oneOf(NOTIFY_CHANNELS),
+    [NOTIFY_DELIVERY]: oneOf(NOTIFY_DELIVERIES),
     // Comma-separated list of known ledger export column keys (non-empty).
     [LEDGER_EXPORT_COLUMNS]: v => typeof v === 'string' && v.length > 0
         && v.split(',').every(c => LEDGER_EXPORT_COLUMN_KEYS_COPY.includes(c)),

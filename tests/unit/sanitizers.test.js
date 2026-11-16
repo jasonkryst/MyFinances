@@ -62,12 +62,12 @@ describe('sanitizePerson', () => {
 describe('sanitizeAccount', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizeAccount({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5 }, 1);
-        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false, notes: '' });
+        expect(result).toEqual({ id: 5, name: 'Checking', type: 'Bank', startingBalance: 100.5, interestRate: 2.5, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false, notes: '', lowBalanceThreshold: null });
     });
 
     test('applies fallbacks for an empty record', () => {
         const result = sanitizeAccount({}, 42);
-        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false, notes: '' });
+        expect(result).toEqual({ id: 42, name: '', type: 'Other', startingBalance: 0, interestRate: 0, retirementSubtype: 'Other', rateOfReturn: 0, employerMatchPercent: 0, pensionAnnualSalary: 0, pensionContributionRatePct: 0, pensionVestingYears: 0, pensionEstimatedMonthlyBenefit: 0, pensionYearsOfService: 0, minimumPayment: 0, catchUpEligible: false, hsaCoverageType: 'selfOnly', archived: false, notes: '', lowBalanceThreshold: null });
     });
 
     test('keeps multi-line notes, strips markup, caps at 500 and rejects non-strings (#286)', () => {

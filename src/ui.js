@@ -1030,6 +1030,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.14.0 — 2026-11-15',
+        items: [
+            '<strong>Notifications:</strong> the new bell in the toolbar lists alerts for bills and debt payments due soon or today, and for accounts that run low. Click an alert to jump to the Ledger or Accounts.',
+            '<strong>Low-balance alerts per account:</strong> set <em>Low-balance alert at</em> on any checking, savings or cash account. You are also alerted when an account reaches $0 or is projected to run low within the next few days.',
+            '<strong>Your choice of delivery:</strong> in Settings → Notifications pick which alerts you get, how many days ahead, and whether they arrive by email, in the app or both, as one email each or a summary. Alerts are checked every hour, and an alert is never sent twice.'
+        ]
+    },
+    {
         version: '7.13.0 — 2026-11-15',
         items: [
             '<strong>Monthly snapshots without opening the app:</strong> the server now records your net worth early each month, even if you never open MyFinances that month.',

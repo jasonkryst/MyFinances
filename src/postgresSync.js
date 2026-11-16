@@ -337,6 +337,8 @@ export async function pgDeleteAll(app) {
     await mapWithConcurrency([
         ...firstLayer.map(deleteAll),
         () => pgFetch(app, 'DELETE', '/api/plan-settings/milestones'),
+        // #211: the alert history (not a collection; no foreign key into one).
+        () => pgFetch(app, 'DELETE', '/api/notifications'),
         () => pgFetch(app, 'PATCH', '/api/plan-settings', DEFAULT_PLAN_SETTINGS)
     ], IMPORT_CONCURRENCY, request => request());
     for (const layer of laterLayers) {

@@ -40,7 +40,7 @@ export const MUTATE_SCOPE = {
         'sanitizeNetWorthSnapshot', 'sanitizeForecastSettings', 'sanitizeSetting', 'sanitizeRetirementSnapshot',
         'sanitizeBalanceHistoryEntry', 'sanitizeReconciliation', 'sanitizePlanHistoryEntry',
         'sanitizeManualTransaction', 'isValidManualTransaction', 'isValidTransfer', 'isValidReconciliation',
-        'isValidRecurringTemplate',
+        'isValidRecurringTemplate', 'sanitizeLowBalanceThreshold',
     ],
     // #569: the shared settings key/value allowlist (browser export + server).
     'src/settingsSchema.js': ['validateExportedSetting', 'isAllowedSetting'],
@@ -52,6 +52,8 @@ export const MUTATE_SCOPE = {
     'src/balanceHistoryCore.js': true,
     // #585: estimated net-worth trend points from balance history.
     'src/netWorthEstimate.js': true,
+    // #211: bill-due and balance alert rules (browser + server notifications job).
+    'src/notificationsCore.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).
     'src/passwordPolicy.js': true,
     // #564: partial plan-settings PATCH body builder.
@@ -80,7 +82,7 @@ export const MUTATE_SCOPE = {
     'src/recurringOccurrences.js': true,
     'src/ledgerStateCore.js': true,
     'src/netWorthCore.js': true,
-    'src/projectionCore.js': ['makeLedgerTransactionId', 'getLedgerTransactionsForMonth', 'computeAccountBalance'],
+    'src/projectionCore.js': ['makeLedgerTransactionId', 'getLedgerTransactionsForMonth', 'computeAccountBalance', 'buildProjectedAccountTransactions'],
 };
 
 // Imported by tests/unit from a scoped file but deliberately not mutated.

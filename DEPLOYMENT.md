@@ -260,7 +260,8 @@ A refresh never interrupts you. It waits while a save is in progress, an edit fo
 The server runs a few jobs on its own, about 30 seconds after it starts and then every hour:
 
 - **Monthly net-worth snapshot:** the server records each user's net worth for the month, even if nobody opens the app. (The *Auto-capture monthly net worth snapshot* setting only controls the app's own capture when it opens.) A month that already has a snapshot is left alone, and a user with no accounts or debts gets none.
-- **Session pruning:** expired sign-in sessions are deleted every hour.
+- **Notifications:** every hour the server checks for bills due soon or today and for accounts that are low, at or below $0, or projected to run low. It shows them under the toolbar bell and, if SMTP is configured, emails them. Each user picks the alert types, days ahead and delivery in *Settings → Notifications*; low-balance amounts are set per account.
+- **Session pruning:** expired sign-in sessions are deleted every hour, along with old job history and notifications older than 90 days.
 
 Each job runs once per period, even across restarts, and a failure is logged and retried on the next hour. To turn every job off, set `JOBS_ENABLED=false` in `.env`. Months and hours follow the server's time zone, UTC unless you set `TZ`:
 
@@ -419,9 +420,10 @@ losing it loses everything. Root-level scripts wrap
 
 ### Email Notifications (Optional)
 
-The self-hosted server can send SMTP email — currently a "send test
-email" action in Settings plus an automatic welcome email on account
-creation; see `server/README.md`'s "Email notifications" section for
+The self-hosted server can send SMTP email: bill-due and balance alerts
+(issue #211; without SMTP they still appear in the app), a "send test
+email" action in Settings, and an automatic welcome email on account
+creation. See `server/README.md`'s "Email notifications" section for
 full configuration steps. `setup.sh`/`setup.ps1` prompt for it during
 first-time setup; declining leaves it disabled with no further action
 needed.
