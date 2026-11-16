@@ -205,11 +205,13 @@ for every user, and raises five kinds of alert:
 | Type | When |
 |---|---|
 | `billDueSoon` / `billDueToday` | A debt minimum payment, recurring subscription or legacy bill that isn't Cleared is due within `notifyDaysAhead` days (default 3) or today |
-| `lowBalance` | An account's balance today is at or below its `lowBalanceThreshold` (and above $0) |
-| `zeroBalance` | An account's balance today is at or below $0 |
-| `projectedLow` | Fine today, but projected to reach the threshold ($0 without one) within `notifyDaysAhead` days |
+| `lowBalance` | An account's balance today is at or below its `lowBalanceThreshold` (and not overdrawn) |
+| `zeroBalance` | An account is overdrawn: its balance today is below $0 (exactly $0 never alerts) |
+| `projectedLow` | Fine today, but projected to reach the threshold (below $0 without one) within `notifyDaysAhead` days |
 
-Credit Card, Loan, Retirement and archived accounts are never alerted on.
+Credit Card, Loan, Retirement and archived accounts are never alerted on, nor is an account with
+`muteBalanceAlerts` ("Don't notify", migration `1755600000042`); muting resolves its open balance alerts
+and cancels their pending emails on the next check. Bill alerts are not affected.
 
 - **Storage:** rows go in `notifications` (migration `1755600000040`), unique
   on `(user_id, dedupe_key)`, so a repeated or retried check never repeats an

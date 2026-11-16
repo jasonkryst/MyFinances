@@ -106,6 +106,20 @@ export async function checkNotificationsForUser(userId, now = new Date(), log = 
         [userId, activeEpisodes]
     );
 
+    // An account set to "Don't notify" drops out of activeEpisodes, so its
+    // open alerts were just resolved above; also cancel any email for them
+    // that has not gone out yet.
+    const mutedKeys = (app.accounts || [])
+        .filter(a => a && a.muteBalanceAlerts)
+        .flatMap(a => ['lowBalance', 'zeroBalance', 'projectedLow'].map(type => `${type}|${a.id}`));
+    if (mutedKeys.length) {
+        await query(
+            `UPDATE notifications SET email_status = 'none'
+              WHERE user_id = $1 AND email_status = 'pending' AND episode_key = ANY($2::text[])`,
+            [userId, mutedKeys]
+        );
+    }
+
     const emails = emailOn ? await sendPendingEmails(userId, prefs.delivery, log) : { sent: 0, failed: 0 };
     return { created, resolved, ...emails };
 }

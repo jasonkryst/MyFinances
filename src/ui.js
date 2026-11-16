@@ -1032,6 +1032,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.16.0 — 2026-11-16',
+        items: [
+            '<strong>Fewer false alarms:</strong> an account sitting at exactly $0 no longer raises an alert. The overdrawn alert now fires only when a balance goes below zero, and the "projected" alert only when it is expected to go below zero (or below the alert amount you set).',
+            "<strong>Don't notify:</strong> each account now has a <em>Don't notify me about this account's balance</em> checkbox. Ticking it closes that account's open alerts and cancels any alert email not yet sent; bill reminders keep working."
+        ]
+    },
+    {
         version: '7.15.0 — 2026-11-15',
         items: [
             '<strong>Undo:</strong> deleting a debt, income, bonus or recurring item, or archiving or unarchiving a debt, recurring item, account or sinking fund, now shows an <em>Undo</em> notice for 10 seconds. Undo brings it back with its Ledger history (Cleared marks and amount overrides) and, for a debt, its balance history.',

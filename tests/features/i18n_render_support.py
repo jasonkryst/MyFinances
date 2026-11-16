@@ -39,7 +39,7 @@ NON_TRANSLATABLE = {'ira', 'roth', 'hsa', 'fire', 'us', 'usd',
 _SEED_ACCOUNTS = [
     {'id': 1, 'name': '⟦Checking⟧', 'type': 'Checking', 'startingBalance': 2500, 'lowBalanceThreshold': 100,
      'notes': '⟦Branch phone 555-0100⟧\n⟦Ask about the waived fee⟧'},
-    {'id': 2, 'name': '⟦Roth⟧', 'type': 'Retirement', 'retirementSubtype': 'Roth IRA',
+    {'id': 2, 'name': '⟦Roth⟧', 'type': 'Retirement', 'retirementSubtype': 'Roth IRA', 'muteBalanceAlerts': True,
      'startingBalance': 40000, 'rateOfReturn': 7},
     {'id': 3, 'name': '⟦Work Plan⟧', 'type': 'Retirement', 'retirementSubtype': '401k',
      'startingBalance': 90000, 'rateOfReturn': 6, 'employerMatchPercent': 4, 'catchUpEligible': True},
