@@ -72,6 +72,10 @@ def test_undo_debt_delete_restores_record_ledger_keys_and_history(app_page):
     page = app_page
     _seed(page)
     acct = page.evaluate("window.app.accounts[0].id")
+    # Seeding creates the debts concurrently, so Visa is not always first;
+    # Undo must put it back wherever it was.
+    old_index = page.evaluate("window.app.debts.findIndex(d => d.name === 'Visa')")
+    assert old_index in (0, 1)
     old_id = _delete_visa(page)
     assert 'Visa' in page.text_content('#undoToastMessage')
     assert page.evaluate("document.activeElement.id") == 'undoToastBtn', 'focus moves to Undo when the deleted button is gone'
@@ -86,8 +90,9 @@ def test_undo_debt_delete_restores_record_ledger_keys_and_history(app_page):
     assert new['minimumPayment'] == 40 and new['accountBalance'] == 900
     # The server can hold the row before the page has handled the POST reply
     # and moved the record back into place, so wait for the local list.
-    page.wait_for_function("(id) => window.app.debts[0] && window.app.debts[0].id === id", arg=new['id'], timeout=5000)
-    assert page.evaluate("window.app.debts[0].name") == 'Visa', 'restored at its old place in the list'
+    page.wait_for_function("([id, i]) => window.app.debts[i] && window.app.debts[i].id === id",
+                           arg=[new['id'], old_index], timeout=5000)
+    assert page.evaluate("window.app.debts.length") == 2, 'restored once, at its old place in the list'
 
     old_key = f'debt|{old_id}|{acct}|{KEY_DATE}'
     new_key = f'debt|{new["id"]}|{acct}|{KEY_DATE}'

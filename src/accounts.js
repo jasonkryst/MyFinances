@@ -11,6 +11,7 @@ import { getSetting, setSetting, SHOW_ARCHIVED_ACCOUNTS } from './settings.js';
 import { t, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
 import { sanitizeLowBalanceThreshold } from './sanitizers.js';
+import { runNotificationCheck } from './notificationsCenter.js';
 
 // #211: the low-balance alert input. Blank or 0 clears it (null); undefined
 // means invalid input (negative, non-numeric or too large).
@@ -318,6 +319,13 @@ function renderAccountsListUncached(app) {
                     <input type="number" id="ac-lowbal-${a.id}" value="${a.lowBalanceThreshold ?? ''}" step="0.01" min="0" class="form-full-width" aria-describedby="ac-lowbal-help-${a.id}">
                     <p class="modal-helper-text" id="ac-lowbal-help-${a.id}">${escapeHtml(t('accounts.lowBalanceHelp'))}</p>
                 </div>
+                <div class="form-group form-no-margin">
+                    <label class="income-variable-label" for="ac-mute-${a.id}">
+                        <input type="checkbox" id="ac-mute-${a.id}"${a.muteBalanceAlerts ? ' checked' : ''} aria-describedby="ac-mute-help-${a.id}">
+                        <span>${escapeHtml(t('accounts.muteAlertsLabel'))}</span>
+                    </label>
+                    <p class="modal-helper-text" id="ac-mute-help-${a.id}">${escapeHtml(t('accounts.muteAlertsHelp'))}</p>
+                </div>
                 <div class="acct-edit-actions">
                     <button class="btn btn-primary btn-small" data-account-action="save" data-account-id="${a.id}" aria-label="${escapeHtml(t('entity.saveChangesAria', { name: a.name }))}">${t('common.save')}</button>
                     <button class="btn btn-secondary btn-small" data-account-action="cancel" aria-label="${escapeHtml(t('entity.cancelEditAria', { name: a.name }))}">${t('common.cancel')}</button>
@@ -362,7 +370,7 @@ function renderAccountsListUncached(app) {
                 <div class="acct-card-info">
                     <span class="acct-card-name">${escapeHtml(a.name)} (${escapeHtml(accountTypeLabel(a.type))})</span>
                     ${a.archived ? `<span class="acct-archived-badge">${t('accounts.archivedBadge')}</span>` : ''}
-                    ${a.lowBalanceThreshold ? `<span class="acct-rate-badge acct-lowbal-badge">🔔 ${escapeHtml(t('accounts.lowBalanceBadge', { amount: formatCurrency(Number(a.lowBalanceThreshold)) }))}</span>` : ''}
+                    ${a.muteBalanceAlerts ? `<span class="acct-rate-badge acct-mute-badge">🔕 ${escapeHtml(t('accounts.muteAlertsBadge'))}</span>` : (a.lowBalanceThreshold ? `<span class="acct-rate-badge acct-lowbal-badge">🔔 ${escapeHtml(t('accounts.lowBalanceBadge', { amount: formatCurrency(Number(a.lowBalanceThreshold)) }))}</span>` : '')}
                     ${Number(a.interestRate) >= 0.01 ? `<span class="acct-rate-badge">📈 ${escapeHtml(t('accounts.apyBadge', { rate: Number(a.interestRate).toFixed(2) }))}</span>` : ''}
                     ${a.type === 'Retirement' && a.retirementSubtype === 'Pension' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(t('accounts.pensionBadge', { salary: formatCurrency(Number(a.pensionAnnualSalary)), rate: Number(a.pensionContributionRatePct).toFixed(1) }))}</span>` : ''}
                     ${a.type === 'Retirement' && a.retirementSubtype !== 'Pension' ? `<span class="acct-rate-badge">🏛️ ${escapeHtml(t('accounts.retirementBadge', { subtype: retirementSubtypeLabel(a.retirementSubtype), rate: Number(a.rateOfReturn).toFixed(1) }))}</span>` : ''}
@@ -470,12 +478,13 @@ export async function addAccount(app) {
     const minimumPayment = sanitizeFiniteNumber(document.getElementById('accountMinimumPayment')?.value, 0, { min: 0 });
     const notes = normalizeMultilineText(document.getElementById('accountNotes')?.value, 500);
     const lowBalanceThreshold = readLowBalanceThresholdInput(document.getElementById('accountLowBalanceThreshold')?.value);
+    const muteBalanceAlerts = Boolean(document.getElementById('accountMuteBalanceAlerts')?.checked);
 
     if (!name) { await showAlertModal(t('accounts.errName')); return; }
     if (isNaN(startingBalance)) { await showAlertModal(t('accounts.errStartingBalance')); return; }
     if (lowBalanceThreshold === undefined) { await showAlertModal(t('accounts.errLowBalance')); return; }
 
-    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes, lowBalanceThreshold };
+    const account = { id: Date.now(), name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes, lowBalanceThreshold, muteBalanceAlerts };
     // Listed (and offered in every account dropdown) only once it has its server id (#593).
     if (!(await pgCreate(app, 'accounts', '/api/accounts', account))) return null;
     await recordBalanceHistory(app, { kind: 'account', id: account.id });
@@ -591,12 +600,19 @@ export async function saveEditAccount(app, id) {
     const minimumPayment = sanitizeFiniteNumber(document.getElementById(`ac-minpay-${id}`)?.value, 0, { min: 0 });
     const notes = normalizeMultilineText(document.getElementById(`ac-notes-${id}`)?.value, 500);
     const lowBalanceThreshold = readLowBalanceThresholdInput(document.getElementById(`ac-lowbal-${id}`)?.value);
+    const muteBalanceAlerts = Boolean(document.getElementById(`ac-mute-${id}`)?.checked);
     if (!name) { await showAlertModal(t('accounts.errName')); return; }
     if (isNaN(startingBalance)) { await showAlertModal(t('accounts.errValidStartingBalance')); return; }
     if (lowBalanceThreshold === undefined) { await showAlertModal(t('accounts.errLowBalance')); return; }
-    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes, lowBalanceThreshold };
+    const wasMuted = Boolean(app.accounts[idx].muteBalanceAlerts);
+    app.accounts[idx] = { ...app.accounts[idx], name, type, startingBalance, interestRate, retirementSubtype, rateOfReturn, employerMatchPercent, pensionAnnualSalary, pensionContributionRatePct, pensionVestingYears, pensionEstimatedMonthlyBenefit, pensionYearsOfService, minimumPayment, notes, lowBalanceThreshold, muteBalanceAlerts };
     app.editingAccountId = null;
-    pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);
+    const saved = pgPatch(app, `/api/accounts/${app.accounts[idx].id}`, app.accounts[idx]);
+    // Muting closes the account's open alerts and cancels unsent emails on the
+    // next check; run it now so the bell updates right away.
+    if (muteBalanceAlerts && !wasMuted) {
+        Promise.resolve(saved).then(() => runNotificationCheck()).catch(() => {});
+    }
     await recordBalanceHistory(app, { kind: 'account', id: app.accounts[idx].id });
     app.renderAccountsList();
     app.renderNetWorthWidget();

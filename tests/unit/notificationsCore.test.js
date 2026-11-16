@@ -141,6 +141,14 @@ describe('balances', () => {
         expect(findProjectedBreach(app, app.accounts[0], txs, NOW, 3, 10)).toBeNull();
         expect(findProjectedBreach(app, app.accounts[0], txs, NOW, 0, 100)).toBeNull();
     });
+
+    test('findProjectedBreach with no threshold needs a balance below zero, not at zero', () => {
+        const toZero = makeApp({ debts: [debt({ dueDate: 17, minimumPayment: 1000 })] });
+        expect(findProjectedBreach(toZero, toZero.accounts[0], txsFor(toZero, 1), NOW, 3, null)).toBeNull();
+        const below = makeApp({ debts: [debt({ dueDate: 17, minimumPayment: 1000.01 })] });
+        expect(findProjectedBreach(below, below.accounts[0], txsFor(below, 1), NOW, 3, null)).toEqual({ date: '2026-11-17', balance: -0.01 });
+        expect(findProjectedBreach(toZero, toZero.accounts[0], txsFor(toZero, 1), NOW, 3, 0)).toEqual({ date: '2026-11-17', balance: 0 });
+    });
 });
 
 describe('bill alerts', () => {
@@ -266,14 +274,48 @@ describe('balance alerts', () => {
         expect(computeNotificationEvents(app, NOW, DEFAULT_PREFS)).toEqual({ events: [], activeEpisodes: [] });
     });
 
-    test('at or below zero raises zeroBalance only, even with a threshold', () => {
-        for (const startingBalance of [0, -25]) {
+    test('below zero (overdrawn) raises zeroBalance only, even with a threshold', () => {
+        for (const startingBalance of [-0.01, -25]) {
             const app = makeApp({ accounts: [acct({ startingBalance, lowBalanceThreshold: 100 })] });
             const { events: list, activeEpisodes } = computeNotificationEvents(app, NOW, DEFAULT_PREFS);
             expect(list.map(e => e.type)).toEqual(['zeroBalance']);
             expect(list[0].params.balance).toBe(startingBalance);
             expect(activeEpisodes).toEqual(['zeroBalance|1']);
         }
+    });
+
+    test('exactly $0 is not overdrawn: no alert without a threshold', () => {
+        const app = makeApp({ accounts: [acct({ startingBalance: 0 })] });
+        expect(computeNotificationEvents(app, NOW, DEFAULT_PREFS)).toEqual({ events: [], activeEpisodes: [] });
+    });
+
+    test('exactly $0 with a threshold is a lowBalance alert, not zeroBalance', () => {
+        const app = makeApp({ accounts: [acct({ startingBalance: 0, lowBalanceThreshold: 100 })] });
+        expect(events(app).map(e => e.type)).toEqual(['lowBalance']);
+    });
+
+    test('a muted account raises no balance alert of any kind and opens no episode', () => {
+        for (const fields of [
+            { startingBalance: -50 },
+            { startingBalance: 50, lowBalanceThreshold: 100 },
+            { startingBalance: 500, lowBalanceThreshold: 100 },
+        ]) {
+            const app = makeApp({ accounts: [acct({ ...fields, muteBalanceAlerts: true })], debts: [debt({ dueDate: 17, minimumPayment: 450 })] });
+            const result = computeNotificationEvents(app, NOW, DEFAULT_PREFS);
+            expect(result.events.filter(e => e.type !== 'billDueSoon' && e.type !== 'billDueToday')).toEqual([]);
+            expect(result.activeEpisodes).toEqual([]);
+        }
+    });
+
+    test('muting keeps bill alerts for debts paid from the account', () => {
+        const app = makeApp({ accounts: [acct({ startingBalance: -50, muteBalanceAlerts: true })], debts: [debt({ dueDate: 16 })] });
+        expect(events(app).map(e => e.type)).toEqual(['billDueSoon']);
+    });
+
+    test('isAlertableAccount: muted is not alertable; unmuted (false or missing) is', () => {
+        expect(isAlertableAccount({ type: 'Checking', muteBalanceAlerts: true })).toBe(false);
+        expect(isAlertableAccount({ type: 'Checking', muteBalanceAlerts: false })).toBe(true);
+        expect(isAlertableAccount({ type: 'Checking' })).toBe(true);
     });
 
     test('no threshold: only zero alerts', () => {
@@ -296,7 +338,7 @@ describe('balance alerts', () => {
     test('switched-off types raise nothing and leave no open episode', () => {
         const low = makeApp({ accounts: [acct({ startingBalance: 50, lowBalanceThreshold: 100 })] });
         expect(computeNotificationEvents(low, NOW, { ...DEFAULT_PREFS, lowBalance: false })).toEqual({ events: [], activeEpisodes: [] });
-        const zero = makeApp({ accounts: [acct({ startingBalance: 0 })] });
+        const zero = makeApp({ accounts: [acct({ startingBalance: -1 })] });
         expect(computeNotificationEvents(zero, NOW, { ...DEFAULT_PREFS, zeroBalance: false })).toEqual({ events: [], activeEpisodes: [] });
     });
 
@@ -314,9 +356,11 @@ describe('balance alerts', () => {
         }]);
     });
 
-    test('projectedLow without a threshold uses zero', () => {
+    test('projectedLow without a threshold fires only below zero', () => {
         const app = makeApp({ accounts: [acct({ startingBalance: 40 })], debts: [debt({ dueDate: 16, minimumPayment: 50 })] });
         expect(ofType(events(app), 'projectedLow')[0].params).toMatchObject({ threshold: null, projectedBalance: -10, date: '2026-11-16' });
+        const toZero = makeApp({ accounts: [acct({ startingBalance: 50 })], debts: [debt({ dueDate: 16, minimumPayment: 50 })] });
+        expect(ofType(events(toZero), 'projectedLow')).toEqual([]);
     });
 
     test('projectedLow: not raised when already low, outside the window, at 0 days or switched off', () => {
@@ -332,7 +376,7 @@ describe('balance alerts', () => {
 
     test('the default prefs come from app.settings', () => {
         const app = makeApp({
-            accounts: [acct({ startingBalance: 0 })],
+            accounts: [acct({ startingBalance: -1 })],
             settings: [{ key: 'notifyZeroBalance', value: false }],
         });
         expect(computeNotificationEvents(app, NOW).events).toEqual([]);

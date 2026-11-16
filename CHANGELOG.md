@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.16.0] — 2026-11-16
+
+### Changed
+- **Balance alerts no longer fire at exactly $0.** Many accounts sit at $0 on purpose, so the `zeroBalance` alert now means *overdrawn* (balance below $0), and `projectedLow` without an alert amount fires only for a projected balance below $0. An account at $0 with an alert amount set still gets the low-balance alert, since the user asked for it. Wording in the bell, the email and Settings → Notifications now says "overdrawn" (en/es/pl). The type name `zeroBalance` and the `notifyZeroBalance` setting are unchanged, so stored alerts and preferences carry over.
+
+### Added
+- **"Don't notify" per account.** A checkbox on the Add Account form and the account editor (`muteBalanceAlerts`, default off). A muted account raises no low, overdrawn or projected alert; bill reminders for debts and recurring items paid from it are unaffected. The card shows a 🔕 *Alerts off* badge.
+  - **Existing alerts.** The next check resolves the account's open balance alerts and cancels their unsent emails (`email_status` back to `none`); saving the editor with the box newly ticked runs that check right away. Past alerts stay in the list.
+  - **Server:** migration `1755600000042` adds `accounts.mute_balance_alerts boolean NOT NULL DEFAULT false`; rolling it back drops the column and every account's choice. The accounts route stores it, and the sanitizer only accepts a real `true`.
+
 ## [7.15.1] — 2026-11-16
 
 ### Fixed

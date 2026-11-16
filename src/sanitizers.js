@@ -108,6 +108,7 @@ export function sanitizeAccount(record, idFallback) {
         hsaCoverageType: ['selfOnly', 'family'].includes(record?.hsaCoverageType) ? record.hsaCoverageType : 'selfOnly',
         notes: normalizeMultilineText(record?.notes, 500),
         lowBalanceThreshold: sanitizeLowBalanceThreshold(record?.lowBalanceThreshold),
+        muteBalanceAlerts: record?.muteBalanceAlerts === true,
         archived: Boolean(record?.archived ?? false)
     };
 }

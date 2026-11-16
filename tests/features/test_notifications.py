@@ -16,8 +16,10 @@ pytestmark = pytest.mark.feature
 
 ZERO_ACCOUNT_STATE = {
     'accounts': [
-        {'id': 1, 'name': 'Empty Checking', 'type': 'Checking', 'startingBalance': 0},
+        {'id': 1, 'name': 'Overdrawn Checking', 'type': 'Checking', 'startingBalance': -25},
         {'id': 2, 'name': 'Card', 'type': 'Credit Card', 'startingBalance': -500, 'lowBalanceThreshold': 100},
+        # Sits at exactly $0 on purpose: not overdrawn, so it never alerts.
+        {'id': 3, 'name': 'Parked Savings', 'type': 'Savings', 'startingBalance': 0},
     ],
     'debts': [],
 }
@@ -77,10 +79,11 @@ def test_check_now_raises_an_alert_listed_under_the_bell(app_page):
 
     _open_notifications_settings(page)
     assert _check_now(page) == '1 new alert.'
-    # The Credit Card account is never alerted on, despite its threshold.
+    # The Credit Card account is never alerted on, despite its threshold, and
+    # the $0 account is not overdrawn.
     data = _api_notifications(page)
     assert [n['type'] for n in data['notifications']] == ['zeroBalance']
-    assert data['notifications'][0]['params']['accountName'] == 'Empty Checking'
+    assert data['notifications'][0]['params']['accountName'] == 'Overdrawn Checking'
     # Checking again raises nothing new.
     assert _check_now(page) == 'No new alerts.'
     _close_settings(page)
@@ -91,7 +94,7 @@ def test_check_now_raises_an_alert_listed_under_the_bell(app_page):
     page.click('#notificationsBtn')
     item = page.locator('#notificationsList .notifications-item')
     item.wait_for()
-    assert 'Empty Checking is at $0.00, at or below zero.' in item.text_content()
+    assert 'Overdrawn Checking is overdrawn at -$25.00.' in item.text_content()
     assert 'notifications-item--unread' in item.get_attribute('class')
 
     # Clicking the alert opens Accounts and marks it read on the server.
@@ -247,3 +250,62 @@ def test_clear_all_data_removes_notifications(app_page):
     assert len(_api_notifications(page)['notifications']) == 1
     page.evaluate("async () => { const s = await import('/src/postgresSync.js'); await s.pgDeleteAll(window.app); }")
     assert _api_notifications(page)['notifications'] == []
+
+
+def _accounts_page(page):
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active')
+
+
+def test_dont_notify_checkbox_add_and_edit_persists(app_page):
+    page = app_page
+    _accounts_page(page)
+    page.fill('#accountName', 'Quiet Account')
+    page.select_option('#accountType', 'Checking')
+    page.fill('#accountStartingBalance', '0')
+    page.check('#accountMuteBalanceAlerts')
+    submit_account_form(page)
+    accounts = wait_for_api(page, '/api/accounts', lambda rows: any(r['name'] == 'Quiet Account' for r in rows))
+    acct = next(r for r in accounts if r['name'] == 'Quiet Account')
+    assert acct['muteBalanceAlerts'] is True
+    assert not page.is_checked('#accountMuteBalanceAlerts'), 'the form resets'
+    card = page.locator('#accountList .acct-mute-badge')
+    assert 'Alerts off' in card.text_content()
+
+    page.click(f'[data-account-action="edit"][data-account-id="{acct["id"]}"]')
+    assert page.is_checked(f'#ac-mute-{acct["id"]}')
+    page.uncheck(f'#ac-mute-{acct["id"]}')
+    page.click(f'[data-account-action="save"][data-account-id="{acct["id"]}"]')
+    wait_for_api(page, '/api/accounts', lambda rows: any(r['id'] == acct['id'] and r['muteBalanceAlerts'] is False for r in rows))
+    assert page.locator('#accountList .acct-mute-badge').count() == 0
+
+
+def test_an_unticked_account_is_saved_unmuted(app_page):
+    page = app_page
+    _accounts_page(page)
+    page.fill('#accountName', 'Loud Account')
+    page.fill('#accountStartingBalance', '10')
+    submit_account_form(page)
+    accounts = wait_for_api(page, '/api/accounts', lambda rows: any(r['name'] == 'Loud Account' for r in rows))
+    assert next(r for r in accounts if r['name'] == 'Loud Account')['muteBalanceAlerts'] is False
+    assert page.locator('#accountList .acct-mute-badge').count() == 0
+
+
+def test_muting_an_overdrawn_account_closes_its_alert(app_page):
+    page = app_page
+    seed_state(page, ZERO_ACCOUNT_STATE)
+    wait_for_app_ready(page)
+    page.evaluate("async () => { const r = await import('/src/notificationsCenter.js'); await r.runNotificationCheck(); }")
+    alert = _api_notifications(page)['notifications'][0]
+    assert alert['type'] == 'zeroBalance' and alert['resolvedAt'] is None
+
+    _accounts_page(page)
+    acct_id = page.evaluate("window.app.accounts.find(a => a.name === 'Overdrawn Checking').id")
+    page.click(f'[data-account-action="edit"][data-account-id="{acct_id}"]')
+    page.check(f'#ac-mute-{acct_id}')
+    page.click(f'[data-account-action="save"][data-account-id="{acct_id}"]')
+    # Saving a newly muted account runs the check, which resolves the alert.
+    wait_for_api(page, '/api/notifications',
+                 lambda d: len(d['notifications']) == 1 and d['notifications'][0]['resolvedAt'] is not None)
+    page.evaluate("async () => { const r = await import('/src/notificationsCenter.js'); await r.runNotificationCheck(); }")
+    assert len(_api_notifications(page)['notifications']) == 1, 'no new alert while muted'
