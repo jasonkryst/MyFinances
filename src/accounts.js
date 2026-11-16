@@ -3,6 +3,7 @@
 import { formatCurrency, normalizeText, normalizeMultilineText, sanitizeFiniteNumber, escapeHtml, setCollapsibleOpen } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
+import { offerUndo } from './undo.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
 import { isHistoryTrackedAccount, HISTORY_TRACKED_ACCOUNT_TYPES } from './balanceHistoryCore.js';
@@ -526,21 +527,27 @@ export async function deleteAccount(app, id) {
 }
 
 export function archiveAccount(app, id) {
-    const idx = app.accounts.findIndex(a => a.id === id);
-    if (idx === -1) return;
-    app.accounts[idx] = { ...app.accounts[idx], archived: true };
-    pgPatch(app, `/api/accounts/${id}`, { archived: true });
-    app.renderAccountsList();
-    app.renderNetWorthWidget();
+    setAccountArchived(app, id, true);
 }
 
 export function unarchiveAccount(app, id) {
+    setAccountArchived(app, id, false);
+}
+
+// Archive or unarchive, then offer Undo (#577), which flips it back.
+function setAccountArchived(app, id, archived, { offer = true } = {}) {
     const idx = app.accounts.findIndex(a => a.id === id);
-    if (idx === -1) return;
-    app.accounts[idx] = { ...app.accounts[idx], archived: false };
-    pgPatch(app, `/api/accounts/${id}`, { archived: false });
+    if (idx === -1) return false;
+    app.accounts[idx] = { ...app.accounts[idx], archived };
+    pgPatch(app, `/api/accounts/${id}`, { archived });
     app.renderAccountsList();
     app.renderNetWorthWidget();
+    if (offer) {
+        const name = app.accounts[idx].name || t('undo.unnamed');
+        offerUndo(t(archived ? 'undo.archived' : 'undo.unarchived', { name }),
+            async () => setAccountArchived(app, id, !archived, { offer: false }));
+    }
+    return true;
 }
 
 function _reassignLinkedItems(app, fromId, toId) {

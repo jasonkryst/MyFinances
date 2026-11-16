@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.14.1';
+export const APP_VERSION = '7.15.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -173,6 +173,17 @@ export function sanitizeTimestampISO(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
     return date.toISOString();
+}
+
+// A Savings contribution (#546): a finite amount above 0 and at most 1e9,
+// rounded to cents; null otherwise (blank, zero, negative, non-numeric).
+export function parseContributionAmount(raw) {
+    const s = String(raw ?? '').trim();
+    if (s === '') return null;
+    const n = Number(s);
+    if (!Number.isFinite(n) || n <= 0 || n > 1e9) return null;
+    const cents = Math.round(n * 100) / 100;
+    return cents > 0 ? cents : null;
 }
 
 export function dateToISO(date) {

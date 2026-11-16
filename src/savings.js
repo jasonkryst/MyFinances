@@ -1,7 +1,8 @@
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy } from './utils.js';
+import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy, parseContributionAmount } from './utils.js';
 import { t } from './i18n.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
+import { offerUndo } from './undo.js';
 import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 import { getSetting, setSetting, SHOW_ARCHIVED_SINKING_FUNDS } from './settings.js';
 import { renderHomePurchaseContent, attachHomePurchaseEventListeners } from './homePurchase.js';
@@ -560,24 +561,78 @@ async function deleteEmergencyFund(app, fundId) {
 }
 
 /**
+ * The Contribute amount dialog (#546; was a native prompt()). Resolves to the
+ * amount, or null when cancelled. An invalid amount shows an inline error and
+ * keeps the dialog open.
+ */
+export function openContributeModal(description) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('contributeModal');
+    const input = document.getElementById('contributeAmountInput');
+    const error = document.getElementById('contributeAmountError');
+    const confirmBtn = document.getElementById('contributeConfirmBtn');
+    const cancelBtn = document.getElementById('contributeCancelBtn');
+    const desc = document.getElementById('contributeModalDesc');
+    if (!modal || !input || !confirmBtn || !cancelBtn) { resolve(null); return; }
+    const lastFocused = document.activeElement;
+    if (desc) desc.textContent = description || '';
+    input.value = '';
+    input.setAttribute('aria-invalid', 'false');
+    error?.classList.add('hidden');
+
+    const finish = (value) => {
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+      modal.onkeydown = null;
+      modal.onclick = null;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex-visible');
+      if (lastFocused && lastFocused.isConnected && typeof lastFocused.focus === 'function') lastFocused.focus();
+      resolve(value);
+    };
+    const confirm = () => {
+      const amount = parseContributionAmount(input.value);
+      if (amount === null) {
+        error?.classList.remove('hidden');
+        input.setAttribute('aria-invalid', 'true');
+        input.focus();
+        return;
+      }
+      finish(amount);
+    };
+    confirmBtn.onclick = confirm;
+    cancelBtn.onclick = () => finish(null);
+    modal.onclick = (e) => { if (e.target === modal) finish(null); };
+    modal.onkeydown = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); finish(null); return; }
+      if (e.key === 'Enter' && e.target === input) { e.preventDefault(); confirm(); return; }
+      if (e.key === 'Tab') {
+        const focusable = [input, cancelBtn, confirmBtn];
+        const i = focusable.indexOf(document.activeElement);
+        e.preventDefault();
+        const next = e.shiftKey ? (i <= 0 ? focusable.length - 1 : i - 1) : (i + 1) % focusable.length;
+        focusable[next].focus();
+      }
+    };
+    modal.classList.add('flex-visible');
+    modal.classList.remove('hidden');
+    modal.focus();
+    setTimeout(() => input.focus(), 30);
+  });
+}
+
+/**
  * Open contribute dialog for Emergency Fund
  */
 async function openContributeEmergency(app, fundId) {
-  const amount = prompt(t('savings.promptContribution'));
-  if (!amount) return;
-  const contrib = sanitizeFiniteNumber(amount);
-  if (contrib <= 0) {
-    await showAlertModal(t('savings.errAmount'));
-    return;
-  }
-
   const fund = app.emergencyFunds.find(f => String(f.id) === String(fundId));
-  if (fund) {
-    fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
-    pgPatch(app, `/api/emergency-funds/${fund.id}`, fund);
-    renderSavingsPage(app);
-    attachSavingsEventListeners(app);
-  }
+  if (!fund) return;
+  const contrib = await openContributeModal(t('savings.contributeEmergencyDesc'));
+  if (contrib === null) return;
+  fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
+  pgPatch(app, `/api/emergency-funds/${fund.id}`, fund);
+  renderSavingsPage(app);
+  attachSavingsEventListeners(app);
 }
 
 /**
@@ -722,27 +777,40 @@ async function openSinkingCompleteModal(app, fundId) {
 /**
  * Archive a completed sinking fund (#308)
  */
-function archiveSinkingFund(app, fundId) {
+function archiveSinkingFund(app, fundId, { offer = true, completedDate = null } = {}) {
   const fund = app.sinkingFunds.find(f => String(f.id) === String(fundId));
-  if (!fund) return;
+  if (!fund) return false;
   fund.archived = true;
-  fund.completedDate = new Date().toISOString().slice(0, 10);
+  fund.completedDate = completedDate || new Date().toISOString().slice(0, 10);
   pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
+  // #577: Undo flips it back.
+  if (offer) {
+    offerUndo(t('undo.archived', { name: fund.name || t('undo.unnamed') }),
+      async () => unarchiveSinkingFund(app, fundId, { offer: false }));
+  }
+  return true;
 }
 
 /**
  * Unarchive a sinking fund (#308)
  */
-function unarchiveSinkingFund(app, fundId) {
+function unarchiveSinkingFund(app, fundId, { offer = true } = {}) {
   const fund = app.sinkingFunds.find(f => String(f.id) === String(fundId));
-  if (!fund) return;
+  if (!fund) return false;
+  const completedDate = fund.completedDate;
   fund.archived = false;
   fund.completedDate = null;
   pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
   renderSavingsPage(app);
   attachSavingsEventListeners(app);
+  // #577: Undo re-archives with the original completion date.
+  if (offer) {
+    offerUndo(t('undo.unarchived', { name: fund.name || t('undo.unnamed') }),
+      async () => archiveSinkingFund(app, fundId, { offer: false, completedDate }));
+  }
+  return true;
 }
 
 /**
@@ -760,21 +828,14 @@ async function deleteSinkingFund(app, fundId) {
  * Open contribute dialog for Sinking Fund
  */
 async function openContributeSinking(app, fundId) {
-  const amount = prompt(t('savings.promptContribution'));
-  if (!amount) return;
-  const contrib = sanitizeFiniteNumber(amount);
-  if (contrib <= 0) {
-    await showAlertModal(t('savings.errAmount'));
-    return;
-  }
-
   const fund = app.sinkingFunds.find(f => f.id === fundId);
-  if (fund) {
-    fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
-    pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
-    renderSavingsPage(app);
-    attachSavingsEventListeners(app);
-  }
+  if (!fund) return;
+  const contrib = await openContributeModal(t('savings.contributeSinkingDesc', { name: fund.name || '' }));
+  if (contrib === null) return;
+  fund.currentAmount = Math.min(fund.currentAmount + contrib, fund.targetAmount);
+  pgPatch(app, `/api/sinking-funds/${fundId}`, fund);
+  renderSavingsPage(app);
+  attachSavingsEventListeners(app);
 }
 
 /**

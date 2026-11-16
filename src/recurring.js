@@ -15,6 +15,7 @@ import { buildAccountOptionsHtml } from './accounts.js';
 import { applyWeekendRule, sanitizeWeekendRule, countEntriesMovedByWeekendRule } from './weekendRule.js';
 import { buildWeekendRuleOptionsHtml, weekendRuleLabel } from './weekendRuleUi.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
+import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showDeleteConfirmModal, showAlertModal, confirmZeroAmountAllowed } from './ui.js';
 import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
@@ -618,9 +619,20 @@ export async function addRecurringTemplate(app) {
 
 export function deleteRecurringTemplate(app, id) {
     if (!app.recurringTemplates) return;
+    const index = app.recurringTemplates.findIndex(t => t.id === id);
+    const record = app.recurringTemplates[index];
     app.recurringTemplates = app.recurringTemplates.filter(t => t.id !== id);
-    pgDelete(app, `/api/recurring-templates/${id}`);
+    const deletion = pgDelete(app, `/api/recurring-templates/${id}`);
     app.renderRecurringPage();
+    if (!record) return;
+    offerUndo(tr('undo.deleted', { name: record.name || tr('undo.unnamed') }), async () => {
+        const restored = await restoreDeletedRecord(app, {
+            collection: 'recurringTemplates', path: '/api/recurring-templates', record, index, deletion, ledgerType: 'recurring',
+        });
+        if (!restored) return false;
+        app.renderRecurringPage();
+        return true;
+    });
 }
 
 // #299: pauseUntil is only meaningful while paused=true; unpausing (manual or
@@ -777,19 +789,25 @@ export async function saveEditRecurring(app, id) {
  * Pass in the select element's id and optional current value.
  */
 export function archiveRecurringTemplate(app, id) {
-    const t = app.recurringTemplates?.find(x => x.id === id);
-    if (!t) return;
-    t.archived = true;
-    pgPatch(app, `/api/recurring-templates/${id}`, { archived: true });
-    app.renderRecurringPage();
+    setRecurringArchived(app, id, true);
 }
 
 export function unarchiveRecurringTemplate(app, id) {
+    setRecurringArchived(app, id, false);
+}
+
+// Archive or unarchive, then offer Undo (#577), which flips it back.
+function setRecurringArchived(app, id, archived, { offer = true } = {}) {
     const t = app.recurringTemplates?.find(x => x.id === id);
-    if (!t) return;
-    t.archived = false;
-    pgPatch(app, `/api/recurring-templates/${id}`, { archived: false });
+    if (!t) return false;
+    t.archived = archived;
+    pgPatch(app, `/api/recurring-templates/${id}`, { archived });
     app.renderRecurringPage();
+    if (offer) {
+        offerUndo(tr(archived ? 'undo.archived' : 'undo.unarchived', { name: t.name || tr('undo.unnamed') }),
+            async () => setRecurringArchived(app, id, !archived, { offer: false }));
+    }
+    return true;
 }
 
 export function refreshRecurringAccountSelectors(app) {

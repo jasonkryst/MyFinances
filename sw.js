@@ -3,7 +3,7 @@
 // Kept in sync with APP_VERSION (src/utils.js) by hand -- every version bump
 // must touch this string too, or old cached assets never get evicted.
 // Checked by tests/features/test_pwa.py::test_sw_cache_name_matches_app_version.
-const CACHE_NAME = 'myfinances-v7.14.1';
+const CACHE_NAME = 'myfinances-v7.15.0';
 
 const CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
 
@@ -30,7 +30,7 @@ const PRECACHE_URLS = [
     '/src/loginGate.js', '/src/people.js', '/src/pgMigrationModal.js', '/src/concurrency.js', '/src/ledgerKeyRemap.js', '/src/mergeDedupe.js', '/src/recordVersions.js', '/src/refreshPolicy.js', '/src/resourceDeletion.js', '/src/liveRefresh.js', '/src/planSettingsPatch.js', '/src/postgresSync.js', '/src/postgresImport.js',
     '/src/serverUnreachableGate.js', '/src/strategy.js', '/src/strategyCalendar.js', '/src/strategyComparison.js',
     '/src/strategyPlanCalculation.js', '/src/strategyScheduleTable.js', '/src/strategySummaryTable.js', '/src/ui.js',
-    '/src/utils.js', '/src/balanceHistoryCore.js', '/src/netWorthEstimate.js', '/src/notificationsCore.js', '/src/notificationsCenter.js', '/src/notificationSettings.js', '/src/balanceHistory.js', '/src/balanceHistoryModal.js',
+    '/src/utils.js', '/src/balanceHistoryCore.js', '/src/netWorthEstimate.js', '/src/notificationsCore.js', '/src/notificationsCenter.js', '/src/notificationSettings.js', '/src/undo.js', '/src/undoCore.js', '/src/balanceHistory.js', '/src/balanceHistoryModal.js',
     '/src/transfers.js', '/src/manualTransactions.js', '/src/projectionCache.js', '/src/projectionCore.js', '/src/netWorthCore.js', '/src/recurringOccurrences.js', '/src/ledgerStateCore.js', '/src/ledgerSearch.js', '/src/saveStatus.js', '/src/saveStatusChip.js', '/src/weekendRule.js', '/src/weekendRuleUi.js', '/src/passwordPolicy.js', '/src/passwordUi.js', '/src/securitySettings.js',
     '/src/locales/en.js', '/src/locales/es.js', '/src/locales/pl.js',
 ];

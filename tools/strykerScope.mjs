@@ -30,7 +30,7 @@ export const MUTATE_SCOPE = {
         'parseFiniteOrNull', 'formatShortDate', 'formatMonthYear', 'sanitizeInteger', 'sanitizeDateISO',
         'dateToISO', 'dailyCompoundInterest', 'computeNetIncomeAmount', 'computeMonthlyIncomeForMonth', 'withBusy', 'isTransferLegTx',
         'getBonusDatesInMonth', 'getNextBonusDate', 'computeMonthlyBonusesForMonth', 'getBonusesByDayForMonth',
-        'formatDateCached', 'formatLongDate', 'formatMonthLong', 'formatReportRangeLabel',
+        'formatDateCached', 'formatLongDate', 'formatMonthLong', 'formatReportRangeLabel', 'parseContributionAmount',
     ],
     'src/sanitizers.js': [
         'sanitizePerson', 'sanitizeAccount', 'sanitizeDebt', 'sanitizeOwnershipSplit', 'remapDebtPersonRefs',
@@ -54,6 +54,8 @@ export const MUTATE_SCOPE = {
     'src/netWorthEstimate.js': true,
     // #211: bill-due and balance alert rules (browser + server notifications job).
     'src/notificationsCore.js': true,
+    // #577: Undo's Ledger-key move for a re-created record.
+    'src/undoCore.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).
     'src/passwordPolicy.js': true,
     // #564: partial plan-settings PATCH body builder.
