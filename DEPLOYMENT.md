@@ -336,6 +336,8 @@ for the browser to send them. For production:
   instead of a static env-var check). No manual step or deployment-ordering is required:
   cookies are correctly non-`Secure` for local plain-HTTP testing and correctly `Secure`
   the moment HTTPS is actually terminated in front of the stack — either way, automatically.
+- If another reverse proxy sits in front of the stack's nginx, set `TRUST_PROXY_HOPS=2` so the server
+  reads the right hop's `X-Forwarded-Proto` and client address (see Troubleshooting).
 
 ### Portainer GitOps (Automated Deploys on Push)
 
@@ -537,6 +539,12 @@ openssl s_client -servername your-domain.com -connect your-domain.com:443 < /dev
 ```
 
 ## Troubleshooting
+
+### Can't sign in ("Too many attempts")
+- **The lockout.** Sign-in allows 5 failed attempts per 15 minutes; the message says how many minutes are left. To clear it now, run `docker compose restart server`.
+- **Check the account email.** Run `docker compose exec postgres psql -U myfinances -d myfinances -c "select email from users;"`. Since 7.15.1 the email is not case-sensitive.
+- **Set a new password without email.** Run `docker compose run --rm server node scripts/reset-password.js`.
+- **Behind another reverse proxy** (Traefik, Nginx Proxy Manager, Caddy, Cloudflare Tunnel), set `TRUST_PROXY_HOPS=2` in `.env`. Otherwise every device shares one lockout counter.
 
 ### CSP Violations
 - Check browser console for CSP errors
