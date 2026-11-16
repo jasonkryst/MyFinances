@@ -5,7 +5,7 @@ Tests income source creation and calculations.
 """
 
 import pytest
-from tests.conftest import open_debt_form, submit_debt_form
+from tests.conftest import expect_alert_and_dismiss, open_debt_form, submit_debt_form, wait_for_api
 
 BASE_URL = "http://localhost:32900/"
 
@@ -165,8 +165,10 @@ def test_add_income_negative_amount_rejected(app_page):
     page.fill('#incomeFirstDate', '2026-05-01')
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
-    page.click('#incomeFormSubmit')
+    page.click('#incomeFormSubmit')  # submit-no-wait: validation rejects the negative amount, so no save runs
+    expect_alert_and_dismiss(page, 'Please enter a valid amount greater than 0.')
 
+    wait_for_api(page, '/api/incomes', lambda rows: not any(r.get('name') == 'Negative Salary' for r in rows))
     assert page.query_selector('text=Negative Salary') is None, (
         "A negative income amount should be rejected, not silently saved as $0.01"
     )
@@ -185,10 +187,9 @@ def test_add_bonus_negative_amount_rejected(app_page):
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusCategory', label='Bonus')
     page.click('#bonusForm button[type="submit"]')
-    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
-    page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
+    expect_alert_and_dismiss(page, 'Please enter a valid amount greater than 0.')
 
+    wait_for_api(page, '/api/bonuses', lambda rows: not any(r.get('name') == 'Negative Bonus' for r in rows))
     assert page.query_selector('text=Negative Bonus') is None, (
         "A negative bonus amount should be rejected, not silently saved as $0.01"
     )
@@ -1085,11 +1086,10 @@ def test_add_income_withholding_out_of_range_rejected(app_page):
     page.fill('#incomeFirstDate', '2026-05-01')
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
-    page.click('#incomeFormSubmit')
-    page.wait_for_selector('#alertModal.flex-visible', timeout=5000)
-    page.click('#alertModalOkBtn')
-    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
+    page.click('#incomeFormSubmit')  # submit-no-wait: validation rejects the withholding percent, so no save runs
+    expect_alert_and_dismiss(page, 'Please enter a tax withholding percent between 0 and 99.9.')
 
+    wait_for_api(page, '/api/incomes', lambda rows: not any(r.get('name') == 'Bad Withholding Salary' for r in rows))
     assert page.query_selector('text=Bad Withholding Salary') is None, (
         "An out-of-range withholding percent should be rejected, not silently saved"
     )

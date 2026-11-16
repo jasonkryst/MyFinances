@@ -363,6 +363,19 @@ def wait_for_api(page, path, check, timeout=10.0):
     raise AssertionError(f"{path} never satisfied the expected condition; last response: {data!r}")
 
 
+def expect_alert_and_dismiss(page, message):
+    """Wait for #alertModal, assert its text equals `message`, then dismiss it.
+
+    Rejected-input tests use this so a removed validator fails the test: the
+    form no longer shows the alert (issue #545).
+    """
+    page.wait_for_selector('#alertModalOkBtn', state='visible', timeout=5000)
+    actual = page.text_content('#alertModalMessage')
+    assert actual == message, f"Expected alert {message!r}, got {actual!r}"
+    page.click('#alertModalOkBtn')
+    page.wait_for_selector('#alertModal', state='hidden', timeout=5000)
+
+
 def _wrap_reload(page):
     # ~100 tests reload after seeding; make every reload wait for init too,
     # rather than patching each call site.

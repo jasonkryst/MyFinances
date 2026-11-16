@@ -6,7 +6,7 @@ Tests debt CRUD operations and calculations.
 
 import pytest
 
-from tests.conftest import create_debt, seed_state, open_debt_form, submit_account_form, submit_debt_form
+from tests.conftest import expect_alert_and_dismiss, wait_for_api, create_debt, seed_state, open_debt_form, submit_account_form, submit_debt_form
 
 BASE_URL = "http://localhost:32900/"
 
@@ -330,9 +330,9 @@ def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
     page.fill('#fixedStartDate', '2026-01-01')
     page.fill('#fixedEndDate', '2026-12-31')
     page.click('#debtFormSubmit')  # submit-no-wait: validation rejects the negative fixed amount, so the form stays open and no save finishes
+    expect_alert_and_dismiss(page, 'Please fill in all required fixed-amount debt fields.')
 
-    # addDebt pushes into app.debts before its first await on the success path, so a
-    # rejected submit is visible in app state straight away (issue #592).
+    wait_for_api(page, '/api/debts', lambda rows: not any(r.get('name') == 'Negative Fixed Debt' for r in rows))
     assert not page.evaluate("() => window.app.debts.some(d => d.name === 'Negative Fixed Debt')"), (
         "A rejected negative fixed-amount debt must not reach app.debts"
     )
