@@ -107,8 +107,18 @@ export function sanitizeAccount(record, idFallback) {
         catchUpEligible: Boolean(record?.catchUpEligible ?? false),
         hsaCoverageType: ['selfOnly', 'family'].includes(record?.hsaCoverageType) ? record.hsaCoverageType : 'selfOnly',
         notes: normalizeMultilineText(record?.notes, 500),
+        lowBalanceThreshold: sanitizeLowBalanceThreshold(record?.lowBalanceThreshold),
         archived: Boolean(record?.archived ?? false)
     };
+}
+
+// #211: per-account low-balance alert. A positive amount up to 1e12, or null
+// (no alert). Blank, zero, negative and non-numeric input all mean null.
+export function sanitizeLowBalanceThreshold(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(n) || n <= 0 || n > 1e12) return null;
+    return Math.round(n * 100) / 100;
 }
 
 // #272: Debt ownership split. Returns null (= equal share among personIds, the

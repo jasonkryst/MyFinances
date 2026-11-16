@@ -37,6 +37,7 @@ import {
 } from './charts.js';
 import { saveToStorage, backfillIncomeAccountIds, clearAllData as clearAllDataFeature, probeServer, loadFromPostgres, SessionExpiredError } from './storage.js';
 import { initLiveRefresh, refreshFromServer as refreshFromServerFeature } from './liveRefresh.js';
+import { initNotificationsCenter, refreshNotifications } from './notificationsCenter.js';
 import { showServerUnreachable } from './serverUnreachableGate.js';
 import { requestLogin } from './loginGate.js';
 import { showPgMigrationModal, showLegacyDataCleanupModal } from './pgMigrationModal.js';
@@ -330,6 +331,9 @@ export class DebtTrackerApp {
         // #575: from here on, other tabs' writes and returning to this tab
         // re-read the server.
         initLiveRefresh(this);
+        // #211: the toolbar bell; the list loads in the background.
+        initNotificationsCenter(this);
+        refreshNotifications();
     }
 
     // The readiness marker (issue #422) also goes up while boot waits at a

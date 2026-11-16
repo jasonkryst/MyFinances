@@ -23,6 +23,7 @@ export default createCrudResource({
         catchUpEligible: 'catch_up_eligible',
         hsaCoverageType: 'hsa_coverage_type',
         notes: 'notes',
+        lowBalanceThreshold: 'low_balance_threshold',
         archived: 'archived'
     }
 });

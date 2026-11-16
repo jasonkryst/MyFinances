@@ -37,7 +37,7 @@ NON_TRANSLATABLE = {'ira', 'roth', 'hsa', 'fire', 'us', 'usd',
                     'english', 'español', 'polski'}
 
 _SEED_ACCOUNTS = [
-    {'id': 1, 'name': '⟦Checking⟧', 'type': 'Checking', 'startingBalance': 2500,
+    {'id': 1, 'name': '⟦Checking⟧', 'type': 'Checking', 'startingBalance': 2500, 'lowBalanceThreshold': 100,
      'notes': '⟦Branch phone 555-0100⟧\n⟦Ask about the waived fee⟧'},
     {'id': 2, 'name': '⟦Roth⟧', 'type': 'Retirement', 'retirementSubtype': 'Roth IRA',
      'startingBalance': 40000, 'rateOfReturn': 7},
@@ -527,6 +527,49 @@ TRANSLATED_PAGES = {
             document.getElementById('settingsBtn').click();
             document.querySelector('[data-settings-tab="notifications"]').click();
             document.getElementById('settingsEmailTestGroup')?.classList.remove('hidden');
+            // #211: the SMTP note and the days-ahead error, plus a real Check now result.
+            document.getElementById('settingNotifyEmailOff').classList.remove('hidden');
+            document.getElementById('settingNotifyDaysAheadError').classList.remove('hidden');
+            const status = document.getElementById('settingNotifyCheckStatus');
+            document.getElementById('settingNotifyCheckNowBtn').click();
+            for (let i = 0; i < 50 && (!status.textContent || status.textContent.includes('…')); i++) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+        }""",
+    ),
+    # #211: the toolbar bell's alert list, one item of every type (read,
+    # unread and resolved), rendered from injected state.
+    'notifications-panel': (
+        ['#notificationsWrap'],
+        """async () => {
+            const nc = await import('/src/notificationsCenter.js');
+            const st = nc.getNotificationsState();
+            const p = { name: '⟦Rent⟧', amount: 1200, dueDate: '2026-11-17', accountName: '⟦Checking⟧', balance: 50, threshold: 150, projectedBalance: 20, date: '2026-11-18' };
+            st.items = [
+                { id: 1, type: 'billDueToday', params: p, createdAt: '2026-11-15T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 2, type: 'billDueSoon', params: { ...p, daysUntil: 1 }, createdAt: '2026-11-15T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 3, type: 'billDueSoon', params: { ...p, daysUntil: 2 }, createdAt: '2026-11-15T12:00:00Z', readAt: '2026-11-15T13:00:00Z', resolvedAt: null },
+                { id: 4, type: 'lowBalance', params: p, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: '2026-11-15T12:00:00Z' },
+                { id: 5, type: 'zeroBalance', params: { accountName: null, balance: -5 }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 6, type: 'projectedLow', params: p, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 7, type: 'projectedLow', params: { ...p, threshold: null }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 8, type: 'mystery', params: {}, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+            ];
+            st.unreadCount = 7;
+            st.loaded = true;
+            st.failed = false;
+            document.getElementById('notificationsPanel').classList.remove('hidden');
+            nc.renderNotificationsCenter();
+        }""",
+    ),
+    'notifications-panel-empty': (
+        ['#notificationsWrap'],
+        """async () => {
+            const nc = await import('/src/notificationsCenter.js');
+            const st = nc.getNotificationsState();
+            st.items = []; st.unreadCount = 0; st.loaded = true; st.failed = false;
+            document.getElementById('notificationsPanel').classList.remove('hidden');
+            nc.renderNotificationsCenter();
         }""",
     ),
     'settings-advanced': (

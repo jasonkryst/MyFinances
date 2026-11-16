@@ -88,9 +88,9 @@ test('the scheduler is started only from index.js main(), never by createApp()',
     assert.doesNotMatch(appSrc, /jobs\//);
 });
 
-test('the registry holds the snapshot and pruning jobs with distinct names', () => {
+test('the registry holds the snapshot, notifications and pruning jobs with distinct names', () => {
     const names = JOBS.map(j => j.name);
-    assert.deepEqual([...names].sort(), ['net-worth-snapshot', 'prune-sessions']);
+    assert.deepEqual([...names].sort(), ['net-worth-snapshot', 'notifications', 'prune-sessions']);
     for (const job of JOBS) {
         assert.equal(typeof job.periodKey, 'function');
         assert.equal(typeof job.run, 'function');

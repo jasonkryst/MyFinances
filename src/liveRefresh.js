@@ -14,6 +14,7 @@
 
 import { loadFromPostgres, SessionExpiredError } from './storage.js';
 import { requestLogin } from './loginGate.js';
+import { refreshNotifications } from './notificationsCenter.js';
 import { pendingWriteCount, currentWriteGeneration, seedShadows, DATA_WRITTEN_EVENT } from './postgresSync.js';
 import {
     SYNC_CHANNEL, parseRefreshSeconds, shouldRefreshOnReturn, refreshBlockReason,
@@ -102,6 +103,7 @@ export async function refreshFromServer(app) {
         if (typeof app.updateUI === 'function') app.updateUI();
         if (typeof app.refreshCurrentPageData === 'function') app.refreshCurrentPageData();
         markRefresh('applied');
+        refreshNotifications();
         return true;
     } catch (err) {
         if (err instanceof SessionExpiredError) {

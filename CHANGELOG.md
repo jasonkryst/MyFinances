@@ -4,6 +4,29 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.14.0] — 2026-11-15
+
+### Added
+- **Notifications** (issue #211). A new hourly `notifications` background job checks every user and raises five kinds of alert:
+  - **Bill due soon** and **bill due today**: a debt minimum payment, recurring subscription or legacy bill that is not Cleared in the Ledger and is due within the next *N* days (Settings → Notifications → Days ahead, 0-30, default 3) or today.
+  - **Low balance**: an account's balance today is at or below its new per-account **Low-balance alert at** amount (Accounts add and edit forms; shown as a badge on the card).
+  - **At or below zero**: any checking, savings, cash, investment or other account.
+  - **Projected to run low** (a recommended extra): the account is fine today but its projected balance reaches the alert amount (or $0 without one) within the same *N* days.
+  - Credit Card, Loan, Retirement and archived accounts are never alerted on.
+- **How alerts are computed and stored.**
+  - The rules are the pure, Stryker-scoped `src/notificationsCore.js`, built on the shared projection core, so the server's numbers equal the app's.
+  - Alerts are stored in a new `notifications` table with a unique dedupe key per user, so a repeated or retried check never repeats an alert.
+  - A balance alert stays open while the balance is low and is resolved on the first check where it isn't, so the next dip alerts again.
+- **In-app list and email.**
+  - The toolbar bell shows the unread count and the list, with Mark all read. Text is translated in the browser; emails are English.
+  - Settings → Notifications has a switch per alert type, days ahead, **Send alerts by** (email and in-app, the default; email only; in-app only), **Emails** (one per alert, the default, or one summary per check), a note when SMTP is not configured, and **Check now** (`POST /api/notifications/check`, which runs the check for you immediately, even with `JOBS_ENABLED=false`).
+  - A failed email is retried on later checks, up to 3 attempts within 48 hours.
+- **New API:** `GET /api/notifications`, `POST /api/notifications/:id/read`, `POST /api/notifications/read-all`, `DELETE /api/notifications` (Clear All Data) and `POST /api/notifications/check`.
+- **Housekeeping:** the prune job deletes notifications older than 90 days, except balance alerts that are still open.
+
+### Changed
+- **Server:** migration `1755600000040` adds `accounts.low_balance_threshold` and the `notifications` table. Rolling it back discards both, including every account's alert amount and the alert history.
+
 ## [7.13.0] — 2026-11-15
 
 ### Added

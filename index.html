@@ -65,6 +65,22 @@
                     <div class="header-toolbar-divider"></div>
                     <a id="helpBtn" class="header-icon-btn" data-i18n-attr="title:toolbar.helpTitle,aria-label:toolbar.helpAriaLabel" title="Open usage guide" aria-label="Help" href="guide.html" target="_blank" rel="noopener noreferrer">❓</a>
                     <div class="header-toolbar-divider"></div>
+                    <!-- #211: notifications bell + alert list (src/notificationsCenter.js) -->
+                    <div class="notifications-wrap" id="notificationsWrap">
+                        <button id="notificationsBtn" class="header-icon-btn" aria-haspopup="true" aria-expanded="false" aria-controls="notificationsPanel" aria-describedby="notificationsUnreadSr" title="Notifications" aria-label="Notifications" data-i18n-attr="title:notify.bellAria,aria-label:notify.bellAria">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            <span id="notificationsBadge" class="notifications-badge hidden" aria-hidden="true">0</span>
+                        </button>
+                        <span id="notificationsUnreadSr" class="sr-only"></span>
+                        <div id="notificationsPanel" class="notifications-panel hidden" role="region" aria-labelledby="notificationsPanelTitle">
+                            <div class="notifications-panel-header">
+                                <p id="notificationsPanelTitle" class="notifications-panel-title" data-i18n="notify.title">Notifications</p>
+                                <button type="button" id="notificationsMarkAllBtn" class="btn btn-secondary btn-small" data-i18n="notify.markAllRead">Mark all read</button>
+                            </div>
+                            <div id="notificationsList" class="notifications-list"></div>
+                        </div>
+                    </div>
+                    <div class="header-toolbar-divider"></div>
                     <!-- Account menu — trigger + dropdown -->
                     <div class="account-menu-wrap" id="accountMenuWrap">
                         <button id="accountMenuBtn" class="header-icon-btn" title="Account" aria-label="Account menu" aria-haspopup="true" aria-expanded="false">
@@ -291,6 +307,12 @@
                                     <span class="help-icon" tabindex="0" aria-label="Optional. Context for this account, such as an institution phone number or why the starting balance is unusual. Up to 500 characters." data-i18n-attr="aria-label:accounts.notesHelp">?</span>
                                 </label>
                                 <textarea id="accountNotes" rows="2" maxlength="500" placeholder="e.g. Branch phone number, reminder about an automatic transfer" data-i18n-attr="placeholder:accounts.notesPlaceholder"></textarea>
+                            </div>
+                            <div class="form-group" id="accountLowBalanceGroup">
+                                <label for="accountLowBalanceThreshold"><span data-i18n="accounts.lowBalanceLabel">Low-balance alert at</span>
+                                    <span class="help-icon" tabindex="0" aria-label="Optional. You are notified when this account's balance drops to this amount or below. Checking, savings, cash, investment and other accounts only." data-i18n-attr="aria-label:accounts.lowBalanceHelp">?</span>
+                                </label>
+                                <input type="number" id="accountLowBalanceThreshold" placeholder="0.00" step="0.01" min="0">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="accountFormSubmit" data-i18n="accounts.addTitle">Add Account</button>
@@ -1915,6 +1937,54 @@
                 </div>
             </div>
             <div id="settingsPanel-notifications" class="settings-tab-panel" role="tabpanel">
+                <!-- #211: alert preferences (src/notificationSettings.js). Saved with Done, like every other setting. -->
+                <fieldset class="form-group modal-form-group notify-settings">
+                    <legend class="notify-settings-legend" data-i18n="settings.notify.typesLegend">Alert me when</legend>
+                    <label class="settings-toggle-row" for="settingNotifyBillDue">
+                        <input type="checkbox" id="settingNotifyBillDue">
+                        <span data-i18n="settings.notify.billDue">A bill or debt payment is due soon or today</span>
+                    </label>
+                    <label class="settings-toggle-row" for="settingNotifyLowBalance">
+                        <input type="checkbox" id="settingNotifyLowBalance">
+                        <span data-i18n="settings.notify.lowBalance">An account drops to its low-balance alert amount</span>
+                    </label>
+                    <label class="settings-toggle-row" for="settingNotifyZeroBalance">
+                        <input type="checkbox" id="settingNotifyZeroBalance">
+                        <span data-i18n="settings.notify.zeroBalance">An account is at or below zero</span>
+                    </label>
+                    <label class="settings-toggle-row" for="settingNotifyProjectedLow">
+                        <input type="checkbox" id="settingNotifyProjectedLow">
+                        <span data-i18n="settings.notify.projectedLow">An account is projected to run low within the days ahead</span>
+                    </label>
+                    <p class="modal-helper-text" data-i18n="settings.notify.thresholdHelp">Set a low-balance alert amount on each account from the Accounts page (Add or Edit).</p>
+                </fieldset>
+                <div class="form-group modal-form-group">
+                    <label for="settingNotifyDaysAhead" data-i18n="settings.notify.daysAhead">Days ahead</label>
+                    <input type="number" id="settingNotifyDaysAhead" min="0" max="30" step="1" inputmode="numeric" aria-describedby="settingNotifyDaysAheadHelp settingNotifyDaysAheadError">
+                    <p class="modal-helper-text" id="settingNotifyDaysAheadHelp" data-i18n="settings.notify.daysAheadHelp">How many days ahead to warn about bills and projected low balances (0 to 30). 0 warns only on the due date.</p>
+                    <p class="notify-error hidden" id="settingNotifyDaysAheadError" role="alert" data-i18n="settings.notify.daysAheadError">Enter a whole number from 0 to 30.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label for="settingNotifyChannel" data-i18n="settings.notify.channel">Send alerts by</label>
+                    <select id="settingNotifyChannel">
+                        <option value="both" data-i18n="settings.notify.channelBoth">Email and in-app</option>
+                        <option value="email" data-i18n="settings.notify.channelEmail">Email only</option>
+                        <option value="inApp" data-i18n="settings.notify.channelInApp">In-app only</option>
+                    </select>
+                </div>
+                <div class="form-group modal-form-group">
+                    <label for="settingNotifyDelivery" data-i18n="settings.notify.delivery">Emails</label>
+                    <select id="settingNotifyDelivery">
+                        <option value="perEvent" data-i18n="settings.notify.deliveryPerEvent">One email per alert</option>
+                        <option value="digest" data-i18n="settings.notify.deliveryDigest">One summary email per check</option>
+                    </select>
+                    <p class="modal-helper-text" data-i18n="settings.notify.deliveryHelp">Alerts are checked every hour.</p>
+                    <p class="modal-helper-text notify-email-off hidden" id="settingNotifyEmailOff" data-i18n="settings.notify.emailOff">Email isn't configured on this server, so alerts appear in the app only.</p>
+                </div>
+                <div class="form-group modal-form-group">
+                    <button type="button" id="settingNotifyCheckNowBtn" class="btn btn-secondary" data-i18n="settings.notify.checkNow">Check now</button>
+                    <p class="modal-helper-text" id="settingNotifyCheckStatus" role="status" aria-live="polite"></p>
+                </div>
                 <div class="form-group modal-form-group" id="settingsEmailTestGroup">
                     <button type="button" id="settingsSendTestEmailBtn" class="btn btn-secondary" data-i18n="settings.sendTestEmail">Send test email</button>
                     <p class="modal-helper-text" data-i18n="settings.testEmailHelp">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
