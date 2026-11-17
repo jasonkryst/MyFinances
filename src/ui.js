@@ -787,7 +787,8 @@ export function switchPage(app, pageName) {
         recurring: 'recurringSection',
         reconcile: 'reconcileSection',
         retirement: 'retirementSection',
-        people: 'peopleSection'
+        people: 'peopleSection',
+        notifications: 'notificationsPage'
     };
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -882,6 +883,9 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     if (pageName === 'people') {
         app.renderPeopleList();
         app.refreshPersonSelectors();
+    }
+    if (pageName === 'notifications') {
+        app.renderNotificationsPage();
     }
     refreshFilterDisclosureCounts();
 }
@@ -1031,6 +1035,14 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.17.0 — 2026-11-17',
+        items: [
+            '<strong>Notifications page:</strong> the bell now has a <em>View all</em> link to a full page that lists every alert, not just the newest. Filter by type and status, and alerts are grouped by day.',
+            '<strong>Triage in bulk:</strong> mark alerts read or unread one at a time or for the whole filtered list, and undo a bulk change from the notice. Click an alert to jump to the Ledger or Accounts.',
+            '<strong>Keyboard friendly:</strong> press j and k to move, x to select, e to mark read, and Enter to open.'
+        ]
+    },
     {
         version: '7.16.0 — 2026-11-16',
         items: [

@@ -230,8 +230,13 @@ and cancels their pending emails on the next check. Bill alerts are not affected
   currency symbol. A failed send leaves the row `pending`; it is retried on
   later checks, up to 3 attempts within 48 hours, and never fails the job.
 - **API** (session + CSRF):
-  - `GET /api/notifications` returns the 50 newest in-app alerts,
-    `unreadCount` and `emailConfigured`.
+  - `GET /api/notifications[?limit=N]` returns the newest in-app alerts
+    (`limit` 1-500, default 50; anything else is a 400), `unreadCount`,
+    `total` (all in-app alerts) and `emailConfigured`.
+  - `POST /api/notifications/read` and `/unread`, body `{ ids }` (1-500
+    unique positive integers, else 400), mark those of the signed-in user's
+    alerts; unknown or foreign ids are ignored. They return
+    `{ ok, updated, unreadCount }`.
   - `POST /api/notifications/:id/read` and `POST /api/notifications/read-all`.
   - `DELETE /api/notifications` (Clear All Data).
   - `POST /api/notifications/check` runs the check for the signed-in user now

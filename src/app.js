@@ -106,6 +106,7 @@ import {
     loadTransfersModule,
     loadManualTransactionsModule,
     loadStrategyCalendarModule,
+    loadNotificationsPageModule,
     loadReportsSubModules
 } from './lazyModules.js';
 import {
@@ -1146,6 +1147,16 @@ export class DebtTrackerApp {
         } catch (err) {
             console.error('Failed to load reconciliation module', err);
             renderLazyLoadError('reconcileSection', 'the Reconcile page');
+        }
+    }
+    // Notifications page (#643), lazy-loaded like Reconcile.
+    async renderNotificationsPage() {
+        try {
+            const mod = await loadNotificationsPageModule();
+            return await mod.renderNotificationsPage(this);
+        } catch (err) {
+            console.error('Failed to load notifications page module', err);
+            renderLazyLoadError('notificationsPageList', 'the Notifications page');
         }
     }
     async applyReconciliation(accountId, statementBalance, note, dates) {

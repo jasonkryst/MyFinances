@@ -995,6 +995,50 @@ TRANSLATED_PAGES = {
             await window.app.renderRetirementPage();
         }""",
     ),
+    'notifications': (
+        ['#notificationsPage'],
+        """async () => {
+            window.app.switchPage('notifications');
+            await window.app.renderNotificationsPage();
+            if (!window.app.accounts.length) return;
+            // Inject one alert of every type (CI raises none on its own), with
+            // a total above the loaded count so the "showing N of M" line shows.
+            const nc = await import('/src/notificationsCenter.js');
+            const s = nc.getNotificationsState();
+            const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+            const acct = { accountId: 1, accountName: '⟦Checking⟧' };
+            s.all = [
+                { id: 9001, type: 'billDueToday', params: { name: '⟦Rent⟧', amount: 1200, accountId: 1 },
+                  createdAt: day(0), readAt: null, resolvedAt: null },
+                { id: 9002, type: 'billDueSoon', params: { name: '⟦Phone⟧', amount: 40, daysUntil: 3,
+                  dueDate: '2026-03-04', accountId: 1 }, createdAt: day(1), readAt: null, resolvedAt: null },
+                { id: 9003, type: 'lowBalance', params: { ...acct, balance: 50, threshold: 100 },
+                  createdAt: day(3), readAt: day(2), resolvedAt: null },
+                { id: 9004, type: 'zeroBalance', params: { ...acct, balance: -25 },
+                  createdAt: day(10), readAt: null, resolvedAt: day(9) },
+                { id: 9005, type: 'projectedLow', params: { ...acct, projectedBalance: 20, threshold: 100,
+                  date: '2026-03-10' }, createdAt: day(20), readAt: null, resolvedAt: null },
+            ];
+            s.total = 600;
+            window.app._notificationsFilters = { status: 'all' };
+            nc.renderNotificationsCenter();
+            document.querySelector('#notificationsPage .notif-row-select')?.click();
+        }""",
+    ),
+    'notifications-nomatch': (
+        ['#notificationsPage'],
+        """async () => {
+            window.app.switchPage('notifications');
+            await window.app.renderNotificationsPage();
+            const nc = await import('/src/notificationsCenter.js');
+            const s = nc.getNotificationsState();
+            s.all = [{ id: 9101, type: 'zeroBalance', params: { accountId: 1, accountName: '⟦Checking⟧', balance: -5 },
+                       createdAt: new Date().toISOString(), readAt: null, resolvedAt: null }];
+            window.app._notificationsFilters = { status: 'read', category: 'bill', from: '2001-01-01' };
+            document.getElementById('notifFiltersBody')?.classList.add('is-open');
+            nc.renderNotificationsCenter();
+        }""",
+    ),
     'reconcile': (
         ['#reconcileSection', '#reconcileModal', '#reconSaveProgressModal'],
         """async () => {
