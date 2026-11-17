@@ -1,6 +1,6 @@
 # Notifications page — design
 
-Date: 2026-11-17. Builds on #211 (notifications) and the overdrawn/mute change (#641). Target release: 7.17.0.
+Date: 2026-11-17. Issue: #643. Builds on #211 (notifications) and the overdrawn/mute change (#641). Target release: 7.17.0.
 
 ## Goal
 
