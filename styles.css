@@ -9494,3 +9494,166 @@ body.dark-mode .undo-toast-close {
 body.dark-mode .notifications-view-all {
     color: #93c5fd;
 }
+
+/* Notifications page (#643): filters, bulk bar and the alert rows. */
+.notif-summary {
+    margin: 0 0 12px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+@media (min-width: 769px) {
+    .notif-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+        margin-bottom: 12px;
+    }
+    .notif-filters label {
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+}
+.notif-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 12px;
+}
+.notif-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.notif-selected-count {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.notif-group {
+    margin-bottom: 16px;
+}
+.notif-group-heading {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+.notif-group-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-bg, #fff);
+}
+.notif-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    border-left: 4px solid transparent;
+}
+.notif-row:last-child {
+    border-bottom: 0;
+}
+.notif-row:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+.notif-row--unread {
+    border-left-color: var(--primary-color);
+    background: #eff6ff;
+}
+.notif-row-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.notif-row-text {
+    font-size: 0.92rem;
+}
+.notif-row--unread .notif-row-text {
+    font-weight: 600;
+}
+.notif-row--read .notif-row-text {
+    color: var(--text-muted);
+}
+.notif-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.notif-tag {
+    padding: 0 6px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-weight: 600;
+}
+.notif-tag--unread {
+    color: #1d4ed8;
+}
+.notif-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+.notif-empty {
+    padding: 16px;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+}
+.notif-empty p {
+    margin: 0 0 8px;
+}
+.notif-empty p:last-child {
+    margin-bottom: 0;
+}
+.notif-highlight {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+body.dark-mode .notif-row--unread {
+    background: #1e3a5f;
+}
+body.dark-mode .notif-tag--unread {
+    color: #93c5fd;
+}
+@media (max-width: 768px) {
+    .notif-filters .fd-field input[type="date"] {
+        width: 100%;
+        min-width: 0;
+    }
+    .notif-row {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+            "select body"
+            "actions actions";
+    }
+    .notif-row-select { grid-area: select; }
+    .notif-row-icon { display: none; }
+    .notif-row-body { grid-area: body; }
+    .notif-row-actions {
+        grid-area: actions;
+        justify-content: flex-start;
+    }
+    .notif-row-actions .btn,
+    .notif-bulk-bar .btn,
+    .notif-row-select,
+    #notifSelectAll {
+        min-height: 40px;
+    }
+    .notif-row-select,
+    #notifSelectAll {
+        min-width: 24px;
+    }
+}

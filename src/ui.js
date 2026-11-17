@@ -787,7 +787,8 @@ export function switchPage(app, pageName) {
         recurring: 'recurringSection',
         reconcile: 'reconcileSection',
         retirement: 'retirementSection',
-        people: 'peopleSection'
+        people: 'peopleSection',
+        notifications: 'notificationsPage'
     };
 
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
@@ -882,6 +883,9 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     if (pageName === 'people') {
         app.renderPeopleList();
         app.refreshPersonSelectors();
+    }
+    if (pageName === 'notifications') {
+        app.renderNotificationsPage();
     }
     refreshFilterDisclosureCounts();
 }

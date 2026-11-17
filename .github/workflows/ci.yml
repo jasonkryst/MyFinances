@@ -75,7 +75,7 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  # test_ledger: 18 slow tests (~25s each in CI), plus test_notifications (#211, short).
+  # test_ledger: 18 slow tests (~25s each in CI), plus test_notifications (#211) and test_notifications_page (#643), both short.
   test-features-f:
     needs: build-images
     runs-on: ubuntu-latest
@@ -94,7 +94,7 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/features/test_ledger.py tests/features/test_notifications.py tests/features/test_login_recovery.py --maxfail=15 -v
+      - run: pytest tests/features/test_ledger.py tests/features/test_notifications.py tests/features/test_notifications_page.py tests/features/test_login_recovery.py --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v

@@ -145,7 +145,8 @@ CHECK_JS = """([cardSelectors]) => {
 }"""
 
 PAGES = ["health", "accounts", "income", "liabilities", "recurring", "savings",
-         "strategy", "reports", "ledger", "reconcile", "retirement", "people"]
+         "strategy", "reports", "ledger", "reconcile", "retirement", "people",
+         "notifications"]
 REPORT_TABS = ["calendar", "spending", "incomeexp", "moneyflow", "variance",
                "networth", "forecast", "summary"]
 
@@ -210,6 +211,29 @@ def test_no_card_clipping_on_reports_subtab(phone_page, tab):
     page.evaluate("(t) => document.querySelector(`[data-rptab='${t}']`).click()", tab)
     page.wait_for_timeout(1000)
     _check(page, f"reports/{tab}")
+
+
+@pytest.mark.ui
+def test_no_card_clipping_on_notifications_rows(phone_page):
+    """#643: the page's rows stack as cards on a phone; long messages must wrap."""
+    page = phone_page
+    _go(page, "notifications")
+    page.evaluate("""async () => {
+        await window.app.renderNotificationsPage();
+        const nc = await import('/src/notificationsCenter.js');
+        const s = nc.getNotificationsState();
+        const acct = { accountId: 1, accountName: 'A checking account with a rather long name indeed' };
+        s.all = [
+            { id: 9201, type: 'lowBalance', params: { ...acct, balance: 50, threshold: 100 },
+              createdAt: new Date().toISOString(), readAt: null, resolvedAt: null },
+            { id: 9202, type: 'zeroBalance', params: { ...acct, balance: -1234567.89 },
+              createdAt: new Date(Date.now() - 864e5 * 9).toISOString(), readAt: null, resolvedAt: new Date().toISOString() },
+        ];
+        window.app._notificationsFilters = { status: 'all' };
+        nc.renderNotificationsCenter();
+    }""")
+    page.wait_for_selector("#notificationsPage .notif-row")
+    _check(page, "notifications/rows")
 
 
 @pytest.mark.ui
