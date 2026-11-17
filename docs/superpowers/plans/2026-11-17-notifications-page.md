@@ -151,7 +151,7 @@
   - Selection is a module `Set`, passed through `pruneSelection` on every render.
   - Mark selected and Mark all matching call `markNotificationsRead`. If the result is non-empty, `offerUndo(plural('notifyPage.markedRead', n), () => markNotificationsUnread(changed))`.
   - View calls `markNotificationsRead([id])`. Then for the Ledger it sets `app._ledgerAccountFilter = accountId ?? 'all'` and `switchPage('ledger')`. For Accounts it calls `switchPage('accounts')`, then scrolls to `[data-account-id="…"]` if present and adds a 2 s `.notif-highlight` class.
-  - Subscribe through `onNotificationsChange` and re-render only while `app._currentPage === 'notifications'`.
+  - Subscribe through `onNotificationsChange` and re-render only while `app._currentPage === 'notifications'`. After a live refresh (wherever `refreshNotifications()` is already called), call `loadAllNotifications()` too, but only if the page is current.
   - Set `data-notifications-page-ready` after each render, for the tests.
 - [ ] **Step 4: Run.** The new tests pass, plus `tests/features/test_i18n_coverage.py`, `test_i18n_render_guard.py`, `test_i18n_render_guard_empty.py`, `tests/ui/test_aria_labels.py`, `tests/ui/test_css_integrity.py`, `tests/ui/test_mobile_no_card_clipping.py` and `tests/features/test_ci_shard_coverage.py`.
 - [ ] **Step 5: Commit** `Notifications page: view all, filter, bulk mark read, undo, deep links (#643)`.
