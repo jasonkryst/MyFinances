@@ -347,3 +347,68 @@ def test_row_text_meets_aa_contrast(app_page, dark, high_contrast):
     for label, loc in checks.items():
         res = text_contrast(loc)
         assert res['ratio'] >= 4.5, f'{label}: {res}'
+
+
+def _focused_row_text(page):
+    return page.evaluate(
+        "() => { const r = document.activeElement && document.activeElement.closest('.notif-row');"
+        " return r ? r.querySelector('.notif-row-text').textContent : null; }")
+
+
+def _row_texts(page):
+    return page.locator(ROWS + ' .notif-row-text').all_text_contents()
+
+
+def test_keyboard_flow(app_page):
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    texts = _row_texts(page)
+    page.keyboard.press('j')
+    assert _focused_row_text(page) == texts[0]
+    page.keyboard.press('j')
+    assert _focused_row_text(page) == texts[1]
+    page.keyboard.press('x')
+    assert page.locator(ROWS).nth(1).locator('.notif-row-select').is_checked()
+    assert '1 selected' in page.text_content('#notifSelectedCount')
+    page.keyboard.press('x')
+    assert not page.locator(ROWS).nth(1).locator('.notif-row-select').is_checked()
+    page.keyboard.press('k')
+    assert _focused_row_text(page) == texts[0]
+    page.keyboard.press('j')
+    # e marks the focused row (index 1) read; it leaves the Unread list and
+    # focus lands on the row now at that index.
+    page.keyboard.press('e')
+    _wait_rows(page, 3)
+    wait_for_api(page, '/api/notifications', lambda d: d['unreadCount'] == 3)
+    assert texts[1] not in _row_texts(page)
+    assert _focused_row_text(page) == texts[2]
+    assert page.locator(ROWS + '[tabindex="0"]').count() == 1
+    # Enter on the focused row runs View.
+    page.keyboard.press('Enter')
+    page.wait_for_selector('#notificationsPage', state='hidden')
+
+
+def test_keys_ignored_while_typing(app_page):
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    page.focus('#notifFilterFrom')
+    page.keyboard.type('jxe')
+    assert page.evaluate("() => document.activeElement.id") == 'notifFilterFrom'
+    assert page.locator(ROWS + ' .notif-row-select:checked').count() == 0
+    assert _badge(page) == 4
+    assert len(_row_texts(page)) == 4
+
+
+def test_keys_inactive_off_page(app_page):
+    page = app_page
+    _seed_alerts(page)
+    errors = []
+    page.on('pageerror', lambda e: errors.append(str(e)))
+    page.evaluate("() => window.app.switchPage('health')")
+    page.keyboard.press('j')
+    page.keyboard.press('e')
+    page.keyboard.press('x')
+    assert errors == []
+    assert _badge(page) == 4

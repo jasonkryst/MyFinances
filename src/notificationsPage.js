@@ -37,6 +37,10 @@ const HIGHLIGHT_MS = 2000;
 let selected = new Set();
 let initialized = false;
 let loading = false;
+// Roving focus for the j/k/x/e/Enter shortcuts: the row that holds (or last
+// held) focus, by id and by position, so a redraw can put focus back.
+let focusedId = null;
+let focusedIndex = 0;
 
 const el = id => document.getElementById(id);
 
@@ -183,13 +187,98 @@ function renderSummary() {
     out.textContent = text;
 }
 
+function rowElements() {
+    return Array.from(document.querySelectorAll('#notificationsPageList .notif-row'));
+}
+
+// After a redraw: keep the roving tabindex on the focused row (or the row now
+// at its old position, e.g. after it was marked read and left the list), and
+// give it focus again when focus was inside the list before the redraw.
+function restoreRowFocus(hadFocus) {
+    const rows = rowElements();
+    if (rows.length === 0) { focusedId = null; return; }
+    let target = rows.find(r => Number(r.getAttribute('data-notification-id')) === focusedId);
+    if (!target) {
+        if (!hadFocus && focusedId === null) return;
+        target = rows[Math.min(focusedIndex, rows.length - 1)];
+    }
+    rows.forEach(r => r.setAttribute('tabindex', r === target ? '0' : '-1'));
+    focusedId = Number(target.getAttribute('data-notification-id'));
+    focusedIndex = rows.indexOf(target);
+    if (hadFocus) target.focus();
+}
+
+function focusRow(row) {
+    const rows = rowElements();
+    rows.forEach(r => r.setAttribute('tabindex', r === row ? '0' : '-1'));
+    focusedId = Number(row.getAttribute('data-notification-id'));
+    focusedIndex = rows.indexOf(row);
+    row.focus();
+}
+
+const NON_TEXT_INPUTS = new Set(['button', 'submit', 'reset', 'checkbox', 'radio', 'range', 'color', 'file', 'image']);
+
+function isTyping() {
+    const a = document.activeElement;
+    if (!a) return false;
+    if (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable) return true;
+    return a.tagName === 'INPUT' && !NON_TEXT_INPUTS.has((a.type || '').toLowerCase());
+}
+
+function isDialogOpen() {
+    return Array.from(document.querySelectorAll('[role="dialog"], .modal'))
+        .some(m => !m.classList.contains('hidden') && m.getClientRects().length > 0);
+}
+
+function handleKeydown(app, e) {
+    if (app._currentPage !== 'notifications') return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.defaultPrevented) return;
+    if (!['j', 'k', 'x', 'e', 'Enter'].includes(e.key)) return;
+    if (isTyping() || isDialogOpen()) return;
+    const rows = rowElements();
+    const active = document.activeElement;
+    const activeRow = active && active.closest ? active.closest('.notif-row') : null;
+    if (e.key === 'Enter') {
+        // Only the row itself: its buttons and checkbox keep their own Enter.
+        if (active && active.classList && active.classList.contains('notif-row') && rows.includes(active)) {
+            e.preventDefault();
+            viewNotification(app, Number(active.getAttribute('data-notification-id')));
+        }
+        return;
+    }
+    if (rows.length === 0) return;
+    if (e.key === 'j' || e.key === 'k') {
+        e.preventDefault();
+        const current = activeRow ? rows.indexOf(activeRow) : -1;
+        let next;
+        if (current === -1) next = e.key === 'j' ? Math.min(focusedIndex, rows.length - 1) : rows.length - 1;
+        else next = Math.max(0, Math.min(rows.length - 1, current + (e.key === 'j' ? 1 : -1)));
+        focusRow(rows[next]);
+        return;
+    }
+    if (!activeRow) return;
+    const id = Number(activeRow.getAttribute('data-notification-id'));
+    e.preventDefault();
+    if (e.key === 'x') {
+        const box = activeRow.querySelector('.notif-row-select');
+        if (selected.has(id)) selected.delete(id); else selected.add(id);
+        if (box) box.checked = selected.has(id);
+        renderBulkBar(visibleItems(app));
+        return;
+    }
+    if (e.key === 'e' && !findItem(id)?.readAt) markNotificationsRead([id]);
+}
+
 // Redraws the page from the shared state (no fetch).
 export function drawNotificationsPage(app) {
     syncFilterControls(app);
     const items = visibleItems(app);
     selected = pruneSelection(selected, items);
     renderSummary();
+    const listEl = el('notificationsPageList');
+    const hadFocus = !!listEl && listEl.contains(document.activeElement);
     renderList(app, items);
+    restoreRowFocus(hadFocus);
     renderBulkBar(items);
     if (!loading) document.documentElement.setAttribute('data-notifications-page-ready', 'true');
 }
@@ -277,6 +366,14 @@ export function initNotificationsPage(app) {
 
     onNotificationsChange(() => {
         if (app._currentPage === 'notifications') drawNotificationsPage(app);
+    });
+
+    document.addEventListener('keydown', (e) => handleKeydown(app, e));
+    section.addEventListener('focusin', (e) => {
+        const row = e.target.closest ? e.target.closest('.notif-row') : null;
+        if (!row) return;
+        focusedId = Number(row.getAttribute('data-notification-id'));
+        focusedIndex = rowElements().indexOf(row);
     });
 
     section.addEventListener('change', (e) => {
