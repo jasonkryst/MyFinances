@@ -76,9 +76,13 @@ function renderAccountOptions(app, f) {
         accountId = 'all';
         app._notificationsFilters = { ...f, accountId };
     }
-    select.innerHTML = `<option value="all">${escapeHtml(t('notifyPage.allAccounts'))}</option>`
+    const html = `<option value="all">${escapeHtml(t('notifyPage.allAccounts'))}</option>`
         + accounts.map(a => `<option value="${Number(a.id)}">${escapeHtml(a.name)}</option>`).join('');
-    select.value = String(accountId);
+    if (select.dataset.optionsHtml !== html) {
+        select.innerHTML = html;
+        select.dataset.optionsHtml = html;
+    }
+    if (select.value !== String(accountId)) select.value = String(accountId);
     return app._notificationsFilters;
 }
 
@@ -167,7 +171,10 @@ function renderBulkBar(items) {
         selectAll.indeterminate = count > 0 && count < items.length;
     }
     const countEl = el('notifSelectedCount');
-    if (countEl) countEl.textContent = count > 0 ? plural('notifyPage.selectedCount', count) : '';
+    if (countEl) {
+        const text = count > 0 ? plural('notifyPage.selectedCount', count) : '';
+        if (countEl.textContent !== text) countEl.textContent = text;
+    }
     const bar = el('notifBulkBar');
     if (bar && bar.getAttribute('aria-busy') === 'true') return; // withBusy restores the buttons
     const markSelected = el('notifMarkSelectedBtn');
@@ -180,11 +187,13 @@ function renderSummary() {
     const out = el('notifSummary');
     if (!out) return;
     const state = getNotificationsState();
-    if (!state.allLoaded) { out.textContent = ''; return; }
-    const s = summarizeNotifications(state.all, state.total);
-    let text = t('notifyPage.summary', { unread: state.unreadCount, active: s.active });
-    if (s.truncated) text += ` ${t('notifyPage.truncated', { loaded: s.loaded, total: s.total })}`;
-    out.textContent = text;
+    let text = '';
+    if (state.allLoaded) {
+        const s = summarizeNotifications(state.all, state.total);
+        text = t('notifyPage.summary', { unread: state.unreadCount, active: s.active });
+        if (s.truncated) text += ` ${t('notifyPage.truncated', { loaded: s.loaded, total: s.total })}`;
+    }
+    if (out.textContent !== text) out.textContent = text;
 }
 
 function rowElements() {
@@ -194,7 +203,16 @@ function rowElements() {
 // After a redraw: keep the roving tabindex on the focused row (or the row now
 // at its old position, e.g. after it was marked read and left the list), and
 // give it focus again when focus was inside the list before the redraw.
-function restoreRowFocus(hadFocus) {
+const ROW_CONTROLS = ['notif-row-read', 'notif-row-view', 'notif-row-select'];
+
+// Which control inside the focused row holds focus, if any.
+function focusedControlClass() {
+    const a = document.activeElement;
+    if (!a || !a.classList || !a.closest || !a.closest('.notif-row') || a.classList.contains('notif-row')) return null;
+    return ROW_CONTROLS.find(c => a.classList.contains(c)) || null;
+}
+
+function restoreRowFocus(hadFocus, controlClass) {
     const rows = rowElements();
     if (rows.length === 0) { focusedId = null; return; }
     let target = rows.find(r => Number(r.getAttribute('data-notification-id')) === focusedId);
@@ -205,7 +223,10 @@ function restoreRowFocus(hadFocus) {
     rows.forEach(r => r.setAttribute('tabindex', r === target ? '0' : '-1'));
     focusedId = Number(target.getAttribute('data-notification-id'));
     focusedIndex = rows.indexOf(target);
-    if (hadFocus) target.focus();
+    if (hadFocus) {
+        const control = controlClass ? target.querySelector('.' + controlClass) : null;
+        (control || target).focus();
+    }
 }
 
 function focusRow(row) {
@@ -277,8 +298,9 @@ export function drawNotificationsPage(app) {
     renderSummary();
     const listEl = el('notificationsPageList');
     const hadFocus = !!listEl && listEl.contains(document.activeElement);
+    const controlClass = hadFocus ? focusedControlClass() : null;
     renderList(app, items);
-    restoreRowFocus(hadFocus);
+    restoreRowFocus(hadFocus, controlClass);
     renderBulkBar(items);
     if (!loading) document.documentElement.setAttribute('data-notifications-page-ready', 'true');
 }
@@ -339,6 +361,9 @@ function viewNotification(app, id) {
         restoreSavedLedgerFiltersOnce(app);
         const known = target.accountId !== null && (app.accounts || []).some(a => a.id === target.accountId);
         app._ledgerAccountFilter = known ? target.accountId : 'all';
+        app._ledgerCategoryFilter = 'all';
+        app._ledgerDateRange = 'all';
+        app._ledgerClearedFilter = 'all';
         app._ledgerPage = 1;
         app.switchPage('ledger');
         return;

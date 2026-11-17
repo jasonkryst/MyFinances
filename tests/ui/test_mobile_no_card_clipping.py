@@ -88,6 +88,7 @@ CARD_SELECTORS = [
     ".savings-card", ".retire-card", ".retirement-account-card", ".dashboard-card",
     ".rpt-chart-card", ".nw-report-stat", ".rpt-month-nav", ".comparison-card",
     ".summary-card", ".stat-card", ".nw-history-card", ".acct-mf-section",
+    ".notif-group-list", ".notif-row",
 ]
 
 CHECK_JS = """([cardSelectors]) => {

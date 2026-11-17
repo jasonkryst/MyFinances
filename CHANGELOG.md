@@ -8,9 +8,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ### Added
 - **Notifications page (#643).** The bell panel now has a *View all* link to a full page (also in the command palette) that lists every alert, not just the newest.
-  - **Filter.** Type (Bill due, Low balance, Overdrawn, Projected low) and Status (Unread by default, Read, Active, Resolved, All); alerts are grouped by day. The filters reuse the Ledger's restore-once behaviour.
-  - **Triage.** Each row toggles Mark read / Mark unread, bulk actions mark the filtered set read, and a toast offers Undo. Rows link to the Ledger or Accounts.
-  - **Keyboard.** `j`/`k` move, `x` selects, `e` toggles read, Enter opens (listed in the shortcuts panel).
+  - **Filter.** Type (Bill due, Low balance, Overdrawn, Projected low), Status (Unread by default, Read, Active, Resolved, All), Account and a From/To date range; alerts are grouped by day.
+  - **Triage.** Each row toggles Mark read / Mark unread, bulk actions mark the filtered set read, and a toast offers Undo. Rows link to the Ledger (View reuses the Ledger's restore-once filter behaviour) or Accounts.
+  - **Keyboard.** `j`/`k` move, `x` selects, `e` marks read, Enter opens (listed in the shortcuts panel).
   - **Server.** `GET /api/notifications` takes `?limit` (1-500, default 50) and returns `total`; new `POST /api/notifications/read` and `/unread` take `{ ids }`. No migration.
   - **Code.** Pure, Stryker-scoped `src/notificationsFilter.js`; lazy `src/notificationsPage.js`; shared load and mark state in `src/notificationsCenter.js`; strings in en/es/pl.
 

@@ -1040,7 +1040,7 @@ const WHATS_NEW_ENTRIES = [
         items: [
             '<strong>Notifications page:</strong> the bell now has a <em>View all</em> link to a full page that lists every alert, not just the newest. Filter by type and status, and alerts are grouped by day.',
             '<strong>Triage in bulk:</strong> mark alerts read or unread one at a time or for the whole filtered list, and undo a bulk change from the notice. Click an alert to jump to the Ledger or Accounts.',
-            '<strong>Keyboard friendly:</strong> press j and k to move, x to select, e to mark read or unread, and Enter to open.'
+            '<strong>Keyboard friendly:</strong> press j and k to move, x to select, e to mark read, and Enter to open.'
         ]
     },
     {

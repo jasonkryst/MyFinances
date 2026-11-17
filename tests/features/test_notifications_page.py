@@ -281,8 +281,11 @@ def test_view_bill_alert_opens_filtered_ledger(app_page):
         nc.renderNotificationsCenter();
     }""", acct_id)
     _wait_rows(page, 5)
+    page.evaluate("""() => { const a = window.app;
+        a._ledgerCategoryFilter = 'Rent'; a._ledgerDateRange = 'next7'; a._ledgerClearedFilter = 'cleared'; }""")
     _row(page, 'Rent').locator('.notif-row-view').click()
     page.wait_for_selector('#ledgerSection.active')
+    assert page.evaluate('[window.app._ledgerCategoryFilter, window.app._ledgerDateRange, window.app._ledgerClearedFilter]') == ['all', 'all', 'all']
     assert page.evaluate('window.app._ledgerAccountFilter') == acct_id
     assert page.input_value('#ledgerAccountFilter') == str(acct_id)
 
@@ -401,14 +404,90 @@ def test_keys_ignored_while_typing(app_page):
     assert len(_row_texts(page)) == 4
 
 
+def _selected_rows(page):
+    return page.locator(ROWS + ' .notif-row-select:checked').count()
+
+
+def _assert_untouched(page, rows=4):
+    assert _badge(page) == rows
+    assert _api(page)['unreadCount'] == rows
+    assert _selected_rows(page) == 0
+
+
 def test_keys_inactive_off_page(app_page):
     page = app_page
     _seed_alerts(page)
+    _open_page(page, 4)
+    page.evaluate("() => window.app.switchPage('health')")
+    page.wait_for_selector('#notificationsPage', state='hidden')
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
-    page.evaluate("() => window.app.switchPage('health')")
+    for key in ('j', 'x', 'e'):
+        page.keyboard.press(key)
+    page.wait_for_timeout(300)
+    assert errors == []
+    _assert_untouched(page)
+    assert page.evaluate("() => !!(document.activeElement && document.activeElement.closest('.notif-row'))") is False
+
+
+@pytest.mark.parametrize('combo', ['Alt+e', 'Shift+X', 'Control+e'])
+def test_modified_keys_do_nothing(app_page, combo):
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    page.keyboard.press('j')
+    focused = _focused_row_text(page)
+    page.keyboard.press(combo)
+    page.wait_for_timeout(300)
+    _assert_untouched(page)
+    assert len(_row_texts(page)) == 4
+    assert _focused_row_text(page) == focused
+
+
+def test_keys_ignored_with_dialog_open(app_page):
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    page.evaluate("() => window.app.openKeyboardShortcuts()")
+    page.wait_for_selector('#keyboardShortcutsModal', state='visible')
     page.keyboard.press('j')
     page.keyboard.press('e')
-    page.keyboard.press('x')
-    assert errors == []
-    assert _badge(page) == 4
+    page.wait_for_timeout(300)
+    assert page.evaluate("() => !!(document.activeElement && document.activeElement.closest('.notif-row'))") is False
+    _assert_untouched(page)
+
+
+def test_tab_to_mark_read_button_marks_one_and_stays(app_page):
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    page.locator(ROWS).first.locator('.notif-row-read').focus()
+    page.keyboard.press('Enter')
+    _wait_rows(page, 3)
+    wait_for_api(page, '/api/notifications', lambda d: d['unreadCount'] == 3)
+    assert page.is_visible('#notificationsPage')
+    assert page.evaluate('window.app._currentPage') == 'notifications'
+
+
+def test_read_button_keeps_focus_across_redraw(app_page):
+    """Enter on Mark read then Enter again must toggle read -> unread, never run View."""
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    page.select_option('#notifFilterStatus', 'all')
+    _wait_rows(page, 4)
+    first_text = _row_texts(page)[0]
+    page.locator(ROWS).first.locator('.notif-row-read').focus()
+    page.keyboard.press('Enter')
+    wait_for_api(page, '/api/notifications', lambda d: d['unreadCount'] == 3)
+    page.wait_for_function(
+        "() => document.querySelector('#notificationsPageList .notif-row .notif-row-read').dataset.readAction === 'unread'")
+    assert page.evaluate("() => document.activeElement.classList.contains('notif-row-read')")
+    assert _focused_row_text(page) == first_text
+    page.keyboard.press('Enter')
+    wait_for_api(page, '/api/notifications', lambda d: d['unreadCount'] == 4)
+    page.wait_for_function(
+        "() => document.querySelector('#notificationsPageList .notif-row .notif-row-read').dataset.readAction === 'read'")
+    assert page.evaluate('window.app._currentPage') == 'notifications'
+    assert page.is_visible('#notificationsPage')
+    assert page.evaluate("() => document.activeElement.classList.contains('notif-row-read')")
