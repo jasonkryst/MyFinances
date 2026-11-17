@@ -145,6 +145,25 @@ export function loadLedgerFilters() {
     } catch (_) { return null; }
 }
 
+// Applies the filters saved in this browser (debtTrackerLedgerFilters) to
+// app the first time the Ledger needs them, then marks them restored.
+// Returns true when it ran. Shared by renderLedgerPage and any caller that
+// sets a Ledger filter before the first visit (Notifications View, #643), so a
+// newly persisted filter only needs adding here.
+export function restoreSavedLedgerFiltersOnce(app) {
+    if (app._ledgerFiltersRestored) return false;
+    const saved = loadLedgerFilters();
+    if (saved) {
+        app._ledgerAccountFilter = saved.accountFilter ?? app._ledgerAccountFilter;
+        app._ledgerDateRange = saved.dateRange ?? app._ledgerDateRange;
+        app._ledgerClearedFilter = saved.clearedFilter ?? app._ledgerClearedFilter;
+        app._ledgerPageSize = saved.pageSize ?? app._ledgerPageSize;
+        app._ledgerCategoryFilter = saved.categoryFilter ?? app._ledgerCategoryFilter;
+    }
+    app._ledgerFiltersRestored = true;
+    return true;
+}
+
 // Persists the current filter state, except while a Spending cross-nav
 // (#315) is active: its account/date-range reset to 'all' is a transient
 // view override, not a preference the user chose, so touching an unrelated
@@ -183,16 +202,7 @@ export function renderLedgerPage(app) {
     if (![10, 25, 50, 100].includes(selectedPageSize)) {
         selectedPageSize = 25;
     }
-    if (!app._ledgerFiltersRestored) {
-        const saved = loadLedgerFilters();
-        if (saved) {
-            app._ledgerAccountFilter = saved.accountFilter ?? app._ledgerAccountFilter;
-            app._ledgerDateRange = saved.dateRange ?? app._ledgerDateRange;
-            app._ledgerClearedFilter = saved.clearedFilter ?? app._ledgerClearedFilter;
-            app._ledgerPageSize = saved.pageSize ?? app._ledgerPageSize;
-            app._ledgerCategoryFilter = saved.categoryFilter ?? app._ledgerCategoryFilter;
-        }
-        app._ledgerFiltersRestored = true;
+    if (restoreSavedLedgerFiltersOnce(app)) {
         selectedAccount = app._ledgerAccountFilter || 'all';
         selectedDateRange = app._ledgerDateRange || 'around7';
         selectedClearedFilter = app._ledgerClearedFilter || 'all';

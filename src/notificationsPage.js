@@ -13,7 +13,7 @@
 import { t, plural } from './i18n.js';
 import { escapeHtml, formatShortDate, withBusy, buildFiltersLabel } from './utils.js';
 import { offerUndo } from './undo.js';
-import { loadLedgerFilters } from './ledger.js';
+import { restoreSavedLedgerFiltersOnce } from './ledger.js';
 import {
     getNotificationsState,
     loadAllNotifications,
@@ -246,17 +246,8 @@ function viewNotification(app, id) {
     markNotificationsRead([id]);
     const target = notificationViewTarget(n);
     if (target.page === 'ledger') {
-        if (!app._ledgerFiltersRestored) {
-            const saved = loadLedgerFilters();
-            if (saved) {
-                app._ledgerAccountFilter = saved.accountFilter ?? app._ledgerAccountFilter;
-                app._ledgerDateRange = saved.dateRange ?? app._ledgerDateRange;
-                app._ledgerClearedFilter = saved.clearedFilter ?? app._ledgerClearedFilter;
-                app._ledgerPageSize = saved.pageSize ?? app._ledgerPageSize;
-                app._ledgerCategoryFilter = saved.categoryFilter ?? app._ledgerCategoryFilter;
-            }
-            app._ledgerFiltersRestored = true;
-        }
+        // Apply the saved filters first, so they can't overwrite the account below.
+        restoreSavedLedgerFiltersOnce(app);
         const known = target.accountId !== null && (app.accounts || []).some(a => a.id === target.accountId);
         app._ledgerAccountFilter = known ? target.accountId : 'all';
         app._ledgerPage = 1;

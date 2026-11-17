@@ -14,6 +14,7 @@ import re
 import pytest
 
 from tests.conftest import BASE_URL, ensure_session, seed_state, wait_for_api, wait_for_app_ready
+from tests.ui.contrast_utils import set_theme, text_contrast
 
 pytestmark = pytest.mark.feature
 
@@ -321,3 +322,28 @@ def test_load_failed_shows_retry(browser, stack_user):
         assert "Couldn't load" not in page.text_content('#notificationsPageList')
     finally:
         context.close()
+
+
+@pytest.mark.parametrize('dark,high_contrast', [(False, False), (True, False), (True, True)],
+                         ids=['light', 'dark', 'high-contrast'])
+def test_row_text_meets_aa_contrast(app_page, dark, high_contrast):
+    """Unread rows sit on a tint; their meta text, tags and message must stay >= 4.5:1, as must read rows."""
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    _row(page, 'Overdrawn A').locator('.notif-row-read').click()
+    page.select_option('#notifFilterStatus', 'all')
+    _wait_rows(page, 4)
+    set_theme(page, dark=dark, high_contrast=high_contrast)
+    unread = page.locator('#notificationsPageList .notif-row--unread')
+    read = page.locator('#notificationsPageList .notif-row--read')
+    checks = {
+        'unread date': unread.locator('.notif-row-date'),
+        'unread tag': unread.locator('.notif-tag--unread'),
+        'unread message': unread.locator('.notif-row-text'),
+        'read date': read.locator('.notif-row-date'),
+        'read message': read.locator('.notif-row-text'),
+    }
+    for label, loc in checks.items():
+        res = text_contrast(loc)
+        assert res['ratio'] >= 4.5, f'{label}: {res}'

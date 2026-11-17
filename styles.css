@@ -9591,6 +9591,10 @@ body.dark-mode .notifications-view-all {
     font-size: 0.78rem;
     color: var(--text-muted);
 }
+/* --text-muted is under 4.5:1 on the unread tint, so unread rows use a darker grey. */
+.notif-row--unread .notif-row-meta {
+    color: #475569;
+}
 .notif-tag {
     padding: 0 6px;
     border-radius: 999px;
@@ -9624,6 +9628,9 @@ body.dark-mode .notifications-view-all {
 }
 body.dark-mode .notif-row--unread {
     background: #1e3a5f;
+}
+body.dark-mode .notif-row--unread .notif-row-meta {
+    color: var(--text-muted);
 }
 body.dark-mode .notif-tag--unread {
     color: #93c5fd;
