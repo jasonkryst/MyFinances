@@ -90,6 +90,7 @@ export default {
     'notify.empty': 'Aún no hay alertas. Aquí aparecen las facturas próximas y los saldos bajos.',
     'notify.loadFailed': 'No se pudieron cargar las notificaciones.',
     'notify.unread': 'Nueva',
+    'notify.viewAll': 'Ver todas las notificaciones',
     'notify.resolved': 'Resuelta',
     'notify.unknownAccount': 'Una cuenta',
     'notify.unknownBill': 'Una factura',

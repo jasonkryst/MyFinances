@@ -92,6 +92,7 @@ export default {
     'notify.empty': 'No alerts yet. Upcoming bills and low balances show up here.',
     'notify.loadFailed': 'Couldn\'t load notifications.',
     'notify.unread': 'New',
+    'notify.viewAll': 'View all notifications',
     'notify.resolved': 'Resolved',
     'notify.unknownAccount': 'An account',
     'notify.unknownBill': 'A bill',

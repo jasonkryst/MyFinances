@@ -90,6 +90,7 @@ export default {
     'notify.empty': 'Nie ma jeszcze alertów. Tutaj pojawią się nadchodzące rachunki i niskie salda.',
     'notify.loadFailed': 'Nie udało się wczytać powiadomień.',
     'notify.unread': 'Nowe',
+    'notify.viewAll': 'Zobacz wszystkie powiadomienia',
     'notify.resolved': 'Rozwiązane',
     'notify.unknownAccount': 'Konto',
     'notify.unknownBill': 'Rachunek',

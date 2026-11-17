@@ -9,8 +9,23 @@ import { t } from './i18n.js';
 import { escapeHtml, formatCurrency, formatShortDate } from './utils.js';
 import { getCsrfCookie } from './storage.js';
 
-const state = { items: [], unreadCount: 0, emailConfigured: false, loaded: false, failed: false };
+const state = { items: [], all: [], total: 0, allLoaded: false, unreadCount: 0, emailConfigured: false, loaded: false, failed: false };
 let inFlight = null;
+let allInFlight = null;
+const subscribers = new Set();
+
+// Subscribes to any change of the shared state (load, read/unread, refresh).
+// Returns an unsubscribe function. One failing subscriber never blocks others.
+export function onNotificationsChange(fn) {
+    subscribers.add(fn);
+    return () => { subscribers.delete(fn); };
+}
+
+function notifySubscribers() {
+    for (const fn of [...subscribers]) {
+        try { fn(state); } catch { /* a subscriber's error must not break the others */ }
+    }
+}
 
 export function getNotificationsState() {
     return state;
@@ -103,6 +118,7 @@ function renderList() {
 function render() {
     renderBadge();
     renderList();
+    notifySubscribers();
 }
 
 // Re-renders the badge and the list from the current state.
@@ -120,6 +136,14 @@ export function refreshNotifications() {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const body = await res.json();
             state.items = Array.isArray(body.notifications) ? body.notifications : [];
+            // Keep the full list's read state in step with what the server just said.
+            if (state.allLoaded) {
+                const byId = new Map(state.items.map(n => [n.id, n]));
+                state.all.forEach(n => {
+                    const fresh = byId.get(n.id);
+                    if (fresh) n.readAt = fresh.readAt;
+                });
+            }
             state.unreadCount = Number(body.unreadCount) || 0;
             state.emailConfigured = body.emailConfigured === true;
             state.loaded = true;
@@ -136,6 +160,31 @@ export function refreshNotifications() {
     return inFlight;
 }
 
+// Loads up to 500 notifications for the Notifications page into state.all.
+export function loadAllNotifications() {
+    if (allInFlight) return allInFlight;
+    allInFlight = (async () => {
+        try {
+            const res = await fetch('/api/notifications?limit=500', { credentials: 'same-origin' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const body = await res.json();
+            state.all = Array.isArray(body.notifications) ? body.notifications : [];
+            state.total = Number(body.total) || state.all.length;
+            state.unreadCount = Number(body.unreadCount) || 0;
+            state.emailConfigured = body.emailConfigured === true;
+            state.allLoaded = true;
+            document.documentElement.setAttribute('data-notifications-all-loaded', 'true');
+        } catch {
+            document.documentElement.setAttribute('data-notifications-all-loaded', 'failed');
+        } finally {
+            allInFlight = null;
+            render();
+        }
+        return state;
+    })();
+    return allInFlight;
+}
+
 async function post(path) {
     const res = await fetch(path, {
         method: 'POST',
@@ -146,28 +195,101 @@ async function post(path) {
     return res.json();
 }
 
+async function postJson(path, body) {
+    const res = await fetch(path, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() },
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+// Both lists hold their own copies of a row, so every local change is applied
+// to each by id.
+function eachCopy(ids, fn) {
+    const wanted = new Set(ids);
+    for (const list of [state.items, state.all]) {
+        list.forEach(n => { if (wanted.has(n.id)) fn(n); });
+    }
+}
+
+async function resyncAfterFailure() {
+    await refreshNotifications();
+    if (state.allLoaded) await loadAllNotifications();
+}
+
+function applyServerUnread(body) {
+    if (body && Number.isFinite(Number(body.unreadCount))) state.unreadCount = Number(body.unreadCount);
+}
+
+function idsWhere(ids, pred) {
+    const wanted = new Set(ids);
+    const found = [];
+    for (const list of [state.items, state.all]) {
+        list.forEach(n => { if (wanted.has(n.id) && pred(n) && !found.includes(n.id)) found.push(n.id); });
+    }
+    return found;
+}
+
+// Marks the given ids read. Resolves to the ids that were unread locally.
+export async function markNotificationsRead(ids) {
+    const changed = idsWhere(ids, n => !n.readAt);
+    if (changed.length === 0) return [];
+    const now = new Date().toISOString();
+    eachCopy(changed, n => { if (!n.readAt) n.readAt = now; });
+    state.unreadCount = Math.max(0, state.unreadCount - changed.length);
+    render();
+    try {
+        applyServerUnread(await postJson('/api/notifications/read', { ids: changed }));
+        render();
+        return changed;
+    } catch {
+        await resyncAfterFailure();
+        return [];
+    }
+}
+
+// Marks the given ids unread again.
+export async function markNotificationsUnread(ids) {
+    const changed = idsWhere(ids, n => !!n.readAt);
+    if (changed.length === 0) return;
+    eachCopy(changed, n => { n.readAt = null; });
+    state.unreadCount += changed.length;
+    render();
+    try {
+        applyServerUnread(await postJson('/api/notifications/unread', { ids: changed }));
+        render();
+    } catch {
+        await resyncAfterFailure();
+    }
+}
+
 export async function markNotificationRead(id) {
-    const item = state.items.find(n => n.id === id);
+    const item = state.items.find(n => n.id === id) || state.all.find(n => n.id === id);
     if (!item || item.readAt) return;
-    item.readAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    eachCopy([id], n => { if (!n.readAt) n.readAt = now; });
     state.unreadCount = Math.max(0, state.unreadCount - 1);
     render();
     try {
         await post(`/api/notifications/${encodeURIComponent(id)}/read`);
     } catch {
-        await refreshNotifications();
+        await resyncAfterFailure();
     }
 }
 
 export async function markAllNotificationsRead() {
     const now = new Date().toISOString();
     state.items.forEach(n => { if (!n.readAt) n.readAt = now; });
+    state.all.forEach(n => { if (!n.readAt) n.readAt = now; });
     state.unreadCount = 0;
     render();
     try {
         await post('/api/notifications/read-all');
     } catch {
-        await refreshNotifications();
+        await resyncAfterFailure();
     }
 }
 
@@ -199,6 +321,11 @@ export function initNotificationsCenter(app) {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (panel.classList.contains('hidden')) open(); else close();
+    });
+    document.getElementById('notificationsViewAllBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        close();
+        app.switchPage('notifications');
     });
     document.getElementById('notificationsMarkAllBtn')?.addEventListener('click', (e) => {
         e.stopPropagation();

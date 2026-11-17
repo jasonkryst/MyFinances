@@ -9474,3 +9474,23 @@ body.dark-mode .undo-toast-btn {
 body.dark-mode .undo-toast-close {
     color: #334155;
 }
+
+/* Notifications bell footer (#643) */
+.notifications-panel-footer {
+    padding: 8px 12px;
+    text-align: center;
+}
+.notifications-view-all {
+    border: 0;
+    background: transparent;
+    color: #1d4ed8;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-decoration: underline;
+}
+body.dark-mode .notifications-view-all {
+    color: #93c5fd;
+}
