@@ -32,10 +32,33 @@ STATE = {
 ROWS = '#notificationsPageList .notif-row'
 
 
+_CHECK_JS = """async () => {
+    const { getCsrfCookie } = await import('/src/storage.js');
+    const res = await fetch('/api/notifications/check', {
+        method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': getCsrfCookie() },
+    });
+    return { status: res.status, reset: Number(res.headers.get('RateLimit-Reset')) || 0 };
+}"""
+
+
+def _run_check(page):
+    # POST /check allows 30 requests a minute per client. On a fast CI runner this
+    # file plus test_notifications.py (same shard) go past that, so a 429 waits
+    # out the window the server reports and tries again instead of failing.
+    for _ in range(3):
+        result = page.evaluate(_CHECK_JS)
+        if result['status'] != 429:
+            assert result['status'] == 200, result
+            return
+        page.wait_for_timeout((min(result['reset'], 60) + 1) * 1000)
+    raise AssertionError('POST /api/notifications/check stayed rate-limited')
+
+
 def _seed_alerts(page):
     seed_state(page, STATE)
     wait_for_app_ready(page)
-    page.evaluate("async () => { const r = await import('/src/notificationsCenter.js'); await r.runNotificationCheck(); }")
+    _run_check(page)
+    page.evaluate("async () => { const r = await import('/src/notificationsCenter.js'); await r.refreshNotifications(); }")
     page.wait_for_function("() => document.getElementById('notificationsBadge').textContent === '4'")
 
 
