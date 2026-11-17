@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.17.0] — 2026-11-17
+
+### Added
+- **Notifications page (#643).** The bell panel now has a *View all* link to a full page (also in the command palette) that lists every alert, not just the newest.
+  - **Filter.** Type (Bill due, Low balance, Overdrawn, Projected low) and Status (Unread by default, Read, Active, Resolved, All); alerts are grouped by day. The filters reuse the Ledger's restore-once behaviour.
+  - **Triage.** Each row toggles Mark read / Mark unread, bulk actions mark the filtered set read, and a toast offers Undo. Rows link to the Ledger or Accounts.
+  - **Keyboard.** `j`/`k` move, `x` selects, `e` toggles read, Enter opens (listed in the shortcuts panel).
+  - **Server.** `GET /api/notifications` takes `?limit` (1-500, default 50) and returns `total`; new `POST /api/notifications/read` and `/unread` take `{ ids }`. No migration.
+  - **Code.** Pure, Stryker-scoped `src/notificationsFilter.js`; lazy `src/notificationsPage.js`; shared load and mark state in `src/notificationsCenter.js`; strings in en/es/pl.
+
 ## [7.16.0] — 2026-11-16
 
 ### Changed

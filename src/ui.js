@@ -1036,6 +1036,14 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.17.0 — 2026-11-17',
+        items: [
+            '<strong>Notifications page:</strong> the bell now has a <em>View all</em> link to a full page that lists every alert, not just the newest. Filter by type and status, and alerts are grouped by day.',
+            '<strong>Triage in bulk:</strong> mark alerts read or unread one at a time or for the whole filtered list, and undo a bulk change from the notice. Click an alert to jump to the Ledger or Accounts.',
+            '<strong>Keyboard friendly:</strong> press j and k to move, x to select, e to mark read or unread, and Enter to open.'
+        ]
+    },
+    {
         version: '7.16.0 — 2026-11-16',
         items: [
             '<strong>Fewer false alarms:</strong> an account sitting at exactly $0 no longer raises an alert. The overdrawn alert now fires only when a balance goes below zero, and the "projected" alert only when it is expected to go below zero (or below the alert amount you set).',
