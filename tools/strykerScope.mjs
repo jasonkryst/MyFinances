@@ -76,6 +76,8 @@ export const MUTATE_SCOPE = {
     'src/resourceDeletion.js': true,
     // #586: Ledger free-text search predicate.
     'src/ledgerSearch.js': true,
+    // #643: Notifications page filter/group/selection core.
+    'src/notificationsFilter.js': true,
     // #576: Saving/Saved chip state reducer.
     'src/saveStatus.js': true,
     // #518: render-scoped projection cache.
