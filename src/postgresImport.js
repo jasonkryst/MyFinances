@@ -7,6 +7,7 @@ import { mapWithConcurrency, mapSettledWithConcurrency, IMPORT_CONCURRENCY } fro
 import { planMerge } from './mergeDedupe.js';
 import { remapLedgerEntries, ledgerKeyDropWarning } from './ledgerKeyRemap.js';
 import { isAllowedSetting } from './settingsSchema.js';
+import { remapAccountSettings } from './settingsRemap.js';
 
 // Every per-record fan-out below goes through this pool (#519): an unbounded
 // Promise.all of a few thousand requests made Chromium abort some of them.
@@ -83,6 +84,23 @@ function remapKeyedEntries(src, ledgerIdMaps, warnings) {
         }
     }
     return { overrideEntries: o.entries, clearedEntries: c.entries };
+}
+
+// Remap the settings that hold an account id through the finished account id
+// map (#651). A reset or dropped value is reported as an import warning; a plain
+// remap to the new id is not.
+function remapSettingsForImport(settings, idMap, warnings) {
+    const { settings: remapped, changes } = remapAccountSettings(settings, idMap);
+    if (Array.isArray(warnings)) {
+        for (const c of changes) {
+            if (c.kind === 'coerced') {
+                warnings.push({ recordType: 'Setting', recordName: c.key, kind: 'coerced', field: 'value', from: c.from, to: c.to });
+            } else if (c.kind === 'rejected') {
+                warnings.push({ recordType: 'Setting', recordName: c.key, kind: 'rejected', reason: 'account not in import' });
+            }
+        }
+    }
+    return remapped;
 }
 
 // The keyed upserts (PUT is idempotent, so safe in replace and merge) as
@@ -196,7 +214,8 @@ async function postAllResources(data, warnings) {
         ...savingsPairs(data.sinkingFunds, resourceResults[CRUD_RESOURCES.findIndex(r => r.field === 'sinkingFunds')]),
     ];
     const { overrideEntries, clearedEntries } = remapKeyedEntries(data, ledgerIdMaps, warnings);
-    await pool(keyedPuts(data, overrideEntries, clearedEntries, idMap, personIdMap), put => put());
+    const settings = remapSettingsForImport(data.settings, idMap, warnings);
+    await pool(keyedPuts({ ...data, settings }, overrideEntries, clearedEntries, idMap, personIdMap), put => put());
 
     // Milestones -- ON CONFLICT DO NOTHING server-side, safe to call in both modes
     await pool(data.netWorthMilestonesAwarded || [],
@@ -226,11 +245,11 @@ async function postAllResources(data, warnings) {
         remapHistoryOwners(data.balanceHistory || [], debtIdMap, accountIdMapFrom(idMap)),
         h => apiFetch('POST', '/api/balance-history', h));
 
-    return { accountResults, personResults, resourceResults, balanceHistoryResults, idMap, personIdMap, overrideEntries, clearedEntries };
+    return { accountResults, personResults, resourceResults, balanceHistoryResults, idMap, personIdMap, overrideEntries, clearedEntries, settings };
 }
 
 // Sync app.* with the server-returned records after a successful postAllResources.
-function applyResultsToApp(app, data, { accountResults, personResults, resourceResults, balanceHistoryResults, idMap, personIdMap, overrideEntries, clearedEntries }) {
+function applyResultsToApp(app, data, { accountResults, personResults, resourceResults, balanceHistoryResults, idMap, personIdMap, overrideEntries, clearedEntries, settings }) {
     app.accounts = accountResults.filter(Boolean);
     app.persons  = (personResults || []).filter(Boolean);
 
@@ -246,7 +265,7 @@ function applyResultsToApp(app, data, { accountResults, personResults, resourceR
         clearedEntries.map(([key, val]) => [key, { clearedKey: key, ...val }])
     );
     app.monthlySnapshots           = data.monthlySnapshots || [];
-    app.settings                   = data.settings || [];
+    app.settings                   = settings || [];
     app.netWorthMilestonesAwarded  = data.netWorthMilestonesAwarded || [];
     app.perMonthStimulus           = data.perMonthStimulus || [];
     app._savedMonthlyPayment       = data.monthlyPayment ?? null;
@@ -447,7 +466,8 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
 
         // Keyed resources -- always upsert (safe merge semantics), keys remapped (#520)
         const { overrideEntries, clearedEntries } = remapKeyedEntries(clean, ledgerIdMaps, warnings);
-        await pool(keyedPuts(clean, overrideEntries, clearedEntries, idMap, personIdMap), put => put());
+        const settings = remapSettingsForImport(clean.settings, idMap, warnings);
+        await pool(keyedPuts({ ...clean, settings }, overrideEntries, clearedEntries, idMap, personIdMap), put => put());
 
         // Merge keyed resources into app state
         for (const [key, val] of overrideEntries) {
@@ -461,7 +481,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
             const idx = app.monthlySnapshots.findIndex(ms => ms.date === s.date);
             if (idx >= 0) { app.monthlySnapshots[idx] = s; } else { app.monthlySnapshots.push(s); }
         }
-        for (const s of (clean.settings || [])) {
+        for (const s of settings) {
             const idx = (app.settings || []).findIndex(r => r.key === s.key);
             if (idx >= 0) { app.settings[idx] = s; } else { (app.settings = app.settings || []).push(s); }
         }

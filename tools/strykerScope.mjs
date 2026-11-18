@@ -44,6 +44,8 @@ export const MUTATE_SCOPE = {
     ],
     // #569: the shared settings key/value allowlist (browser export + server).
     'src/settingsSchema.js': ['validateExportedSetting', 'isAllowedSetting'],
+    // #651: account-id settings follow their account on import.
+    'src/settingsRemap.js': true,
     'src/retirementCalculator.js': [
         'computeRetirementProjection', 'splitGrowthFromContribution', 'getContributionLimit',
         'computeYtdContributions', 'computeMonthlyWithdrawal', 'computeScenarioRates',
