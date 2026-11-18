@@ -178,10 +178,10 @@ def test_saved_account_deleted_falls_back_to_all(app_page):
     urls = []
     page.on('request', lambda r: urls.append(r.url) if '/api/notifications' in r.url else None)
     page.evaluate(_REFRESH_JS)
+    _wait_badge(page, 4)
+    bell_urls = list(urls)  # captured before the test's own _api fetch
     expected = _api(page)['unreadCount']
-    assert expected > 1
-    _wait_badge(page, expected)
-    bell_urls = [u for u in urls if '/api/notifications?' in u or u.endswith('/api/notifications')]
+    assert expected > 1 and expected == 4
     assert bell_urls and all('account=' not in u for u in bell_urls), bell_urls
 
 

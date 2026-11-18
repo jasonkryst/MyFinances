@@ -8,7 +8,8 @@
 import { t } from './i18n.js';
 import { escapeHtml, formatCurrency, formatShortDate } from './utils.js';
 import { getCsrfCookie } from './storage.js';
-import { getSetting, setSetting, NOTIFY_FILTER_TYPE, NOTIFY_FILTER_STATUS, NOTIFY_FILTER_ACCOUNT } from './settings.js';
+import { getSetting, setSetting } from './settings.js';
+import { NOTIFY_FILTER_TYPE, NOTIFY_FILTER_STATUS, NOTIFY_FILTER_ACCOUNT } from './settingsSchema.js';
 import { filtersFromSettings, filtersToSettings, filtersToQuery, filterNotifications } from './notificationsFilter.js';
 
 // unreadCount is the bell's count: unread alerts matching the saved Type and

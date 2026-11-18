@@ -1036,6 +1036,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.18.0 — 2026-11-18',
+        items: [
+            '<strong>The bell follows your filters:</strong> the Type, Status and Account you pick on the Notifications page are now remembered, and the bell and its unread badge use them too. The bell shows a <em>Filtered</em> line with a Clear button when they are not the defaults.',
+            '<strong>Smaller fixes:</strong> keyboard shortcuts on the Notifications page work with Caps Lock on, and the date filter now says <em>Last 7 days</em>.'
+        ]
+    },
+    {
         version: '7.17.0 — 2026-11-17',
         items: [
             '<strong>Notifications page:</strong> the bell now has a <em>View all</em> link to a full page that lists every alert, not just the newest. Filter by type and status, and alerts are grouped by day.',
