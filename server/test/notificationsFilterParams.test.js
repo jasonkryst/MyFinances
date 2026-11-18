@@ -175,6 +175,6 @@ test('invalid filter params are 400 on GET and read-all, and read-all changes no
 
 test("another user's rows never appear and are never counted", async () => {
     const body = await (await list('?type=overdrawn&account=1')).json();
-        assert.equal(body.total, 1); // user's resolved+read zeroBalance on account 1 only
+    assert.equal(body.total, 1); // user's resolved+read zeroBalance on account 1 only
     assert.equal(body.unreadCount, 0);
 });

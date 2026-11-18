@@ -44,13 +44,9 @@ export function parseNotificationFilterQuery(q) {
         types = typesForCategory(type);
         if (!types) return null;
     }
-    let st = 'unread';
-    if (status !== undefined) {
-        if (!FILTER_STATUSES.includes(status)) return null;
-        st = status;
-    }
     // No status param means no status filter on the server (legacy behaviour).
-    const statusOut = status === undefined ? 'all' : st;
+    if (status !== undefined && !FILTER_STATUSES.includes(status)) return null;
+    const statusOut = status === undefined ? 'all' : status;
 
     let accountId = null;
     if (account !== undefined && account !== 'all') {

@@ -1039,7 +1039,7 @@ const WHATS_NEW_ENTRIES = [
         version: '7.18.0 — 2026-11-18',
         items: [
             '<strong>The bell follows your filters:</strong> the Type, Status and Account you pick on the Notifications page are now remembered, and the bell and its unread badge use them too. The bell shows a <em>Filtered</em> line with a Clear button when they are not the defaults.',
-            '<strong>Smaller fixes:</strong> keyboard shortcuts on the Notifications page work with Caps Lock on, and the date filter now says <em>Last 7 days</em>.'
+            '<strong>Smaller fixes:</strong> keyboard shortcuts on the Notifications page work with Caps Lock on, and the Notifications page group heading formerly called <em>Earlier this week</em> now reads <em>Last 7 days</em>.'
         ]
     },
     {

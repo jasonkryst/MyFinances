@@ -410,7 +410,7 @@ export async function markAllNotificationsRead() {
 // list. Resolves to the server's summary ({ created, ... }); throws on error.
 export async function runNotificationCheck() {
     const result = await post('/api/notifications/check');
-    await refreshNotifications();
+    await refreshNotifications({ force: true });
     return result;
 }
 
@@ -447,6 +447,8 @@ export function initNotificationsCenter(app) {
     });
     document.getElementById('notificationsFilterClearBtn')?.addEventListener('click', (e) => {
         e.stopPropagation();
+        // The Clear button hides with its note; keep focus inside the panel.
+        document.getElementById('notificationsPanelTitle')?.focus();
         clearNotificationFilters(app);
     });
     panel.addEventListener('click', (e) => {

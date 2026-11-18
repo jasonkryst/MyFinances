@@ -14,8 +14,8 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ### Fixed
 - **Caps Lock (#646).** The Notifications page shortcuts (j, k, x, e) work with Caps Lock on.
-- **Cleanups (#647).** Follow-up fixes from the Notifications page review.
-- **Label (#648).** The date-range shortcut now reads "Last 7 days".
+- **Cleanups (#647).** Notifications page review follow-ups: tidied the filter and day-group code paths and tests.
+- **Label (#648).** The Notifications page day-group heading "Earlier this week" now reads "Last 7 days", since it covers alerts 2 to 6 days old.
 
 ## [7.17.0] — 2026-11-17
 

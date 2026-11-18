@@ -18,7 +18,7 @@ pytestmark = pytest.mark.feature
 BELL_ITEMS = '#notificationsList .notifications-item'
 
 _REFRESH_JS = ("async () => { const r = await import('/src/notificationsCenter.js');"
-               " await r.refreshNotifications(); }")
+               " await r.refreshNotifications({ force: true }); }")
 
 
 def _settings_value(data, key):
@@ -118,6 +118,7 @@ def test_filtered_line_and_clear_from_bell_resets_bell_and_page(app_page):
     assert page.locator('#notificationsViewAllBtn').is_visible()
 
     page.click('#notificationsFilterClearBtn')
+    assert page.evaluate("document.activeElement && document.activeElement.id") == 'notificationsPanelTitle'
     _wait_badge(page, 4)
     page.wait_for_selector('#notificationsFilterNote', state='hidden')
     assert page.locator(BELL_ITEMS).count() == 4
