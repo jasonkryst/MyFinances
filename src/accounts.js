@@ -2,6 +2,7 @@
 
 import { formatCurrency, normalizeText, normalizeMultilineText, sanitizeFiniteNumber, escapeHtml, setCollapsibleOpen } from './utils.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
+import { restoreSavedLedgerFiltersOnce } from './ledger.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { offerUndo } from './undo.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
@@ -173,11 +174,14 @@ export function renderAccountBalanceBreakdown(app, accountId, triggerEl = null) 
         // rather than scoped to the current month, since Ledger has no
         // exact-calendar-month filter (its date options are all relative —
         // around today, next N days, etc.) — see #257 discussion.
+        // Marks the saved filters restored so they can't clobber the
+        // overrides below on the first visit. This link has never applied
+        // the saved Status or page size, so they are skipped (#645).
+        restoreSavedLedgerFiltersOnce(app, { skip: ['clearedFilter', 'pageSize'] });
         app._ledgerAccountFilter = accountId;
         app._ledgerCategoryFilter = 'all';
         app._ledgerDateRange = 'all';
         app._ledgerPage = 1;
-        app._ledgerFiltersRestored = true;
         app.switchPage('ledger');
     };
     modal.onclick = e => { if (e.target === modal) close(); };
