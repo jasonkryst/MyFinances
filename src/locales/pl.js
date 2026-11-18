@@ -136,7 +136,7 @@ export default {
     'notifyPage.markedRead.other': 'Oznaczono {count} alertu jako przeczytane',
     'notifyPage.group.today': 'Dzisiaj',
     'notifyPage.group.yesterday': 'Wczoraj',
-    'notifyPage.group.thisWeek': 'W tym tygodniu',
+    'notifyPage.group.thisWeek': 'Ostatnie 7 dni',
     'notifyPage.group.earlier': 'Starsze',
     'notifyPage.tagUnread': 'Nieprzeczytane',
     'notifyPage.view': 'Pokaż',

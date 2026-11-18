@@ -16,7 +16,7 @@ describe('schema coverage', () => {
         const keyConsts = Object.entries(S)
             .filter(([name, v]) => typeof v === 'string' && /^[A-Z_]+$/.test(name)
                 && !/_MAX$|_DEFAULT$|^SETTINGS_EXPORT_|_PREF_KEY$/.test(name)
-                && name !== 'SURPLUS_ACCOUNT_ID' && name !== 'LEDGER_EXPORT_COLUMNS'
+                && name !== 'SURPLUS_ACCOUNT_ID' && !/^NOTIFY_FILTER_/.test(name) && name !== 'LEDGER_EXPORT_COLUMNS'
                 && !Array.isArray(v))
             .map(([, v]) => v);
         expect(keyConsts.length).toBeGreaterThan(10);

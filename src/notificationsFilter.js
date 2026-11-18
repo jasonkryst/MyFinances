@@ -19,7 +19,7 @@ export function notificationAccountId(n) {
     let id = null;
     if (typeof raw === 'number') id = raw;
     else if (typeof raw === 'string' && /^\d+$/.test(raw.trim())) id = Number(raw.trim());
-    return Number.isInteger(id) && id > 0 ? id : null;
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 export function notificationCategory(type) {
@@ -51,8 +51,32 @@ export function normalizeNotificationFilters(f) {
     const rawId = typeof src.accountId === 'string' && /^\d+$/.test(src.accountId.trim())
         ? Number(src.accountId.trim())
         : src.accountId;
-    if (Number.isInteger(rawId) && rawId > 0) accountId = rawId;
+    if (Number.isSafeInteger(rawId) && rawId > 0) accountId = rawId;
     return { category, status, accountId, from: isoDateOrNull(src.from), to: isoDateOrNull(src.to) };
+}
+
+// Bell/page filters <-> the saved settings (#649). account 0 means all.
+export function filtersFromSettings(s) {
+    const src = s && typeof s === 'object' ? s : {};
+    return normalizeNotificationFilters({
+        category: src.type, status: src.status, accountId: src.account,
+    });
+}
+
+export function filtersToSettings(filters) {
+    const f = normalizeNotificationFilters(filters);
+    return { type: f.category, status: f.status, account: f.accountId === 'all' ? 0 : f.accountId };
+}
+
+// Query string for GET /api/notifications and POST /read-all. Only parts equal
+// to 'all' are left out, so the default 'unread' status is sent explicitly.
+export function filtersToQuery(filters) {
+    const f = normalizeNotificationFilters(filters);
+    const parts = [];
+    if (f.category !== 'all') parts.push(`type=${f.category}`);
+    if (f.status !== 'all') parts.push(`status=${f.status}`);
+    if (f.accountId !== 'all') parts.push(`account=${f.accountId}`);
+    return parts.join('&');
 }
 
 function localDateKey(iso) {
@@ -87,7 +111,8 @@ export function groupNotificationsByDay(items, now) {
     const order = ['today', 'yesterday', 'thisWeek', 'earlier'];
     const buckets = { today: [], yesterday: [], thisWeek: [], earlier: [] };
     for (const n of items || []) {
-        const d = new Date(n.createdAt);
+        const d = new Date(n?.createdAt);
+        if (Number.isNaN(d.getTime())) { buckets.earlier.push(n); continue; }
         const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
         const diff = Math.round((today.getTime() - day.getTime()) / DAY_MS);
         let key = 'earlier';
@@ -102,7 +127,7 @@ export function groupNotificationsByDay(items, now) {
 export function summarizeNotifications(items, total) {
     const list = items || [];
     const loaded = list.length;
-    const t = Number.isFinite(total) ? total : loaded;
+    const t = Number.isFinite(total) ? Math.max(total, loaded) : loaded;
     return {
         loaded,
         total: t,

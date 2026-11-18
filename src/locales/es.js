@@ -136,7 +136,7 @@ export default {
     'notifyPage.markedRead.other': '{count} alertas marcadas como leídas',
     'notifyPage.group.today': 'Hoy',
     'notifyPage.group.yesterday': 'Ayer',
-    'notifyPage.group.thisWeek': 'Esta semana',
+    'notifyPage.group.thisWeek': 'Últimos 7 días',
     'notifyPage.group.earlier': 'Anteriores',
     'notifyPage.tagUnread': 'Sin leer',
     'notifyPage.view': 'Ver',
