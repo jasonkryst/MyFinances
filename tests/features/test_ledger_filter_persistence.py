@@ -13,7 +13,7 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import assert_no_errors, seed_state
+from tests.conftest import assert_no_errors, seed_state, wait_for_api
 
 STORE_KEY = 'debtTrackerLedgerFilters'
 
@@ -264,3 +264,35 @@ def test_ledger_first_visit_still_applies_every_saved_filter(app_page):
     s = _ledger_state(page)
     assert (s['account'], s['date'], s['cleared'], s['category']) == (acct_id, 'next30', 'cleared', 'Housing')
     assert s['domSize'] == '50'
+
+
+@pytest.mark.feature
+def test_spending_view_in_ledger_without_saved_blob_ignores_server_ledger_settings(app_page):
+    """With no device blob but non-default server ledger settings, the
+    Spending link's remembered account/date are 'all'/'around7' (not the
+    server values), and re-saving from the cross-nav view keeps them."""
+    page = app_page
+    acct_id, _ = _seed_cross_nav(page)
+    page.evaluate("""(id) => {
+        app._ledgerAccountFilter = id; app._ledgerDateRange = 'next30';
+        app.saveToStorage(['ledgerSettings']);
+    }""", acct_id)
+    wait_for_api(page, '/api/plan-settings',
+                 lambda b: (b.get('ledgerSettings') or {}).get('dateRange') == 'next30')
+    page.evaluate("() => localStorage.removeItem('debtTrackerLedgerFilters')")
+    page.reload()
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.click('[data-rptab="spending"]')
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    page.click('#spendingDrilldownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerPageSize', timeout=5000)
+    pre = page.evaluate("() => [app._ledgerPreCrossNavAccount, app._ledgerPreCrossNavDateRange]")
+    assert pre == ['all', 'around7']
+    page.select_option('#ledgerPageSize', '10')
+    page.wait_for_function("() => JSON.parse(localStorage.getItem('debtTrackerLedgerFilters')).pageSize === 10")
+    stored = _stored(page)
+    assert (stored['accountFilter'], stored['dateRange']) == ('all', 'around7')

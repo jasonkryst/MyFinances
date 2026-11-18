@@ -5,7 +5,7 @@ import {
     formatMonthLong, formatMonthYear, isTransferLegTx
 } from './utils.js';
 import { t, plural, categoryLabel, getIntlLocale } from './i18n.js';
-import { restoreSavedLedgerFiltersOnce } from './ledger.js';
+import { restoreSavedLedgerFiltersOnce, loadLedgerFilters } from './ledger.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -166,9 +166,15 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
             // remembered so they can be restored (not left stuck at 'all')
             // once the user leaves or the Ledger page is re-saved while this
             // view is still active — see persistLedgerFilters() in ledger.js.
+            // Read from live state if the Ledger has already rendered this
+            // session, otherwise from the saved blob ('all'/'around7' when
+            // there is none, never the server-loaded defaults).
+            const existing = app._ledgerFiltersRestored
+                ? { accountFilter: app._ledgerAccountFilter, dateRange: app._ledgerDateRange }
+                : (loadLedgerFilters() || {});
             restoreSavedLedgerFiltersOnce(app, { skip: ['clearedFilter', 'pageSize'] });
-            app._ledgerPreCrossNavAccount = app._ledgerAccountFilter ?? 'all';
-            app._ledgerPreCrossNavDateRange = app._ledgerDateRange ?? 'around7';
+            app._ledgerPreCrossNavAccount = existing.accountFilter ?? 'all';
+            app._ledgerPreCrossNavDateRange = existing.dateRange ?? 'around7';
 
             app._ledgerCategoryFilter = catData.category;
             app._ledgerAccountFilter = 'all';
