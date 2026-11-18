@@ -231,7 +231,11 @@ def test_mark_all_matching(app_page):
     page.click('#notifMarkMatchingBtn')
     page.wait_for_selector('#notificationsPageList .notif-empty--nomatch')
     wait_for_api(page, '/api/notifications', lambda d: d['unreadCount'] == 1)
-    assert _badge(page) == 1
+    # The bell follows the saved Type filter (#649): no unread overdrawn alerts
+    # left, so its badge is hidden although the low-balance alert is unread.
+    page.wait_for_selector('#notificationsBadge.hidden', state='attached')
+    assert _badge(page) == 0
+    assert '1 unread' in page.text_content('#notifSummary')
     assert page.text_content('#undoToastMessage') == 'Marked 3 alerts read'
     assert page.is_disabled('#notifMarkMatchingBtn')
 
@@ -465,6 +469,42 @@ def test_modified_keys_do_nothing(app_page, combo):
     _assert_untouched(page)
     assert len(_row_texts(page)) == 4
     assert _focused_row_text(page) == focused
+
+
+_CAPS_KEY_JS = """([key, shift]) => {
+    const target = document.activeElement || document.body;
+    target.dispatchEvent(new KeyboardEvent('keydown', {
+        key, shiftKey: shift, modifierCapsLock: true, bubbles: true, cancelable: true,
+    }));
+}"""
+
+
+def test_caps_lock_keys_work_and_shift_still_ignored(app_page):
+    # #646: with Caps Lock on, j/k/x/e arrive as J/K/X/E and must still work.
+    # Shift stays a "do nothing" modifier (Caps Lock + Shift sends lowercase).
+    page = app_page
+    _seed_alerts(page)
+    _open_page(page, 4)
+    texts = _row_texts(page)
+    page.evaluate(_CAPS_KEY_JS, ['J', False])
+    assert _focused_row_text(page) == texts[0]
+    page.evaluate(_CAPS_KEY_JS, ['J', False])
+    assert _focused_row_text(page) == texts[1]
+    page.evaluate(_CAPS_KEY_JS, ['K', False])
+    assert _focused_row_text(page) == texts[0]
+    page.evaluate(_CAPS_KEY_JS, ['X', False])
+    assert page.locator(ROWS).nth(0).locator('.notif-row-select').is_checked()
+    page.evaluate(_CAPS_KEY_JS, ['X', False])
+    assert _selected_rows(page) == 0
+
+    page.evaluate(_CAPS_KEY_JS, ['x', True])
+    page.wait_for_timeout(300)
+    assert _selected_rows(page) == 0
+
+    page.evaluate(_CAPS_KEY_JS, ['E', False])
+    _wait_rows(page, 3)
+    wait_for_api(page, '/api/notifications', lambda d: d['unreadCount'] == 3)
+    assert texts[0] not in _row_texts(page)
 
 
 def test_keys_ignored_with_dialog_open(app_page):

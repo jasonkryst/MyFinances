@@ -63,7 +63,8 @@ def test_bell_is_labelled_and_shows_the_empty_state(app_page):
     btn.click()
     assert btn.get_attribute('aria-expanded') == 'true'
     page.wait_for_selector('#notificationsPanel:not(.hidden)')
-    assert 'No alerts yet' in page.text_content('#notificationsList')
+    # The bell lists unread alerts by default (#649).
+    assert 'No unread alerts' in page.text_content('#notificationsList')
     assert page.locator('#notificationsMarkAllBtn').is_disabled()
 
     page.keyboard.press('Escape')
@@ -120,7 +121,12 @@ def test_mark_all_read_survives_a_reload(app_page):
     page.wait_for_function("() => document.documentElement.dataset.notificationsLoaded === 'true'")
     assert page.locator('#notificationsBadge').is_hidden()
     page.click('#notificationsBtn')
-    assert 'notifications-item--unread' not in page.locator('#notificationsList .notifications-item').get_attribute('class')
+    # The bell lists unread alerts by default (#649), so the read alert is
+    # gone from it; the server still holds it, read.
+    page.wait_for_function("() => document.getElementById('notificationsList').textContent.includes('No unread alerts')")
+    assert page.locator('#notificationsList .notifications-item').count() == 0
+    rows = page.evaluate("async () => (await (await fetch('/api/notifications?status=all')).json()).notifications")
+    assert len(rows) == 1 and rows[0]['readAt'] is not None
 
 
 def test_preferences_default_and_persist(app_page):

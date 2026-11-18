@@ -103,7 +103,8 @@ export async function refreshFromServer(app) {
         if (typeof app.updateUI === 'function') app.updateUI();
         if (typeof app.refreshCurrentPageData === 'function') app.refreshCurrentPageData();
         markRefresh('applied');
-        refreshNotifications();
+        // Forced: a fetch started before the reload would miss filters saved elsewhere (#649).
+        refreshNotifications({ force: true });
         return true;
     } catch (err) {
         if (err instanceof SessionExpiredError) {

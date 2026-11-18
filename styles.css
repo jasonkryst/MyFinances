@@ -9664,3 +9664,30 @@ body.dark-mode .notif-tag--unread {
         min-width: 24px;
     }
 }
+
+/* Notifications bell: the "Filtered: ..." line and its Clear button (#649) */
+.notifications-filter-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
+.notifications-filter-text {
+    min-width: 0;
+    color: #334155;
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+}
+.notifications-filter-note .btn {
+    flex-shrink: 0;
+}
+body.dark-mode .notifications-filter-note {
+    background: #1e293b;
+    border-bottom-color: #334155;
+}
+body.dark-mode .notifications-filter-text {
+    color: #cbd5e1;
+}
