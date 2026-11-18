@@ -165,3 +165,102 @@ def test_no_console_errors_on_ledger_page(app_page):
     page = app_page
     _navigate_ledger(page)
     assert_no_errors(page)
+
+
+# ── First-visit restore through cross-navigation links (#645) ────────────────
+# Accounts' and Spending's "View in Ledger" set their own filters and skip
+# part of the saved-filter restore. These pin exactly what each one applies
+# on the FIRST Ledger visit of a session, with a saved blob in localStorage.
+
+SAVED_BLOB = {'accountFilter': 'ACCT', 'dateRange': 'next30', 'clearedFilter': 'cleared',
+              'pageSize': 50, 'categoryFilter': 'Housing'}
+
+
+def _seed_cross_nav(page):
+    """Seed an account (id 9301) and a categorised expense, store a saved
+    filter blob, and reload so the next Ledger visit is the session's first."""
+    seed_state(page, {
+        'version': '3.0',
+        'accounts': [{'id': 9301, 'name': 'Cross Nav Acct', 'type': 'Checking', 'startingBalance': 1000}],
+        'expenses': [{'id': 9302, 'name': 'Rent', 'category': 'Food', 'budgetAmount': 100,
+                      'date': date.today().replace(day=1).isoformat(), 'accountId': 9301}],
+    })
+    acct_id = str(page.evaluate("() => app.accounts[0].id"))
+    blob = dict(SAVED_BLOB, accountFilter=acct_id)
+    page.evaluate("(b) => localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify(b))", blob)
+    page.reload()
+    return acct_id, blob
+
+
+def _ledger_state(page):
+    return page.evaluate("""() => ({
+        account: app._ledgerAccountFilter, date: app._ledgerDateRange, cleared: app._ledgerClearedFilter,
+        pageSize: app._ledgerPageSize, category: app._ledgerCategoryFilter,
+        domSize: document.getElementById('ledgerPageSize')?.value,
+        domCleared: document.getElementById('ledgerClearedFilter')?.value,
+    })""")
+
+
+@pytest.mark.feature
+def test_accounts_view_in_ledger_first_visit_with_saved_filters(app_page):
+    """Accounts' link forces account/category/date; it does not apply the
+    saved cleared filter or page size (defaults show), and the saved blob
+    stays untouched."""
+    page = app_page
+    acct_id, blob = _seed_cross_nav(page)
+    page.click('button[data-page="accounts"]')
+    page.wait_for_selector('#accountsSection.active', timeout=5000)
+    page.click(f'[data-account-action="breakdown"][data-account-id="{acct_id}"]')
+    page.wait_for_selector('#acctBreakdownModal:not(.hidden)', timeout=5000)
+    page.click('#acctBreakdownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerPageSize', timeout=5000)
+
+    s = _ledger_state(page)
+    assert (str(s['account']), s['date'], s['category']) == (acct_id, 'all', 'all')
+    assert s['domCleared'] == 'all', s
+    assert s['domSize'] == '25', s
+    assert _stored(page) == blob
+
+
+@pytest.mark.feature
+def test_spending_view_in_ledger_first_visit_with_saved_filters(app_page):
+    """Spending's link forces category/account/date; it does not apply the
+    saved cleared filter or page size, and the saved account/date survive
+    for later (pre-cross-nav values) rather than being overwritten."""
+    page = app_page
+    acct_id, _ = _seed_cross_nav(page)
+    page.click('button[data-page="reports"]')
+    page.wait_for_selector('#reportsSection.active', timeout=5000)
+    page.evaluate("async () => { app.renderReportsPage && await app.renderReportsPage(); }")
+    page.click('[data-rptab="spending"]')
+    page.wait_for_selector('#rptPanel-spending.rpt-tab-panel--active', timeout=5000)
+    page.click('[data-spending-cat="Food"]')
+    page.wait_for_selector('#spendingDrilldownModal:not(.hidden)', timeout=5000)
+    page.click('#spendingDrilldownViewLedgerBtn')
+    page.wait_for_selector('#ledgerSection.active', timeout=5000)
+    page.wait_for_selector('#ledgerPageSize', timeout=5000)
+
+    s = _ledger_state(page)
+    assert (s['account'], s['date'], s['category']) == ('all', 'all', 'Food')
+    assert s['domCleared'] == 'all', s
+    assert s['domSize'] == '25', s
+    pre = page.evaluate("() => [app._ledgerPreCrossNavAccount, app._ledgerPreCrossNavDateRange]")
+    assert pre == [acct_id, 'next30']
+    # Touching an unrelated control re-saves: the saved account/date stay.
+    page.select_option('#ledgerPageSize', '10')
+    page.wait_for_function("() => JSON.parse(localStorage.getItem('debtTrackerLedgerFilters')).pageSize === 10")
+    stored = _stored(page)
+    assert (stored['accountFilter'], stored['dateRange']) == (acct_id, 'next30')
+
+
+@pytest.mark.feature
+def test_ledger_first_visit_still_applies_every_saved_filter(app_page):
+    """Negative control: a plain first Ledger visit applies the whole blob,
+    so the cross-nav skips above are deliberate, not a broken restore."""
+    page = app_page
+    acct_id, _ = _seed_cross_nav(page)
+    _navigate_ledger(page)
+    s = _ledger_state(page)
+    assert (s['account'], s['date'], s['cleared'], s['category']) == (acct_id, 'next30', 'cleared', 'Housing')
+    assert s['domSize'] == '50'
