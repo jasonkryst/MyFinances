@@ -449,6 +449,8 @@ jobs:
   # by data state: L = seeded (+ the two control tests), M = empty, ~170-200 s of pytest each. Both grow
   # as pages are added to TRANSLATED_PAGES (tests/features/i18n_render_support.py); split by page
   # name next if either nears the shard budget (~360 s of pytest).
+  # M also holds test_notification_bell_filters.py (#649, short; kept off F, which runs the other
+  # notifications files, so the POST /check rate limit isn't shared).
   test-features-l:
     needs: build-images
     runs-on: ubuntu-latest
@@ -490,7 +492,7 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/features/test_i18n_render_guard_empty.py --maxfail=15 -v
+      - run: pytest tests/features/test_i18n_render_guard_empty.py tests/features/test_notification_bell_filters.py --maxfail=15 -v
       - name: Stop stack
         if: always()
         run: docker compose down -v

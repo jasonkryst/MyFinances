@@ -601,6 +601,22 @@ TRANSLATED_PAGES = {
             nc.renderNotificationsCenter();
         }""",
     ),
+    # #649: the bell panel with a non-default saved filter and no matches:
+    # the "Filtered: ..." line, its Clear button and the filtered empty text.
+    'notifications-panel-filtered': (
+        ['#notificationsWrap'],
+        """async () => {
+            const nc = await import('/src/notificationsCenter.js');
+            const st = nc.getNotificationsState();
+            window.app.settings = (window.app.settings || []).filter(s => !s.key.startsWith('notifyFilter'));
+            window.app.settings.push({ key: 'notifyFilterType', value: 'overdrawn' });
+            window.app.settings.push({ key: 'notifyFilterStatus', value: 'read' });
+            window.app.settings.push({ key: 'notifyFilterAccount', value: 0 });
+            st.items = []; st.unreadCount = 0; st.loaded = true; st.failed = false;
+            document.getElementById('notificationsPanel').classList.remove('hidden');
+            nc.renderNotificationsCenter();
+        }""",
+    ),
     'settings-advanced': (
         ['#settingsModal'],
         """async () => {

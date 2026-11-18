@@ -6,9 +6,10 @@
 // subscribers, so the subscriber here only redraws this page; it must never
 // call renderNotificationsCenter() (that would loop).
 //
-// Filters are held in memory only (app._notificationsFilters) and are never
-// written to browser storage. The selection is a module Set, pruned against
-// the visible rows on every draw.
+// Type, Status and Account are saved settings (#649), shared with the toolbar
+// bell, so they follow the user across reloads and devices. The From/To dates
+// stay in memory (app._notificationsFilters). Nothing goes to browser storage.
+// The selection is a module Set, pruned against the visible rows on every draw.
 
 import { t, plural } from './i18n.js';
 import { escapeHtml, formatShortDate, withBusy, buildFiltersLabel } from './utils.js';
@@ -21,6 +22,10 @@ import {
     markNotificationsUnread,
     onNotificationsChange,
     notificationMessage,
+    getSavedNotificationFilters,
+    saveNotificationFilters,
+    clearNotificationFilters,
+    refreshNotifications,
 } from './notificationsCenter.js';
 import {
     filterNotifications,
@@ -44,8 +49,13 @@ let focusedIndex = 0;
 
 const el = id => document.getElementById(id);
 
+// The saved Type/Status/Account (re-read each time, so a live refresh from
+// another device shows up) plus the in-memory dates.
 function getFilters(app) {
-    app._notificationsFilters = normalizeNotificationFilters(app._notificationsFilters);
+    const dates = normalizeNotificationFilters(app._notificationsFilters);
+    app._notificationsFilters = normalizeNotificationFilters({
+        ...getSavedNotificationFilters(app), from: dates.from, to: dates.to,
+    });
     return app._notificationsFilters;
 }
 
@@ -70,12 +80,10 @@ function activeFilterCount(f) {
 function renderAccountOptions(app, f) {
     const select = el('notifFilterAccount');
     if (!select) return f;
-    const accounts = (app.accounts || []).filter(a => !a.archived);
-    let accountId = f.accountId;
-    if (accountId !== 'all' && !accounts.some(a => a.id === accountId)) {
-        accountId = 'all';
-        app._notificationsFilters = { ...f, accountId };
-    }
+    // Archived accounts are listed only while saved as the filter, so the
+    // select can show it (the bell still filters by it).
+    const accountId = f.accountId;
+    const accounts = (app.accounts || []).filter(a => !a.archived || a.id === accountId);
     const html = `<option value="all">${escapeHtml(t('notifyPage.allAccounts'))}</option>`
         + accounts.map(a => `<option value="${Number(a.id)}">${escapeHtml(a.name)}</option>`).join('');
     if (select.dataset.optionsHtml !== html) {
@@ -83,7 +91,7 @@ function renderAccountOptions(app, f) {
         select.dataset.optionsHtml = html;
     }
     if (select.value !== String(accountId)) select.value = String(accountId);
-    return app._notificationsFilters;
+    return f;
 }
 
 function syncFilterControls(app) {
@@ -128,6 +136,16 @@ function rowHtml(n, index) {
     </li>`;
 }
 
+// The list is redrawn on every shared-state change (each bell re-fetch, #649),
+// so unchanged markup is left in place: replacing it would drop the nodes a
+// user, screen reader or test is holding.
+let lastListHtml = null;
+function setListHtml(list, html) {
+    if (lastListHtml === html && list.innerHTML !== '') return;
+    list.innerHTML = html;
+    lastListHtml = html;
+}
+
 function renderList(app, items) {
     const list = el('notificationsPageList');
     if (!list) return;
@@ -135,31 +153,31 @@ function renderList(app, items) {
     const failed = document.documentElement.dataset.notificationsAllLoaded === 'failed';
     if (!state.allLoaded) {
         if (failed && !loading) {
-            list.innerHTML = `<div class="notif-empty notif-empty--failed"><p>${escapeHtml(t('notifyPage.loadFailed'))}</p>
-                <button type="button" class="btn btn-secondary btn-small" id="notifRetryBtn">${escapeHtml(t('notifyPage.retry'))}</button></div>`;
+            setListHtml(list, `<div class="notif-empty notif-empty--failed"><p>${escapeHtml(t('notifyPage.loadFailed'))}</p>
+                <button type="button" class="btn btn-secondary btn-small" id="notifRetryBtn">${escapeHtml(t('notifyPage.retry'))}</button></div>`);
         } else {
-            list.innerHTML = `<div class="notif-empty"><p>${escapeHtml(t('notifyPage.loading'))}</p></div>`;
+            setListHtml(list, `<div class="notif-empty"><p>${escapeHtml(t('notifyPage.loading'))}</p></div>`);
         }
         return;
     }
     if (state.all.length === 0) {
-        list.innerHTML = `<div class="notif-empty"><p>${escapeHtml(t('notify.empty'))}</p></div>`;
+        setListHtml(list, `<div class="notif-empty"><p>${escapeHtml(t('notify.empty'))}</p></div>`);
         return;
     }
     if (items.length === 0) {
-        list.innerHTML = `<div class="notif-empty notif-empty--nomatch"><p>${escapeHtml(t('notifyPage.noMatch'))}</p>
-            <button type="button" class="btn btn-secondary btn-small" id="notifEmptyClearBtn">${escapeHtml(t('notifyPage.clearFilters'))}</button></div>`;
+        setListHtml(list, `<div class="notif-empty notif-empty--nomatch"><p>${escapeHtml(t('notifyPage.noMatch'))}</p>
+            <button type="button" class="btn btn-secondary btn-small" id="notifEmptyClearBtn">${escapeHtml(t('notifyPage.clearFilters'))}</button></div>`);
         return;
     }
     let index = 0;
-    list.innerHTML = groupNotificationsByDay(items, new Date()).map(group => {
+    setListHtml(list, groupNotificationsByDay(items, new Date()).map(group => {
         const headingId = `notifGroup-${group.key}`;
         const rows = group.items.map(n => rowHtml(n, index++)).join('');
         return `<div class="notif-group">
             <h3 class="notif-group-heading" id="${headingId}">${escapeHtml(t(`notifyPage.group.${group.key}`))}</h3>
             <ul class="notif-group-list" aria-labelledby="${headingId}">${rows}</ul>
         </div>`;
-    }).join('');
+    }).join(''));
 }
 
 function renderBulkBar(items) {
@@ -190,7 +208,9 @@ function renderSummary() {
     let text = '';
     if (state.allLoaded) {
         const s = summarizeNotifications(state.all, state.total);
-        text = t('notifyPage.summary', { unread: state.unreadCount, active: s.active });
+        // allUnreadCount: every unread alert. state.unreadCount is the bell's
+        // filtered count (#649).
+        text = t('notifyPage.summary', { unread: state.allUnreadCount, active: s.active });
         if (s.truncated) text += ` ${t('notifyPage.truncated', { loaded: s.loaded, total: s.total })}`;
     }
     if (out.textContent !== text) out.textContent = text;
@@ -254,12 +274,15 @@ function isDialogOpen() {
 function handleKeydown(app, e) {
     if (app._currentPage !== 'notifications') return;
     if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.defaultPrevented) return;
-    if (!['j', 'k', 'x', 'e', 'Enter'].includes(e.key)) return;
+    // #646: Caps Lock (without Shift) sends J/K/X/E; Shift itself stays ignored.
+    const capsLock = typeof e.getModifierState === 'function' && e.getModifierState('CapsLock');
+    const key = capsLock && e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (!['j', 'k', 'x', 'e', 'Enter'].includes(key)) return;
     if (isTyping() || isDialogOpen()) return;
     const rows = rowElements();
     const active = document.activeElement;
     const activeRow = active && active.closest ? active.closest('.notif-row') : null;
-    if (e.key === 'Enter') {
+    if (key === 'Enter') {
         // Only the row itself: its buttons and checkbox keep their own Enter.
         if (active && active.classList && active.classList.contains('notif-row') && rows.includes(active)) {
             e.preventDefault();
@@ -268,26 +291,26 @@ function handleKeydown(app, e) {
         return;
     }
     if (rows.length === 0) return;
-    if (e.key === 'j' || e.key === 'k') {
+    if (key === 'j' || key === 'k') {
         e.preventDefault();
         const current = activeRow ? rows.indexOf(activeRow) : -1;
         let next;
-        if (current === -1) next = e.key === 'j' ? Math.min(focusedIndex, rows.length - 1) : rows.length - 1;
-        else next = Math.max(0, Math.min(rows.length - 1, current + (e.key === 'j' ? 1 : -1)));
+        if (current === -1) next = key === 'j' ? Math.min(focusedIndex, rows.length - 1) : rows.length - 1;
+        else next = Math.max(0, Math.min(rows.length - 1, current + (key === 'j' ? 1 : -1)));
         focusRow(rows[next]);
         return;
     }
     if (!activeRow) return;
     const id = Number(activeRow.getAttribute('data-notification-id'));
     e.preventDefault();
-    if (e.key === 'x') {
+    if (key === 'x') {
         const box = activeRow.querySelector('.notif-row-select');
         if (selected.has(id)) selected.delete(id); else selected.add(id);
         if (box) box.checked = selected.has(id);
         renderBulkBar(visibleItems(app));
         return;
     }
-    if (e.key === 'e' && !findItem(id)?.readAt) markNotificationsRead([id]);
+    if (key === 'e' && !findItem(id)?.readAt) markNotificationsRead([id]);
 }
 
 // Redraws the page from the shared state (no fetch).
@@ -372,13 +395,23 @@ function viewNotification(app, id) {
     highlightAccountCard(target.accountId);
 }
 
+const SAVED_FIELD = { category: 'type', status: 'status', accountId: 'account' };
+
+// Type/Status/Account save that one setting and re-fetch the bell; the dates
+// only change the page.
 function setFilter(app, patch) {
-    app._notificationsFilters = normalizeNotificationFilters({ ...getFilters(app), ...patch });
+    const next = normalizeNotificationFilters({ ...getFilters(app), ...patch });
+    const fields = Object.keys(patch).map(k => SAVED_FIELD[k]).filter(Boolean);
+    app._notificationsFilters = next;
+    if (fields.length > 0) {
+        saveNotificationFilters(app, next, fields);
+        refreshNotifications({ force: true });
+    }
     drawNotificationsPage(app);
 }
 
 function clearFilters(app) {
-    app._notificationsFilters = normalizeNotificationFilters({});
+    clearNotificationFilters(app);
     drawNotificationsPage(app);
 }
 

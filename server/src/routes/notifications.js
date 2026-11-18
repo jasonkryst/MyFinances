@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { sendTemplatedEmail } from '../email/send.js';
 import { isEmailConfigured } from '../email/transport.js';
 import { checkNotificationsForUser } from '../jobs/notifications.js';
+import { typesForCategory } from '../../../src/notificationsFilter.js';
 
 // #211: the in-app list shows the newest LIST_LIMIT alerts.
 export const LIST_LIMIT = 50;
@@ -20,12 +21,71 @@ export function parseIdList(value) {
     return value;
 }
 
-async function countUnread(userId) {
+const FILTER_STATUSES = ['unread', 'read', 'active', 'resolved', 'all'];
+const STATUS_SQL = {
+    unread: 'read_at IS NULL',
+    read: 'read_at IS NOT NULL',
+    active: 'resolved_at IS NULL',
+    resolved: 'resolved_at IS NOT NULL',
+};
+
+// Optional ?type=&status=&account= filters (#649). Missing means all. Returns
+// { types, status, accountId } or null when any value is invalid (400).
+export function parseNotificationFilterQuery(q) {
+    const src = q || {};
+    const one = (v) => (v === undefined ? undefined : typeof v === 'string' ? v : null);
+    const type = one(src.type);
+    const status = one(src.status);
+    const account = one(src.account);
+    if (type === null || status === null || account === null) return null;
+
+    let types = null;
+    if (type !== undefined && type !== 'all') {
+        types = typesForCategory(type);
+        if (!types) return null;
+    }
+    // No status param means no status filter on the server (legacy behaviour).
+    if (status !== undefined && !FILTER_STATUSES.includes(status)) return null;
+    const statusOut = status === undefined ? 'all' : status;
+
+    let accountId = null;
+    if (account !== undefined && account !== 'all') {
+        if (!/^\d+$/.test(account)) return null;
+        accountId = Number(account);
+        if (!Number.isSafeInteger(accountId) || accountId <= 0) return null;
+    }
+    return { types, status: statusOut, accountId };
+}
+
+// WHERE for the filters. withStatus false is for the unread count / read-all.
+function filterWhere(userId, filter, withStatus) {
+    const params = [userId];
+    let sql = 'user_id = $1 AND show_in_app';
+    if (filter.types) {
+        params.push(filter.types);
+        sql += ` AND type = ANY($${params.length}::text[])`;
+    }
+    if (filter.accountId !== null) {
+        params.push(String(filter.accountId));
+        sql += ` AND params->>'accountId' = $${params.length}::text`;
+    }
+    if (withStatus && STATUS_SQL[filter.status]) sql += ` AND ${STATUS_SQL[filter.status]}`;
+    return { sql, params };
+}
+
+const NO_FILTER = { types: null, status: 'all', accountId: null };
+
+async function countUnread(userId, filter = NO_FILTER) {
+    const { sql, params } = filterWhere(userId, filter, false);
     const { rows } = await query(
-        'SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND show_in_app AND read_at IS NULL',
-        [userId]
+        `SELECT count(*)::int AS n FROM notifications WHERE ${sql} AND read_at IS NULL`,
+        params
     );
     return rows[0].n;
+}
+
+function invalidFilter(res) {
+    return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'type, status and account must each be given once with a valid value' } });
 }
 
 function toNotification(row) {
@@ -86,31 +146,37 @@ export default function createNotificationsRouter() {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `limit must be an integer from 1 to ${MAX_LIST_LIMIT}` } });
             }
         }
+        const filter = parseNotificationFilterQuery(req.query);
+        if (!filter) return invalidFilter(res);
         try {
-            const [{ rows }, { rows: countRows }, { rows: totalRows }] = await Promise.all([
+            const w = filterWhere(req.userId, filter, true);
+            const [{ rows }, unreadCount, { rows: totalRows }] = await Promise.all([
                 query(
                     `SELECT id, type, params, created_at, read_at, resolved_at FROM notifications
-                      WHERE user_id = $1 AND show_in_app
-                      ORDER BY created_at DESC, id DESC LIMIT $2`,
-                    [req.userId, limit]
+                      WHERE ${w.sql}
+                      ORDER BY created_at DESC, id DESC LIMIT $${w.params.length + 1}`,
+                    [...w.params, limit]
                 ),
-                query(
-                    'SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND show_in_app AND read_at IS NULL',
-                    [req.userId]
-                ),
-                query('SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND show_in_app', [req.userId]),
+                countUnread(req.userId, filter),
+                query(`SELECT count(*)::int AS n FROM notifications WHERE ${w.sql}`, w.params),
             ]);
-            res.json({ notifications: rows.map(toNotification), unreadCount: countRows[0].n, total: totalRows[0].n, emailConfigured: isEmailConfigured() });
+            res.json({ notifications: rows.map(toNotification), unreadCount, total: totalRows[0].n, emailConfigured: isEmailConfigured() });
         } catch (err) {
             next(err);
         }
     });
 
     router.post('/read-all', async (req, res, next) => {
+        const parsed = parseNotificationFilterQuery(req.query);
+        if (!parsed) return invalidFilter(res);
         try {
+            // Only type and account narrow it; status is ignored (unread only).
+            // The legacy call marked every row, including ones hidden from the app.
+            const hasFilter = parsed.types || parsed.accountId !== null;
+            const w = filterWhere(req.userId, { ...parsed, status: 'all' }, false);
             const { rowCount } = await query(
-                'UPDATE notifications SET read_at = now() WHERE user_id = $1 AND read_at IS NULL',
-                [req.userId]
+                `UPDATE notifications SET read_at = now() WHERE ${hasFilter ? w.sql : 'user_id = $1'} AND read_at IS NULL`,
+                hasFilter ? w.params : [req.userId]
             );
             res.json({ ok: true, updated: rowCount });
         } catch (err) {

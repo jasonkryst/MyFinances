@@ -51,6 +51,16 @@ export const NOTIFY_CHANNELS = ['both', 'email', 'inApp'];
 export const NOTIFY_DELIVERY = 'notifyDelivery';
 export const NOTIFY_DELIVERIES = ['perEvent', 'digest'];
 
+// #649: the bell follows the Notifications page's saved filters. Value lists
+// duplicate src/notificationsFilter.js (this module stays import-free);
+// tests/unit/notificationsFilterBell.test.js keeps them equal. Deliberately not
+// in SETTINGS_EXPORT_SCHEMA (account ids would dangle in another dataset).
+export const NOTIFY_FILTER_TYPE = 'notifyFilterType';
+export const NOTIFY_FILTER_TYPES = ['all', 'bill', 'lowBalance', 'overdrawn', 'projected'];
+export const NOTIFY_FILTER_STATUS = 'notifyFilterStatus';
+export const NOTIFY_FILTER_STATUSES = ['unread', 'read', 'active', 'resolved', 'all'];
+export const NOTIFY_FILTER_ACCOUNT = 'notifyFilterAccount';
+
 export const BCT_CATEGORY_MAX = 60;
 const isBool = v => typeof v === 'boolean';
 const numberIn = (min, max, { integer = false, minExclusive = false } = {}) => v =>
@@ -117,5 +127,8 @@ export function validateExportedSetting(key, value) {
 export function isAllowedSetting(key, value) {
     if (validateExportedSetting(key, value)) return true;
     if (key === SURPLUS_ACCOUNT_ID) return Number.isInteger(value) && value > 0;
+    if (key === NOTIFY_FILTER_TYPE) return oneOf(NOTIFY_FILTER_TYPES)(value);
+    if (key === NOTIFY_FILTER_STATUS) return oneOf(NOTIFY_FILTER_STATUSES)(value);
+    if (key === NOTIFY_FILTER_ACCOUNT) return Number.isSafeInteger(value) && value >= 0;
     return false;
 }
