@@ -21,10 +21,10 @@ describe('remapAccountSettings', () => {
         expect(r.changes).toEqual([{ key: 'surplusAccountId', from: 99, to: null, kind: 'rejected' }]);
     });
 
-    test('an unresolved notifyFilterAccount resets to 0', () => {
+    test('an unresolved notifyFilterAccount is dropped', () => {
         const r = remapAccountSettings([s('notifyFilterAccount', 99)], MAP);
-        expect(r.settings).toEqual([s('notifyFilterAccount', 0)]);
-        expect(r.changes).toEqual([{ key: 'notifyFilterAccount', from: 99, to: 0, kind: 'coerced' }]);
+        expect(r.settings).toEqual([]);
+        expect(r.changes).toEqual([{ key: 'notifyFilterAccount', from: 99, to: null, kind: 'rejected' }]);
     });
 
     test('notifyFilterAccount 0 is untouched with no change recorded', () => {
@@ -65,8 +65,8 @@ describe('remapAccountSettings', () => {
         expect(remapAccountSettings(undefined, MAP)).toEqual({ settings: [], changes: [] });
         expect(remapAccountSettings(null, MAP)).toEqual({ settings: [], changes: [] });
         const r = remapAccountSettings([s('surplusAccountId', 5), s('notifyFilterAccount', 5)], undefined);
-        expect(r.settings).toEqual([s('notifyFilterAccount', 0)]);
-        expect(r.changes.map(c => c.kind)).toEqual(['rejected', 'coerced']);
+        expect(r.settings).toEqual([]);
+        expect(r.changes.map(c => c.kind)).toEqual(['rejected', 'rejected']);
     });
 
     test('map lookups ignore inherited properties', () => {

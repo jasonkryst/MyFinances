@@ -5,8 +5,8 @@ Import remaps account-id settings (issue #651).
 `surplusAccountId` and `notifyFilterAccount` hold an account id. Accounts get
 new ids on import, so both must follow their account through the same old->new
 map as every other account reference. A `notifyFilterAccount` that doesn't
-resolve resets to 0 (all accounts); a `surplusAccountId` that doesn't resolve is
-dropped (so a merge keeps the existing server value). Dropped/reset values are
+resolve is dropped, like an unresolved `surplusAccountId` (a merge keeps the
+existing server value; a replace leaves the default). Dropped values are
 reported as import warnings.
 """
 
@@ -94,19 +94,17 @@ def test_replace_import_remaps_both_settings_by_account(app_page):
 
 
 @pytest.mark.feature
-def test_replace_import_unresolved_settings_reset_and_warn(app_page):
+def test_replace_import_unresolved_settings_dropped_and_warn(app_page):
     page = app_page
     r = _import(page, _file_with_settings(surplusAccountId=99, notifyFilterAccount=99), True)
     assert r['status'] == 'imported'
-    assert _app_setting(page, 'notifyFilterAccount') == 0
+    assert _app_setting(page, 'notifyFilterAccount') is None
     assert _app_setting(page, 'surplusAccountId') is None
-    wait_for_api(page, '/api/settings', lambda rows: any(s['key'] == 'notifyFilterAccount' for s in rows))
     server = _settings(page)
-    assert server['notifyFilterAccount'] == 0
+    assert 'notifyFilterAccount' not in server
     assert 'surplusAccountId' not in server
     by_key = {w['recordName']: w for w in _setting_warnings(r)}
-    assert by_key['notifyFilterAccount']['kind'] == 'coerced'
-    assert by_key['notifyFilterAccount']['to'] == 0
+    assert by_key['notifyFilterAccount']['kind'] == 'rejected'
     assert by_key['surplusAccountId']['kind'] == 'rejected'
 
 
@@ -136,21 +134,24 @@ def test_merge_import_maps_resolved_settings_to_the_right_accounts(app_page):
 
 
 @pytest.mark.feature
-def test_merge_import_unresolved_surplus_keeps_existing_server_value(app_page):
+def test_merge_import_unresolved_settings_keep_existing_server_values(app_page):
     page = app_page
     seed_state(page, {
         "accounts": [_account(777, "Checking"), _account(778, "Other")],
-        "settings": [{"key": "surplusAccountId", "value": 778}],
+        "settings": [{"key": "surplusAccountId", "value": 778}, {"key": "notifyFilterAccount", "value": 777}],
     })
     other = _server_account_id(page, "Other")
-    wait_for_api(page, '/api/settings', lambda rows: any(s['key'] == 'surplusAccountId' and s['value'] == other for s in rows))
+    checking = _server_account_id(page, "Checking")
+    wait_for_api(page, '/api/settings',
+                 lambda rows: any(s['key'] == 'notifyFilterAccount' and s['value'] == checking for s in rows))
     r = _import(page, _file_with_settings(surplusAccountId=99, notifyFilterAccount=99), False)
     assert r['status'] == 'imported'
     assert _app_setting(page, 'surplusAccountId') == other
     assert _settings(page)['surplusAccountId'] == other
-    assert _app_setting(page, 'notifyFilterAccount') == 0
+    assert _app_setting(page, 'notifyFilterAccount') == checking
+    assert _settings(page)['notifyFilterAccount'] == checking
     kinds = {w['recordName']: w['kind'] for w in _setting_warnings(r)}
-    assert kinds == {'surplusAccountId': 'rejected', 'notifyFilterAccount': 'coerced'}
+    assert kinds == {'surplusAccountId': 'rejected', 'notifyFilterAccount': 'rejected'}
 
 
 @pytest.mark.feature

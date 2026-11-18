@@ -15,8 +15,8 @@ function resolveAccountId(value, accountIdMap) {
 
 // settings: array of { key, value }. accountIdMap: { [oldId]: newId }.
 // Returns { settings, changes }; the input is never mutated. A change has
-// kind 'remapped' (new id), 'coerced' (reset to default 0) or 'rejected'
-// (entry dropped), and is recorded only when the value actually changes.
+// kind 'remapped' (new id) or 'rejected' (entry dropped, so
+// a merge keeps the existing value and a replace falls back to the default 0), and is recorded only when the value actually changes.
 export function remapAccountSettings(settings, accountIdMap) {
     const out = [];
     const changes = [];
@@ -33,8 +33,7 @@ export function remapAccountSettings(settings, accountIdMap) {
             if (entry.value === 0) { out.push({ ...entry }); continue; }
             const to = resolveAccountId(entry.value, accountIdMap);
             if (to == null) {
-                changes.push({ key: entry.key, from: entry.value, to: 0, kind: 'coerced' });
-                out.push({ ...entry, value: 0 });
+                changes.push({ key: entry.key, from: entry.value, to: null, kind: 'rejected' });
                 continue;
             }
             if (to !== entry.value) changes.push({ key: entry.key, from: entry.value, to, kind: 'remapped' });

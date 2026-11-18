@@ -87,15 +87,13 @@ function remapKeyedEntries(src, ledgerIdMaps, warnings) {
 }
 
 // Remap the settings that hold an account id through the finished account id
-// map (#651). A reset or dropped value is reported as an import warning; a plain
+// map (#651). A dropped value is reported as an import warning; a plain
 // remap to the new id is not.
 function remapSettingsForImport(settings, idMap, warnings) {
     const { settings: remapped, changes } = remapAccountSettings(settings, idMap);
     if (Array.isArray(warnings)) {
         for (const c of changes) {
-            if (c.kind === 'coerced') {
-                warnings.push({ recordType: 'Setting', recordName: c.key, kind: 'coerced', field: 'value', from: c.from, to: c.to });
-            } else if (c.kind === 'rejected') {
+            if (c.kind === 'rejected') {
                 warnings.push({ recordType: 'Setting', recordName: c.key, kind: 'rejected', reason: 'account not in import' });
             }
         }

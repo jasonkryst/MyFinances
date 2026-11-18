@@ -7,7 +7,7 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 ## [7.18.1] — 2026-11-18
 
 ### Fixed
-- **Backup import remaps account-id settings (#651).** A full JSON backup (replace or merge) now carries `surplusAccountId` and `notifyFilterAccount` over to the account's new id, so they no longer point at nothing or at a different account. A `notifyFilterAccount` whose account isn't in the file resets to All accounts, and an unresolved `surplusAccountId` is dropped (a merge keeps the existing value); both are listed in the import warnings. Plain remaps are silent.
+- **Backup import remaps account-id settings (#651).** A full JSON backup (replace or merge) now carries `surplusAccountId` and `notifyFilterAccount` over to the account's new id, so they no longer point at nothing or at a different account. An unresolved `notifyFilterAccount` or `surplusAccountId` (its account isn't in the file) is dropped, so a merge keeps the existing value and a replace falls back to the default (All accounts / none); both are listed in the import warnings. Plain remaps are silent.
 
 ## [7.18.0] — 2026-11-18
 
