@@ -28,6 +28,13 @@ export function notificationCategory(type) {
         : 'other';
 }
 
+// Alert types of one filter category, derived from CATEGORY_BY_TYPE. null for
+// 'all' or anything that is not a filter category.
+export function typesForCategory(category) {
+    if (!FILTER_CATEGORIES.includes(category)) return null;
+    return Object.keys(CATEGORY_BY_TYPE).filter(t => CATEGORY_BY_TYPE[t] === category);
+}
+
 function isoDateOrNull(v) {
     if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
     const [y, m, d] = v.split('-').map(Number);

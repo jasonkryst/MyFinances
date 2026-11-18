@@ -233,11 +233,21 @@ and cancels their pending emails on the next check. Bill alerts are not affected
   - `GET /api/notifications[?limit=N]` returns the newest in-app alerts
     (`limit` 1-500, default 50; anything else is a 400), `unreadCount`,
     `total` (all in-app alerts) and `emailConfigured`.
+    Optional filters (#649), each given once, else a 400: `type`
+    (`all|bill|lowBalance|overdrawn|projected`, mapped to alert types by
+    `typesForCategory` in `../src/notificationsFilter.js`), `status`
+    (`unread|read|active|resolved|all`) and `account` (a positive integer or
+    `all`). Missing means all. `total` and the list follow all three;
+    `unreadCount` counts unread rows matching `type` and `account` and ignores
+    `status`. No filter params behaves exactly as before.
   - `POST /api/notifications/read` and `/unread`, body `{ ids }` (1-500
     unique positive integers, else 400), mark those of the signed-in user's
     alerts; unknown or foreign ids are ignored. They return
     `{ ok, updated, unreadCount }`.
   - `POST /api/notifications/:id/read` and `POST /api/notifications/read-all`.
+    `read-all` takes the same `type` and `account` params and then marks only
+    the unread alerts matching them (`status` is ignored; with no params it
+    marks everything, as before).
   - `DELETE /api/notifications` (Clear All Data).
   - `POST /api/notifications/check` runs the check for the signed-in user now
     (Settings → Check now). It is rate-limited and works with

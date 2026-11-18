@@ -2,7 +2,7 @@
 const {
     notificationAccountId, notificationCategory, normalizeNotificationFilters,
     filterNotifications, groupNotificationsByDay, summarizeNotifications,
-    notificationViewTarget, pruneSelection,
+    notificationViewTarget, pruneSelection, typesForCategory,
 } = require('../../src/notificationsFilter.js');
 
 const at = (y, m, d, h = 0, mi = 0) => new Date(y, m - 1, d, h, mi).toISOString();
@@ -32,6 +32,25 @@ describe('notificationCategory', () => {
         ['zeroBalance', 'overdrawn'], ['projectedLow', 'projected'],
         ['nope', 'other'], [undefined, 'other'], ['toString', 'other'],
     ])('%s -> %s', (t, c) => expect(notificationCategory(t)).toBe(c));
+});
+
+describe('typesForCategory', () => {
+    test.each([
+        ['bill', ['billDueSoon', 'billDueToday']],
+        ['lowBalance', ['lowBalance']],
+        ['overdrawn', ['zeroBalance']],
+        ['projected', ['projectedLow']],
+    ])('%s -> %j', (c, expected) => expect(typesForCategory(c)).toEqual(expected));
+
+    test.each(['all', 'other', 'nope', undefined, null, 'toString'])('%s -> null', c => {
+        expect(typesForCategory(c)).toBeNull();
+    });
+
+    test('agrees with notificationCategory for every returned type', () => {
+        for (const c of ['bill', 'lowBalance', 'overdrawn', 'projected']) {
+            for (const t of typesForCategory(c)) expect(notificationCategory(t)).toBe(c);
+        }
+    });
 });
 
 describe('normalizeNotificationFilters', () => {
