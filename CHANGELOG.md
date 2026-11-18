@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.18.0] — 2026-11-18
+
+### Added
+- **The bell follows the Notifications page's saved filters (#649).** Type, Status and Account are saved as three per-user settings (`notifyFilterType`, `notifyFilterStatus`, `notifyFilterAccount`; not part of the settings export), so they survive reloads and other devices. The bell list and its unread badge use them (default Unread), and show a "Filtered: ..." line with a Clear button when they differ from the defaults. The From/To dates stay page-only.
+  - **Server.** `GET /api/notifications` and `POST /api/notifications/read-all` accept optional `type`, `status` and `account` filters, so the badge count and Mark all read match the filtered view.
+  - **Live refresh** refetches the bell, so a filter changed on another device or tab applies.
+  - **Empty states** use `notify.emptyUnread` and `notify.emptyFiltered`.
+
+### Fixed
+- **Caps Lock (#646).** The Notifications page shortcuts (j, k, x, e) work with Caps Lock on.
+- **Cleanups (#647).** Notifications page review follow-ups: tidied the filter and day-group code paths and tests.
+- **Label (#648).** The Notifications page day-group heading "Earlier this week" now reads "Last 7 days", since it covers alerts 2 to 6 days old.
+
 ## [7.17.0] — 2026-11-17
 
 ### Added

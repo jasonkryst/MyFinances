@@ -8,8 +8,15 @@
 import { t } from './i18n.js';
 import { escapeHtml, formatCurrency, formatShortDate } from './utils.js';
 import { getCsrfCookie } from './storage.js';
+import { getSetting, setSetting } from './settings.js';
+import { NOTIFY_FILTER_TYPE, NOTIFY_FILTER_STATUS, NOTIFY_FILTER_ACCOUNT } from './settingsSchema.js';
+import { filtersFromSettings, filtersToSettings, filtersToQuery, filterNotifications } from './notificationsFilter.js';
 
-const state = { items: [], all: [], total: 0, allLoaded: false, unreadCount: 0, emailConfigured: false, loaded: false, failed: false };
+// unreadCount is the bell's count: unread alerts matching the saved Type and
+// Account filters (#649). Only the bell's own GET sets it. allUnreadCount is
+// every unread alert, for the Notifications page summary.
+const state = { items: [], all: [], total: 0, allLoaded: false, unreadCount: 0, allUnreadCount: 0, emailConfigured: false, loaded: false, failed: false };
+let appRef = null;
 let inFlight = null;
 let allInFlight = null;
 const subscribers = new Set();
@@ -29,6 +36,59 @@ function notifySubscribers() {
 
 export function getNotificationsState() {
     return state;
+}
+
+const DEFAULT_SAVED = { type: 'all', status: 'unread', account: 0 };
+
+function savedSettings(app) {
+    const host = app || {};
+    return {
+        type: getSetting(host, NOTIFY_FILTER_TYPE, DEFAULT_SAVED.type),
+        status: getSetting(host, NOTIFY_FILTER_STATUS, DEFAULT_SAVED.status),
+        account: getSetting(host, NOTIFY_FILTER_ACCOUNT, DEFAULT_SAVED.account),
+    };
+}
+
+// The saved bell/page filters (#649), normalized. A saved account that is no
+// longer in app.accounts (deleted) means all accounts; an archived one still
+// counts. Dates are not saved: they live in the page's memory only.
+export function getSavedNotificationFilters(app = appRef) {
+    const f = filtersFromSettings(savedSettings(app));
+    if (f.accountId !== 'all' && !((app && app.accounts) || []).some(a => a.id === f.accountId)) {
+        f.accountId = 'all';
+    }
+    return f;
+}
+
+export function isDefaultNotificationFilters(f) {
+    return f.category === 'all' && f.status === 'unread' && f.accountId === 'all';
+}
+
+const SETTING_KEYS = { type: NOTIFY_FILTER_TYPE, status: NOTIFY_FILTER_STATUS, account: NOTIFY_FILTER_ACCOUNT };
+
+// Saves the Type/Status/Account of `filters` (or only the named `fields`),
+// writing only the keys whose value changes.
+export function saveNotificationFilters(app, filters, fields = ['type', 'status', 'account']) {
+    const next = filtersToSettings(filters);
+    const current = savedSettings(app);
+    for (const field of fields) {
+        if (SETTING_KEYS[field] && current[field] !== next[field]) setSetting(app, SETTING_KEYS[field], next[field]);
+    }
+}
+
+// Clear (bell or page): every filter back to its default (the page's dates
+// too), then re-fetch the bell.
+export function clearNotificationFilters(app = appRef) {
+    if (!app) return Promise.resolve(state);
+    if (app._notificationsFilters) app._notificationsFilters = { ...app._notificationsFilters, from: null, to: null };
+    saveNotificationFilters(app, { category: 'all', status: 'unread', accountId: 'all' });
+    return refreshNotifications({ force: true });
+}
+
+// The rows of `items` that match the saved Type and Account, i.e. the ones
+// the badge counts while unread.
+function matchingBellFilters(items) {
+    return filterNotifications(items, { ...getSavedNotificationFilters(), status: 'all', from: null, to: null });
 }
 
 function isoToDate(iso) {
@@ -96,7 +156,8 @@ function renderList() {
         return;
     }
     if (state.items.length === 0) {
-        list.innerHTML = `<p class="notifications-empty">${escapeHtml(t('notify.empty'))}</p>`;
+        const key = isDefaultNotificationFilters(getSavedNotificationFilters()) ? 'notify.emptyUnread' : 'notify.emptyFiltered';
+        list.innerHTML = `<p class="notifications-empty">${escapeHtml(t(key))}</p>`;
         return;
     }
     list.innerHTML = `<ul class="notifications-items">${state.items.map(n => {
@@ -115,8 +176,32 @@ function renderList() {
     }).join('')}</ul>`;
 }
 
+function accountLabel(accountId) {
+    if (accountId === 'all') return t('notifyPage.allAccounts');
+    const acct = ((appRef && appRef.accounts) || []).find(a => a.id === accountId);
+    return acct ? acct.name : t('notify.unknownAccount');
+}
+
+// "Filtered: <type> · <status> · <account>" plus Clear, shown only while a
+// saved filter differs from its default.
+function renderFilterNote() {
+    const note = document.getElementById('notificationsFilterNote');
+    const text = document.getElementById('notificationsFilterText');
+    if (!note || !text) return;
+    const f = getSavedNotificationFilters();
+    const show = !isDefaultNotificationFilters(f);
+    note.classList.toggle('hidden', !show);
+    const value = show ? t('notify.filteredNote', {
+        type: t(`notifyPage.type.${f.category}`),
+        status: t(`notifyPage.status.${f.status}`),
+        account: accountLabel(f.accountId),
+    }) : '';
+    if (text.textContent !== value) text.textContent = value;
+}
+
 function render() {
     renderBadge();
+    renderFilterNote();
     renderList();
     notifySubscribers();
 }
@@ -126,38 +211,48 @@ export function renderNotificationsCenter() {
     render();
 }
 
-// Loads the list from the server. Concurrent calls share one request; a
+// Loads the bell's list with the saved filters. Concurrent calls share one
+// request unless `force` is set: then a new request starts once the current
+// one is done, so the result reflects every change made before the call. A
 // failure keeps the last good list and is never shown as a sync error.
-export function refreshNotifications() {
-    if (inFlight) return inFlight;
-    inFlight = (async () => {
-        try {
-            const res = await fetch('/api/notifications', { credentials: 'same-origin' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const body = await res.json();
-            state.items = Array.isArray(body.notifications) ? body.notifications : [];
-            // Keep the full list's read state in step with what the server just said.
-            if (state.allLoaded) {
-                const byId = new Map(state.items.map(n => [n.id, n]));
-                state.all.forEach(n => {
-                    const fresh = byId.get(n.id);
-                    if (fresh) n.readAt = fresh.readAt;
-                });
-            }
-            state.unreadCount = Number(body.unreadCount) || 0;
-            state.emailConfigured = body.emailConfigured === true;
-            state.loaded = true;
-            state.failed = false;
-        } catch {
-            state.failed = true;
-        } finally {
-            inFlight = null;
-            render();
-            document.documentElement.setAttribute('data-notifications-loaded', state.failed ? 'failed' : 'true');
-        }
-        return state;
+export function refreshNotifications({ force = false } = {}) {
+    if (inFlight && !force) return inFlight;
+    const previous = inFlight;
+    const run = (async () => {
+        if (previous) await previous;
+        return fetchBell();
     })();
-    return inFlight;
+    inFlight = run;
+    run.finally(() => { if (inFlight === run) inFlight = null; });
+    return run;
+}
+
+async function fetchBell() {
+    try {
+        const query = filtersToQuery(getSavedNotificationFilters());
+        const res = await fetch(query ? `/api/notifications?${query}` : '/api/notifications', { credentials: 'same-origin' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = await res.json();
+        state.items = Array.isArray(body.notifications) ? body.notifications : [];
+        // Keep the full list's read state in step with what the server just said.
+        if (state.allLoaded) {
+            const byId = new Map(state.items.map(n => [n.id, n]));
+            state.all.forEach(n => {
+                const fresh = byId.get(n.id);
+                if (fresh) n.readAt = fresh.readAt;
+            });
+        }
+        state.unreadCount = Number(body.unreadCount) || 0;
+        state.emailConfigured = body.emailConfigured === true;
+        state.loaded = true;
+        state.failed = false;
+    } catch {
+        state.failed = true;
+    } finally {
+        render();
+        document.documentElement.setAttribute('data-notifications-loaded', state.failed ? 'failed' : 'true');
+    }
+    return state;
 }
 
 // Loads up to 500 notifications for the Notifications page into state.all.
@@ -170,7 +265,9 @@ export function loadAllNotifications() {
             const body = await res.json();
             state.all = Array.isArray(body.notifications) ? body.notifications : [];
             state.total = Number(body.total) || state.all.length;
-            state.unreadCount = Number(body.unreadCount) || 0;
+            // Unfiltered, for the page summary. The bell's unreadCount is left
+            // alone: it follows the saved filters (#649).
+            state.allUnreadCount = Number(body.unreadCount) || 0;
             state.emailConfigured = body.emailConfigured === true;
             state.allLoaded = true;
             document.documentElement.setAttribute('data-notifications-all-loaded', 'true');
@@ -215,13 +312,25 @@ function eachCopy(ids, fn) {
     }
 }
 
+// After a failed write: a fresh fetch, never one that started before it (#647).
 async function resyncAfterFailure() {
-    await refreshNotifications();
+    await refreshNotifications({ force: true });
     if (state.allLoaded) await loadAllNotifications();
 }
 
+// A bulk route's unreadCount is unfiltered, so it updates the page's count,
+// never the bell's (#649).
 function applyServerUnread(body) {
-    if (body && Number.isFinite(Number(body.unreadCount))) state.unreadCount = Number(body.unreadCount);
+    if (body && Number.isFinite(Number(body.unreadCount))) state.allUnreadCount = Number(body.unreadCount);
+}
+
+function rowsById(ids) {
+    const byId = new Map();
+    const wanted = new Set(ids);
+    for (const list of [state.items, state.all]) {
+        list.forEach(n => { if (wanted.has(n.id) && !byId.has(n.id)) byId.set(n.id, n); });
+    }
+    return [...byId.values()];
 }
 
 function idsWhere(ids, pred) {
@@ -238,12 +347,14 @@ export async function markNotificationsRead(ids) {
     const changed = idsWhere(ids, n => !n.readAt);
     if (changed.length === 0) return [];
     const now = new Date().toISOString();
+    const counted = matchingBellFilters(rowsById(changed)).length;
     eachCopy(changed, n => { if (!n.readAt) n.readAt = now; });
-    state.unreadCount = Math.max(0, state.unreadCount - changed.length);
+    state.unreadCount = Math.max(0, state.unreadCount - counted);
+    state.allUnreadCount = Math.max(0, state.allUnreadCount - changed.length);
     render();
     try {
         applyServerUnread(await postJson('/api/notifications/read', { ids: changed }));
-        render();
+        await refreshNotifications({ force: true });
         return changed;
     } catch {
         await resyncAfterFailure();
@@ -255,39 +366,41 @@ export async function markNotificationsRead(ids) {
 export async function markNotificationsUnread(ids) {
     const changed = idsWhere(ids, n => !!n.readAt);
     if (changed.length === 0) return;
+    const counted = matchingBellFilters(rowsById(changed)).length;
     eachCopy(changed, n => { n.readAt = null; });
-    state.unreadCount += changed.length;
+    state.unreadCount += counted;
+    state.allUnreadCount += changed.length;
     render();
     try {
         applyServerUnread(await postJson('/api/notifications/unread', { ids: changed }));
-        render();
+        await refreshNotifications({ force: true });
     } catch {
         await resyncAfterFailure();
     }
 }
 
+// One alert (a bell click): the same path as the bulk mark (#647).
 export async function markNotificationRead(id) {
-    const item = state.items.find(n => n.id === id) || state.all.find(n => n.id === id);
-    if (!item || item.readAt) return;
-    const now = new Date().toISOString();
-    eachCopy([id], n => { if (!n.readAt) n.readAt = now; });
-    state.unreadCount = Math.max(0, state.unreadCount - 1);
-    render();
-    try {
-        await post(`/api/notifications/${encodeURIComponent(id)}/read`);
-    } catch {
-        await resyncAfterFailure();
-    }
+    await markNotificationsRead([id]);
 }
 
+// The bell's "Mark all read": only the alerts matching the saved Type and
+// Account, the rows its badge counts (#649). Hidden alerts stay unread.
 export async function markAllNotificationsRead() {
     const now = new Date().toISOString();
+    const filters = getSavedNotificationFilters();
+    const matching = matchingBellFilters(state.all).filter(n => !n.readAt).map(n => n.id);
     state.items.forEach(n => { if (!n.readAt) n.readAt = now; });
-    state.all.forEach(n => { if (!n.readAt) n.readAt = now; });
+    eachCopy(matching, n => { if (!n.readAt) n.readAt = now; });
     state.unreadCount = 0;
     render();
     try {
-        await post('/api/notifications/read-all');
+        const query = filtersToQuery({ ...filters, status: 'all', from: null, to: null });
+        const body = await post(query ? `/api/notifications/read-all?${query}` : '/api/notifications/read-all');
+        if (body && Number.isFinite(Number(body.updated))) {
+            state.allUnreadCount = Math.max(0, state.allUnreadCount - Number(body.updated));
+        }
+        await refreshNotifications({ force: true });
     } catch {
         await resyncAfterFailure();
     }
@@ -297,11 +410,12 @@ export async function markAllNotificationsRead() {
 // list. Resolves to the server's summary ({ created, ... }); throws on error.
 export async function runNotificationCheck() {
     const result = await post('/api/notifications/check');
-    await refreshNotifications();
+    await refreshNotifications({ force: true });
     return result;
 }
 
 export function initNotificationsCenter(app) {
+    appRef = app;
     const wrap = document.getElementById('notificationsWrap');
     const btn = document.getElementById('notificationsBtn');
     const panel = document.getElementById('notificationsPanel');
@@ -330,6 +444,12 @@ export function initNotificationsCenter(app) {
     document.getElementById('notificationsMarkAllBtn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         markAllNotificationsRead();
+    });
+    document.getElementById('notificationsFilterClearBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // The Clear button hides with its note; keep focus inside the panel.
+        document.getElementById('notificationsPanelTitle')?.focus();
+        clearNotificationFilters(app);
     });
     panel.addEventListener('click', (e) => {
         const item = e.target.closest('[data-notification-id]');

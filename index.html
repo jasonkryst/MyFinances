@@ -74,8 +74,13 @@
                         <span id="notificationsUnreadSr" class="sr-only"></span>
                         <div id="notificationsPanel" class="notifications-panel hidden" role="region" aria-labelledby="notificationsPanelTitle">
                             <div class="notifications-panel-header">
-                                <p id="notificationsPanelTitle" class="notifications-panel-title" data-i18n="notify.title">Notifications</p>
+                                <p id="notificationsPanelTitle" tabindex="-1" class="notifications-panel-title" data-i18n="notify.title">Notifications</p>
                                 <button type="button" id="notificationsMarkAllBtn" class="btn btn-secondary btn-small" data-i18n="notify.markAllRead">Mark all read</button>
+                            </div>
+                            <!-- #649: shown while the saved Notifications filters differ from the defaults -->
+                            <div id="notificationsFilterNote" class="notifications-filter-note hidden">
+                                <span id="notificationsFilterText" class="notifications-filter-text"></span>
+                                <button type="button" id="notificationsFilterClearBtn" class="btn btn-secondary btn-small" data-i18n="notify.clearFilters">Clear</button>
                             </div>
                             <div id="notificationsList" class="notifications-list"></div>
                             <div class="notifications-panel-footer">
