@@ -73,7 +73,9 @@ def start_stack_problems(action_text):
         'docker compose ps': 'container status on failure',
         'docker compose logs': 'service logs on failure',
         'docker compose down -v': 'teardown before the retry',
-        'ss -ltn': 'port 32900 wait / owner diagnostics',
+        'ss -ltn': 'port 32900 owner diagnostics',
+        'ss -tanH': 'port 32900 wait covers every socket state (TIME_WAIT, outgoing), not just listeners',
+        'ip_local_reserved_ports=32900': 'port 32900 reserved before anything connects out',
     }
     return [why for needle, why in wanted.items() if needle not in action_text]
 
@@ -174,8 +176,12 @@ def test_ini_and_requirements_checks_reject_missing_entries():
 
 @pytest.mark.feature
 def test_start_stack_check_reports_a_bare_action():
-    assert len(start_stack_problems('docker compose up -d\n')) == 4
-    assert start_stack_problems('docker compose ps -a docker compose logs docker compose down -v ss -ltn') == []
+    assert len(start_stack_problems('docker compose up -d\n')) == 6
+    assert start_stack_problems('docker compose ps -a docker compose logs docker compose down -v ss -ltn ss -tanH '
+                                'ip_local_reserved_ports=32900') == []
+    # A listener-only wait (the 2026-11 flake) is not enough.
+    assert 'port 32900 wait covers every socket state (TIME_WAIT, outgoing), not just listeners' in start_stack_problems(
+        'docker compose ps -a docker compose logs docker compose down -v ss -ltn ip_local_reserved_ports=32900')
 
 
 # ── functional: the plugins are installed and actually fire ──────────────────

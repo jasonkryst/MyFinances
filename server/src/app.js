@@ -1,3 +1,4 @@
+import { trustProxyHops } from './trustProxy.js';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { requireSession, requireCsrf } from './auth/middleware.js';
@@ -28,13 +29,13 @@ import calendarRouter, { handlePublicCalendar, createCalendarRateLimiter } from 
 
 export function createApp() {
     const app = express();
-    // Trust exactly one hop (nginx.conf is the only proxy in front of this
-    // service). Without this, express-rate-limit keys off nginx's container
-    // IP for every client (see docs/audit/database/DATABASE_AUDIT_2026-09-02.md
-    // M1), and req.secure/req.protocol ignore the X-Forwarded-Proto header
-    // nginx sets, which auth.js now relies on to set the session cookie's
-    // Secure flag per-request instead of via a static NODE_ENV check.
-    app.set('trust proxy', 1);
+    // Trust the reverse proxies in front of this service: the bundled nginx
+    // (1, the default), plus any proxy in front of it (TRUST_PROXY_HOPS, see
+    // trustProxy.js). Without this, express-rate-limit keys off a proxy's IP
+    // for every client (docs/audit/database/DATABASE_AUDIT_2026-09-02.md M1),
+    // and req.secure/req.protocol ignore the X-Forwarded-Proto header, which
+    // auth.js relies on to set the session cookie's Secure flag per request.
+    app.set('trust proxy', trustProxyHops());
     app.use(express.json({ limit: '1mb' }));
     app.use(cookieParser());
 

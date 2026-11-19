@@ -1,5 +1,5 @@
 ﻿// Bills and expenses
-import { formatCurrency, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, computeMonthlyIncomeForMonth, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, renderChartDataTable } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal } from './ui.js';
@@ -333,7 +333,7 @@ export function renderCashFlowCharts(app, monthlyIncome, totalDebtMin, totalBill
                 },
                 scales: {
                     x: { ticks: { font: { size: 11 }, maxRotation: 35, minRotation: 20 } },
-                    y: { ticks: { callback: v => formatCurrency(v) }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
+                    y: { ticks: { callback: v => formatCurrencyAxis(v) }, grid: { color: 'rgba(0,0,0,0.06)' }, beginAtZero: true }
                 }
             }
         });

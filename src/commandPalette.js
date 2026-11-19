@@ -48,6 +48,7 @@ function buildCommands(app) {
         nav('ledger', 'Ledger', '📒'),
         nav('reconcile', 'Reconcile', '🔄'),
         nav('retirement', 'Retirement', '🏛️'),
+        nav('notifications', 'Notifications', '🔔'),
         {
             label: 'Export backup as JSON',
             hint: 'Action',

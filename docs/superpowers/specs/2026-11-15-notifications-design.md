@@ -88,3 +88,9 @@ them.
   - "Check now".
 - **Accounts:** a "Low-balance alert at" field in the add and inline-edit
   forms. The card shows the threshold when one is set.
+
+## Addendum (7.16.0, 2026-11-16): overdrawn only, and "Don't notify"
+
+- **Overdrawn, not $0.** Many accounts sit at exactly $0 on purpose. `zeroBalance` now fires only for a balance below $0, and `projectedLow` without a threshold only for a projected balance below $0. An account at $0 with a threshold set still gets `lowBalance`.
+- **Per-account opt-out.** `accounts.muteBalanceAlerts` (default false, migration `1755600000042`). A muted account raises no balance alert; its bill alerts still fire. On the next check its open episodes resolve (it leaves `activeEpisodes`) and its pending emails go back to `none`. The account editor runs the check when the box is newly ticked.
+- **Decisions (owner, 2026-11-16):** only below $0; per account only; close open alerts on mute; default off for all accounts.

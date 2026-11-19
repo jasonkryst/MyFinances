@@ -78,6 +78,12 @@ export function loadManualTransactionsModule() {
     return loadOnce('manualTransactions', () => import('./manualTransactions.js'));
 }
 
+// Notifications page (#643): reached only from the bell's "View all" and the
+// command palette, so it loads on first visit.
+export function loadNotificationsPageModule() {
+    return loadOnce('notificationsPage', () => import('./notificationsPage.js'));
+}
+
 export function loadStrategyCalendarModule() {
     return loadOnce('strategyCalendar', () => import('./strategyCalendar.js'));
 }

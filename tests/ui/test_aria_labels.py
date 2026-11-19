@@ -103,6 +103,23 @@ def test_every_visible_control_has_accessible_name(seeded, pageName):
 
 
 @pytest.mark.ui
+def test_notifications_page_controls_have_names(seeded):
+    """#643: the Notifications page has no nav button; it is reached through switchPage."""
+    page = seeded
+    page.evaluate("""async () => {
+        window.app.switchPage('notifications');
+        await window.app.renderNotificationsPage();
+        const nc = await import('/src/notificationsCenter.js');
+        const s = nc.getNotificationsState();
+        s.all = [{ id: 9301, type: 'zeroBalance', params: { accountId: 1, accountName: 'Main Checking', balance: -5 },
+                   createdAt: new Date().toISOString(), readAt: null, resolvedAt: null }];
+        nc.renderNotificationsCenter();
+    }""")
+    page.wait_for_selector('#notificationsPage .notif-row')
+    assert page.evaluate(ACCESSIBLE_NAME_JS) == []
+
+
+@pytest.mark.ui
 def test_liabilities_budget_subtab_has_names(seeded):
     page = seeded
     _go(page, "liabilities")

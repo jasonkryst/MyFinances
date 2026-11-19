@@ -74,10 +74,18 @@
                         <span id="notificationsUnreadSr" class="sr-only"></span>
                         <div id="notificationsPanel" class="notifications-panel hidden" role="region" aria-labelledby="notificationsPanelTitle">
                             <div class="notifications-panel-header">
-                                <p id="notificationsPanelTitle" class="notifications-panel-title" data-i18n="notify.title">Notifications</p>
+                                <p id="notificationsPanelTitle" tabindex="-1" class="notifications-panel-title" data-i18n="notify.title">Notifications</p>
                                 <button type="button" id="notificationsMarkAllBtn" class="btn btn-secondary btn-small" data-i18n="notify.markAllRead">Mark all read</button>
                             </div>
+                            <!-- #649: shown while the saved Notifications filters differ from the defaults -->
+                            <div id="notificationsFilterNote" class="notifications-filter-note hidden">
+                                <span id="notificationsFilterText" class="notifications-filter-text"></span>
+                                <button type="button" id="notificationsFilterClearBtn" class="btn btn-secondary btn-small" data-i18n="notify.clearFilters">Clear</button>
+                            </div>
                             <div id="notificationsList" class="notifications-list"></div>
+                            <div class="notifications-panel-footer">
+                                <button type="button" id="notificationsViewAllBtn" class="notifications-view-all" data-i18n="notify.viewAll">View all notifications</button>
+                            </div>
                         </div>
                     </div>
                     <div class="header-toolbar-divider"></div>
@@ -313,6 +321,13 @@
                                     <span class="help-icon" tabindex="0" aria-label="Optional. You are notified when this account's balance drops to this amount or below. Checking, savings, cash, investment and other accounts only." data-i18n-attr="aria-label:accounts.lowBalanceHelp">?</span>
                                 </label>
                                 <input type="number" id="accountLowBalanceThreshold" placeholder="0.00" step="0.01" min="0">
+                            </div>
+                            <div class="form-group account-mute-group" id="accountMuteBalanceAlertsGroup">
+                                <label class="income-variable-label">
+                                    <input type="checkbox" id="accountMuteBalanceAlerts">
+                                    <span data-i18n="accounts.muteAlertsLabel">Don't notify me about this account's balance</span>
+                                    <span class="help-icon" tabindex="0" aria-label="No low-balance, overdrawn or projected-balance alerts for this account. Bill reminders are not affected." data-i18n-attr="aria-label:accounts.muteAlertsHelp">?</span>
+                                </label>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success" id="accountFormSubmit" data-i18n="accounts.addTitle">Add Account</button>
@@ -1322,6 +1337,67 @@
             </section>
 
             <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Notifications page (#643): src/notificationsPage.js (lazy)  -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <section class="notifications-page page-section" id="notificationsPage" aria-labelledby="notificationsPageTitle">
+                <div class="page-header-row page-header">
+                    <h2 id="notificationsPageTitle">🔔 <span data-i18n="notifyPage.title">Notifications</span></h2>
+                    <button type="button" class="btn btn-secondary btn-small" id="notifRefreshBtn" data-i18n="notifyPage.refresh">Refresh</button>
+                </div>
+                <p id="notifSummary" class="notif-summary" aria-live="polite"></p>
+                <button type="button" class="filters-disclosure-toggle" id="notifFiltersToggle" data-collapse-toggle="notifFiltersBody" aria-expanded="false" aria-controls="notifFiltersBody" data-i18n="filters.label">Filters</button>
+                <div class="filters-disclosure-body notif-filters" id="notifFiltersBody">
+                    <div class="fd-field">
+                        <label for="notifFilterType" data-i18n="notifyPage.filterType">Type</label>
+                        <select id="notifFilterType">
+                            <option value="all" data-i18n="notifyPage.type.all">All types</option>
+                            <option value="bill" data-i18n="notifyPage.type.bill">Bill due</option>
+                            <option value="lowBalance" data-i18n="notifyPage.type.lowBalance">Low balance</option>
+                            <option value="overdrawn" data-i18n="notifyPage.type.overdrawn">Overdrawn</option>
+                            <option value="projected" data-i18n="notifyPage.type.projected">Projected low</option>
+                        </select>
+                    </div>
+                    <div class="fd-field">
+                        <label for="notifFilterStatus" data-i18n="notifyPage.filterStatus">Status</label>
+                        <select id="notifFilterStatus">
+                            <option value="unread" data-i18n="notifyPage.status.unread">Unread</option>
+                            <option value="all" data-i18n="notifyPage.status.all">All</option>
+                            <option value="read" data-i18n="notifyPage.status.read">Read</option>
+                            <option value="active" data-i18n="notifyPage.status.active">Active</option>
+                            <option value="resolved" data-i18n="notifyPage.status.resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="fd-field">
+                        <label for="notifFilterAccount" data-i18n="notifyPage.filterAccount">Account</label>
+                        <select id="notifFilterAccount">
+                            <option value="all" data-i18n="notifyPage.allAccounts">All accounts</option>
+                        </select>
+                    </div>
+                    <div class="fd-field">
+                        <label for="notifFilterFrom" data-i18n="notifyPage.filterFrom">From</label>
+                        <input type="date" id="notifFilterFrom">
+                    </div>
+                    <div class="fd-field">
+                        <label for="notifFilterTo" data-i18n="notifyPage.filterTo">To</label>
+                        <input type="date" id="notifFilterTo">
+                    </div>
+                    <div class="fd-field fd-field--wide notif-filters-clear">
+                        <button type="button" class="btn btn-secondary btn-small" id="notifFilterClear" data-i18n="notifyPage.clearFilters">Clear filters</button>
+                    </div>
+                </div>
+                <div class="notif-bulk-bar" id="notifBulkBar">
+                    <label class="notif-select-all" for="notifSelectAll">
+                        <input type="checkbox" id="notifSelectAll">
+                        <span data-i18n="notifyPage.selectAll">Select all visible</span>
+                    </label>
+                    <span id="notifSelectedCount" class="notif-selected-count" aria-live="polite"></span>
+                    <button type="button" class="btn btn-primary btn-small" id="notifMarkSelectedBtn" disabled data-i18n="notifyPage.markSelected">Mark selected read</button>
+                    <button type="button" class="btn btn-secondary btn-small" id="notifMarkMatchingBtn" disabled data-i18n="notifyPage.markMatching">Mark all matching read</button>
+                </div>
+                <div id="notificationsPageList" class="notif-list"></div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- Savings Section (Emergency Fund & Sinking Funds)           -->
             <!-- ═══════════════════════════════════════════════════════════ -->
             <section class="savings-section page-section" id="savingsSection">
@@ -1679,7 +1755,7 @@
                 <form id="loginGateForm" class="login-gate-form" novalidate>
                     <div class="form-group">
                         <label for="loginGateEmail" data-i18n="login.email">Email</label>
-                        <input type="email" id="loginGateEmail" class="form-control" autocomplete="email" required>
+                        <input type="email" id="loginGateEmail" class="form-control" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" required>
                     </div>
                     <div class="form-group">
                         <label for="loginGatePassword" data-i18n="login.password">Password</label>
@@ -1701,7 +1777,7 @@
                     <p class="login-gate-subtitle" data-i18n="login.forgotIntro">Enter your email and we'll send a reset link.</p>
                     <div class="form-group">
                         <label for="loginGateForgotEmail" data-i18n="login.email">Email</label>
-                        <input type="email" id="loginGateForgotEmail" class="form-control" autocomplete="email" required>
+                        <input type="email" id="loginGateForgotEmail" class="form-control" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" required>
                     </div>
                     <p id="loginGateForgotError" class="login-gate-error" role="alert" aria-live="polite"></p>
                     <button type="submit" class="btn btn-primary login-gate-submit" data-i18n="login.sendResetLink">Send Reset Link</button>
@@ -1976,7 +2052,7 @@
                     </label>
                     <label class="settings-toggle-row" for="settingNotifyZeroBalance">
                         <input type="checkbox" id="settingNotifyZeroBalance">
-                        <span data-i18n="settings.notify.zeroBalance">An account is at or below zero</span>
+                        <span data-i18n="settings.notify.zeroBalance">An account is overdrawn (below zero)</span>
                     </label>
                     <label class="settings-toggle-row" for="settingNotifyProjectedLow">
                         <input type="checkbox" id="settingNotifyProjectedLow">

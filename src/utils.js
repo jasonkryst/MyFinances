@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.15.0';
+export const APP_VERSION = '7.18.2';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -38,6 +38,46 @@ export function formatCurrency(value) {
         currencyFormatters.set(key, formatter);
     }
     return formatter.format(value);
+}
+
+// A cached currency formatter for the active locale and currency, keyed by a
+// variant name so each option set is built once (#509).
+function cachedCurrencyFormatter(variant, options) {
+    const locale = getIntlLocale();
+    const currency = getCurrencyCode();
+    const key = `${locale}|${currency}|${variant}`;
+    let formatter = currencyFormatters.get(key);
+    if (!formatter) {
+        formatter = new Intl.NumberFormat(locale, { style: 'currency', currency, ...options });
+        currencyFormatters.set(key, formatter);
+    }
+    return formatter;
+}
+
+// Chart axis ticks (#509): whole amounts drop the cents ("$20,000", "20 000 zł"),
+// so axes aren't cluttered with ".00"; a fractional tick (a small range such
+// as 0-2 stepping by 0.25) keeps two decimals so neighbouring ticks never
+// round to the same label.
+export function formatCurrencyAxis(value) {
+    return Number.isInteger(value)
+        ? cachedCurrencyFormatter('axis', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value)
+        : formatCurrency(value);
+}
+
+// Short currency for chart axes with large values ("$12K", "12 tys. zł").
+export function formatCurrencyCompact(value) {
+    return cachedCurrencyFormatter('compact', { notation: 'compact' }).format(value);
+}
+
+// The selected currency's symbol in the app locale and whether that locale
+// writes it after the amount: { symbol: '$', after: false } for USD/en,
+// { symbol: 'zł', after: true } for PLN/pl. Used for input unit labels.
+export function getCurrencyAffix() {
+    const parts = cachedCurrencyFormatter('plain', {}).formatToParts(1);
+    const symbolIndex = parts.findIndex(p => p.type === 'currency');
+    const numberIndex = parts.findIndex(p => p.type === 'integer');
+    if (symbolIndex < 0) return { symbol: getCurrencyCode(), after: false };
+    return { symbol: parts[symbolIndex].value, after: symbolIndex > numberIndex };
 }
 
 const dateFormatters = new Map();
@@ -173,6 +213,28 @@ export function sanitizeTimestampISO(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
     return date.toISOString();
+}
+
+// Whole minutes until a rate limit lifts, from a 429's Retry-After header
+// (delay-seconds or an HTTP date) or RateLimit-Reset (seconds). At least 1;
+// null when the value is missing or unreadable.
+export function parseRetryAfterMinutes(value, now = Date.now()) {
+    if (value === null || value === undefined) return null;
+    const s = String(value).trim();
+    if (s === '') return null;
+    let seconds;
+    if (/^\d+$/.test(s)) {
+        seconds = Number(s);
+    } else {
+        // An HTTP date names its day and month; Date.parse alone would also
+        // accept bare numbers such as "-5" or "1.5" as years.
+        if (!/[A-Za-z]/.test(s)) return null;
+        const at = Date.parse(s);
+        if (!Number.isFinite(at)) return null;
+        seconds = (at - now) / 1000;
+    }
+    if (!Number.isFinite(seconds)) return null;
+    return Math.max(1, Math.ceil(seconds / 60));
 }
 
 // A Savings contribution (#546): a finite amount above 0 and at most 1e9,

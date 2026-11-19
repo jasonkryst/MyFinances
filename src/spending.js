@@ -1,11 +1,11 @@
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import {
-    escapeHtml, formatCurrency, renderChartDataTable, getReportDate, PINNED_COLORS,
+    escapeHtml, formatCurrency, formatCurrencyCompact, renderChartDataTable, getReportDate, PINNED_COLORS,
     getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel,
     formatMonthLong, formatMonthYear, isTransferLegTx
 } from './utils.js';
 import { t, plural, categoryLabel, getIntlLocale } from './i18n.js';
-import { loadLedgerFilters } from './ledger.js';
+import { restoreSavedLedgerFiltersOnce, loadLedgerFilters } from './ledger.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -160,15 +160,19 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     if (viewLedgerBtn) {
         viewLedgerBtn.onclick = () => {
             close();
-            // Remember the account/date filters as they stood before this
-            // cross-nav so they can be restored (not left stuck at 'all')
+            // Make sure the saved filters are in app state (once), without
+            // the saved Status or page size, which this link has never
+            // applied (#645). The account/date filters as they stood are then
+            // remembered so they can be restored (not left stuck at 'all')
             // once the user leaves or the Ledger page is re-saved while this
-            // view is still active — see loadLedgerFilters()/persistLedgerFilters()
-            // in ledger.js. Read from live state if the Ledger has already
-            // rendered once this session, otherwise from the saved blob.
+            // view is still active — see persistLedgerFilters() in ledger.js.
+            // Read from live state if the Ledger has already rendered this
+            // session, otherwise from the saved blob ('all'/'around7' when
+            // there is none, never the server-loaded defaults).
             const existing = app._ledgerFiltersRestored
                 ? { accountFilter: app._ledgerAccountFilter, dateRange: app._ledgerDateRange }
                 : (loadLedgerFilters() || {});
+            restoreSavedLedgerFiltersOnce(app, { skip: ['clearedFilter', 'pageSize'] });
             app._ledgerPreCrossNavAccount = existing.accountFilter ?? 'all';
             app._ledgerPreCrossNavDateRange = existing.dateRange ?? 'around7';
 
@@ -176,9 +180,6 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
             app._ledgerAccountFilter = 'all';
             app._ledgerDateRange = 'all';
             app._ledgerPage = 1;
-            // Prevent renderLedgerPage's restore-from-storage from clobbering
-            // the overrides just set above back to whatever was last saved.
-            app._ledgerFiltersRestored = true;
             // Shows every month for this category (dateRange is 'all', not
             // scoped to monthLabel) — the label must not imply otherwise.
             app._ledgerCrossNavLabel = categoryLabel(catData.category);
@@ -398,7 +399,7 @@ export function renderReportsSpending(app) {
                 maintainAspectRatio: false,
                 scales: {
                     x: { stacked: true },
-                    y: { stacked: true, ticks: { callback: v => '$' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } }
+                    y: { stacked: true, ticks: { callback: v => formatCurrencyCompact(v) } }
                 },
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },

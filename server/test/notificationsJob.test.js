@@ -206,6 +206,64 @@ test('0 days ahead alerts only on the due date', async () => {
     assert.deepEqual((await rows(user.id)).map(r => r.type).sort(), ['billDueToday', 'lowBalance']);
 });
 
+test('an account at exactly $0 is not overdrawn and raises nothing', async () => {
+    const user = await signIn();
+    await api('POST', '/api/accounts', { name: 'Parked', type: 'Savings', startingBalance: 0 });
+    const r = await checkNotificationsForUser(user.id, NOW, quietLog);
+    assert.equal(r.created, 0);
+    assert.deepEqual(await rows(user.id), []);
+});
+
+test('muteBalanceAlerts round-trips through the accounts route and defaults to false', async () => {
+    await signIn();
+    const plain = await api('POST', '/api/accounts', { name: 'A', type: 'Checking', startingBalance: 10 });
+    assert.equal(plain.muteBalanceAlerts, false);
+    const muted = await api('POST', '/api/accounts', { name: 'B', type: 'Checking', startingBalance: 10, muteBalanceAlerts: true });
+    assert.equal(muted.muteBalanceAlerts, true);
+    const listed = (await api('GET', '/api/accounts')).find(a => a.id === muted.id);
+    assert.equal(listed.muteBalanceAlerts, true);
+    const patched = await api('PATCH', `/api/accounts/${muted.id}`, { muteBalanceAlerts: 'yes' });
+    assert.equal(patched.muteBalanceAlerts, false, 'only a real true mutes');
+});
+
+test('muting an account raises no balance alerts but keeps its bill alerts', async () => {
+    const user = await signIn();
+    const account = await seedLowAccountWithBills();
+    await api('PATCH', `/api/accounts/${account.id}`, { muteBalanceAlerts: true, startingBalance: -20 });
+    await checkNotificationsForUser(user.id, NOW, quietLog);
+    const types = (await rows(user.id)).map(r => r.type).sort();
+    assert.deepEqual(types, ['billDueSoon', 'billDueToday']);
+});
+
+test('muting closes the account open alerts and cancels their unsent emails; other accounts keep theirs', async () => {
+    const user = await signIn();
+    const account = await seedLowAccountWithBills();
+    const other = await api('POST', '/api/accounts', { name: 'Other', type: 'Checking', startingBalance: -5 });
+    await setSetting('notifyBillDue', false);
+    await checkNotificationsForUser(user.id, NOW, quietLog);
+    // SMTP is off in tests, so mark both open alerts as waiting to be emailed.
+    await pool.query(`UPDATE notifications SET email_status = 'pending' WHERE user_id = $1`, [user.id]);
+
+    await api('PATCH', `/api/accounts/${account.id}`, { muteBalanceAlerts: true });
+    const r = await checkNotificationsForUser(user.id, NOW, quietLog);
+    assert.equal(r.resolved, 1);
+    const after = await rows(user.id);
+    const mine = after.find(x => x.episode_key === `lowBalance|${account.id}`);
+    assert.notEqual(mine.resolved_at, null);
+    assert.equal(mine.email_status, 'none');
+    const theirs = after.find(x => x.episode_key === `zeroBalance|${other.id}`);
+    assert.equal(theirs.resolved_at, null);
+    assert.equal(theirs.email_status, 'pending');
+});
+
+test('unmuting alerts again on the next check', async () => {
+    const user = await signIn();
+    const account = await api('POST', '/api/accounts', { name: 'C', type: 'Checking', startingBalance: -5, muteBalanceAlerts: true });
+    assert.equal((await checkNotificationsForUser(user.id, NOW, quietLog)).created, 0);
+    await api('PATCH', `/api/accounts/${account.id}`, { muteBalanceAlerts: false });
+    assert.equal((await checkNotificationsForUser(user.id, NOW, quietLog)).created, 1);
+});
+
 test('liability and archived accounts never raise balance alerts', async () => {
     const user = await signIn();
     await api('POST', '/api/accounts', { name: 'Card', type: 'Credit Card', startingBalance: -500, lowBalanceThreshold: 100 });
@@ -271,7 +329,7 @@ test('in-app only sends no email; email only hides alerts from the in-app list',
 test('a failed email never fails the check, is retried, and gives up after the last attempt', async () => {
     useSmtp(recordingTransport({ fail: true }));
     const user = await signIn();
-    await api('POST', '/api/accounts', { name: 'Empty', type: 'Checking', startingBalance: 0 });
+    await api('POST', '/api/accounts', { name: 'Empty', type: 'Checking', startingBalance: -1 });
     let r = await checkNotificationsForUser(user.id, NOW, quietLog);
     assert.deepEqual(r, { created: 1, resolved: 0, sent: 0, failed: 1 });
     assert.deepEqual((await rows(user.id)).map(x => [x.email_status, x.email_attempts]), [['pending', 1]]);
@@ -289,7 +347,7 @@ test('a failed email never fails the check, is retried, and gives up after the l
 test('a pending email is retried on the next check once SMTP works', async () => {
     useSmtp(recordingTransport({ fail: true }));
     const user = await signIn();
-    await api('POST', '/api/accounts', { name: 'Empty', type: 'Checking', startingBalance: 0 });
+    await api('POST', '/api/accounts', { name: 'Empty', type: 'Checking', startingBalance: -1 });
     await checkNotificationsForUser(user.id, NOW, quietLog);
     const transport = recordingTransport();
     useSmtp(transport);
@@ -323,11 +381,11 @@ test('the email template describes each alert, escapes names and keeps the subje
     assert.equal(describeNotification('billDueSoon', { name: 'Gym', amount: 30, daysUntil: 1, dueDate: '2026-11-16' }), 'Gym (30.00) is due tomorrow, on Nov 16, 2026.');
     assert.equal(describeNotification('billDueToday', { name: 'Gym', amount: 30 }), 'Gym (30.00) is due today.');
     assert.equal(describeNotification('lowBalance', { accountName: 'Checking', balance: 50, threshold: 150 }), 'Checking is at 50.00, at or below your alert amount of 150.00.');
-    assert.equal(describeNotification('zeroBalance', { accountName: 'Checking', balance: -5 }), 'Checking is at -5.00, at or below zero.');
+    assert.equal(describeNotification('zeroBalance', { accountName: 'Checking', balance: -5 }), 'Checking is overdrawn at -5.00.');
     assert.equal(describeNotification('projectedLow', { accountName: 'Checking', projectedBalance: 40, date: '2026-11-18', threshold: 100 }),
         'Checking is projected to drop to 40.00 on Nov 18, 2026, at or below your alert amount of 100.00.');
     assert.equal(describeNotification('projectedLow', { accountName: 'Checking', projectedBalance: -1, date: '2026-11-18', threshold: null }),
-        'Checking is projected to drop to -1.00 on Nov 18, 2026, at or below zero.');
+        'Checking is projected to go below zero (-1.00) on Nov 18, 2026.');
     assert.equal(describeNotification('unknown', {}), 'You have a new MyFinances alert.');
     assert.equal(formatAmount('x'), '');
     assert.equal(formatIsoDate('2026-13'), '');
@@ -392,7 +450,7 @@ test('read rejects a bad id and never touches another user\'s alert', async () =
 
 test('POST /check runs the check for the signed-in user now', async () => {
     const user = await signIn();
-    await api('POST', '/api/accounts', { name: 'Empty', type: 'Checking', startingBalance: 0 });
+    await api('POST', '/api/accounts', { name: 'Overdrawn', type: 'Checking', startingBalance: -1 });
     const res = await api('POST', '/api/notifications/check');
     assert.deepEqual(res, { ok: true, created: 1, resolved: 0, sent: 0, failed: 0 });
     assert.deepEqual((await rows(user.id)).map(r => r.type), ['zeroBalance']);
@@ -415,7 +473,7 @@ test('the list is capped at the 50 newest', async () => {
 
 test('the job checks every user', async () => {
     const a = await signIn('a@example.com');
-    await api('POST', '/api/accounts', { name: 'A', type: 'Checking', startingBalance: 0 });
+    await api('POST', '/api/accounts', { name: 'A', type: 'Checking', startingBalance: -1 });
     const b = await signIn('b@example.com');
     await api('POST', '/api/accounts', { name: 'B', type: 'Savings', startingBalance: -1 });
     const out = await runJob(notificationsJob, NOW, quietLog);
@@ -461,7 +519,7 @@ test('accounts store a positive low-balance threshold and null anything else', a
 
 test('deleting the user removes their notifications', async () => {
     const user = await signIn();
-    await api('POST', '/api/accounts', { name: 'Empty', type: 'Checking', startingBalance: 0 });
+    await api('POST', '/api/accounts', { name: 'Empty', type: 'Checking', startingBalance: -1 });
     await checkNotificationsForUser(user.id, NOW, quietLog);
     await pool.query('DELETE FROM users WHERE id = $1', [user.id]);
     assert.equal((await pool.query('SELECT count(*)::int AS n FROM notifications')).rows[0].n, 0);

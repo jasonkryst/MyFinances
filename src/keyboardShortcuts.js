@@ -30,6 +30,16 @@ export const KEYBOARD_SHORTCUTS = [
         ]
     },
     {
+        group: 'Notifications page',
+        items: [
+            { keys: [['j']], description: 'Move focus to the next notification' },
+            { keys: [['k']], description: 'Move focus to the previous notification' },
+            { keys: [['x']], description: 'Select or deselect the focused notification' },
+            { keys: [['e']], description: 'Mark the focused notification read' },
+            { keys: [['Enter']], description: 'View the focused notification' }
+        ]
+    },
+    {
         group: 'Reports calendar',
         items: [
             { keys: [['Enter'], ['Space']], description: 'Open details for the focused day' }
