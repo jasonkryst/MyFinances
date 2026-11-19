@@ -4,6 +4,13 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.18.2] — 2026-11-19
+
+### Fixed
+- **Chart axes and the Health housing-cost unit follow the selected currency (issue #509, PR #655, thanks @SAY-5).** The Plan balance and progress charts, both break-even charts and the Spending bar chart printed a literal `$` with browser-locale grouping, and the Health housing-cost input had a fixed `$` unit, so PLN, EUR and other users still saw dollars there. They now use the selected currency and locale; Spending keeps its short labels through `formatCurrencyCompact` ("$12K", "12 tys. zł").
+  - **Cleaner axes everywhere.** Every chart's money axis now uses `formatCurrencyAxis`, which drops the `.00` on whole-number ticks ("$20,000", "20 000 zł") and keeps two decimals on fractional ticks so a small range never shows two identical labels.
+  - **Unit position.** The Health unit sits where the locale writes the symbol (`getCurrencyAffix`): "$ [amount]" in English, "[amount] zł" in Polish.
+
 ## [7.18.1] — 2026-11-18
 
 ### Fixed

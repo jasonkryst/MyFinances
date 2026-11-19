@@ -1,6 +1,6 @@
 // Net worth snapshots: capture, series aggregation, dashboard widget, and reports-page timeline
 
-import { formatCurrency, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, formatShortDate, computeMonthlyIncomeForMonth, renderChartDataTable, escapeHtml } from './utils.js';
 // #579: snapshot metrics are shared with the server's monthly snapshot job.
 import { computeSnapshotMetrics, buildNetWorthSnapshot, snapshotMonthKey } from './netWorthCore.js';
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
@@ -430,7 +430,7 @@ function renderReportsNetWorthUncached(app) {
                     tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } }
                 },
                 scales: {
-                    y: { ticks: { color: labelColor, callback: v => formatCurrency(v) }, grid: { color: gridColor } },
+                    y: { ticks: { color: labelColor, callback: v => formatCurrencyAxis(v) }, grid: { color: gridColor } },
                     x: { ticks: { color: labelColor }, grid: { color: gridColor } }
                 }
             }
@@ -466,7 +466,7 @@ function renderReportsNetWorthUncached(app) {
                     tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } }
                 },
                 scales: {
-                    y: { ticks: { color: labelColor, callback: v => formatCurrency(v) }, grid: { color: gridColor } },
+                    y: { ticks: { color: labelColor, callback: v => formatCurrencyAxis(v) }, grid: { color: gridColor } },
                     x: { ticks: { color: labelColor }, grid: { color: gridColor } }
                 }
             }

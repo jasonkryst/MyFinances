@@ -1,5 +1,5 @@
 // Charts and visualizations
-import { computeMonthlyIncomeForMonth, formatCurrency, formatMonthYear, formatPlanMonth, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, formatCurrency, formatCurrencyAxis, formatMonthYear, formatPlanMonth, renderChartDataTable } from './utils.js';
 import { t } from './i18n.js';
 
 // Shared per-debt color assignment for every chart on the Plan page's
@@ -72,7 +72,7 @@ export function renderBalanceChart(app) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: v => '$' + v.toLocaleString() },
+                    ticks: { callback: v => formatCurrencyAxis(v) },
                     title: { display: true, text: t('strategy.chartBalanceAxis') }
                 },
                 x: { title: { display: true, text: t('strategy.chartMonthAxis') } }
@@ -325,9 +325,7 @@ export function renderProgressChart(app) {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function(value) {
-                            return '$' + value.toLocaleString();
-                        }
+                        callback: value => formatCurrencyAxis(value)
                     },
                     title: {
                         display: true,

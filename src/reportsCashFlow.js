@@ -2,6 +2,7 @@
 
 import {
     formatCurrency,
+    formatCurrencyAxis,
     escapeHtml,
     getReportDate,
     renderChartDataTable,
@@ -261,7 +262,7 @@ export function renderReportsIncomeExp(app) {
                         tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.x) } }
                     },
                     scales: {
-                        x: { ticks: { color: labelColor, callback: v => fmt(v) }, grid: { color: isDark ? '#374151' : '#e5e7eb' } },
+                        x: { ticks: { color: labelColor, callback: v => formatCurrencyAxis(v) }, grid: { color: isDark ? '#374151' : '#e5e7eb' } },
                         y: { ticks: { color: labelColor }, grid: { display: false } }
                     }
                 }
@@ -379,7 +380,7 @@ export function renderReportsMoneyFlow(app) {
             },
             scales: {
                 x: { title: { display: true, text: t('reports.mfDayOf', { month: monthLabel }), color: labelColor, font: { size: 11 } }, ticks: { color: labelColor, maxTicksLimit: 16 }, grid: { color: gridColor } },
-                y: { title: { display: true, text: t('reports.mfAmountAxis'), color: labelColor, font: { size: 11 } }, ticks: { color: labelColor, callback: v => fmt(v) }, grid: { color: gridColor } }
+                y: { title: { display: true, text: t('reports.mfAmountAxis'), color: labelColor, font: { size: 11 } }, ticks: { color: labelColor, callback: v => formatCurrencyAxis(v) }, grid: { color: gridColor } }
             }
         },
         plugins: [{
@@ -489,7 +490,7 @@ export function renderReportsCashFlowTrend(app) {
             },
             scales: {
                 x: { ticks: { color: labelColor }, grid: { display: false } },
-                y: { ticks: { color: labelColor, callback: v => fmt(v) }, grid: { color: gridColor } }
+                y: { ticks: { color: labelColor, callback: v => formatCurrencyAxis(v) }, grid: { color: gridColor } }
             }
         }
     });
