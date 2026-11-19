@@ -1,7 +1,7 @@
 // Cash Flow Forecasting: project account balances forward and surface
 // notable months, negative-balance warnings, and lowest/highest points.
 
-import { formatCurrency, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate, isTransferLegTx } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, escapeHtml, sanitizeFiniteNumber, renderChartDataTable, formatShortDate, isTransferLegTx } from './utils.js';
 import { t, plural } from './i18n.js';
 import { getAccountForecastSeries, getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import { withProjectionCache } from './projectionCache.js';
@@ -216,7 +216,7 @@ function renderForecastChart(app, series, stats) {
             },
             scales: {
                 x: { ticks: { color: labelColor }, grid: { color: gridColor } },
-                y: { ticks: { color: labelColor, callback: v => formatCurrency(v) }, grid: { color: gridColor } }
+                y: { ticks: { color: labelColor, callback: v => formatCurrencyAxis(v) }, grid: { color: gridColor } }
             }
         }
     });

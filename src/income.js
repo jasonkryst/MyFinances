@@ -1,6 +1,7 @@
 // Income and bonus management
 import {
     formatCurrency,
+    formatCurrencyAxis,
     countIncomePaydaysInMonth,
     getNextIncomePayDates,
     computeMonthlyIncomeForMonth,
@@ -733,7 +734,7 @@ export function renderIncomeTrendChart(app) {
             responsive: true, maintainAspectRatio: false,
             scales: {
                 x: { stacked: true, ticks: { color: label }, grid: { color: grid } },
-                y: { stacked: true, ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }
+                y: { stacked: true, ticks: { color: label, callback: v => formatCurrencyAxis(v) }, grid: { color: grid } }
             },
             plugins: {
                 legend: { position: 'bottom', labels: { color: label, boxWidth: 12, font: { size: 11 } } },

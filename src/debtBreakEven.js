@@ -1,5 +1,5 @@
 // Debt break-even analysis: badge rendering, mini chart, and the accelerate-debt modal
-import { formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, escapeHtml, renderChartDataTable } from './utils.js';
 import { computeBreakEven } from './breakEven.js';
 import { t, plural } from './i18n.js';
 
@@ -133,7 +133,7 @@ function _renderBreakEvenChart(app, chartId, result, hasPlan) {
             },
             scales: {
                 x: { ticks: { maxTicksLimit: 6, font: { size: 10 } } },
-                y: { ticks: { callback: v => formatCurrency(v), font: { size: 10 } } }
+                y: { ticks: { callback: v => formatCurrencyAxis(v), font: { size: 10 } } }
             }
         }
     });
@@ -200,7 +200,7 @@ export function showAccelerateModal(app, debtId) {
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
                     scales: {
                         x: { ticks: { maxTicksLimit: 6, font: { size: 10 } } },
-                        y: { ticks: { callback: v => formatCurrency(v), font: { size: 10 } } }
+                        y: { ticks: { callback: v => formatCurrencyAxis(v), font: { size: 10 } } }
                     }
                 }
             });

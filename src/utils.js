@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.18.1';
+export const APP_VERSION = '7.18.2';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -40,23 +40,44 @@ export function formatCurrency(value) {
     return formatter.format(value);
 }
 
-// Short currency for chart axes with large values ("$12K", "12 tys. zł").
-export function formatCurrencyCompact(value) {
+// A cached currency formatter for the active locale and currency, keyed by a
+// variant name so each option set is built once (#509).
+function cachedCurrencyFormatter(variant, options) {
     const locale = getIntlLocale();
     const currency = getCurrencyCode();
-    const key = `${locale}|${currency}|compact`;
+    const key = `${locale}|${currency}|${variant}`;
     let formatter = currencyFormatters.get(key);
     if (!formatter) {
-        formatter = new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact' });
+        formatter = new Intl.NumberFormat(locale, { style: 'currency', currency, ...options });
         currencyFormatters.set(key, formatter);
     }
-    return formatter.format(value);
+    return formatter;
 }
 
-// The selected currency's symbol in the app locale ("$", "€", "zł").
-export function getCurrencySymbol() {
-    const parts = new Intl.NumberFormat(getIntlLocale(), { style: 'currency', currency: getCurrencyCode() }).formatToParts(0);
-    return parts.find(p => p.type === 'currency').value;
+// Chart axis ticks (#509): whole amounts drop the cents ("$20,000", "20 000 zł"),
+// so axes aren't cluttered with ".00"; a fractional tick (a small range such
+// as 0-2 stepping by 0.25) keeps two decimals so neighbouring ticks never
+// round to the same label.
+export function formatCurrencyAxis(value) {
+    return Number.isInteger(value)
+        ? cachedCurrencyFormatter('axis', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value)
+        : formatCurrency(value);
+}
+
+// Short currency for chart axes with large values ("$12K", "12 tys. zł").
+export function formatCurrencyCompact(value) {
+    return cachedCurrencyFormatter('compact', { notation: 'compact' }).format(value);
+}
+
+// The selected currency's symbol in the app locale and whether that locale
+// writes it after the amount: { symbol: '$', after: false } for USD/en,
+// { symbol: 'zł', after: true } for PLN/pl. Used for input unit labels.
+export function getCurrencyAffix() {
+    const parts = cachedCurrencyFormatter('plain', {}).formatToParts(1);
+    const symbolIndex = parts.findIndex(p => p.type === 'currency');
+    const numberIndex = parts.findIndex(p => p.type === 'integer');
+    if (symbolIndex < 0) return { symbol: getCurrencyCode(), after: false };
+    return { symbol: parts[symbolIndex].value, after: symbolIndex > numberIndex };
 }
 
 const dateFormatters = new Map();

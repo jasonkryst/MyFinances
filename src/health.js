@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, getCurrencySymbol, escapeHtml, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, formatCurrencyAxis, getCurrencyAffix, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { computeRecurringCashFlowForMonth } from './recurring.js';
@@ -702,7 +702,7 @@ function renderSurplusSection(app) {
                     x: { display: false },
                     y: {
                         ticks: {
-                            callback: v => formatCurrency(v),
+                            callback: v => formatCurrencyAxis(v),
                             font: { size: 10 },
                             maxTicksLimit: 4,
                             color: tickClr,
@@ -775,13 +775,17 @@ function renderMortgageDtiPanel(app, monthlyIncome, totalDebtMin, housingDebtMin
     const feSt = mortgageFrontEndStatus(frontEndRatio);
     const beSt = mortgageBackEndStatus(backEndRatio);
 
+    // The unit sits where the locale writes the symbol: "$ [ ]" vs "[ ] zł" (#509).
+    const currencyAffix = getCurrencyAffix();
+    const unitHtml = `<span class="health-surplus-unit">${escapeHtml(currencyAffix.symbol)}</span>`;
     panel.innerHTML = `
         <div class="health-mortgage-dti-row health-mortgage-dti-input-row">
             <label class="health-mortgage-dti-label" for="healthHousingCostInput">${t('health.housingCostLabel')}</label>
             <div class="health-surplus-input-wrap">
-                <span class="health-surplus-unit">${getCurrencySymbol()}</span>
+                ${currencyAffix.after ? '' : unitHtml}
                 <input type="number" class="health-surplus-input" id="healthHousingCostInput"
                        value="${housingCost.toFixed(2)}" min="0" step="1">
+                ${currencyAffix.after ? unitHtml : ''}
             </div>
         </div>
         <div class="health-mortgage-dti-row">
