@@ -40,6 +40,25 @@ export function formatCurrency(value) {
     return formatter.format(value);
 }
 
+// Short currency for chart axes with large values ("$12K", "12 tys. zł").
+export function formatCurrencyCompact(value) {
+    const locale = getIntlLocale();
+    const currency = getCurrencyCode();
+    const key = `${locale}|${currency}|compact`;
+    let formatter = currencyFormatters.get(key);
+    if (!formatter) {
+        formatter = new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact' });
+        currencyFormatters.set(key, formatter);
+    }
+    return formatter.format(value);
+}
+
+// The selected currency's symbol in the app locale ("$", "€", "zł").
+export function getCurrencySymbol() {
+    const parts = new Intl.NumberFormat(getIntlLocale(), { style: 'currency', currency: getCurrencyCode() }).formatToParts(0);
+    return parts.find(p => p.type === 'currency').value;
+}
+
 const dateFormatters = new Map();
 
 // Formats a Date with a cached Intl.DateTimeFormat for the active locale.

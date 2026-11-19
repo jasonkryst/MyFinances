@@ -72,7 +72,7 @@ export function renderBalanceChart(app) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: v => '$' + v.toLocaleString() },
+                    ticks: { callback: v => formatCurrency(v) },
                     title: { display: true, text: t('strategy.chartBalanceAxis') }
                 },
                 x: { title: { display: true, text: t('strategy.chartMonthAxis') } }
@@ -325,9 +325,7 @@ export function renderProgressChart(app) {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function(value) {
-                            return '$' + value.toLocaleString();
-                        }
+                        callback: value => formatCurrency(value)
                     },
                     title: {
                         display: true,

@@ -1,6 +1,6 @@
 import { getLedgerTransactionsForMonth } from './ledgerTransactions.js';
 import {
-    escapeHtml, formatCurrency, renderChartDataTable, getReportDate, PINNED_COLORS,
+    escapeHtml, formatCurrency, formatCurrencyCompact, renderChartDataTable, getReportDate, PINNED_COLORS,
     getReportRangeMonths, reportRangeMonthsList, getPriorEquivalentRangeEnd, formatReportRangeLabel,
     formatMonthLong, formatMonthYear, isTransferLegTx
 } from './utils.js';
@@ -399,7 +399,7 @@ export function renderReportsSpending(app) {
                 maintainAspectRatio: false,
                 scales: {
                     x: { stacked: true },
-                    y: { stacked: true, ticks: { callback: v => '$' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } }
+                    y: { stacked: true, ticks: { callback: v => formatCurrencyCompact(v) } }
                 },
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },

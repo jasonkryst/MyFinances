@@ -133,7 +133,7 @@ function _renderBreakEvenChart(app, chartId, result, hasPlan) {
             },
             scales: {
                 x: { ticks: { maxTicksLimit: 6, font: { size: 10 } } },
-                y: { ticks: { callback: v => `$${Math.round(v)}`, font: { size: 10 } } }
+                y: { ticks: { callback: v => formatCurrency(v), font: { size: 10 } } }
             }
         }
     });
@@ -200,7 +200,7 @@ export function showAccelerateModal(app, debtId) {
                     plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
                     scales: {
                         x: { ticks: { maxTicksLimit: 6, font: { size: 10 } } },
-                        y: { ticks: { callback: v => `$${Math.round(v)}`, font: { size: 10 } } }
+                        y: { ticks: { callback: v => formatCurrency(v), font: { size: 10 } } }
                     }
                 }
             });

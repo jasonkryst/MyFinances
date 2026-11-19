@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, escapeHtml, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, getCurrencySymbol, escapeHtml, renderChartDataTable } from './utils.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { computeRecurringCashFlowForMonth } from './recurring.js';
@@ -779,7 +779,7 @@ function renderMortgageDtiPanel(app, monthlyIncome, totalDebtMin, housingDebtMin
         <div class="health-mortgage-dti-row health-mortgage-dti-input-row">
             <label class="health-mortgage-dti-label" for="healthHousingCostInput">${t('health.housingCostLabel')}</label>
             <div class="health-surplus-input-wrap">
-                <span class="health-surplus-unit">$</span>
+                <span class="health-surplus-unit">${getCurrencySymbol()}</span>
                 <input type="number" class="health-surplus-input" id="healthHousingCostInput"
                        value="${housingCost.toFixed(2)}" min="0" step="1">
             </div>
