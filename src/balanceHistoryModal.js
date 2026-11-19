@@ -1,7 +1,7 @@
 // Balance History modal — chart + delete-only entry table for one debt or
 // Credit Card / Loan account. All user data is rendered via textContent.
 
-import { formatCurrency, formatShortDate, renderChartDataTable } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, formatShortDate, renderChartDataTable } from './utils.js';
 import { getBalanceHistory, deleteBalanceHistoryEntry } from './balanceHistory.js';
 import { computeHistoryDeltas } from './balanceHistoryCore.js';
 import { t } from './i18n.js';
@@ -40,7 +40,6 @@ function renderHistoryChart(app, entries, isFixed, minLabel) {
     const dark = document.body.classList.contains('dark-mode');
     const grid = dark ? '#374151' : '#e5e7eb';
     const label = dark ? '#d1d5db' : '#374151';
-    const money = v => formatCurrency(v);
 
     const datasets = [];
     if (!isFixed) {
@@ -50,9 +49,9 @@ function renderHistoryChart(app, entries, isFixed, minLabel) {
 
     const scales = {
         x: { ticks: { color: label }, grid: { color: grid } },
-        y: { position: 'left', ticks: { color: label, callback: money }, grid: { color: grid } }
+        y: { position: 'left', ticks: { color: label, callback: formatCurrencyAxis }, grid: { color: grid } }
     };
-    if (!isFixed) scales.y1 = { position: 'right', ticks: { color: label, callback: money }, grid: { drawOnChartArea: false } };
+    if (!isFixed) scales.y1 = { position: 'right', ticks: { color: label, callback: formatCurrencyAxis }, grid: { drawOnChartArea: false } };
 
     app[CHART_KEY] = new Chart(canvas, {
         type: 'line',

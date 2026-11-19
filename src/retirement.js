@@ -7,7 +7,7 @@ import {
     computeCoastFire, DEFAULT_CONSERVATIVE_DELTA, DEFAULT_AGGRESSIVE_DELTA
 } from './retirementCalculator.js';
 import { pgCreate, pgDelete, pgPatch } from './postgresSync.js';
-import { formatCurrency, formatMonthYear, formatShortDate, escapeHtml, todayISO, renderChartDataTable, withBusy } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, formatMonthYear, formatShortDate, escapeHtml, todayISO, renderChartDataTable, withBusy } from './utils.js';
 import {
     getSetting, setSetting, RETIREMENT_WITHDRAWAL_RATE,
     RETIREMENT_SCENARIO_CONSERVATIVE_DELTA, RETIREMENT_SCENARIO_AGGRESSIVE_DELTA,
@@ -425,7 +425,7 @@ function renderBalanceChart(app, accounts) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { position: 'top', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } } },
-            scales: { y: { ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }, x: { ticks: { color: label }, grid: { color: grid } } }
+            scales: { y: { ticks: { color: label, callback: v => formatCurrencyAxis(v) }, grid: { color: grid } }, x: { ticks: { color: label }, grid: { color: grid } } }
         }
     });
 
@@ -472,7 +472,7 @@ function renderContributionChart(app, accounts) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { position: 'top', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } } },
-            scales: { y: { stacked: true, ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }, x: { stacked: true, ticks: { color: label }, grid: { color: grid } } }
+            scales: { y: { stacked: true, ticks: { color: label, callback: v => formatCurrencyAxis(v) }, grid: { color: grid } }, x: { stacked: true, ticks: { color: label }, grid: { color: grid } } }
         }
     });
 
@@ -554,7 +554,7 @@ function renderProjectionChart(app, accounts, conservativeDelta, aggressiveDelta
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { position: 'top', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } } },
-            scales: { y: { ticks: { color: label, callback: v => formatCurrency(v) }, grid: { color: grid } }, x: { ticks: { color: label }, grid: { color: grid } } }
+            scales: { y: { ticks: { color: label, callback: v => formatCurrencyAxis(v) }, grid: { color: grid } }, x: { ticks: { color: label }, grid: { color: grid } } }
         }
     });
 

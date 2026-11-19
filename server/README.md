@@ -109,6 +109,17 @@ them, so an existing shorter password keeps working until it is changed.
   local rules, and on reset only after the token is valid.
 - **No egress:** leave it off (the default), or use a mirror.
 
+### Locked out, or forgot the password
+
+- **Emails are not case-sensitive.** They are stored trimmed and lowercase; sign-in, setup and forgot-password compare the same way (`src/auth/email.js`).
+- **The lockout.** Sign-in allows 5 failed attempts per 15 minutes per address. The app says how many minutes are left (from `Retry-After`), and the server logs `[auth] login rate limit reached for <ip>`. The counter lives in memory, so `docker compose restart server` clears it at once.
+- **Reset the password without email:**
+
+      docker compose run --rm server node scripts/reset-password.js
+
+  It asks for the account email and a new password (or pipe both lines on stdin), applies the sign-up password policy, and signs out every session.
+- **Behind another reverse proxy** (Traefik, Nginx Proxy Manager, Caddy, a tunnel), set `TRUST_PROXY_HOPS=2`. With the default 1, the server sees that proxy's address for every visitor, so every device shares one lockout counter. Never set it higher than the real number of proxies, since each extra hop lets a client forge its address.
+
 ### Change password and sessions
 
 `POST /auth/change-password` (session + CSRF, rate-limited to 5 failures per
@@ -194,11 +205,13 @@ for every user, and raises five kinds of alert:
 | Type | When |
 |---|---|
 | `billDueSoon` / `billDueToday` | A debt minimum payment, recurring subscription or legacy bill that isn't Cleared is due within `notifyDaysAhead` days (default 3) or today |
-| `lowBalance` | An account's balance today is at or below its `lowBalanceThreshold` (and above $0) |
-| `zeroBalance` | An account's balance today is at or below $0 |
-| `projectedLow` | Fine today, but projected to reach the threshold ($0 without one) within `notifyDaysAhead` days |
+| `lowBalance` | An account's balance today is at or below its `lowBalanceThreshold` (and not overdrawn) |
+| `zeroBalance` | An account is overdrawn: its balance today is below $0 (exactly $0 never alerts) |
+| `projectedLow` | Fine today, but projected to reach the threshold (below $0 without one) within `notifyDaysAhead` days |
 
-Credit Card, Loan, Retirement and archived accounts are never alerted on.
+Credit Card, Loan, Retirement and archived accounts are never alerted on, nor is an account with
+`muteBalanceAlerts` ("Don't notify", migration `1755600000042`); muting resolves its open balance alerts
+and cancels their pending emails on the next check. Bill alerts are not affected.
 
 - **Storage:** rows go in `notifications` (migration `1755600000040`), unique
   on `(user_id, dedupe_key)`, so a repeated or retried check never repeats an
@@ -217,9 +230,24 @@ Credit Card, Loan, Retirement and archived accounts are never alerted on.
   currency symbol. A failed send leaves the row `pending`; it is retried on
   later checks, up to 3 attempts within 48 hours, and never fails the job.
 - **API** (session + CSRF):
-  - `GET /api/notifications` returns the 50 newest in-app alerts,
-    `unreadCount` and `emailConfigured`.
+  - `GET /api/notifications[?limit=N]` returns the newest in-app alerts
+    (`limit` 1-500, default 50; anything else is a 400), `unreadCount`,
+    `total` (all in-app alerts) and `emailConfigured`.
+    Optional filters (#649), each given once, else a 400: `type`
+    (`all|bill|lowBalance|overdrawn|projected`, mapped to alert types by
+    `typesForCategory` in `../src/notificationsFilter.js`), `status`
+    (`unread|read|active|resolved|all`) and `account` (a positive integer or
+    `all`). Missing means all. `total` and the list follow all three;
+    `unreadCount` counts unread rows matching `type` and `account` and ignores
+    `status`. No filter params behaves exactly as before.
+  - `POST /api/notifications/read` and `/unread`, body `{ ids }` (1-500
+    unique positive integers, else 400), mark those of the signed-in user's
+    alerts; unknown or foreign ids are ignored. They return
+    `{ ok, updated, unreadCount }`.
   - `POST /api/notifications/:id/read` and `POST /api/notifications/read-all`.
+    `read-all` takes the same `type` and `account` params and then marks only
+    the unread alerts matching them (`status` is ignored; with no params it
+    marks everything, as before).
   - `DELETE /api/notifications` (Clear All Data).
   - `POST /api/notifications/check` runs the check for the signed-in user now
     (Settings → Check now). It is rate-limited and works with

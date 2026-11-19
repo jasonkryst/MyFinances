@@ -33,11 +33,11 @@ export function describeNotification(type, params = {}) {
     case 'lowBalance':
         return `${account} is at ${formatAmount(p.balance)}, at or below your alert amount of ${formatAmount(p.threshold)}.`;
     case 'zeroBalance':
-        return `${account} is at ${formatAmount(p.balance)}, at or below zero.`;
+        return `${account} is overdrawn at ${formatAmount(p.balance)}.`;
     case 'projectedLow':
         return p.threshold
             ? `${account} is projected to drop to ${formatAmount(p.projectedBalance)} on ${formatIsoDate(p.date)}, at or below your alert amount of ${formatAmount(p.threshold)}.`
-            : `${account} is projected to drop to ${formatAmount(p.projectedBalance)} on ${formatIsoDate(p.date)}, at or below zero.`;
+            : `${account} is projected to go below zero (${formatAmount(p.projectedBalance)}) on ${formatIsoDate(p.date)}.`;
     default:
         return 'You have a new MyFinances alert.';
     }
@@ -47,7 +47,7 @@ const SUBJECTS = {
     billDueToday: 'Bill due today',
     billDueSoon: 'Upcoming bill',
     lowBalance: 'Low balance',
-    zeroBalance: 'Balance at or below zero',
+    zeroBalance: 'Account overdrawn',
     projectedLow: 'Balance projected to run low',
 };
 

@@ -24,6 +24,7 @@ export default createCrudResource({
         hsaCoverageType: 'hsa_coverage_type',
         notes: 'notes',
         lowBalanceThreshold: 'low_balance_threshold',
+        muteBalanceAlerts: 'mute_balance_alerts',
         archived: 'archived'
     }
 });

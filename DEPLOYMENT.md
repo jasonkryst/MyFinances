@@ -336,6 +336,8 @@ for the browser to send them. For production:
   instead of a static env-var check). No manual step or deployment-ordering is required:
   cookies are correctly non-`Secure` for local plain-HTTP testing and correctly `Secure`
   the moment HTTPS is actually terminated in front of the stack — either way, automatically.
+- If another reverse proxy sits in front of the stack's nginx, set `TRUST_PROXY_HOPS=2` so the server
+  reads the right hop's `X-Forwarded-Proto` and client address (see Troubleshooting).
 
 ### Portainer GitOps (Automated Deploys on Push)
 
@@ -537,6 +539,15 @@ openssl s_client -servername your-domain.com -connect your-domain.com:443 < /dev
 ```
 
 ## Troubleshooting
+
+### Can't sign in ("Too many attempts")
+- **The lockout.** Sign-in allows 5 failed attempts per 15 minutes; the message says how many minutes are left. To clear it now, run `docker compose restart server`.
+- **Check the account email.** Run `docker compose exec postgres psql -U myfinances -d myfinances -c "select email from users;"`. Since 7.15.1 the email is not case-sensitive.
+- **Set a new password without email.** Run `docker compose run --rm server node scripts/reset-password.js`.
+- **Behind another reverse proxy** (Traefik, Nginx Proxy Manager, Caddy, Cloudflare Tunnel), set `TRUST_PROXY_HOPS=2` in `.env`. Otherwise every device shares one lockout counter.
+  - **Count proxies, not management tools.** Count only proxies that requests pass through. Portainer doesn't count; the stack's own nginx does. For example, internet → Nginx Proxy Manager → this stack's nginx → server is `2`. Cloudflare with proxying on (orange cloud) adds one more.
+  - **No proxy changes are needed.** Nginx Proxy Manager, Traefik and Caddy send `X-Forwarded-For` and `X-Forwarded-Proto` by default. The last quoted field in the stack nginx's access log is the forwarded client address, which shows yours is passed through.
+  - **Only the outer proxy may reach the app.** Don't port-forward the app's own port (32900); publish it only on the LAN, or use a shared Docker network. With 2 trusted hops, a request that bypasses the outer proxy could forge its address and dodge the lockout.
 
 ### CSP Violations
 - Check browser console for CSP errors

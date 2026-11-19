@@ -30,7 +30,8 @@ export const MUTATE_SCOPE = {
         'parseFiniteOrNull', 'formatShortDate', 'formatMonthYear', 'sanitizeInteger', 'sanitizeDateISO',
         'dateToISO', 'dailyCompoundInterest', 'computeNetIncomeAmount', 'computeMonthlyIncomeForMonth', 'withBusy', 'isTransferLegTx',
         'getBonusDatesInMonth', 'getNextBonusDate', 'computeMonthlyBonusesForMonth', 'getBonusesByDayForMonth',
-        'formatDateCached', 'formatLongDate', 'formatMonthLong', 'formatReportRangeLabel', 'parseContributionAmount',
+        'formatDateCached', 'formatLongDate', 'formatMonthLong', 'formatReportRangeLabel', 'parseContributionAmount', 'parseRetryAfterMinutes',
+        'formatCurrencyAxis', 'formatCurrencyCompact', 'getCurrencyAffix', 'cachedCurrencyFormatter',
     ],
     'src/sanitizers.js': [
         'sanitizePerson', 'sanitizeAccount', 'sanitizeDebt', 'sanitizeOwnershipSplit', 'remapDebtPersonRefs',
@@ -44,6 +45,8 @@ export const MUTATE_SCOPE = {
     ],
     // #569: the shared settings key/value allowlist (browser export + server).
     'src/settingsSchema.js': ['validateExportedSetting', 'isAllowedSetting'],
+    // #651: account-id settings follow their account on import.
+    'src/settingsRemap.js': true,
     'src/retirementCalculator.js': [
         'computeRetirementProjection', 'splitGrowthFromContribution', 'getContributionLimit',
         'computeYtdContributions', 'computeMonthlyWithdrawal', 'computeScenarioRates',
@@ -76,6 +79,8 @@ export const MUTATE_SCOPE = {
     'src/resourceDeletion.js': true,
     // #586: Ledger free-text search predicate.
     'src/ledgerSearch.js': true,
+    // #643: Notifications page filter/group/selection core.
+    'src/notificationsFilter.js': true,
     // #576: Saving/Saved chip state reducer.
     'src/saveStatus.js': true,
     // #518: render-scoped projection cache.

@@ -1,3 +1,4 @@
+import { normalizeEmail, EMAIL_MATCH_SQL } from '../auth/email.js';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { randomBytes, createHash } from 'node:crypto';
@@ -40,7 +41,14 @@ export function createAuthRouter() {
         // legitimate logins -- a real user logging in repeatedly (multiple
         // devices/tabs) shouldn't get locked out.
         skipSuccessfulRequests: true,
-        message: { error: { code: 'RATE_LIMITED', message: 'Too many login attempts, try again later' } }
+        message: { error: { code: 'RATE_LIMITED', message: 'Too many login attempts, try again later' } },
+        // Tell the operator why sign-in is refused (once per blocked request).
+        // The Retry-After header is already set; the app shows the minutes.
+        handler: (req, res, next, options) => {
+            console.warn(`[auth] login rate limit reached for ${req.ip} (${options.limit} failed attempts per ${Math.round(options.windowMs / 60000)} min); `
+                + 'restart the server to clear it now. Behind another reverse proxy, set TRUST_PROXY_HOPS=2.');
+            res.status(options.statusCode).json(options.message);
+        }
     });
 
     const setupStatusLimiter = rateLimit({
@@ -89,13 +97,14 @@ export function createAuthRouter() {
             if (process.env.ALLOW_SETUP !== 'true') {
                 return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Not found' } });
             }
-            const { email, password } = req.body || {};
-            if (!email || !password) {
+            const { email: rawEmail, password } = req.body || {};
+            if (!rawEmail || !password) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Email and password are required' } });
             }
-            if (typeof email !== 'string' || typeof password !== 'string') {
+            if (typeof rawEmail !== 'string' || typeof password !== 'string') {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Email and password are required' } });
             }
+            const email = normalizeEmail(rawEmail);
             if (!email.includes('@')) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: 'Invalid email address' } });
             }
@@ -140,11 +149,13 @@ export function createAuthRouter() {
 
     authRouter.post('/login', loginLimiter, async (req, res, next) => {
         try {
-            const { email, password } = req.body || {};
+            const { email: rawEmail, password } = req.body || {};
             const reject = () => res.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' } });
-            if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) return reject();
+            if (typeof rawEmail !== 'string' || typeof password !== 'string' || !rawEmail || !password) return reject();
+            const email = normalizeEmail(rawEmail);
+            if (!email) return reject();
 
-            const { rows } = await query('SELECT id, password_hash FROM users WHERE email = $1', [email]);
+            const { rows } = await query(`SELECT id, password_hash FROM users WHERE ${EMAIL_MATCH_SQL} ORDER BY id LIMIT 1`, [email]);
             if (rows.length === 0) return reject();
 
             const ok = await verifyPassword(rows[0].password_hash, password);
@@ -183,10 +194,10 @@ export function createAuthRouter() {
     // Always returns 200 to avoid confirming whether the email is registered.
     authRouter.post('/forgot-password', forgotPasswordLimiter, async (req, res, next) => {
         try {
-            const { email } = req.body || {};
+            const email = normalizeEmail(req.body?.email);
             if (!email) return res.json({ ok: true });
 
-            const { rows } = await query('SELECT id FROM users WHERE email = $1', [email]);
+            const { rows } = await query(`SELECT id, email FROM users WHERE ${EMAIL_MATCH_SQL} ORDER BY id LIMIT 1`, [email]);
             if (rows.length === 0) return res.json({ ok: true });
 
             const token = randomBytes(32).toString('hex');
@@ -201,7 +212,7 @@ export function createAuthRouter() {
             const origin = `${req.protocol}://${req.get('host')}`;
             const resetUrl = `${origin}/?reset_token=${token}`;
             try {
-                await sendTemplatedEmail(email, 'passwordResetEmail', { resetUrl });
+                await sendTemplatedEmail(rows[0].email, 'passwordResetEmail', { resetUrl });
             } catch (err) {
                 console.error('[auth] password reset email failed:', err);
             }

@@ -66,8 +66,9 @@ def test_import_sanitizes_adversarial_account_and_debt_fields(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'adversarial.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({
                 account: app.accounts[0],
                 debt: app.debts[0]
             }), 300);
@@ -110,8 +111,9 @@ def test_import_bare_array_payload_treated_as_debts(app_page):
         ];
         const file = new File([JSON.stringify(payload)], 'array.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({
                 debtCount: app.debts.length,
                 debtName: app.debts[0]?.name
             }), 300);
@@ -338,8 +340,9 @@ def test_import_sanitizes_adversarial_net_worth_snapshot(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'snapshot.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ snapshots: app.monthlySnapshots }), 300);
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({ snapshots: app.monthlySnapshots }), 300);
         });
     }""")
 
@@ -373,8 +376,9 @@ def test_import_sanitizes_adversarial_forecast_settings(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'forecast.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({
                 rangeMonths: app._forecastRangeMonths,
                 accountId: app._forecastAccountId,
                 notableThresholdPct: app._forecastNotableThresholdPct
@@ -412,8 +416,9 @@ def test_import_sanitizes_adversarial_emergency_fund(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'efund.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ fund: app.emergencyFunds[0] }), 300);
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({ fund: app.emergencyFunds[0] }), 300);
         });
     }""")
 
@@ -457,8 +462,9 @@ def test_import_sanitizes_adversarial_sinking_fund(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'sfund.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ funds: app.sinkingFunds }), 300);
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({ funds: app.sinkingFunds }), 300);
         });
     }""")
 
@@ -496,8 +502,9 @@ def test_import_sanitizes_adversarial_bonus(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'bonus.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({ bonus: app.bonuses[0] }), 300);
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({ bonus: app.bonuses[0] }), 300);
         });
     }""")
 
@@ -529,8 +536,9 @@ def test_import_preserves_valid_bonus_purpose(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'bonus.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve(app.bonuses.map(b => b.purpose)), 300);
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve(app.bonuses.map(b => b.purpose)), 300);
         });
     }""")
 
@@ -556,13 +564,14 @@ def test_import_rejects_non_object_ledger_overrides(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'badoverrides.json', { type: 'application/json' });
         return new Promise(resolve => {
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
             let threw = false;
             try {
-                mod.importAllJSON(app, file, {});
+                mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
             } catch (e) {
                 threw = true;
             }
-            setTimeout(() => resolve({
+            __whenDone(() => resolve({
                 threw,
                 overrides: app.ledgerAmountOverrides
             }), 300);
@@ -806,8 +815,9 @@ def test_import_legacy_v1_format_with_version_field(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'legacy.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({
                 debtCount: app.debts.length,
                 debt: app.debts[0],
                 accounts: app.accounts
@@ -851,8 +861,9 @@ def test_import_legacy_v1_bare_debts_array_format(app_page):
         ];
         const file = new File([JSON.stringify(payload)], 'legacy_bare.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve({
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve({
                 debtCount: app.debts.length,
                 names: app.debts.map(d => d.name)
             }), 300);
@@ -884,8 +895,9 @@ def test_import_sanitizes_account_interest_rate(app_page):
         };
         const file = new File([JSON.stringify(payload)], 'rates.json', { type: 'application/json' });
         return new Promise(resolve => {
-            mod.importAllJSON(app, file, {});
-            setTimeout(() => resolve(app.accounts.map(a => a.interestRate)), 300);
+            let __done; const __finished = new Promise(r => { __done = r; }); const __whenDone = (fn) => Promise.race([__finished, new Promise(r => setTimeout(r, 15000))]).then(fn);
+            mod.importAllJSON(app, file, { onImported: __done, onMergeDuplicates: __done, onImportError: __done });
+            __whenDone(() => resolve(app.accounts.map(a => a.interestRate)), 300);
         });
     }""")
 

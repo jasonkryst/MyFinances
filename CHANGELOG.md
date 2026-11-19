@@ -4,6 +4,67 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.18.2] — 2026-11-19
+
+### Fixed
+- **Chart axes and the Health housing-cost unit follow the selected currency (issue #509, PR #655, thanks @SAY-5).** The Plan balance and progress charts, both break-even charts and the Spending bar chart printed a literal `$` with browser-locale grouping, and the Health housing-cost input had a fixed `$` unit, so PLN, EUR and other users still saw dollars there. They now use the selected currency and locale; Spending keeps its short labels through `formatCurrencyCompact` ("$12K", "12 tys. zł").
+  - **Cleaner axes everywhere.** Every chart's money axis now uses `formatCurrencyAxis`, which drops the `.00` on whole-number ticks ("$20,000", "20 000 zł") and keeps two decimals on fractional ticks so a small range never shows two identical labels.
+  - **Unit position.** The Health unit sits where the locale writes the symbol (`getCurrencyAffix`): "$ [amount]" in English, "[amount] zł" in Polish.
+
+## [7.18.1] — 2026-11-18
+
+### Fixed
+- **Backup import remaps account-id settings (#651).** A full JSON backup (replace or merge) now carries `surplusAccountId` and `notifyFilterAccount` over to the account's new id, so they no longer point at nothing or at a different account. An unresolved `notifyFilterAccount` or `surplusAccountId` (its account isn't in the file) is dropped, so a merge keeps the existing value and a replace falls back to the default (All accounts / none); both are listed in the import warnings. Plain remaps are silent.
+
+## [7.18.0] — 2026-11-18
+
+### Added
+- **The bell follows the Notifications page's saved filters (#649).** Type, Status and Account are saved as three per-user settings (`notifyFilterType`, `notifyFilterStatus`, `notifyFilterAccount`; not part of the settings export), so they survive reloads and other devices. The bell list and its unread badge use them (default Unread), and show a "Filtered: ..." line with a Clear button when they differ from the defaults. The From/To dates stay page-only.
+  - **Server.** `GET /api/notifications` and `POST /api/notifications/read-all` accept optional `type`, `status` and `account` filters, so the badge count and Mark all read match the filtered view.
+  - **Live refresh** refetches the bell, so a filter changed on another device or tab applies.
+  - **Empty states** use `notify.emptyUnread` and `notify.emptyFiltered`.
+
+### Fixed
+- **Caps Lock (#646).** The Notifications page shortcuts (j, k, x, e) work with Caps Lock on.
+- **Cleanups (#647).** Notifications page review follow-ups: tidied the filter and day-group code paths and tests.
+- **Label (#648).** The Notifications page day-group heading "Earlier this week" now reads "Last 7 days", since it covers alerts 2 to 6 days old.
+
+## [7.17.0] — 2026-11-17
+
+### Added
+- **Notifications page (#643).** The bell panel now has a *View all* link to a full page (also in the command palette) that lists every alert, not just the newest.
+  - **Filter.** Type (Bill due, Low balance, Overdrawn, Projected low), Status (Unread by default, Read, Active, Resolved, All), Account and a From/To date range; alerts are grouped by day.
+  - **Triage.** Each row toggles Mark read / Mark unread, bulk actions mark the filtered set read, and a toast offers Undo. Rows link to the Ledger (View reuses the Ledger's restore-once filter behaviour) or Accounts.
+  - **Keyboard.** `j`/`k` move, `x` selects, `e` marks read, Enter opens (listed in the shortcuts panel).
+  - **Server.** `GET /api/notifications` takes `?limit` (1-500, default 50) and returns `total`; new `POST /api/notifications/read` and `/unread` take `{ ids }`. No migration.
+  - **Code.** Pure, Stryker-scoped `src/notificationsFilter.js`; lazy `src/notificationsPage.js`; shared load and mark state in `src/notificationsCenter.js`; strings in en/es/pl.
+
+## [7.16.0] — 2026-11-16
+
+### Changed
+- **Balance alerts no longer fire at exactly $0.** Many accounts sit at $0 on purpose, so the `zeroBalance` alert now means *overdrawn* (balance below $0), and `projectedLow` without an alert amount fires only for a projected balance below $0. An account at $0 with an alert amount set still gets the low-balance alert, since the user asked for it. Wording in the bell, the email and Settings → Notifications now says "overdrawn" (en/es/pl). The type name `zeroBalance` and the `notifyZeroBalance` setting are unchanged, so stored alerts and preferences carry over.
+
+### Added
+- **"Don't notify" per account.** A checkbox on the Add Account form and the account editor (`muteBalanceAlerts`, default off). A muted account raises no low, overdrawn or projected alert; bill reminders for debts and recurring items paid from it are unaffected. The card shows a 🔕 *Alerts off* badge.
+  - **Existing alerts.** The next check resolves the account's open balance alerts and cancels their unsent emails (`email_status` back to `none`); saving the editor with the box newly ticked runs that check right away. Past alerts stay in the list.
+  - **Server:** migration `1755600000042` adds `accounts.mute_balance_alerts boolean NOT NULL DEFAULT false`; rolling it back drops the column and every account's choice. The accounts route stores it, and the sanitizer only accepts a real `true`.
+
+## [7.15.1] — 2026-11-16
+
+### Fixed
+- **Sign-in is no longer case-sensitive.**
+  - **The problem.** The account email was compared exactly, so `Jason@…` typed on a phone (keyboards capitalize the first letter) or an address saved with a stray space failed with "Invalid email or password". Five such tries locked sign-in for 15 minutes.
+  - **The fix.** Emails are now trimmed and lowercased when an account is created (`create-user.js`, setup) and when signing in or requesting a reset link (`server/src/auth/email.js`). Lookups compare `lower(btrim(email))`, so an existing account matches either way, and migration `1755600000041` normalizes stored addresses; its `down()` is a no-op.
+  - **Sign-in screen.** The email fields no longer autocapitalize or autocorrect, and the email is sent trimmed.
+- **"Too many attempts" now says how long to wait.** "Try again in 12 minutes." It uses the server's `Retry-After` header on sign-in, setup, forgot-password and reset-password.
+
+### Added
+- **`scripts/reset-password.js`.** It sets a new password from the server host without SMTP (`docker compose run --rm server node scripts/reset-password.js`). It applies the sign-up password policy and signs out every session.
+- **`TRUST_PROXY_HOPS`** (default 1).
+  - **Why.** Behind another reverse proxy (Traefik, Nginx Proxy Manager, Caddy, a tunnel), set it to 2. Otherwise the server sees that proxy's address for every visitor, so all devices share one login limit, and the session cookie's `Secure` flag reads the wrong hop.
+  - **Bad values.** An invalid value logs a warning and falls back to 1.
+- **The server logs when the login limit trips.** The log line names the address and says how to clear the limit (restart the server).
+
 ## [7.15.0] — 2026-11-15
 
 ### Added

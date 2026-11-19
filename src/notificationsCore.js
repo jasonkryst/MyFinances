@@ -52,8 +52,11 @@ export function getNotificationPrefs(settings) {
     };
 }
 
+// An account the user set to "Don't notify" (muteBalanceAlerts) never raises a
+// balance alert either; bill alerts are not affected.
 export function isAlertableAccount(account) {
-    return Boolean(account) && !account.archived && !NON_ALERTABLE_ACCOUNT_TYPES.includes(account.type);
+    return Boolean(account) && !account.archived && !account.muteBalanceAlerts
+        && !NON_ALERTABLE_ACCOUNT_TYPES.includes(account.type);
 }
 
 // The account's alert threshold, or null when none is set.
@@ -88,15 +91,20 @@ export function computeBalanceToday(app, account, txs, now) {
 }
 
 // The first date after today, through `daysAhead` days, on which the
-// projected balance is at or below `limit`: { date, balance } or null.
-export function findProjectedBreach(app, account, txs, now, daysAhead, limit) {
+// projected balance is at or below `threshold`, or below $0 when there is no
+// threshold (an account that sits at exactly $0 is normal): { date, balance }
+// or null.
+export function findProjectedBreach(app, account, txs, now, daysAhead, threshold) {
+    const breached = threshold === null || threshold === undefined
+        ? b => b < 0
+        : b => b <= threshold;
     const tomorrow = addDays(startOfDay(now), 1);
     const windowEnd = addDays(tomorrow, Math.max(0, daysAhead));
     let balance = Number(account?.startingBalance) || 0;
     for (const tx of txs) {
         if (tx.date >= windowEnd) break;
         balance += getEffectiveAmount(app, tx);
-        if (tx.date >= tomorrow && round2(balance) <= limit) {
+        if (tx.date >= tomorrow && breached(round2(balance))) {
             return { date: dateToISO(tx.date), balance: round2(balance) };
         }
     }
@@ -164,15 +172,18 @@ export function computeNotificationEvents(app, now = new Date(), prefs = getNoti
             events.push({ type, dedupeKey: `${episodeKey}|${todayIso}`, episodeKey, params });
         };
 
-        const isZero = balance <= 0;
-        const isLow = threshold !== null && !isZero && balance <= threshold;
-        if (isZero && prefs.zeroBalance) balanceEvent('zeroBalance');
+        // 'zeroBalance' means overdrawn: below $0. Many accounts sit at
+        // exactly $0 on purpose, so $0 itself never alerts (the type name is
+        // kept for stored alerts and the notifyZeroBalance setting).
+        const isOverdrawn = balance < 0;
+        const isLow = threshold !== null && !isOverdrawn && balance <= threshold;
+        if (isOverdrawn && prefs.zeroBalance) balanceEvent('zeroBalance');
         if (isLow && prefs.lowBalance) balanceEvent('lowBalance');
 
-        // Not low today, but projected to reach the threshold ($0 without
-        // one) within the window.
-        if (prefs.projectedLow && daysAhead > 0 && !isZero && !isLow) {
-            const breach = findProjectedBreach(app, account, txs, now, daysAhead, threshold ?? 0);
+        // Not low today, but projected to reach the threshold (below $0
+        // without one) within the window.
+        if (prefs.projectedLow && daysAhead > 0 && !isOverdrawn && !isLow) {
+            const breach = findProjectedBreach(app, account, txs, now, daysAhead, threshold);
             if (breach) {
                 balanceEvent('projectedLow', { ...base, projectedBalance: breach.balance, date: breach.date });
             }
