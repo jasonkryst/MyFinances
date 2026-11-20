@@ -26,6 +26,7 @@ export const KEYBOARD_SHORTCUTS = [
         group: 'Dialogs',
         items: [
             { keys: [['Tab'], ['Shift', 'Tab']], description: 'Move between controls — focus stays inside the open dialog' },
+            { keys: [['Esc']], description: 'In Settings on a phone, go back from a page to the list' },
             { keys: [['Enter']], description: 'Confirm form dialogs such as Reconcile, Amount Override, and Retirement Snapshot' }
         ]
     },

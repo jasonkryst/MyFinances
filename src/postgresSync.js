@@ -305,9 +305,15 @@ export async function pgDelete(app, path) {
     reportFailure('DELETE', path, res);
 }
 
+// PUTs to one path run one after another, so two quick changes of one setting
+// (a switch toggled twice) end at the last value, never an out-of-order one.
+const putChains = new Map();
 export function pgPut(app, path, body) {
     invalidateProjectionCache();
-    pgFetch(app, 'PUT', path, body);
+    const previous = putChains.get(path) || Promise.resolve();
+    const next = previous.then(() => pgFetch(app, 'PUT', path, body)).catch(() => null);
+    putChains.set(path, next);
+    next.then(() => { if (putChains.get(path) === next) putChains.delete(path); });
 }
 
 export async function pgDeleteMilestones(app) {

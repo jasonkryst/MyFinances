@@ -139,7 +139,7 @@ import { openKeyboardShortcutsModal as openKeyboardShortcutsModalFeature } from 
 import { getFilteredSortedLedgerTransactions as getFilteredSortedLedgerTransactionsFeature } from './ledgerTransactions.js';
 import { getSetting as getSettingFeature, setSetting as setSettingFeature, AUTO_NW_SNAPSHOT, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { hasSnapshotInMonth } from './netWorthCore.js';
-import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature } from './setupWizard.js';
+import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature, openSettings as openSettingsFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { initCalendarFeedModal } from './calendarFeed.js';
 import { applyStaticTranslations, setLocale as setLocaleFeature, t } from './i18n.js';
@@ -1316,6 +1316,7 @@ export class DebtTrackerApp {
     renderPeopleList() { return renderPeopleListFeature(this); }
     refreshPersonSelectors() { return refreshPersonSelectorsFeature(this); }
 
+    openSettings(opts) { return openSettingsFeature(this, opts); }
     openKeyboardShortcuts() { return openKeyboardShortcutsModalFeature(this); }
 
     getSetting(key, defaultValue) { return getSettingFeature(this, key, defaultValue); }

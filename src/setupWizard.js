@@ -5,10 +5,12 @@ import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_D
 import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie, discardBody } from './storage.js';
 import { requestLogin } from './loginGate.js';
-import { showEmailTestToast } from './ui.js';
+import { showEmailTestToast, openWhatsNewModal } from './ui.js';
 import { initSettingsBackup } from './settingsBackup.js';
 import { initSecuritySettings, refreshSecuritySettingsPanel } from './securitySettings.js';
-import { initNotificationSettings, loadNotificationSettingsForm, saveNotificationSettingsForm } from './notificationSettings.js';
+import { initNotificationSettings, loadNotificationSettingsForm } from './notificationSettings.js';
+import { initSettingsNav, showSettingsPage, showSettingsListQuiet, handleSettingsEscape, isSettingsNarrow, getActiveSettingsPage, refreshSettingsRowValues } from './settingsNav.js';
+import { APP_VERSION } from './utils.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -44,11 +46,18 @@ export function maybeShowSetupWizard(app, isFirstRun) {
     setTimeout(() => adjustBtn.focus(), 30);
 }
 
+let openSettingsImpl = null;
+
+// Opens Settings; `page` selects a page (a deep link). With no page, wide
+// screens show the last page used this session and narrow ones the list.
+export function openSettings(app, opts = {}) {
+    if (openSettingsImpl) openSettingsImpl(opts && opts.page);
+}
+
 export function initSettingsModal(app) {
     const modal = document.getElementById('settingsModal');
     const settingsBtn = document.getElementById('settingsBtn');
     const closeBtn = document.getElementById('settingsModalCloseBtn');
-    const doneBtn = document.getElementById('settingsModalDoneBtn');
     const adjustsCheckbox = document.getElementById('settingReconciliationAdjusts');
     const showArchivedCheckbox = document.getElementById('settingShowArchivedDebts');
     const showArchivedRecurringCheckbox = document.getElementById('settingShowArchivedRecurring');
@@ -57,30 +66,16 @@ export function initSettingsModal(app) {
     const sendTestEmailBtn = document.getElementById('settingsSendTestEmailBtn');
     const localeSelect = document.getElementById('settingLocale');
     const currencySelect = document.getElementById('settingCurrency');
-    if (!modal || !settingsBtn || !closeBtn || !doneBtn || !adjustsCheckbox || !localeSelect || !currencySelect) return;
+    const themeSelect = document.getElementById('themeSwitcher');
+    if (!modal || !settingsBtn || !closeBtn || !adjustsCheckbox || !localeSelect || !currencySelect) return;
 
     initSettingsBackup(app);
     initSecuritySettings(app);
     initNotificationSettings(app);
+    initSettingsNav(modal);
 
-    // #322: tabbed layout — same data-attribute/classList pattern as the
-    // Data Transfer modal's Export/Import tabs, under its own class
-    // namespace (settings-tab-*, not dt-tab-*).
-    const tabBtns = modal.querySelectorAll('.settings-tab-btn');
-    const tabPanels = modal.querySelectorAll('.settings-tab-panel');
-    let activeSettingsTab = 'appearance';
-    function showSettingsTab(tab) {
-        activeSettingsTab = tab;
-        tabBtns.forEach(b => {
-            const active = b.getAttribute('data-settings-tab') === tab;
-            b.classList.toggle('settings-tab-btn--active', active);
-            b.setAttribute('aria-selected', String(active));
-        });
-        tabPanels.forEach(p => {
-            p.classList.toggle('settings-tab-panel--active', p.id === `settingsPanel-${tab}`);
-        });
-    }
-    tabBtns.forEach(btn => btn.addEventListener('click', () => showSettingsTab(btn.getAttribute('data-settings-tab'))));
+    const versionEl = document.getElementById('settingsAboutVersion');
+    if (versionEl) versionEl.textContent = APP_VERSION;
 
     let lastFocused = null;
 
@@ -91,9 +86,8 @@ export function initSettingsModal(app) {
         if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
     };
 
-    const open = () => {
+    const open = (page) => {
         lastFocused = document.activeElement;
-        showSettingsTab(activeSettingsTab);
         adjustsCheckbox.checked = Boolean(getSetting(app, RECONCILIATION_ADJUSTS_BALANCE, false));
         if (showArchivedCheckbox) showArchivedCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_DEBTS, false));
         if (showArchivedRecurringCheckbox) showArchivedRecurringCheckbox.checked = Boolean(getSetting(app, SHOW_ARCHIVED_RECURRING, false));
@@ -103,46 +97,54 @@ export function initSettingsModal(app) {
         loadNotificationSettingsForm(app);
         localeSelect.value = getCurrentLocale();
         currencySelect.value = getCurrencyCode();
+        refreshSettingsRowValues();
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
+        if (page) showSettingsPage(page, { focus: false });
+        else if (isSettingsNarrow()) showSettingsListQuiet();
+        else showSettingsPage(getActiveSettingsPage(), { focus: false });
         modal.onkeydown = (event) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                close();
+                if (!handleSettingsEscape()) close();
             }
         };
         setTimeout(() => {
-            const panel = modal.querySelector(`#settingsPanel-${activeSettingsTab}`);
-            const candidates = panel ? panel.querySelectorAll('input, select, button, a[href]') : [];
-            // A panel's first matching control can itself be hidden (e.g. the
-            // Data tab's hidden settings-import file input) — querySelector alone would pick it and focus()
-            // would then silently do nothing, leaving focus behind the modal.
-            const first = Array.from(candidates).find(el => el.offsetParent !== null);
-            (first || closeBtn).focus();
+            const target = (page || !isSettingsNarrow())
+                ? document.getElementById(`settingsPageTitle-${getActiveSettingsPage()}`)
+                : modal.querySelector('.settings-row');
+            (target || closeBtn).focus();
         }, 30);
     };
+    openSettingsImpl = open;
 
-    const save = () => {
-        // #211: an invalid "Days ahead" keeps Settings open on its tab, unsaved.
-        if (!saveNotificationSettingsForm(app)) {
-            showSettingsTab('notifications');
-            document.getElementById('settingNotifyDaysAhead')?.focus();
-            return;
-        }
-        setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, adjustsCheckbox.checked);
-        if (showArchivedCheckbox) setSetting(app, SHOW_ARCHIVED_DEBTS, showArchivedCheckbox.checked);
-        if (showArchivedRecurringCheckbox) setSetting(app, SHOW_ARCHIVED_RECURRING, showArchivedRecurringCheckbox.checked);
-        if (autoNwSnapshotCheckbox) setSetting(app, AUTO_NW_SNAPSHOT, autoNwSnapshotCheckbox.checked);
-        if (zeroPolicySelect) setSetting(app, ZERO_AMOUNT_POLICY, zeroPolicySelect.value);
+    // Every control saves on change; there is no Done button (7.20.0).
+    const onSetting = (el, key, read) => {
+        if (el) el.addEventListener('change', () => setSetting(app, key, read(el)));
+    };
+    onSetting(adjustsCheckbox, RECONCILIATION_ADJUSTS_BALANCE, el => el.checked);
+    onSetting(showArchivedCheckbox, SHOW_ARCHIVED_DEBTS, el => el.checked);
+    onSetting(showArchivedRecurringCheckbox, SHOW_ARCHIVED_RECURRING, el => el.checked);
+    onSetting(autoNwSnapshotCheckbox, AUTO_NW_SNAPSHOT, el => el.checked);
+    onSetting(zeroPolicySelect, ZERO_AMOUNT_POLICY, el => el.value);
+    localeSelect.addEventListener('change', () => {
         app.setLocale(localeSelect.value);
+        refreshSettingsRowValues();
+    });
+    currencySelect.addEventListener('change', () => {
         setCurrencyCode(currencySelect.value);
         app.refreshCurrentPageData();
-        close();
-    };
+        refreshSettingsRowValues();
+    });
+    if (themeSelect) themeSelect.addEventListener('change', refreshSettingsRowValues);
 
-    settingsBtn.onclick = open;
+    const whatsNewBtn = document.getElementById('settingsAboutWhatsNewBtn');
+    if (whatsNewBtn) whatsNewBtn.addEventListener('click', () => openWhatsNewModal());
+    const shortcutsBtn = document.getElementById('settingsAboutShortcutsBtn');
+    if (shortcutsBtn) shortcutsBtn.addEventListener('click', () => app.openKeyboardShortcuts());
+
+    settingsBtn.onclick = () => openSettings(app);
     closeBtn.onclick = close;
-    doneBtn.onclick = save;
     if (sendTestEmailBtn) {
         sendTestEmailBtn.onclick = async () => {
             sendTestEmailBtn.disabled = true;

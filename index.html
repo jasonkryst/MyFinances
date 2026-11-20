@@ -1972,18 +1972,53 @@
         </div>
     </div>
     <!-- Settings -->
-    <div id="settingsModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
-        <div class="modal-content">
-            <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="settingsModalTitle" data-i18n="settings.title">Settings</h3>
-            <div class="settings-tabs" role="tablist" aria-label="Settings sections" data-i18n-attr="aria-label:settings.tabsAria">
-                <button type="button" class="settings-tab-btn settings-tab-btn--active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="settingsPanel-appearance" data-i18n="settings.tabAppearance">Appearance</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="settingsPanel-data" data-i18n="settings.tabData">Data &amp; Storage</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="notifications" role="tab" aria-selected="false" aria-controls="settingsPanel-notifications" data-i18n="settings.tabNotifications">Notifications</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="advanced" role="tab" aria-selected="false" aria-controls="settingsPanel-advanced" data-i18n="settings.tabAdvanced">Advanced</button>
-                <button type="button" class="settings-tab-btn" data-settings-tab="security" role="tab" aria-selected="false" aria-controls="settingsPanel-security" data-i18n="settings.tabSecurity">Security</button>
+    <div id="settingsModal" class="modal modal-overlay settings-shell hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" tabindex="-1">
+        <div class="modal-content settings-modal-content">
+            <div class="settings-header">
+                <button type="button" id="settingsBackBtn" class="settings-back-btn" data-i18n="settings.back">Settings</button>
+                <h3 id="settingsModalTitle" data-i18n="settings.title">Settings</h3>
+                <button id="settingsModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
             </div>
-            <div id="settingsPanel-appearance" class="settings-tab-panel settings-tab-panel--active" role="tabpanel">
+            <div class="settings-body">
+            <nav id="settingsNav" class="settings-nav" aria-label="Settings sections" data-i18n-attr="aria-label:settings.navAria">
+                <div class="settings-group">
+                    <h4 class="settings-group-title" id="settingsGroup-general" data-i18n="settings.groupGeneral"></h4>
+                    <ul class="settings-card" aria-labelledby="settingsGroup-general">
+                        <li><button type="button" class="settings-row" data-settings-page="appearance"><span class="settings-icon settings-icon--blue"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10" r="1"/><path d="M12 21a2 2 0 0 1 0-4 2 2 0 0 0 2-2c0-1-1-2-2-2"/></svg></span><span class="settings-row-label" data-i18n="settings.pageAppearance"></span><span class="settings-row-value" id="settingsRowValue-appearance"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                        <li><button type="button" class="settings-row" data-settings-page="language"><span class="settings-icon settings-icon--purple"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><span class="settings-row-label" data-i18n="settings.pageLanguage"></span><span class="settings-row-value" id="settingsRowValue-language"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                        <li><button type="button" class="settings-row" data-settings-page="notifications"><span class="settings-icon settings-icon--red"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><span class="settings-row-label" data-i18n="settings.pageNotifications"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                    </ul>
+                </div>
+                <div class="settings-group">
+                    <h4 class="settings-group-title" id="settingsGroup-data" data-i18n="settings.groupData"></h4>
+                    <ul class="settings-card" aria-labelledby="settingsGroup-data">
+                        <li><button type="button" class="settings-row" data-settings-page="backup"><span class="settings-icon settings-icon--green"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg></span><span class="settings-row-label" data-i18n="settings.pageBackup"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                        <li><button type="button" class="settings-row" data-settings-page="advanced"><span class="settings-icon settings-icon--gray"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg></span><span class="settings-row-label" data-i18n="settings.pageAdvanced"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                    </ul>
+                </div>
+                <div class="settings-group">
+                    <h4 class="settings-group-title" id="settingsGroup-account" data-i18n="settings.groupAccount"></h4>
+                    <ul class="settings-card" aria-labelledby="settingsGroup-account">
+                        <li><button type="button" class="settings-row" data-settings-page="security"><span class="settings-icon settings-icon--orange"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span class="settings-row-label" data-i18n="settings.pageSecurity"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                    </ul>
+                </div>
+                <div class="settings-group">
+                    <h4 class="settings-group-title" id="settingsGroup-about" data-i18n="settings.groupAbout"></h4>
+                    <ul class="settings-card" aria-labelledby="settingsGroup-about">
+                        <li><button type="button" class="settings-row" data-settings-page="about"><span class="settings-icon settings-icon--slate"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8.01"/></svg></span><span class="settings-row-label" data-i18n="settings.pageAbout"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                    </ul>
+                </div>
+                <div class="settings-group">
+                    <h4 class="settings-group-title" id="settingsGroup-danger" data-i18n="settings.dangerTitle">Danger zone</h4>
+                    <ul class="settings-card" aria-labelledby="settingsGroup-danger">
+                        <li><button type="button" id="clearDataBtn" class="settings-row settings-row--danger"><span class="settings-icon settings-icon--red"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span><span class="settings-row-label" data-i18n="settings.clearAllData">Clear All Data</span></button></li>
+                    </ul>
+                </div>
+            </nav>
+            <div class="settings-pages">
+                <section id="settingsPage-appearance" class="settings-page" aria-labelledby="settingsPageTitle-appearance">
+                    <h4 id="settingsPageTitle-appearance" class="settings-page-title" tabindex="-1" data-i18n="settings.pageAppearance"></h4>
+                    <div class="settings-card settings-page-card">
                 <div class="form-group modal-form-group">
                     <label for="themeSwitcher" data-i18n="settings.themeLabel">Theme</label>
                     <select id="themeSwitcher">
@@ -1993,6 +2028,11 @@
                     </select>
                     <p class="modal-helper-text" data-i18n="settings.themeHelp">High Contrast layers extra overrides on top of Dark for stronger contrast.</p>
                 </div>
+                    </div>
+                </section>
+                <section id="settingsPage-language" class="settings-page" aria-labelledby="settingsPageTitle-language">
+                    <h4 id="settingsPageTitle-language" class="settings-page-title" tabindex="-1" data-i18n="settings.pageLanguage"></h4>
+                    <div class="settings-card settings-page-card">
                 <div class="form-group modal-form-group">
                     <label for="settingLocale" data-i18n="settings.language">Language</label>
                     <select id="settingLocale">
@@ -2028,29 +2068,12 @@
                     </select>
                     <p class="modal-helper-text" data-i18n="settings.currencyHelp">Currency used to display all monetary amounts in the app.</p>
                 </div>
-            </div>
-            <div id="settingsPanel-data" class="settings-tab-panel" role="tabpanel">
-                <div class="form-group modal-form-group">
-                    <p id="settingStorageInfo" class="settings-storage-info" data-i18n="settings.storageServer">Storage: PostgreSQL server</p>
-                </div>
-                <div class="form-group modal-form-group settings-backup-block">
-                    <h4 class="settings-backup-title" data-i18n="settings.backup.title">Settings backup</h4>
-                    <div class="settings-backup-actions">
-                        <button type="button" id="settingsExportBtn" class="btn btn-secondary btn-small" data-i18n="settings.backup.export">Export settings</button>
-                        <button type="button" id="settingsImportBtn" class="btn btn-secondary btn-small" data-i18n="settings.backup.import">Import settings</button>
-                        <input type="file" id="settingsImportFile" class="hidden" accept="application/json,.json" tabindex="-1" aria-hidden="true">
                     </div>
-                    <p class="modal-helper-text" data-i18n="settings.backup.help">Saves or restores only your preferences (theme, language, currency and option toggles). Your financial data is never touched. The storage backend and account-specific choices are not included.</p>
-                    <div id="settingsBackupStatus" role="status" aria-live="polite"></div>
-                </div>
-                <div class="form-group modal-form-group settings-danger-zone">
-                    <h4 class="settings-danger-title" data-i18n="settings.dangerTitle">Danger zone</h4>
-                    <p class="modal-helper-text" data-i18n="settings.dangerHelp">Permanently remove every account, debt, income, expense, plan and setting stored on your server. Export a backup first.</p>
-                    <button type="button" id="clearDataBtn" class="btn btn-danger btn-small" data-i18n="settings.clearAllData">Clear All Data</button>
-                </div>
-            </div>
-            <div id="settingsPanel-notifications" class="settings-tab-panel" role="tabpanel">
-                <!-- #211: alert preferences (src/notificationSettings.js). Saved with Done, like every other setting. -->
+                </section>
+                <section id="settingsPage-notifications" class="settings-page" aria-labelledby="settingsPageTitle-notifications">
+                    <h4 id="settingsPageTitle-notifications" class="settings-page-title" tabindex="-1" data-i18n="settings.pageNotifications"></h4>
+                    <div class="settings-card settings-page-card">
+                <!-- #211: alert preferences (src/notificationSettings.js). Each control saves as you change it. -->
                 <fieldset class="form-group modal-form-group notify-settings">
                     <legend class="notify-settings-legend" data-i18n="settings.notify.typesLegend">Alert me when</legend>
                     <label class="settings-toggle-row" for="settingNotifyBillDue">
@@ -2102,8 +2125,29 @@
                     <button type="button" id="settingsSendTestEmailBtn" class="btn btn-secondary" data-i18n="settings.sendTestEmail">Send test email</button>
                     <p class="modal-helper-text" data-i18n="settings.testEmailHelp">Sends a test email to your account's address to verify the server's SMTP configuration.</p>
                 </div>
-            </div>
-            <div id="settingsPanel-advanced" class="settings-tab-panel" role="tabpanel">
+                    </div>
+                </section>
+                <section id="settingsPage-backup" class="settings-page" aria-labelledby="settingsPageTitle-backup">
+                    <h4 id="settingsPageTitle-backup" class="settings-page-title" tabindex="-1" data-i18n="settings.pageBackup"></h4>
+                    <div class="settings-card settings-page-card">
+                <div class="form-group modal-form-group settings-backup-block">
+                    <h4 class="settings-backup-title" data-i18n="settings.backup.title">Settings backup</h4>
+                    <div class="settings-backup-actions">
+                        <button type="button" id="settingsExportBtn" class="btn btn-secondary btn-small" data-i18n="settings.backup.export">Export settings</button>
+                        <button type="button" id="settingsImportBtn" class="btn btn-secondary btn-small" data-i18n="settings.backup.import">Import settings</button>
+                        <input type="file" id="settingsImportFile" class="hidden" accept="application/json,.json" tabindex="-1" aria-hidden="true">
+                    </div>
+                    <p class="modal-helper-text" data-i18n="settings.backup.help">Saves or restores only your preferences (theme, language, currency and option toggles). Your financial data is never touched. The storage backend and account-specific choices are not included.</p>
+                    <div id="settingsBackupStatus" role="status" aria-live="polite"></div>
+                </div>
+                    </div>
+                </section>
+                <section id="settingsPage-advanced" class="settings-page" aria-labelledby="settingsPageTitle-advanced">
+                    <h4 id="settingsPageTitle-advanced" class="settings-page-title" tabindex="-1" data-i18n="settings.pageAdvanced"></h4>
+                    <div class="settings-card settings-page-card">
+                <div class="form-group modal-form-group">
+                    <p id="settingStorageInfo" class="settings-storage-info" data-i18n="settings.storageServer">Storage: PostgreSQL server</p>
+                </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingReconciliationAdjusts">
                         <input type="checkbox" id="settingReconciliationAdjusts">
@@ -2141,8 +2185,11 @@
                     </select>
                     <p class="modal-helper-text" data-i18n="settings.zeroAmountHelp">$0 entries are useful for tracking a transaction (for example, one made on a credit card) without moving a balance. Applies to ledger overrides and recurring templates; transfers always need an amount above $0.</p>
                 </div>
-            </div>
-            <div id="settingsPanel-security" class="settings-tab-panel" role="tabpanel">
+                    </div>
+                </section>
+                <section id="settingsPage-security" class="settings-page" aria-labelledby="settingsPageTitle-security">
+                    <h4 id="settingsPageTitle-security" class="settings-page-title" tabindex="-1" data-i18n="settings.pageSecurity"></h4>
+                    <div class="settings-card settings-page-card">
                 <form id="settingsChangePasswordForm" class="settings-change-password" novalidate>
                     <h4 class="settings-security-title" data-i18n="settings.security.title">Change password</h4>
                     <!-- Lets password managers pair the new password with the account. -->
@@ -2165,9 +2212,22 @@
                     <p id="settingsChangePasswordStatus" class="settings-security-status" role="status" aria-live="polite"></p>
                     <button type="submit" id="settingsChangePasswordBtn" class="btn btn-primary btn-small" data-i18n="settings.security.submit">Change password</button>
                 </form>
+                    </div>
+                </section>
+                <section id="settingsPage-about" class="settings-page" aria-labelledby="settingsPageTitle-about">
+                    <h4 id="settingsPageTitle-about" class="settings-page-title" tabindex="-1" data-i18n="settings.pageAbout"></h4>
+                    <div class="settings-card settings-page-card">
+                        <div class="form-group modal-form-group settings-version-row">
+                            <span data-i18n="settings.version">Version</span>
+                            <span id="settingsAboutVersion" class="settings-row-value"></span>
+                        </div>
+                        <div class="form-group modal-form-group">
+                            <button type="button" id="settingsAboutWhatsNewBtn" class="btn btn-secondary btn-small" data-i18n="settings.aboutWhatsNew">What's New</button>
+                            <button type="button" id="settingsAboutShortcutsBtn" class="btn btn-secondary btn-small" data-i18n="settings.aboutShortcuts">Keyboard shortcuts</button>
+                        </div>
+                    </div>
+                </section>
             </div>
-            <div class="modal-actions">
-                <button id="settingsModalDoneBtn" class="btn btn-success" data-i18n="settings.done">Done</button>
             </div>
         </div>
     </div>

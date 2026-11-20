@@ -5453,50 +5453,6 @@ body.dark-mode .dt-tab-btn:hover {
 .dt-tab-panel { display: none; }
 .dt-tab-panel--active { display: block; }
 
-/* ── Settings modal tabs (#322) — same pill pattern as .dt-tab-btn, own
-   class namespace so Settings and Data Transfer stay decoupled ────────── */
-.settings-tabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-}
-.settings-tab-btn {
-    padding: 8px 14px;
-    background: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-.settings-tab-btn:hover {
-    background: var(--light-bg);
-    color: var(--text-primary);
-    border-color: var(--primary-color);
-}
-.settings-tab-btn:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-.settings-tab-btn--active {
-    background: var(--primary-color);
-    color: #fff;
-    border-color: var(--primary-color);
-}
-body.dark-mode .settings-tab-btn--active {
-    background: #60a5fa;
-    border-color: #60a5fa;
-    color: #0f172a;
-}
-body.dark-mode .settings-tab-btn:hover {
-    background: #1e293b;
-    color: #e2e8f0;
-}
-.settings-tab-panel { display: none; }
-.settings-tab-panel--active { display: block; }
-
 .dt-import-choice {
     margin-top: 14px;
     padding-top: 14px;
@@ -9027,14 +8983,6 @@ body.dark-mode .comparison-table th { color: #e2e8f0; }
     .savings-subtab-btn { padding: 8px 4px; font-size: 0.8rem; white-space: normal; line-height: 1.25; }
 }
 
-/* Settings tabs: equal-width two-column grid on phone; an odd last tab
-   (Security, #456) spans the full row instead of sitting alone at half width */
-@media (max-width: 480px) {
-    .settings-tabs { display: grid; grid-template-columns: 1fr 1fr; }
-    .settings-tab-btn { text-align: center; min-height: 40px; }
-    .settings-tab-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
-}
-
 /* Net Worth / Forecast stat cards: two per row on phone */
 @media (max-width: 480px) {
     .nw-report-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -9758,4 +9706,139 @@ body.dark-mode .notifications-filter-text {
         color: #000;
         background: #fff;
     }
+}
+
+/* Settings redesign (7.20.0) */
+.settings-shell .modal-content.settings-modal-content {
+    max-width: 900px;
+    width: 92%;
+    height: 640px;
+    max-height: 90vh;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 56px 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.settings-header h3 { margin: 0; font-size: 1.15rem; }
+.settings-back-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    padding: 0 8px;
+}
+.settings-back-btn::before { content: "9 a0"; font-size: 1.4rem; line-height: 1; }
+.settings-body { display: flex; flex: 1 1 auto; min-height: 0; }
+.settings-nav {
+    flex: 0 0 260px;
+    overflow-y: auto;
+    padding: 4px 12px 16px;
+    background: var(--light-bg);
+    border-right: 1px solid var(--border-color);
+}
+.settings-pages { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 20px; }
+.settings-page { display: none; }
+.settings-page--active { display: block; }
+.settings-page-title { margin: 0 0 12px; font-size: 1.1rem; outline: 0; }
+.settings-group-title {
+    margin: 16px 12px 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.settings-card {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--bg-secondary, #ffffff);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    min-width: 0;
+}
+.settings-page-card { padding: 4px 16px 8px; }
+.settings-card > li + li {
+    background-image: linear-gradient(var(--border-color), var(--border-color));
+    background-size: calc(100% - 56px) 1px;
+    background-position: right top;
+    background-repeat: no-repeat;
+}
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+}
+.settings-row:hover { background: var(--light-bg); }
+.settings-row:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+.settings-row[aria-current="page"] {
+    background: var(--light-bg);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--primary-color);
+}
+.settings-row-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.settings-row-value { flex: 0 1 auto; min-width: 0; color: var(--text-muted); font-size: 0.9rem; overflow-wrap: anywhere; text-align: right; }
+.settings-row-chevron { color: var(--text-muted); font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
+.settings-row--danger { color: var(--danger-text); font-weight: 600; }
+.settings-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    color: #ffffff;
+}
+.settings-icon--blue { background: #1d4ed8; }
+.settings-icon--purple { background: #6d28d9; }
+.settings-icon--red { background: #b91c1c; }
+.settings-icon--green { background: #047857; }
+.settings-icon--gray { background: #475569; }
+.settings-icon--orange { background: #c2410c; }
+.settings-icon--slate { background: #334155; }
+.settings-version-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-page-card .form-group:last-child { margin-bottom: 0; }
+
+@keyframes settingsSlideIn {
+    from { transform: translateX(24px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@media (max-width: 767px) {
+    .settings-shell .modal-content.settings-modal-content {
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+    }
+    .settings-nav { flex: 1 1 auto; border-right: none; background: var(--light-bg); }
+    .settings-pages { display: none; padding: 16px; }
+    .settings-shell--page .settings-nav { display: none; }
+    .settings-shell--page .settings-pages { display: block; flex: 1 1 auto; animation: settingsSlideIn 0.2s ease-out; }
+    .settings-shell--page .settings-back-btn { display: inline-block; }
+    .settings-shell--page .settings-header h3 { display: none; }
+    .settings-row-value { max-width: 45%; }
 }
