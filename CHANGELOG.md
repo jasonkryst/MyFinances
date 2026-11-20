@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.18.3] — 2026-11-19
+
+### Fixed
+- **The `backup` container crash-looped and never ran a scheduled backup (#656).** Since #159 (6.x), `docker logs myfinances-backup` repeated the cron line and `sh: syntax error: unexpected "&&"`. **After upgrading, run `docker compose up -d` and take one backup straight away** (`docker compose run --rm backup sh /usr/local/bin/docker-backup.sh`): there are no earlier scheduled dumps.
+  - **Entrypoint.** The folded YAML block kept its line breaks (continuation lines were indented further than the first), so `sh -c` got a line starting with `&&`; it also ran `chmod` on a read-only mount. It is now `server/scripts/backup-entrypoint.sh`, run as a list entrypoint: cron in the foreground with no arguments, or the given command (`docker compose run --rm backup ...`). Each run is logged to `docker logs`, and the service has a healthcheck.
+  - **No fake backups.** `docker-backup.sh` dumps to a `.partial` file and renames it only when `pg_dump` succeeds; a failed run used to leave a 0-byte `.dump`.
+  - **CRLF secrets.** The password is read with CR/LF stripped, so a `postgres_password.txt` saved on Windows authenticates.
+  - **Docs.** `server/README.md`'s manual backup, list and restore commands didn't work (the argument was ignored; `docker run` couldn't reach `postgres`); all are rewritten and were run against a live stack. `DEPLOYMENT.md` no longer says nothing runs backups automatically.
+  - **Guards.** CI's test-integration job runs `tools/check-backup-service.sh` (container up without restarts, `crond` running, a manual backup writes a dump `pg_restore` can read); `tests/features/test_backup_service.py` (shard K) rejects block-scalar entrypoints/commands and `chmod` on read-only mounts in every compose file.
+
 ## [7.18.2] — 2026-11-19
 
 ### Fixed
