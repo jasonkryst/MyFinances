@@ -123,6 +123,7 @@ def test_server_value_wins_over_a_blob_that_arrives_after_migration(app_page, br
     try:
         page2.evaluate("""() => localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({ pageSize: 10 }))""")
         page2.reload()
+        wait_for_app_ready(page2)  # raw page: reload is not wrapped like app_page
         _open_ledger(page2)
         assert _ledger_dom(page2)['size'] == '10'
         _server_ledger(page2, lambda l: l.get('pageSize') == 10)
@@ -133,6 +134,7 @@ def test_server_value_wins_over_a_blob_that_arrives_after_migration(app_page, br
         _server_ledger(page, lambda l: l.get('pageSize') == 100)
 
         page2.reload()
+        wait_for_app_ready(page2)  # raw page: reload is not wrapped like app_page
         _open_ledger(page2)
         assert _ledger_dom(page2)['size'] == '100'
         page2.select_option('#ledgerCategoryFilter', 'Housing')
