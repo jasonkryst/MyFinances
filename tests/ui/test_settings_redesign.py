@@ -293,4 +293,7 @@ def test_clear_all_data_row_still_confirms(app_page):
     open_settings(page)
     page.click('#clearDataBtn')
     page.wait_for_selector('#deleteConfirmModal', state='visible', timeout=5000)
-    assert page.locator('#settingsModal').is_hidden()
+    # Nothing is cleared until the confirm is accepted; cancel leaves Settings open.
+    page.click('#deleteConfirmCancelBtn')
+    page.wait_for_selector('#deleteConfirmModal', state='hidden', timeout=5000)
+    assert page.locator('#settingsModal').is_visible()
