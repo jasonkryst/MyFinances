@@ -222,18 +222,18 @@ def test_focus_returns_to_opener_on_close(app_page): ...
   - `#settingsAboutShortcutsBtn` calls `app.openKeyboardShortcuts()`.
 - Both open on top of Settings. Settings' Escape handler must ignore keydown while another `.modal-overlay:not(.hidden)` with a higher z-index is open (Review Focus 5).
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `test_row_values_show_theme_and_language`: open, then `#settingsRowValue-language` text contains `·` and `USD`. Change the theme select → the appearance value text equals the selected option's text. The row's `aria-label` starts with its label and contains the value.
   - `test_about_shows_version`: `open_settings_page(page,'about')` → `#settingsAboutVersion` text equals `window.APP_VERSION`-equivalent (read it with `page.evaluate` importing `/src/utils.js`).
   - `test_about_modal_escape_returns_to_settings` (Review Focus 5): click `#settingsAboutShortcutsBtn` → `#keyboardShortcutsModal` visible. Escape → shortcuts hidden, `#settingsModal` visible, `#settingsPage-about` visible, focus on `#settingsAboutShortcutsBtn`. Repeat with What's New.
   - `test_clear_all_data_row_still_confirms`: click `#clearDataBtn` → `#deleteConfirmModal` visible, and Settings is closed (the existing behaviour).
-- [ ] **Step 2: Run to verify failure.** Expected: FAIL.
-- [ ] **Step 3: Implement the About markup and handlers, `refreshSettingsRowValues`, the Escape guard, and the icons.**
+- [x] **Step 2: Run to verify failure.** Expected: FAIL.
+- [x] **Step 3: Implement the About markup and handlers, `refreshSettingsRowValues`, the Escape guard, and the icons.**
   - Draw seven 24×24 inline SVGs, one per row, in the toolbar icons' stroke style: palette, globe, bell, archive-box, sliders, lock, info. Add a trash icon for Clear All Data.
   - Add the tile colour classes `settings-icon--blue|purple|red|green|gray|orange|slate`.
   - New locale keys: `settings.aboutWhatsNew`, `settings.aboutShortcuts`.
-- [ ] **Step 4: Run the tests.** Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(settings): About group, live row values, icons`.
+- [x] **Step 4: Run the tests.** Expected: PASS.
+- [x] **Step 5: Commit**: `feat(settings): About group, live row values, icons`.
 
 ### Task 5: Migrate the existing tests and add the guard
 

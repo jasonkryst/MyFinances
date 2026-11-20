@@ -1004,6 +1004,7 @@ export function openWhatsNewModal() {
     if (!modal) return;
     const body = document.getElementById('whatsNewModalBody');
     if (body) body.innerHTML = _buildWhatsNewHtml();
+    const opener = document.activeElement;
     modal.classList.remove('hidden');
     modal.focus();
     const closeBtn = document.getElementById('whatsNewModalCloseBtn');
@@ -1011,10 +1012,15 @@ export function openWhatsNewModal() {
         modal.classList.add('hidden');
         closeBtn?.removeEventListener('click', closeHandler);
         modal.removeEventListener('click', overlayHandler);
+        modal.removeEventListener('keydown', keyHandler);
+        if (opener && opener !== document.body && typeof opener.focus === 'function') opener.focus();
     };
     const overlayHandler = (e) => { if (e.target === modal) closeHandler(); };
+    // Escape closes only this dialog (it can be open on top of Settings).
+    const keyHandler = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeHandler(); } };
     closeBtn?.addEventListener('click', closeHandler);
     modal.addEventListener('click', overlayHandler);
+    modal.addEventListener('keydown', keyHandler);
 }
 
 function _setWhatsNewDots(visible) {

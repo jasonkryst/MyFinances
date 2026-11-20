@@ -242,3 +242,55 @@ def test_backup_result_cleared_on_reopen(app_page):
     open_settings_page(page, 'backup')
     assert page.locator('#importResultBanner').is_hidden()
     assert page.locator('#importWarningsList').inner_html() == ''
+
+
+# ── Task 4: About page, row values, icons ───────────────────────────────────
+
+@pytest.mark.ui
+def test_row_values_show_theme_and_language(app_page):
+    page = app_page
+    page.set_viewport_size(WIDE)
+    open_settings(page)
+    value = page.text_content('#settingsRowValue-language')
+    assert '·' in value and 'USD' in value
+    page.select_option('#themeSwitcher', 'dark')
+    selected = page.evaluate("document.getElementById('themeSwitcher').selectedOptions[0].textContent.trim()")
+    assert page.text_content('#settingsRowValue-appearance').strip() == selected
+    label = page.get_attribute('[data-settings-page="appearance"]', 'aria-label')
+    assert label.startswith('Appearance') and selected in label
+
+
+@pytest.mark.ui
+def test_about_shows_version(app_page):
+    page = app_page
+    open_settings_page(page, 'about')
+    version = page.evaluate("async () => (await import('/src/utils.js')).APP_VERSION")
+    assert page.text_content('#settingsAboutVersion').strip() == version
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize('btn,modal', [
+    ('#settingsAboutShortcutsBtn', '#keyboardShortcutsModal'),
+    ('#settingsAboutWhatsNewBtn', '#whatsNewModal'),
+])
+def test_about_modal_escape_returns_to_settings(app_page, btn, modal):
+    page = app_page
+    page.set_viewport_size(WIDE)
+    open_settings_page(page, 'about')
+    page.click(btn)
+    page.wait_for_selector(modal, state='visible', timeout=5000)
+    page.keyboard.press('Escape')
+    page.wait_for_selector(modal, state='hidden', timeout=5000)
+    assert page.locator('#settingsModal').is_visible()
+    assert page.locator('#settingsPage-about').is_visible()
+    assert _active_id(page) == btn[1:]
+
+
+@pytest.mark.ui
+def test_clear_all_data_row_still_confirms(app_page):
+    page = app_page
+    page.set_viewport_size(WIDE)
+    open_settings(page)
+    page.click('#clearDataBtn')
+    page.wait_for_selector('#deleteConfirmModal', state='visible', timeout=5000)
+    assert page.locator('#settingsModal').is_hidden()
