@@ -9699,7 +9699,7 @@ body.dark-mode .notifications-filter-text {
     min-height: 44px;
     padding: 0 8px;
 }
-.settings-back-btn::before { content: "9 a0"; font-size: 1.4rem; line-height: 1; }
+.settings-back-btn::before { content: "\2039\00a0"; font-size: 1.4rem; line-height: 1; }
 .settings-body { display: flex; flex: 1 1 auto; min-height: 0; }
 .settings-nav {
     flex: 0 0 260px;

@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.20.1] — 2026-11-20
+
+### Fixed
+- **Settings back link showed garbage characters on phones.** The "‹ Settings" glyph in `styles.css` had been written as raw bytes (0x83 and a NUL) instead of the CSS escapes `\2039\00a0`, so phones rendered it as broken symbols and git treated `styles.css` as binary. `tests/ui/test_css_integrity.py` now fails on any control byte in a stylesheet.
+
 ## [7.20.0] — 2026-11-20
 
 ### Changed

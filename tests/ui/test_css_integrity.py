@@ -276,6 +276,20 @@ def test_stylesheet_is_structurally_sound(name):
 
 @pytest.mark.ui
 @pytest.mark.parametrize('name', STYLESHEETS)
+def test_stylesheet_has_no_control_bytes(name):
+    """7.20.0 shipped `content: "\\2039\\00a0"` as raw bytes (0x83, NUL)
+    after a tool collapsed the backslashes; the back link rendered as
+    garbage and git saw styles.css as binary. Write CSS escapes, never raw
+    control characters."""
+    with open(os.path.join(PROJECT_ROOT, name), 'rb') as f:
+        data = f.read()
+    bad = [i for i, byte in enumerate(data) if byte < 32 and byte not in (9, 10, 13)]
+    lines = sorted({data.count(b'\n', 0, i) + 1 for i in bad})
+    assert not bad, f"{name} has control bytes on line(s) {lines}"
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize('name', STYLESHEETS)
 def test_browser_keeps_every_rule(page, name):
     """Chromium must keep every rule the scanner sees; a dropped rule means an
     invalid selector or at-rule that the browser silently discarded."""
