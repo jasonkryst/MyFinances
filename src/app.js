@@ -248,14 +248,21 @@ export class DebtTrackerApp {
         // from data while a gate is up.
         // Consecutive SessionExpiredError re-probes are capped: a server that
         // reports a session but 401s the data would otherwise loop forever.
+        // The count resets after a successful load and after a gate Retry (#462),
+        // so a later genuine 401 in the same boot shows the login gate.
         let expiredReprobes = 0;
+        // The unreachable gate's Retry already probed; the next pass reuses that
+        // result instead of probing again (#468).
+        let pendingProbe = null;
         for (;;) {
-            const probe = await probeServer();
+            const probe = pendingProbe ?? await probeServer();
+            pendingProbe = null;
             if (!probe.reachable) {
                 // A 429 from /auth/setup-status is mapped to reachable by
                 // probeServer(), so this retry loop can't spin on the limiter.
                 this._markReadyBehindGate();
-                await showServerUnreachable(this);
+                pendingProbe = await showServerUnreachable(this);
+                expiredReprobes = 0;
                 continue;
             }
             if (!probe.hasSession) {
@@ -266,6 +273,7 @@ export class DebtTrackerApp {
                 // Reuse the probe's plan-settings body from a live session; after the
                 // login gate it is absent and gets fetched.
                 await loadFromPostgres(this, { planSettings: probe.hasSession ? probe.planSettings : null });
+                expiredReprobes = 0;
                 break;
             } catch (err) {
                 // The session expired between probe and load: re-probe, which
@@ -273,12 +281,14 @@ export class DebtTrackerApp {
                 if (err instanceof SessionExpiredError && ++expiredReprobes <= 2) continue;
                 console.error('Loading data from the server failed:', err);
                 this._markReadyBehindGate();
-                await showServerUnreachable(this);
+                pendingProbe = await showServerUnreachable(this);
+                expiredReprobes = 0;
             }
         }
 
-        // §5 step 4 (legacy browser data) — true when a prompt was shown.
-        const legacyPromptShown = await this._handleLegacyBrowserData();
+        // §5 step 4 (legacy browser data). Awaits the modal, so everything below
+        // sees the dataset as it is after an import, decline or dismissal.
+        await this._handleLegacyBrowserData();
 
         // §5 step 6: first run means the wizard has never stored its setting
         // (it persists a default the moment it opens) AND there is no data.
@@ -286,7 +296,11 @@ export class DebtTrackerApp {
         // empty-data check keeps the wizard (and the silent What's New
         // "seen" mark below) away from them.
         const isFirstRun = this._isFirstRun();
-        if (isFirstRun && !legacyPromptShown) {
+        // #466: still empty after the legacy modal (declined, dismissed or failed
+        // import) is a first run like any other: the wizard opens in this same
+        // load instead of the next one. An accepted import leaves data behind,
+        // so isFirstRun is false and nothing changes for it.
+        if (isFirstRun) {
             // #574: new users get the monthly net-worth snapshot on. Existing
             // users keep the old default (off) until they choose otherwise,
             // because this runs only for an empty dataset with no wizard
@@ -353,7 +367,7 @@ export class DebtTrackerApp {
     }
 
     // Legacy browser-only data (spec §5 step 4). Returns true when a prompt
-    // was shown, which suppresses the setup wizard.
+    // was shown (and has been closed).
     async _handleLegacyBrowserData() {
         let localJson = null;
         try { localJson = window.localStorage.getItem('debtTrackerData'); } catch (_) { return false; }

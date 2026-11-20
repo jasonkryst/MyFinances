@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.18.5] — 2026-11-20
+
+### Fixed
+- **Session-expiry re-probe cap resets (#462).** The cap of 2 consecutive expired-session re-probes during boot was never reset, so after a "Try again" a later genuine 401 in the same boot landed on the "Can't reach your server" gate instead of sign-in. It now resets after a successful load and after the gate's Retry.
+- **"Try again" probes once (#468).** The unreachable gate's Retry resolves with its probe result and boot reuses it, instead of probing a second time (an extra `/api/plan-settings`, and an extra `/auth/setup-status` when signed out).
+- **Declining the legacy import opens the setup wizard in the same load (#466).** On an empty server, skipping (or dismissing) the legacy browser-data prompt used to suppress the wizard while silently marking What's New seen, so the wizard appeared on the next load. It now opens right after the prompt closes. Accepting the import is unchanged (the data is non-empty, so no wizard).
+
+### Tests
+- Regression test for #534: seeding balance history for many debts and accounts keeps at most 6 `/api/balance-history` POSTs in flight and saves every entry (the fix itself shipped in 7.3.0). New `tests/features/test_boot_gates.py` covers #462, #468 and #466.
+
 ## [7.18.4] — 2026-11-19
 
 ### Changed
