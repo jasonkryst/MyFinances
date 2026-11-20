@@ -1,5 +1,11 @@
-// Unit tests for the Emergency Fund balance history series (#307).
+// Unit tests for the Emergency Fund balance history series (#307), built from
+// balance-history entries.
 import { trailingMonths, buildBalanceSeries } from '../../src/balanceSeries.js';
+
+const now = new Date(2026, 10, 20); // Nov 2026
+const months = trailingMonths(now, 12); // Dec 2025 .. Nov 2026
+const acct = { id: 7, name: 'Savings' };
+const entry = (id, date, balance, accountId = 7) => ({ id, debtId: null, accountId, date, balance, minimumPayment: 0 });
 
 describe('trailingMonths', () => {
     test('returns 12 months oldest first, crossing a year boundary', () => {
@@ -11,33 +17,59 @@ describe('trailingMonths', () => {
 });
 
 describe('buildBalanceSeries', () => {
-    const now = new Date(2026, 10, 20);
-    const months = trailingMonths(now, 12);
-
-    test('active account yields real points for months with activity plus the current month', () => {
-        const balanceFn = (id, y, m) => 1000 + (y === 2026 && m >= 8 ? (m - 7) * 100 : 0);
-        const s = buildBalanceSeries({ months, accounts: [{ id: 1, name: 'Savings', startingBalance: 1000 }], balanceFn, now });
-        expect(s.datasets[0].data.filter(v => v !== null)).toEqual([1100, 1200, 1300]);
-        expect(s.datasets[0].data[11]).toBe(1300);
-        expect(s.pointCount).toBe(3);
+    test('carries the last entry forward and has no points before the first entry', () => {
+        const s = buildBalanceSeries({ months, accounts: [acct], entries: [entry(1, '2026-08-10', 1000), entry(2, '2026-10-02', 1500)] });
+        const d = s.datasets[0].data;
+        expect(d.slice(0, 8)).toEqual(Array(8).fill(null)); // Dec..Jul
+        expect(d.slice(8)).toEqual([1000, 1000, 1500, 1500]); // Aug, Sep, Oct, Nov
+        expect(s.pointCount).toBe(4);
     });
-    test('fresh account (no activity) has only the current month, so fewer than 2 points', () => {
-        const s = buildBalanceSeries({ months, accounts: [{ id: 1, name: 'New', startingBalance: 500 }], balanceFn: () => 500, now });
+    test('several entries in one month use the last one (by date, then id)', () => {
+        const s = buildBalanceSeries({
+            months, accounts: [acct],
+            entries: [entry(3, '2026-09-20', 900), entry(1, '2026-09-02', 700), entry(2, '2026-09-20', 800), entry(4, '2026-07-01', 100)]
+        });
+        const d = s.datasets[0].data;
+        expect(d[9]).toBe(900); // Sep: 09-20 with the higher id
+        expect(d[7]).toBe(100); // Jul
+        expect(d[8]).toBe(100); // Aug carried forward
+    });
+    test('an entry before the window is carried into every month of it', () => {
+        const s = buildBalanceSeries({ months, accounts: [acct], entries: [entry(1, '2025-03-15', 400)] });
+        expect(s.datasets[0].data.every(v => v === 400)).toBe(true);
+        expect(s.pointCount).toBe(12);
+    });
+    test('year boundary: December and January entries land in their own months', () => {
+        const s = buildBalanceSeries({ months, accounts: [acct], entries: [entry(1, '2025-12-31', 10), entry(2, '2026-01-01', 20)] });
+        expect(s.datasets[0].data.slice(0, 3)).toEqual([10, 20, 20]);
+    });
+    test('only this account\'s entries count, one dataset per account', () => {
+        const s = buildBalanceSeries({
+            months, accounts: [acct, { id: 8, name: 'Other' }],
+            entries: [entry(1, '2026-10-01', 5), entry(2, '2026-10-01', 99, 8)]
+        });
+        expect(s.datasets.map(d => d.data[11])).toEqual([5, 99]);
+    });
+    test('no entries gives zero points', () => {
+        const s = buildBalanceSeries({ months, accounts: [acct], entries: [] });
+        expect(s.pointCount).toBe(0);
+        expect(s.datasets[0].data.every(v => v === null)).toBe(true);
+    });
+    test('a single entry in the current month is one point (below the chart threshold)', () => {
+        const s = buildBalanceSeries({ months, accounts: [acct], entries: [entry(1, '2026-11-05', 300)] });
         expect(s.pointCount).toBe(1);
-        expect(s.datasets[0].data.slice(0, 11).every(v => v === null)).toBe(true);
     });
-    test('no accounts gives zero points and no datasets', () => {
-        const s = buildBalanceSeries({ months, accounts: [], balanceFn: () => 0, now });
-        expect(s.datasets).toEqual([]);
+    test('entries only after the window (future dated) give no points', () => {
+        const s = buildBalanceSeries({ months, accounts: [acct], entries: [entry(1, '2026-12-01', 300)] });
         expect(s.pointCount).toBe(0);
     });
-    test('pointCount is the maximum across accounts', () => {
-        const balanceFn = (id, y, m) => (id === 2 ? 50 + m : 10);
-        const s = buildBalanceSeries({
-            months,
-            accounts: [{ id: 1, name: 'Flat', startingBalance: 10 }, { id: 2, name: 'Moving', startingBalance: 0 }],
-            balanceFn, now
-        });
-        expect(s.pointCount).toBe(12);
+    test('null balances, debt entries and malformed dates are ignored; no accounts gives no datasets', () => {
+        const entries = [
+            { id: 1, debtId: null, accountId: 7, date: '2026-10-01', balance: null },
+            { id: 2, debtId: 7, accountId: null, date: '2026-10-01', balance: 50 },
+            { id: 3, debtId: null, accountId: 7, date: 'nope', balance: 50 }
+        ];
+        expect(buildBalanceSeries({ months, accounts: [acct], entries }).pointCount).toBe(0);
+        expect(buildBalanceSeries({ months, accounts: [], entries }).datasets).toEqual([]);
     });
 });

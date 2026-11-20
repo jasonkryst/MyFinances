@@ -1,5 +1,4 @@
 import { formatCurrency, formatCurrencyAxis, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy, parseContributionAmount, renderChartDataTable } from './utils.js';
-import { withProjectionCache } from './projectionCache.js';
 import { trailingMonths, buildBalanceSeries } from './balanceSeries.js';
 import { t } from './i18n.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
@@ -216,7 +215,8 @@ const EF_LINE_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#dc2626', '#7c3aed', '
 
 /**
  * Emergency Fund balance history (#307): the linked account's month-end
- * balance for the trailing 12 months (past and current only).
+ * balance for the trailing 12 months, from its balance-history entries
+ * (carried forward, nothing before its first entry; past and current only).
  */
 function renderEmergencyBalanceChart(app) {
   const msg = document.getElementById('efBalanceHistoryMsg');
@@ -241,12 +241,11 @@ function renderEmergencyBalanceChart(app) {
   if (accounts.length === 0) { showMessage('savings.balanceHistoryNoAccount'); return; }
 
   const now = new Date();
-  const series = withProjectionCache(app, () => buildBalanceSeries({
+  const series = buildBalanceSeries({
     months: trailingMonths(now, EF_HISTORY_MONTHS),
     accounts,
-    balanceFn: (id, y, m) => computeAccountBalance(app, id, y, m),
-    now
-  }));
+    entries: app.balanceHistory || []
+  });
   if (series.pointCount < 2) { showMessage('savings.balanceHistoryFew'); return; }
 
   msg.classList.add('hidden');

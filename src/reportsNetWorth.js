@@ -29,7 +29,7 @@ export function computeLiveNetWorth(app, date = new Date()) {
 
 // Positive projected balances of accounts whose balance history is NOT
 // recorded (#585). Estimated months hold these flat, because balance history
-// only covers liabilities (debts and Credit Card / Loan accounts).
+// only covers debts and the history-tracked accounts (Credit Card, Loan, Savings).
 function computeUntrackedAssets(app, date) {
     let total = 0;
     for (const account of app.accounts || []) {

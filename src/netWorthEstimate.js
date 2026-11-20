@@ -1,10 +1,15 @@
 // Pure net-worth trend builder (issue #585, #574) — no DOM/app state access.
-// Balance history only records liabilities (debts and Credit Card / Loan
-// accounts), never asset balances, so an estimated point is:
+// Balance history records debts and the history-tracked accounts (Credit Card,
+// Loan, Savings). A tracked account's entry is its signed balance: Credit Card
+// and Loan balances are negative (they add nothing), Savings is a positive
+// asset. So an estimated point is:
 //   liabilities = each debt's last recorded balance on or before the month
 //   assets      = `baselineAssets` (today's assets outside the history-tracked
 //                 accounts, held flat) + each tracked account's last recorded
-//                 positive balance
+//                 positive balance. A tracked account with no entry yet that
+//                 early is held flat at its FIRST entry's balance, so adopting
+//                 tracking for an existing account (seeded today) does not drop
+//                 it from earlier estimated months.
 // A real snapshot always wins over an estimate for the same month. A month is
 // only estimated once at least one owner has a usable entry on or before it.
 
@@ -50,8 +55,10 @@ function usableEntries(entries) {
 // before it. `entries` must already be the output of usableEntries.
 function estimateMonth(entries, monthKey, baselineAssets) {
     const latest = new Map();
+    const firstOfAccount = new Map();
     for (const e of entries) {
-        if (monthKeyOf(e.date) > monthKey) break; // sorted by date
+        if (!e.isDebt && !firstOfAccount.has(e.owner)) firstOfAccount.set(e.owner, e);
+        if (monthKeyOf(e.date) > monthKey) continue; // sorted by date
         latest.set(e.owner, e);
     }
     if (latest.size === 0) return null;
@@ -61,6 +68,9 @@ function estimateMonth(entries, monthKey, baselineAssets) {
     for (const e of latest.values()) {
         if (e.isDebt) { liabilities += Math.max(0, e.balance); contributes = true; }
         else if (e.balance > 0) { assets += e.balance; contributes = true; }
+    }
+    for (const [owner, first] of firstOfAccount) {
+        if (!latest.has(owner) && first.balance > 0) { assets += first.balance; contributes = true; }
     }
     if (!contributes) return null;
     return {

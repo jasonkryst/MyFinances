@@ -2,7 +2,13 @@
 // retirementCalculator.js), so they can be unit- and mutation-tested.
 // Owner refs are { kind: 'debt' | 'account', id }.
 
-export const HISTORY_TRACKED_ACCOUNT_TYPES = ['Credit Card', 'Loan'];
+// Accounts whose balance changes are recorded as history entries. Credit Card
+// and Loan are liabilities (negative balances); Savings is an asset (#307), so
+// its entries are positive balances and feed the Emergency Fund chart.
+export const HISTORY_TRACKED_ACCOUNT_TYPES = ['Credit Card', 'Loan', 'Savings'];
+
+// The subset that has a minimum payment (the account form's Minimum payment field).
+export const MINIMUM_PAYMENT_ACCOUNT_TYPES = ['Credit Card', 'Loan'];
 
 function toNumber(value) {
     const n = Number(value);

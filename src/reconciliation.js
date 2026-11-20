@@ -7,6 +7,7 @@ import { renderLedgerPage } from './ledger.js';
 import { getSetting, RECONCILIATION_ADJUSTS_BALANCE } from './settings.js';
 import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
+import { recordBalanceHistory } from './balanceHistory.js';
 import { showAlertModal, showReconSaveProgressModal } from './ui.js';
 import { t, accountTypeLabel, categoryLabel } from './i18n.js';
 import { isCleared, getClearedAt } from './ledgerStateCore.js';
@@ -225,6 +226,8 @@ export async function applyReconciliation(app, accountId, statementBalance, note
     if (adjustsBalance) {
         account.startingBalance = balance;
         pgPatch(app, `/api/accounts/${accountId}`, account);
+        // Same history entry an account edit records (Credit Card, Loan, Savings).
+        await recordBalanceHistory(app, { kind: 'account', id: accountId });
     }
     if (typeof app.renderReconciliationPage === 'function') app.renderReconciliationPage();
     if (typeof app.renderAccountsList === 'function') app.renderAccountsList();

@@ -1,4 +1,4 @@
-// Balance & minimum-payment history for debts and Credit Card / Loan accounts.
+// Balance & minimum-payment history for debts and history-tracked accounts (Credit Card, Loan, Savings).
 // Pure logic lives in balanceHistoryCore.js; this module mutates app state and
 // syncs to Postgres. Exports stay hoisted function declarations: this module
 // is imported by debts.js/accounts.js, which sit in the ui.js/postgresSync.js
