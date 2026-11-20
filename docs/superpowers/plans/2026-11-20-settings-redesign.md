@@ -277,12 +277,12 @@ def test_focus_returns_to_opener_on_close(app_page): ...
 **Files:**
 - Modify: `src/utils.js`, `sw.js`, `CHANGELOG.md`, `src/ui.js` (`WHATS_NEW_ENTRIES`), `CLAUDE.md`, `guide.html`, `CONTRIBUTING.md` (only if it mentions either modal), and `sw.js` `PRECACHE_URLS` (add `/src/settingsNav.js`)
 
-- [ ] **Step 1: Bump to 7.20.0:**
+- [x] **Step 1: Bump to 7.20.0:**
   - `APP_VERSION` and `CACHE_NAME`.
   - CHANGELOG `### Changed` (Settings redesign, Backup & Restore merged, save on change) and `### Fixed` (#495).
   - What's New entry: one short paragraph covering the grouped list, Backup & Restore now in Settings, and saving as you go.
-- [ ] **Step 2: Docs:**
+- [x] **Step 2: Docs:**
   - **CLAUDE.md:** rewrite the "Settings modal tabs (issue #322)" bullet into "Settings (7.20.0)" covering the pages, `settingsNav.js`, `openSettings`, save on change and the no-Done rule. Update the Backup & Restore references in "Import warning collection" and "Clear All Data" (#429), and the browser `prompt()` note if it references the modal.
   - **guide.html:** update the Settings and Backup instructions.
-- [ ] **Step 3: Run** `pytest tests/features/test_versioning.py tests/features/test_whats_new.py tests/features/test_pwa.py tests/features/test_community_files.py tests/features/test_ci_shard_coverage.py -v`. These need the stack except `test_versioning` and the coverage test. Expected: PASS where runnable.
-- [ ] **Step 4: Commit**: `chore: 7.20.0 settings redesign`. Then push and open a **draft** PR with `Closes #495`. Mark it ready only when CI is fully green.
+- [x] **Step 3: Run** `pytest tests/features/test_versioning.py tests/features/test_whats_new.py tests/features/test_pwa.py tests/features/test_community_files.py tests/features/test_ci_shard_coverage.py -v`. These need the stack except `test_versioning` and the coverage test. Expected: PASS where runnable.
+- [x] **Step 4: Commit**: `chore: 7.20.0 settings redesign`. Then push and open a **draft** PR with `Closes #495`. Mark it ready only when CI is fully green.

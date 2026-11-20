@@ -1044,6 +1044,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.20.0 — 2026-11-20',
+        items: [
+            '<strong>A tidier Settings:</strong> Settings is now a grouped list with the current value on each row, in two panes on a wide screen and one page at a time on a phone. Backup &amp; Restore moved in as a page, there is a new About page, and changes save as you make them, so there is no Done button.'
+        ]
+    },
+    {
         version: '7.19.0 — 2026-11-20',
         items: [
             '<strong>Reconciliation reports:</strong> after you save a reconciliation, a small panel offers <em>Export CSV</em> and <em>Print</em>, and every entry in the Reconcile history has the same two buttons. The report lists the statement summary, the transactions you cleared in that period and the account\'s reconciliation history.',
