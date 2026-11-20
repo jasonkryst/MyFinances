@@ -127,7 +127,6 @@
                         </div>
                     </div>
                     <!-- Hidden trigger buttons kept for backward-compat wiring in setupWizard/dataTransferModal/calendarFeed -->
-                    <button id="dataTransferBtn" class="hidden" aria-hidden="true" tabindex="-1"></button>
                     <button id="settingsBtn" class="hidden" aria-hidden="true" tabindex="-1"></button>
                     <button id="calendarFeedBtn" class="hidden" aria-hidden="true" tabindex="-1"></button>
                 </div>
@@ -2130,6 +2129,25 @@
                 <section id="settingsPage-backup" class="settings-page" aria-labelledby="settingsPageTitle-backup">
                     <h4 id="settingsPageTitle-backup" class="settings-page-title" tabindex="-1" data-i18n="settings.pageBackup"></h4>
                     <div class="settings-card settings-page-card">
+                        <h5 class="settings-card-title" data-i18n="settings.backupFull">Full backup</h5>
+                        <p class="modal-description" data-i18n="dataTransfer.exportDescription">Download a full backup (accounts, debts, income, bills, plan, and settings) as a JSON file.</p>
+                        <div class="settings-backup-actions">
+                            <button id="exportJsonBtn" class="btn btn-primary" data-i18n="dataTransfer.exportButton">Export Backup</button>
+                            <button id="exportChartsPngBtn" class="btn" data-i18n="dataTransfer.exportChartsButton">Export Charts as PNG</button>
+                        </div>
+                        <p class="modal-description" data-i18n="dataTransfer.importDescription">Restore from a previously exported JSON backup.</p>
+                        <button id="importJsonBtn" class="btn" data-i18n="dataTransfer.importButton">Choose File…</button>
+                        <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
+                        <div id="importResultBanner" class="target-result hidden" role="status" aria-live="polite"></div>
+                        <div id="importWarningsList" class="import-warnings-list hidden"></div>
+                        <div id="importModeChoice" class="dt-import-choice hidden">
+                            <p id="importModeSummary"></p>
+                            <button id="importModeReplaceBtn" class="btn btn-primary" data-i18n="dataTransfer.replaceButton">Replace</button>
+                            <button id="importModeMergeBtn" class="btn" data-i18n="dataTransfer.mergeButton">Merge</button>
+                        </div>
+                    </div>
+                    <div class="settings-card settings-page-card">
+                        <h5 class="settings-card-title" data-i18n="settings.backupSettingsOnly">Settings only</h5>
                 <div class="form-group modal-form-group settings-backup-block">
                     <h4 class="settings-backup-title" data-i18n="settings.backup.title">Settings backup</h4>
                     <div class="settings-backup-actions">
@@ -2228,34 +2246,6 @@
                     </div>
                 </section>
             </div>
-            </div>
-        </div>
-    </div>
-    <!-- Data Transfer (Export/Import) -->
-    <div id="dataTransferModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dataTransferModalTitle" tabindex="-1">
-        <div class="modal-content">
-            <button id="dataTransferModalCloseBtn" data-i18n-attr="aria-label:settings.close" aria-label="Close" class="modal-close">&times;</button>
-            <h3 id="dataTransferModalTitle" data-i18n="dataTransfer.title">Backup &amp; Restore</h3>
-            <div class="dt-tabs" role="tablist">
-                <button type="button" class="dt-tab-btn dt-tab-btn--active" data-dt-tab="export" role="tab" aria-selected="true" aria-controls="dataTransferPanel-export" data-i18n="dataTransfer.tabExport">Export</button>
-                <button type="button" class="dt-tab-btn" data-dt-tab="import" role="tab" aria-selected="false" aria-controls="dataTransferPanel-import" data-i18n="dataTransfer.tabImport">Import</button>
-            </div>
-            <div id="dataTransferPanel-export" class="dt-tab-panel dt-tab-panel--active" role="tabpanel">
-                <p class="modal-description" data-i18n="dataTransfer.exportDescription">Download a full backup (accounts, debts, income, bills, plan, and settings) as a JSON file.</p>
-                <button id="exportJsonBtn" class="btn btn-primary" data-i18n="dataTransfer.exportButton">Export Backup</button>
-                <button id="exportChartsPngBtn" class="btn" data-i18n="dataTransfer.exportChartsButton">Export Charts as PNG</button>
-            </div>
-            <div id="dataTransferPanel-import" class="dt-tab-panel" role="tabpanel">
-                <p class="modal-description" data-i18n="dataTransfer.importDescription">Restore from a previously exported JSON backup.</p>
-                <button id="importJsonBtn" class="btn" data-i18n="dataTransfer.importButton">Choose File…</button>
-                <input type="file" id="importJsonInput" accept=".json,application/json" hidden aria-hidden="true">
-                <div id="importResultBanner" class="target-result hidden" role="status" aria-live="polite"></div>
-                <div id="importWarningsList" class="import-warnings-list hidden"></div>
-                <div id="importModeChoice" class="dt-import-choice hidden">
-                    <p id="importModeSummary"></p>
-                    <button id="importModeReplaceBtn" class="btn btn-primary" data-i18n="dataTransfer.replaceButton">Replace</button>
-                    <button id="importModeMergeBtn" class="btn" data-i18n="dataTransfer.mergeButton">Merge</button>
-                </div>
             </div>
         </div>
     </div>

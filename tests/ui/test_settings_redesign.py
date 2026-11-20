@@ -200,3 +200,45 @@ def test_toggles_are_switches(app_page):
     for b in boxes:
         assert b['role'] == 'switch', b
         assert b['name'].strip(), b
+
+
+# ── Task 3: Backup & Restore page and entry points ──────────────────────────
+
+@pytest.mark.ui
+def test_account_menu_backup_opens_backup_page(app_page):
+    page = app_page
+    page.click('#accountMenuBtn')
+    page.click('#accountMenuBackupBtn')
+    page.wait_for_selector('#settingsPage-backup', state='visible', timeout=5000)
+
+
+@pytest.mark.ui
+def test_command_palette_import_opens_backup_page(app_page):
+    page = app_page
+    page.keyboard.press('Control+k')
+    page.fill('#commandPaletteInput', 'Import')
+    page.keyboard.press('Enter')
+    page.wait_for_selector('#settingsPage-backup', state='visible', timeout=5000)
+    page.wait_for_function("document.activeElement && document.activeElement.id === 'importJsonBtn'")
+
+
+@pytest.mark.ui
+def test_data_transfer_modal_is_gone(app_page):
+    page = app_page
+    assert page.locator('#dataTransferModal').count() == 0
+    assert page.locator('[data-dt-tab]').count() == 0
+
+
+@pytest.mark.ui
+def test_backup_result_cleared_on_reopen(app_page):
+    page = app_page
+    open_settings_page(page, 'backup')
+    page.evaluate("""async () => {
+        const m = await import('/src/dataTransferModal.js');
+        m.showImportResult('error', 'x', [{ recordType: 'debt', recordName: 'd', kind: 'rejected', reason: 'r' }]);
+    }""")
+    assert page.locator('#importResultBanner').is_visible()
+    page.click('#settingsModalCloseBtn')
+    open_settings_page(page, 'backup')
+    assert page.locator('#importResultBanner').is_hidden()
+    assert page.locator('#importWarningsList').inner_html() == ''

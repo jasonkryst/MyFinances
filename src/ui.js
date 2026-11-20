@@ -626,7 +626,7 @@ export function initAccountMenu(app) {
 
     // Proxy menu items to the hidden legacy buttons
     if (calendarFeedItem) calendarFeedItem.addEventListener('click', () => { close(); document.getElementById('calendarFeedBtn')?.click(); });
-    if (backupItem) backupItem.addEventListener('click', () => { close(); document.getElementById('dataTransferBtn')?.click(); });
+    if (backupItem) backupItem.addEventListener('click', () => { close(); app.openSettings({ page: 'backup' }); });
     if (settingsItem) settingsItem.addEventListener('click', () => { close(); document.getElementById('settingsBtn')?.click(); });
     // Focus the (still visible) menu trigger first so closing the panel returns focus there.
     if (shortcutsItem) shortcutsItem.addEventListener('click', () => { close(); btn.focus(); app.openKeyboardShortcuts(); });

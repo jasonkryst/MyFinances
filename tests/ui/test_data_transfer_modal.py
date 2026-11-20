@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """
-Consolidated Export/Import "Backup & Restore" modal tests.
-
-The toolbar's separate Export/Import icon buttons were replaced with one
-#dataTransferBtn that opens a two-tab modal (#dataTransferModal). Import's
-former alert()/confirm() feedback (invalid file, no data, too large, read
-error, Replace-vs-Merge choice) now renders inline in the Import tab
-instead. #exportJsonBtn/#importJsonBtn/#importJsonInput kept their ids,
-just moved inside the modal.
+"Backup & Restore" tests. Backup & Restore is a Settings page
+(#settingsPage-backup, 7.20.0), reached from the account menu or the command
+palette. Import feedback (invalid file, no data, too large, read error,
+Replace-vs-Merge choice) renders inline on that page, never in a native
+dialog. #exportJsonBtn/#importJsonBtn/#importJsonInput keep their ids.
 """
 
 import pytest
@@ -21,61 +18,39 @@ def test_toolbar_no_longer_has_separate_export_import_buttons(app_page):
     page = app_page
     assert page.query_selector('.header-toolbar > #exportJsonBtn') is None
     assert page.query_selector('.header-toolbar > #importJsonBtn') is None
-    assert page.query_selector('#dataTransferBtn') is not None
+    assert page.query_selector('#accountMenuBackupBtn') is not None
 
 
 @pytest.mark.ui
-def test_data_transfer_modal_hidden_until_opened(app_page):
-    """Negative: the modal (and everything in it) is not visible/interactable
-    before the toolbar button is clicked."""
+def test_backup_page_hidden_until_opened(app_page):
+    """Negative: Settings (and the Backup page in it) is not visible/interactable
+    before it is opened."""
     page = app_page
-    assert page.is_visible('#dataTransferModal') is False
+    assert page.is_visible('#settingsModal') is False
     assert page.is_visible('#exportJsonBtn') is False
     assert page.is_visible('#importJsonBtn') is False
 
 
 @pytest.mark.ui
-def test_opening_modal_defaults_to_export_tab(app_page):
-    """Positive: Export is the default active tab (lower-risk, more
-    frequently used action)."""
+def test_backup_page_shows_export_and_import(app_page):
+    """Positive: the Backup page shows both Export and Import controls at once
+    (no tabs)."""
     page = app_page
     open_data_transfer(page)
 
     assert page.is_visible('#exportJsonBtn') is True
-    assert page.is_visible('#importJsonBtn') is False
-    export_selected = page.get_attribute('[data-dt-tab="export"]', 'aria-selected')
-    import_selected = page.get_attribute('[data-dt-tab="import"]', 'aria-selected')
-    assert export_selected == 'true'
-    assert import_selected == 'false'
+    assert page.is_visible('#importJsonBtn') is True
     assert_no_errors(page)
 
 
 @pytest.mark.ui
-def test_switching_to_import_tab_shows_import_panel(app_page):
-    """Positive: clicking the Import tab swaps visible panels and
-    aria-selected state."""
-    page = app_page
-    open_data_transfer(page)
-
-    page.click('[data-dt-tab="import"]')
-    page.wait_for_selector('#importJsonBtn', timeout=5000)
-
-    assert page.is_visible('#importJsonBtn') is True
-    assert page.is_visible('#exportJsonBtn') is False
-    export_selected = page.get_attribute('[data-dt-tab="export"]', 'aria-selected')
-    import_selected = page.get_attribute('[data-dt-tab="import"]', 'aria-selected')
-    assert export_selected == 'false'
-    assert import_selected == 'true'
-
-
-@pytest.mark.ui
 def test_close_button_hides_modal(app_page):
-    """Positive: the × close button hides the modal again."""
+    """Positive: the × close button hides Settings again."""
     page = app_page
     open_data_transfer(page)
     close_data_transfer(page)
 
-    assert page.is_visible('#dataTransferModal') is False
+    assert page.is_visible('#settingsModal') is False
 
 
 @pytest.mark.ui
@@ -152,7 +127,6 @@ def test_import_button_opens_file_picker_and_triggers_import(app_page):
 
     page = app_page
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
 
     # dataExport.js's "no recognisable data" check only looks at
     # debts/incomes/strategy/bills/expenses/recurring, not accounts -
@@ -177,7 +151,7 @@ def test_import_button_opens_file_picker_and_triggers_import(app_page):
         # Replace/Merge choice (app.js always supplies requestImportMode) -
         # picking either completes the import; Replace is simplest to assert.
         page.click('#importModeReplaceBtn')
-        page.wait_for_selector('#dataTransferModal', timeout=5000)
+        page.wait_for_selector('#settingsModal', timeout=5000)
 
         wait_for_api(page, '/api/accounts', lambda rows: any(r.get('name') == 'DT Modal Test' for r in rows))
         page.reload()
@@ -196,7 +170,6 @@ def test_invalid_json_file_shows_inline_error_banner(app_page):
 
     page = app_page
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         f.write('not valid json {{{')
@@ -227,7 +200,6 @@ def test_empty_data_file_shows_inline_error_banner(app_page):
 
     page = app_page
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         json.dump({"foo": "bar"}, f)
@@ -266,7 +238,6 @@ def test_replace_vs_merge_choice_shown_inline_not_as_native_confirm(app_page):
     page.wait_for_selector('text=Pre-existing Account', timeout=10000)
 
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
 
     # dataExport.js's "no recognisable data" check only looks at
     # debts/incomes/strategy/bills/expenses/recurring, not accounts -
@@ -291,7 +262,7 @@ def test_replace_vs_merge_choice_shown_inline_not_as_native_confirm(app_page):
         assert 'account' in summary.lower()
 
         page.click('#importModeMergeBtn')
-        page.wait_for_selector('#dataTransferModal', timeout=5000)
+        page.wait_for_selector('#settingsModal', timeout=5000)
 
         # The merge is a series of server calls; the result banner appears when they finish.
         page.wait_for_selector('#importResultBanner:not(.hidden)', timeout=15000)
@@ -329,7 +300,6 @@ def test_merge_with_skipped_duplicates_shows_duplicate_count_not_generic_message
     page.wait_for_selector('text=Dup Card', timeout=10000)
 
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
 
     dup_data = {"debts": [{"name": "Dup Card", "accountBalance": 200, "interestRate": 15, "minimumPayment": 30}]}
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:

@@ -212,9 +212,6 @@ export default {
     'settings.backup.reasonForbidden': 'not allowed',
     'settings.backup.reasonAccountSpecific': 'account-specific, not imported',
 
-    'dataTransfer.title': 'Backup & Restore',
-    'dataTransfer.tabExport': 'Export',
-    'dataTransfer.tabImport': 'Import',
     'dataTransfer.exportDescription': 'Download a full backup (accounts, debts, income, bills, plan, and settings) as a JSON file.',
     'dataTransfer.exportButton': 'Export Backup',
     'dataTransfer.exportChartsButton': 'Export Charts as PNG',

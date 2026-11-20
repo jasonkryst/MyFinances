@@ -210,9 +210,6 @@ export default {
     'settings.backup.reasonForbidden': 'no permitido',
     'settings.backup.reasonAccountSpecific': 'específico de una cuenta, no se importa',
 
-    'dataTransfer.title': 'Copia de Seguridad y Restauración',
-    'dataTransfer.tabExport': 'Exportar',
-    'dataTransfer.tabImport': 'Importar',
     'dataTransfer.exportDescription': 'Descarga una copia de seguridad completa (cuentas, deudas, ingresos, facturas, plan y configuración) como archivo JSON.',
     'dataTransfer.exportButton': 'Exportar Copia de Seguridad',
     'dataTransfer.exportChartsButton': 'Exportar Gráficos como PNG',

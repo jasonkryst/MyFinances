@@ -9,6 +9,7 @@ import { showEmailTestToast, openWhatsNewModal } from './ui.js';
 import { initSettingsBackup } from './settingsBackup.js';
 import { initSecuritySettings, refreshSecuritySettingsPanel } from './securitySettings.js';
 import { initNotificationSettings, loadNotificationSettingsForm } from './notificationSettings.js';
+import { resetBackupPage } from './dataTransferModal.js';
 import { initSettingsNav, showSettingsPage, showSettingsListQuiet, handleSettingsEscape, isSettingsNarrow, getActiveSettingsPage, refreshSettingsRowValues } from './settingsNav.js';
 import { APP_VERSION } from './utils.js';
 
@@ -98,6 +99,7 @@ export function initSettingsModal(app) {
         localeSelect.value = getCurrentLocale();
         currencySelect.value = getCurrencyCode();
         refreshSettingsRowValues();
+        resetBackupPage();
         modal.classList.add('flex-visible');
         modal.classList.remove('hidden');
         if (page) showSettingsPage(page, { focus: false });

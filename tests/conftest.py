@@ -696,17 +696,15 @@ def switch_settings_tab(page, tab):
 
 
 def open_data_transfer(page):
-    """Open the Backup & Restore modal (#exportJsonBtn/#importJsonBtn live
-    here now) and wait for it to be visible before interacting with any
-    control inside it."""
-    page.evaluate("() => document.getElementById('dataTransferBtn').click()")
-    page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
+    """Open Settings on the Backup & Restore page (#exportJsonBtn/#importJsonBtn
+    live there) and wait for it to be visible."""
+    open_settings_page(page, 'backup')
 
 
 def close_data_transfer(page):
-    """Close the Backup & Restore modal via its × close button."""
-    page.click('#dataTransferModalCloseBtn')
-    page.wait_for_selector('#dataTransferModal', state='hidden', timeout=5000)
+    """Close Settings via its x close button."""
+    page.click('#settingsModalCloseBtn')
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
 
 def assert_no_errors(page):

@@ -192,18 +192,18 @@ def test_focus_returns_to_opener_on_close(app_page): ...
   - command palette Backup/Import commands → `app.openSettings({ page: 'backup' })` (the Import command also focuses `#importJsonBtn`).
   - Grep `src/` and `index.html` for `dataTransferBtn` and repoint every reference.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `test_account_menu_backup_opens_backup_page`: click `#accountMenuBtn`, then `#accountMenuBackupBtn` → `#settingsPage-backup` visible.
   - `test_command_palette_import_opens_backup_page`: Ctrl+K, type "Import", Enter → `#settingsPage-backup` visible and `#importJsonBtn` focused.
   - `test_data_transfer_modal_is_gone`: `#dataTransferModal` count is 0, and so is `[data-dt-tab]`.
   - `test_backup_result_cleared_on_reopen` (Review Focus 3): call `showImportResult('error','x',[{recordType:'debt',recordName:'d',kind:'rejected',reason:'r'}])` through `page.evaluate` with a dynamic import, close, reopen at `backup` → `#importResultBanner` hidden and `#importWarningsList` empty.
   - Rewrite every test in `tests/ui/test_data_transfer_modal.py`: replace opening the modal with `open_settings_page(page, 'backup')`, drop tab clicks, keep each test's assertions (no native dialogs, inline error banner, `<details>` warnings built without `innerHTML`, Replace/Merge choice).
-- [ ] **Step 2: Run to verify failure.** Run `pytest tests/ui/test_settings_redesign.py tests/ui/test_data_transfer_modal.py -v`. Expected: FAIL.
-- [ ] **Step 3: Implement the markup move, `resetBackupPage`, the bindings and the entry points.**
+- [x] **Step 2: Run to verify failure.** Run `pytest tests/ui/test_settings_redesign.py tests/ui/test_data_transfer_modal.py -v`. Expected: FAIL.
+- [x] **Step 3: Implement the markup move, `resetBackupPage`, the bindings and the entry points.**
   - Group the Backup page into two cards titled by new keys `settings.backupFull` and `settings.backupSettingsOnly`.
   - Delete the now-unused `dataTransfer.title`, `dataTransfer.tabExport` and `dataTransfer.tabImport` keys if nothing references them (grep first).
-- [ ] **Step 4: Run the tests** (same command). Expected: PASS.
-- [ ] **Step 5: Commit**: `feat(settings): Backup & Restore becomes a Settings page`.
+- [x] **Step 4: Run the tests** (same command). Expected: PASS.
+- [x] **Step 5: Commit**: `feat(settings): Backup & Restore becomes a Settings page`.
 
 ### Task 4: About page, row values, icons
 

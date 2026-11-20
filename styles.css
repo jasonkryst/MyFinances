@@ -9874,3 +9874,7 @@ body.dark-mode .notifications-filter-text {
 .settings-shell input[role="switch"]:checked { background: var(--primary-color); border-color: var(--primary-color); }
 .settings-shell input[role="switch"]:checked::before { transform: translateX(18px); }
 .settings-shell input[role="switch"]:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+
+/* Backup & Restore page: two cards (7.20.0) */
+.settings-page-card + .settings-page-card { margin-top: 16px; }
+.settings-card-title { margin: 12px 0 8px; font-size: 0.95rem; }

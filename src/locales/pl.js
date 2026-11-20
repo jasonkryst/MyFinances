@@ -210,9 +210,6 @@ export default {
     'settings.backup.reasonForbidden': 'niedozwolone',
     'settings.backup.reasonAccountSpecific': 'powiązane z kontem, nie importowane',
 
-    'dataTransfer.title': 'Kopia Zapasowa i Przywracanie',
-    'dataTransfer.tabExport': 'Eksportuj',
-    'dataTransfer.tabImport': 'Importuj',
     'dataTransfer.exportDescription': 'Pobierz pełną kopię zapasową (konta, długi, dochody, rachunki, plan i ustawienia) jako plik JSON.',
     'dataTransfer.exportButton': 'Eksportuj Kopię Zapasową',
     'dataTransfer.exportChartsButton': 'Eksportuj Wykresy jako PNG',
