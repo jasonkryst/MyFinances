@@ -54,6 +54,15 @@ async def _accounts(page, base_url):
     return await (await page.request.get(f"{base_url}/api/accounts")).json()
 
 
+async def _described_by(page):
+    """aria-describedby ids of the modal, each checked to exist and hold text (#500)."""
+    ids = (await page.locator("#pgMigrationModal").get_attribute("aria-describedby") or "").split()
+    for el_id in ids:
+        text = await page.locator(f"#{el_id}").text_content()
+        assert text and text.strip(), f"#{el_id} is missing or empty"
+    return ids
+
+
 async def test_empty_db_shows_migration_modal(pg_page, base_url):
     await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
     await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
@@ -62,6 +71,12 @@ async def test_empty_db_shows_migration_modal(pg_page, base_url):
     assert "debt" in counts.lower() and "account" in counts.lower(), counts
     # The wizard must not stack on top of the prompt.
     assert not await pg_page.locator("#setupWizardModal").is_visible()
+
+
+async def test_import_variant_is_described_by_text_and_counts(pg_page, base_url):
+    await _boot_with_legacy(pg_page, base_url, json.dumps(LEGACY))
+    await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
+    assert await _described_by(pg_page) == ["pgMigrationDescription", "pgMigrationCounts"]
 
 
 LEGACY_INCOME = {"id": 3, "name": "Legacy Pay", "amount": 1000, "firstPayDate": "2026-01-01",
@@ -218,6 +233,8 @@ async def test_nonempty_db_shows_cleanup_variant(pg_page, base_url):
     await pg_page.locator("#pgLegacyDownloadBtn").wait_for(state="visible", timeout=15000)
     assert await pg_page.locator("#pgLegacyRemoveBtn").is_visible()
     assert not await pg_page.locator("#pgMigrationTransferBtn").is_visible()
+    # The counts line is empty here, so the dialog must not point at it.
+    assert await _described_by(pg_page) == ["pgMigrationDescription"]
 
 
 async def test_cleanup_download_saves_file_and_removes_key(pg_page, base_url):
