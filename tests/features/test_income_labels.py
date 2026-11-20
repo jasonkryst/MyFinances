@@ -89,8 +89,9 @@ def test_health_says_planned_and_reports_says_actual_with_help(app_page):
 
     _open_report(page, 'incomeexp')
     page.wait_for_selector('#rptIncomeExpHelp', timeout=5000)
-    label = page.locator('#reportsIncomeExp .rpt-stat--income .rpt-stat-label').first.inner_text()
-    assert 'incl. interest & one-off' in label
+    # .rpt-stat-label is text-transform: uppercase, which inner_text() reflects.
+    label = page.locator('#reportsIncomeExp .rpt-stat--income .rpt-stat-label').first.text_content()
+    assert 'incl. interest & one-off' in label.lower()
     assert 'planned income' in page.locator('#rptIncomeExpHelp').inner_text()
 
 
