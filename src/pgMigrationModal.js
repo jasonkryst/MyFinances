@@ -52,6 +52,10 @@ function openModal(els, variant) {
     const cleanup = variant === 'cleanup';
     els.title.textContent = t(cleanup ? 'pgMigration.cleanupTitle' : 'pgMigration.title');
     els.desc.textContent = t(cleanup ? 'pgMigration.cleanupDescription' : 'pgMigration.description');
+    // The cleanup variant leaves #pgMigrationCounts empty, so describe the
+    // dialog by its description alone there (#500).
+    els.modal.setAttribute('aria-describedby',
+        cleanup ? 'pgMigrationDescription' : 'pgMigrationDescription pgMigrationCounts');
     els.importActions.classList.toggle('hidden', cleanup);
     els.cleanupActions.classList.toggle('hidden', !cleanup);
     els.error.textContent = '';

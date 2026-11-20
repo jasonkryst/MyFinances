@@ -1818,7 +1818,8 @@
     </div>
     <!-- Legacy browser data modal (v7.0.0): offers to import old browser-only data when the server is empty, otherwise download-or-remove. Text is set by pgMigrationModal.js via t() -->
     <div id="pgMigrationModal" class="modal modal-overlay hidden"
-         role="dialog" aria-modal="true" aria-labelledby="pgMigrationTitle" tabindex="-1">
+         role="dialog" aria-modal="true" aria-labelledby="pgMigrationTitle"
+         aria-describedby="pgMigrationDescription pgMigrationCounts" tabindex="-1">
         <div class="modal-content">
             <h3 id="pgMigrationTitle" data-i18n="pgMigration.title">Transfer Your Local Data</h3>
             <p id="pgMigrationDescription" class="modal-description" data-i18n="pgMigration.description">
