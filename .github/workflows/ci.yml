@@ -398,6 +398,7 @@ jobs:
             tests/features/test_save_status.py \
             tests/features/test_weekend_due_shift.py \
             tests/features/test_weekend_rule_change_confirm.py \
+            tests/features/test_boot_gates.py \
             --maxfail=15 \
             -v
       - name: Stop stack

@@ -5,8 +5,9 @@
 import { probeServer } from './storage.js';
 import { t } from './i18n.js';
 
-// Resolves once a Retry's probeServer() reports the server reachable. The
-// caller (init()) then re-runs its own probe/auth/load sequence.
+// Resolves with the probe result once a Retry's probeServer() reports the
+// server reachable. The caller (init()) reuses it for its next iteration
+// instead of probing again (#468), then runs its auth/load sequence.
 //
 // No 429 loop here: probeServer() maps a rate-limited /auth/setup-status (429)
 // to reachable, so Retry never keeps this gate up because of the limiter, and
@@ -33,7 +34,7 @@ export function showServerUnreachable(app) {
                 if (status) status.textContent = '';
                 gate.classList.add('hidden');
                 gate.classList.remove('flex-visible');
-                resolve();
+                resolve(result);
                 return;
             }
             if (status) status.textContent = t('serverGate.stillUnreachable');
