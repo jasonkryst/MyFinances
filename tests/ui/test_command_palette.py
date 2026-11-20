@@ -167,10 +167,9 @@ def test_cycle_theme_action_runs_and_closes_palette(app_page):
 
 
 @pytest.mark.ui
-def test_import_command_opens_data_transfer_modal_on_import_tab(app_page):
-    """The 'Import backup from JSON' palette action opens the consolidated
-    modal directly on the Import tab, not the old standalone toolbar
-    button (which no longer exists)."""
+def test_import_command_opens_backup_page(app_page):
+    """The 'Import backup from JSON' palette action opens Settings on the
+    Backup & Restore page and focuses Choose File."""
     page = app_page
     page.keyboard.press('Control+k')
     page.wait_for_selector('#commandPaletteOverlay:not(.hidden)', timeout=5000)
@@ -179,7 +178,5 @@ def test_import_command_opens_data_transfer_modal_on_import_tab(app_page):
     page.keyboard.press('Enter')
     page.wait_for_selector('#commandPaletteOverlay', state='hidden', timeout=5000)
 
-    assert page.is_visible('#dataTransferModal')
+    assert page.is_visible('#settingsPage-backup')
     assert page.is_visible('#importJsonBtn')
-    import_selected = page.get_attribute('[data-dt-tab="import"]', 'aria-selected')
-    assert import_selected == 'true'

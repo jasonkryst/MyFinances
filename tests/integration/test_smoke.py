@@ -175,7 +175,6 @@ def test_smoke_export_import(app_page):
         assert export_btn.evaluate('(el) => el.offsetHeight > 0'), "Export button should be visible"
 
     # Look for import button (switch to the Import tab first)
-    page.click('[data-dt-tab="import"]')
     import_btn = page.query_selector('#importJsonBtn')
     if import_btn:
         assert import_btn.evaluate('(el) => el.offsetHeight > 0'), "Import button should be visible"

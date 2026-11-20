@@ -169,7 +169,7 @@ def test_settings_button_opens_settings_modal(app_page):
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: Reconciliation toggle now lives on the Advanced tab
 
     checked = page.evaluate("""() => document.getElementById('settingReconciliationAdjusts').checked""")
     assert checked is True
@@ -177,18 +177,18 @@ def test_settings_button_opens_settings_modal(app_page):
 
 @pytest.mark.ui
 def test_settings_modal_save_updates_setting(app_page):
-    """Toggling the checkbox and clicking Done persists the new value."""
+    """Toggling the switch persists the new value (saves on change)."""
     page = app_page
 
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', false); }""")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: Reconciliation toggle now lives on the Advanced tab
 
     checkbox = page.query_selector('#settingReconciliationAdjusts')
     assert checkbox.is_checked() is False
     checkbox.check()
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")

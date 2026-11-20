@@ -44,14 +44,15 @@ def test_settings_modal_has_language_selector_with_three_options(app_page):
 
 @pytest.mark.feature
 def test_switching_to_spanish_translates_nav_and_persists(app_page):
-    """Selecting Spanish and clicking Done translates the nav immediately
+    """Selecting Spanish and closing Settings translates the nav immediately
     and persists debtTrackerLocale to localStorage."""
     page = app_page
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.evaluate("() => window.app.openSettings({ page: 'language' })")
     page.select_option('#settingLocale', 'es')
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     nav_text = page.inner_text('.page-button[data-page="health"]')
@@ -63,14 +64,15 @@ def test_switching_to_spanish_translates_nav_and_persists(app_page):
 
 @pytest.mark.feature
 def test_switching_to_polish_translates_nav_and_persists(app_page):
-    """Selecting Polish and clicking Done translates the nav immediately
+    """Selecting Polish and closing Settings translates the nav immediately
     and persists debtTrackerLocale to localStorage."""
     page = app_page
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
+    page.evaluate("() => window.app.openSettings({ page: 'language' })")
     page.select_option('#settingLocale', 'pl')
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     nav_text = page.inner_text('.page-button[data-page="health"]')
@@ -183,7 +185,7 @@ def test_settings_modal_storage_line_translates(app_page):
     page.evaluate("() => window.app.setLocale('es')")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="data"]')
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")
 
     assert page.inner_text('#settingStorageInfo') == 'Almacenamiento: servidor PostgreSQL'
 

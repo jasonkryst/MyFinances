@@ -29,8 +29,8 @@ def _open_notifications_settings(page):
     page.click('#accountMenuBtn')
     page.click('#accountMenuSettingsBtn')
     page.wait_for_selector('#settingsModal:not(.hidden)')
-    page.click('[data-settings-tab="notifications"]')
-    page.wait_for_selector('#settingsPanel-notifications.settings-tab-panel--active')
+    page.evaluate("() => window.app.openSettings({ page: 'notifications' })")
+    page.wait_for_selector('#settingsPage-notifications')
 
 
 def _check_now(page):
@@ -44,7 +44,7 @@ def _check_now(page):
 
 
 def _close_settings(page):
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal', state='hidden')
 
 
@@ -170,26 +170,24 @@ def test_unchanged_preferences_are_not_written(app_page):
 
 
 @pytest.mark.parametrize('bad', ['31', '-1', '2.5', ''])
-def test_invalid_days_ahead_keeps_settings_open_and_saves_nothing(app_page, bad):
+def test_invalid_days_ahead_shows_error_and_saves_nothing(app_page, bad):
     page = app_page
     _open_notifications_settings(page)
-    page.uncheck('#settingNotifyBillDue')
     page.fill('#settingNotifyDaysAhead', bad)
-    page.click('#settingsModalDoneBtn')
+    page.keyboard.press('Tab')
     page.wait_for_selector('#settingNotifyDaysAheadError:not(.hidden)')
     assert page.is_visible('#settingsModal')
     assert page.get_attribute('#settingNotifyDaysAhead', 'aria-invalid') == 'true'
-    assert page.evaluate("document.activeElement.id") == 'settingNotifyDaysAhead'
     page.wait_for_timeout(300)
     rows = page.evaluate("async () => (await fetch('/api/settings')).json()")
     assert [r['key'] for r in rows if r['key'].startswith('notify')] == []
 
-    # Fixing it saves everything.
+    # Fixing it saves the value.
     page.fill('#settingNotifyDaysAhead', '0')
     _close_settings(page)
     wait_for_api(page, '/api/settings', lambda rows: {
         r['key']: r['value'] for r in rows if r['key'].startswith('notify')
-    } == {'notifyBillDue': False, 'notifyDaysAhead': 0})
+    } == {'notifyDaysAhead': 0})
 
 
 def test_a_switched_off_type_raises_nothing(app_page):
@@ -198,7 +196,7 @@ def test_a_switched_off_type_raises_nothing(app_page):
     wait_for_app_ready(page)
     _open_notifications_settings(page)
     page.uncheck('#settingNotifyZeroBalance')
-    # Check now saves the form first, then checks with the new preferences.
+    # The switch saved on change, so Check now checks with the new preferences.
     assert _check_now(page) == 'No new alerts.'
     assert _api_notifications(page)['notifications'] == []
 

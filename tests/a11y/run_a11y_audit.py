@@ -336,7 +336,7 @@ def collect_audit_findings(headless=True):
         page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
         page.select_option("#themeSwitcher", "dark")
         page.wait_for_timeout(150)
-        page.click("#settingsModalDoneBtn")
+        page.click("#settingsModalCloseBtn")
         page.wait_for_selector("#settingsModal", state="hidden", timeout=5000)
         for name in PAGES:
             page.evaluate("(p) => window.app.switchPage(p)", name)
@@ -351,7 +351,7 @@ def collect_audit_findings(headless=True):
         page.wait_for_selector("#settingsModal.flex-visible", timeout=5000)
         page.select_option("#themeSwitcher", "light")  # back to light
         page.wait_for_timeout(150)
-        page.click("#settingsModalDoneBtn")
+        page.click("#settingsModalCloseBtn")
         page.wait_for_selector("#settingsModal", state="hidden", timeout=5000)
 
         # ── Modal checks ────────────────────────────────────────────────

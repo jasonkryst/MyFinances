@@ -46,7 +46,7 @@ STRONG = 'violet harbor lantern 42'
 def _open_security_tab(page):
     open_settings(page)
     switch_settings_tab(page, 'security')
-    page.wait_for_selector('#settingsPanel-security.settings-tab-panel--active')
+    page.wait_for_selector('#settingsPage-security')
 
 
 def _mock_policy(page, breached_enabled=False):
@@ -72,12 +72,11 @@ def pg_page(app_page):
 # ---------------------------------------------------------------- Security tab
 
 @pytest.mark.ui
-def test_security_tab_is_fifth_settings_tab(app_page):
-    tabs = app_page.eval_on_selector_all('.settings-tab-btn', 'els => els.map(e => e.dataset.settingsTab)')
-    assert tabs == ['appearance', 'data', 'notifications', 'advanced', 'security']
-    btn = app_page.locator('[data-settings-tab="security"]')
-    assert btn.get_attribute('role') == 'tab'
-    assert btn.get_attribute('aria-controls') == 'settingsPanel-security'
+def test_security_is_a_settings_page(app_page):
+    pages = app_page.eval_on_selector_all('.settings-row[data-settings-page]', 'els => els.map(e => e.dataset.settingsPage)')
+    assert 'security' in pages
+    app_page.evaluate("() => window.app.openSettings({ page: 'security' })")
+    assert app_page.locator('#settingsPage-security').get_attribute('aria-labelledby') == 'settingsPageTitle-security'
 
 
 @pytest.mark.ui
@@ -86,7 +85,7 @@ def test_security_tab_always_shows_form(pg_page):
     _open_security_tab(pg_page)
     assert pg_page.is_visible('#settingsChangePasswordForm')
     assert pg_page.locator('#settingsSecurityLocalNote').count() == 0
-    assert pg_page.get_attribute('[data-settings-tab="security"]', 'aria-selected') == 'true'
+    assert pg_page.get_attribute('[data-settings-page="security"]', 'aria-current') == 'page'
     assert pg_page.get_attribute('#settingsCurrentPassword', 'autocomplete') == 'current-password'
     assert pg_page.get_attribute('#settingsNewPassword', 'autocomplete') == 'new-password'
     assert pg_page.get_attribute('#settingsConfirmPassword', 'autocomplete') == 'new-password'

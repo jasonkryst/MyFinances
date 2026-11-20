@@ -65,7 +65,6 @@ def test_json_export_import_round_trip(app_page):
         temp_file = f.name
     try:
         open_data_transfer(page)
-        page.click('[data-dt-tab="import"]')
         page.click('#importJsonBtn')
         page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
         page.set_input_files('#importJsonInput', temp_file)
@@ -88,7 +87,7 @@ def test_json_export_import_round_trip(app_page):
 def test_settings_shows_server_storage_only(app_page):
     page = app_page
     open_settings(page)
-    switch_settings_tab(page, 'data')
+    switch_settings_tab(page, 'advanced')
     assert page.is_visible('#settingStorageInfo')
     assert 'PostgreSQL' in page.inner_text('#settingStorageInfo')
     assert page.locator('#settingStorageBackend').count() == 0

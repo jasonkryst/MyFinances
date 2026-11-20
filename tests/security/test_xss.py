@@ -158,10 +158,9 @@ async def test_malicious_json_import(async_app_page):
         temp_file = f.name
     
     try:
-        # Open the Backup & Restore modal, switch to Import, upload file
-        await page.evaluate("() => document.getElementById('dataTransferBtn').click()")
-        await page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
-        await page.click('[data-dt-tab="import"]')
+        # Open the Backup & Restore page, upload file
+        await page.evaluate("() => window.app.openSettings({ page: 'backup' })")
+        await page.wait_for_selector('#settingsPage-backup', state='visible', timeout=5000)
         await page.click('#importJsonBtn')
 
         file_input = await page.query_selector('#importJsonInput')
@@ -774,7 +773,7 @@ def test_xss_in_settings_import_keys_and_values_is_inert(app_page):
     })
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="data"]')
+    page.evaluate("() => window.app.openSettings({ page: 'backup' })")
     page.set_input_files('#settingsImportFile', files=[
         {'name': 'settings.json', 'mimeType': 'application/json', 'buffer': text.encode('utf-8')}
     ])

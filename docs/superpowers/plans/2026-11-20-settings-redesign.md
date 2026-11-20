@@ -246,18 +246,18 @@ def test_focus_returns_to_opener_on_close(app_page): ...
 **Interfaces:**
 - Consumes: `open_settings_page`, `open_settings_page_async` (Task 1), `wait_for_api` (existing).
 
-- [ ] **Step 1: Write the guard test.**
+- [x] **Step 1: Write the guard test.**
   - It scans `tests/**/*.py`, `src/**/*.js` and `index.html` for `settingsModalDoneBtn`, `data-settings-tab`, `data-dt-tab`, `settings-tab-btn`, `dt-tab-btn`, and for the regex `['"#]dataTransferModal['"\b]` (the id, not the module name `dataTransferModal.js`).
   - It asserts there are no hits, listing `file:line` for each.
   - It also asserts every name in `SETTINGS_PAGES` has a `TRANSLATED_PAGES` key `settings-<name>`.
-- [ ] **Step 2: Run it.** Run `pytest tests/features/test_settings_redesign_guard.py -v`. Expected: FAIL, listing the hits.
-- [ ] **Step 3: Migrate each hit.** Apply these rules, in this order:
+- [x] **Step 2: Run it.** Run `pytest tests/features/test_settings_redesign_guard.py -v`. Expected: FAIL, listing the hits.
+- [x] **Step 3: Migrate each hit.** Apply these rules, in this order:
   - A tab click becomes `open_settings_page(page, <mapped page>)`. Tab mapping: `appearance` → `appearance`, except locale/currency → `language`; `data` → `backup` for settings export/import and `advanced` for Clear All Data; `notifications` → `notifications`; `advanced` → `advanced`; `security` → `security`.
   - For a Done click: delete it. If the test then reloads or reads the server, insert `wait_for_api` for the changed setting first. If it asserted the modal closed after Done, click `#settingsModalCloseBtn` instead.
   - Opening `#dataTransferModal` becomes `open_settings_page(page,'backup')`. A visibility wait on `#dataTransferModal` becomes one on `#settingsPage-backup`.
   - In `i18n_render_support.py`, the `settings-*` entries call `window.app.openSettings({ page })`. Add entries for `settings-language`, `settings-backup` and `settings-about`. Replace any `#dataTransferModal` entry with `settings-backup`.
-- [ ] **Step 3a: Prove the migration** without a full local stack where none is available: re-run the guard (expect PASS) and `python -m py_compile` on every touched file. The Playwright run is CI's job, and the PR stays draft until it is green.
-- [ ] **Step 4: Commit**: `test: migrate tests to the Settings pages; add a guard`.
+- [x] **Step 3a: Prove the migration** without a full local stack where none is available: re-run the guard (expect PASS) and `python -m py_compile` on every touched file. The Playwright run is CI's job, and the PR stays draft until it is green.
+- [x] **Step 4: Commit**: `test: migrate tests to the Settings pages; add a guard`.
 
 ### Task 6: Accessibility, contrast and clipping coverage
 

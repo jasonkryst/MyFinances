@@ -115,6 +115,8 @@ export function initSettingsModal(app) {
             const target = (page || !isSettingsNarrow())
                 ? document.getElementById(`settingsPageTitle-${getActiveSettingsPage()}`)
                 : modal.querySelector('.settings-row');
+            // Don't steal focus from a control the user already moved into.
+            if (modal.contains(document.activeElement) && document.activeElement !== modal) return;
             (target || closeBtn).focus();
         }, 30);
     };
