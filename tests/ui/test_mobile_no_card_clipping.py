@@ -88,7 +88,7 @@ CARD_SELECTORS = [
     ".savings-card", ".retire-card", ".retirement-account-card", ".dashboard-card",
     ".rpt-chart-card", ".nw-report-stat", ".rpt-month-nav", ".comparison-card",
     ".summary-card", ".stat-card", ".nw-history-card", ".acct-mf-section",
-    ".notif-group-list", ".notif-row",
+    ".notif-group-list", ".notif-row", ".settings-group", ".settings-card",
 ]
 
 CHECK_JS = """([cardSelectors]) => {
@@ -253,3 +253,21 @@ def test_checker_detects_clipping(phone_page):
     }""")
     res = page.evaluate(CHECK_JS, [CARD_SELECTORS])
     assert any("sentence" in b["text"] for b in res["bad"])
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("name", ["appearance", "language", "notifications", "backup", "advanced", "security", "about"])
+def test_no_card_clipping_on_settings_pages(phone_page, name):
+    """7.20.0: every Settings page, drilled in on a phone, keeps its text inside its card."""
+    page = phone_page
+    page.evaluate("(n) => window.app.openSettings({ page: n })", name)
+    page.wait_for_selector(f"#settingsPage-{name}", state="visible", timeout=5000)
+    _check(page, f"settings/{name}")
+
+
+@pytest.mark.ui
+def test_no_card_clipping_on_settings_list(phone_page):
+    page = phone_page
+    page.evaluate("() => window.app.openSettings()")
+    page.wait_for_selector("#settingsNav", state="visible", timeout=5000)
+    _check(page, "settings/list")

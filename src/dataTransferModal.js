@@ -1,7 +1,7 @@
 // Backup & Restore (Settings -> Backup & Restore page, #settingsPage-backup).
 // This module owns the page's export/import wiring: #exportJsonBtn,
 // #exportChartsPngBtn, #importJsonBtn/#importJsonInput and the Replace/Merge
-// choice. The old standalone #dataTransferModal is gone (7.20.0).
+// choice. The old standalone Backup & Restore modal is gone (7.20.0).
 
 import { t } from './i18n.js';
 

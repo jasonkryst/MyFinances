@@ -297,3 +297,44 @@ def test_clear_all_data_row_still_confirms(app_page):
     page.click('#deleteConfirmCancelBtn')
     page.wait_for_selector('#deleteConfirmModal', state='hidden', timeout=5000)
     assert page.locator('#settingsModal').is_visible()
+
+
+# ── Task 6: accessibility and contrast ──────────────────────────────────────
+
+@pytest.mark.ui
+@pytest.mark.parametrize('mode', ['light', 'dark', 'hc'])
+def test_settings_text_contrast(app_page, mode):
+    from tests.ui.contrast_utils import set_theme, text_contrast
+    page = app_page
+    page.set_viewport_size(WIDE)
+    open_settings_page(page, 'advanced')
+    set_theme(page, dark=mode != 'light', high_contrast=mode == 'hc')
+    targets = {
+        'row label': page.locator('.settings-row-label').first,
+        'row value': page.locator('#settingsRowValue-language'),
+        'group heading': page.locator('.settings-group-title').first,
+        'help line': page.locator('#settingsPage-advanced .modal-helper-text').first,
+        'danger row': page.locator('.settings-row--danger .settings-row-label'),
+    }
+    for name, loc in targets.items():
+        ratio = text_contrast(loc)['ratio']
+        assert ratio >= 4.5, f"{name} contrast {ratio:.2f} in {mode}"
+
+
+@pytest.mark.ui
+def test_switch_state_not_color_only(app_page):
+    page = app_page
+    open_settings_page(page, 'advanced')
+    js = "() => getComputedStyle(document.getElementById('settingShowArchivedDebts'), '::before').transform"
+    before = page.evaluate(js)
+    page.click('#settingShowArchivedDebts')
+    page.wait_for_timeout(300)
+    assert page.evaluate(js) != before
+
+
+@pytest.mark.ui
+def test_row_names_include_values_and_icons_are_decorative(app_page):
+    page = app_page
+    open_settings(page)
+    assert page.get_attribute('[data-settings-page="language"]', 'aria-label').startswith('Language')
+    assert page.locator('.settings-icon svg[aria-hidden="true"]').count() >= 7

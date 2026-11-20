@@ -265,12 +265,12 @@ def test_focus_returns_to_opener_on_close(app_page): ...
 - Modify: `tests/ui/test_mobile_no_card_clipping.py` (`CARD_SELECTORS` gets `.settings-group`, `.settings-card`), `tests/ui/test_settings_redesign.py`
 - Possibly modify: `styles.css` (fixes only)
 
-- [ ] **Step 1: Write the tests:**
+- [x] **Step 1: Write the tests:**
   - `test_settings_text_contrast[light|dark|hc]`: with `contrast_utils.set_theme`, assert `text_contrast` ≥ 4.5 for a row label, a `.settings-row-value`, a group heading, a page help line and the danger row.
   - `test_switch_state_not_color_only`: the switch knob's computed `transform` differs between checked and unchecked.
   - Add a Settings case to the phone clipping walk: at 390×844, open each page and assert no card clipping, reusing the file's helper.
-- [ ] **Step 2: Run** `pytest tests/ui/test_settings_redesign.py tests/ui/test_mobile_no_card_clipping.py tests/ui/test_aria_labels.py tests/ui/test_css_integrity.py -v`. Fix the CSS for any failure. Expected: PASS.
-- [ ] **Step 3: Commit**: `test(a11y): settings contrast, switch state, phone clipping`.
+- [x] **Step 2: Run** `pytest tests/ui/test_settings_redesign.py tests/ui/test_mobile_no_card_clipping.py tests/ui/test_aria_labels.py tests/ui/test_css_integrity.py -v`. Fix the CSS for any failure. Expected: PASS.
+- [x] **Step 3: Commit**: `test(a11y): settings contrast, switch state, phone clipping`.
 
 ### Task 7: Release and docs
 
