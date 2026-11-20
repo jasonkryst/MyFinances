@@ -112,6 +112,15 @@ export function initSettingsNav(modal) {
     const back = document.getElementById('settingsBackBtn');
     if (back) back.addEventListener('click', () => showSettingsList());
     modal.addEventListener('keydown', onKeydown);
+    // Tab pressed while focus is on <body> (nothing focused yet) never reaches
+    // the modal element, so the trap also listens on the document.
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Tab' || modal.classList.contains('hidden')) return;
+        const overlay = event.target && event.target.closest ? event.target.closest('.modal-overlay') : null;
+        if (overlay && overlay !== modal) return; // another dialog on top owns Tab
+        if (overlay === modal) return; // handled by the modal's own listener
+        onKeydown(event);
+    });
     // Review focus 2: crossing the breakpoint keeps the current page.
     const mq = window.matchMedia(WIDE_QUERY);
     const onChange = () => { if (!modal.classList.contains('hidden')) apply(); };

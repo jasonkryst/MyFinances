@@ -111,20 +111,23 @@ export function initSettingsModal(app) {
                 if (!handleSettingsEscape()) close();
             }
         };
-        setTimeout(() => {
-            const target = (page || !isSettingsNarrow())
-                ? document.getElementById(`settingsPageTitle-${getActiveSettingsPage()}`)
-                : modal.querySelector('.settings-row');
-            // Don't steal focus from a control the user already moved into.
-            if (modal.contains(document.activeElement) && document.activeElement !== modal) return;
-            (target || closeBtn).focus();
-        }, 30);
+        // Focus right away (the modal is already displayed), so Tab pressed
+        // immediately after opening is inside the dialog.
+        const target = (page || !isSettingsNarrow())
+            ? document.getElementById(`settingsPageTitle-${getActiveSettingsPage()}`)
+            : modal.querySelector('.settings-row');
+        (target || closeBtn).focus();
     };
     openSettingsImpl = open;
 
     // Every control saves on change; there is no Done button (7.20.0).
+    // A setting can change what a page shows (archived items, reconciliation
+    // mode, $0 policy), so the open page re-renders in place, as Done used to.
     const onSetting = (el, key, read) => {
-        if (el) el.addEventListener('change', () => setSetting(app, key, read(el)));
+        if (el) el.addEventListener('change', () => {
+            setSetting(app, key, read(el));
+            app.refreshCurrentPageData();
+        });
     };
     onSetting(adjustsCheckbox, RECONCILIATION_ADJUSTS_BALANCE, el => el.checked);
     onSetting(showArchivedCheckbox, SHOW_ARCHIVED_DEBTS, el => el.checked);
@@ -134,6 +137,7 @@ export function initSettingsModal(app) {
     localeSelect.addEventListener('change', () => {
         app.setLocale(localeSelect.value);
         refreshSettingsRowValues();
+        localeSelect.focus();
     });
     currencySelect.addEventListener('change', () => {
         setCurrencyCode(currencySelect.value);

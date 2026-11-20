@@ -152,7 +152,9 @@
     justify-content: center;
 }
 
+/* Keyboard shortcuts can be opened from Settings -> About, so it stacks above Settings. */
 .modal-overlay[id="ledgerOverrideModal"],
+.modal-overlay[id="keyboardShortcutsModal"],
 .modal-overlay[id="reconSaveProgressModal"] {
     z-index: 10003;
 }
