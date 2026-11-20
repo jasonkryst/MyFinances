@@ -493,6 +493,25 @@ export function sanitizeForecastSettings(record) {
     };
 }
 
+// The page sizes the Ledger offers (#571).
+export const LEDGER_PAGE_SIZES = [10, 25, 50, 100];
+
+// One definition of the persisted Ledger filter state (#571), shared by the
+// import path and the plan-settings route. dateRangeDefault differs: the
+// client falls back to 'around7', the route has always stored 'all'.
+export function sanitizeLedgerSettings(record, dateRangeDefault = 'around7') {
+    const pageSize = sanitizeInteger(record?.pageSize, 25);
+    return {
+        accountFilter: normalizeText(record?.accountFilter, 20) || 'all',
+        dateRange: normalizeText(record?.dateRange, 20) || dateRangeDefault,
+        sortKey: normalizeText(record?.sortKey, 20) || 'date',
+        sortDir: record?.sortDir === 'asc' ? 'asc' : 'desc',
+        clearedFilter: ['all', 'uncleared', 'cleared'].includes(record?.clearedFilter) ? record.clearedFilter : 'all',
+        categoryFilter: normalizeText(record?.categoryFilter, 40) || 'all',
+        pageSize: LEDGER_PAGE_SIZES.includes(pageSize) ? pageSize : 25
+    };
+}
+
 export function sanitizeSetting(record) {
     const key = normalizeText(record?.key, 60);
     if (!key) return null;
@@ -681,13 +700,7 @@ export function sanitizeParsedState(parsed = {}, warnings) {
             'Per-Month Stimulus', (raw, i) => `Month ${i + 1}`, warnings),
         monthlyPayment: sanitizeFiniteNumber(parsed.monthlyPayment, null, { min: 0 }),
         strategy: normalizeText(parsed.strategy, 30) || null,
-        ledgerSettings: {
-            accountFilter: normalizeText(parsed?.ledgerSettings?.accountFilter, 20) || 'all',
-            dateRange: normalizeText(parsed?.ledgerSettings?.dateRange, 20) || 'around7',
-            sortKey: normalizeText(parsed?.ledgerSettings?.sortKey, 20) || 'date',
-            sortDir: parsed?.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc',
-            clearedFilter: ['all', 'uncleared', 'cleared'].includes(parsed?.ledgerSettings?.clearedFilter) ? parsed.ledgerSettings.clearedFilter : 'all'
-        },
+        ledgerSettings: sanitizeLedgerSettings(parsed?.ledgerSettings, 'around7'),
         forecastSettings: sanitizeForecastSettings(parsed?.forecastSettings),
         reconciliations: _sanitizeRecordArray(parsed.reconciliations, sanitizeReconciliation, now + 5500, isValidReconciliation,
             'Reconciliation', (raw, i) => raw?.date ? `Reconciliation ${raw.date}` : `Reconciliation #${i + 1}`, warnings),

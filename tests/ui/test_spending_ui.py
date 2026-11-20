@@ -485,12 +485,15 @@ def test_spending_drilldown_view_in_ledger_does_not_overwrite_saved_filters_on_s
     page.wait_for_selector('#ledgerSection.active', timeout=5000)
 
     page.select_option('#ledgerPageSize', '50')
-    page.wait_for_timeout(200)
 
-    saved = page.evaluate("() => JSON.parse(localStorage.getItem('debtTrackerLedgerFilters'))")
+    # The saved copy is the server's (#571), not localStorage.
+    from tests.conftest import wait_for_api
+    saved = wait_for_api(page, '/api/plan-settings',
+                         lambda b: (b.get('ledgerSettings') or {}).get('pageSize') == 50)['ledgerSettings']
     assert saved['accountFilter'] == '1', f"Cross-nav override leaked into saved filters: {saved}"
     assert saved['dateRange'] == '30', f"Cross-nav override leaked into saved filters: {saved}"
-    assert saved['pageSize'] == 50
+    assert saved['categoryFilter'] == 'all', f"Cross-nav category leaked into saved filters: {saved}"
+    assert page.evaluate("() => localStorage.getItem('debtTrackerLedgerFilters')") is None
 
 
 @pytest.mark.ui

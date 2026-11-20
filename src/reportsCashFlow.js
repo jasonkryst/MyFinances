@@ -106,7 +106,7 @@ export function renderReportsIncomeExp(app) {
     const monthLabel = formatMonthLong(rptDate);
 
     const stats = [
-        { label: t('reports.statIncomeMonth', { month: monthLabel }), value: totalIncome, cls: 'rpt-stat--income' },
+        { label: t('reports.statIncomeMonthActual', { month: monthLabel }), value: totalIncome, cls: 'rpt-stat--income' },
         ...(app.bills?.length > 0 ? [{ label: t('reports.statBills'), value: totalBills, cls: 'rpt-stat--bills' }] : []),
         { label: t('reports.statExpenseBudgets'), value: totalExpenses, cls: 'rpt-stat--exp' },
         { label: t('reports.statRecurringCosts'), value: totalRecurring, cls: 'rpt-stat--recurring' },
@@ -192,6 +192,7 @@ export function renderReportsIncomeExp(app) {
 
     container.innerHTML = `
         <div class="rpt-stats-strip">${statsHTML}</div>
+        <p class="rpt-chart-sub" id="rptIncomeExpHelp">${escapeHtml(t('reports.incomeActualHelp'))}</p>
         ${!hasData ? `<p class="rpt-empty-msg">${escapeHtml(t('reports.ieEmpty'))}</p>` : `
         <div class="rpt-charts-row">
             <div class="rpt-chart-card">

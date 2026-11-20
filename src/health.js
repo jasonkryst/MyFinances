@@ -1310,6 +1310,7 @@ function renderHealthDashboardUncached(app) {
                     ${trendArrow(net, prevNet, true, { suffix: '', decimals: 0 })}
                 </div>
                 <p class="health-card-desc">${t('health.cashFlowDesc')}</p>
+                <p class="health-card-desc health-planned-note">${t('health.plannedIncomeNote')}</p>
                 <div class="health-cashflow-hero ${net >= 0 ? 'health-cashflow-hero--positive' : 'health-cashflow-hero--negative'}">
                     ${net >= 0 ? '+' : ''}${formatCurrency(net)}
                 </div>
@@ -1596,7 +1597,7 @@ function renderHealthDashboardUncached(app) {
         rows: [
             [t('health.savingsTitle'), `${savingsPct.toFixed(1)}%`],
             [t('health.monthlyAmountSaved'), formatCurrency(totalSavingsContrib)],
-            [t('health.monthlyIncome'), formatCurrency(cashFlowIncome)]
+            [t('health.plannedIncome'), formatCurrency(cashFlowIncome)]
         ]
     });
 

@@ -7,6 +7,7 @@ import { getFilteredSortedLedgerTransactions, getLedgerTransactions } from './le
 import { clearLedgerAmountOverride, openLedgerOverrideModal } from './ledgerOverrides.js';
 import { setLedgerCleared } from './ledgerCleared.js';
 import { LEDGER_EXPORT_COLUMN_KEYS } from './dataExport.js';
+import { sanitizeLedgerSettings } from './sanitizers.js';
 
 const LEDGER_ALL_COLS = ['date', 'account', 'name', 'amount', 'balance', 'cleared'];
 const LEDGER_COL_LABEL_KEYS = { date: 'ledger.colDate', account: 'ledger.colAccount', name: 'ledger.colTransaction', amount: 'ledger.colAmount', balance: 'ledger.colBalance', cleared: 'ledger.colCleared' };
@@ -133,16 +134,16 @@ function openLedgerMarkAllClearedModal(app, clearableTxs, onComplete) {
     setTimeout(() => closeBtn.focus(), 30);
 }
 
-function saveLedgerFilters(accountFilter, dateRange, clearedFilter, pageSize, categoryFilter) {
-    try {
-        localStorage.setItem('debtTrackerLedgerFilters', JSON.stringify({ accountFilter, dateRange, clearedFilter, pageSize, categoryFilter }));
-    } catch (_) {}
-}
-
+// Read-only since #571: Ledger filters live on the server (plan_settings
+// ledger_settings). The device copy is only read once, to migrate it, then removed.
 export function loadLedgerFilters() {
     try {
         return JSON.parse(localStorage.getItem('debtTrackerLedgerFilters') || 'null');
     } catch (_) { return null; }
+}
+
+function removeLegacyLedgerFilters() {
+    try { localStorage.removeItem('debtTrackerLedgerFilters'); } catch (_) {}
 }
 
 // The one table of saved Ledger filters: saved-blob key -> app field.
@@ -154,29 +155,37 @@ const SAVED_LEDGER_FILTER_FIELDS = [
     ['categoryFilter', '_ledgerCategoryFilter']
 ];
 
-// Applies the filters saved in this browser (debtTrackerLedgerFilters) to
-// app the first time the Ledger needs them, then marks them restored.
-// Returns true when it ran. Shared by renderLedgerPage and every caller that
-// sets a Ledger filter before the first visit (Notifications View #643,
-// Accounts and Spending View in Ledger #645), so a newly persisted filter
-// only needs adding to the table above.
+// The server copy of the filters is already in app (loadFromPostgres, #571).
+// The first time the Ledger needs them this migrates a pre-#571 device copy
+// (debtTrackerLedgerFilters): its sanitized values are applied, sent to the
+// server once, and the key is removed, so the device never holds filters again.
+// It then marks them restored and returns true when it ran. Shared by
+// renderLedgerPage and every caller that sets a Ledger filter before the
+// first visit (Notifications View #643, Accounts and Spending View in Ledger
+// #645), so a newly persisted filter only needs adding to the table above.
 // options.skip lists saved-blob keys (e.g. 'clearedFilter', 'pageSize') the
-// caller deliberately does not apply; they keep their current app value.
+// caller deliberately does not apply; they keep the server value, and the
+// device value for them is discarded with the key.
 export function restoreSavedLedgerFiltersOnce(app, options) {
     if (app._ledgerFiltersRestored) return false;
     const skip = (options && options.skip) || [];
     const saved = loadLedgerFilters();
-    if (saved) {
+    if (saved && typeof saved === 'object') {
+        const clean = sanitizeLedgerSettings(saved);
+        let applied = false;
         for (const [key, field] of SAVED_LEDGER_FILTER_FIELDS) {
-            if (skip.includes(key)) continue;
-            app[field] = saved[key] ?? app[field];
+            if (skip.includes(key) || saved[key] === undefined || saved[key] === null) continue;
+            app[field] = clean[key];
+            applied = true;
         }
+        if (applied && typeof app.saveToStorage === 'function') app.saveToStorage(['ledgerSettings']);
     }
+    removeLegacyLedgerFilters();
     app._ledgerFiltersRestored = true;
     return true;
 }
 
-// Persists the current filter state, except while a Spending cross-nav
+// Sends the current filter state to the server, except while a Spending cross-nav
 // (#315) is active: its account/date-range reset to 'all' is a transient
 // view override, not a preference the user chose, so touching an unrelated
 // control (e.g. page size) while viewing it must not overwrite whatever
@@ -184,15 +193,9 @@ export function restoreSavedLedgerFiltersOnce(app, options) {
 // those are restored from app._ledgerPreCrossNavAccount/-DateRange, set by
 // spending.js's "View in Ledger" handler.
 function persistLedgerFilters(app) {
-    const accountFilter = app._ledgerCrossNavLabel
-        ? (app._ledgerPreCrossNavAccount ?? 'all')
-        : (app._ledgerAccountFilter || 'all');
-    const dateRange = app._ledgerCrossNavLabel
-        ? (app._ledgerPreCrossNavDateRange ?? 'around7')
-        : (app._ledgerDateRange || 'around7');
-    saveLedgerFilters(accountFilter, dateRange, app._ledgerClearedFilter || 'all', app._ledgerPageSize || 25, app._ledgerCategoryFilter || 'all');
-    // The server copy follows explicit filter changes only (#564): record
-    // saves no longer carry the whole plan-settings row with them.
+    // The body (including the cross-nav handling above) is built by
+    // buildPlanSettingsPatch. The server copy follows explicit filter changes
+    // only (#564): record saves no longer carry the whole plan-settings row.
     app.saveToStorage(['ledgerSettings']);
 }
 
@@ -620,7 +623,7 @@ export function renderLedgerPage(app) {
             // page size too; otherwise it reverted only on the next reload (#544).
             app._ledgerPageSize = 25;
             app._ledgerPage = 1;
-            localStorage.removeItem('debtTrackerLedgerFilters');
+            removeLegacyLedgerFilters();
             app._ledgerFiltersRestored = false;
             app.saveToStorage(['ledgerSettings']);
             renderLedgerPage(app);

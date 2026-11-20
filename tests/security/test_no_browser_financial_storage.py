@@ -35,7 +35,8 @@ ALLOWED_KEYS = {
     'debtTrackerLocale': ({'getItem', 'setItem'}, None),
     'debtTrackerCurrency': ({'getItem', 'setItem'}, None),
     'debtTrackerLastSeenVersion': ({'getItem', 'setItem'}, None),
-    'debtTrackerLedgerFilters': ({'getItem', 'setItem', 'removeItem'}, None),
+    # Migration only (#571): filters live on the server; read + remove, never write
+    'debtTrackerLedgerFilters': ({'getItem', 'removeItem'}, {'ledger.js'}),
     'ledgerHiddenColumns': ({'getItem', 'setItem', 'removeItem'}, None),
     'debtTrackerReconInProgress': ({'getItem', 'setItem', 'removeItem'}, None),
     # Migration only: read + remove, never write

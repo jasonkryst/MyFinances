@@ -164,7 +164,10 @@ function snapshotAppState(app) {
             accountFilter: app._ledgerAccountFilter || 'all',
             dateRange:     app._ledgerDateRange     || 'all',
             sortKey:       app._ledgerSortKey       || 'date',
-            sortDir:       app._ledgerSortDir       || 'desc'
+            sortDir:       app._ledgerSortDir       || 'desc',
+            clearedFilter: app._ledgerClearedFilter || 'all',
+            categoryFilter: app._ledgerCategoryFilter || 'all',
+            pageSize:      app._ledgerPageSize      || 25
         },
         forecastSettings: {
             rangeMonths:          app._forecastRangeMonths          || 1,
@@ -277,6 +280,9 @@ function applyResultsToApp(app, data, { accountResults, personResults, resourceR
         app._ledgerDateRange     = data.ledgerSettings.dateRange     || 'all';
         app._ledgerSortKey       = data.ledgerSettings.sortKey       || 'date';
         app._ledgerSortDir       = data.ledgerSettings.sortDir       || 'desc';
+        app._ledgerClearedFilter = data.ledgerSettings.clearedFilter || 'all';
+        app._ledgerCategoryFilter = data.ledgerSettings.categoryFilter || 'all';
+        app._ledgerPageSize      = data.ledgerSettings.pageSize      || 25;
     }
     if (data.forecastSettings) {
         app._forecastRangeMonths         = data.forecastSettings.rangeMonths         || 1;
@@ -503,6 +509,9 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
             app._ledgerDateRange     = clean.ledgerSettings.dateRange     || 'all';
             app._ledgerSortKey       = clean.ledgerSettings.sortKey       || 'date';
             app._ledgerSortDir       = clean.ledgerSettings.sortDir       || 'desc';
+            app._ledgerClearedFilter = clean.ledgerSettings.clearedFilter || 'all';
+            app._ledgerCategoryFilter = clean.ledgerSettings.categoryFilter || 'all';
+            app._ledgerPageSize      = clean.ledgerSettings.pageSize      || 25;
         }
         if (clean.forecastSettings) {
             app._forecastRangeMonths         = clean.forecastSettings.rangeMonths         || 1;
@@ -558,6 +567,9 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
             _ledgerDateRange:     snapshot.ledgerSettings.dateRange,
             _ledgerSortKey:       snapshot.ledgerSettings.sortKey,
             _ledgerSortDir:       snapshot.ledgerSettings.sortDir,
+            _ledgerClearedFilter: snapshot.ledgerSettings.clearedFilter,
+            _ledgerCategoryFilter: snapshot.ledgerSettings.categoryFilter,
+            _ledgerPageSize:      snapshot.ledgerSettings.pageSize,
             _forecastRangeMonths:         snapshot.forecastSettings.rangeMonths,
             _forecastAccountId:           snapshot.forecastSettings.accountId,
             _forecastNotableThresholdPct: snapshot.forecastSettings.notableThresholdPct

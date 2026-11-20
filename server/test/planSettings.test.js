@@ -34,7 +34,7 @@ test('GET returns defaults on first access', async () => {
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.strategy, null);
-    assert.deepEqual(body.ledgerSettings, { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' });
+    assert.deepEqual(body.ledgerSettings, { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all', categoryFilter: 'all', pageSize: 25 });
     assert.deepEqual(body.netWorthMilestonesAwarded, []);
 });
 
@@ -48,6 +48,33 @@ test('PATCH updates only the fields provided', async () => {
     const body = await res.json();
     assert.equal(body.strategy, 'avalanche');
     assert.equal(body.monthlyPayment, 600);
+});
+
+async function patchLedger(ledgerSettings) {
+    const res = await fetch(`${baseUrl}/api/plan-settings`, {
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ ledgerSettings })
+    });
+    assert.equal(res.status, 200);
+    return (await res.json()).ledgerSettings;
+}
+
+test('PATCH ledgerSettings round-trips categoryFilter and pageSize (#571)', async () => {
+    const sent = { accountFilter: '7', dateRange: 'next30', sortKey: 'amount', sortDir: 'asc',
+        clearedFilter: 'cleared', categoryFilter: 'Housing', pageSize: 50 };
+    assert.deepEqual(await patchLedger(sent), sent);
+    const got = await (await fetch(`${baseUrl}/api/plan-settings`, { headers: { Cookie: cookies } })).json();
+    assert.deepEqual(got.ledgerSettings, sent);
+});
+
+test('PATCH ledgerSettings sanitizes an invalid pageSize and an oversized category (#571)', async () => {
+    for (const bad of [7, 0, -25, 'abc', null, 1e9, 25.5]) {
+        assert.equal((await patchLedger({ pageSize: bad })).pageSize, 25, `pageSize ${bad}`);
+    }
+    const out = await patchLedger({ pageSize: 100, categoryFilter: 'x'.repeat(500) });
+    assert.equal(out.pageSize, 100);
+    assert.equal(out.categoryFilter.length, 40);
+    assert.equal((await patchLedger({ categoryFilter: '   ' })).categoryFilter, 'all');
+    assert.equal((await patchLedger({})).categoryFilter, 'all');
 });
 
 test('POST /milestones appends a milestone and ignores duplicates', async () => {

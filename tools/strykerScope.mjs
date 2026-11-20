@@ -38,7 +38,7 @@ export const MUTATE_SCOPE = {
         'remapIncomePersonRef', 'sanitizeIncome', 'sanitizeBonus', 'sanitizeBill', 'sanitizeExpense',
         'sanitizeRecurringTemplate', 'sanitizeLedgerOverrides', 'sanitizeHomePurchasePlan',
         'sanitizeLedgerClearedTransactions', 'sanitizeEmergencyFund', 'sanitizeSinkingFund',
-        'sanitizeNetWorthSnapshot', 'sanitizeForecastSettings', 'sanitizeSetting', 'sanitizeRetirementSnapshot',
+        'sanitizeNetWorthSnapshot', 'sanitizeForecastSettings', 'sanitizeLedgerSettings', 'sanitizeSetting', 'sanitizeRetirementSnapshot',
         'sanitizeBalanceHistoryEntry', 'sanitizeReconciliation', 'sanitizePlanHistoryEntry',
         'sanitizeManualTransaction', 'isValidManualTransaction', 'isValidTransfer', 'isValidReconciliation',
         'isValidRecurringTemplate', 'sanitizeLowBalanceThreshold',

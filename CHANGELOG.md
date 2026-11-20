@@ -4,6 +4,12 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.18.6] — 2026-11-20
+
+### Changed
+- **Ledger filters are saved on the server (#571).** Account, date range, sort, Status, category and page size were kept in two places, and this browser's copy overrode the server's, so a second browser or device showed different filters. The server copy (`plan_settings.ledger_settings`, now with `categoryFilter` and `pageSize`) is the only one. A filters copy left in this browser by an earlier version is applied once, sent to the server and removed; nothing writes it again. Clear Filters resets the category and page size on the server too, and import/export carry both. Accounts' and Spending's "View in Ledger" now show every Status.
+- **Health and Reports say which income they show (#572).** Health's Cash Flow card is labelled "Income (planned)" (salary and bonuses after withholding plus recurring inflows) with a one-line note; Reports' Summary and Income vs Expenses label their income "incl. interest & one-off" with a help line explaining that actual Ledger income also holds interest, one-off transactions and Ledger overrides, so it can differ from Health. No amounts changed. New strings in English, Spanish and Polish.
+
 ## [7.18.5] — 2026-11-20
 
 ### Fixed

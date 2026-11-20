@@ -17,6 +17,7 @@ const {
     sanitizeSinkingFund,
     sanitizeNetWorthSnapshot,
     sanitizeForecastSettings,
+    sanitizeLedgerSettings,
     sanitizeSetting,
     sanitizeRetirementSnapshot,
     sanitizeBalanceHistoryEntry,
@@ -826,6 +827,35 @@ describe('sanitizeNetWorthSnapshot', () => {
         expect(result.totalLiabilities).toBe(0);
         expect(result.debtPaymentMade).toBe(0);
         expect(result.incomeReceived).toBe(0);
+    });
+});
+
+describe('sanitizeLedgerSettings (#571)', () => {
+    test('passes through a valid record, category and page size included', () => {
+        const rec = { accountFilter: '7', dateRange: 'next30', sortKey: 'amount', sortDir: 'asc',
+            clearedFilter: 'cleared', categoryFilter: 'Housing', pageSize: 50 };
+        expect(sanitizeLedgerSettings(rec)).toEqual(rec);
+    });
+
+    test.each([10, 25, 50, 100])('accepts page size %p', size => {
+        expect(sanitizeLedgerSettings({ pageSize: size }).pageSize).toBe(size);
+    });
+
+    test.each([7, 0, -25, 'abc', null, undefined, 1e9])('page size %p falls back to 25', size => {
+        expect(sanitizeLedgerSettings({ pageSize: size }).pageSize).toBe(25);
+    });
+
+    test('defaults and the date range default parameter', () => {
+        expect(sanitizeLedgerSettings(undefined)).toEqual({ accountFilter: 'all', dateRange: 'around7', sortKey: 'date',
+            sortDir: 'desc', clearedFilter: 'all', categoryFilter: 'all', pageSize: 25 });
+        expect(sanitizeLedgerSettings({}, 'all').dateRange).toBe('all');
+        expect(sanitizeLedgerSettings({ dateRange: 'next7' }, 'all').dateRange).toBe('next7');
+    });
+
+    test('an unknown Status becomes all, an oversized category is cut to 40, a blank one is all', () => {
+        expect(sanitizeLedgerSettings({ clearedFilter: 'bogus' }).clearedFilter).toBe('all');
+        expect(sanitizeLedgerSettings({ categoryFilter: 'x'.repeat(500) }).categoryFilter).toHaveLength(40);
+        expect(sanitizeLedgerSettings({ categoryFilter: '   ' }).categoryFilter).toBe('all');
     });
 });
 

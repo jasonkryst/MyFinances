@@ -34,8 +34,8 @@ const BUILDERS = {
         v => (Number.isFinite(v) && v > 0 ? v : 0)
     ),
     // While a Spending cross-navigation is showing (#315) the account and
-    // date filters are temporary; store the user's own ones, as the device
-    // copy does (ledger.js persistLedgerFilters).
+    // date filters and category are temporary; store the user's own ones, as
+    // spending.js remembered them (ledger.js persistLedgerFilters).
     ledgerSettings: app => ({
         accountFilter: app._ledgerCrossNavLabel
             ? (app._ledgerPreCrossNavAccount ?? 'all')
@@ -45,7 +45,11 @@ const BUILDERS = {
             : (app._ledgerDateRange || 'around7'),
         sortKey: app._ledgerSortKey || 'date',
         sortDir: app._ledgerSortDir || 'desc',
-        clearedFilter: app._ledgerClearedFilter || 'all'
+        clearedFilter: app._ledgerClearedFilter || 'all',
+        categoryFilter: app._ledgerCrossNavLabel
+            ? (app._ledgerPreCrossNavCategory ?? 'all')
+            : (app._ledgerCategoryFilter || 'all'),
+        pageSize: app._ledgerPageSize || 25
     }),
     forecastSettings: app => ({
         rangeMonths: app._forecastRangeMonths || 1,

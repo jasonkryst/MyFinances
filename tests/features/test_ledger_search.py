@@ -175,6 +175,12 @@ def test_term_is_not_written_to_browser_storage(app_page):
     assert 'secret-payee-name' not in dump
     stored = page.evaluate("() => localStorage.getItem('debtTrackerLedgerFilters') || ''")
     assert 'search' not in stored.lower()
+    # Filters are server-side now (#571): the term must not reach the server copy either.
+    page.select_option('#ledgerPageSize', '50')
+    from tests.conftest import wait_for_api
+    server = wait_for_api(page, '/api/plan-settings',
+                          lambda b: (b.get('ledgerSettings') or {}).get('pageSize') == 50)
+    assert 'secret-payee-name' not in str(server['ledgerSettings'])
 
 
 def test_clear_filters_clears_the_search(app_page):

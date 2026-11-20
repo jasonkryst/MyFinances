@@ -1,10 +1,10 @@
 import express from 'express';
 import { query } from '../db.js';
-import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan, sanitizeBudgetCategories } from '../sanitizers/index.js';
+import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan, sanitizeBudgetCategories, sanitizeLedgerSettings } from '../sanitizers/index.js';
 
 const router = express.Router();
 
-const DEFAULT_LEDGER_SETTINGS = { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' };
+const DEFAULT_LEDGER_SETTINGS = { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all', categoryFilter: 'all', pageSize: 25 };
 const DEFAULT_FORECAST_SETTINGS = { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 };
 
 function rowToJson(row, milestones) {
@@ -55,13 +55,7 @@ router.patch('/', async (req, res, next) => {
         const perMonthStimulus = Array.isArray(body.perMonthStimulus)
             ? body.perMonthStimulus.map(v => sanitizeFiniteNumber(v, 0, { min: 0 }))
             : undefined;
-        const ledgerSettings = body.ledgerSettings === undefined ? undefined : {
-            accountFilter: normalizeText(body.ledgerSettings?.accountFilter, 20) || 'all',
-            dateRange: normalizeText(body.ledgerSettings?.dateRange, 20) || 'all',
-            sortKey: normalizeText(body.ledgerSettings?.sortKey, 20) || 'date',
-            sortDir: body.ledgerSettings?.sortDir === 'asc' ? 'asc' : 'desc',
-            clearedFilter: ['all', 'uncleared', 'cleared'].includes(body.ledgerSettings?.clearedFilter) ? body.ledgerSettings.clearedFilter : 'all'
-        };
+        const ledgerSettings = body.ledgerSettings === undefined ? undefined : sanitizeLedgerSettings(body.ledgerSettings, 'all');
         const forecastSettings = body.forecastSettings === undefined ? undefined : {
             rangeMonths: [1, 2, 3, 6, 12].includes(sanitizeInteger(body.forecastSettings?.rangeMonths, 1)) ? sanitizeInteger(body.forecastSettings?.rangeMonths, 1) : 1,
             accountId: body.forecastSettings?.accountId === 'total' ? 'total' : (normalizeText(body.forecastSettings?.accountId, 30) || 'total'),

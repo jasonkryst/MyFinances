@@ -761,8 +761,10 @@ export function switchPage(app, pageName) {
         app._ledgerCrossNavLabel = null;
         app._ledgerAccountFilter = app._ledgerPreCrossNavAccount ?? 'all';
         app._ledgerDateRange = app._ledgerPreCrossNavDateRange ?? 'around7';
+        app._ledgerCategoryFilter = app._ledgerPreCrossNavCategory ?? 'all';
         app._ledgerPreCrossNavAccount = undefined;
         app._ledgerPreCrossNavDateRange = undefined;
+        app._ledgerPreCrossNavCategory = undefined;
     }
 
     document.querySelectorAll('.page-button').forEach(b => {

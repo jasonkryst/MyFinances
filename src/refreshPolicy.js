@@ -50,6 +50,7 @@ export function hasOpenInlineEdit(app) {
 // refresh keeps the values on screen instead of jumping the user's view.
 export const VIEW_STATE_FIELDS = [
     '_ledgerAccountFilter', '_ledgerDateRange', '_ledgerSortKey', '_ledgerSortDir', '_ledgerClearedFilter',
+    '_ledgerCategoryFilter', '_ledgerPageSize',
     '_forecastRangeMonths', '_forecastAccountId', '_forecastNotableThresholdPct',
 ];
 

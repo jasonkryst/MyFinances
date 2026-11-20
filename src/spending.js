@@ -5,7 +5,7 @@ import {
     formatMonthLong, formatMonthYear, isTransferLegTx
 } from './utils.js';
 import { t, plural, categoryLabel, getIntlLocale } from './i18n.js';
-import { restoreSavedLedgerFiltersOnce, loadLedgerFilters } from './ledger.js';
+import { restoreSavedLedgerFiltersOnce } from './ledger.js';
 
 export const PALETTE = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -160,23 +160,20 @@ function _openSpendingDrilldown(app, catData, year, month, triggerEl = null) {
     if (viewLedgerBtn) {
         viewLedgerBtn.onclick = () => {
             close();
-            // Make sure the saved filters are in app state (once), without
-            // the saved Status or page size, which this link has never
-            // applied (#645). The account/date filters as they stood are then
-            // remembered so they can be restored (not left stuck at 'all')
-            // once the user leaves or the Ledger page is re-saved while this
-            // view is still active — see persistLedgerFilters() in ledger.js.
-            // Read from live state if the Ledger has already rendered this
-            // session, otherwise from the saved blob ('all'/'around7' when
-            // there is none, never the server-loaded defaults).
-            const existing = app._ledgerFiltersRestored
-                ? { accountFilter: app._ledgerAccountFilter, dateRange: app._ledgerDateRange }
-                : (loadLedgerFilters() || {});
+            // Migrate any pre-#571 device filters first (without the saved
+            // Status or page size, which this link has never applied, #645).
+            // The account/date/category filters as they stand (the server
+            // copy, #571) are then remembered so they can be restored (not
+            // left stuck at 'all') once the user leaves or the Ledger page
+            // is re-saved while this view is still active; see
+            // persistLedgerFilters() in ledger.js.
             restoreSavedLedgerFiltersOnce(app, { skip: ['clearedFilter', 'pageSize'] });
-            app._ledgerPreCrossNavAccount = existing.accountFilter ?? 'all';
-            app._ledgerPreCrossNavDateRange = existing.dateRange ?? 'around7';
+            app._ledgerPreCrossNavAccount = app._ledgerAccountFilter ?? 'all';
+            app._ledgerPreCrossNavDateRange = app._ledgerDateRange ?? 'around7';
+            app._ledgerPreCrossNavCategory = app._ledgerCategoryFilter ?? 'all';
 
             app._ledgerCategoryFilter = catData.category;
+            app._ledgerClearedFilter = 'all';
             app._ledgerAccountFilter = 'all';
             app._ledgerDateRange = 'all';
             app._ledgerPage = 1;

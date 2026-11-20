@@ -55,7 +55,9 @@ export function exportAllJSON(app) {
             dateRange: app._ledgerDateRange || 'around7',
             sortKey: app._ledgerSortKey || 'date',
             sortDir: app._ledgerSortDir || 'desc',
-            clearedFilter: app._ledgerClearedFilter || 'all'
+            clearedFilter: app._ledgerClearedFilter || 'all',
+            categoryFilter: app._ledgerCategoryFilter || 'all',
+            pageSize: app._ledgerPageSize || 25
         },
         forecastSettings: {
             rangeMonths: app._forecastRangeMonths || 1,

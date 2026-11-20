@@ -106,6 +106,7 @@ describe('withoutViewState', () => {
     test('covers every ledger and forecast view field loadFromPostgres sets', () => {
         expect(VIEW_STATE_FIELDS).toEqual([
             '_ledgerAccountFilter', '_ledgerDateRange', '_ledgerSortKey', '_ledgerSortDir', '_ledgerClearedFilter',
+            '_ledgerCategoryFilter', '_ledgerPageSize',
             '_forecastRangeMonths', '_forecastAccountId', '_forecastNotableThresholdPct',
         ]);
         const all = Object.fromEntries(VIEW_STATE_FIELDS.map(k => [k, 1]));
