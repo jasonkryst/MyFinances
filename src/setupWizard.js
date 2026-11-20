@@ -107,6 +107,12 @@ export function initSettingsModal(app) {
         else showSettingsPage(getActiveSettingsPage(), { focus: false });
         modal.onkeydown = (event) => {
             if (event.key === 'Escape') {
+                // A dialog opened on top (About → Shortcuts / What's New) owns
+                // Escape: this handler runs first while focus is still inside
+                // Settings, and must not close Settings too.
+                const onTop = Array.from(document.querySelectorAll('.modal-overlay:not(.hidden)'))
+                    .some(el => el !== modal && el.getClientRects().length > 0);
+                if (onTop) return;
                 event.preventDefault();
                 if (!handleSettingsEscape()) close();
             }
