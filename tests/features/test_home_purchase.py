@@ -8,7 +8,7 @@ mortgage affordability calculator, PMI threshold tracker, and the
 
 import pytest
 
-from tests.conftest import assert_no_errors
+from tests.conftest import assert_no_errors, wait_for_api
 
 BASE_URL = "http://localhost:32900/"
 
@@ -280,6 +280,9 @@ def test_home_purchase_plan_persists_after_reload(app_page):
     page = app_page
     _open_home_purchase_tab(page)
     _fill_and_save_plan(page, target_price=425000, down_pct=12, savings=8000, contribution=450, housing_cost=2100)
+    # The save is a fire-and-forget PATCH; reloading before it lands races it.
+    wait_for_api(page, '/api/plan-settings',
+                 lambda s: (s.get('homePurchasePlan') or {}).get('targetHomePrice') == 425000)
 
     page.reload(wait_until="networkidle")
     page.wait_for_function("() => window.app && window.app.homePurchasePlan !== undefined", timeout=10000)
