@@ -318,7 +318,7 @@ const DEFAULT_PLAN_SETTINGS = {
     strategy: null,
     monthlyPayment: null,
     perMonthStimulus: [],
-    ledgerSettings: { accountFilter: 'all', dateRange: 'around7', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' },
+    ledgerSettings: { accountFilter: 'all', dateRange: 'around7', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all', categoryFilter: 'all', pageSize: 25 },
     forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 },
     retirementTargetDate: null,
     homePurchasePlan: null,

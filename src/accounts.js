@@ -176,10 +176,12 @@ export function renderAccountBalanceBreakdown(app, accountId, triggerEl = null) 
         // around today, next N days, etc.) — see #257 discussion.
         // Marks the saved filters restored so they can't clobber the
         // overrides below on the first visit. This link has never applied
-        // the saved Status or page size, so they are skipped (#645).
+        // a saved Status (#645), so it shows all of them; the device copy's
+        // Status and page size are skipped when it is migrated (#571).
         restoreSavedLedgerFiltersOnce(app, { skip: ['clearedFilter', 'pageSize'] });
         app._ledgerAccountFilter = accountId;
         app._ledgerCategoryFilter = 'all';
+        app._ledgerClearedFilter = 'all';
         app._ledgerDateRange = 'all';
         app._ledgerPage = 1;
         app.switchPage('ledger');

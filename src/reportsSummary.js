@@ -100,7 +100,7 @@ export function renderReportsSummary(app) {
     const netCls = cf.net >= 0 ? 'rpt-net--pos' : 'rpt-net--neg';
 
     const cashFlowRows = [
-        [t('reports.statIncome'), cf.income],
+        [t('reports.statIncomeActual'), cf.income],
         ...(app.bills?.length > 0 ? [[t('reports.statBills'), cf.bills]] : []),
         [t('reports.statExpenseBudgets'), cf.expenses],
         [t('reports.statRecurringCosts'), cf.recurring],
@@ -142,6 +142,7 @@ export function renderReportsSummary(app) {
             </div>
         </div>
         <h4 class="rpt-section-title">${escapeHtml(t('reports.sumCashFlow'))}</h4>
+        <p class="rpt-chart-sub" id="rptSummaryIncomeHelp">${escapeHtml(t('reports.incomeActualHelp'))}</p>
         <div class="nw-history-table-wrap">
         <table class="nw-history-table nw-history-table--compact">
             <caption class="sr-only">${escapeHtml(t('reports.sumCfCaption', { period: metrics.periodLabel }))}</caption>

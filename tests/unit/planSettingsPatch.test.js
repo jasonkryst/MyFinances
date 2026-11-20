@@ -6,6 +6,7 @@ function makeApp(overrides = {}) {
     return {
         _ledgerAccountFilter: '7', _ledgerDateRange: 'next30',
         _ledgerSortKey: 'amount', _ledgerSortDir: 'asc', _ledgerClearedFilter: 'cleared',
+        _ledgerCategoryFilter: 'Housing', _ledgerPageSize: 50,
         _forecastRangeMonths: 6, _forecastAccountId: '7', _forecastNotableThresholdPct: 150,
         retirementTargetDate: '2050-01-01',
         homePurchasePlan: { targetHomePrice: 300000 },
@@ -43,7 +44,8 @@ describe('buildPlanSettingsPatch: positive', () => {
     test('ledgerSettings and forecastSettings are sent as whole objects', () => {
         const { body } = buildPlanSettingsPatch(makeApp(), ['ledgerSettings', 'forecastSettings']);
         expect(body.ledgerSettings).toEqual({
-            accountFilter: '7', dateRange: 'next30', sortKey: 'amount', sortDir: 'asc', clearedFilter: 'cleared'
+            accountFilter: '7', dateRange: 'next30', sortKey: 'amount', sortDir: 'asc', clearedFilter: 'cleared',
+            categoryFilter: 'Housing', pageSize: 50
         });
         expect(body.forecastSettings).toEqual({ rangeMonths: 6, accountId: '7', notableThresholdPct: 150 });
     });
@@ -56,6 +58,18 @@ describe('buildPlanSettingsPatch: positive', () => {
         const { body } = buildPlanSettingsPatch(app, ['ledgerSettings']);
         expect(body.ledgerSettings.accountFilter).toBe('3');
         expect(body.ledgerSettings.dateRange).toBe('around7');
+    });
+
+    test('ledgerSettings stores the pre-cross-navigation category too (#571)', () => {
+        const app = makeApp({
+            _ledgerCrossNavLabel: 'Food', _ledgerCategoryFilter: 'Food', _ledgerPreCrossNavCategory: 'Housing'
+        });
+        expect(buildPlanSettingsPatch(app, ['ledgerSettings']).body.ledgerSettings.categoryFilter).toBe('Housing');
+    });
+
+    test('ledgerSettings falls back to all when no pre-cross-nav category was remembered', () => {
+        const app = makeApp({ _ledgerCrossNavLabel: 'Food', _ledgerCategoryFilter: 'Food' });
+        expect(buildPlanSettingsPatch(app, ['ledgerSettings']).body.ledgerSettings.categoryFilter).toBe('all');
     });
 
     test('perMonthStimulus fills holes and drops invalid values to 0', () => {
@@ -72,7 +86,7 @@ describe('buildPlanSettingsPatch: positive', () => {
         const { body } = buildPlanSettingsPatch({}, ['ledgerSettings', 'forecastSettings', 'retirementTargetDate',
             'homePurchasePlan', 'budgetCategories', 'perMonthStimulus']);
         expect(body).toEqual({
-            ledgerSettings: { accountFilter: 'all', dateRange: 'around7', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all' },
+            ledgerSettings: { accountFilter: 'all', dateRange: 'around7', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all', categoryFilter: 'all', pageSize: 25 },
             forecastSettings: { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 },
             retirementTargetDate: null,
             homePurchasePlan: null,

@@ -389,6 +389,8 @@ jobs:
             tests/features/test_bonus_advisor_discoverability.py \
             tests/features/test_category_autocomplete.py \
             tests/features/test_ledger_filter_persistence.py \
+            tests/features/test_ledger_filters_server.py \
+            tests/features/test_income_labels.py \
             tests/features/test_data_export.py \
             tests/features/test_report_range_utils.py \
             tests/features/test_settings.py \
