@@ -1038,6 +1038,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.19.0 — 2026-11-20',
+        items: [
+            '<strong>Reconciliation reports:</strong> after you save a reconciliation, a small panel offers <em>Export CSV</em> and <em>Print</em>, and every entry in the Reconcile history has the same two buttons. The report lists the statement summary, the transactions you cleared in that period and the account\'s reconciliation history.',
+            '<strong>Emergency fund history:</strong> the Emergency Fund tab now charts the linked account\'s month-end balance over the last 12 months.'
+        ]
+    },
+    {
         version: '7.18.0 — 2026-11-18',
         items: [
             '<strong>The bell follows your filters:</strong> the Type, Status and Account you pick on the Notifications page are now remembered, and the bell and its unread badge use them too. The bell shows a <em>Filtered</em> line with a Clear button when they are not the defaults.',

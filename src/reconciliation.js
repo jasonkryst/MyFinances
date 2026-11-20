@@ -9,6 +9,8 @@ import { ACCOUNT_TYPE_ICONS } from './accounts.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showAlertModal, showReconSaveProgressModal } from './ui.js';
 import { t, accountTypeLabel, categoryLabel } from './i18n.js';
+import { isCleared, getClearedAt } from './ledgerStateCore.js';
+import { buildReconciliationReport, buildReconciliationCsv, reconciliationFilename } from './reconciliationExport.js';
 
 function _diffClass(diff) {
     if (diff > 0) return 'recon-diff--pos';
@@ -251,7 +253,112 @@ export function reconcileAccount(app, accountId) {
             statementStartDate: startInput ? startInput.value : '',
             statementEndDate: endInput ? endInput.value : ''
         }
-    );
+    ).then(result => {
+        if (result && result.success) showReconcileResult(app, result.entry);
+        return result;
+    });
+}
+
+// ── Report export (#318) ────────────────────────────────────────────────────
+
+function _reportForEntry(app, entry) {
+    const account = (app.accounts || []).find(a => a.id === entry.accountId) || null;
+    const end = String(entry.statementEndDate || entry.date).slice(0, 10);
+    const start = entry.statementStartDate || `${end.slice(0, 8)}01`;
+    const transactions = getExpectedTransactionsInRange(app, entry.accountId, start, end);
+    return buildReconciliationReport({
+        account,
+        entry,
+        transactions,
+        history: app.reconciliations || [],
+        isClearedFn: id => isCleared(app, id),
+        clearedAtFn: id => getClearedAt(app, id)
+    });
+}
+
+export function exportReconciliationCsv(app, entryId) {
+    const entry = (app.reconciliations || []).find(r => String(r.id) === String(entryId));
+    if (!entry) return false;
+    const report = _reportForEntry(app, entry);
+    const blob = new Blob([buildReconciliationCsv(report)], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = reconciliationFilename(report.accountName, report.end);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    return true;
+}
+
+// Every interpolated value is escaped; amounts and dates come from formatters.
+function _reportPrintHtml(report) {
+    const row = (label, value) => `<tr><th scope="row">${escapeHtml(label)}</th><td>${value}</td></tr>`;
+    const period = report.start && report.end
+        ? t('reconcile.statementPeriod', { start: formatShortDate(report.start), end: formatShortDate(report.end) })
+        : '';
+    const clearedRows = report.cleared.length === 0
+        ? `<tr><td colspan="4">${escapeHtml(t('reconcile.reportNoCleared'))}</td></tr>`
+        : report.cleared.map(tx => `<tr><td>${escapeHtml(formatShortDate(tx.date))}</td><td>${escapeHtml(tx.name)}</td><td>${escapeHtml(formatCurrency(tx.amount))}</td><td>${escapeHtml(tx.clearedAt ? formatShortDate(String(tx.clearedAt).slice(0, 10)) : '')}</td></tr>`).join('');
+    const historyRows = report.history.map(r => `<tr><td>${escapeHtml(formatShortDate(r.date))}</td><td>${escapeHtml(formatCurrency(r.statementBalance))}</td><td>${escapeHtml(formatCurrency(r.difference))}</td><td>${escapeHtml(r.note)}</td></tr>`).join('');
+    return `<h2>${escapeHtml(t('reconcile.reportTitle'))}</h2>
+        <table><tbody>
+            ${row(t('reconcile.reportAccount'), escapeHtml(report.accountName || t('reconcile.unknownAccount')))}
+            ${row(t('reconcile.reportPeriod'), escapeHtml(period))}
+            ${row(t('reconcile.reportPrevBalance'), escapeHtml(formatCurrency(report.previousBalance)))}
+            ${row(t('reconcile.reportStatementBalance'), escapeHtml(formatCurrency(report.statementBalance)))}
+            ${row(t('reconcile.reportDifference'), escapeHtml(formatCurrency(report.difference)))}
+            ${row(t('reconcile.reportNote'), escapeHtml(report.note))}
+        </tbody></table>
+        <h3>${escapeHtml(t('reconcile.reportCleared'))}</h3>
+        <table><thead><tr><th>${t('reconcile.colDate')}</th><th>${t('reconcile.colName')}</th><th>${t('reconcile.colAmount')}</th><th>${t('reconcile.reportColClearedAt')}</th></tr></thead><tbody>${clearedRows}</tbody></table>
+        <h3>${escapeHtml(t('reconcile.reportHistory'))}</h3>
+        <table><thead><tr><th>${t('reconcile.colDate')}</th><th>${t('reconcile.reportColStatement')}</th><th>${t('reconcile.reportDifference')}</th><th>${t('reconcile.reportColNote')}</th></tr></thead><tbody>${historyRows}</tbody></table>`;
+}
+
+export function printReconciliationReport(app, entryId) {
+    const entry = (app.reconciliations || []).find(r => String(r.id) === String(entryId));
+    const area = document.getElementById('reconcilePrintArea');
+    if (!entry || !area) return false;
+    area.innerHTML = _reportPrintHtml(_reportForEntry(app, entry));
+    document.body.classList.add('recon-printing');
+    try {
+        window.print();
+    } finally {
+        document.body.classList.remove('recon-printing');
+    }
+    return true;
+}
+
+let _resultTimer = null;
+
+export function hideReconcileResult() {
+    const panel = document.getElementById('reconcileResultPanel');
+    if (panel) panel.classList.add('hidden');
+    if (_resultTimer) { clearTimeout(_resultTimer); _resultTimer = null; }
+}
+
+// Non-blocking confirmation (a toast-style panel, not a modal) so the
+// Reconcile page stays usable; offers Export CSV and Print for the new entry.
+export function showReconcileResult(app, entry) {
+    const panel = document.getElementById('reconcileResultPanel');
+    const msg = document.getElementById('reconcileResultMessage');
+    const exportBtn = document.getElementById('reconcileResultExportBtn');
+    const printBtn = document.getElementById('reconcileResultPrintBtn');
+    const closeBtn = document.getElementById('reconcileResultClose');
+    if (!panel || !msg || !exportBtn || !printBtn || !closeBtn || !entry) return;
+    const account = (app.accounts || []).find(a => a.id === entry.accountId);
+    const name = account ? account.name : t('reconcile.unknownAccount');
+    msg.textContent = t('reconcile.resultSaved', { name });
+    exportBtn.setAttribute('aria-label', t('reconcile.exportCsvAria', { name }));
+    printBtn.setAttribute('aria-label', t('reconcile.printReportAria', { name }));
+    exportBtn.onclick = () => exportReconciliationCsv(app, entry.id);
+    printBtn.onclick = () => printReconciliationReport(app, entry.id);
+    closeBtn.onclick = hideReconcileResult;
+    panel.classList.remove('hidden');
+    if (_resultTimer) clearTimeout(_resultTimer);
+    _resultTimer = setTimeout(hideReconcileResult, 60000);
 }
 
 export function deleteReconciliationEntry(app, id) {
@@ -375,7 +482,11 @@ function renderReconciliationHistory(app) {
                 <td>${accountName}</td>
                 <td><span class="recon-badge">🔄 ${t('reconcile.eventBadge')}</span>${entry.note ? ` ${escapeHtml(entry.note)}` : ''}${periodHtml}</td>
                 <td class="${_diffClass(entry.difference)}">${formatCurrency(entry.previousBalance)} → ${formatCurrency(entry.statementBalance)} (${formatCurrency(entry.difference)})</td>
-                <td><button class="btn btn-danger btn-small" data-recon-action="delete-history" data-recon-history-id="${entry.id}" aria-label="${escapeHtml(t('reconcile.deleteHistoryAria', { name: account ? account.name : t('reconcile.unknownAccount'), date: entry.date || '' }))}">${t('common.delete')}</button></td>
+                <td><div class="recon-history-actions">
+                    <button class="btn btn-secondary btn-small" data-recon-action="export-history" data-recon-history-id="${entry.id}" aria-label="${escapeHtml(t('reconcile.exportCsvAria', { name: account ? account.name : t('reconcile.unknownAccount') }))}">${t('reconcile.exportCsv')}</button>
+                    <button class="btn btn-secondary btn-small" data-recon-action="print-history" data-recon-history-id="${entry.id}" aria-label="${escapeHtml(t('reconcile.printReportAria', { name: account ? account.name : t('reconcile.unknownAccount') }))}">${t('common.print')}</button>
+                    <button class="btn btn-danger btn-small" data-recon-action="delete-history" data-recon-history-id="${entry.id}" aria-label="${escapeHtml(t('reconcile.deleteHistoryAria', { name: account ? account.name : t('reconcile.unknownAccount'), date: entry.date || '' }))}">${t('common.delete')}</button>
+                </div></td>
             </tr>`;
         }).join('');
     }
@@ -397,6 +508,13 @@ function attachReconciliationHistoryEvents(app, section) {
             renderReconciliationPage(app);
         };
     }
+
+    section.querySelectorAll('[data-recon-action="export-history"]').forEach(btn => {
+        btn.onclick = () => exportReconciliationCsv(app, btn.getAttribute('data-recon-history-id'));
+    });
+    section.querySelectorAll('[data-recon-action="print-history"]').forEach(btn => {
+        btn.onclick = () => printReconciliationReport(app, btn.getAttribute('data-recon-history-id'));
+    });
 
     section.querySelectorAll('[data-recon-action="delete-history"]').forEach(btn => {
         btn.onclick = () => {
@@ -542,7 +660,10 @@ export function openReconcileModal(app, accountId) {
             statementStartDate: startInput.value,
             statementEndDate: endInput.value
         });
-        if (result.success) close();
+        if (result.success) {
+            close();
+            showReconcileResult(app, result.entry);
+        }
     });
 
     cancelBtn.onclick = attemptClose;

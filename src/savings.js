@@ -1,4 +1,6 @@
-import { formatCurrency, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy, parseContributionAmount } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy, parseContributionAmount, renderChartDataTable } from './utils.js';
+import { withProjectionCache } from './projectionCache.js';
+import { trailingMonths, buildBalanceSeries } from './balanceSeries.js';
 import { t } from './i18n.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
@@ -73,6 +75,7 @@ export function renderSavingsPage(app) {
   section.innerHTML = html;
   section.querySelectorAll('[data-progress-width]').forEach(el =>
     el.style.setProperty('--progress-width', el.dataset.progressWidth + '%'));
+  if (currentSubTab === 'emergency') renderEmergencyBalanceChart(app);
 }
 
 function renderEmergencyFundContent(app) {
@@ -196,10 +199,87 @@ function renderEmergencyFundContent(app) {
 
   html += `
       </div>
+      <div class="rpt-chart-card ef-history-card" id="efBalanceHistoryCard">
+        <h4 class="rpt-chart-title">${t('savings.balanceHistoryTitle')}</h4>
+        <p class="rpt-chart-sub">${t('savings.balanceHistorySub')}</p>
+        <p class="empty-message hidden" id="efBalanceHistoryMsg"></p>
+        <div class="rpt-chart-canvas-wrap hidden" id="efBalanceHistoryWrap"><canvas id="efBalanceHistoryChart"></canvas></div>
+      </div>
     </div>
   `;
 
   return html;
+}
+
+const EF_HISTORY_MONTHS = 12;
+const EF_LINE_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'];
+
+/**
+ * Emergency Fund balance history (#307): the linked account's month-end
+ * balance for the trailing 12 months (past and current only).
+ */
+function renderEmergencyBalanceChart(app) {
+  const msg = document.getElementById('efBalanceHistoryMsg');
+  const wrap = document.getElementById('efBalanceHistoryWrap');
+  const canvas = document.getElementById('efBalanceHistoryChart');
+  if (!msg || !wrap || !canvas) return;
+  if (app._efBalanceChart) { app._efBalanceChart.destroy(); app._efBalanceChart = null; }
+  if (typeof Chart === 'undefined') return;
+
+  const showMessage = key => {
+    msg.textContent = t(key);
+    msg.classList.remove('hidden');
+    wrap.classList.add('hidden');
+  };
+
+  const seen = new Set();
+  const accounts = [];
+  for (const fund of app.emergencyFunds || []) {
+    const acct = fund.accountId ? (app.accounts || []).find(a => a.id === fund.accountId) : null;
+    if (acct && !seen.has(acct.id)) { seen.add(acct.id); accounts.push(acct); }
+  }
+  if (accounts.length === 0) { showMessage('savings.balanceHistoryNoAccount'); return; }
+
+  const now = new Date();
+  const series = withProjectionCache(app, () => buildBalanceSeries({
+    months: trailingMonths(now, EF_HISTORY_MONTHS),
+    accounts,
+    balanceFn: (id, y, m) => computeAccountBalance(app, id, y, m),
+    now
+  }));
+  if (series.pointCount < 2) { showMessage('savings.balanceHistoryFew'); return; }
+
+  msg.classList.add('hidden');
+  wrap.classList.remove('hidden');
+  const dark = document.body.classList.contains('dark-mode');
+  const grid = dark ? '#374151' : '#e5e7eb';
+  const label = dark ? '#d1d5db' : '#374151';
+  const labels = series.months.map(({ year, month }) => formatMonthYear(new Date(year, month, 1).toISOString()));
+  const datasets = series.datasets.map((ds, i) => ({
+    label: ds.name,
+    data: ds.data,
+    borderColor: EF_LINE_COLORS[i % EF_LINE_COLORS.length],
+    backgroundColor: EF_LINE_COLORS[i % EF_LINE_COLORS.length],
+    spanGaps: true,
+    tension: 0.3,
+    pointRadius: 3
+  }));
+
+  app._efBalanceChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: label } }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}` } } },
+      scales: { y: { ticks: { color: label, callback: v => formatCurrencyAxis(v) }, grid: { color: grid } }, x: { ticks: { color: label }, grid: { color: grid } } }
+    }
+  });
+
+  renderChartDataTable('efBalanceHistoryChart', {
+    caption: t('savings.balanceHistoryCaption'),
+    columns: [t('savings.balanceHistoryMonthCol'), ...datasets.map(d => d.label)],
+    rows: labels.map((l, i) => [l, ...datasets.map(d => (d.data[i] != null ? formatCurrency(d.data[i]) : '—'))])
+  });
 }
 
 function renderSinkingFundsContent(app) {

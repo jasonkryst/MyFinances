@@ -195,6 +195,7 @@ export class DebtTrackerApp {
         this.budgetCategories = {};
         this.balanceHistory = [];
         this._retireBalanceChart = null;
+        this._efBalanceChart = null;
         this._retireContributionChart = null;
         this._retireBreakdownChart = null;
         this.settings = [];
