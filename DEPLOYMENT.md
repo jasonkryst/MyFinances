@@ -404,7 +404,7 @@ losing it loses everything. Root-level scripts wrap
   confirmation before doing so. Restart the `server` container afterward
   (`docker compose restart server`) so its connection pool picks up a clean session.
 - **Built-in nightly backups.** The stack's `backup` service runs `pg_dump` daily at 2 am
-  (`BACKUP_SCHEDULE`) into the `backup-data` volume and keeps 7 days (`BACKUP_RETENTION_DAYS`).
+  (`BACKUP_SCHEDULE`, in the `TZ` time zone, default UTC) into the `backup-data` volume and keeps 7 days (`BACKUP_RETENTION_DAYS`).
   Check it with `docker compose ps backup` (Up, not Restarting) and
   `docker logs myfinances-backup`; commands are in
   [`server/README.md`](server/README.md#automated-backups). **Before 7.18.3 this container

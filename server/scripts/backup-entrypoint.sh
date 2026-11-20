@@ -18,5 +18,5 @@ fi
 
 SCHEDULE="${BACKUP_SCHEDULE:-0 2 * * *}"
 echo "$SCHEDULE sh /usr/local/bin/docker-backup.sh > /proc/1/fd/1 2>&1" > /etc/crontabs/root
-echo "Backup schedule: $SCHEDULE (keeping ${BACKUP_RETENTION_DAYS:-7} days of dumps in /backups)"
+echo "Backup schedule: $SCHEDULE ${TZ:-UTC}, now $(date '+%Y-%m-%d %H:%M %Z') (keeping ${BACKUP_RETENTION_DAYS:-7} days of dumps in /backups)"
 exec crond -f -l 2

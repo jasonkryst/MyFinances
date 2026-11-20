@@ -180,7 +180,8 @@ container crash-looped and never ran a scheduled backup, #656.)
 
 | Variable | Default | Description |
 |---|---|---|
-| `BACKUP_SCHEDULE` | `0 2 * * *` | Cron schedule (2 am daily). Standard 5-field cron syntax. |
+| `BACKUP_SCHEDULE` | `0 2 * * *` | Cron schedule (2 am daily). Standard 5-field cron syntax, in `TZ`. |
+| `TZ` | `UTC` | Time zone the schedule and dump file names use (e.g. `America/Chicago`); the same variable sets the server jobs' time zone. |
 | `BACKUP_RETENTION_DAYS` | `7` | Days of backups to keep; older `.dump` files are pruned automatically. |
 
 **Check that it is running and see recent runs:**

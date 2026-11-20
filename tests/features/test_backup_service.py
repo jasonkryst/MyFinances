@@ -98,6 +98,16 @@ def test_backup_service_runs_entrypoint_script_from_readonly_mount():
     assert 'healthcheck:' in block and 'crond' in block
 
 
+def test_backup_schedule_follows_tz():
+    """BACKUP_SCHEDULE is read in the stack's TZ, like the server's jobs; a .env
+    TZ reaches a container only if the service references it."""
+    compose = _read(COMPOSE)
+    block = service_block(compose, 'backup')
+    assert 'TZ: "${TZ:-UTC}"' in block
+    assert 'TZ: "${TZ:-UTC}"' in service_block(compose, 'server'), 'one TZ for jobs and backups'
+    assert '${TZ:-UTC}' in _read(ENTRYPOINT_SH), 'the startup log line names the time zone'
+
+
 def test_negative_old_entrypoint_is_flagged():
     assert block_scalar_commands(OLD_BACKUP_SERVICE) == ['entrypoint']
     assert chmod_on_readonly_mounts(OLD_BACKUP_SERVICE) == ['/usr/local/bin/docker-backup.sh']

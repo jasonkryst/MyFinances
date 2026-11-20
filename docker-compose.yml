@@ -125,6 +125,9 @@ services:
     environment:
       BACKUP_SCHEDULE: "${BACKUP_SCHEDULE:-0 2 * * *}"
       BACKUP_RETENTION_DAYS: "${BACKUP_RETENTION_DAYS:-7}"
+      # BACKUP_SCHEDULE is read in this time zone (the same TZ as the server's
+      # jobs, default UTC); dump file names use it too.
+      TZ: "${TZ:-UTC}"
     volumes:
       - backup-data:/backups
       - ./server/scripts/docker-backup.sh:/usr/local/bin/docker-backup.sh:ro

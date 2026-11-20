@@ -4,6 +4,11 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.18.4] — 2026-11-19
+
+### Changed
+- **Backups follow `TZ`.** The `backup` service now receives `TZ` (default UTC), the same variable that sets the server jobs' time zone, so `BACKUP_SCHEDULE` and dump file names use local time: with `TZ=America/Chicago`, `0 2 * * *` runs at 2 am Central instead of 8 pm. The startup log line shows the zone and current time (`docker logs myfinances-backup`). Documented in `.env.example`, `server/README.md` and `DEPLOYMENT.md`; checked on a live stack (a Chicago-time schedule fired on the Chicago minute).
+
 ## [7.18.3] — 2026-11-19
 
 ### Fixed
