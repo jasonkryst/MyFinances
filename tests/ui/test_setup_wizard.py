@@ -169,7 +169,7 @@ def test_settings_button_opens_settings_modal(app_page):
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', true); }""")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: Reconciliation toggle now lives on the Advanced tab
 
     checked = page.evaluate("""() => document.getElementById('settingReconciliationAdjusts').checked""")
     assert checked is True
@@ -177,18 +177,18 @@ def test_settings_button_opens_settings_modal(app_page):
 
 @pytest.mark.ui
 def test_settings_modal_save_updates_setting(app_page):
-    """Toggling the checkbox and clicking Done persists the new value."""
+    """Toggling the switch persists the new value (saves on change)."""
     page = app_page
 
     page.evaluate("""() => { window.app.setSetting('reconciliationAdjustsBalance', false); }""")
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: Reconciliation toggle now lives on the Advanced tab
 
     checkbox = page.query_selector('#settingReconciliationAdjusts')
     assert checkbox.is_checked() is False
     checkbox.check()
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     setting = page.evaluate("""() => window.app.getSetting('reconciliationAdjustsBalance', null)""")
@@ -200,10 +200,11 @@ def test_settings_modal_save_updates_setting(app_page):
 
 
 @pytest.mark.ui
-def test_settings_modal_escape_closes_without_losing_unsaved_choice_state(app_page):
-    """Pressing Escape closes the Settings modal (via the same keyboard
-    pattern used by the reconcile/ledger-override modals)."""
+def test_settings_modal_escape_closes_and_keeps_changed_choice(app_page):
+    """Pressing Escape closes the Settings modal, and a choice changed in it
+    stays saved (settings save on change; Escape discards nothing)."""
     page = app_page
+    from tests.conftest import wait_for_api
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
@@ -212,11 +213,11 @@ def test_settings_modal_escape_closes_without_losing_unsaved_choice_state(app_pa
     # (the post-open `setTimeout(..., 30)` focus shift) — wait for that first.
     # #322: the auto-focused control is now the first one on the default
     # (Appearance) tab, i.e. the theme select.
-    page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
-        timeout=2000
-    )
+    page.wait_for_selector('#settingsPageTitle-appearance:focus', timeout=2000)
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")
+    page.select_option('#settingZeroAmountPolicy', 'warn')
     page.keyboard.press('Escape')
+    wait_for_api(page, '/api/settings', lambda rows: any(r['key'] == 'zeroAmountPolicy' and r['value'] == 'warn' for r in rows))
 
     modal = page.query_selector('#settingsModal')
     classes = modal.get_attribute('class') or ''

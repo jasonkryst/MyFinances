@@ -504,15 +504,25 @@ TRANSLATED_PAGES = {
     'settings-appearance': (
         ['#settingsModal'],
         """async () => {
-            document.getElementById('settingsBtn').click();
-            document.querySelector('[data-settings-tab="appearance"]').click();
+            window.app.openSettings({ page: 'appearance' });
         }""",
     ),
-    'settings-data': (
+    'settings-language': (
         ['#settingsModal'],
         """async () => {
-            document.getElementById('settingsBtn').click();
-            document.querySelector('[data-settings-tab="data"]').click();
+            window.app.openSettings({ page: 'language' });
+        }""",
+    ),
+    'settings-about': (
+        ['#settingsModal'],
+        """async () => {
+            window.app.openSettings({ page: 'about' });
+        }""",
+    ),
+    'settings-backup': (
+        ['#settingsModal'],
+        """async () => {
+            window.app.openSettings({ page: 'backup' });
             // #326: render the settings-backup result state (success + skipped item)
             const sb = await import('/src/settingsBackup.js');
             sb.importSettingsText(window.app, JSON.stringify({
@@ -524,8 +534,7 @@ TRANSLATED_PAGES = {
     'settings-notifications': (
         ['#settingsModal'],
         """async () => {
-            document.getElementById('settingsBtn').click();
-            document.querySelector('[data-settings-tab="notifications"]').click();
+            window.app.openSettings({ page: 'notifications' });
             document.getElementById('settingsEmailTestGroup')?.classList.remove('hidden');
             // #211: the SMTP note and the days-ahead error, plus a real Check now result.
             document.getElementById('settingNotifyEmailOff').classList.remove('hidden');
@@ -620,16 +629,14 @@ TRANSLATED_PAGES = {
     'settings-advanced': (
         ['#settingsModal'],
         """async () => {
-            document.getElementById('settingsBtn').click();
-            document.querySelector('[data-settings-tab="advanced"]').click();
+            window.app.openSettings({ page: 'advanced' });
         }""",
     ),
-    # #456: Security tab, local-mode note.
-    'settings-security-local': (
+    # #456: the Security page.
+    'settings-security': (
         ['#settingsModal'],
         """async () => {
-            document.getElementById('settingsBtn').click();
-            document.querySelector('[data-settings-tab="security"]').click();
+            window.app.openSettings({ page: 'security' });
         }""",
     ),
     # #456: Security tab in Postgres mode, with the strength meter showing a
@@ -637,8 +644,7 @@ TRANSLATED_PAGES = {
     'settings-security-postgres': (
         ['#settingsModal'],
         """async () => {
-            document.getElementById('settingsBtn').click();
-            document.querySelector('[data-settings-tab="security"]').click();
+            window.app.openSettings({ page: 'security' });
             document.getElementById('settingsSecurityBreachNote').classList.remove('hidden');
             const pw = document.getElementById('settingsNewPassword');
             pw.value = 'short';

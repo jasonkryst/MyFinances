@@ -60,8 +60,8 @@ function buildCommands(app) {
             hint: 'Action',
             icon: '⬆️',
             run: () => {
-                document.getElementById('dataTransferBtn')?.click();
-                document.querySelector('[data-dt-tab="import"]')?.click();
+                app.openSettings({ page: 'backup' });
+                setTimeout(() => document.getElementById('importJsonBtn')?.focus(), 50);
             }
         },
         {

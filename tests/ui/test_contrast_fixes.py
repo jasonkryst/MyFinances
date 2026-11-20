@@ -67,7 +67,7 @@ def test_settings_password_error_contrast(app_page, dark):
     page = app_page
     set_theme(page, dark=dark)
     open_settings(page)
-    page.click('[data-settings-tab="security"]')
+    page.evaluate("() => window.app.openSettings({ page: 'security' })")
     page.evaluate("() => { document.getElementById('settingsChangePasswordError').textContent = 'Error'; }")
     assert _ratio(page, '#settingsChangePasswordError') >= AA_TEXT
 

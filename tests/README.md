@@ -418,8 +418,8 @@ tests/
 - **Status:** ✅ PASSING
 
 #### test_data_transfer_modal.py
-- **Tests:** Consolidated Backup & Restore two-tab modal (`#dataTransferModal`)
-- **Coverage:** Old standalone toolbar Export/Import buttons are gone; `#dataTransferBtn` opens the modal; Export tab renders a JSON download button; Import tab's validation errors (invalid JSON, no data, file too large) render inline rather than via `alert()`/`confirm()`; modal closes correctly
+- **Tests:** Backup & Restore page of the Settings modal (`#settingsPage-backup`)
+- **Coverage:** Old standalone toolbar Export/Import buttons are gone; the account menu and command palette open the page; it renders a JSON download button; the import validation errors (invalid JSON, no data, file too large) render inline rather than via `alert()`/`confirm()`; modal closes correctly
 - **Status:** ✅ PASSING
 
 #### test_delete_confirm_modal.py

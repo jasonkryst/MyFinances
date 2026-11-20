@@ -1,77 +1,30 @@
-// Backup & Restore modal: consolidates the old separate Export/Import
-// toolbar buttons into a two-tab modal, following the same show/hide-via-
-// classList pattern as settingsModal (see setupWizard.js). This module
-// owns all of #dataTransferModal's internal wiring, including the
-// relocated #exportJsonBtn/#importJsonBtn/#importJsonInput.
+// Backup & Restore (Settings -> Backup & Restore page, #settingsPage-backup).
+// This module owns the page's export/import wiring: #exportJsonBtn,
+// #exportChartsPngBtn, #importJsonBtn/#importJsonInput and the Replace/Merge
+// choice. The old standalone Backup & Restore modal is gone (7.20.0).
 
 import { t } from './i18n.js';
 
+// Called on every Settings open: clears a previous import result (banner,
+// warnings list, Replace/Merge choice) and recomputes whether any chart is
+// visible, which depends on the page open behind Settings.
+export function resetBackupPage() {
+    const banner = document.getElementById('importResultBanner');
+    if (banner) { banner.textContent = ''; banner.className = 'target-result hidden'; }
+    const warningsList = document.getElementById('importWarningsList');
+    if (warningsList) { warningsList.innerHTML = ''; warningsList.classList.add('hidden'); }
+    const choice = document.getElementById('importModeChoice');
+    if (choice) choice.classList.add('hidden');
+    const chartsBtn = document.getElementById('exportChartsPngBtn');
+    if (chartsBtn) {
+        const hasVisibleChart = Array.from(document.querySelectorAll('canvas'))
+            .some(c => c.id && c.offsetParent !== null);
+        chartsBtn.disabled = !hasVisibleChart;
+        chartsBtn.title = hasVisibleChart ? '' : t('dataTransfer.exportChartsNoCharts');
+    }
+}
+
 export function initDataTransferModal(app) {
-    const modal = document.getElementById('dataTransferModal');
-    const openBtn = document.getElementById('dataTransferBtn');
-    const closeBtn = document.getElementById('dataTransferModalCloseBtn');
-    if (!modal || !openBtn || !closeBtn) return;
-
-    let lastFocused = null;
-
-    const close = () => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex-visible');
-        modal.onkeydown = null;
-        const banner = document.getElementById('importResultBanner');
-        if (banner) { banner.textContent = ''; banner.className = 'target-result hidden'; }
-        const warningsList = document.getElementById('importWarningsList');
-        if (warningsList) { warningsList.innerHTML = ''; warningsList.classList.add('hidden'); }
-        const choice = document.getElementById('importModeChoice');
-        if (choice) choice.classList.add('hidden');
-        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
-    };
-
-    const open = () => {
-        lastFocused = document.activeElement;
-        modal.classList.add('flex-visible');
-        modal.classList.remove('hidden');
-        modal.onkeydown = (event) => {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                close();
-            }
-        };
-        const exportBtn = document.getElementById('exportJsonBtn');
-        setTimeout(() => exportBtn && exportBtn.focus(), 30);
-
-        // Whether any chart is visible depends on whatever page was open
-        // before this modal was opened (the modal overlays, it doesn't hide
-        // the page underneath), so this has to be recomputed on every open.
-        const chartsBtn = document.getElementById('exportChartsPngBtn');
-        if (chartsBtn) {
-            const hasVisibleChart = Array.from(document.querySelectorAll('canvas'))
-                .some(c => c.id && c.offsetParent !== null);
-            chartsBtn.disabled = !hasVisibleChart;
-            chartsBtn.title = hasVisibleChart ? '' : t('dataTransfer.exportChartsNoCharts');
-        }
-    };
-
-    openBtn.onclick = open;
-    closeBtn.onclick = close;
-    modal.onclick = (event) => {
-        if (event.target === modal) close();
-    };
-
-    document.querySelectorAll('.dt-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.getAttribute('data-dt-tab');
-            document.querySelectorAll('.dt-tab-btn').forEach(b => {
-                const active = b === btn;
-                b.classList.toggle('dt-tab-btn--active', active);
-                b.setAttribute('aria-selected', String(active));
-            });
-            document.querySelectorAll('.dt-tab-panel').forEach(panel => {
-                panel.classList.toggle('dt-tab-panel--active', panel.id === `dataTransferPanel-${target}`);
-            });
-        });
-    });
-
     const exportBtn = document.getElementById('exportJsonBtn');
     if (exportBtn) {
         exportBtn.addEventListener('click', () => app.exportAllJSON());
@@ -149,18 +102,18 @@ function _formatWarningValue(value) {
 
 export function requestImportModeChoice(parts) {
     return new Promise((resolve) => {
-        const modal = document.getElementById('dataTransferModal');
+        const backupPage = document.getElementById('settingsPage-backup');
         const choice = document.getElementById('importModeChoice');
         const summary = document.getElementById('importModeSummary');
         const replaceBtn = document.getElementById('importModeReplaceBtn');
         const mergeBtn = document.getElementById('importModeMergeBtn');
-        // If the modal isn't actually open (e.g. importAllJSON was invoked
-        // programmatically, not via the modal's own file input), there's no
+        // If the Backup page isn't showing (e.g. importAllJSON was invoked
+        // programmatically, not via the page's own file input), there's no
         // UI for the user to respond to - waiting for a click here would
         // hang forever. Fall back to the same default as the "controls
         // don't exist" case below: Replace.
-        const modalOpen = modal && modal.classList.contains('flex-visible');
-        if (!modalOpen || !choice || !summary || !replaceBtn || !mergeBtn) {
+        const pageShowing = backupPage && backupPage.offsetParent !== null;
+        if (!pageShowing || !choice || !summary || !replaceBtn || !mergeBtn) {
             resolve(true);
             return;
         }

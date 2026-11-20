@@ -1,7 +1,6 @@
 // Settings -> Notifications (#211): the alert preferences form. Loaded when
-// Settings opens and saved with Done (setupWizard.js), like every other
-// setting; only values that changed are written. "Check now" saves first,
-// then asks the server to run this user's check right away.
+// Settings opens; each control saves on change and only a changed value is
+// written. "Check now" asks the server to run this user's check right away.
 
 import {
     setSetting,
@@ -73,38 +72,59 @@ export function loadNotificationSettingsForm(app) {
     refreshNotifications().then(showEmailNote);
 }
 
-// Writes the values that differ from what is stored. An invalid "Days ahead"
-// saves nothing: it shows the field's error and returns false.
-export function saveNotificationSettingsForm(app) {
-    const daysInput = el('settingNotifyDaysAhead');
-    const days = daysInput ? parseDaysAhead(daysInput.value) : undefined;
-    if (days === null) {
-        setDaysError(true);
-        return false;
-    }
-    setDaysError(false);
+// Writes one control's value when it differs from what is stored (each control
+// saves on change). An invalid "Days ahead" writes nothing: it shows the
+// field's error and returns false; a valid one clears the error.
+export function saveNotificationField(app, id) {
     const prefs = getNotificationPrefs(app.settings);
     const write = (key, value, current) => {
         if (value !== current) setSetting(app, key, value);
     };
-    for (const [id, key, field] of TOGGLES) {
+    const toggle = TOGGLES.find(([tid]) => tid === id);
+    if (toggle) {
         const box = el(id);
-        if (box) write(key, box.checked, prefs[field]);
+        if (box) write(toggle[1], box.checked, prefs[toggle[2]]);
+        return true;
     }
-    if (days !== undefined) write(NOTIFY_DAYS_AHEAD, days, prefs.daysAhead);
-    const channel = el('settingNotifyChannel')?.value;
-    if (channel) write(NOTIFY_CHANNEL, channel, prefs.channel);
-    const delivery = el('settingNotifyDelivery')?.value;
-    if (delivery) write(NOTIFY_DELIVERY, delivery, prefs.delivery);
+    if (id === 'settingNotifyDaysAhead') {
+        const input = el(id);
+        if (!input) return true;
+        const days = parseDaysAhead(input.value);
+        if (days === null) {
+            setDaysError(true);
+            return false;
+        }
+        setDaysError(false);
+        write(NOTIFY_DAYS_AHEAD, days, prefs.daysAhead);
+        return true;
+    }
+    if (id === 'settingNotifyChannel') {
+        const v = el(id)?.value;
+        if (v) write(NOTIFY_CHANNEL, v, prefs.channel);
+        return true;
+    }
+    if (id === 'settingNotifyDelivery') {
+        const v = el(id)?.value;
+        if (v) write(NOTIFY_DELIVERY, v, prefs.delivery);
+        return true;
+    }
     return true;
 }
 
 export function initNotificationSettings(app) {
+    for (const id of ['settingNotifyBillDue', 'settingNotifyLowBalance', 'settingNotifyZeroBalance', 'settingNotifyProjectedLow',
+        'settingNotifyDaysAhead', 'settingNotifyChannel', 'settingNotifyDelivery']) {
+        el(id)?.addEventListener('change', () => saveNotificationField(app, id));
+    }
+    // Days ahead shows its error while typing; it writes only on change, once valid.
+    el('settingNotifyDaysAhead')?.addEventListener('input', () => {
+        setDaysError(parseDaysAhead(el('settingNotifyDaysAhead').value) === null);
+    });
     const btn = el('settingNotifyCheckNowBtn');
     const status = el('settingNotifyCheckStatus');
     if (!btn || !status) return;
     btn.addEventListener('click', async () => {
-        if (!saveNotificationSettingsForm(app)) return;
+        if (!saveNotificationField(app, 'settingNotifyDaysAhead')) return;
         btn.disabled = true;
         status.textContent = t('settings.notify.checking');
         try {

@@ -425,22 +425,22 @@ async def test_setting_persists(pg_page, base_url, credentials):
     await _login(pg_page, base_url, credentials)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
-    await pg_page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
+    await pg_page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: Reconciliation toggle now lives on the Advanced tab
     checkbox = pg_page.locator('#settingReconciliationAdjusts')
     initial_state = await checkbox.is_checked()
-    await checkbox.click()
     # Wait for the PUT /api/settings/:key response before reloading so the
-    # setting is committed to the DB before the page re-reads it.
+    # setting is committed to the DB before the page re-reads it (the switch
+    # saves on change; there is no Done button).
     async with pg_page.expect_response(
         lambda r: '/api/settings/' in r.url and r.request.method == 'PUT',
         timeout=5000
     ):
-        await pg_page.click('#settingsModalDoneBtn')
+        await checkbox.click()
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal', state='visible', timeout=5000)
-    await pg_page.click('[data-settings-tab="advanced"]')  # #322: Reconciliation toggle now lives on the Advanced tab
+    await pg_page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: Reconciliation toggle now lives on the Advanced tab
     new_state = await pg_page.locator('#settingReconciliationAdjusts').is_checked()
     assert new_state != initial_state, f'Setting not persisted after reload. Console: {logs}'
 
@@ -483,7 +483,7 @@ async def test_clear_all_data_wipes_server(pg_page, base_url, credentials):
     # clearDataBtn lives in Settings -> Data & Storage (#429)
     await pg_page.evaluate("() => document.getElementById('settingsBtn').click()")
     await pg_page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    await pg_page.click('[data-settings-tab="data"]')
+    await pg_page.evaluate("() => window.app.openSettings({ page: 'backup' })")
     await pg_page.wait_for_selector('#clearDataBtn', state='visible', timeout=5000)
     await pg_page.click('#clearDataBtn')
     await pg_page.wait_for_selector('#deleteConfirmModal:not(.hidden)', timeout=5000)

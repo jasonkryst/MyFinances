@@ -721,7 +721,6 @@ def test_import_ui_shows_collapsible_warnings_on_soft_coercion(app_page):
 
     page = app_page
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
 
     payload = {"debts": [{"name": "Visa", "minimumPayment": "foo"}]}
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
@@ -767,7 +766,6 @@ def test_import_ui_shows_specific_parse_error_inline_not_a_modal(app_page):
 
     page = app_page
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         f.write('{ this is not valid json')

@@ -416,13 +416,10 @@ def test_settings_modal_focus_and_keyboard_trap(app_page):
 
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
-        timeout=2000
-    )
+    page.wait_for_selector('#settingsPageTitle-appearance:focus', timeout=2000)
 
     focused_id = page.evaluate('() => document.activeElement.id')
-    assert focused_id == 'themeSwitcher', "Opening Settings should focus the first control of the active tab"
+    assert focused_id == 'settingsPageTitle-appearance', "Opening Settings should focus the active page heading"
 
     page.keyboard.press('Escape')
 

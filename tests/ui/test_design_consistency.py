@@ -95,7 +95,7 @@ def test_clear_all_data_moved_to_settings(app_page):
     page.evaluate("() => window.app.switchPage('strategy')")
     in_plan = page.evaluate("() => !!document.querySelector('#strategySection #clearDataBtn')")
     assert not in_plan, "Clear All Data must no longer live on the Plan page"
-    assert page.evaluate("() => !!document.querySelector('#settingsPanel-data #clearDataBtn')")
+    assert page.evaluate("() => !!document.querySelector('#settingsNav #clearDataBtn')")
     # not adjacent to Calculate
     assert page.evaluate("""() => {
         const calc = document.getElementById('calculateBtn');

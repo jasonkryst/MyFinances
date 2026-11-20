@@ -228,114 +228,81 @@ def test_ledger_export_columns_setting_with_garbage_value_is_not_imported(app_pa
     assert page.evaluate("() => window.app.getSetting('ledgerExportColumns', null)") == 'date,amount'
 
 
-# ── Settings modal tabbed layout (#322) ─────────────────────────────────────────
+# ── Settings pages (7.20.0, replaces the #322 tabs) ─────────────────────────────
 
 @pytest.mark.feature
-def test_settings_modal_has_five_tabs(app_page):
-    # #456 added Security as the fifth tab.
+def test_settings_modal_has_seven_pages(app_page):
     page = app_page
     from tests.conftest import open_settings
     open_settings(page)
-    labels = page.eval_on_selector_all('.settings-tab-btn', 'els => els.map(e => e.getAttribute("data-settings-tab"))')
-    assert labels == ['appearance', 'data', 'notifications', 'advanced', 'security']
+    pages = page.eval_on_selector_all('.settings-row[data-settings-page]', 'els => els.map(e => e.getAttribute("data-settings-page"))')
+    assert pages == ['appearance', 'language', 'notifications', 'backup', 'advanced', 'security', 'about']
 
 
 @pytest.mark.feature
-def test_settings_default_tab_is_appearance_and_others_hidden(app_page):
+def test_settings_default_page_is_appearance_and_others_hidden(app_page):
     page = app_page
     from tests.conftest import open_settings
     open_settings(page)
-    assert page.is_visible('#settingsPanel-appearance')
-    assert not page.is_visible('#settingsPanel-advanced')
+    assert page.is_visible('#settingsPage-appearance')
+    assert not page.is_visible('#settingsPage-advanced')
     assert page.is_visible('#themeSwitcher')
     assert not page.is_visible('#settingReconciliationAdjusts')
 
 
 @pytest.mark.feature
-def test_settings_tab_switch_shows_correct_panel(app_page):
+def test_settings_page_switch_shows_correct_page(app_page):
     page = app_page
     from tests.conftest import open_settings, switch_settings_tab
     open_settings(page)
     switch_settings_tab(page, 'advanced')
-    assert page.is_visible('#settingsPanel-advanced')
-    assert not page.is_visible('#settingsPanel-appearance')
+    assert page.is_visible('#settingsPage-advanced')
+    assert not page.is_visible('#settingsPage-appearance')
     assert page.is_visible('#settingReconciliationAdjusts')
 
 
 @pytest.mark.feature
-def test_settings_active_tab_remembered_across_reopen(app_page):
-    """Positive: switching to a tab, closing, and reopening Settings within
-    the same page load keeps that tab active (not reset to Appearance)."""
+def test_settings_active_page_remembered_across_reopen(app_page):
+    """Positive: switching to a page, closing, and reopening Settings within
+    the same page load keeps that page active (not reset to Appearance)."""
     page = app_page
     from tests.conftest import open_settings, close_settings, switch_settings_tab
     open_settings(page)
     switch_settings_tab(page, 'data')
     close_settings(page)
     open_settings(page)
-    assert page.is_visible('#settingsPanel-data')
-    assert not page.is_visible('#settingsPanel-appearance')
+    assert page.is_visible('#settingsPage-backup')
+    assert not page.is_visible('#settingsPage-appearance')
 
 
 @pytest.mark.feature
-def test_settings_tabs_have_required_aria_attributes(app_page):
+def test_settings_pages_have_required_aria_attributes(app_page):
     page = app_page
     from tests.conftest import open_settings
     open_settings(page)
-    assert page.get_attribute('.settings-tabs', 'role') == 'tablist'
-    tab_roles = page.eval_on_selector_all('.settings-tab-btn', 'els => els.map(e => e.getAttribute("role"))')
-    assert all(r == 'tab' for r in tab_roles)
-    panel_roles = page.eval_on_selector_all('.settings-tab-panel', 'els => els.map(e => e.getAttribute("role"))')
-    assert all(r == 'tabpanel' for r in panel_roles)
-    assert page.get_attribute('.settings-tab-btn[data-settings-tab="appearance"]', 'aria-selected') == 'true'
-    assert page.get_attribute('.settings-tab-btn[data-settings-tab="data"]', 'aria-selected') == 'false'
+    assert page.get_attribute('#settingsNav', 'aria-label')
+    ids = page.eval_on_selector_all('.settings-page', 'els => els.map(e => [e.tagName, e.getAttribute("aria-labelledby")])')
+    assert len(ids) == 7
+    assert all(tag == 'SECTION' and labelled for tag, labelled in ids)
+    assert page.get_attribute('[data-settings-page="appearance"]', 'aria-current') == 'page'
+    assert page.get_attribute('[data-settings-page="advanced"]', 'aria-current') is None
 
 
 @pytest.mark.feature
-def test_settings_modal_focus_lands_in_visible_tab(app_page):
-    """Negative/regression: opening Settings must not focus a control that's
-    hidden inside an inactive tab panel."""
+def test_settings_modal_focus_lands_on_the_active_page_heading(app_page):
+    """Regression: opening Settings must not focus a control that is hidden
+    inside a page that is not showing; focus goes to the page heading."""
     page = app_page
     from tests.conftest import open_settings
     open_settings(page)
     page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'themeSwitcher'",
+        "() => document.activeElement && document.activeElement.id === 'settingsPageTitle-appearance'",
         timeout=2000
     )
-    focused_id = page.evaluate('() => document.activeElement.id')
-    assert focused_id == 'themeSwitcher'
 
 
 @pytest.mark.feature
-def test_settings_modal_focus_falls_back_when_first_control_is_hidden(app_page):
-    """Negative/regression (review finding #5): when every control on the
-    active tab is hidden, reopening Settings on that tab (the active tab is
-    remembered across reopens) must fall back to the Close button rather than
-    focus()-ing a hidden element, which silently does nothing and leaves
-    focus stuck behind the modal. The Notifications tab once held only the
-    hidden test-email button; since #211 it has visible preferences, so the
-    test hides all of them."""
-    page = app_page
-    from tests.conftest import open_settings, close_settings, switch_settings_tab
-    open_settings(page)
-    switch_settings_tab(page, 'notifications')
-    page.evaluate("""() => document.querySelectorAll('#settingsPanel-notifications .form-group')
-        .forEach(g => g.classList.add('hidden'))""")
-    assert page.is_hidden('#settingsSendTestEmailBtn')
-    assert page.is_hidden('#settingNotifyBillDue')
-    close_settings(page)
-
-    open_settings(page)
-    page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'settingsModalCloseBtn'",
-        timeout=2000
-    )
-    focused_id = page.evaluate('() => document.activeElement.id')
-    assert focused_id == 'settingsModalCloseBtn'
-
-
-def test_settings_modal_reopened_on_notifications_focuses_its_first_preference(app_page):
-    """Positive twin (#211): reopening Settings on the Notifications tab
-    focuses its first visible control, the bill-due toggle."""
+def test_settings_modal_reopened_on_notifications_focuses_its_heading(app_page):
     page = app_page
     from tests.conftest import open_settings, close_settings, switch_settings_tab
     open_settings(page)
@@ -343,7 +310,7 @@ def test_settings_modal_reopened_on_notifications_focuses_its_first_preference(a
     close_settings(page)
     open_settings(page)
     page.wait_for_function(
-        "() => document.activeElement && document.activeElement.id === 'settingNotifyBillDue'",
+        "() => document.activeElement && document.activeElement.id === 'settingsPageTitle-notifications'",
         timeout=2000
     )
 
@@ -389,14 +356,13 @@ def test_every_setting_the_app_writes_is_accepted_by_the_server(app_page):
 
 @pytest.mark.feature
 def test_settings_modal_toggles_still_save_against_the_stricter_server(app_page):
-    """Drive the real Settings modal controls (Done saves them)."""
+    """Drive the real Settings controls (each saves on change)."""
     page = app_page
     open_settings(page)
     switch_settings_tab(page, 'advanced')
     page.select_option('#settingZeroAmountPolicy', 'block')
-    switch_settings_tab(page, 'data')
     for sel in ('#settingShowArchivedDebts', '#settingShowArchivedRecurring', '#settingAutoNwSnapshot'):
-        page.evaluate("(s) => { const el = document.querySelector(s); el.checked = !el.checked; }", sel)
+        page.click(sel)
     close_settings(page)
     wait_for_api(page, '/api/settings',
                  lambda rows: any(r['key'] == 'zeroAmountPolicy' and r['value'] == 'block' for r in rows)

@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.20.0] — 2026-11-20
+
+### Changed
+- **Settings redesign.** Settings is now a grouped list like a phone's settings app: Appearance, Language & Region, Notifications, Backup & Restore, Advanced, Security and About, plus a Danger zone row for Clear All Data. Each row shows its current value. On a wide screen the list and the page sit side by side; on a phone a row opens its page and Back (or Escape) returns to the list. The new `src/settingsNav.js` owns the navigation, and `app.openSettings({ page })` deep-links to a page.
+- **Backup & Restore is a Settings page.** The separate Backup & Restore dialog is gone. Export Backup, Export Charts as PNG, Import (Replace or Merge, with the result and warnings list) and the settings-only export and import now live on one page. The account menu and the command palette open it directly.
+- **Settings save as you change them.** There is no Done button any more: every switch, selector and field saves when it changes, and closing Settings keeps everything. An invalid Days ahead shows its error and writes nothing until it is valid. Quick repeated changes to one setting now reach the server in order, so the last value wins.
+- **About.** A new About page shows the version and opens What's New and Keyboard shortcuts.
+
+### Fixed
+- **Settings focus trap (#495).** Tab and Shift+Tab now stay inside the open Settings dialog.
+
 ## [7.19.0] — 2026-11-20
 
 ### Added

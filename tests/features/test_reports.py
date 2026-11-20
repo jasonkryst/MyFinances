@@ -389,16 +389,16 @@ def test_auto_nw_snapshot_setting_saves(app_page):
     # #settingsBtn is a hidden trigger; use evaluate to click it programmatically
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="advanced"]')  # #322: Auto NW snapshot toggle now lives on the Advanced tab
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: Auto NW snapshot toggle now lives on the Advanced tab
     page.click('#settingAutoNwSnapshot')
 
     # Save settings
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
     # Verify the setting persists by opening settings again
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="advanced"]')
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")
     is_checked = page.is_checked('#settingAutoNwSnapshot')
     assert is_checked, "Auto-capture NW snapshot setting should be saved as checked"

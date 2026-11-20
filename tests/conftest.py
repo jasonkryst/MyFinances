@@ -489,6 +489,19 @@ def wait_for_api(page, path, check, timeout=10.0):
     raise AssertionError(f"{path} never satisfied the expected condition; last response: {data!r}")
 
 
+def open_settings_page(page, name: str) -> None:
+    """Open Settings on page `name` (appearance, language, notifications, backup,
+    advanced, security, about). Works at any viewport: wide shows two panes, narrow
+    opens drilled in."""
+    page.evaluate("n => window.app.openSettings({ page: n })", name)
+    page.wait_for_selector(f"#settingsPage-{name}", state="visible", timeout=5000)
+
+
+async def open_settings_page_async(page, name: str) -> None:
+    await page.evaluate("n => window.app.openSettings({ page: n })", name)
+    await page.wait_for_selector(f"#settingsPage-{name}", state="visible", timeout=5000)
+
+
 def expect_alert_and_dismiss(page, message):
     """Wait for #alertModal, assert its text equals `message`, then dismiss it.
 
@@ -672,28 +685,26 @@ def open_settings(page):
 
 
 def close_settings(page):
-    """Close the Settings modal via its Done button."""
-    page.click('#settingsModalDoneBtn')
+    """Close the Settings modal via its x button (settings save on change; no Done)."""
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
 
 def switch_settings_tab(page, tab):
-    """Click a Settings modal tab (#322/#456: 'appearance'/'data'/'notifications'/'advanced'/'security')."""
-    page.click(f'[data-settings-tab="{tab}"]')
+    """Open a Settings page by its old tab name ('data' is now 'backup'); prefer open_settings_page."""
+    open_settings_page(page, {'data': 'backup'}.get(tab, tab))
 
 
 def open_data_transfer(page):
-    """Open the Backup & Restore modal (#exportJsonBtn/#importJsonBtn live
-    here now) and wait for it to be visible before interacting with any
-    control inside it."""
-    page.evaluate("() => document.getElementById('dataTransferBtn').click()")
-    page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
+    """Open Settings on the Backup & Restore page (#exportJsonBtn/#importJsonBtn
+    live there) and wait for it to be visible."""
+    open_settings_page(page, 'backup')
 
 
 def close_data_transfer(page):
-    """Close the Backup & Restore modal via its × close button."""
-    page.click('#dataTransferModalCloseBtn')
-    page.wait_for_selector('#dataTransferModal', state='hidden', timeout=5000)
+    """Close Settings via its x close button."""
+    page.click('#settingsModalCloseBtn')
+    page.wait_for_selector('#settingsModal', state='hidden', timeout=5000)
 
 
 def assert_no_errors(page):

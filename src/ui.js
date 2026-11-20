@@ -221,7 +221,7 @@ export function initializeEventListeners(app) {
             if (confirmed) {
                 // The button lives in Settings (#429); close it so the
                 // setup wizard shown after clearing isn't covered by it.
-                const settingsDone = document.getElementById('settingsModalDoneBtn');
+                const settingsDone = document.getElementById('settingsModalCloseBtn');
                 if (settingsDone && document.getElementById('settingsModal')?.classList.contains('flex-visible')) {
                     settingsDone.click();
                 }
@@ -626,7 +626,7 @@ export function initAccountMenu(app) {
 
     // Proxy menu items to the hidden legacy buttons
     if (calendarFeedItem) calendarFeedItem.addEventListener('click', () => { close(); document.getElementById('calendarFeedBtn')?.click(); });
-    if (backupItem) backupItem.addEventListener('click', () => { close(); document.getElementById('dataTransferBtn')?.click(); });
+    if (backupItem) backupItem.addEventListener('click', () => { close(); app.openSettings({ page: 'backup' }); });
     if (settingsItem) settingsItem.addEventListener('click', () => { close(); document.getElementById('settingsBtn')?.click(); });
     // Focus the (still visible) menu trigger first so closing the panel returns focus there.
     if (shortcutsItem) shortcutsItem.addEventListener('click', () => { close(); btn.focus(); app.openKeyboardShortcuts(); });
@@ -1004,6 +1004,7 @@ export function openWhatsNewModal() {
     if (!modal) return;
     const body = document.getElementById('whatsNewModalBody');
     if (body) body.innerHTML = _buildWhatsNewHtml();
+    const opener = document.activeElement;
     modal.classList.remove('hidden');
     modal.focus();
     const closeBtn = document.getElementById('whatsNewModalCloseBtn');
@@ -1011,10 +1012,15 @@ export function openWhatsNewModal() {
         modal.classList.add('hidden');
         closeBtn?.removeEventListener('click', closeHandler);
         modal.removeEventListener('click', overlayHandler);
+        modal.removeEventListener('keydown', keyHandler);
+        if (opener && opener !== document.body && typeof opener.focus === 'function') opener.focus();
     };
     const overlayHandler = (e) => { if (e.target === modal) closeHandler(); };
+    // Escape closes only this dialog (it can be open on top of Settings).
+    const keyHandler = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeHandler(); } };
     closeBtn?.addEventListener('click', closeHandler);
     modal.addEventListener('click', overlayHandler);
+    modal.addEventListener('keydown', keyHandler);
 }
 
 function _setWhatsNewDots(visible) {
@@ -1037,6 +1043,12 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.20.0 — 2026-11-20',
+        items: [
+            '<strong>A tidier Settings:</strong> Settings is now a grouped list with the current value on each row, in two panes on a wide screen and one page at a time on a phone. Backup &amp; Restore moved in as a page, there is a new About page, and changes save as you make them, so there is no Done button.'
+        ]
+    },
     {
         version: '7.19.0 — 2026-11-20',
         items: [

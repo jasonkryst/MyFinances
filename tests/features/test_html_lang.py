@@ -18,8 +18,9 @@ def _lang(page):
 
 def _set_locale_via_settings(page, code):
     open_settings(page)
+    page.evaluate("() => window.app.openSettings({ page: 'language' })")
     page.select_option('#settingLocale', code)
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     page.wait_for_selector('#settingsModal.flex-visible', state='hidden', timeout=5000)
 
 

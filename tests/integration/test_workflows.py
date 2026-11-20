@@ -133,7 +133,6 @@ def test_import_json_file(app_page):
 
     from tests.conftest import open_data_transfer
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
     import_btn = page.query_selector('#importJsonBtn')
 
     if import_btn:
@@ -223,7 +222,6 @@ def test_import_refreshes_currently_active_page(app_page):
 
     try:
         open_data_transfer(page)
-        page.click('[data-dt-tab="import"]')
         page.click('#importJsonBtn')
         page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
 
@@ -264,7 +262,6 @@ def test_import_replaces_data(app_page):
     # Import new data
     from tests.conftest import open_data_transfer
     open_data_transfer(page)
-    page.click('[data-dt-tab="import"]')
     import_btn = page.query_selector('#importJsonBtn')
     if import_btn:
         new_data = {
@@ -335,7 +332,6 @@ def test_roundtrip_export_import(app_page):
         temp_file = f.name
 
     try:
-        page.click('[data-dt-tab="import"]')
         page.click('#importJsonBtn')
         page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
         page.query_selector('#importJsonInput').set_input_files(temp_file)
@@ -441,7 +437,6 @@ def test_clear_all_data_then_reimport_renders_every_page_cleanly(app_page):
 
     try:
         open_data_transfer(page)
-        page.click('[data-dt-tab="import"]')
         page.click('#importJsonBtn')
         page.wait_for_selector('#importJsonInput', state='attached', timeout=5000)
         file_input = page.query_selector('#importJsonInput')

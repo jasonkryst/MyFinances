@@ -127,22 +127,17 @@ def test_savings_subtabs_fit_row_on_phone(seeded):
 
 
 @pytest.mark.ui
-def test_settings_tabs_equal_grid_on_phone(seeded):
+def test_settings_rows_fit_on_phone(seeded):
     page = seeded
     page.set_viewport_size(PHONE)
     page.evaluate("() => document.getElementById('accountMenuBtn').click()")
     page.evaluate("() => document.getElementById('accountMenuSettingsBtn').click()")
-    page.wait_for_selector("[data-settings-tab='advanced']", state="visible", timeout=5000)
-    res = page.evaluate("""() => [...document.querySelectorAll('.settings-tab-btn')].map(b => {
-        const r = b.getBoundingClientRect(); return { top: Math.round(r.top), w: Math.round(r.width), h: r.height };
+    page.wait_for_selector("[data-settings-page='advanced']", state="visible", timeout=5000)
+    res = page.evaluate("""() => [...document.querySelectorAll('.settings-row[data-settings-page]')].map(b => {
+        const r = b.getBoundingClientRect(); return { l: r.left, r: r.right, h: r.height, clipped: b.scrollWidth > b.clientWidth + 1 };
     })""")
-    # #456 added Security as a fifth tab: two equal-width rows of two, and
-    # the odd last tab spans the full third row instead of sitting at half width.
-    assert len(res) == 5
-    assert len({b["top"] for b in res}) == 3, res          # exactly three rows
-    assert len({b["w"] for b in res[:4]}) == 1, res        # first four equal width
-    assert res[4]["w"] > res[0]["w"] * 1.8, res            # Security spans the row
-    assert all(b["h"] >= 40 for b in res), res
+    assert len(res) == 7
+    assert all(b["r"] <= PHONE["width"] + 1 and b["l"] >= -1 and not b["clipped"] and b["h"] >= 40 for b in res), res
 
 
 @pytest.mark.ui

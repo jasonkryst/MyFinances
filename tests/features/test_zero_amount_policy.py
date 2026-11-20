@@ -432,17 +432,17 @@ def test_settings_modal_has_zero_policy_select_in_advanced_tab(app_page):
     page = app_page
     page.evaluate("() => document.getElementById('settingsBtn').click()")
     page.wait_for_selector('#settingsModal.flex-visible', timeout=5000)
-    page.click('[data-settings-tab="advanced"]')
+    page.evaluate("() => window.app.openSettings({ page: 'advanced' })")
     sel = page.locator('#settingZeroAmountPolicy')
     sel.wait_for(state='visible', timeout=5000)
-    assert page.locator('#settingsPanel-advanced #settingZeroAmountPolicy').count() == 1
+    assert page.locator('#settingsPage-advanced #settingZeroAmountPolicy').count() == 1
     values = page.eval_on_selector_all('#settingZeroAmountPolicy option', 'els => els.map(e => e.value)')
     assert values == ['allow', 'warn', 'block']
     assert sel.input_value() == 'allow'
     assert '$0' in page.inner_text('label[for="settingZeroAmountPolicy"]')
 
     sel.select_option('block')
-    page.click('#settingsModalDoneBtn')
+    page.click('#settingsModalCloseBtn')
     assert page.evaluate(
         "() => (window.app.settings.find(s => s.key === 'zeroAmountPolicy') || {}).value"
     ) == 'block'

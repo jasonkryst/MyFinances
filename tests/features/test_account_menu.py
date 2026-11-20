@@ -75,14 +75,14 @@ def test_account_menu_closes_on_outside_click(app_page):
 
 
 @pytest.mark.feature
-def test_account_menu_backup_item_opens_data_transfer_modal(app_page):
-    """Clicking Backup & Restore in the Account menu opens the data-transfer modal."""
+def test_account_menu_backup_item_opens_backup_page(app_page):
+    """Clicking Backup & Restore in the Account menu opens Settings on the Backup page."""
     page = app_page
     _open_account_menu(page)
     page.click('#accountMenuBackupBtn')
-    page.wait_for_selector('#dataTransferModal.flex-visible', timeout=5000)
-    assert page.query_selector('#dataTransferModal.flex-visible'), \
-        "Data-transfer modal should open after clicking Backup & Restore"
+    page.wait_for_selector('#settingsPage-backup', state='visible', timeout=5000)
+    assert page.is_visible('#importJsonBtn'), \
+        "Backup page should open after clicking Backup & Restore"
     assert_no_errors(page)
 
 
@@ -109,20 +109,6 @@ def test_standalone_settings_button_hidden_from_toolbar(app_page):
         return style.display !== 'none' && !btn.classList.contains('hidden');
     }""")
     assert not is_visible, "settingsBtn should be hidden (moved into Account menu)"
-    assert_no_errors(page)
-
-
-@pytest.mark.feature
-def test_standalone_data_transfer_button_hidden_from_toolbar(app_page):
-    """The standalone dataTransferBtn is no longer visible in the toolbar (moved to Account menu)."""
-    page = app_page
-    is_visible = page.evaluate("""() => {
-        const btn = document.getElementById('dataTransferBtn');
-        if (!btn) return false;
-        const style = window.getComputedStyle(btn);
-        return style.display !== 'none' && !btn.classList.contains('hidden');
-    }""")
-    assert not is_visible, "dataTransferBtn should be hidden (moved into Account menu)"
     assert_no_errors(page)
 
 

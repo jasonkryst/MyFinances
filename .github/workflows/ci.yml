@@ -442,6 +442,7 @@ jobs:
             tests/features/test_ci_shard_coverage.py \
             tests/features/test_async_submit_guard.py \
             tests/features/test_skip_guard.py \
+            tests/features/test_settings_redesign_guard.py \
             tests/features/test_community_files.py \
             tests/features/test_ci_fail_fast.py \
             tests/features/test_backup_service.py \
@@ -562,6 +563,7 @@ jobs:
             tests/ui/test_remaining_pages_print.py \
             tests/ui/test_reports_nav.py \
             tests/ui/test_contrast_fixes.py \
+            tests/ui/test_settings_redesign.py \
             --maxfail=15 \
             -v
       - name: Stop stack
