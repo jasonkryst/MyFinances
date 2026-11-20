@@ -352,6 +352,7 @@
                     <li>Projected completion date if contributing at the set monthly rate</li>
                     <li>Edit, Delete, and Contribute buttons for quick actions</li>
                 </ul>
+                <p>Below the cards, a <strong>Balance history</strong> chart plots the month-end balance of each linked account over the last 12 months. It is drawn from the account's balance history: Savings accounts record an entry whenever you add them, edit their balance on the Accounts page, or reconcile them in adjust mode (open an account's <strong>History</strong> button to see or remove entries). The chart shows a message instead when no account is linked or the history covers fewer than two months, and nothing is drawn before the account's first entry.</p>
 
                 <h3>Sinking Funds (Goal-Based Savings)</h3>
                 <p>Create multiple named savings goals with three flexible allocation methods.</p>
@@ -678,6 +679,9 @@
                     <li><strong>Visible only</strong> — the reconciliation is recorded and shown, but the account keeps using its computed balance; nothing is overwritten</li>
                 </ul>
                 <p>The first time you open the app with no saved data, a setup wizard asks you to pick a mode. If you're an existing user, your data already loads in <strong>Visible only</strong> mode by default. Change the mode any time from the <strong>Settings</strong> modal — open it via the gear icon in the toolbar, or by searching "Settings" in the command palette (<kbd>Ctrl/Cmd+K</kbd>).</p>
+
+                <h3>Exporting a Reconciliation Report</h3>
+                <p>When you save a reconciliation, a small panel appears with <strong>Export CSV</strong> and <strong>Print</strong>. Every entry in the Reconcile history has the same two buttons. The report contains the account, statement period, previous and statement balances, the difference and your note, the transactions you marked Cleared inside the statement period, and the account's full reconciliation history.</p>
 
                 <h3>Reconciliations on the Ledger</h3>
                 <p>Every reconciliation also appears as a marker row (🔄 Balance Reconciliation) on the Ledger page, showing the previous balance, the statement balance, and the difference — regardless of which mode you're in. This keeps the ledger transparent about every adjustment made to an account, even ones that don't move the running balance.</p>

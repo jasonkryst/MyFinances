@@ -1,5 +1,6 @@
 const {
     HISTORY_TRACKED_ACCOUNT_TYPES,
+    MINIMUM_PAYMENT_ACCOUNT_TYPES,
     isHistoryTrackedAccount,
     ownerOfEntry,
     entryBelongsTo,
@@ -17,11 +18,13 @@ const DEBT = { kind: 'debt', id: 1 };
 const ACCT = { kind: 'account', id: 7 };
 
 describe('isHistoryTrackedAccount', () => {
-    test('true only for Credit Card and Loan', () => {
-        expect(HISTORY_TRACKED_ACCOUNT_TYPES).toEqual(['Credit Card', 'Loan']);
+    test('true only for Credit Card, Loan and Savings (#307)', () => {
+        expect(HISTORY_TRACKED_ACCOUNT_TYPES).toEqual(['Credit Card', 'Loan', 'Savings']);
         expect(isHistoryTrackedAccount({ type: 'Credit Card' })).toBe(true);
         expect(isHistoryTrackedAccount({ type: 'Loan' })).toBe(true);
+        expect(isHistoryTrackedAccount({ type: 'Savings' })).toBe(true);
         expect(isHistoryTrackedAccount({ type: 'Checking' })).toBe(false);
+        expect(isHistoryTrackedAccount({ type: 'Investment' })).toBe(false);
         expect(isHistoryTrackedAccount(null)).toBe(false);
     });
 });
@@ -242,5 +245,15 @@ describe('computeHistoryDeltas', () => {
         ]);
         expect(out[1].balanceDelta).toBeNull();
         expect(out[1].minimumPaymentDelta).toBe(50);
+    });
+});
+
+describe('savings accounts in history (#307)', () => {
+    test('a savings account balance is recorded as a positive entry', () => {
+        const entry = buildHistoryEntry({ kind: 'account', id: 9 }, { type: 'Savings', startingBalance: 2500 }, '2026-11-01');
+        expect(entry).toEqual({ debtId: null, accountId: 9, date: '2026-11-01', balance: 2500, minimumPayment: 0 });
+    });
+    test('only Credit Card and Loan have a minimum payment', () => {
+        expect(MINIMUM_PAYMENT_ACCOUNT_TYPES).toEqual(['Credit Card', 'Loan']);
     });
 });

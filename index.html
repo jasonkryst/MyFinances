@@ -1886,6 +1886,16 @@
         </div>
     </div>
     <div id="undoToastAnnounce" class="sr-only" role="status" aria-live="polite"></div>
+    <!-- #318: non-blocking result shown after a reconciliation is saved, with Export CSV and Print (src/reconciliation.js). -->
+    <div id="reconcileResultRegion" class="recon-result-region" role="status" aria-live="polite">
+        <div id="reconcileResultPanel" class="recon-result-panel hidden">
+            <span id="reconcileResultMessage" class="recon-result-message"></span>
+            <button type="button" id="reconcileResultExportBtn" class="btn btn-small recon-result-btn" data-i18n="reconcile.exportCsv">Export CSV</button>
+            <button type="button" id="reconcileResultPrintBtn" class="btn btn-small recon-result-btn" data-i18n="common.print">Print</button>
+            <button type="button" id="reconcileResultClose" class="undo-toast-close" aria-label="Dismiss" title="Dismiss" data-i18n-attr="aria-label:reconcile.resultDismissAria,title:reconcile.resultDismissAria">×</button>
+        </div>
+    </div>
+    <div id="reconcilePrintArea" class="recon-print-area hidden" aria-hidden="true"></div>
     <!-- Account Replacement Modal — shown when deleting an account that has linked items -->
     <div id="accountReplacementModal" class="modal modal-overlay hidden"
          role="dialog" aria-modal="true" aria-labelledby="accountReplacementTitle" tabindex="-1">

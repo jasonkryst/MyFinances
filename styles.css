@@ -7094,7 +7094,7 @@ body.dark-mode .sinking-order-tag { background: #334155; color: #94a3b8; }
 .progress-fill--funded { background: linear-gradient(90deg, #059669, #10b981); }
 body.dark-mode .progress-fill--funded { background: linear-gradient(90deg, #34d399, #6ee7b7); }
 .savings-archived-row { margin: 8px 0 4px; }
-.empty-message { color: #9ca3af; font-style: italic; text-align: center; padding: 24px 0; font-size: 0.9rem; }
+.empty-message { color: var(--text-muted); font-style: italic; text-align: center; padding: 24px 0; font-size: 0.9rem; }
 
 /* Home Purchase Planning (#249) */
 .hp-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -9690,4 +9690,72 @@ body.dark-mode .notifications-filter-note {
 }
 body.dark-mode .notifications-filter-text {
     color: #cbd5e1;
+}
+
+/* ── Reconciliation result panel + print report (#318) ─────────────────── */
+.recon-result-region {
+    position: fixed;
+    left: 50%;
+    bottom: 72px;
+    transform: translateX(-50%);
+    z-index: 9996;
+    max-width: calc(100vw - 32px);
+}
+.recon-result-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 16px;
+    border-radius: 10px;
+    background: #1f2937;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+    font-size: 0.9rem;
+}
+.recon-result-panel.hidden {
+    display: none;
+}
+.recon-result-message {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.recon-result-btn {
+    flex-shrink: 0;
+    background: transparent;
+    color: #93c5fd;
+    border: 1px solid #93c5fd;
+    font-weight: 600;
+}
+.recon-result-btn:hover,
+.recon-result-btn:focus-visible {
+    background: rgba(147, 197, 253, 0.15);
+}
+.recon-history-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.recon-print-area.hidden {
+    display: none;
+}
+.recon-print-area table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+.recon-print-area th,
+.recon-print-area td {
+    text-align: left;
+    padding: 4px 6px;
+}
+@media print {
+    body.recon-printing > *:not(#reconcilePrintArea) {
+        display: none !important;
+    }
+    body.recon-printing #reconcilePrintArea {
+        display: block !important;
+        color: #000;
+        background: #fff;
+    }
 }

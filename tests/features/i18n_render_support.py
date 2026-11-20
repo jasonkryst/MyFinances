@@ -1067,6 +1067,18 @@ TRANSLATED_PAGES = {
             }
         }""",
     ),
+    # #318: the non-blocking result panel shown after saving a reconciliation.
+    'reconcile-result': (
+        ['#reconcileResultRegion'],
+        """async () => {
+            const app = window.app;
+            window.app.switchPage('reconcile');
+            await window.app.renderReconciliationPage();
+            const mod = await import('/src/reconciliation.js');
+            const accountId = app.accounts.length ? app.accounts[0].id : 0;
+            mod.showReconcileResult(app, { id: 1, accountId });
+        }""",
+    ),
     'strategy': (
         _PLAN_ROOTS + ['.milestone-host'],
         """async () => {

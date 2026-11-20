@@ -57,6 +57,26 @@ describe('estimateNetWorthByMonth', () => {
         const r = estimateNetWorthByMonth([acct(7, '2026-01-01', 150), acct(7, '2026-02-01', -5), debt(1, '2026-01-01', 10)], ['2026-02'], 0).get('2026-02');
         expect(r).toEqual({ totalAssets: 0, totalLiabilities: 10, netWorth: -10 });
     });
+    test('a Savings account (tracked) is a positive asset, never a liability (#307)', () => {
+        const r = estimateNetWorthByMonth([acct(5, '2026-01-01', 3000), acct(5, '2026-02-01', 3500)], ['2026-01', '2026-02'], 100);
+        expect(r.get('2026-01')).toEqual({ totalAssets: 3100, totalLiabilities: 0, netWorth: 3100 });
+        expect(r.get('2026-02')).toEqual({ totalAssets: 3600, totalLiabilities: 0, netWorth: 3600 });
+    });
+    test('an overdrawn Savings balance adds nothing and is not a liability', () => {
+        const r = estimateNetWorthByMonth([debt(1, '2026-01-01', 50), acct(5, '2026-01-01', -200)], ['2026-01'], 0).get('2026-01');
+        expect(r).toEqual({ totalAssets: 0, totalLiabilities: 50, netWorth: -50 });
+    });
+    test('a tracked account adopted later is held flat at its first entry for earlier months', () => {
+        const entries = [debt(1, '2026-01-01', 100), acct(5, '2026-03-01', 800)];
+        const r = estimateNetWorthByMonth(entries, ['2026-01', '2026-02', '2026-03'], 0);
+        expect(r.get('2026-01')).toEqual({ totalAssets: 800, totalLiabilities: 100, netWorth: 700 });
+        expect(r.get('2026-03')).toEqual({ totalAssets: 800, totalLiabilities: 100, netWorth: 700 });
+    });
+    test('first-entry backfill never creates an estimate on its own, nor from a non-positive balance', () => {
+        expect(estimateNetWorthByMonth([acct(5, '2026-03-01', 800)], ['2026-01', '2026-02'], 0).size).toBe(0);
+        const r = estimateNetWorthByMonth([debt(1, '2026-01-01', 100), acct(5, '2026-03-01', -40)], ['2026-01'], 0).get('2026-01');
+        expect(r).toEqual({ totalAssets: 0, totalLiabilities: 100, netWorth: -100 });
+    });
     test('empty or non-array history gives no points', () => {
         expect(estimateNetWorthByMonth([], ['2026-01'], 100).size).toBe(0);
         expect(estimateNetWorthByMonth(null, ['2026-01'], 100).size).toBe(0);

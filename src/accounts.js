@@ -7,7 +7,7 @@ import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { offerUndo } from './undo.js';
 import { showAlertModal, showDeleteConfirmModal, showAccountReplacementModal } from './ui.js';
 import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js';
-import { isHistoryTrackedAccount, HISTORY_TRACKED_ACCOUNT_TYPES } from './balanceHistoryCore.js';
+import { isHistoryTrackedAccount, MINIMUM_PAYMENT_ACCOUNT_TYPES } from './balanceHistoryCore.js';
 import { getSetting, setSetting, SHOW_ARCHIVED_ACCOUNTS } from './settings.js';
 import { t, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { withProjectionCache } from './projectionCache.js';
@@ -56,7 +56,7 @@ export function updateAccountFormRetirementVisibility() {
     for (const id of ['accountPensionSalaryGroup', 'accountPensionContributionRateGroup', 'accountPensionVestingYearsGroup', 'accountPensionMonthlyBenefitGroup', 'accountPensionYearsOfServiceGroup']) {
         document.getElementById(id)?.classList.toggle('hidden', !isPension);
     }
-    document.getElementById('accountMinimumPaymentGroup')?.classList.toggle('hidden', !HISTORY_TRACKED_ACCOUNT_TYPES.includes(typeEl?.value));
+    document.getElementById('accountMinimumPaymentGroup')?.classList.toggle('hidden', !MINIMUM_PAYMENT_ACCOUNT_TYPES.includes(typeEl?.value));
 }
 
 export function refreshAccountSelectors(app) {
@@ -277,7 +277,7 @@ function renderAccountsListUncached(app) {
                         <label class="label-compact">${t('accounts.interestRateLabel')}</label>
                         <input type="number" id="ac-rate-${a.id}" value="${Number(a.interestRate) || 0}" step="0.01" min="0" max="100" class="form-full-width">
                     </div>
-                    <div class="form-group form-no-margin ${isHistoryTrackedAccount(a) ? '' : 'hidden'}" id="ac-minpay-group-${a.id}">
+                    <div class="form-group form-no-margin ${MINIMUM_PAYMENT_ACCOUNT_TYPES.includes(a.type) ? '' : 'hidden'}" id="ac-minpay-group-${a.id}">
                         <label class="label-compact">${t('accounts.minPaymentLabel')}</label>
                         <input type="number" id="ac-minpay-${a.id}" value="${Number(a.minimumPayment) || 0}" step="0.01" min="0" class="form-full-width">
                     </div>
@@ -464,7 +464,7 @@ function renderAccountsListUncached(app) {
         const typeSelect = event.target.closest('select[id^="ac-type-"]');
         if (!typeSelect) return;
         const id = typeSelect.id.slice('ac-type-'.length);
-        document.getElementById(`ac-minpay-group-${id}`)?.classList.toggle('hidden', !HISTORY_TRACKED_ACCOUNT_TYPES.includes(typeSelect.value));
+        document.getElementById(`ac-minpay-group-${id}`)?.classList.toggle('hidden', !MINIMUM_PAYMENT_ACCOUNT_TYPES.includes(typeSelect.value));
     };
 }
 

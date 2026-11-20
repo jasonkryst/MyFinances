@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.19.0] — 2026-11-20
+
+### Added
+- **Reconciliation report export (#318).** Saving a reconciliation now shows a small, non-blocking result panel with **Export CSV** and **Print**, and every entry in the Reconcile page history has the same two actions. The CSV (`reconciliation-<account>-<date>.csv`) lists the account, statement period, previous and statement balances, difference and note, then the Cleared transactions inside the statement period (date, name, amount, cleared-at), then the account's whole reconciliation history. Free text is guarded against spreadsheet formulas. Print renders a clean report through a hidden print area. The pure builders are in `src/reconciliationExport.js` (Jest-tested).
+- **Emergency fund balance history (#307).** The Emergency Fund tab has a line chart of the linked account's month-end balance for the last 12 months, drawn from the account's balance history, with a screen-reader data table. With no linked account, or fewer than two months of history, a message shows instead. The month series is the pure `src/balanceSeries.js`.
+
+### Changed
+- **Savings accounts now keep balance history.** Like Credit Card and Loan accounts, a Savings account records an entry when you add it, edit its balance, or reconcile it in adjust mode, and gets a History button on its card. Existing Savings accounts get a first entry on the next load. Savings entries are assets: the estimated Net Worth trend counts them as positive balances (an account adopted later is held flat at its first entry for earlier estimated months), never as liabilities. The Minimum payment field stays Credit Card and Loan only.
+
 ## [7.18.6] — 2026-11-20
 
 ### Changed
