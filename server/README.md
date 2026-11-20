@@ -166,7 +166,15 @@ server starts listening: one tick 30 seconds after startup, then hourly.
 
 `docker-compose.yml` includes a `backup` service that runs `pg_dump` on a
 cron schedule inside its own container — no host-level cron job required.
-Backup files are written to the `backup-data` Docker named volume.
+Backup files are written to the `backup-data` Docker named volume, on the same
+host as the database: copy them off the host if they must survive losing it.
+
+The container runs `server/scripts/backup-entrypoint.sh`: with no arguments it
+installs the schedule and runs `crond` in the foreground; with arguments it runs
+them, which is what the commands below rely on. Each scheduled run is logged to
+`docker logs myfinances-backup`. A failed run exits non-zero and leaves no file,
+so every `.dump` in the volume is a complete backup. (Before 7.18.3 this
+container crash-looped and never ran a scheduled backup, #656.)
 
 **Environment variables** (set in your shell or `.env` file):
 
@@ -175,26 +183,34 @@ Backup files are written to the `backup-data` Docker named volume.
 | `BACKUP_SCHEDULE` | `0 2 * * *` | Cron schedule (2 am daily). Standard 5-field cron syntax. |
 | `BACKUP_RETENTION_DAYS` | `7` | Days of backups to keep; older `.dump` files are pruned automatically. |
 
+**Check that it is running and see recent runs:**
+```bash
+docker compose ps backup          # Up (healthy), not Restarting
+docker logs --tail 20 myfinances-backup
+```
+
 **To trigger an immediate backup:**
 ```bash
-docker compose run --rm backup /usr/local/bin/docker-backup.sh
+docker compose run --rm backup sh /usr/local/bin/docker-backup.sh
 ```
 
 **To list existing backups:**
 ```bash
-docker run --rm -v myfinances_backup-data:/backups postgres:16-alpine ls /backups/
+docker compose exec backup ls -l /backups
 ```
 
-**To restore from a backup file:**
+**To copy a backup off the volume** (for off-host storage, or for the root-level
+`restore.sh`/`restore.ps1` scripts):
 ```bash
-docker run --rm \
-  -v myfinances_backup-data:/backups \
-  -e PGPASSWORD=<your-password> \
-  postgres:16-alpine \
-  pg_restore -h postgres -U myfinances -d myfinances /backups/<file>.dump
+docker compose cp backup:/backups/<file>.dump ./
 ```
-Alternatively, copy the `.dump` file out of the volume and use the root-level
-`restore.sh`/`restore.ps1` scripts.
+
+**To restore from a backup file** (destructive: it replaces every object in the
+database, like `restore.sh`), then restart the server:
+```bash
+docker compose run --rm backup sh -c 'PGPASSWORD=$(tr -d "\r\n" < /run/secrets/postgres_password) pg_restore -h postgres -U myfinances -d myfinances --clean --if-exists /backups/<file>.dump'
+docker compose restart server
+```
 
 ## Notifications (issue #211)
 

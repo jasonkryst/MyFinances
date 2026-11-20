@@ -439,6 +439,7 @@ jobs:
             tests/features/test_skip_guard.py \
             tests/features/test_community_files.py \
             tests/features/test_ci_fail_fast.py \
+            tests/features/test_backup_service.py \
             tests/features/test_harness_reset.py \
             --maxfail=15 \
             -v
@@ -519,6 +520,9 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
+      # The backup service crash-looped unnoticed for two months (#656).
+      - name: Backup service runs and writes a readable dump
+        run: bash tools/check-backup-service.sh
       - run: pytest tests/integration --maxfail=15 -v
       - name: Stop stack
         if: always()

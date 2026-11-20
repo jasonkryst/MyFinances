@@ -128,13 +128,21 @@ services:
     volumes:
       - backup-data:/backups
       - ./server/scripts/docker-backup.sh:/usr/local/bin/docker-backup.sh:ro
+      - ./server/scripts/backup-entrypoint.sh:/usr/local/bin/backup-entrypoint.sh:ro
     secrets:
       - postgres_password
-    entrypoint: >
-      sh -c 'echo "$${BACKUP_SCHEDULE} /usr/local/bin/docker-backup.sh >> /var/log/backup.log 2>&1"
-             > /etc/crontabs/root
-             && chmod +x /usr/local/bin/docker-backup.sh
-             && crond -f -l 2'
+    # A list, not a folded `>` block: YAML keeps the line breaks before
+    # more-indented lines, which split the old `sh -c` chain and crash-looped
+    # this container (#656). No args: cron in the foreground; with args
+    # (`docker compose run --rm backup sh /usr/local/bin/docker-backup.sh`)
+    # it runs them instead.
+    entrypoint: ["sh", "/usr/local/bin/backup-entrypoint.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x crond > /dev/null"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     security_opt:
       - no-new-privileges:true
 

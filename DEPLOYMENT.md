@@ -403,8 +403,15 @@ losing it loses everything. Root-level scripts wrap
   target database (`pg_restore --clean --if-exists`) before loading the dump, and prompt for
   confirmation before doing so. Restart the `server` container afterward
   (`docker compose restart server`) so its connection pool picks up a clean session.
-- **Schedule regular backups** — nothing in this repo runs backups automatically by default;
-  wire up one of the examples below (or your own), pointing `BACKUP_DIR` at storage that
+- **Built-in nightly backups.** The stack's `backup` service runs `pg_dump` daily at 2 am
+  (`BACKUP_SCHEDULE`) into the `backup-data` volume and keeps 7 days (`BACKUP_RETENTION_DAYS`).
+  Check it with `docker compose ps backup` (Up, not Restarting) and
+  `docker logs myfinances-backup`; commands are in
+  [`server/README.md`](server/README.md#automated-backups). **Before 7.18.3 this container
+  crash-looped and never ran** (#656): after upgrading, run `docker compose up -d` and take one
+  backup straight away with `docker compose run --rm backup sh /usr/local/bin/docker-backup.sh`.
+  That volume lives on the same host as the database, so it does not survive losing the host.
+- **Schedule off-host backups** — wire up one of the examples below (or your own), pointing `BACKUP_DIR` at storage that
   survives losing the host the `postgres-data` volume lives on:
   - **cron** (Linux/macOS) — `docs/examples/myfinances-backup.cron`, a one-line crontab entry.
   - **systemd timer** (Linux) — `docs/examples/myfinances-backup.service` +
