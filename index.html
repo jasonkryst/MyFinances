@@ -2077,19 +2077,19 @@
                 <fieldset class="form-group modal-form-group notify-settings">
                     <legend class="notify-settings-legend" data-i18n="settings.notify.typesLegend">Alert me when</legend>
                     <label class="settings-toggle-row" for="settingNotifyBillDue">
-                        <input type="checkbox" id="settingNotifyBillDue">
+                        <input type="checkbox" role="switch" id="settingNotifyBillDue">
                         <span data-i18n="settings.notify.billDue">A bill or debt payment is due soon or today</span>
                     </label>
                     <label class="settings-toggle-row" for="settingNotifyLowBalance">
-                        <input type="checkbox" id="settingNotifyLowBalance">
+                        <input type="checkbox" role="switch" id="settingNotifyLowBalance">
                         <span data-i18n="settings.notify.lowBalance">An account drops to its low-balance alert amount</span>
                     </label>
                     <label class="settings-toggle-row" for="settingNotifyZeroBalance">
-                        <input type="checkbox" id="settingNotifyZeroBalance">
+                        <input type="checkbox" role="switch" id="settingNotifyZeroBalance">
                         <span data-i18n="settings.notify.zeroBalance">An account is overdrawn (below zero)</span>
                     </label>
                     <label class="settings-toggle-row" for="settingNotifyProjectedLow">
-                        <input type="checkbox" id="settingNotifyProjectedLow">
+                        <input type="checkbox" role="switch" id="settingNotifyProjectedLow">
                         <span data-i18n="settings.notify.projectedLow">An account is projected to run low within the days ahead</span>
                     </label>
                     <p class="modal-helper-text" data-i18n="settings.notify.thresholdHelp">Set a low-balance alert amount on each account from the Accounts page (Add or Edit).</p>
@@ -2150,28 +2150,28 @@
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingReconciliationAdjusts">
-                        <input type="checkbox" id="settingReconciliationAdjusts">
+                        <input type="checkbox" role="switch" id="settingReconciliationAdjusts">
                         <span data-i18n="settings.reconciliationLabel">Reconciliations adjust the tracked balance</span>
                     </label>
                     <p class="modal-helper-text" data-i18n="settings.reconciliationHelp">When on, reconciling an account replaces its tracked balance with the statement balance you enter. When off, reconciliations are recorded and shown on the Ledger for transparency, but the tracked balance keeps being computed from your transactions.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingShowArchivedDebts">
-                        <input type="checkbox" id="settingShowArchivedDebts">
+                        <input type="checkbox" role="switch" id="settingShowArchivedDebts">
                         <span data-i18n="settings.showArchivedDebts">Show archived debts</span>
                     </label>
                     <p class="modal-helper-text" data-i18n="settings.showArchivedDebtsHelp">When on, debts you have archived (fully paid off) will be shown on the Liabilities page. Archived debts are excluded from all calculations, and from the calendar feed unless this is on.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingShowArchivedRecurring">
-                        <input type="checkbox" id="settingShowArchivedRecurring">
+                        <input type="checkbox" role="switch" id="settingShowArchivedRecurring">
                         <span data-i18n="settings.showArchivedRecurring">Show archived recurring templates</span>
                     </label>
                     <p class="modal-helper-text" data-i18n="settings.showArchivedRecurringHelp">When on, recurring templates you have archived will be shown on the Recurring page. Archived templates are excluded from ledger transactions, the cash flow summary, and the calendar feed.</p>
                 </div>
                 <div class="form-group modal-form-group">
                     <label class="settings-toggle-row" for="settingAutoNwSnapshot">
-                        <input type="checkbox" id="settingAutoNwSnapshot">
+                        <input type="checkbox" role="switch" id="settingAutoNwSnapshot">
                         <span data-i18n="settings.autoNwSnapshot">Auto-capture monthly net worth snapshot</span>
                     </label>
                     <p class="modal-helper-text" data-i18n="settings.autoNwSnapshotHelp">When on, a net worth snapshot will be automatically captured once per calendar month on the first app load of that month.</p>

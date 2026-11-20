@@ -9842,3 +9842,35 @@ body.dark-mode .notifications-filter-text {
     .settings-shell--page .settings-header h3 { display: none; }
     .settings-row-value { max-width: 45%; }
 }
+
+/* Settings switches: the real checkbox drawn as a pill; the knob also moves, so colour is not the only signal */
+.settings-shell .settings-toggle-row { justify-content: space-between; flex-direction: row-reverse; }
+.settings-shell .settings-toggle-row span { flex: 1 1 auto; min-width: 0; }
+.settings-shell input[role="switch"] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 26px;
+    margin: 0;
+    border-radius: 13px;
+    background: var(--text-muted);
+    border: 1px solid var(--text-muted);
+    cursor: pointer;
+}
+.settings-shell input[role="switch"]::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    transform: translateX(0);
+    transition: transform 0.15s;
+}
+.settings-shell input[role="switch"]:checked { background: var(--primary-color); border-color: var(--primary-color); }
+.settings-shell input[role="switch"]:checked::before { transform: translateX(18px); }
+.settings-shell input[role="switch"]:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }

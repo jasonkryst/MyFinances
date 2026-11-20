@@ -5,7 +5,7 @@ docs/superpowers/specs/2026-11-20-settings-redesign-design.md."""
 
 import pytest
 
-from tests.conftest import open_settings, open_settings_page
+from tests.conftest import open_settings, open_settings_page, wait_for_api
 
 WIDE = {'width': 1280, 'height': 800}
 NARROW = {'width': 390, 'height': 844}
@@ -109,3 +109,94 @@ def test_focus_returns_to_opener_on_close(app_page):
     page.click('#settingsModalCloseBtn')
     assert page.locator('#settingsModal').is_hidden()
     assert _active_id(page) == 'accountMenuBtn'
+
+
+# ── Task 2: save on change ──────────────────────────────────────────────────
+
+def _setting(rows, key):
+    for row in rows:
+        if row.get('key') == key:
+            return row.get('value')
+    return None
+
+
+@pytest.mark.ui
+def test_advanced_switch_saves_on_change_without_done(app_page):
+    page = app_page
+    open_settings_page(page, 'advanced')
+    assert page.locator('#settingsModalDoneBtn').count() == 0
+    page.click('#settingShowArchivedDebts')
+    wait_for_api(page, '/api/settings', lambda rows: _setting(rows, 'showArchivedDebts') is True)
+
+
+@pytest.mark.ui
+def test_close_does_not_revert(app_page):
+    page = app_page
+    open_settings_page(page, 'advanced')
+    page.select_option('#settingZeroAmountPolicy', 'warn')
+    page.click('#settingsModalCloseBtn')
+    wait_for_api(page, '/api/settings', lambda rows: _setting(rows, 'zeroAmountPolicy') == 'warn')
+    open_settings_page(page, 'advanced')
+    assert page.input_value('#settingZeroAmountPolicy') == 'warn'
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize('bad', ['99', '-1', 'abc', ''])
+def test_invalid_days_ahead_not_saved(app_page, bad):
+    page = app_page
+    open_settings_page(page, 'notifications')
+    page.fill('#settingNotifyDaysAhead', bad)
+    page.keyboard.press('Tab')
+    assert page.locator('#settingNotifyDaysAheadError').is_visible()
+    assert page.get_attribute('#settingNotifyDaysAhead', 'aria-invalid') == 'true'
+    page.wait_for_timeout(1000)
+    rows = page.evaluate("async () => (await fetch('/api/settings')).json()")
+    assert _setting(rows, 'notifyDaysAhead') in (None, 3)
+    page.fill('#settingNotifyDaysAhead', '5')
+    page.keyboard.press('Tab')
+    assert page.locator('#settingNotifyDaysAheadError').is_hidden()
+    assert page.get_attribute('#settingNotifyDaysAhead', 'aria-invalid') == 'false'
+    wait_for_api(page, '/api/settings', lambda rows: _setting(rows, 'notifyDaysAhead') == 5)
+
+
+@pytest.mark.ui
+def test_rapid_toggle_ends_at_final_value(app_page):
+    page = app_page
+    open_settings_page(page, 'notifications')
+    # Default is on; two quick clicks end on again. Turn it off first so the
+    # final state differs from the default.
+    page.click('#settingNotifyBillDue')
+    wait_for_api(page, '/api/settings', lambda rows: _setting(rows, 'notifyBillDue') is False)
+    page.click('#settingNotifyBillDue')
+    page.click('#settingNotifyBillDue')
+    page.click('#settingNotifyBillDue')
+    # three clicks from "on" (after the first off then...) -> compute: off, on, off, on => final on
+    wait_for_api(page, '/api/settings', lambda rows: _setting(rows, 'notifyBillDue') is True)
+    page.wait_for_timeout(1000)
+    rows = page.evaluate("async () => (await fetch('/api/settings')).json()")
+    assert _setting(rows, 'notifyBillDue') is True
+
+
+@pytest.mark.ui
+def test_language_change_keeps_page_and_focus(app_page):
+    page = app_page
+    open_settings_page(page, 'language')
+    page.select_option('#settingLocale', 'es')
+    page.wait_for_function("document.getElementById('settingsPageTitle-language').textContent !== 'Language & Region'")
+    assert page.locator('#settingsPage-language').is_visible()
+    expected = page.evaluate("async () => (await import('/src/locales/es.js')).default['settings.pageLanguage']")
+    assert page.text_content('#settingsPageTitle-language') == expected
+    assert _active_id(page) == 'settingLocale'
+
+
+@pytest.mark.ui
+def test_toggles_are_switches(app_page):
+    page = app_page
+    boxes = page.evaluate("""() => Array.from(document.querySelectorAll('#settingsModal input[type=checkbox]')).map(b => ({
+        id: b.id, role: b.getAttribute('role'),
+        name: (document.querySelector('label[for="' + b.id + '"]') || {}).textContent || ''
+    }))""")
+    assert boxes
+    for b in boxes:
+        assert b['role'] == 'switch', b
+        assert b['name'].strip(), b

@@ -73,7 +73,7 @@
   - `#settingsModal` gets `settings-shell`;
   - in narrow drill-in, `settings-shell--page` is added (list hidden, page shown).
 
-- [ ] **Step 1: Write the failing tests** in `tests/ui/test_settings_redesign.py` (sync API, `app_page` fixture). Narrow tests use `page.set_viewport_size({'width': 390, 'height': 844})` before opening.
+- [x] **Step 1: Write the failing tests** in `tests/ui/test_settings_redesign.py` (sync API, `app_page` fixture). Narrow tests use `page.set_viewport_size({'width': 390, 'height': 844})` before opening.
 
 ```python
 def test_wide_shows_two_panes_with_appearance_selected(app_page):
@@ -110,8 +110,8 @@ def test_focus_returns_to_opener_on_close(app_page): ...
     # click #settingsBtn, then #settingsModalCloseBtn -> document.activeElement.id == 'settingsBtn'
 ```
 
-- [ ] **Step 2: Run to verify failure.** Run `pytest tests/ui/test_settings_redesign.py -v`. Expected: FAIL (`#settingsNav` not found).
-- [ ] **Step 3: Restructure the markup** in `index.html`:
+- [x] **Step 2: Run to verify failure.** Run `pytest tests/ui/test_settings_redesign.py -v`. Expected: FAIL (`#settingsNav` not found).
+- [x] **Step 3: Restructure the markup** in `index.html`:
   - Replace the tab bar with `<nav id="settingsNav" aria-label=…>` holding one `<ul>` per group (General, Data, Account, About) plus the danger card, using the spec's row table.
   - Each row is `<button type="button" class="settings-row" data-settings-page="…">` containing an icon tile, `<span class="settings-row-label">` and an optional `.settings-row-value` span. The chevron `<span aria-hidden="true">›</span>` is omitted on the Version row and the Clear All Data row.
   - The Clear All Data row keeps `id="clearDataBtn"`, so existing tests and wiring still find it. Delete the old `#clearDataBtn` button in the Data & Storage panel.
@@ -122,11 +122,11 @@ def test_focus_returns_to_opener_on_close(app_page): ...
     - The rest of Data & Storage moves to Advanced.
   - Add the narrow header with `#settingsBackBtn` (text from `settings.back`). Delete `#settingsModalDoneBtn`.
   - Version row text: `<span id="settingsAboutVersion">`, filled with `APP_VERSION`.
-- [ ] **Step 4: Implement `src/settingsNav.js`** per the Interfaces.
+- [x] **Step 4: Implement `src/settingsNav.js`** per the Interfaces.
   - Use `matchMedia('(min-width: 768px)')` with a `change` listener that re-applies the current page (Review Focus 2).
   - Tab trap: on `keydown` Tab in the modal, wrap between the first and last focusable visible elements (`offsetParent !== null`).
   - The accessible name of a row with a value is set with `aria-label` built as `t('settings.rowWithValue', { label, value })`, where the en string is `"{label}, {value}"`. It is refreshed by `refreshSettingsRowValues()` (Task 4).
-- [ ] **Step 5: Wire it up.** In `setupWizard.js`:
+- [x] **Step 5: Wire it up.** In `setupWizard.js`:
   - Delete the tab code (`tabBtns`, `showSettingsTab`).
   - `initSettingsModal` calls `initSettingsNav(modal)`.
   - `open()` becomes the body of `openSettings`.
@@ -135,14 +135,14 @@ def test_focus_returns_to_opener_on_close(app_page): ...
   - `settingsBtn.onclick = () => openSettings(app)`.
   - Add the app wrapper.
   - Add a `KEYBOARD_SHORTCUTS` entry `{ keys: 'Esc', descKey: 'shortcuts.settingsBack' }`, matching the existing entry shape.
-- [ ] **Step 6: CSS.** Add the spec's Visuals for the shell, the panes, list groups, rows, icon tiles (one class per row colour), the selected row, the danger row and the narrow sheet with its slide. Switch styling comes in Task 2.
-- [ ] **Step 7: Add the locale keys:**
+- [x] **Step 6: CSS.** Add the spec's Visuals for the shell, the panes, list groups, rows, icon tiles (one class per row colour), the selected row, the danger row and the narrow sheet with its slide. Switch styling comes in Task 2.
+- [x] **Step 7: Add the locale keys:**
   - `settings.navAria`, `settings.groupGeneral`, `settings.groupData`, `settings.groupAccount`, `settings.groupAbout`;
   - `settings.pageAppearance`, `settings.pageLanguage`, `settings.pageNotifications`, `settings.pageBackup`, `settings.pageAdvanced`, `settings.pageSecurity`, `settings.pageAbout`;
   - `settings.back`, `settings.rowWithValue`, `settings.version`, `shortcuts.settingsBack`.
   - Delete the now-unused `settings.tab*` and `settings.done` keys from all three files.
-- [ ] **Step 8: Run** `pytest tests/ui/test_settings_redesign.py -v`. Expected: PASS. Also run `node --check src/settingsNav.js src/setupWizard.js`.
-- [ ] **Step 9: Commit**: `feat(settings): grouped list, drill-in and two-pane navigation (#495)`.
+- [x] **Step 8: Run** `pytest tests/ui/test_settings_redesign.py -v`. Expected: PASS. Also run `node --check src/settingsNav.js src/setupWizard.js`.
+- [x] **Step 9: Commit**: `feat(settings): grouped list, drill-in and two-pane navigation (#495)`.
 
 ### Task 2: Save on change and switches
 
@@ -158,22 +158,22 @@ def test_focus_returns_to_opener_on_close(app_page): ...
   - `saveNotificationSettingsForm` is deleted, so no caller remains.
 - `initNotificationSettings` attaches `change` → `saveNotificationField(app, id)` to every notification control. Days ahead also validates on `input`, showing the error without writing.
 
-- [ ] **Step 1: Write the failing tests.** Assert the server copy through `wait_for_api(page, '/api/settings', check)` (the settings GET returns the list of `{key, value}`); use a small helper `_setting(rows, key)`.
+- [x] **Step 1: Write the failing tests.** Assert the server copy through `wait_for_api(page, '/api/settings', check)` (the settings GET returns the list of `{key, value}`); use a small helper `_setting(rows, key)`.
   - `test_advanced_switch_saves_on_change_without_done`: `open_settings_page(page,'advanced')`, click `#settingShowArchivedDebts`, then `wait_for_api` until `showArchivedDebts` is `True`, and `#settingsModalDoneBtn` has count 0.
   - `test_close_does_not_revert`: change `#settingZeroAmountPolicy` to `'warn'`, click `#settingsModalCloseBtn`, `wait_for_api` until `'warn'`, then reopen and confirm the select value is `'warn'`.
   - `test_invalid_days_ahead_not_saved`: fill `#settingNotifyDaysAhead` with `'99'` and press Tab. `#settingNotifyDaysAheadError` is visible, the input has `aria-invalid="true"`, and the server `notifyDaysAhead` is unchanged (3) after 1 s. Then fill `'5'` and press Tab: the error is hidden, `aria-invalid="false"`, and the server value is 5. Parametrize the invalid value over `'99'`, `'-1'`, `'abc'` and `''`.
   - `test_rapid_toggle_ends_at_final_value` (Review Focus 1): click `#settingNotifyBillDue` twice with no wait, then `wait_for_api` until `notifyBillDue` is `True`, and again after 1 s it is still `True`.
   - `test_language_change_keeps_page_and_focus` (Review Focus 4): `open_settings_page(page,'language')`, `select_option('#settingLocale','es')`. `#settingsPage-language` stays visible, `#settingsPageTitle-language` text equals the es `settings.pageLanguage`, and `document.activeElement.id == 'settingLocale'`.
   - `test_toggles_are_switches`: every `#settingsModal input[type=checkbox]` except hidden file inputs has `role="switch"` and a non-empty accessible name (the `label[for]` text).
-- [ ] **Step 2: Run to verify failure.** Run `pytest tests/ui/test_settings_redesign.py -k "saves or revert or days or rapid or language_change or switches" -v`. Expected: FAIL.
-- [ ] **Step 3: Implement.** In `setupWizard.js`, replace `save()` with `change` listeners that perform `save()`'s per-control calls:
+- [x] **Step 2: Run to verify failure.** Run `pytest tests/ui/test_settings_redesign.py -k "saves or revert or days or rapid or language_change or switches" -v`. Expected: FAIL.
+- [x] **Step 3: Implement.** In `setupWizard.js`, replace `save()` with `change` listeners that perform `save()`'s per-control calls:
   - `adjustsCheckbox` → `setSetting(app, RECONCILIATION_ADJUSTS_BALANCE, checked)`, and likewise for the other three switches and `zeroPolicySelect`;
   - `localeSelect` → `app.setLocale(value)`, then `refreshSettingsRowValues()` (Task 4; a no-op stub until then);
   - `currencySelect` → `setCurrencyCode(value); app.refreshCurrentPageData();`.
   Delete `doneBtn`. Then implement `saveNotificationField`.
-- [ ] **Step 4: Switch markup and CSS.** Add `role="switch"` to the toggle checkboxes in `index.html`. Style `.settings-shell input[role="switch"]` as a pill: `appearance: none`, 44×26 track, knob via `::before`, translated when `:checked`, track `--primary-color` when on, `:focus-visible` outline.
-- [ ] **Step 5: Run the tests.** Same command as Step 2. Expected: PASS.
-- [ ] **Step 6: Commit**: `feat(settings): save each control on change; switches`.
+- [x] **Step 4: Switch markup and CSS.** Add `role="switch"` to the toggle checkboxes in `index.html`. Style `.settings-shell input[role="switch"]` as a pill: `appearance: none`, 44×26 track, knob via `::before`, translated when `:checked`, track `--primary-color` when on, `:focus-visible` outline.
+- [x] **Step 5: Run the tests.** Same command as Step 2. Expected: PASS.
+- [x] **Step 6: Commit**: `feat(settings): save each control on change; switches`.
 
 ### Task 3: Backup & Restore page and entry points
 
