@@ -2038,7 +2038,7 @@ export default {
     "pgMigration.transferring": "Transfiriendo…",
     "pgMigration.failed": "La transferencia falló. Revisa tu conexión y vuelve a intentarlo.",
     "pgMigration.foundGeneric": "Se encontraron datos locales existentes.",
-    "pgMigration.found": "Encontrado: {list}.",
+    "pgMigration.found": "Se encontraron: {list}.",
     "pgMigration.debt.one": "{count} deuda",
     "pgMigration.debt.other": "{count} deudas",
     "pgMigration.account.one": "{count} cuenta",
