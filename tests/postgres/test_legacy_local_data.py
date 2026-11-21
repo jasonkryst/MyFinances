@@ -108,7 +108,7 @@ async def test_migration_counts_list_follows_the_locale(pg_page, base_url):
     await pg_page.locator("#pgMigrationModal").wait_for(state="visible", timeout=15000)
     try:
         counts = await pg_page.locator("#pgMigrationCounts").text_content()
-        assert counts.strip() == "Encontrado: 1 deuda y 1 cuenta.", counts
+        assert counts.strip() == "Se encontraron: 1 deuda y 1 cuenta.", counts
         assert " and " not in counts
     finally:
         await pg_page.evaluate("localStorage.removeItem('debtTrackerLocale')")
