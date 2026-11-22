@@ -4,6 +4,7 @@ save on change, Backup & Restore page, About group. See
 docs/superpowers/specs/2026-11-20-settings-redesign-design.md."""
 
 import pytest
+from playwright.sync_api import expect
 
 from tests.conftest import open_settings, open_settings_page, wait_for_api
 
@@ -87,7 +88,9 @@ def test_resize_keeps_current_page(app_page):
     page.set_viewport_size(WIDE)
     page.wait_for_function("() => document.getElementById('settingsNav').offsetParent !== null")
     assert page.locator('#settingsPage-security').is_visible()
-    assert page.locator('[data-settings-page="security"]').get_attribute('aria-current') == 'page'
+    # The nav reappears through CSS as soon as the viewport widens; aria-current
+    # is set by the matchMedia listener, which can run a moment later.
+    expect(page.locator('[data-settings-page="security"]')).to_have_attribute('aria-current', 'page')
 
 
 @pytest.mark.ui
