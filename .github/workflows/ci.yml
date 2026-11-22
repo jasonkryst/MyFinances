@@ -697,13 +697,82 @@ jobs:
           node-version: "26"
           cache: npm
       - run: npm ci
-      - run: npm run test:mutation
+      # Full run (--force ignores the previous results) that also writes the
+      # incremental baseline the PR job below starts from (#549).
+      - run: npx stryker run --incremental --force
+      - name: Per-file mutation floors
+        run: node tools/mutationFloors.cjs
+      - name: Save the incremental baseline for PRs
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ github.sha }}
       - name: Upload mutation report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: mutation-report
-          path: reports/mutation/mutation.html
+          path: |
+            reports/mutation/mutation.html
+            reports/mutation/mutation.json
+
+  # PRs (#549): an incremental Stryker run plus the per-file floors, only when
+  # the PR touches mutated code, its unit tests or the mutation config. It
+  # starts from main's cached baseline, so only mutants whose code or tests
+  # changed are re-run. Other PRs finish in seconds.
+  mutation-testing-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: npm
+      - run: npm ci
+      - name: Does this PR touch mutated code?
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node tools/strykerScope.mjs --files > "$RUNNER_TEMP/scoped.txt"
+          changed=$(git diff --name-only "$BASE_SHA"...HEAD)
+          echo "$changed"
+          run=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              tests/unit/*|stryker.config.mjs|tools/strykerScope.mjs|tools/mutationFloors.*|jest.config.js|babel.config.cjs|package.json|package-lock.json) run=true ;;
+            esac
+            if grep -qxF "$f" "$RUNNER_TEMP/scoped.txt"; then run=true; fi
+          done <<< "$changed"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "Mutation run needed: $run"
+      - name: Restore main's incremental baseline
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ github.event.pull_request.base.sha }}
+          restore-keys: stryker-incremental-
+      - name: Incremental mutation run
+        if: steps.scope.outputs.run == 'true'
+        run: npx stryker run --incremental
+      - name: Per-file mutation floors
+        if: steps.scope.outputs.run == 'true'
+        run: node tools/mutationFloors.cjs
+      - name: Upload mutation report
+        if: always() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-report-pr
+          path: |
+            reports/mutation/mutation.html
+            reports/mutation/mutation.json
 
   # ---------------------------------------------------------------------------
   # Docker image build smoke-test
@@ -772,6 +841,7 @@ jobs:
       - test-unit
       - docker-build
       - lighthouse
+      - mutation-testing-pr
     steps:
       - name: Fail if any CI job failed or was cancelled
         env:

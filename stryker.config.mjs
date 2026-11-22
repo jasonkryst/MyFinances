@@ -3,7 +3,11 @@ import { buildMutateGlobs } from './tools/strykerScope.mjs';
 export default {
     packageManager: 'npm',
     testRunner: 'jest',
-    reporters: ['html', 'clear-text', 'progress'],
+    // `json` feeds the per-file floor check (tools/mutationFloors.cjs, #549).
+    reporters: ['html', 'clear-text', 'progress', 'json'],
+    // Reused by the PR job's `--incremental` run (#549); main's full run
+    // (`--incremental --force`) refreshes it and caches it for PRs.
+    incrementalFile: 'reports/stryker-incremental.json',
     // Mutation is scoped to exactly the functions tests/unit imports from
     // these files; the rest of each file is DOM-coupled or out of scope and
     // would only add no-coverage mutants. Ranges are generated from function
