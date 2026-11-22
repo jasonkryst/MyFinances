@@ -56,6 +56,6 @@ def test_every_settings_page_has_a_render_guard_entry():
     match = re.search(r"SETTINGS_PAGES\s*=\s*\[([^\]]+)\]", source)
     assert match, "SETTINGS_PAGES not found in src/settingsNav.js"
     pages = re.findall(r"'([a-z]+)'", match.group(1))
-    assert len(pages) == 7, pages
+    assert len(pages) == 8, pages
     missing = [p for p in pages if f"settings-{p}" not in TRANSLATED_PAGES]
     assert not missing, f"TRANSLATED_PAGES is missing settings-<page> entries for: {missing}"

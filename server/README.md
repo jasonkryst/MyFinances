@@ -152,7 +152,8 @@ server starts listening: one tick 30 seconds after startup, then hourly.
 - **Jobs** (`src/jobs/index.js`, the registry where new jobs go):
   - `prune-sessions` (hourly): `DELETE FROM sessions WHERE expires_at < now()`
     (#536), plus `job_runs` rows that finished over 90 days ago and
-    notifications older than 90 days (an open balance alert is kept).
+    notifications older than 90 days (an open balance alert is kept), and
+    change-log rows older than 90 days (#580, `AUDIT_LOG_RETENTION_DAYS`).
   - `notifications` (hourly, #211): see "Notifications" below.
   - `net-worth-snapshot` (monthly): for each user who has no snapshot in the
     current month (regardless of the `autoNwSnapshot` setting, which governs
@@ -269,6 +270,32 @@ and cancels their pending emails on the next check. Bill alerts are not affected
   - `POST /api/notifications/check` runs the check for the signed-in user now
     (Settings → Check now). It is rate-limited and works with
     `JOBS_ENABLED=false`.
+
+## Change log (issue #580)
+
+Every create, update and delete made through the generic routers
+(`src/crudRouter.js`, `src/keyedRouter.js`) and the plan-settings PATCH
+writes one row to `audit_log` (migration `1755600000043`): `user_id`,
+`table_name`, `row_id` (the id, or the key for keyed tables, `plan` for plan
+settings), `op` (`create`/`update`/`delete`), `before`/`after` (jsonb in the
+API's field names, without `rowVersion`) and `at`.
+
+- **Same statement.** `src/audit.js` builds an `_audit` data-modifying CTE
+  that the router appends to its INSERT/UPDATE/DELETE, so the change and its
+  audit row commit or fail together and no route can forget it.
+- **Not logged:** an update whose before and after are equal, rejected
+  writes (400/404/409), foreign-key cascades and `SET NULL` rewrites,
+  background jobs, and plan-settings PATCHes that only change
+  `ledgerSettings`/`forecastSettings` (view state).
+- **Routes:** `GET /api/audit-log?limit&before&table` (newest first, `limit`
+  1-200, default 50, `before` an entry id for paging, `table` one of
+  `AUDITED_TABLES`) returns `{ entries, hasMore }`; `DELETE /api/audit-log`
+  empties the user's log (Clear All Data runs it last; a replace import does not).
+- **Retention:** `prune-sessions` deletes rows older than 90 days.
+- **New CRUD table:** add it to `AUDITED_TABLES` (`src/routes/auditLog.js`),
+  `AUDIT_TABLE_ORDER` (`../src/changeHistoryCore.js`) and a
+  `history.table.<table>` label in every locale; `test/auditLog.test.js`
+  checks the lists against `RESOURCE_TABLES`.
 
 ## Email notifications (optional)
 

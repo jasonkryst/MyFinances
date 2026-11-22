@@ -231,12 +231,12 @@ def test_ledger_export_columns_setting_with_garbage_value_is_not_imported(app_pa
 # ── Settings pages (7.20.0, replaces the #322 tabs) ─────────────────────────────
 
 @pytest.mark.feature
-def test_settings_modal_has_seven_pages(app_page):
+def test_settings_modal_has_eight_pages(app_page):
     page = app_page
     from tests.conftest import open_settings
     open_settings(page)
     pages = page.eval_on_selector_all('.settings-row[data-settings-page]', 'els => els.map(e => e.getAttribute("data-settings-page"))')
-    assert pages == ['appearance', 'language', 'notifications', 'backup', 'advanced', 'security', 'about']
+    assert pages == ['appearance', 'language', 'notifications', 'backup', 'advanced', 'history', 'security', 'about']
 
 
 @pytest.mark.feature
@@ -282,7 +282,7 @@ def test_settings_pages_have_required_aria_attributes(app_page):
     open_settings(page)
     assert page.get_attribute('#settingsNav', 'aria-label')
     ids = page.eval_on_selector_all('.settings-page', 'els => els.map(e => [e.tagName, e.getAttribute("aria-labelledby")])')
-    assert len(ids) == 7
+    assert len(ids) == 8
     assert all(tag == 'SECTION' and labelled for tag, labelled in ids)
     assert page.get_attribute('[data-settings-page="appearance"]', 'aria-current') == 'page'
     assert page.get_attribute('[data-settings-page="advanced"]', 'aria-current') is None

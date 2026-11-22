@@ -117,16 +117,36 @@ def test_load_more_pages_older_entries(app_page):
 
 
 def test_values_render_as_text_not_html(app_page):
-    """Negative: a stored name or value with markup is shown literally."""
+    """Negative: markup in a stored name or value is shown literally. The
+    server's sanitizers strip angle brackets from names, so the response is
+    stubbed to prove the page itself never parses entry text as HTML."""
     page = app_page
-    clear_log(page)
     evil = '<img src=x onerror="window.__auditXss=1">'
-    acct = api(page, 'POST', '/api/accounts', {'name': evil, 'type': 'Checking'})
-    api(page, 'PATCH', f"/api/accounts/{acct['body']['id']}", {'notes': evil})
+    page.evaluate("""evil => {
+        const orig = window.fetch;
+        const body = { hasMore: false, entries: [{
+            id: 2, table: 'accounts', rowId: '7', op: 'update', at: new Date().toISOString(),
+            before: { id: 7, name: evil, notes: 'a' }, after: { id: 7, name: evil, notes: evil }
+        }] };
+        window.fetch = (url, opts) => String(url).startsWith('/api/audit-log')
+            ? Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+            : orig(url, opts);
+    }""", evil)
     open_history(page)
     assert page.locator('#changeHistoryList img').count() == 0
-    assert items(page).first.locator('.change-history-name').inner_text() == evil
+    item = items(page).first
+    assert item.locator('.change-history-name').inner_text() == evil
+    assert evil in item.locator('.change-history-field').inner_text()
     assert page.evaluate('window.__auditXss') is None
+
+
+def test_server_strips_markup_from_logged_names(app_page):
+    """Negative: what reaches the log is the sanitized record, never raw input."""
+    page = app_page
+    clear_log(page)
+    api(page, 'POST', '/api/accounts', {'name': '<b>Bold</b>', 'type': 'Checking'})
+    entry = api(page, 'GET', '/api/audit-log')['body']['entries'][0]
+    assert '<' not in entry['after']['name'] and '>' not in entry['after']['name']
 
 
 def test_load_failure_shows_error(app_page):
