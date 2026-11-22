@@ -4,6 +4,7 @@
 // shown/hidden with classList, never inline styles.
 import { probeServer } from './storage.js';
 import { t } from './i18n.js';
+import { makeBackgroundInert } from './overlayFocus.js';
 
 // Resolves with the probe result once a Retry's probeServer() reports the
 // server reachable. The caller (init()) reuses it for its next iteration
@@ -22,6 +23,8 @@ export function showServerUnreachable(app) {
     retryBtn.disabled = false;
     gate.classList.add('flex-visible');
     gate.classList.remove('hidden');
+    // #464: the app behind the gate can't be reached by Tab or screen readers.
+    const releaseBackground = makeBackgroundInert(gate);
     setTimeout(() => retryBtn.focus(), 0);
 
     return new Promise((resolve) => {
@@ -34,6 +37,7 @@ export function showServerUnreachable(app) {
                 if (status) status.textContent = '';
                 gate.classList.add('hidden');
                 gate.classList.remove('flex-visible');
+                releaseBackground();
                 resolve(result);
                 return;
             }

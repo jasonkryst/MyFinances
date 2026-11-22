@@ -838,3 +838,85 @@ def test_results_tab_panel_switch_updates_active_panel(app_page, debt_data):
         }
     """)
     assert result == ['rPanel-debt-summary'], f"Expected only rPanel-debt-summary active, got {result}"
+
+
+# ---------------------------------------------------------------------------
+# Issue #660: dialogs with a visible description reference it via aria-describedby
+# ---------------------------------------------------------------------------
+
+# One JS function reused by the positive and negative guard tests. Returns:
+#   { dangling: [...], undescribed: [...] }
+# dangling    -> aria-describedby / aria-labelledby tokens whose id does not exist
+# undescribed -> dialogs holding a top-level .modal-description (a direct child of
+#                .modal-content) that aria-describedby does not reference
+_DESCRIBEDBY_CHECK_JS = r"""
+() => {
+    const dangling = [];
+    // Titles injected by JS when the dialog opens (spending.js, accounts.js); absent while closed.
+    const RUNTIME_IDS = ['spendingDrilldownTitle', 'acctBreakdownTitle'];
+    for (const attr of ['aria-describedby', 'aria-labelledby']) {
+        for (const el of document.querySelectorAll('[' + attr + ']')) {
+            for (const id of el.getAttribute(attr).split(/\s+/).filter(Boolean)) {
+                if (!document.getElementById(id) && !RUNTIME_IDS.includes(id)) {
+                    dangling.push((el.id || el.tagName) + ' ' + attr + ' -> ' + id);
+                }
+            }
+        }
+    }
+    const undescribed = [];
+    for (const dlg of document.querySelectorAll('[role="dialog"], [role="alertdialog"]')) {
+        const descs = Array.from(dlg.querySelectorAll(':scope > .modal-content > .modal-description'));
+        if (!descs.length) continue;
+        const refs = (dlg.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+        if (!descs.some(d => d.id && refs.includes(d.id))) undescribed.push(dlg.id || '(no id)');
+    }
+    return { dangling, undescribed };
+}
+"""
+
+
+@pytest.mark.ui
+def test_aria_reference_ids_resolve_and_dialogs_are_described(app_page):
+    """Every aria-describedby/labelledby id exists; described dialogs reference their paragraph."""
+    result = app_page.evaluate(_DESCRIBEDBY_CHECK_JS)
+    assert result['dangling'] == [], f"Dangling aria id references: {result['dangling']}"
+    assert result['undescribed'] == [], \
+        f"Dialogs with a .modal-description but no aria-describedby to it: {result['undescribed']}"
+
+
+@pytest.mark.ui
+def test_describedby_guard_detects_unreferenced_description(app_page):
+    """Negative check: the guard reports a dialog whose description is not referenced."""
+    page = app_page
+    page.evaluate("""() => {
+        const d = document.createElement('div');
+        d.id = 'tmpGuardDialog';
+        d.setAttribute('role', 'dialog');
+        d.setAttribute('aria-labelledby', 'tmpGuardMissingTitle');
+        d.className = 'hidden';
+        d.innerHTML = '<div class="modal-content"><p id="tmpGuardDesc" class="modal-description">x</p></div>';
+        document.body.appendChild(d);
+    }""")
+    try:
+        result = page.evaluate(_DESCRIBEDBY_CHECK_JS)
+        assert 'tmpGuardDialog' in result['undescribed']
+        assert any('tmpGuardMissingTitle' in d for d in result['dangling'])
+    finally:
+        page.evaluate("() => document.getElementById('tmpGuardDialog')?.remove()")
+    result = page.evaluate(_DESCRIBEDBY_CHECK_JS)
+    assert 'tmpGuardDialog' not in result['undescribed']
+
+
+@pytest.mark.ui
+def test_delete_confirm_description_is_filled_when_shown(app_page, debt_data):
+    """Opened through the app's own path, the described-by element has text."""
+    page = app_page
+    create_debt(page, debt_data)
+    page.click('[data-debt-action="delete"]')
+    page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
+    info = page.evaluate(r"""() => {
+        const dlg = document.getElementById('deleteConfirmModal');
+        const ids = dlg.getAttribute('aria-describedby').split(/\s+/).filter(Boolean);
+        return ids.map(id => (document.getElementById(id)?.textContent || '').trim());
+    }""")
+    assert info and all(info), f"aria-describedby must point at non-empty text, got {info}"

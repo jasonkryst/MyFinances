@@ -40,6 +40,15 @@ export function newPasswordError(password, confirm, email) {
     return null;
 }
 
+// #499: what a newPasswordError() message is about: 'policy' when the
+// new password breaks the policy, 'mismatch' when only the confirmation differs,
+// null when there's no error.
+export function newPasswordErrorKind(password, confirm, email) {
+    if (validatePasswordPolicy(password, { email })) return 'policy';
+    if (password !== confirm) return 'mismatch';
+    return null;
+}
+
 // Localized message for a failed set-password response body, falling back to
 // `fallbackKey` when the server sent no recognizable reason.
 export function passwordResponseMessage(body, fallbackKey) {

@@ -126,7 +126,7 @@ export function renderReportsCalendar(app) {
         const eventCount = incomes.length + bills.length + expenses.length + recurring.length + debts.length + bonuses.length;
 
         const dotsHTML = dotTypes.map(dt => `<span class="rpt-cal-dot rpt-cal-dot--${dt}"></span>`).join('');
-        const clickableAttrs = hasEvts ? ` data-cal-day="${day}" tabindex="0" role="button" aria-label="${escapeHtml(plural('reports.calEventsAria', eventCount, { date: formatLongDate(new Date(year, month, day)) }))}"` : '';
+        const clickableAttrs = hasEvts ? ` data-cal-day="${day}" tabindex="0" role="button" aria-label="${escapeHtml(plural('reports.calEventsAria', eventCount, { day, date: formatLongDate(new Date(year, month, day)) }))}"` : '';
 
         gridHTML += `<div class="rpt-cal-cell${hasEvts ? ' rpt-cal-has-events' : ''}${isToday ? ' rpt-cal-today' : ''}"${clickableAttrs}>
             <span class="rpt-cal-day-num">${day}</span>

@@ -1,9 +1,10 @@
 import { updateAccountMenuEmail } from './ui.js';
 import { t, plural } from './i18n.js';
-import { parseRetryAfterMinutes } from './utils.js';
+import { parseRetryAfterMinutes, markFieldInvalid, clearFieldInvalid } from './utils.js';
 import {
-    attachPasswordStrengthMeter, newPasswordError, passwordResponseMessage, showBreachCheckNote
+    attachPasswordStrengthMeter, newPasswordError, newPasswordErrorKind, passwordResponseMessage, showBreachCheckNote
 } from './passwordUi.js';
+import { makeBackgroundInert, rememberFocus, restoreFocus } from './overlayFocus.js';
 
 // All gate text is localized (#456): static labels via data-i18n in
 // index.html, dynamic messages via t() here. The strength meter is attached
@@ -32,7 +33,12 @@ let _loginPromise = null;
 // promise would never resolve. `options` is forwarded to showLoginGate.
 export function requestLogin(app, options = {}) {
     if (!_loginPromise) {
+        // #491: after a mid-session sign-in, return focus to the control the
+        // user was on (it may still be disabled while its save is retried;
+        // restoreFocus waits for it). At boot there's nothing to return to.
+        const returnTo = rememberFocus(document.getElementById('loginGate'));
         _loginPromise = showLoginGate(app, options).finally(() => { _loginPromise = null; });
+        _loginPromise.then(() => restoreFocus(returnTo), () => {});
     }
     return _loginPromise;
 }
@@ -104,8 +110,16 @@ export async function showLoginGate(app, options = {}) {
 
     showMode(resetToken ? 'reset' : 'login');
 
+    // #499: a fresh gate starts with no field marked invalid.
+    for (const [field, err] of [[emailInput, errorEl], [passwordInput, errorEl], [confirmInput, errorEl],
+        [forgotEmailInput, forgotError], [resetPassword, resetError], [resetConfirm, resetError]]) {
+        clearFieldInvalid(field, err);
+    }
+
     gate.classList.add('flex-visible');
     gate.classList.remove('hidden');
+    // #464: nothing behind the gate is reachable by Tab or screen readers.
+    const releaseBackground = makeBackgroundInert(gate);
     setTimeout(() => (resetToken ? resetPassword?.focus() : emailInput.focus()), 0);
 
     // Forgot-password toggle
@@ -127,9 +141,11 @@ export async function showLoginGate(app, options = {}) {
         forgotForm.onsubmit = async (e) => {
             e.preventDefault();
             if (forgotError) forgotError.textContent = '';
+            clearFieldInvalid(forgotEmailInput, forgotError);
             const email = forgotEmailInput?.value?.trim() || '';
             if (!email || !email.includes('@')) {
                 if (forgotError) forgotError.textContent = t('login.invalidEmail');
+                markFieldInvalid(forgotEmailInput, forgotError);
                 return;
             }
             const submitBtn = forgotForm.querySelector('[type="submit"]');
@@ -158,9 +174,13 @@ export async function showLoginGate(app, options = {}) {
         resetForm.onsubmit = async (e) => {
             e.preventDefault();
             if (resetError) resetError.textContent = '';
+            clearFieldInvalid(resetPassword, resetError);
+            clearFieldInvalid(resetConfirm, resetError);
             const clientError = newPasswordError(resetPassword.value, resetConfirm.value);
             if (clientError) {
                 if (resetError) resetError.textContent = clientError;
+                markFieldInvalid(newPasswordErrorKind(resetPassword.value, resetConfirm.value) === 'mismatch'
+                    ? resetConfirm : resetPassword, resetError);
                 return;
             }
             const submitBtn = resetForm.querySelector('[type="submit"]');
@@ -183,6 +203,7 @@ export async function showLoginGate(app, options = {}) {
                     resetError.textContent = res.status === 429
                         ? tooManyAttemptsMessage(res)
                         : passwordResponseMessage(body, 'login.resetFailed');
+                    if (res.status !== 429 && body?.error?.reason) markFieldInvalid(resetPassword, resetError);
                 }
                 if (submitBtn) submitBtn.disabled = false;
                 return;
@@ -199,12 +220,15 @@ export async function showLoginGate(app, options = {}) {
         form.onsubmit = async (event) => {
             event.preventDefault();
             errorEl.textContent = '';
+            for (const field of [emailInput, passwordInput, confirmInput]) clearFieldInvalid(field, errorEl);
             submitBtn.disabled = true;
 
             if (needsSetup) {
                 const clientError = newPasswordError(passwordInput.value, confirmInput.value, emailInput.value);
                 if (clientError) {
                     errorEl.textContent = clientError;
+                    markFieldInvalid(newPasswordErrorKind(passwordInput.value, confirmInput.value, emailInput.value) === 'mismatch'
+                        ? confirmInput : passwordInput, errorEl);
                     submitBtn.disabled = false;
                     return;
                 }
@@ -226,9 +250,11 @@ export async function showLoginGate(app, options = {}) {
                         errorEl.textContent = tooManyAttemptsMessage(res);
                     } else if (res.status === 409) {
                         errorEl.textContent = t('login.accountExists');
+                        markFieldInvalid(emailInput, errorEl);
                     } else {
                         const body = await res.json().catch(() => ({}));
                         errorEl.textContent = passwordResponseMessage(body, 'login.createFailed');
+                        if (body?.error?.reason) markFieldInvalid(passwordInput, errorEl);
                     }
                     submitBtn.disabled = false;
                     return;
@@ -249,17 +275,25 @@ export async function showLoginGate(app, options = {}) {
                 }
                 console.warn('[loginGate] /auth/login status:', res.status);
                 if (!res.ok) {
-                    errorEl.textContent = res.status === 429
-                        ? tooManyAttemptsMessage(res)
-                        : t('login.invalidCredentials');
+                    if (res.status === 429) {
+                        errorEl.textContent = tooManyAttemptsMessage(res);
+                    } else {
+                        errorEl.textContent = t('login.invalidCredentials');
+                        // The message doesn't say which of the two was wrong
+                        // (no account enumeration); the password is the field
+                        // the user retypes.
+                        markFieldInvalid(passwordInput, errorEl);
+                    }
                     submitBtn.disabled = false;
                     return;
                 }
             }
 
             form.onsubmit = null;
+            for (const field of [emailInput, passwordInput, confirmInput]) clearFieldInvalid(field, errorEl);
             gate.classList.add('hidden');
             gate.classList.remove('flex-visible');
+            releaseBackground();
             // Store the logged-in email so the account menu can display it
             if (app && emailInput.value) {
                 app.userEmail = emailInput.value.trim();

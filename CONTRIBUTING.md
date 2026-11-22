@@ -113,8 +113,13 @@ Many of these are enforced by tests, so CI fails if one is missed.
 - **Translations.** Every user-visible string needs a key in all three locale
   files, `src/locales/{en,es,pl}.js`, with a real translation rather than an
   English copy. If you can't translate, say so in the PR and we'll help.
-- **Accessible controls.** Every button needs an accessible name. Toggle buttons
-  carry `aria-pressed`. Charts need a `renderChartDataTable()` fallback.
+- **Accessible controls.** Every button needs an accessible name, and an
+  `aria-label` starts with the button's visible text. Toggle buttons carry
+  `aria-pressed`. Charts need a `renderChartDataTable()` fallback.
+- **Dialogs and errors.** A dialog with an explanatory paragraph points
+  `aria-describedby` at it. A full-screen overlay makes the rest of the page
+  inert with `makeBackgroundInert()` (`src/overlayFocus.js`). An error about one
+  field is linked to it with `markFieldInvalid()` (`src/utils.js`).
 - **Contrast.** Text colours must reach 4.5:1. Use `var(--danger-text)` for
   error text, and don't dim text with `opacity`.
 

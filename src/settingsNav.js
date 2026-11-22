@@ -116,6 +116,9 @@ export function initSettingsNav(modal) {
     // the modal element, so the trap also listens on the document.
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Tab' || modal.classList.contains('hidden')) return;
+        // #464: a sign-in gate opened over Settings makes it inert; Tab then
+        // belongs to the gate, and focusing into Settings would fail.
+        if (modal.closest('[inert]')) return;
         const overlay = event.target && event.target.closest ? event.target.closest('.modal-overlay') : null;
         if (overlay && overlay !== modal) return; // another dialog on top owns Tab
         if (overlay === modal) return; // handled by the modal's own listener
