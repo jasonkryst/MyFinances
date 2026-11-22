@@ -23,7 +23,9 @@ CHECK_JS = """
   return [...document.querySelectorAll(sel)].map(el => {
     const label = norm(el.getAttribute('aria-label'));
     const text = strip(el.innerText);
-    return { id: el.outerHTML.slice(0, 100), label, text, ok: !!label && label.startsWith(text) };
+    // Like axe, punctuation doesn't count: "5, 2 events" starts with visible "5 2".
+    const plain = s => s.replace(/[\\p{P}]/gu, ' ').replace(/\\s+/g, ' ').trim();
+    return { id: el.outerHTML.slice(0, 100), label, text, ok: !!label && plain(label).startsWith(plain(text)) };
   });
 }
 """
