@@ -358,7 +358,7 @@ function renderAccountsListUncached(app) {
 
         const linkRows = typeGroups.length === 0 ? '' : `
             <div class="acct-links">
-                ${typeGroups.map(g => `<button class="acct-link ${escapeHtml(g.cls)} acct-link--nav" data-account-nav-page="${escapeHtml(g.page)}" title="${escapeHtml(t('accounts.goTo', { label: g.label }))}" aria-label="${escapeHtml(t('accounts.goToLinkedAria', { label: g.label, name: a.name }))}">${escapeHtml(g.label)} (${g.count})</button>`).join('')}
+                ${typeGroups.map(g => `<button class="acct-link ${escapeHtml(g.cls)} acct-link--nav" data-account-nav-page="${escapeHtml(g.page)}" title="${escapeHtml(t('accounts.goTo', { label: g.label }))}" aria-label="${escapeHtml(t('accounts.goToLinkedAria', { label: g.label, count: g.count, name: a.name }))}">${escapeHtml(g.label)} (${g.count})</button>`).join('')}
             </div>`;
 
         const noteText = typeof a.notes === 'string' ? a.notes : '';

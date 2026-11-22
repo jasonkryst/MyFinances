@@ -4,6 +4,20 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.21.0] — 2026-11-22
+
+### Fixed (accessibility)
+- **Full-screen screens keep focus inside them (#464).** While the sign-in screen, the "Can't reach your server" screen or the old-browser-data prompt is up, everything else on the page is `inert`, so Tab and Shift+Tab can't reach the app behind it and screen readers don't expose it. The new leaf module `src/overlayFocus.js` (`makeBackgroundInert`) removes only the `inert` attributes it set, so a sign-in screen opened over the data prompt unwinds correctly. The Settings Tab trap now ignores Tab while Settings sits under a sign-in screen.
+- **Focus returns after signing in again (#491).** When a save hits an expired session, `requestLogin` remembers the control you were on and puts focus back after sign-in. If the control is still locked while its save is retried, focus waits for it to unlock (up to 10 s), and only if focus hasn't moved elsewhere.
+- **Save-error banner (#492, #493, #503).** Dismissing it moves focus to `<main>` instead of leaving it on a hidden button (`hideBanner()` in `ui.js`, also used by the "changed elsewhere" banner). Its close button is at least 24×24 px (44×44 on touch screens). A failure while the banner is already showing is announced again. While the old-browser-data prompt shows its own import error, the banner stays hidden, so there's one alert, not two.
+- **Errors are linked to their fields (#499).** Sign-in, forgot-password, reset-password, first-run setup and Settings → Security mark the field at fault with `aria-invalid` and add the error to its `aria-describedby` (the strength meter's links stay). Editing the field clears both. Helpers: `markFieldInvalid`/`clearFieldInvalid` (`utils.js`) and `newPasswordErrorKind` (`passwordUi.js`).
+- **Consistent live regions (#502).** Five error messages no longer combine `role="alert"` with `aria-live="polite"`.
+- **Dialogs read their explanation (#660).** Eleven dialogs, including delete, archive, account and person replacement, mark-all-cleared, the alert dialog and the setup wizard, now point `aria-describedby` at their message. A new guard in `tests/ui/test_accessibility.py` fails when an `aria-describedby`/`aria-labelledby` id doesn't exist or a dialog's `.modal-description` isn't referenced.
+- **Spoken names start with the visible label (#496).** Accounts' "See breakdown", "View in Ledger" and linked-item buttons, "Accelerate this debt", the Recurring Overdue filter and Reports calendar days now have accessible names that begin with their visible text (WCAG 2.5.3), in English, Spanish and Polish.
+
+### Tests
+- New `tests/ui/test_a11y_gates_focus.py` and `tests/ui/test_label_in_name.py`, each with negative cases.
+
 ## [7.20.1] — 2026-11-20
 
 ### Fixed

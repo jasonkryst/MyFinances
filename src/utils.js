@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.20.1';
+export const APP_VERSION = '7.21.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -736,6 +736,37 @@ export function isTransferLegTx(tx) {
 // module-level so re-rendered markup (the Ledger rebuilds its filter bar on
 // every change) can restore the state with isCollapsibleOpen().
 const _collapsibleState = new Map();
+
+// #499: link a field to the error message about it. Sets aria-invalid and adds
+// the error element's id to the field's aria-describedby token list (other
+// tokens, such as the password strength meter's, are kept), so a screen reader
+// user who returns to the field hears the error again. Both are cleared when
+// the user edits the field, or by clearFieldInvalid().
+export function markFieldInvalid(field, errorEl) {
+    if (!field || !errorEl || !errorEl.id) return;
+    field.setAttribute('aria-invalid', 'true');
+    const ids = new Set((field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+    ids.add(errorEl.id);
+    field.setAttribute('aria-describedby', [...ids].join(' '));
+    if (!field._a11yInvalidListener) {
+        field._a11yInvalidListener = () => clearFieldInvalid(field, errorEl);
+        field.addEventListener('input', field._a11yInvalidListener);
+    }
+}
+
+export function clearFieldInvalid(field, errorEl) {
+    if (!field) return;
+    field.removeAttribute('aria-invalid');
+    if (errorEl && errorEl.id) {
+        const ids = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter(t => t && t !== errorEl.id);
+        if (ids.length) field.setAttribute('aria-describedby', ids.join(' '));
+        else field.removeAttribute('aria-describedby');
+    }
+    if (field._a11yInvalidListener) {
+        field.removeEventListener('input', field._a11yInvalidListener);
+        field._a11yInvalidListener = null;
+    }
+}
 
 // Lock a form or modal while its save is pending (#459). A second submit
 // while busy is ignored (returns undefined without calling fn), so a double

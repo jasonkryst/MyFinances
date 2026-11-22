@@ -197,7 +197,7 @@
             </section>
         </header>
 
-        <main id="main">
+        <main id="main" tabindex="-1">
             <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- Financial Health Dashboard                                  -->
             <!-- ═══════════════════════════════════════════════════════════ -->
@@ -1504,11 +1504,11 @@
             </div>
         </div>
     </div>
-    <div id="ledgerOverrideModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" tabindex="-1">
+    <div id="ledgerOverrideModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerOverrideTitle" aria-describedby="ledgerOverrideDesc" tabindex="-1">
         <div class="modal-content">
             <button id="ledgerOverrideCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
             <h3 id="ledgerOverrideTitle" data-i18n="ledger.overrideTitle">Override Ledger Amount</h3>
-            <p class="modal-description" data-i18n="ledger.overrideDesc">Use a replacement amount while preserving the original value for history.</p>
+            <p id="ledgerOverrideDesc" class="modal-description" data-i18n="ledger.overrideDesc">Use a replacement amount while preserving the original value for history.</p>
             <p class="modal-tx-name"><strong id="ledgerOverrideTxName"></strong></p>
             <p class="modal-helper-text"><span data-i18n="ledger.overrideAccount">Account:</span> <span id="ledgerOverrideAccount"></span></p>
             <p class="modal-helper-text"><span data-i18n="ledger.overrideDate">Date:</span> <span id="ledgerOverrideDate"></span></p>
@@ -1526,11 +1526,11 @@
         </div>
     </div>
 
-    <div id="ledgerExportModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerExportTitle" tabindex="-1">
+    <div id="ledgerExportModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerExportTitle" aria-describedby="ledgerExportDesc" tabindex="-1">
         <div class="modal-content">
             <button id="ledgerExportCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
             <h3 id="ledgerExportTitle" data-i18n="ledger.exportTitle">Export Ledger to CSV</h3>
-            <p class="modal-description" data-i18n="ledger.exportDesc">Choose which columns to include. Exports the currently filtered and sorted view.</p>
+            <p id="ledgerExportDesc" class="modal-description" data-i18n="ledger.exportDesc">Choose which columns to include. Exports the currently filtered and sorted view.</p>
             <div class="form-group modal-form-group" id="ledgerExportColumnList">
                 <label><input type="checkbox" id="ledgerExportCol-date" value="date" checked> <span data-i18n="ledger.colDate">Date</span></label>
                 <label><input type="checkbox" id="ledgerExportCol-account" value="account" checked> <span data-i18n="ledger.colAccount">Account</span></label>
@@ -1549,7 +1549,7 @@
             </div>
         </div>
     </div>
-    <div id="ledgerMarkAllClearedModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerMarkAllClearedTitle" tabindex="-1">
+    <div id="ledgerMarkAllClearedModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerMarkAllClearedTitle" aria-describedby="ledgerMarkAllClearedDesc" tabindex="-1">
         <div class="modal-content">
             <button id="ledgerMarkAllClearedCloseBtn" aria-label="Close" data-i18n-attr="aria-label:common.close" class="modal-close">&times;</button>
             <h3 id="ledgerMarkAllClearedTitle" data-i18n="ledger.markAllTitle">Mark All Visible as Cleared</h3>
@@ -1598,10 +1598,10 @@
     <!-- Reconciliation Save Progress Modal (issue #343) - shown when closing the
          Reconcile modal with unsaved changes; offers Save Progress / Discard / Keep Editing -->
     <div id="reconSaveProgressModal" class="modal modal-overlay hidden"
-         role="dialog" aria-modal="true" aria-labelledby="reconSaveProgressTitle" tabindex="-1">
+         role="dialog" aria-modal="true" aria-labelledby="reconSaveProgressTitle" aria-describedby="reconSaveProgressDesc" tabindex="-1">
         <div class="modal-content">
             <h3 id="reconSaveProgressTitle" data-i18n="reconcile.saveProgressTitle">Save reconciliation progress?</h3>
-            <p class="modal-description" data-i18n="reconcile.saveProgressDesc">You have unsaved changes in this reconciliation. Save your progress to resume later, or discard it.</p>
+            <p id="reconSaveProgressDesc" class="modal-description" data-i18n="reconcile.saveProgressDesc">You have unsaved changes in this reconciliation. Save your progress to resume later, or discard it.</p>
             <div class="modal-actions">
                 <button id="reconSaveProgressSaveBtn" class="btn btn-success" data-i18n="reconcile.saveProgressBtn">Save Progress</button>
                 <button id="reconSaveProgressDiscardBtn" class="btn btn-danger" data-i18n="reconcile.discardBtn">Discard</button>
@@ -1766,7 +1766,7 @@
                         <input type="password" id="loginGateConfirm" class="form-control" autocomplete="new-password">
                     </div>
                     <p id="loginGateSetupBreachNote" class="modal-helper-text hidden" data-i18n="password.breachNote">New passwords are checked against known data breaches. Only an anonymous fragment of the password's hash leaves the server.</p>
-                    <p id="loginGateError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <p id="loginGateError" class="login-gate-error" role="alert"></p>
                     <button type="submit" id="loginGateSubmit" class="btn btn-primary login-gate-submit" data-i18n="login.signIn">Sign In</button>
                 </form>
                 <p id="loginGateForgotLink" class="login-gate-forgot-link">
@@ -1779,7 +1779,7 @@
                         <label for="loginGateForgotEmail" data-i18n="login.email">Email</label>
                         <input type="email" id="loginGateForgotEmail" class="form-control" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" required>
                     </div>
-                    <p id="loginGateForgotError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <p id="loginGateForgotError" class="login-gate-error" role="alert"></p>
                     <button type="submit" class="btn btn-primary login-gate-submit" data-i18n="login.sendResetLink">Send Reset Link</button>
                     <button type="button" id="loginGateForgotBack" class="link-btn login-gate-back-btn" data-i18n="login.backToSignIn">Back to sign in</button>
                 </form>
@@ -1797,7 +1797,7 @@
                                autocomplete="new-password" required>
                     </div>
                     <p id="loginGateResetBreachNote" class="modal-helper-text hidden" data-i18n="password.breachNote">New passwords are checked against known data breaches. Only an anonymous fragment of the password's hash leaves the server.</p>
-                    <p id="loginGateResetError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <p id="loginGateResetError" class="login-gate-error" role="alert"></p>
                     <button type="submit" class="btn btn-primary login-gate-submit" data-i18n="login.setNewPassword">Set New Password</button>
                 </form>
             </div>
@@ -1826,7 +1826,7 @@
                 We found data saved locally in this browser. Transfer it to your PostgreSQL account now so you don't lose your financial history.
             </p>
             <p id="pgMigrationCounts" class="modal-helper-text"></p>
-            <p id="pgMigrationError" class="pg-migration-error hidden" role="alert" aria-live="polite"></p>
+            <p id="pgMigrationError" class="pg-migration-error hidden" role="alert"></p>
             <div id="pgMigrationImportActions" class="modal-actions">
                 <button id="pgMigrationTransferBtn" class="btn btn-success" data-i18n="pgMigration.transfer">Transfer Data</button>
                 <button id="pgMigrationSkipBtn" class="btn btn-secondary" data-i18n="pgMigration.skip">Don't import — download a backup and remove</button>
@@ -1851,7 +1851,7 @@
     </div>
     <!-- Alert Modal - themed replacement for browser alert() dialogs -->
     <div id="alertModal" class="modal modal-overlay hidden"
-         role="alertdialog" aria-modal="true" aria-labelledby="alertModalTitle" tabindex="-1">
+         role="alertdialog" aria-modal="true" aria-labelledby="alertModalTitle" aria-describedby="alertModalMessage" tabindex="-1">
         <div class="modal-content">
             <h3 id="alertModalTitle" data-i18n="modals.notice">Notice</h3>
             <p id="alertModalMessage" class="modal-description"></p>
@@ -1898,7 +1898,7 @@
     <div id="reconcilePrintArea" class="recon-print-area hidden" aria-hidden="true"></div>
     <!-- Account Replacement Modal — shown when deleting an account that has linked items -->
     <div id="accountReplacementModal" class="modal modal-overlay hidden"
-         role="dialog" aria-modal="true" aria-labelledby="accountReplacementTitle" tabindex="-1">
+         role="dialog" aria-modal="true" aria-labelledby="accountReplacementTitle" aria-describedby="accountReplacementInfo" tabindex="-1">
         <div class="modal-content">
             <h3 id="accountReplacementTitle">Delete Account</h3>
             <p id="accountReplacementInfo" class="modal-description"></p>
@@ -1917,7 +1917,7 @@
     </div>
     <!-- Person Replacement Modal — shown when deleting a person that has linked debts -->
     <div id="personReplacementModal" class="modal modal-overlay hidden"
-         role="dialog" aria-modal="true" aria-labelledby="personReplacementTitle" tabindex="-1">
+         role="dialog" aria-modal="true" aria-labelledby="personReplacementTitle" aria-describedby="personReplacementInfo" tabindex="-1">
         <div class="modal-content">
             <h3 id="personReplacementTitle" data-i18n="people.replaceTitle">Delete Family Member</h3>
             <p id="personReplacementInfo" class="modal-description"></p>
@@ -1936,7 +1936,7 @@
     </div>
     <!-- Delete Confirm Modal - generic themed replacement for browser confirm() dialogs -->
     <div id="deleteConfirmModal" class="modal modal-overlay hidden"
-         role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle" tabindex="-1">
+         role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle" aria-describedby="deleteConfirmMessage" tabindex="-1">
         <div class="modal-content">
             <h3 id="deleteConfirmTitle" data-i18n="modals.confirm">Confirm</h3>
             <p id="deleteConfirmMessage" class="modal-description"></p>
@@ -1960,7 +1960,7 @@
     </div>
     <!-- Archive Confirm Modal -->
     <div id="archiveConfirmModal" class="modal modal-overlay hidden"
-         role="dialog" aria-modal="true" aria-labelledby="archiveConfirmTitle" tabindex="-1">
+         role="dialog" aria-modal="true" aria-labelledby="archiveConfirmTitle" aria-describedby="archiveConfirmMessage" tabindex="-1">
         <div class="modal-content">
             <h3 id="archiveConfirmTitle" data-i18n="debts.archiveDebt">Archive Debt</h3>
             <p id="archiveConfirmMessage" class="modal-description"></p>
@@ -2227,7 +2227,7 @@
                     </div>
                     <p id="settingsSecurityBreachNote" class="modal-helper-text hidden" data-i18n="password.breachNote">New passwords are checked against known data breaches. Only an anonymous fragment of the password's hash leaves the server.</p>
                     <p class="modal-helper-text" data-i18n="settings.security.help">After the change, your other devices are signed out and any calendar feed link must be regenerated.</p>
-                    <p id="settingsChangePasswordError" class="login-gate-error" role="alert" aria-live="polite"></p>
+                    <p id="settingsChangePasswordError" class="login-gate-error" role="alert"></p>
                     <p id="settingsChangePasswordStatus" class="settings-security-status" role="status" aria-live="polite"></p>
                     <button type="submit" id="settingsChangePasswordBtn" class="btn btn-primary btn-small" data-i18n="settings.security.submit">Change password</button>
                 </form>
@@ -2251,10 +2251,10 @@
         </div>
     </div>
     <!-- First-run setup -->
-    <div id="setupWizardModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="setupWizardTitle" tabindex="-1">
+    <div id="setupWizardModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="setupWizardTitle" aria-describedby="setupWizardDesc" tabindex="-1">
         <div class="modal-content">
             <h3 id="setupWizardTitle">Welcome to MyFinances</h3>
-            <p class="modal-description">Before you get started, choose how account reconciliations should behave. You can change this later from Settings.</p>
+            <p id="setupWizardDesc" class="modal-description">Before you get started, choose how account reconciliations should behave. You can change this later from Settings.</p>
             <div class="setup-wizard-choices">
                 <button type="button" id="setupWizardAdjustBtn" class="setup-wizard-choice">
                     <strong>Adjust the balance</strong>
@@ -2298,11 +2298,11 @@
         </div>
     </div>
     <!-- Calendar Feed Modal -->
-    <div id="calendarFeedModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="calendarFeedModalTitle" tabindex="-1">
+    <div id="calendarFeedModal" class="modal modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="calendarFeedModalTitle" aria-describedby="calendarFeedModalDesc" tabindex="-1">
         <div class="modal-content">
             <button id="calendarFeedModalCloseBtn" aria-label="Close" class="modal-close">&times;</button>
             <h3 id="calendarFeedModalTitle">Calendar Feed</h3>
-            <p class="modal-description">Export your bills, debts, recurring items, expenses, and paydays to a calendar application. Archived debts are included only when Settings → Show archived debts is on.</p>
+            <p id="calendarFeedModalDesc" class="modal-description">Export your bills, debts, recurring items, expenses, and paydays to a calendar application. Archived debts are included only when Settings → Show archived debts is on.</p>
             <button id="calendarDownloadBtn" class="btn btn-primary">Download .ics file</button>
             <div id="calendarSubscriptionSection" class="hidden">
                 <hr class="modal-divider">

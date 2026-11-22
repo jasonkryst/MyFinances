@@ -524,6 +524,25 @@ body.dark-mode .text-income {
     cursor: pointer;
     padding: 0 4px;
     flex-shrink: 0;
+    /* #493: at least 24x24 (WCAG 2.2 2.5.8), 44x44 on touch screens */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+@media (pointer: coarse) {
+    .sync-error-banner-dismiss {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* #492: <main> takes focus (tabindex="-1") when a banner is dismissed; it is
+   not a control, so it gets no focus ring. */
+#main:focus {
+    outline: none;
 }
 
 /* #565: record deleted elsewhere (informational, not an error) */

@@ -37,7 +37,7 @@ export function initializeEventListeners(app) {
     initSaveStatusChip();
     initUndoToast();
     document.getElementById('syncErrorBannerDismiss')?.addEventListener('click', () => {
-        document.getElementById('syncErrorBanner')?.classList.add('hidden');
+        hideBanner(document.getElementById('syncErrorBanner'));
     });
     // #428: mobile collapsibles (add forms, filter disclosures). Delegated so
     // markup that is re-rendered (Ledger filters) keeps working.
@@ -1044,6 +1044,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.21.0 — 2026-11-22',
+        items: [
+            '<strong>Better with a keyboard and screen reader:</strong> the sign-in screen, the <em>Can\'t reach your server</em> screen and the old-browser-data prompt now keep Tab inside themselves, and after signing in again mid-session you are returned to the control you were using. Error messages are linked to the field they are about, a repeated save failure is announced again, and dialogs read out their explanation as well as their title.',
+            '<strong>Smaller fixes:</strong> the save-error banner\'s close button is bigger, and dismissing it no longer leaves focus on a hidden button. Some buttons\' spoken names now start with the words you see, so voice control can find them.'
+        ]
+    },
+    {
         version: '7.20.0 — 2026-11-20',
         items: [
             '<strong>A tidier Settings:</strong> Settings is now a grouped list with the current value on each row, in two panes on a wide screen and one page at a time on a phone. Backup &amp; Restore moved in as a page, there is a new About page, and changes save as you make them, so there is no Done button.'
@@ -1499,11 +1506,47 @@ export function showNetWorthMilestone(message) {
     window.setTimeout(() => host.remove(), 2600);
 }
 
+// #492: hides a banner without leaving focus on its now-hidden button. When
+// focus was inside the banner it moves to <main> (tabindex="-1"), so the next
+// Tab starts from the page instead of from an invisible control.
+export function hideBanner(banner) {
+    if (!banner) return;
+    const hadFocus = banner.contains(document.activeElement);
+    banner.classList.add('hidden');
+    if (hadFocus) document.getElementById('main')?.focus({ preventScroll: true });
+}
+
 // Persistent sync-error banner (v7.0.0, spec section 6). The markup lives in
 // index.html, hidden by default. Showing is idempotent (one banner, never
 // stacked); the dismiss button hides it until the next failure.
+//
+// #503: every failure is announced, including a repeat while the banner is
+// already showing: the text is cleared and set again on the next tick, which
+// makes the role="alert" region fire again. While the legacy-data modal is
+// open, its own error message reports a failed transfer, so the banner stays
+// out of the way (one alert, not two).
+let _syncBannerTimer = null;
 export function showSyncErrorBanner() {
-    document.getElementById('syncErrorBanner')?.classList.remove('hidden');
+    const banner = document.getElementById('syncErrorBanner');
+    if (!banner) return;
+    const migration = document.getElementById('pgMigrationModal');
+    if (migration && !migration.classList.contains('hidden')) return;
+    const text = banner.querySelector('.sync-error-banner-text');
+    const wasHidden = banner.classList.contains('hidden');
+    banner.classList.remove('hidden');
+    if (!text) return;
+    if (_syncBannerTimer !== null) clearTimeout(_syncBannerTimer);
+    _syncBannerTimer = null;
+    if (wasHidden) {
+        // Appearing is itself announced; the text is there from the start.
+        text.textContent = t('sync.errorBanner');
+        return;
+    }
+    text.textContent = '';
+    _syncBannerTimer = setTimeout(() => {
+        _syncBannerTimer = null;
+        text.textContent = t('sync.errorBanner');
+    }, 100);
 }
 
 // #565: a PATCH/DELETE found the record already deleted elsewhere. Distinct
@@ -1511,7 +1554,7 @@ export function showSyncErrorBanner() {
 export function showRecordGoneBanner(app) {
     const banner = document.getElementById('recordGoneBanner');
     if (!banner) return;
-    const hide = () => banner.classList.add('hidden');
+    const hide = () => hideBanner(banner);
     const reload = document.getElementById('recordGoneReloadBtn');
     if (reload) {
         reload.onclick = () => {

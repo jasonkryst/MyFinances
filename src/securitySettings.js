@@ -5,8 +5,9 @@ import { t } from './i18n.js';
 import { getCsrfCookie, discardBody } from './storage.js';
 import { requestLogin } from './loginGate.js';
 import {
-    attachPasswordStrengthMeter, newPasswordError, passwordResponseMessage, showBreachCheckNote
+    attachPasswordStrengthMeter, newPasswordError, newPasswordErrorKind, passwordResponseMessage, showBreachCheckNote
 } from './passwordUi.js';
+import { markFieldInvalid, clearFieldInvalid } from './utils.js';
 
 let meter = null;
 
@@ -24,6 +25,18 @@ function els() {
     };
 }
 
+// #499: no field is linked to an old error.
+function clearInvalid(e) {
+    for (const field of [e.current, e.next, e.confirm]) clearFieldInvalid(field, e.error);
+}
+
+// Shows `message` and links it to `field` (aria-invalid + aria-describedby).
+function showFieldError(e, field, message) {
+    e.error.textContent = message;
+    markFieldInvalid(field, e.error);
+    field.focus();
+}
+
 function clearFields(e) {
     e.current.value = '';
     e.confirm.value = '';
@@ -38,6 +51,7 @@ export function refreshSecuritySettingsPanel(app) {
     if (e.username) e.username.value = app?.userEmail || '';
     e.error.textContent = '';
     e.status.textContent = '';
+    clearInvalid(e);
     clearFields(e);
     showBreachCheckNote(e.breachNote);
 }
@@ -51,20 +65,20 @@ export function initSecuritySettings(app) {
         event.preventDefault();
         e.error.textContent = '';
         e.status.textContent = '';
+        clearInvalid(e);
         if (!e.current.value) {
-            e.error.textContent = t('settings.security.currentRequired');
-            e.current.focus();
+            showFieldError(e, e.current, t('settings.security.currentRequired'));
             return;
         }
-        const clientError = newPasswordError(e.next.value, e.confirm.value, app?.userEmail || '');
+        const email = app?.userEmail || '';
+        const clientError = newPasswordError(e.next.value, e.confirm.value, email);
         if (clientError) {
-            e.error.textContent = clientError;
-            e.next.focus();
+            const field = newPasswordErrorKind(e.next.value, e.confirm.value, email) === 'mismatch' ? e.confirm : e.next;
+            showFieldError(e, field, clientError);
             return;
         }
         if (e.next.value === e.current.value) {
-            e.error.textContent = t('password.reason.unchanged');
-            e.next.focus();
+            showFieldError(e, e.next, t('password.reason.unchanged'));
             return;
         }
 
@@ -96,11 +110,11 @@ export function initSecuritySettings(app) {
             if (res.status === 429) {
                 e.error.textContent = t('login.tooManyAttempts');
             } else if (body?.error?.code === 'INVALID_CURRENT_PASSWORD') {
-                e.error.textContent = t('settings.security.wrongCurrent');
                 e.current.value = '';
-                e.current.focus();
+                showFieldError(e, e.current, t('settings.security.wrongCurrent'));
             } else {
                 e.error.textContent = passwordResponseMessage(body, 'settings.security.failed');
+                if (body?.error?.reason) markFieldInvalid(e.next, e.error);
             }
         } finally {
             e.submit.disabled = false;

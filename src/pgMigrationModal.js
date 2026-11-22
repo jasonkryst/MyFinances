@@ -7,6 +7,7 @@
 import { sanitizeParsedState } from './sanitizers.js';
 import { replaceForPostgres } from './postgresImport.js';
 import { t, plural, getIntlLocale } from './i18n.js';
+import { makeBackgroundInert } from './overlayFocus.js';
 
 const LEGACY_KEY = 'debtTrackerData';
 
@@ -62,6 +63,8 @@ function openModal(els, variant) {
     els.error.classList.add('hidden');
     els.modal.classList.add('flex-visible');
     els.modal.classList.remove('hidden');
+    // #464: the app behind the modal can't be reached by Tab or screen readers.
+    els.releaseBackground = makeBackgroundInert(els.modal);
     const first = cleanup ? els.downloadBtn : els.transferBtn;
     setTimeout(() => first.focus(), 30);
 }
@@ -73,6 +76,8 @@ function makeCloser(els, onKeydown) {
         [els.transferBtn, els.skipBtn, els.downloadBtn, els.removeBtn].forEach((b) => { b.onclick = null; });
         els.modal.classList.add('hidden');
         els.modal.classList.remove('flex-visible');
+        if (els.releaseBackground) els.releaseBackground();
+        els.releaseBackground = null;
     };
 }
 

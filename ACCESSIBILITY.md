@@ -20,6 +20,8 @@ build instead of reaching a release.
 | `tests/a11y/` | Site-wide audit of every page, in light and dark themes |
 | `tests/ui/test_accessibility.py` | Landmarks, headings, labels, keyboard access, focus handling |
 | `tests/ui/test_aria_labels.py` | Every button, tab and toggle has an accessible name and state |
+| `tests/ui/test_label_in_name.py` | Accessible names start with the visible label (WCAG 2.5.3) |
+| `tests/ui/test_a11y_gates_focus.py` | Full-screen screens keep Tab inside, focus returns after sign-in, errors are linked to fields |
 | `tests/ui/test_contrast_fixes.py` | Rendered text contrast, measured from computed styles |
 | `tests/ui/test_chart_accessibility.py` | Every chart has a screen-reader data table |
 | `tests/ui/test_mobile_no_card_clipping.py` | Content reflows on a 390 px phone without being cut off |
@@ -31,7 +33,9 @@ keyboard walks and the Chrome accessibility tree. The reports are in
 ## What the app supports
 
 - **Keyboard:** every action works from the keyboard, with a skip link, visible
-  focus, a command palette (Ctrl/Cmd+K) and a keyboard-shortcuts panel.
+  focus, a command palette (Ctrl/Cmd+K) and a keyboard-shortcuts panel. Dialogs
+  and full-screen screens keep Tab inside themselves, and focus returns to where
+  you were when they close.
 - **Screen readers:** names, roles and states on controls, live regions for
   errors and status, and a data-table equivalent for every chart.
 - **Themes:** light, dark and high contrast.
@@ -54,16 +58,7 @@ These are open and tracked. The
 [`accessibility` label](https://github.com/jasonkryst/MyFinances/labels/accessibility)
 always has the current list.
 
-- **Focus containment:** the full-screen sign-in and "Can't reach your server"
-  screens, the legacy-data modal and the Settings modal don't yet keep Tab
-  inside themselves (#464, #495).
-- **Focus after closing:** focus isn't returned to the right place after a
-  mid-session sign-in or after dismissing the save-error banner (#491, #492).
 - **Account menu:** it uses menu roles without arrow-key navigation (#494).
-- **Error messages:** some aren't linked to their fields or are announced twice
-  (#499, #502, #503).
-- **Names:** some accessible names don't contain the visible label (#496, #501).
-- **Small target:** the save-error banner's dismiss button is 19 px (#493).
 - **Untranslated text:** parts of the global chrome, such as the account menu
   and the command palette, are still English only (#498, #505, #517).
 
