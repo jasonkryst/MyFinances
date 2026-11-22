@@ -35,12 +35,16 @@ jobs:
           retention-days: 1
 
   # ---------------------------------------------------------------------------
-  # Features — 12 parallel shards (a-l), bin-packed by measured pytest seconds
-  # (not test count): keep every shard under ~360 s of pytest (~7.5 min job
-  # including the ~90 s of setup), well inside the 15 min job timeout (#527).
+  # Features — 11 parallel shards (a-f, h, j-m), bin-packed by measured pytest
+  # seconds (not test count): keep every shard under ~360 s of pytest (~7.5 min
+  # job including the ~70 s of setup), well inside the 15 min job timeout (#527).
   # Per-file seconds come from the per-test timestamps in a green run's job log.
-  # F/G hold the slow ledger/reconciliation files; I holds test_performance;
-  # K holds the static guards (CLAUDE.md names it); L and M are the i18n render guard.
+  # #528: every job pays ~70 s of setup (checkout, pip, browser, stack), so the
+  # shortest shards were merged: the old G (reconciliation/retirement) into K
+  # and the old I (test_performance and friends) into A. No job runs
+  # `docker compose down` at the end; the runner is discarded anyway.
+  # F holds the slow ledger files; K holds the static guards (CLAUDE.md names
+  # it); L and M are the i18n render guard.
   # Every pytest job passes --maxfail=15 so a broken stack stops the job early
   # (#551); the per-test 120 s timeout comes from pytest.ini (pytest-timeout).
   # ---------------------------------------------------------------------------
@@ -69,11 +73,16 @@ jobs:
             tests/features/test_plan_history.py \
             tests/features/test_filter_sort.py \
             tests/features/test_account_menu.py \
+            tests/features/test_performance.py \
+            tests/features/test_calendar_feed.py \
+            tests/features/test_whats_new.py \
+            tests/features/test_app_ready.py \
+            tests/features/test_number_clarity.py \
+            tests/features/test_interest_income.py \
+            tests/features/test_health_fire_target.py \
+            tests/features/test_undo.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # test_ledger: 18 slow tests (~25s each in CI), plus test_notifications (#211) and test_notifications_page (#643), both short.
   test-features-f:
@@ -95,41 +104,6 @@ jobs:
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_ledger.py tests/features/test_notifications.py tests/features/test_notifications_page.py tests/features/test_login_recovery.py --maxfail=15 -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
-
-  # test_reconciliation (slow) plus the two retirement files moved here from C (#527).
-  test-features-g:
-    needs: build-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: tests/requirements.txt
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
-      - run: pip install -r tests/requirements.txt
-      - uses: ./.github/actions/install-playwright
-      - uses: ./.github/actions/start-stack
-      - run: |
-          pytest \
-            tests/features/test_reconciliation.py \
-            tests/features/test_recurring_income.py \
-            tests/features/test_retirement.py \
-            tests/features/test_retirement_coast_fire.py \
-            tests/features/test_savings_contribute.py \
-            --maxfail=15 \
-            -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # test_reports, test_debt_calculator, test_break_even, test_networth are
   # calculation-heavy tests (~20s each in CI vs ~3s for shard-B/C). Kept in
@@ -170,9 +144,6 @@ jobs:
             tests/features/test_import_account_settings_remap.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # test_accounts (27 tests, multi-modal deletion flows) and test_forecast
   # (16 tests, multi-month projection rendering) are the two heaviest shard-A
@@ -204,9 +175,6 @@ jobs:
             tests/features/test_recurring_paid_ledger_sync.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   test-features-b:
     needs: build-images
@@ -242,9 +210,6 @@ jobs:
             tests/features/test_zero_amount_policy.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   test-features-c:
     needs: build-images
@@ -281,9 +246,6 @@ jobs:
             tests/features/test_refinance_scenario.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   test-features-h:
     needs: build-images
@@ -322,45 +284,6 @@ jobs:
             tests/features/test_projection_cache.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
-
-  # test_performance may be slow (render-heavy); isolated here so it doesn't
-  # push other shards over budget.
-  test-features-i:
-    needs: build-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: tests/requirements.txt
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
-      - run: pip install -r tests/requirements.txt
-      - uses: ./.github/actions/install-playwright
-      - uses: ./.github/actions/start-stack
-      - run: |
-          pytest \
-            tests/features/test_performance.py \
-            tests/features/test_calendar_feed.py \
-            tests/features/test_whats_new.py \
-            tests/features/test_app_ready.py \
-            tests/features/test_number_clarity.py \
-            tests/features/test_interest_income.py \
-            tests/features/test_health_fire_target.py \
-            tests/features/test_undo.py \
-            --maxfail=15 \
-            -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # J/K: files that were never listed in any shard until #415 (~82 / ~71 tests).
   test-features-j:
@@ -405,9 +328,6 @@ jobs:
             tests/features/test_emergency_balance_history.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # K also holds test_ci_shard_coverage.py, which fails if a tests/features|ui file is missing from ci.yml,
   # and test_async_submit_guard.py, a static scan for account/debt Submit clicks with no wait (#592),
@@ -448,11 +368,13 @@ jobs:
             tests/features/test_backup_service.py \
             tests/features/test_harness_reset.py \
             tests/features/test_change_history.py \
+            tests/features/test_reconciliation.py \
+            tests/features/test_recurring_income.py \
+            tests/features/test_retirement.py \
+            tests/features/test_retirement_coast_fire.py \
+            tests/features/test_savings_contribute.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # L and M: the i18n pseudo-locale render guard (#527), split out of test_i18n_coverage.py and then
   # by data state: L = seeded (+ the two control tests), M = empty, ~170-200 s of pytest each. Both grow
@@ -479,9 +401,6 @@ jobs:
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_i18n_render_guard.py --maxfail=15 -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   test-features-m:
     needs: build-images
@@ -502,9 +421,6 @@ jobs:
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
       - run: pytest tests/features/test_i18n_render_guard_empty.py tests/features/test_notification_bell_filters.py --maxfail=15 -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Integration
@@ -530,10 +446,17 @@ jobs:
       # The backup service crash-looped unnoticed for two months (#656).
       - name: Backup service runs and writes a readable dump
         run: bash tools/check-backup-service.sh
+      # #528: a11y and security share this job (each was ~20-80 s of pytest on
+      # its own). Each suite is its own pytest process: tests/a11y starts its
+      # own Playwright and tests/security uses the async API, and neither can
+      # share a process with the session browser of the sync suites.
       - run: pytest tests/integration --maxfail=15 -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
+      - name: Accessibility suite (own Playwright, separate process)
+        if: ${{ !cancelled() }}
+        run: pytest tests/a11y --maxfail=15 -v
+      - name: Security suite (async Playwright, separate process)
+        if: ${{ !cancelled() }}
+        run: pytest tests/security --maxfail=15 -v
 
   # ---------------------------------------------------------------------------
   # UI — split into 3 parallel shards (bin-packed by test count: a=83, b=85, c=86)
@@ -567,9 +490,6 @@ jobs:
             tests/ui/test_settings_redesign.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   test-ui-b:
     needs: build-images
@@ -609,9 +529,6 @@ jobs:
             tests/ui/test_mobile_clipping_fixes.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   test-ui-c:
     needs: build-images
@@ -651,9 +568,6 @@ jobs:
             tests/ui/test_design_consistency.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # D: UI files that were never listed in any shard until #415 (~36 tests).
   test-ui-d:
@@ -686,35 +600,6 @@ jobs:
             tests/ui/test_label_in_name.py \
             --maxfail=15 \
             -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
-
-  # ---------------------------------------------------------------------------
-  # Security
-  # ---------------------------------------------------------------------------
-  test-security:
-    needs: build-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: tests/requirements.txt
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
-      - run: pip install -r tests/requirements.txt
-      - uses: ./.github/actions/install-playwright
-      - uses: ./.github/actions/start-stack
-      - run: pytest tests/security --maxfail=15 -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Postgres (full stack; ~2 min of pytest, so it gets the same 15 min as every Playwright job)
@@ -741,35 +626,6 @@ jobs:
       - uses: ./.github/actions/start-stack
       - name: Run Postgres bootstrap tests
         run: pytest tests/postgres --maxfail=15 -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
-
-  # ---------------------------------------------------------------------------
-  # Accessibility audit
-  # ---------------------------------------------------------------------------
-  test-a11y:
-    needs: build-images
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: tests/requirements.txt
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('tests/requirements.txt') }}
-      - run: pip install -r tests/requirements.txt
-      - uses: ./.github/actions/install-playwright
-      - uses: ./.github/actions/start-stack
-      - run: pytest tests/a11y --maxfail=15 -v
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Server node:test suite (server/test/*.test.js) against a real Postgres
@@ -878,9 +734,6 @@ jobs:
         run: npx --yes @lhci/cli@0.15.1 autorun
         env:
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
-      - name: Stop stack
-        if: always()
-        run: docker compose down -v
 
   # ---------------------------------------------------------------------------
   # Single required status check (issue #380). The main ruleset requires this
@@ -904,9 +757,7 @@ jobs:
       - test-features-d
       - test-features-e
       - test-features-f
-      - test-features-g
       - test-features-h
-      - test-features-i
       - test-features-j
       - test-features-k
       - test-features-l
@@ -916,9 +767,7 @@ jobs:
       - test-ui-b
       - test-ui-c
       - test-ui-d
-      - test-security
       - test-postgres
-      - test-a11y
       - test-server
       - test-unit
       - docker-build
