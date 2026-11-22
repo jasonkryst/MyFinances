@@ -89,6 +89,10 @@ class DebtCalculator {
             const paymentOrder = this.getPaymentOrder(workingDebts, strategy);
 
             let remainingPayment = monthlyPayment;
+            // #672: interest the minimum pass already accrued this month, per
+            // debt, and how much of it the minimum left unpaid. The overage pass
+            // must collect only that remainder, never a second month of interest.
+            const interestOwed = {};
 
             // First pass: Apply minimum payments to each debt, with daily compounding interest
             for (const debtIndex of workingDebts.map((_, i) => i)) {
@@ -134,6 +138,7 @@ class DebtCalculator {
                         const minimumPayment = Math.min(minimumRequired, debt.balance + monthlyInterest);
                         const interestPaid = Math.min(monthlyInterest, minimumPayment);
                         const principalPaid = minimumPayment - interestPaid;
+                        interestOwed[debtIndex] = monthlyInterest - interestPaid;
 
                         debt.balance -= principalPaid;
                         debt.totalPrincipal += principalPaid;
@@ -167,9 +172,13 @@ class DebtCalculator {
                     if (debt.paidOffMonth || remainingPayment < 0.01) continue;
                     if (debt.debtType === 'fixedAmount') continue; // Fixed debts never receive overage
 
-                    // Daily compounding interest for this month
+                    // Interest still due this month: what the minimum pass left
+                    // unpaid (#672), or the month's daily-compounded interest when
+                    // this debt had no minimum payment.
                     const dailyRate = (debt.interestRate || 0) / 100 / 365;
-                    const monthlyInterest = debt.balance * (Math.pow(1 + dailyRate, daysInMonth) - 1);
+                    const monthlyInterest = Object.prototype.hasOwnProperty.call(interestOwed, debtIndex)
+                        ? interestOwed[debtIndex]
+                        : debt.balance * (Math.pow(1 + dailyRate, daysInMonth) - 1);
                     const payment = Math.min(remainingPayment, debt.balance + monthlyInterest);
 
                     if (payment < 0.01) continue;
@@ -193,6 +202,7 @@ class DebtCalculator {
                         // Add to existing minimum payment
                         monthPlan.payments[existingPaymentIndex].payment += parseFloat(payment.toFixed(2));
                         monthPlan.payments[existingPaymentIndex].principal += parseFloat(principalPaid.toFixed(2));
+                        monthPlan.payments[existingPaymentIndex].interest += parseFloat(interestPaid.toFixed(2));
                         monthPlan.payments[existingPaymentIndex].balance = parseFloat(Math.max(0, debt.balance).toFixed(2));
                         monthPlan.payments[existingPaymentIndex].paidOff = debt.paidOffMonth === month;
                     } else {
@@ -245,6 +255,8 @@ class DebtCalculator {
                         monthPlan.payments[existingPaymentIndex].payment += parseFloat(stimulusPayment.toFixed(2));
                         monthPlan.payments[existingPaymentIndex].principal += parseFloat(stimulusPayment.toFixed(2));
                         monthPlan.payments[existingPaymentIndex].balance = parseFloat(Math.max(0, debt.balance).toFixed(2));
+                        // #673: a lump sum that clears the debt marks this month's entry.
+                        monthPlan.payments[existingPaymentIndex].paidOff = debt.paidOffMonth === month;
                         monthPlan.payments[existingPaymentIndex].isStimulus = true;
                     } else {
                         monthPlan.payments.push({
@@ -268,7 +280,9 @@ class DebtCalculator {
             month++;
         }
 
-        if (month > maxMonths) {
+        // #671: only a plan with debts still unpaid after the last allowed month
+        // is too long; one that finishes in exactly month 600 is fine.
+        if (this.hasUnpaidDebts(workingDebts)) {
             throw new Error('Payment plan exceeds 50 years. Monthly payment may be too low.');
         }
 
