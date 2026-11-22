@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.22.0] — 2026-11-22
+
+### Added
+- **Change log (#580).** Every create, update and delete made through the API now writes one row to the new `audit_log` table (migration `1755600000043`: user, table, row id, op, `before`/`after` jsonb in the API's field names, timestamp). The generic routers (`crudRouter.js`, `keyedRouter.js`) and the plan-settings PATCH add the audit insert as a data-modifying CTE of the same SQL statement (`server/src/audit.js`), so a change and its audit row commit or fail together. An update that changes nothing writes no row, and plan-settings PATCHes that only touch Ledger/Forecast filters are not logged. Foreign-key cascades and background jobs are not logged.
+- **Retention.** The hourly `prune-sessions` job deletes audit rows older than 90 days (`AUDIT_LOG_RETENTION_DAYS`).
+- **Settings → Change history.** A new Settings page (lazy `src/changeHistory.js`, pure `src/changeHistoryCore.js`) lists the entries newest first with a record-type filter and "Load older changes" paging, showing each changed field's old and new value. API: `GET /api/audit-log?limit&before&table` and `DELETE /api/audit-log`.
+- **Clear All Data erases the history** (`pgDeleteAuditLog`, after the wipe). A replace import keeps it.
+
+### Tests
+- `server/test/auditLog.test.js` (writes per op, no-op and rejected writes, bulk and cascaded deletes, keyed upserts, plan settings, paging, per-user isolation, CSRF, pruning), `tests/unit/changeHistoryCore.test.js`, `tests/features/test_change_history.py`.
+
 ## [7.21.0] — 2026-11-22
 
 ### Fixed (accessibility)

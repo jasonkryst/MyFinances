@@ -84,6 +84,11 @@ export function loadNotificationsPageModule() {
     return loadOnce('notificationsPage', () => import('./notificationsPage.js'));
 }
 
+// Settings > Change history (#580): loaded the first time the page opens.
+export function loadChangeHistoryModule() {
+    return loadOnce('changeHistory', () => import('./changeHistory.js'));
+}
+
 export function loadStrategyCalendarModule() {
     return loadOnce('strategyCalendar', () => import('./strategyCalendar.js'));
 }

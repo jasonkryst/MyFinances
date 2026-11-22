@@ -1,6 +1,6 @@
 // Server persistence: boot probe, load from and save to the PostgreSQL API.
 
-import { pgDeleteAll, seedShadows, trackWrite } from './postgresSync.js';
+import { pgDeleteAll, pgDeleteAuditLog, seedShadows, trackWrite } from './postgresSync.js';
 import { buildPlanSettingsPatch } from './planSettingsPatch.js';
 import { requestLogin } from './loginGate.js';
 import { showSyncErrorBanner } from './ui.js';
@@ -304,6 +304,8 @@ export async function clearAllData(app, options = {}) {
 
     // Awaited so a reload or import right after the clear sees the empty server.
     await pgDeleteAll(app);
+    // #580: last, so the wipe's own deletes leave no history behind.
+    await pgDeleteAuditLog(app);
 
     app.updateUI();
 

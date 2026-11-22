@@ -9838,3 +9838,22 @@ body.dark-mode .notifications-filter-text {
 /* Backup & Restore page: two cards (7.20.0) */
 .settings-page-card + .settings-page-card { margin-top: 16px; }
 .settings-card-title { margin: 12px 0 8px; font-size: 0.95rem; }
+
+/* Settings > Change history (#580) */
+.change-history-status { margin: 8px 0; color: var(--text-muted); }
+.change-history-status:empty { display: none; }
+.change-history-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.change-history-item { padding: 10px 0; border-bottom: 1px solid var(--border-color); min-width: 0; }
+.change-history-item:last-child { border-bottom: none; }
+.change-history-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; }
+.change-history-op { font-size: 0.75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.change-history-op--create { color: #047857; }
+body.dark-mode .change-history-op--create { color: #4ade80; }
+.change-history-op--update { color: var(--text-color); }
+.change-history-op--delete { color: var(--danger-text); }
+.change-history-type { font-weight: 600; }
+.change-history-name { overflow-wrap: anywhere; }
+.change-history-time { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.change-history-fields { list-style: none; margin: 6px 0 0; padding: 0; font-size: 0.85rem; }
+.change-history-field { overflow-wrap: anywhere; min-width: 0; }
+.change-history-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem; overflow-wrap: anywhere; }

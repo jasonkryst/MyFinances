@@ -1994,6 +1994,7 @@
                     <ul class="settings-card" aria-labelledby="settingsGroup-data">
                         <li><button type="button" class="settings-row" data-settings-page="backup"><span class="settings-icon settings-icon--green"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg></span><span class="settings-row-label" data-i18n="settings.pageBackup"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
                         <li><button type="button" class="settings-row" data-settings-page="advanced"><span class="settings-icon settings-icon--gray"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg></span><span class="settings-row-label" data-i18n="settings.pageAdvanced"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
+                        <li><button type="button" class="settings-row" data-settings-page="history"><span class="settings-icon settings-icon--purple"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/><polyline points="12 7 12 12 15 14"/></svg></span><span class="settings-row-label" data-i18n="settings.pageHistory"></span><span class="settings-row-chevron" aria-hidden="true">&rsaquo;</span></button></li>
                     </ul>
                 </div>
                 <div class="settings-group">
@@ -2204,6 +2205,19 @@
                     </select>
                     <p class="modal-helper-text" data-i18n="settings.zeroAmountHelp">$0 entries are useful for tracking a transaction (for example, one made on a credit card) without moving a balance. Applies to ledger overrides and recurring templates; transfers always need an amount above $0.</p>
                 </div>
+                    </div>
+                </section>
+                <section id="settingsPage-history" class="settings-page" aria-labelledby="settingsPageTitle-history">
+                    <h4 id="settingsPageTitle-history" class="settings-page-title" tabindex="-1" data-i18n="settings.pageHistory"></h4>
+                    <div class="settings-card settings-page-card">
+                        <p id="changeHistoryHelp" class="modal-helper-text" data-i18n="history.help"></p>
+                        <div class="form-group modal-form-group">
+                            <label for="changeHistoryFilter" data-i18n="history.filterLabel"></label>
+                            <select id="changeHistoryFilter" aria-describedby="changeHistoryHelp"></select>
+                        </div>
+                        <p id="changeHistoryStatus" class="change-history-status" role="status"></p>
+                        <ol id="changeHistoryList" class="change-history-list hidden" aria-labelledby="settingsPageTitle-history"></ol>
+                        <button type="button" id="changeHistoryMoreBtn" class="btn btn-secondary btn-small hidden" data-i18n="history.loadMore"></button>
                     </div>
                 </section>
                 <section id="settingsPage-security" class="settings-page" aria-labelledby="settingsPageTitle-security">

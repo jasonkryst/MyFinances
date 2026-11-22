@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from './db.js';
+import { recordJsonSql, auditCteSql } from './audit.js';
 
 export function createCrudResource({ table, columns, sanitize, requiredFields = [], foreignKeys = {} }) {
     const router = express.Router();
@@ -8,6 +9,8 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
     // row_version (#578) lives outside `columns`: it isn't a sanitizer field,
     // so field parity and the sanitizers never see it.
     const selectList = `${dbColumns.join(', ')}, row_version`;
+    // #580: every write also logs the record (API shape, without rowVersion).
+    const json = alias => recordJsonSql(alias, columns);
 
     function rowToJson(row) {
         const out = {};
@@ -77,7 +80,10 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             const values = insertFields.map(f => clean[f]);
             const placeholders = insertFields.map((_, i) => `$${i + 2}`);
             const { rows } = await query(
-                `INSERT INTO ${table} (user_id, ${insertCols.join(', ')}) VALUES ($1, ${placeholders.join(', ')}) RETURNING ${selectList}`,
+                `WITH ins AS (
+                    INSERT INTO ${table} (user_id, ${insertCols.join(', ')}) VALUES ($1, ${placeholders.join(', ')}) RETURNING ${selectList}
+                 ), ${auditCteSql({ table, op: 'create', source: 'ins', rowId: 'ins.id::text', after: json('ins') })}
+                 SELECT * FROM ins`,
                 [req.userId, ...values]
             );
             res.status(201).json(rowToJson(rows[0]));
@@ -127,9 +133,15 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             // The version check is repeated in the UPDATE itself so a write
             // that lands between the SELECT above and here can't be lost.
             const versionGuard = versioned ? ` AND row_version = $${updateFields.length + 3}` : '';
+            // `old` reads the row as this statement found it, before the UPDATE.
             const { rows } = await query(
-                `UPDATE ${table} SET ${setClauses.join(', ')}, row_version = row_version + 1
-                 WHERE user_id = $1 AND id = $2${versionGuard} RETURNING ${selectList}`,
+                `WITH old AS (
+                    SELECT ${selectList} FROM ${table} WHERE user_id = $1 AND id = $2
+                 ), upd AS (
+                    UPDATE ${table} SET ${setClauses.join(', ')}, row_version = row_version + 1
+                    WHERE user_id = $1 AND id = $2${versionGuard} RETURNING ${selectList}
+                 ), ${auditCteSql({ table, op: 'update', source: 'upd JOIN old ON old.id = upd.id', rowId: 'upd.id::text', before: json('old'), after: json('upd') })}
+                 SELECT * FROM upd`,
                 versioned ? [req.userId, req.params.id, ...values, expectedVersion] : [req.userId, req.params.id, ...values]
             );
             if (rows.length === 0) {
@@ -150,8 +162,14 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             if (!/^\d+$/.test(req.params.id)) {
                 return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found' } });
             }
-            const { rowCount } = await query(`DELETE FROM ${table} WHERE user_id = $1 AND id = $2`, [req.userId, req.params.id]);
-            if (rowCount === 0) {
+            const { rows } = await query(
+                `WITH del AS (
+                    DELETE FROM ${table} WHERE user_id = $1 AND id = $2 RETURNING ${selectList}
+                 ), ${auditCteSql({ table, op: 'delete', source: 'del', rowId: 'del.id::text', before: json('del') })}
+                 SELECT id FROM del`,
+                [req.userId, req.params.id]
+            );
+            if (rows.length === 0) {
                 return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found' } });
             }
             res.status(204).end();
@@ -162,7 +180,13 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
 
     router.delete('/', async (req, res, next) => {
         try {
-            await query(`DELETE FROM ${table} WHERE user_id = $1`, [req.userId]);
+            await query(
+                `WITH del AS (
+                    DELETE FROM ${table} WHERE user_id = $1 RETURNING ${selectList}
+                 ), ${auditCteSql({ table, op: 'delete', source: 'del', rowId: 'del.id::text', before: json('del') })}
+                 SELECT count(*) FROM del`,
+                [req.userId]
+            );
             res.status(204).end();
         } catch (err) {
             next(err);

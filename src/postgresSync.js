@@ -316,6 +316,12 @@ export function pgPut(app, path, body) {
     next.then(() => { if (putChains.get(path) === next) putChains.delete(path); });
 }
 
+// Clear All Data (#580): empties the change log. Separate from pgDeleteAll,
+// which a replace import also runs, so an import keeps the history.
+export async function pgDeleteAuditLog(app) {
+    await pgFetch(app, 'DELETE', '/api/audit-log');
+}
+
 export async function pgDeleteMilestones(app) {
     await pgFetch(app, 'DELETE', '/api/plan-settings/milestones');
 }

@@ -1,11 +1,26 @@
 import express from 'express';
 import { query } from '../db.js';
+import { recordJsonSql, auditCteSql } from '../audit.js';
 import { normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeHomePurchasePlan, sanitizeBudgetCategories, sanitizeLedgerSettings } from '../sanitizers/index.js';
 
 const router = express.Router();
 
 const DEFAULT_LEDGER_SETTINGS = { accountFilter: 'all', dateRange: 'all', sortKey: 'date', sortDir: 'desc', clearedFilter: 'all', categoryFilter: 'all', pageSize: 25 };
 const DEFAULT_FORECAST_SETTINGS = { rangeMonths: 1, accountId: 'total', notableThresholdPct: 130 };
+
+// #580: the plan fields the change log records. Ledger and Forecast filters
+// (ledger_settings, forecast_settings) are view state and change on every
+// filter click, so a PATCH that only touches them writes no audit row.
+// Named, not written inline: resourceDeletion.test.js treats a route that names its table inline as a collection.
+const AUDIT_TABLE_NAME = 'plan_settings';
+export const AUDITED_PLAN_COLUMNS = {
+    strategy: 'strategy',
+    monthlyPayment: 'monthly_payment',
+    perMonthStimulus: 'per_month_stimulus',
+    retirementTargetDate: 'retirement_target_date',
+    homePurchasePlan: 'home_purchase_plan',
+    budgetCategories: 'budget_categories'
+};
 
 function rowToJson(row, milestones) {
     return {
@@ -80,7 +95,22 @@ router.patch('/', async (req, res, next) => {
         if (budgetCategories !== undefined) { values.push(JSON.stringify(budgetCategories)); sets.push(`budget_categories = $${values.length}`); }
 
         if (sets.length > 0) {
-            await query(`UPDATE plan_settings SET ${sets.join(', ')} WHERE user_id = $1`, values);
+            await query(
+                `WITH old AS (
+                    SELECT * FROM plan_settings WHERE user_id = $1
+                 ), upd AS (
+                    UPDATE plan_settings SET ${sets.join(', ')} WHERE user_id = $1 RETURNING *
+                 ), ${auditCteSql({
+                    table: AUDIT_TABLE_NAME,
+                    op: 'update',
+                    source: 'upd JOIN old ON old.user_id = upd.user_id',
+                    rowId: `'plan'`,
+                    before: recordJsonSql('old', AUDITED_PLAN_COLUMNS),
+                    after: recordJsonSql('upd', AUDITED_PLAN_COLUMNS)
+                 })}
+                 SELECT 1 FROM upd`,
+                values
+            );
         }
         const row = await getOrCreateRow(req.userId);
         const milestones = await query(

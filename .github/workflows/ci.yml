@@ -447,6 +447,7 @@ jobs:
             tests/features/test_ci_fail_fast.py \
             tests/features/test_backup_service.py \
             tests/features/test_harness_reset.py \
+            tests/features/test_change_history.py \
             --maxfail=15 \
             -v
       - name: Stop stack
