@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.22.1] — 2026-11-22
+
+### Fixed (payoff plan)
+- **Extra payments no longer charge interest twice (#672).** When the monthly payment was more than the minimums, the extra amount went to a debt's minimum-payment entry but interest was computed a second time on the reduced balance. About one month of interest per month disappeared from every extra payment, so plans showed more total interest and later payoff dates than the real schedule. The extra pass now collects only the interest the minimum left unpaid, and a merged entry's principal plus interest equals its payment. Plans with extra payments now pay off sooner and show less interest.
+- **A plan that ends in exactly 50 years is accepted (#671).** A plan finishing in month 600 threw "Payment plan exceeds 50 years"; only a plan still unpaid after month 600 does now.
+- **A lump-sum payoff is marked paid off (#673).** When a per-month stimulus cleared a debt that already had a payment that month, the entry showed a $0 balance but was not marked paid off.
+
+### Tests
+- `tests/unit/debtCalculatorFixes.test.js`, with negative cases.
+
 ## [7.22.0] — 2026-11-22
 
 ### Added

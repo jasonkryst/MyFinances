@@ -18,6 +18,12 @@ export default {
     jest: {
         configFile: 'jest.config.js',
     },
+    // A mutant that removes a loop's exit (e.g. calculatePaymentPlan's
+    // 600-month cap) can allocate without bound until Stryker's timeout. With
+    // several workers that exhausted the CI runner's memory and killed the
+    // whole job (#675). Capping each worker's heap makes such a mutant crash
+    // only its own worker, which Stryker restarts.
+    testRunnerNodeArgs: ['--max-old-space-size=1536'],
     // Re-derived from the full run after #548/#549 (score 84.41%):
     // low = floor(score), break = low-10, high = low+5. Per-file floors
     // (tools/mutationFloors.json, checked by tools/mutationFloors.cjs) are
