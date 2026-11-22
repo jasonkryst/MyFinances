@@ -186,3 +186,36 @@ def test_job_parser_sees_known_jobs():
     jobs = _ci_jobs()
     assert {'test-features-a', 'test-unit', 'lighthouse', AGGREGATOR} <= set(jobs)
     assert len(jobs) == len(set(jobs))
+
+
+# ── #528: whole-directory suites survive shard merges ────────────────────────
+
+WHOLE_DIR_SUITES = ('a11y', 'integration', 'postgres', 'security')
+
+
+def _pytest_whole_dirs(text):
+    """Every `tests/<dir>` named as a whole directory on a pytest command line."""
+    dirs = set()
+    for line in text.splitlines():
+        if re.search(r'\bpytest\b', line):
+            dirs.update(re.findall(r'(?<![\w/])tests/(\w+)(?=\s|$)', line))
+    return dirs
+
+
+@pytest.mark.feature
+def test_every_whole_directory_suite_runs_in_ci():
+    """#528 merged the a11y and security jobs into test-integration; each suite
+    must still be named on some job's pytest line."""
+    found = _pytest_whole_dirs(CI_YML.read_text(encoding='utf-8'))
+    missing = [d for d in WHOLE_DIR_SUITES if d not in found]
+    assert not missing, f'No ci.yml pytest command runs tests/{missing}'
+    for d in WHOLE_DIR_SUITES:
+        assert (REPO_ROOT / 'tests' / d).is_dir(), d
+
+
+@pytest.mark.feature
+def test_whole_dir_parser_sees_every_directory_on_a_line():
+    text = ('      - run: pytest tests/integration tests/a11y --maxfail=15 -v\n'
+            '      - run: echo tests/security\n'
+            '      - run: pytest tests/features/test_x.py -v\n')
+    assert _pytest_whole_dirs(text) == {'integration', 'a11y'}
