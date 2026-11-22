@@ -5,7 +5,7 @@ import { getRecurringOccurrencesInMonth } from './recurring.js';
 import { applyWeekendRule } from './weekendRule.js';
 import { getCsrfCookie } from './storage.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
-import { getIncomePaydaysInMonth } from './utils.js';
+import { getIncomePaydaysInMonth, discardBody } from './utils.js';
 
 const WINDOW_MONTHS = 12;
 
@@ -189,7 +189,7 @@ export function downloadIcs(app) {
 async function fetchToken() {
     try {
         const res = await fetch('/api/calendar/token');
-        if (!res.ok) return null;
+        if (!res.ok) { await discardBody(res); return null; }
         const data = await res.json();
         return data.token || null;
     } catch {
@@ -203,7 +203,7 @@ async function postToken() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() }
         });
-        if (!res.ok) return null;
+        if (!res.ok) { await discardBody(res); return null; }
         const data = await res.json();
         return data.token || null;
     } catch {

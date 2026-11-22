@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.22.1';
+export const APP_VERSION = '7.22.2';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -95,6 +95,14 @@ function formatDateCached(date, name, options) {
         dateFormatters.set(key, formatter);
     }
     return formatter.format(date);
+}
+
+// Reads and drops a fetch response body (#461). The API answers with
+// `Cache-Control: no-store`, and an unread body keeps its connection pending,
+// which stalls Playwright's `networkidle` (and holds a socket in the browser).
+// Every fetch in src/ either reads its body or passes the response here.
+export async function discardBody(res) {
+    try { if (res) await res.arrayBuffer(); } catch (_) { /* aborted or already consumed */ }
 }
 
 export function normalizeText(value, maxLen = 120) {

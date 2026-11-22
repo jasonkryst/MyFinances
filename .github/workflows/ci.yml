@@ -173,6 +173,7 @@ jobs:
             tests/features/test_forecast.py \
             tests/features/test_savings.py \
             tests/features/test_recurring_paid_ledger_sync.py \
+            tests/features/test_response_bodies.py \
             --maxfail=15 \
             -v
 
@@ -459,7 +460,7 @@ jobs:
         run: pytest tests/security --maxfail=15 -v
 
   # ---------------------------------------------------------------------------
-  # UI — split into 3 parallel shards (bin-packed by test count: a=83, b=85, c=86)
+  # UI — 4 parallel shards (a-d), balanced by measured pytest seconds like the feature shards
   # ---------------------------------------------------------------------------
   test-ui-a:
     needs: build-images
@@ -684,7 +685,16 @@ jobs:
           node-version: "26"
           cache: npm
       - run: npm ci
-      - run: npm run test:unit
+      # #560: a leaked timer or handle makes Jest force-exit its worker with a
+      # warning but still pass; fail the job on that warning instead.
+      - name: Unit tests (fail on leaked handles)
+        run: |
+          set -o pipefail
+          npm run test:unit 2>&1 | tee jest-output.txt
+          if grep -q "failed to exit gracefully" jest-output.txt; then
+            echo "::error::A Jest worker was force-exited (leaked timer or handle). Run 'npx jest --detectOpenHandles' to find it."
+            exit 1
+          fi
 
   mutation-testing:
     runs-on: ubuntu-latest

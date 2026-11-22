@@ -17,14 +17,25 @@ CI_YML = REPO_ROOT / '.github' / 'workflows' / 'ci.yml'
 SHARDED_DIRS = ('features', 'ui')
 
 
-def _ci_referenced_paths():
-    text = CI_YML.read_text(encoding='utf-8')
+def _strip_comments(text):
+    """ci.yml without YAML comments (#556): a path named only in a comment
+    must not count as running. A `#` starts a comment at line start or after
+    whitespace; ci.yml's shell lines quote any literal `#` they need."""
+    return '\n'.join(re.sub(r'(^|\s)#.*$', '', line) for line in text.splitlines())
+
+
+def _ci_text():
+    return _strip_comments(CI_YML.read_text(encoding='utf-8'))
+
+
+def _ci_referenced_paths(text=None):
+    text = _ci_text() if text is None else _strip_comments(text)
     return set(re.findall(r'tests/[\w/]+\.py', text))
 
 
-def _ci_referenced_dirs():
+def _ci_referenced_dirs(text=None):
     # A whole-directory run (e.g. `pytest tests/integration -v`) covers every file in it.
-    text = CI_YML.read_text(encoding='utf-8')
+    text = _ci_text() if text is None else _strip_comments(text)
     return set(re.findall(r'pytest\s+(tests/[\w]+)\s', text))
 
 
@@ -56,7 +67,7 @@ def test_ci_shards_reference_only_existing_files():
 
 @pytest.mark.feature
 def test_no_test_file_listed_in_two_shards():
-    text = CI_YML.read_text(encoding='utf-8')
+    text = _ci_text()
     paths = re.findall(r'^\s+(tests/(?:features|ui)/test_\w+\.py)\s*\\?\s*$', text, re.MULTILINE)
     dupes = sorted({p for p in paths if paths.count(p) > 1})
     assert not dupes, 'Test files listed in more than one shard (run twice):\n  ' + '\n  '.join(dupes)
@@ -68,6 +79,23 @@ def test_guard_detects_an_unlisted_file(tmp_path):
     referenced = _ci_referenced_paths()
     assert 'tests/features/test_definitely_not_a_real_file.py' not in referenced
     assert 'tests/features/test_debts.py' in referenced
+
+
+@pytest.mark.feature
+def test_a_path_named_only_in_a_comment_is_not_running():
+    """#556: comments are ignored, both whole-line and trailing."""
+    text = (
+        '  # K holds tests/features/test_only_in_comment.py\n'
+        '      - run: |\n'
+        '          pytest \\\n'
+        '            tests/features/test_listed.py \\\n'
+        '            -v  # see tests/features/test_trailing_comment.py\n'
+        '      # - run: pytest tests/a11y -v\n'
+    )
+    paths = _ci_referenced_paths(text)
+    assert paths == {'tests/features/test_listed.py'}
+    assert _ci_referenced_dirs(text) == set()
+    assert 'test_only_in_comment' not in _strip_comments(text)
 
 
 # ── Single required check (issue #380) ───────────────────────────────────────
@@ -206,7 +234,7 @@ def _pytest_whole_dirs(text):
 def test_every_whole_directory_suite_runs_in_ci():
     """#528 merged the a11y and security jobs into test-integration; each suite
     must still be named on some job's pytest line."""
-    found = _pytest_whole_dirs(CI_YML.read_text(encoding='utf-8'))
+    found = _pytest_whole_dirs(_ci_text())
     missing = [d for d in WHOLE_DIR_SUITES if d not in found]
     assert not missing, f'No ci.yml pytest command runs tests/{missing}'
     for d in WHOLE_DIR_SUITES:

@@ -6,7 +6,7 @@
 // toward the save-status chip or fire a live-refresh broadcast.
 
 import { t } from './i18n.js';
-import { escapeHtml, formatCurrency, formatShortDate } from './utils.js';
+import { escapeHtml, formatCurrency, formatShortDate, discardBody } from './utils.js';
 import { getCsrfCookie } from './storage.js';
 import { getSetting, setSetting } from './settings.js';
 import { NOTIFY_FILTER_TYPE, NOTIFY_FILTER_STATUS, NOTIFY_FILTER_ACCOUNT } from './settingsSchema.js';
@@ -231,7 +231,7 @@ async function fetchBell() {
     try {
         const query = filtersToQuery(getSavedNotificationFilters());
         const res = await fetch(query ? `/api/notifications?${query}` : '/api/notifications', { credentials: 'same-origin' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) { await discardBody(res); throw new Error(`HTTP ${res.status}`); }
         const body = await res.json();
         state.items = Array.isArray(body.notifications) ? body.notifications : [];
         // Keep the full list's read state in step with what the server just said.
@@ -261,7 +261,7 @@ export function loadAllNotifications() {
     allInFlight = (async () => {
         try {
             const res = await fetch('/api/notifications?limit=500', { credentials: 'same-origin' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) { await discardBody(res); throw new Error(`HTTP ${res.status}`); }
             const body = await res.json();
             state.all = Array.isArray(body.notifications) ? body.notifications : [];
             state.total = Number(body.total) || state.all.length;
@@ -288,7 +288,7 @@ async function post(path) {
         credentials: 'same-origin',
         headers: { 'X-CSRF-Token': getCsrfCookie() },
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) { await discardBody(res); throw new Error(`HTTP ${res.status}`); }
     return res.json();
 }
 
@@ -299,7 +299,7 @@ async function postJson(path, body) {
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() },
         body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) { await discardBody(res); throw new Error(`HTTP ${res.status}`); }
     return res.json();
 }
 

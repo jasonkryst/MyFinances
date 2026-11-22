@@ -7,6 +7,7 @@
 // the server do). It is readable without colour: the level is a sentence in a
 // polite live region linked to the input via aria-describedby, and the bar is
 // aria-hidden decoration. All DOM is built with createElement/textContent.
+import { discardBody } from './utils.js';
 import { t } from './i18n.js';
 import {
     estimatePasswordStrength, validatePasswordPolicy, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH
@@ -121,7 +122,7 @@ export async function showBreachCheckNote(noteEl) {
     if (!noteEl) return;
     try {
         const res = await fetch('/auth/password-policy');
-        if (!res.ok) return;
+        if (!res.ok) { await discardBody(res); return; }
         const policy = await res.json();
         noteEl.classList.toggle('hidden', policy?.breachedCheckEnabled !== true);
     } catch {

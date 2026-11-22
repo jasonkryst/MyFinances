@@ -4,7 +4,7 @@
 // browsing the history never touches the save chip or live refresh. Every
 // value is set with textContent; nothing here goes through innerHTML.
 import { t } from './i18n.js';
-import { formatShortDateTime } from './utils.js';
+import { formatShortDateTime, discardBody } from './utils.js';
 import { AUDIT_TABLE_ORDER, recordName, describeChanges, auditQuery } from './changeHistoryCore.js';
 
 export const CHANGE_HISTORY_PAGE_SIZE = 50;
@@ -99,7 +99,7 @@ function render() {
 async function fetchPage(before) {
     const res = await fetch(`/api/audit-log?${auditQuery({ limit: CHANGE_HISTORY_PAGE_SIZE, before, table: state.table })}`,
         { credentials: 'same-origin' });
-    if (!res.ok) throw new Error(`audit-log ${res.status}`);
+    if (!res.ok) { await discardBody(res); throw new Error(`audit-log ${res.status}`); }
     return res.json();
 }
 

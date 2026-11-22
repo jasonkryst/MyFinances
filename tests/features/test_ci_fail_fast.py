@@ -68,6 +68,16 @@ def requirements_pin_timeout(req_text):
     return bool(re.search(r'^pytest-timeout\b', req_text, re.MULTILINE | re.IGNORECASE))
 
 
+def unpinned_requirements(req_text):
+    """#559: requirement lines that don't pin an exact version (`name==x.y.z`)."""
+    bad = []
+    for line in req_text.splitlines():
+        line = line.split('#', 1)[0].strip()
+        if line and not re.fullmatch(r'[A-Za-z0-9._\[\],-]+==[0-9][\w.]*', line):
+            bad.append(line)
+    return bad
+
+
 def start_stack_problems(action_text):
     wanted = {
         'docker compose ps': 'container status on failure',
@@ -96,6 +106,18 @@ def test_ci_has_pytest_jobs_for_the_guard_to_check():
     assert {'test-features-a', 'test-features-l', 'test-features-m', 'test-ui-a', 'test-postgres',
             'test-integration'} <= jobs
     assert not ({'test-unit', 'test-server', 'mutation-testing', 'lighthouse'} & jobs)
+
+
+@pytest.mark.feature
+def test_test_requirements_are_pinned_and_key_the_browser_cache():
+    """#559: exact pins, and the Playwright browser cache key hashes the file,
+    so a Playwright bump also refreshes the cached browsers."""
+    req = REQUIREMENTS.read_text(encoding='utf-8')
+    assert unpinned_requirements(req) == []
+    assert re.search(r'^playwright==', req, re.MULTILINE)
+    ci = CI_YML.read_text(encoding='utf-8')
+    keys = re.findall(r'key: (playwright-.*)$', ci, re.MULTILINE)
+    assert keys and all("hashFiles('tests/requirements.txt')" in k for k in keys), keys
 
 
 @pytest.mark.feature
@@ -171,6 +193,8 @@ def test_ini_and_requirements_checks_reject_missing_entries():
     assert not pytest_ini_has_timeout('[pytest]\n# timeout = 120\n')
     assert pytest_ini_has_timeout('[pytest]\ntimeout = 120\n')
     assert not requirements_pin_timeout('playwright\npytest\n')
+    assert unpinned_requirements('# c\nplaywright==1.65.2\n\npytest==9.2.0  # x\n') == []
+    assert unpinned_requirements('playwright\npytest>=9\nhttpx~=0.28\nok==1.0\n') == ['playwright', 'pytest>=9', 'httpx~=0.28']
     assert requirements_pin_timeout('pytest\npytest-timeout==2.3.1\n')
 
 
