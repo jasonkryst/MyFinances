@@ -446,8 +446,13 @@ jobs:
       # The backup service crash-looped unnoticed for two months (#656).
       - name: Backup service runs and writes a readable dump
         run: bash tools/check-backup-service.sh
-      # #528: a11y and security share this job (each was ~20-80 s of pytest on its own).
-      - run: pytest tests/integration tests/a11y tests/security --maxfail=15 -v
+      # #528: a11y and security share this job (each was ~20-80 s of pytest on
+      # its own). tests/security uses Playwright's async API, which can't share
+      # a pytest process with the sync suites, so it runs as its own step.
+      - run: pytest tests/integration tests/a11y --maxfail=15 -v
+      - name: Security suite (async Playwright, separate process)
+        if: ${{ !cancelled() }}
+        run: pytest tests/security --maxfail=15 -v
 
   # ---------------------------------------------------------------------------
   # UI — split into 3 parallel shards (bin-packed by test count: a=83, b=85, c=86)
