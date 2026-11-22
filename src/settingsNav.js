@@ -4,7 +4,7 @@
 // DOM-only module; the values loading and saving live in setupWizard.js.
 import { t } from './i18n.js';
 
-export const SETTINGS_PAGES = ['appearance', 'language', 'notifications', 'backup', 'advanced', 'security', 'about'];
+export const SETTINGS_PAGES = ['appearance', 'language', 'notifications', 'backup', 'advanced', 'history', 'security', 'about'];
 const DEFAULT_PAGE = 'appearance';
 const WIDE_QUERY = '(min-width: 768px)';
 
@@ -12,6 +12,12 @@ let modalEl = null;
 let activePage = DEFAULT_PAGE;
 let drilledIn = false; // narrow only: a page (not the list) is showing
 let initialized = false;
+const pageShownHandlers = new Map(); // page -> fn, run each time that page is shown
+
+// Runs `fn` every time `page` is shown (opened from its row or by openSettings).
+export function onSettingsPageShown(page, fn) {
+    pageShownHandlers.set(page, fn);
+}
 
 export function isSettingsNarrow() {
     return !window.matchMedia(WIDE_QUERY).matches;
@@ -43,6 +49,8 @@ export function showSettingsPage(page, { focus = true } = {}) {
     activePage = SETTINGS_PAGES.includes(page) ? page : DEFAULT_PAGE;
     drilledIn = true;
     apply();
+    const handler = pageShownHandlers.get(activePage);
+    if (handler) handler();
     if (focus) {
         const heading = document.getElementById(`settingsPageTitle-${activePage}`);
         if (heading) heading.focus();

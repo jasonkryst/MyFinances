@@ -1,7 +1,7 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 
-export const APP_VERSION = '7.21.0';
+export const APP_VERSION = '7.22.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -143,6 +143,14 @@ export function formatShortDate(value) {
     const isBareDate = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
     const date = isBareDate ? new Date(`${value}T12:00:00`) : new Date(value);
     return formatDateCached(date, 'short', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Formats an ISO timestamp or Date as a short date plus the local time
+// ("Nov 22, 2026, 11:44 AM" in English). Used by the Change history list (#580).
+export function formatShortDateTime(value) {
+    return formatDateCached(new Date(value), 'shortDateTime', {
+        year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
 }
 
 // Formats a bare "YYYY-MM-DD" string, an ISO datetime string, or a Date object as "Mon YYYY".

@@ -37,6 +37,25 @@ def test_scan_detects_hardcoded_english(pseudo_page):
 
 
 @pytest.mark.feature
+def test_scan_skips_only_translate_no(pseudo_page):
+    """#580: text inside translate="no" (identifiers and stored values shown as
+    data) is skipped, while English next to it is still reported."""
+    _load_pseudo(pseudo_page, EMPTY_STATE)
+    pseudo_page.evaluate("""() => {
+        const p = document.createElement('p');
+        const c = document.createElement('code');
+        c.setAttribute('translate', 'no');
+        c.textContent = 'startingBalance';
+        p.appendChild(c);
+        p.appendChild(document.createTextNode(' Leaked words'));
+        document.getElementById('retirementSection').appendChild(p);
+    }""")
+    bad = pseudo_page.evaluate(SCAN_JS, {'roots': ['#retirementSection'], 'allow': []})
+    assert any('Leaked words' in b for b in bad)
+    assert not any('startingBalance' in b for b in bad)
+
+
+@pytest.mark.feature
 def test_pseudo_locale_route_is_active(pseudo_page):
     """Sanity check: the nav is wrapped in brackets, proving the pseudo 'es'
     dictionary is the one actually loaded."""

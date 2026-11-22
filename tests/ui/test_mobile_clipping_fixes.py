@@ -136,7 +136,7 @@ def test_settings_rows_fit_on_phone(seeded):
     res = page.evaluate("""() => [...document.querySelectorAll('.settings-row[data-settings-page]')].map(b => {
         const r = b.getBoundingClientRect(); return { l: r.left, r: r.right, h: r.height, clipped: b.scrollWidth > b.clientWidth + 1 };
     })""")
-    assert len(res) == 7
+    assert len(res) == 8
     assert all(b["r"] <= PHONE["width"] + 1 and b["l"] >= -1 and not b["clipped"] and b["h"] >= 40 for b in res), res
 
 

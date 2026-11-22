@@ -370,6 +370,9 @@ def reset_server_state_http() -> None:
             for method, path, body in _RESET_EXTRA_CALLS:
                 call(method, path, body)
     call("PUT", "/api/settings/reconciliationAdjustsBalance", {"value": False})
+    # #580: Clear All Data's pgDeleteAuditLog, last, so each test starts with
+    # an empty change history (the wipe above logged its own deletes).
+    call("DELETE", "/api/audit-log")
 
 
 def reset_server_state(page) -> None:
@@ -490,7 +493,7 @@ def wait_for_api(page, path, check, timeout=10.0):
 
 
 def open_settings_page(page, name: str) -> None:
-    """Open Settings on page `name` (appearance, language, notifications, backup,
+    """Open Settings on page `name` (appearance, language, notifications, backup, history,
     advanced, security, about). Works at any viewport: wide shows two panes, narrow
     opens drilled in."""
     page.evaluate("n => window.app.openSettings({ page: n })", name)

@@ -2,7 +2,7 @@
 // choice later. Both are plain static modals following the same
 // show/hide-via-classList pattern as reconcileModal etc. (see reconciliation.js).
 import { getSetting, setSetting, RECONCILIATION_ADJUSTS_BALANCE, SHOW_ARCHIVED_DEBTS, SHOW_ARCHIVED_RECURRING, AUTO_NW_SNAPSHOT, ZERO_AMOUNT_POLICY, getZeroAmountPolicy } from './settings.js';
-import { getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
+import { t, getCurrentLocale, getCurrencyCode, setCurrencyCode } from './i18n.js';
 import { getCsrfCookie, discardBody } from './storage.js';
 import { requestLogin } from './loginGate.js';
 import { showEmailTestToast, openWhatsNewModal } from './ui.js';
@@ -10,8 +10,9 @@ import { initSettingsBackup } from './settingsBackup.js';
 import { initSecuritySettings, refreshSecuritySettingsPanel } from './securitySettings.js';
 import { initNotificationSettings, loadNotificationSettingsForm } from './notificationSettings.js';
 import { resetBackupPage } from './dataTransferModal.js';
-import { initSettingsNav, showSettingsPage, showSettingsListQuiet, handleSettingsEscape, isSettingsNarrow, getActiveSettingsPage, refreshSettingsRowValues } from './settingsNav.js';
+import { onSettingsPageShown, initSettingsNav, showSettingsPage, showSettingsListQuiet, handleSettingsEscape, isSettingsNarrow, getActiveSettingsPage, refreshSettingsRowValues } from './settingsNav.js';
 import { APP_VERSION } from './utils.js';
+import { loadChangeHistoryModule } from './lazyModules.js';
 
 export function maybeShowSetupWizard(app, isFirstRun) {
     if (!isFirstRun) return;
@@ -74,6 +75,15 @@ export function initSettingsModal(app) {
     initSecuritySettings(app);
     initNotificationSettings(app);
     initSettingsNav(modal);
+    // #580: the Change history page loads its module and entries when shown.
+    onSettingsPageShown('history', () => {
+        loadChangeHistoryModule()
+            .then(mod => mod.renderChangeHistory())
+            .catch(() => {
+                const status = document.getElementById('changeHistoryStatus');
+                if (status) status.textContent = t('history.error');
+            });
+    });
 
     const versionEl = document.getElementById('settingsAboutVersion');
     if (versionEl) versionEl.textContent = APP_VERSION;

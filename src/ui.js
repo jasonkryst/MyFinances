@@ -1044,6 +1044,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.22.0 — 2026-11-22',
+        items: [
+            '<strong>Change history:</strong> Settings has a new <em>Change history</em> page listing what you created, changed or deleted in the last 90 days, newest first, with the old and new value of each changed field. Filter it by record type to find out when something changed. Clear All Data also erases the history.'
+        ]
+    },
+    {
         version: '7.21.0 — 2026-11-22',
         items: [
             '<strong>Better with a keyboard and screen reader:</strong> the sign-in screen, the <em>Can\'t reach your server</em> screen and the old-browser-data prompt now keep Tab inside themselves, and after signing in again mid-session you are returned to the control you were using. Error messages are linked to the field they are about, a repeated save failure is announced again, and dialogs read out their explanation as well as their title.',

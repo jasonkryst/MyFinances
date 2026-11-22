@@ -25,6 +25,7 @@ import ledgerClearedRouter from './routes/ledgerCleared.js';
 import planSettingsRouter from './routes/planSettings.js';
 import createNotificationsRouter from './routes/notifications.js';
 import personsRouter from './routes/persons.js';
+import auditLogRouter from './routes/auditLog.js';
 import calendarRouter, { handlePublicCalendar, createCalendarRateLimiter } from './routes/calendar.js';
 
 export function createApp() {
@@ -80,6 +81,7 @@ export function createApp() {
     api.use('/persons', personsRouter);
     api.use('/plan-settings', planSettingsRouter);
     api.use('/notifications', createNotificationsRouter());
+    api.use('/audit-log', auditLogRouter);
     api.use('/calendar', calendarRouter);
     app.use('/api', api);
 

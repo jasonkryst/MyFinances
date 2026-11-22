@@ -1,10 +1,14 @@
 import express from 'express';
 import { query } from './db.js';
+import { recordJsonSql, auditCteSql } from './audit.js';
 
 export function createKeyedResource({ table, keyColumn, keyField, columns, sanitize, foreignKeys = {} }) {
     const router = express.Router();
     const jsFields = Object.keys(columns);
     const dbColumns = Object.values(columns);
+    const keyColumnSql = columns[keyField];
+    // #580: every write also logs the entry in its API shape.
+    const json = alias => recordJsonSql(alias, columns);
 
     function rowToJson(row) {
         const out = {};
@@ -55,10 +59,25 @@ export function createKeyedResource({ table, keyColumn, keyField, columns, sanit
             const updateClauses = jsFields
                 .filter(f => f !== keyField)
                 .map(f => `${columns[f]} = EXCLUDED.${columns[f]}`);
+            // `old` is the entry before the upsert, if there was one: no row
+            // means a create, and an unchanged value writes no audit row.
+            const keyParam = `$${jsFields.indexOf(keyField) + 2}`;
             const { rows } = await query(
-                `INSERT INTO ${table} (user_id, ${insertCols.join(', ')}) VALUES ($1, ${placeholders.join(', ')})
-                 ON CONFLICT (user_id, ${keyColumn}) DO UPDATE SET ${updateClauses.join(', ')}
-                 RETURNING ${dbColumns.join(', ')}`,
+                `WITH old AS (
+                    SELECT ${dbColumns.join(', ')} FROM ${table} WHERE user_id = $1 AND ${keyColumn} = ${keyParam}
+                 ), up AS (
+                    INSERT INTO ${table} (user_id, ${insertCols.join(', ')}) VALUES ($1, ${placeholders.join(', ')})
+                    ON CONFLICT (user_id, ${keyColumn}) DO UPDATE SET ${updateClauses.join(', ')}
+                    RETURNING ${dbColumns.join(', ')}
+                 ), ${auditCteSql({
+                    table,
+                    source: 'up LEFT JOIN old ON true',
+                    rowId: `up.${keyColumnSql}::text`,
+                    opSql: `CASE WHEN old.${keyColumnSql} IS NULL THEN 'create' ELSE 'update' END`,
+                    before: `CASE WHEN old.${keyColumnSql} IS NULL THEN NULL ELSE ${json('old')} END`,
+                    after: json('up')
+                 })}
+                 SELECT * FROM up`,
                 [req.userId, ...values]
             );
             res.json(rowToJson(rows[0]));
@@ -69,11 +88,14 @@ export function createKeyedResource({ table, keyColumn, keyField, columns, sanit
 
     router.delete('/:key', async (req, res, next) => {
         try {
-            const { rowCount } = await query(
-                `DELETE FROM ${table} WHERE user_id = $1 AND ${keyColumn} = $2`,
+            const { rows } = await query(
+                `WITH del AS (
+                    DELETE FROM ${table} WHERE user_id = $1 AND ${keyColumn} = $2 RETURNING ${dbColumns.join(', ')}
+                 ), ${auditCteSql({ table, op: 'delete', source: 'del', rowId: `del.${keyColumnSql}::text`, before: json('del') })}
+                 SELECT 1 FROM del`,
                 [req.userId, req.params.key]
             );
-            if (rowCount === 0) {
+            if (rows.length === 0) {
                 return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found' } });
             }
             res.status(204).end();
@@ -84,7 +106,13 @@ export function createKeyedResource({ table, keyColumn, keyField, columns, sanit
 
     router.delete('/', async (req, res, next) => {
         try {
-            await query(`DELETE FROM ${table} WHERE user_id = $1`, [req.userId]);
+            await query(
+                `WITH del AS (
+                    DELETE FROM ${table} WHERE user_id = $1 RETURNING ${dbColumns.join(', ')}
+                 ), ${auditCteSql({ table, op: 'delete', source: 'del', rowId: `del.${keyColumnSql}::text`, before: json('del') })}
+                 SELECT count(*) FROM del`,
+                [req.userId]
+            );
             res.status(204).end();
         } catch (err) {
             next(err);

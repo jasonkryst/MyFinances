@@ -513,6 +513,30 @@ TRANSLATED_PAGES = {
             window.app.openSettings({ page: 'language' });
         }""",
     ),
+    # #580: Change history, with an update's field list (field names and
+    # values are translate="no" data) and the paging button showing.
+    'settings-history': (
+        ['#settingsModal'],
+        """async () => {
+            // Start from an empty log: earlier tests' unwrapped names would show.
+            const csrf = document.cookie.match(/csrf=([^;]+)/)[1];
+            await fetch('/api/audit-log', { method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-Token': csrf } });
+            const res = await fetch('/api/accounts', { credentials: 'same-origin' });
+            const accounts = await res.json();
+            if (accounts.length) {
+                await fetch('/api/accounts/' + accounts[0].id, {
+                    method: 'PATCH', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+                    body: JSON.stringify({ startingBalance: 4321 })
+                });
+            }
+            window.app.openSettings({ page: 'history' });
+            await new Promise(r => setTimeout(r, 300));
+            const mod = await import('/src/changeHistory.js');
+            await mod.loadChangeHistory();
+            document.getElementById('changeHistoryMoreBtn').classList.remove('hidden');
+        }""",
+    ),
     'settings-about': (
         ['#settingsModal'],
         """async () => {
@@ -1309,7 +1333,9 @@ SCAN_JS = """
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         let n;
         while ((n = walker.nextNode())) {
-            if (!n.textContent.trim() || n.parentElement.closest('script,style')) continue;
+            // translate="no" marks identifiers and stored values shown as data
+            // (Change history's field names and values, #580), never prose.
+            if (!n.textContent.trim() || n.parentElement.closest('script,style,[translate="no"]')) continue;
             check(n.textContent, describe(n.parentElement));
         }
         for (const el of [root, ...root.querySelectorAll('[aria-label],[title],[placeholder]')]) {
