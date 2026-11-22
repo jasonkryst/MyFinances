@@ -1,13 +1,14 @@
 import { getCsrfCookie } from './storage.js';
 import { pgDeleteAll, pgDeleteMilestones, seedShadows } from './postgresSync.js';
 import { showSyncErrorBanner } from './ui.js';
-import { sanitizeFiniteNumber, normalizeText } from './utils.js';
+import { sanitizeFiniteNumber, normalizeText, discardBody } from './utils.js';
 import { remapHistoryOwners, excludeExistingHistory } from './balanceHistoryCore.js';
 import { mapWithConcurrency, mapSettledWithConcurrency, IMPORT_CONCURRENCY } from './concurrency.js';
 import { planMerge } from './mergeDedupe.js';
 import { remapLedgerEntries, ledgerKeyDropWarning } from './ledgerKeyRemap.js';
 import { isAllowedSetting } from './settingsSchema.js';
 import { remapAccountSettings } from './settingsRemap.js';
+import { remapDebtPersonRefs, remapIncomePersonRef } from './sanitizers.js';
 
 // Every per-record fan-out below goes through this pool (#519): an unbounded
 // Promise.all of a few thousand requests made Chromium abort some of them.
@@ -35,19 +36,17 @@ function accountIdMapFrom(idMap) {
 }
 
 function remapFk(record, idMap, personIdMap = {}) {
-    const r = { ...record };
+    let r = { ...record };
     if (r.accountId != null && idMap[r.accountId] != null) r.accountId = idMap[r.accountId];
     if (r.targetAccountId != null && idMap[r.targetAccountId] != null) r.targetAccountId = idMap[r.targetAccountId];
     // Transfers (#248) carry two account FKs instead of one.
     if (r.fromAccountId != null && idMap[r.fromAccountId] != null) r.fromAccountId = idMap[r.fromAccountId];
     if (r.toAccountId != null && idMap[r.toAccountId] != null) r.toAccountId = idMap[r.toAccountId];
-    // An unresolved person reference becomes null, never a dangling id.
-    if (r.personId != null) r.personId = personIdMap[r.personId] ?? null;
-    if (Array.isArray(r.personIds)) r.personIds = r.personIds.map(id => personIdMap[id] ?? null).filter(id => id !== null);
-    // #272: ownershipSplit is keyed by person id — remap its keys the same way.
-    if (r.ownershipSplit && typeof r.ownershipSplit === 'object') {
-        r.ownershipSplit = Object.fromEntries(Object.entries(r.ownershipSplit).filter(([k]) => personIdMap[k] != null).map(([k, v]) => [personIdMap[k], v]));
-    }
+    // Person references (#421, #471): the pure sanitizers.js helpers are the
+    // one implementation. An unresolved id becomes null (income) or is dropped
+    // (debt personIds, and its #272 ownershipSplit keys, renormalized).
+    if (r.personId != null) r = remapIncomePersonRef(r, personIdMap);
+    if (Array.isArray(r.personIds)) r = remapDebtPersonRefs(r, personIdMap);
     return r;
 }
 
@@ -576,7 +575,7 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
         });
         // Delete only the records created in this session
         await mapSettledWithConcurrency(newlyCreatedPaths, IMPORT_CONCURRENCY,
-            path => fetch(path, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfCookie() } }));
+            path => fetch(path, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfCookie() } }).then(discardBody));
         showSyncErrorBanner();
         throw err;
     } finally {

@@ -1,6 +1,6 @@
 import { updateAccountMenuEmail } from './ui.js';
 import { t, plural } from './i18n.js';
-import { parseRetryAfterMinutes, markFieldInvalid, clearFieldInvalid } from './utils.js';
+import { parseRetryAfterMinutes, markFieldInvalid, clearFieldInvalid, discardBody } from './utils.js';
 import {
     attachPasswordStrengthMeter, newPasswordError, newPasswordErrorKind, passwordResponseMessage, showBreachCheckNote
 } from './passwordUi.js';
@@ -53,6 +53,8 @@ export async function showLoginGate(app, options = {}) {
             if (statusRes.ok) {
                 const data = await statusRes.json();
                 needsSetup = data.needsSetup === true;
+            } else {
+                await discardBody(statusRes);
             }
         } catch (err) {
             console.error('[loginGate] setup-status fetch error:', err);
@@ -158,6 +160,7 @@ export async function showLoginGate(app, options = {}) {
                     body: JSON.stringify({ email })
                 });
             } catch (_) { /* ignore network errors — always show success */ }
+            await discardBody(res);
             if (res?.status === 429) {
                 if (forgotError) forgotError.textContent = tooManyAttemptsMessage(res);
                 if (submitBtn) submitBtn.disabled = false;
@@ -208,6 +211,7 @@ export async function showLoginGate(app, options = {}) {
                 if (submitBtn) submitBtn.disabled = false;
                 return;
             }
+            await discardBody(res);
             window.history.replaceState({}, '', window.location.pathname);
             const successMsg = document.createElement('p');
             successMsg.textContent = t('login.resetSuccess');
@@ -246,6 +250,7 @@ export async function showLoginGate(app, options = {}) {
                     return;
                 }
                 if (!res.ok) {
+                    if (res.status === 429 || res.status === 409) await discardBody(res);
                     if (res.status === 429) {
                         errorEl.textContent = tooManyAttemptsMessage(res);
                     } else if (res.status === 409) {
@@ -259,6 +264,7 @@ export async function showLoginGate(app, options = {}) {
                     submitBtn.disabled = false;
                     return;
                 }
+                await discardBody(res);
             } else {
                 let res;
                 try {
@@ -274,6 +280,7 @@ export async function showLoginGate(app, options = {}) {
                     return;
                 }
                 console.warn('[loginGate] /auth/login status:', res.status);
+                await discardBody(res);
                 if (!res.ok) {
                     if (res.status === 429) {
                         errorEl.textContent = tooManyAttemptsMessage(res);

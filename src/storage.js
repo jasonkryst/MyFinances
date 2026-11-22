@@ -1,5 +1,6 @@
 // Server persistence: boot probe, load from and save to the PostgreSQL API.
 
+import { discardBody } from './utils.js';
 import { pgDeleteAll, pgDeleteAuditLog, seedShadows, trackWrite } from './postgresSync.js';
 import { buildPlanSettingsPatch } from './planSettingsPatch.js';
 import { requestLogin } from './loginGate.js';
@@ -24,9 +25,12 @@ export const LOAD_TIMEOUT_MS = 20000;
 // AbortSignal.timeout) so the timer is the page's own, and a server that
 // accepts the connection but never answers can't hang boot. Covers the body
 // read too: res.json() rejects once the signal aborts.
+// In Node (Jest, #560) the timer is unref'd so a finished load doesn't keep
+// the process alive for 20 s; browsers return a number and are unaffected.
 function _timeoutSignal(ms) {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), ms);
+    const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), ms);
+    if (timer && typeof timer.unref === 'function') timer.unref();
     return controller.signal;
 }
 
@@ -35,9 +39,8 @@ function _timeoutSignal(ms) {
 // browser cannot drain it into the HTTP cache, so the request stays in flight
 // and the page never reaches network idle. Call this on any response whose
 // body is not otherwise consumed.
-export async function discardBody(res) {
-    try { await res.arrayBuffer(); } catch (_) { /* aborted or already consumed */ }
-}
+// discardBody moved to utils.js (#461); re-exported for existing importers.
+export { discardBody };
 
 export async function probeServer() {
     const UNREACHABLE = { reachable: false };
@@ -47,7 +50,7 @@ export async function probeServer() {
             await discardBody(res);
             return await _probeSetupStatus();
         }
-        if (!res.ok) return UNREACHABLE;
+        if (!res.ok) { await discardBody(res); return UNREACHABLE; }
         // A static host's HTML fallback can answer 200 for /api/*; only a JSON
         // object proves this is the API.
         const body = await res.json();
@@ -65,6 +68,7 @@ async function _probeSetupStatus() {
     // 429: the setup-status limiter is exhausted. The server answered, so it is
     // reachable; treat it as sign-in mode rather than the "Can't reach your
     // server" gate. This also keeps a Retry on that gate from looping on 429.
+    if (!res.ok) await discardBody(res);
     if (res.status === 429) return { reachable: true, hasSession: false, needsSetup: false };
     if (!res.ok) return { reachable: false };
     const body = await res.json();
@@ -107,6 +111,7 @@ export class SessionExpiredError extends Error {
 // failed load reaches init()'s gates instead of assigning an error body as data.
 async function _getJson(path, signal) {
     const res = await fetch(path, { cache: 'no-store', signal });
+    if (!res.ok) await discardBody(res);
     if (res.status === 401) throw new SessionExpiredError(path);
     if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
     return res.json();

@@ -3,7 +3,7 @@ import { renderLedgerPage } from './ledger.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
-import { APP_VERSION, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts } from './utils.js';
+import { APP_VERSION, escapeHtml, isCollapsibleOpen, withBusy, setCollapsibleOpen, refreshFilterDisclosureCounts, discardBody } from './utils.js';
 import { getZeroAmountPolicy, THEMES } from './settings.js';
 export { THEMES };
 import { initCommandPalette } from './commandPalette.js';
@@ -635,7 +635,7 @@ export function initAccountMenu(app) {
             close();
             try {
                 const csrf = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf='))?.split('=')[1] || '';
-                await fetch('/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf }, credentials: 'include' });
+                await discardBody(await fetch('/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf }, credentials: 'include' }));
             } catch (_) { /* ignore */ }
             location.reload();
         });

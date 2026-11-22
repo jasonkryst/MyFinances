@@ -40,6 +40,18 @@ updates:
     labels:
       - "dependencies"
 
+  # pip — Python test dependencies (tests/requirements.txt, pinned per #559)
+  - package-ecosystem: "pip"
+    directory: "/tests"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    groups:
+      test-deps:
+        patterns:
+          - "*"
+
   # GitHub Actions — all workflows under .github/workflows/
   - package-ecosystem: "github-actions"
     directory: "/"

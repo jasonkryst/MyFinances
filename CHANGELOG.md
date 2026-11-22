@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.22.2] — 2026-11-22
+
+### Fixed
+- **Every response body is read or discarded (#461).** Sign-in (failed and successful), first-run setup, forgot/reset password, sign-out, the calendar feed token, the notification list, the change history, the password-policy check, the boot probe's error paths and import rollback deletes left some bodies unread; with the API's `no-store` responses that keeps a connection pending. `discardBody()` moved to `utils.js` (still re-exported from `storage.js`) and covers each path.
+- **One person-remap implementation on import (#471).** `postgresImport.js`'s `remapFk` now calls the pure `remapDebtPersonRefs`/`remapIncomePersonRef` instead of a second copy of the same rules; a debt's ownership split is renormalized when an imported person can't be matched.
+- **The boot timeout timer no longer holds Node open (#560).** `_timeoutSignal` unrefs its timer where the runtime supports it, which ends Jest's "worker process has failed to exit gracefully" warning. The browser is unaffected.
+
+### Tests and CI
+- `tests/features/test_response_bodies.py`: a fetch tracker installed before boot fails on any unread body across boot, the calendar dialog, a wrong-password sign-in, sign-out and sign-in, and sign-in must reach `networkidle`; a negative control proves the tracker reports an unread body.
+- The shard-coverage guard ignores YAML comments (#556), with a negative test; the UI shard header comment is corrected.
+- Test dependencies are pinned (#559) with a Dependabot `pip` entry; a guard checks the pins and that the Playwright cache key hashes the file.
+- `test-unit` fails when Jest force-exits a worker (#560).
+
 ## [7.22.1] — 2026-11-22
 
 ### Fixed (payoff plan)
