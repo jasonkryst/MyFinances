@@ -71,6 +71,26 @@ describe('Stryker mutate scope (tools/strykerScope.mjs)', () => {
         expect(missing).toEqual([]);
     });
 
+    // #548: a new exported sanitizer (or isValid*/remap* rule) must be mutated
+    // or excluded with a reason, even before a unit test imports it.
+    function unlistedSanitizers(src) {
+        const exported = [...src.matchAll(/^export function ((?:sanitize|isValid|remap)\w*)/gm)].map(m => m[1]);
+        const scope = report.scope['src/sanitizers.js'];
+        const excluded = report.excluded['src/sanitizers.js'] || {};
+        return { exported, unlisted: exported.filter(name => !scope.includes(name) && !(name in excluded)) };
+    }
+
+    test('every exported sanitize*/isValid*/remap* in sanitizers.js is scoped or excluded', () => {
+        const { exported, unlisted } = unlistedSanitizers(fs.readFileSync(path.join(ROOT, 'src', 'sanitizers.js'), 'utf8'));
+        expect(exported.length).toBeGreaterThan(25);
+        expect(unlisted).toEqual([]);
+    });
+
+    test('the exported-sanitizer guard catches an unlisted sanitizer', () => {
+        const src = 'export function sanitizeDebt(x) {}\nexport function sanitizeSomethingNew(x) {}\nfunction sanitizePrivate() {}\nexport function isValidWidget() {}\n';
+        expect(unlistedSanitizers(src).unlisted).toEqual(['sanitizeSomethingNew', 'isValidWidget']);
+    });
+
     test('EXCLUDED entries are real, not also scoped, and carry a reason', () => {
         for (const [file, entries] of Object.entries(report.excluded)) {
             for (const [name, reason] of Object.entries(entries)) {

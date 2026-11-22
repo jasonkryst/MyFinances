@@ -13,7 +13,8 @@
 // EXCLUDED, so a newly tested function can't be silently left unmutated.
 //
 // `node tools/strykerScope.mjs` prints the resolved globs;
-// `node tools/strykerScope.mjs --check` prints a JSON report for the guard.
+// `node tools/strykerScope.mjs --check` prints a JSON report for the guard;
+// `--files` prints the scoped files, one per line (the PR mutation job).
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -42,6 +43,13 @@ export const MUTATE_SCOPE = {
         'sanitizeBalanceHistoryEntry', 'sanitizeReconciliation', 'sanitizePlanHistoryEntry',
         'sanitizeManualTransaction', 'isValidManualTransaction', 'isValidTransfer', 'isValidReconciliation',
         'isValidRecurringTemplate', 'sanitizeLowBalanceThreshold',
+        // #548: were neither listed nor excluded.
+        'sanitizeTransfer', 'sanitizeBudgetCategories',
+    ],
+    // #548: the pure settings helpers (DOM-free; setSetting's pgPut is mocked in Jest).
+    'src/settings.js': [
+        'budgetThresholdKey', 'getSetting', 'setSetting', 'getFireMultiplier', 'computeFireNumber',
+        'getCoastFireTarget', 'getZeroAmountPolicy', 'buildSettingsExport', 'parseSettingsImport',
     ],
     // #569: the shared settings key/value allowlist (browser export + server).
     'src/settingsSchema.js': ['validateExportedSetting', 'isAllowedSetting'],
@@ -177,6 +185,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         let resolved = null, error = null;
         try { resolved = resolveScope(); } catch (e) { error = e.message; }
         process.stdout.write(JSON.stringify({ scope: MUTATE_SCOPE, excluded: EXCLUDED, resolved, error, functions }));
+    } else if (process.argv.includes('--files')) {
+        // One scoped file per line (#549: the PR mutation job's change check).
+        for (const file of Object.keys(MUTATE_SCOPE)) console.log(file);
     } else {
         for (const g of buildMutateGlobs()) console.log(g);
     }
