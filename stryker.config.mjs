@@ -18,8 +18,9 @@ export default {
     jest: {
         configFile: 'jest.config.js',
     },
-    // Derived from the real local mutation run (score 64.56%, issue #452, the
-    // first run whose ranges actually hit the tested functions):
-    // low = floor(score), break = low-10, high = low+5.
-    thresholds: { high: 69, low: 64, break: 54 },
+    // Re-derived from the full run after #548/#549 (score 84.41%):
+    // low = floor(score), break = low-10, high = low+5. Per-file floors
+    // (tools/mutationFloors.json, checked by tools/mutationFloors.cjs) are
+    // the stricter gate; this global break only catches a collapse.
+    thresholds: { high: 89, low: 84, break: 74 },
 };
