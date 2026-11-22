@@ -447,9 +447,13 @@ jobs:
       - name: Backup service runs and writes a readable dump
         run: bash tools/check-backup-service.sh
       # #528: a11y and security share this job (each was ~20-80 s of pytest on
-      # its own). tests/security uses Playwright's async API, which can't share
-      # a pytest process with the sync suites, so it runs as its own step.
-      - run: pytest tests/integration tests/a11y --maxfail=15 -v
+      # its own). Each suite is its own pytest process: tests/a11y starts its
+      # own Playwright and tests/security uses the async API, and neither can
+      # share a process with the session browser of the sync suites.
+      - run: pytest tests/integration --maxfail=15 -v
+      - name: Accessibility suite (own Playwright, separate process)
+        if: ${{ !cancelled() }}
+        run: pytest tests/a11y --maxfail=15 -v
       - name: Security suite (async Playwright, separate process)
         if: ${{ !cancelled() }}
         run: pytest tests/security --maxfail=15 -v
