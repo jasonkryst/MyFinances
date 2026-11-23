@@ -93,6 +93,9 @@ def test_recurring_inline_edit_and_save(app_page):
 
     page.fill('#re-name-90', 'Streaming Plus')
     page.fill('#re-amount-90', '20')
+    # #678: without "All occurrences" the new amount starts at the next
+    # occurrence and the card keeps showing today's amount.
+    page.check('#re-applies-all-90')
 
     save_btn = page.query_selector('[data-recurring-action="save"][data-recurring-id="90"]')
     assert save_btn, "Expected a Save button while editing"
