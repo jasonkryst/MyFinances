@@ -90,6 +90,12 @@ SEEDED_STATE = {
         {'id': 3, 'name': '⟦Old Goal⟧', 'allocationMethod': 'fixed', 'monthlyAllocation': 10,
          'targetAmount': 100, 'currentAmount': 100, 'accountId': 7, 'archived': True,
          'completedDate': '2026-01-15'},
+        # #680: target-date goals, one on pace and one past due, so the deadline row,
+        # the status badge and the past-due note are scanned.
+        {'id': 4, 'name': '⟦House Fund⟧', 'allocationMethod': 'target_date', 'monthlyAllocation': 200,
+         'targetAmount': 2400, 'currentAmount': 0, 'accountId': 7, 'targetDate': '2099-01-01'},
+        {'id': 5, 'name': '⟦Late Goal⟧', 'allocationMethod': 'target_date', 'monthlyAllocation': 50,
+         'targetAmount': 600, 'currentAmount': 100, 'accountId': 7, 'targetDate': '2020-01-01'},
     ],
     'homePurchasePlan': {'targetHomePrice': 400000, 'targetDownPaymentPct': 10, 'currentSavings': 15000,
                          'monthlyContribution': 500, 'housingCostEstimate': 2500, 'notes': '⟦Dream house⟧'},

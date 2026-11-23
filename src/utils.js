@@ -1,8 +1,9 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 import { getAmountOn } from './amountSchedule.js';
+import { getEffectiveMonthlyAllocation } from './sinkingFundSchedule.js';
 
-export const APP_VERSION = '7.29.0';
+export const APP_VERSION = '7.30.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -636,8 +637,10 @@ export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
 // Savings Rate card and the Savings page's rate summary panel (issue #303)
 // so the two pages can never disagree about what counts as "saving".
 export function computeTotalSavingsContribution(app) {
+    // #680: a target_date fund counts its live required amount, never the stored one.
+    const todayISO = dateToISO(new Date());
     return (app.emergencyFunds || []).reduce((s, f) => s + (f.monthlyContribution || 0), 0) +
-           (app.sinkingFunds   || []).reduce((s, f) => s + (f.monthlyAllocation   || 0), 0);
+           (app.sinkingFunds   || []).reduce((s, f) => s + getEffectiveMonthlyAllocation(f, todayISO), 0);
 }
 
 // Single source of truth for the "Savings Rate" shown on both the Health card and

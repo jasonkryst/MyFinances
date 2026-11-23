@@ -4,6 +4,7 @@ import { normalizeText, normalizeMultilineText, sanitizeFiniteNumber, sanitizeIn
 import { isAllowedSetting } from './settingsSchema.js';
 import { sanitizeWeekendRule } from './weekendRule.js';
 import { sanitizeAmountChanges } from './amountSchedule.js';
+import { isValidIsoDate } from './sinkingFundSchedule.js';
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
@@ -481,6 +482,8 @@ export function sanitizeSinkingFund(record, idFallback) {
         allocationMethod,
         monthlyAllocation: sanitizeFiniteNumber(record?.monthlyAllocation, 0, { min: 0 }),
         targetAmount: sanitizeFiniteNumber(record?.targetAmount, 0, { min: 0 }),
+        // #680: the goal date, kept only for the target_date method.
+        targetDate: allocationMethod === 'target_date' && isValidIsoDate(sanitizeDateISO(record?.targetDate)) ? sanitizeDateISO(record.targetDate) : null,
         currentAmount: sanitizeFiniteNumber(record?.currentAmount, 0, { min: 0 }),
         autoContribute: Boolean(record?.autoContribute),
         accountId: sanitizeInteger(record?.accountId, null),

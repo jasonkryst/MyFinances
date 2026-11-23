@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.30.0] — 2026-11-23
+
+### Added
+- **Sinking fund target date (#680).** A goal created with the *Target date* method now stores `targetDate` (`sinking_funds.target_date`, migration `1755600000050`; kept only for that method) instead of using it once. The monthly amount it needs is computed when shown: what is still missing divided by the months left (`src/sinkingFundSchedule.js`, pure and Stryker-scoped). Months are counted from today's month to the target month, a target this month needs everything now, and a past date needs nothing scheduled.
+  - **Card.** Shows the deadline, the amount needed per month and a status badge: On track, Behind, Ahead (the live need compared with the amount saved with the goal), Past due (date passed, not funded) or Funded.
+  - **Everywhere.** The Ledger auto-contribute projection (browser and server), and the savings rate use the live amount, and the projection stops after the target month. `monthlyAllocation` is still stored (the amount at save).
+
+### Fixed
+- Editing a sinking fund now updates it. Before, Edit filled the add form and saving created a second fund.
+
 ## [7.29.0] — 2026-11-23
 
 ### Added

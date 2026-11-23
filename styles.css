@@ -10049,3 +10049,30 @@ body.dark-mode .settings-session-badge {
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
 }
+
+/* Sinking fund target-date status (#680) */
+.sinking-status {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.sinking-status--onTrack,
+.sinking-status--ahead,
+.sinking-status--funded { background: #d1fae5; color: #065f46; }
+.sinking-status--behind { background: #fef3c7; color: #92400e; }
+.sinking-status--pastDue { background: #fee2e2; color: #991b1b; }
+body.dark-mode .sinking-status--onTrack,
+body.dark-mode .sinking-status--ahead,
+body.dark-mode .sinking-status--funded { background: #064e3b; color: #a7f3d0; }
+body.dark-mode .sinking-status--behind { background: #78350f; color: #fde68a; }
+body.dark-mode .sinking-status--pastDue { background: #7f1d1d; color: #fca5a5; }
+.sinking-card--pastdue { border-left: 4px solid var(--danger-text); }
+.sinking-pastdue-note {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--danger-text);
+}

@@ -765,6 +765,18 @@ describe('sanitizeEmergencyFund', () => {
 });
 
 describe('sanitizeSinkingFund', () => {
+    test('keeps a valid targetDate only for target_date (#680)', () => {
+        expect(sanitizeSinkingFund({ allocationMethod: 'target_date', targetDate: '2027-06-30' }, 1).targetDate).toBe('2027-06-30');
+        expect(sanitizeSinkingFund({ allocationMethod: 'fixed', targetDate: '2027-06-30' }, 1).targetDate).toBeNull();
+        expect(sanitizeSinkingFund({ allocationMethod: 'annual', targetDate: '2027-06-30' }, 1).targetDate).toBeNull();
+    });
+
+    test('drops an invalid or missing targetDate (#680)', () => {
+        expect(sanitizeSinkingFund({ allocationMethod: 'target_date', targetDate: 'soon' }, 1).targetDate).toBeNull();
+        expect(sanitizeSinkingFund({ allocationMethod: 'target_date', targetDate: '2027-02-30' }, 1).targetDate).toBeNull();
+        expect(sanitizeSinkingFund({ allocationMethod: 'target_date' }, 1).targetDate).toBeNull();
+    });
+
     test('passes through a well-formed record', () => {
         const result = sanitizeSinkingFund({ id: 2, name: 'Vacation', allocationMethod: 'target_date', monthlyAllocation: 100, targetAmount: 1200, currentAmount: 300, autoContribute: true, accountId: 5, notes: 'Summer trip' }, 1);
         expect(result.allocationMethod).toBe('target_date');
