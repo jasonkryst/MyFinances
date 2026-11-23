@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.25.0] — 2026-11-23
+
+### Added
+- **Income end date (#679).** An income source can have an optional, inclusive `endDate` (on or after its first pay date), so a job, contract or rental that stops keeps its history instead of being deleted.
+  - `getIncomePaydaysInMonth`/`countIncomePaydaysInMonth` and `getNextIncomePayDates` (`utils.js`) give no payday after it, so the Ledger, account balances, Forecast, Health, Reports, the Net Worth projection and both calendar feeds stop there. Paydays on or before it are unchanged, so their Ledger override and Cleared keys still apply.
+  - The Income page has an *End date* field on the add and edit forms. A card shows "Ends <date>" before the date and "Ended <date>" after it. Ended incomes hide behind a *Show ended* toggle, saved as the `showEndedIncomes` setting.
+  - This month's totals, the Income summary's source count and annual figure, and the per-person income on Health and People leave out ended incomes (`isIncomeEnded`).
+  - `sanitizeIncome` drops an end date before the first pay date. Postgres: migration `1755600000045` adds the nullable `incomes.end_date`; the incomes route lists it in `columns`.
+
+### Tests and CI
+- Jest: `incomeEndDate.test.js` (payday helpers for every frequency, with and without an end date, `getIncomeEndDate`/`isIncomeEnded`, the sanitizer). The payday helpers joined the Stryker scope. Server: `incomeEndDate.test.js` (round-trip, PATCH against the stored first pay date, migration, webcal feed). Playwright: `test_income_end_date.py` (shard `test-features-d`).
+
 ## [7.24.0] — 2026-11-22
 
 ### Added

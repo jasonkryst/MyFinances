@@ -18,7 +18,9 @@ import {
     buildPersonPillsHtml,
     todayISO,
     renderChartDataTable,
-    setCollapsibleOpen
+    setCollapsibleOpen,
+    getIncomeEndDate,
+    isIncomeEnded
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { buildPersonOptionsHtml } from './people.js';
@@ -27,6 +29,7 @@ import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showAlertModal } from './ui.js';
 import { t, getIntlLocale } from './i18n.js';
 import { getCurrentAmount } from './amountSchedule.js';
+import { getSetting, setSetting, SHOW_ENDED_INCOMES } from './settings.js';
 import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
 
 // #678: a month's net pay, each payday at the amount in effect on it.
@@ -89,7 +92,24 @@ export function renderIncomeList(app) {
         return;
     }
 
-    container.innerHTML = app.incomes.map(inc => {
+    // #679: incomes whose end date has passed hide behind a toggle (always
+    // shown while one is being edited, so saving an end date can't lose it).
+    const today = todayISO();
+    const showEnded = getSetting(app, SHOW_ENDED_INCOMES, false) === true;
+    const endedCount = app.incomes.filter(inc => isIncomeEnded(inc, today)).length;
+    const visibleIncomes = showEnded
+        ? app.incomes
+        : app.incomes.filter(inc => !isIncomeEnded(inc, today) || inc.id === app.editingIncomeId);
+    const endedToggle = endedCount > 0
+        ? `<div class="acct-archived-toggle income-ended-toggle">
+               <button class="btn btn-secondary btn-small" id="incomeToggleEnded" aria-pressed="${showEnded ? 'true' : 'false'}">${escapeHtml(showEnded ? t('income.hideEnded') : t('income.showEnded', { count: endedCount }))}</button>
+           </div>`
+        : '';
+    const allEndedNote = visibleIncomes.length === 0
+        ? `<p class="empty-state__body income-all-ended">${escapeHtml(t('income.allEnded'))}</p>`
+        : '';
+
+    container.innerHTML = allEndedNote + visibleIncomes.map(inc => {
         if (app.editingIncomeId === inc.id) {
             return `
                 <div class="income-card income-card--editing">
@@ -113,6 +133,10 @@ export function renderIncomeList(app) {
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editFirstDate')}</label>
                                 <input type="date" id="ie-date-${inc.id}" value="${inc.firstPayDate}" class="form-control form-full-width">
+                            </div>
+                            <div class="form-group form-no-margin">
+                                <label class="label-compact" for="ie-end-${inc.id}">${t('income.editEndDate')}</label>
+                                <input type="date" id="ie-end-${inc.id}" value="${escapeHtml(getIncomeEndDate(inc) || '')}" class="form-control form-full-width">
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editFrequency')}</label>
@@ -167,6 +191,13 @@ export function renderIncomeList(app) {
             }).join('')
             : '';
 
+        // #679: "Ended <date>" once past, "Ends <date>" while still ahead.
+        const endDate = getIncomeEndDate(inc);
+        const ended = isIncomeEnded(inc, today);
+        const endHTML = endDate
+            ? `<span class="income-card-detail income-card-end${ended ? ' income-card-end--past' : ''}">${escapeHtml(t(ended ? 'income.ended' : 'income.ends', { date: formatShortDate(endDate) }))}</span>`
+            : '';
+
         const linkedPerson = inc.personId ? (app.persons || []).find(p => p.id === inc.personId) : null;
         // #251: net is the primary displayed amount; gross only shown
         // (as a tooltip + secondary span) when withholding is actually set,
@@ -177,7 +208,7 @@ export function renderIncomeList(app) {
             ? t('income.grossNote', { gross: formatCurrency(getCurrentAmount(inc, todayISO())), pct: inc.withholdingPercent })
             : '';
         return `
-            <div class="income-card" id="income-card-${inc.id}">
+            <div class="income-card${ended ? ' income-card--ended' : ''}" id="income-card-${inc.id}">
                 <div class="income-card-info">
                     <span class="income-card-name">${escapeHtml(inc.name)}</span>
                     ${inc.isVariable ? `<span class="income-variable-badge" title="${escapeHtml(t('income.estBadgeTitle'))}">${t('income.estBadge')}</span>` : ''}
@@ -187,6 +218,7 @@ export function renderIncomeList(app) {
                     ${grossNote ? `<span class="income-card-gross-note">${escapeHtml(grossNote)}</span>` : ''}
                     ${renderAmountChangeSummary(inc, 'income')}
                     <span class="income-card-detail">${escapeHtml(t('income.firstPay', { date: dateStr }))}</span>
+                    ${endHTML}
                     <span class="income-card-freq">${escapeHtml(labelFor(INCOME_FREQ_KEYS, inc.frequency))} &mdash; ${escapeHtml(pdayLabel)}</span>
                     ${upcomingHTML ? `<span class="income-card-upcoming-label">${t('income.nextPaydays')}</span>${upcomingHTML}` : ''}
                 </div>
@@ -195,9 +227,14 @@ export function renderIncomeList(app) {
                     <button class="btn btn-danger btn-small" data-income-action="delete" data-income-id="${inc.id}" aria-label="${escapeHtml(t('entity.deleteAria', { name: inc.name }))}">${t('common.delete')}</button>
                 </div>
             </div>`;
-    }).join('');
+    }).join('') + endedToggle;
 
     container.onclick = event => {
+        if (event.target.closest('#incomeToggleEnded')) {
+            setSetting(app, SHOW_ENDED_INCOMES, !showEnded);
+            app.renderIncomeList();
+            return;
+        }
         const actionEl = event.target.closest('[data-income-action]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-income-action');
@@ -220,7 +257,8 @@ export function renderIncomeList(app) {
         const bonusThisMonth = computeMonthlyBonusesForMonth(app.bonuses, year, month);
         const regularThisMonth = monthlyTotal - bonusThisMonth;
         // #251: net, matching the net "Expected this month"/"Regular pay" figures above.
-        const totalAnnual = app.incomes.reduce((s, i) => {
+        const activeIncomes = app.incomes.filter(i => !isIncomeEnded(i, today));
+        const totalAnnual = activeIncomes.reduce((s, i) => {
             const net = computeNetIncomeAmount(i);
             return s + net * (INCOME_PAYMENTS_PER_YEAR[i.frequency] || 12);
         }, 0);
@@ -247,7 +285,7 @@ export function renderIncomeList(app) {
                 ${bonusRow}
                 <div class="income-summary-item">
                     <span class="income-summary-label">${t('income.summarySources')}</span>
-                    <span class="income-summary-value">${app.incomes.length}</span>
+                    <span class="income-summary-value">${activeIncomes.length}</span>
                 </div>
                 <div class="income-summary-item">
                     <span class="income-summary-label">${t('income.summaryAnnual')}</span>
@@ -264,6 +302,7 @@ export async function addIncome(app) {
     const rawAmount = document.getElementById('incomeAmount').value;
     const amount = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const firstPayDate = sanitizeDateISO(document.getElementById('incomeFirstDate').value);
+    const endDate = sanitizeDateISO(document.getElementById('incomeEndDate')?.value);
     const frequency = document.getElementById('incomeFrequency').value;
     const accountId = parseInt(document.getElementById('incomeAccount')?.value);
     const personIdRaw = document.getElementById('incomePerson')?.value;
@@ -276,12 +315,13 @@ export async function addIncome(app) {
     if (!name) { await showAlertModal(t('income.errName')); return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errAmountGreater')); return; }
     if (!firstPayDate) { await showAlertModal(t('income.errFirstDate')); return; }
+    if (endDate && endDate < firstPayDate) { await showAlertModal(t('income.errEndBeforeFirst')); return; }
     if (!accountId || isNaN(accountId)) { await showAlertModal(t('income.errAccount')); return; }
     if (rawWithholding && (isNaN(Number(rawWithholding)) || Number(rawWithholding) < 0 || Number(rawWithholding) > 99.9)) {
         await showAlertModal(t('income.errWithholding')); return;
     }
 
-    const income = { id: Date.now(), name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
+    const income = { id: Date.now(), name, amount, firstPayDate, endDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     if (!(await pgCreate(app, 'incomes', '/api/incomes', income))) return null;
     app.renderIncomeList();
     document.getElementById('incomeForm').reset();
@@ -340,6 +380,7 @@ export async function saveEditIncome(app, incomeId) {
     const rawAmount   = amountEl.value;
     const amount      = sanitizeFiniteNumber(rawAmount, NaN, { min: 0.01 });
     const firstPayDate = sanitizeDateISO(dateEl.value);
+    const endDate = sanitizeDateISO(document.getElementById(`ie-end-${incomeId}`)?.value);
     // Never silently rewrite the frequency: an unexpected select value keeps the stored one (#446).
     const frequency   = Object.hasOwn(INCOME_FREQ_KEYS, freqEl.value)
         ? freqEl.value
@@ -354,6 +395,7 @@ export async function saveEditIncome(app, incomeId) {
     if (!name)                        { await showAlertModal(t('income.errEditName'));            return; }
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) { await showAlertModal(t('income.errEditAmount'));     return; }
     if (!firstPayDate)                { await showAlertModal(t('income.errEditDate'));  return; }
+    if (endDate && endDate < firstPayDate) { await showAlertModal(t('income.errEndBeforeFirst')); return; }
     if (rawWithholding && (isNaN(Number(rawWithholding)) || Number(rawWithholding) < 0 || Number(rawWithholding) > 99.9)) {
         await showAlertModal(t('income.errWithholding')); return;
     }
@@ -365,7 +407,7 @@ export async function saveEditIncome(app, incomeId) {
     const amountEdit = resolveAmountEdit(app.incomes[idx], amount, 'ie', incomeId, firstPayDate);
     if (!amountEdit) { await showAlertModal(t('amounts.errAppliesFrom')); return; }
 
-    app.incomes[idx] = { ...app.incomes[idx], name, ...amountEdit, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
+    app.incomes[idx] = { ...app.incomes[idx], name, ...amountEdit, firstPayDate, endDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.editingIncomeId = null;
     pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
     app.renderIncomeList();

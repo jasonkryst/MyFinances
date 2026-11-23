@@ -12,6 +12,7 @@ export default createCrudResource({
         name: 'name',
         amount: 'amount',
         firstPayDate: 'first_pay_date',
+        endDate: 'end_date',
         frequency: 'frequency',
         accountId: 'account_id',
         personId: 'person_id',

@@ -4156,6 +4156,15 @@ body.dark-mode .target-result--warn .target-result-payment {
     gap: 12px;
 }
 
+/* #679: an income whose end date has passed (shown via "Show ended"). */
+.income-card--ended {
+    border-style: dashed;
+}
+
+.income-card-end--past {
+    font-weight: 600;
+}
+
 /* Inline edit state — card expands to show the form */
 .income-card--editing {
     display: block;

@@ -33,6 +33,8 @@ export const MUTATE_SCOPE = {
         'getBonusDatesInMonth', 'getNextBonusDate', 'computeMonthlyBonusesForMonth', 'getBonusesByDayForMonth',
         'formatDateCached', 'formatLongDate', 'formatMonthLong', 'formatReportRangeLabel', 'parseContributionAmount', 'parseRetryAfterMinutes',
         'formatCurrencyAxis', 'formatCurrencyCompact', 'getCurrencyAffix', 'cachedCurrencyFormatter',
+        // #679: payday helpers and the income end date.
+        'getIncomePaydaysInMonth', 'countIncomePaydaysInMonth', 'getNextIncomePayDates', 'getIncomeEndDate', 'isIncomeEnded',
     ],
     'src/sanitizers.js': [
         'sanitizePerson', 'sanitizeAccount', 'sanitizeDebt', 'sanitizeOwnershipSplit', 'remapDebtPersonRefs',
