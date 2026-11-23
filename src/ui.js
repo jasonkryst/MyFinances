@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.31.0 — 2026-11-23',
+        items: [
+            '<strong>Long lists are paged:</strong> with more than 25 debts on <em>Liabilities</em> or 25 templates on <em>Recurring</em>, the list now shows 25 at a time with Previous and Next buttons. Sorting and filtering still cover everything, and changing them takes you back to page 1.'
+        ]
+    },
+    {
         version: '7.30.0 — 2026-11-23',
         items: [
             '<strong>Sinking funds keep their target date:</strong> a goal set with a target date now remembers the date and recalculates what you need each month as time passes and you contribute. Each card shows the deadline, the amount needed per month and whether you are on track, behind, ahead or past due. Edit a goal to change its date or amount.'
