@@ -418,7 +418,7 @@ def test_locale_dictionaries_load_on_demand(app_page):
     urls = []
     page.on('request', lambda r: urls.append(r.url))
     page.reload()
-    page.wait_for_timeout(500)
+    page.wait_for_load_state('networkidle')
     assert not [u for u in urls if '/locales/es.js' in u or '/locales/pl.js' in u]
     page.evaluate("() => localStorage.setItem('debtTrackerLocale', 'es')")
     page.reload()
@@ -431,12 +431,17 @@ def test_locale_dictionaries_load_on_demand(app_page):
 
 @pytest.mark.feature
 def test_switching_language_before_preload_finishes_still_applies(app_page):
-    """setLocale loads the dictionary on demand when the idle preload has not
-    run, and the awaited result is the new locale."""
+    """setLocale switches synchronously (Intl formatting follows at once) even
+    when the idle preload has not run, then applies the Polish text once the
+    dictionary has loaded on demand."""
     page = app_page
     page.add_init_script("window.requestIdleCallback = () => 0;")
     page.reload()
     result = page.evaluate("() => window.app.setLocale('pl')")
     assert result == 'pl'
     assert page.evaluate("document.documentElement.lang") == 'pl'
+    page.wait_for_function(
+        "() => document.querySelector('[data-page=\"health\"]').textContent.trim() !== 'Health'",
+        timeout=10000,
+    )
     page.evaluate("() => window.app.setLocale('en')")

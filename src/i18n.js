@@ -166,20 +166,29 @@ export function applyStaticTranslations(root = document) {
 // Persists the new locale, re-applies static translations, and re-renders
 // the currently visible page in place (its JS-rendered strings were built
 // with t() at render time) when the locale actually changed.
-export function setLocale(app, code, afterLoad = false) {
+//
+// Always synchronous (#703): the locale, and with it Intl number/date
+// formatting, switches at once. If the dictionary is not loaded yet (a switch
+// before the idle preload finished), t() falls back to English until it
+// arrives, then the translations are applied again.
+export function setLocale(app, code) {
     const target = LOCALE_CODES.includes(code) ? code : DEFAULT_LOCALE;
-    // Not loaded yet (a switch before the background preload finished): load
-    // first, then apply. Returns a promise only in that case.
-    if (!DICTIONARIES[target] && !afterLoad) {
-        return ensureLocaleLoaded(target).then(() => setLocale(app, target, true));
-    }
     const previous = currentLocale;
     currentLocale = target;
     setLocalePreference(currentLocale);
     applyDocumentLanguage();
     applyStaticTranslations();
-    if (previous !== currentLocale && app && typeof app.refreshCurrentPageData === 'function') {
-        app.refreshCurrentPageData();
+    const refresh = () => {
+        if (app && typeof app.refreshCurrentPageData === 'function') app.refreshCurrentPageData();
+    };
+    if (previous !== currentLocale) refresh();
+    if (!DICTIONARIES[target]) {
+        ensureLocaleLoaded(target).then(() => {
+            // A later switch wins; a failed load leaves English in place.
+            if (currentLocale !== target || !DICTIONARIES[target]) return;
+            applyStaticTranslations();
+            refresh();
+        });
     }
     return currentLocale;
 }
