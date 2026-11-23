@@ -562,6 +562,25 @@ def app_page(page, stack_user) -> Page:
     return page
 
 
+def pin_clock(page, iso_date, hour=12):
+    """Pin the browser clock to `iso_date` (YYYY-MM-DD) at `hour`:00 and reload (#552).
+
+    Date-dependent tests used to skip on awkward calendar days. Pin the clock
+    instead, then seed dates relative to the returned `date`. The clock is
+    installed (so `new Date()` starts at the pinned instant) and then resumed,
+    so setTimeout/debounces keep running in real time. The reload makes the
+    app boot under the pinned clock. Only the browser is pinned: the server
+    still uses its real clock (matters only for server-computed dates, e.g.
+    jobs, session expiry, audit timestamps).
+    """
+    from datetime import datetime
+    y, m, d = (int(x) for x in iso_date.split("-"))
+    page.clock.install(time=datetime(y, m, d, hour, 0, 0))
+    page.clock.resume()
+    page.reload()
+    return date(y, m, d)
+
+
 def wait_for_app_ready(page, timeout=30000):
     """Wait until src/app.js has finished `await window.app.init()` (issue #422).
 

@@ -125,7 +125,13 @@ def test_a_debt_in_only_one_plan_and_an_old_entry(app_page):
     assert cells[2] == '—'
 
     # The oldest entry predates per-debt results.
-    ids = page.evaluate("() => window.app.planHistory.map(e => String(e.id))")
-    page.select_option('#planCompareA', ids[0])
+    # Plan #1 is the oldest by createdAt (the page numbers entries that way).
+    # Never take planHistory[0]: the seed import POSTs records concurrently, so
+    # server ids, and the array order, are not the seeded order (CI flake).
+    oldest = page.evaluate(
+        "() => String([...window.app.planHistory]"
+        ".sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))[0].id)"
+    )
+    page.select_option('#planCompareA', oldest)
     page.wait_for_selector('#planCompareNoData', timeout=5000)
     assert page.inner_text('#planCompareNoData').startswith('Plan #1 was saved before per-debt results were recorded')

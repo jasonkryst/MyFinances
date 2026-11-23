@@ -6,6 +6,8 @@ R-02: Overdue indicator on past-due unpaid templates.
 """
 import pytest
 
+from tests.conftest import pin_clock
+
 BASE_URL = "http://localhost:32900/"
 
 
@@ -21,6 +23,12 @@ def _seed_recurring(page, templates, *, account_id=8801):
     }}""")
     page.wait_for_selector('#recurringSection.active', timeout=5000)
     page.wait_for_selector('#recurringList', timeout=5000)
+
+
+# Clock pins (#552). Overdue needs the due day (the 1st) to be behind us, so
+# its positive cases pin the 2nd and the 31st; the 1st has its own test below.
+PINNED_DAYS = ["2026-01-01", "2026-01-31"]
+OVERDUE_DAYS = ["2026-01-02", "2026-01-31"]
 
 
 def _this_month_key():
@@ -141,13 +149,11 @@ def test_upcoming_panel_empty_state_no_templates(app_page):
 # ── R-02: Overdue indicator — positive cases ─────────────────────────────────
 
 @pytest.mark.feature
-def test_overdue_badge_shown_for_past_due_unpaid_template(app_page):
+@pytest.mark.parametrize("pinned", OVERDUE_DAYS)
+def test_overdue_badge_shown_for_past_due_unpaid_template(app_page, pinned):
     """A monthly template past its due day and not marked paid shows 'Overdue' badge."""
-    from datetime import date
     page = app_page
-    today = date.today()
-    if today.day <= 1:
-        pytest.skip("Cannot reliably test overdue on the 1st of the month")
+    today = pin_clock(page, pinned)
 
     _seed_recurring(page, [
         {"id": 1, "name": "Past Due Bill", "amount": 50.00, "frequency": "monthly",
@@ -164,14 +170,26 @@ def test_overdue_badge_shown_for_past_due_unpaid_template(app_page):
 
 
 @pytest.mark.feature
-def test_overdue_badge_absent_when_paid(app_page):
-    """A past-due template marked paid for this month shows no 'Overdue' badge."""
-    from datetime import date
+def test_overdue_badge_absent_on_the_due_day_itself(app_page):
+    """On the 1st a template due on the 1st is due today, not overdue."""
     page = app_page
-    today = date.today()
-    mk = _this_month_key()
-    if today.day <= 1:
-        pytest.skip("Cannot reliably test overdue on the 1st of the month")
+    today = pin_clock(page, "2026-01-01")
+    _seed_recurring(page, [
+        {"id": 1, "name": "Due Today", "amount": 50.00, "frequency": "monthly",
+         "dayOfMonth": 1, "type": "subscription", "category": "Bills",
+         "accountId": 8801, "startDate": f"{today.year}-01-01",
+         "paused": False, "archived": False, "skippedMonths": [], "paidMonths": []},
+    ])
+    assert page.query_selector('.recurring-overdue-badge') is None
+
+
+@pytest.mark.feature
+@pytest.mark.parametrize("pinned", OVERDUE_DAYS)
+def test_overdue_badge_absent_when_paid(app_page, pinned):
+    """A past-due template marked paid for this month shows no 'Overdue' badge."""
+    page = app_page
+    today = pin_clock(page, pinned)
+    mk = f"{today.year}-{today.month:02d}"
 
     _seed_recurring(page, [
         {"id": 1, "name": "Paid On Time", "amount": 50.00, "frequency": "monthly",
@@ -186,13 +204,11 @@ def test_overdue_badge_absent_when_paid(app_page):
 
 
 @pytest.mark.feature
-def test_overdue_badge_absent_for_paused_template(app_page):
+@pytest.mark.parametrize("pinned", OVERDUE_DAYS)
+def test_overdue_badge_absent_for_paused_template(app_page, pinned):
     """A paused template never shows the overdue badge."""
-    from datetime import date
     page = app_page
-    today = date.today()
-    if today.day <= 1:
-        pytest.skip("Cannot reliably test overdue on the 1st of the month")
+    today = pin_clock(page, pinned)
 
     _seed_recurring(page, [
         {"id": 1, "name": "Paused Sub", "amount": 50.00, "frequency": "monthly",
@@ -206,17 +222,14 @@ def test_overdue_badge_absent_for_paused_template(app_page):
 
 
 @pytest.mark.feature
-def test_overdue_badge_absent_for_future_due_day(app_page):
+@pytest.mark.parametrize("pinned", PINNED_DAYS)
+def test_overdue_badge_absent_for_future_due_day(app_page, pinned):
     """A template whose due day is still in the future this month shows no overdue badge."""
-    from datetime import date
     import calendar
     page = app_page
-    today = date.today()
+    today = pin_clock(page, pinned)
     _, last_day = calendar.monthrange(today.year, today.month)
-    if today.day >= last_day:
-        pytest.skip("No future due day available this month")
-
-    future_day = last_day  # last day of month — always in the future unless today IS the last day
+    future_day = last_day  # on the last day it is "today", which is also not overdue
 
     _seed_recurring(page, [
         {"id": 1, "name": "Future Bill", "amount": 50.00, "frequency": "monthly",
@@ -231,13 +244,11 @@ def test_overdue_badge_absent_for_future_due_day(app_page):
 
 
 @pytest.mark.feature
-def test_overdue_badge_absent_for_non_monthly_frequency(app_page):
+@pytest.mark.parametrize("pinned", OVERDUE_DAYS)
+def test_overdue_badge_absent_for_non_monthly_frequency(app_page, pinned):
     """Weekly/biweekly/quarterly/yearly templates never show the overdue badge."""
-    from datetime import date
     page = app_page
-    today = date.today()
-    if today.day <= 1:
-        pytest.skip("Cannot reliably test overdue on the 1st of the month")
+    today = pin_clock(page, pinned)
 
     _seed_recurring(page, [
         {"id": 1, "name": "Weekly Sub", "amount": 25.00, "frequency": "weekly",
@@ -252,13 +263,11 @@ def test_overdue_badge_absent_for_non_monthly_frequency(app_page):
 
 
 @pytest.mark.feature
-def test_overdue_count_surfaced_in_upcoming_panel(app_page):
+@pytest.mark.parametrize("pinned", OVERDUE_DAYS)
+def test_overdue_count_surfaced_in_upcoming_panel(app_page, pinned):
     """When overdue templates exist, the upcoming panel shows an overdue count."""
-    from datetime import date
     page = app_page
-    today = date.today()
-    if today.day <= 1:
-        pytest.skip("Cannot reliably test overdue on the 1st of the month")
+    today = pin_clock(page, pinned)
 
     _seed_recurring(page, [
         {"id": 1, "name": "Past Due Bill", "amount": 50.00, "frequency": "monthly",
