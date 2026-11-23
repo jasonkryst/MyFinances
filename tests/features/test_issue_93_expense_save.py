@@ -98,31 +98,39 @@ def test_expense_date_stored_as_iso_string(app_page):
 @pytest.mark.feature
 def test_self_healing_corrupted_utc_date_on_reload(app_page):
     """
-    Expenses already in localStorage with a full UTC ISO timestamp date
-    (the pre-fix format from Date.toISOString()) are healed on the next
-    load by the updated sanitizeDateISO and still appear in the list.
+    An expense whose date is a full UTC ISO timestamp (the pre-fix format from
+    Date.toISOString()) is healed to a bare YYYY-MM-DD date and still appears in the list.
+
+    Fidelity note (#474): this test used to prove the *load-time* sanitizer healed a
+    corrupt record already in browser storage. Since v7.0.0 the browser holds no data and
+    the client does not sanitize server rows on load (storage.js loadFromPostgres assigns
+    the GET bodies as they are). The only place a corrupt date can enter and be healed is
+    the server's write path (sanitizeExpense on POST/PATCH/import), so that is what is
+    asserted here, straight from the stored row rather than only from the rendered card.
     """
     page = app_page
 
     corrupt_date = f"{date.today().year}-{date.today().month:02d}-15T05:00:00.000Z"
+    healed_date = _this_month(15)
     seed_state(page, {'expenses': [{
         'id': 9999, 'name': 'Legacy Corrupted', 'budgetAmount': 99,
         'date': corrupt_date, 'category': 'Other', 'accountId': None,
     }]}, reload=False)
 
+    # The server holds the healed date, not the timestamp that was submitted.
+    rows = wait_for_api(page, '/api/expenses', lambda r: any(e['name'] == 'Legacy Corrupted' for e in r))
+    stored = next(e['date'] for e in rows if e['name'] == 'Legacy Corrupted')
+    assert stored == healed_date, f"Server should store the healed bare date, got {stored!r}"
+
     page.reload(wait_until="networkidle")
     _navigate_to_expenses(page)
 
-    # The expense must survive reload: the corrupted UTC timestamp is healed in memory
-    # (so the expense isn't dropped). Verify it is visible in the current-month view.
-    assert page.query_selector('text=Legacy Corrupted'), \
-        "Expense with corrupted UTC date should survive reload after self-healing fix"
-    # Confirm the in-memory entry exists and has a valid (truthy) date — not null/dropped.
-    has_date = page.evaluate("""() => {
+    assert page.query_selector('#expenseList >> text=Legacy Corrupted'),         "Expense with corrupted UTC date should survive reload after self-healing fix"
+    in_memory_date = page.evaluate("""() => {
         const exp = (window.app.expenses || []).find(e => e.name === 'Legacy Corrupted');
-        return exp != null && exp.date != null;
+        return exp ? exp.date : null;
     }""")
-    assert has_date, "Healed expense should have a valid date in memory (not null/dropped)"
+    assert in_memory_date == healed_date, f"Loaded expense date should be the healed one, got {in_memory_date!r}"
 
 
 @pytest.mark.feature

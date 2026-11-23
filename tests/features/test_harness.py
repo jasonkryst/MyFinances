@@ -47,6 +47,7 @@ def test_seed_replaces_previous_state(app_page):
 
 
 def test_harness_relogs_after_logout(app_page):
+    seed_state(app_page, {"accounts": [{"id": 1, "name": "Relogin Checking", "type": "Checking", "balance": 10}]})
     status = app_page.evaluate(
         """async () => {
             const csrf = document.cookie.split('; ').find(c => c.startsWith('csrf='))?.slice(5) || '';
@@ -59,3 +60,7 @@ def test_harness_relogs_after_logout(app_page):
     ensure_session(app_page.context)
     app_page.reload()
     assert app_page.locator("#loginGate").is_hidden()
+    # A hidden gate alone could mean a half-booted page: the session must reach the data too (#474).
+    assert app_page.evaluate("() => app.accounts.map(a => a.name)") == ["Relogin Checking"]
+    status = app_page.evaluate("async () => (await fetch('/api/accounts')).status")
+    assert status == 200
