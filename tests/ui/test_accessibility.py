@@ -559,7 +559,8 @@ def test_reports_active_tab_aria_selected_true(app_page):
         }
     """)
     assert result['trueCount'] == 1, f"Expected exactly 1 aria-selected=true, got {result['trueCount']}"
-    assert result['falseCount'] == 7, f"Expected 7 aria-selected=false, got {result['falseCount']}"
+    # 9 tabs since Year in review (#689): one selected, eight not.
+    assert result['falseCount'] == 8, f"Expected 8 aria-selected=false, got {result['falseCount']}"
     assert result['activeId'] == 'networth', f"Expected networth to be selected, got {result['activeId']}"
 
 
@@ -635,9 +636,9 @@ def test_reports_tab_keyboard_focus_reachable(app_page):
     focused = page.evaluate('() => document.activeElement.classList.contains("rpt-tab-btn")')
     assert focused, "Could not focus a .rpt-tab-btn via JS focus()"
 
-    # Tab forward through all 7 buttons
+    # Tab forward through every button (8 before Summary since Year in review, #689)
     focused_tabs = set()
-    for _ in range(7):
+    for _ in range(8):
         tab_id = page.evaluate(
             '() => document.activeElement.getAttribute("data-rptab")'
         )
@@ -645,7 +646,7 @@ def test_reports_tab_keyboard_focus_reachable(app_page):
             focused_tabs.add(tab_id)
         page.keyboard.press('Tab')
 
-    expected = {'calendar', 'spending', 'incomeexp', 'moneyflow', 'variance', 'networth', 'forecast'}
+    expected = {'calendar', 'spending', 'incomeexp', 'moneyflow', 'variance', 'networth', 'yearreview', 'forecast'}
     assert expected.issubset(focused_tabs), \
         f"Not all tab buttons were reached via Tab key. Reached: {focused_tabs}"
 
