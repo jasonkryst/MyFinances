@@ -6,6 +6,7 @@ export default createCrudResource({
     sanitize: sanitizeDebt,
     requiredFields: ['name'],
     foreignKeys: { accountId: 'accounts' },
+    foreignKeyArrays: { personIds: 'persons' },
     columns: {
         id: 'id',
         name: 'name',
