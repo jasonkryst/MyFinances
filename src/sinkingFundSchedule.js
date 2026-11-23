@@ -139,3 +139,39 @@ export function isAfterTargetMonth(fund, year, month) {
     const target = parseIso(fund.targetDate);
     return year * 12 + month > target.y * 12 + (target.mo - 1);
 }
+
+// #701: a target_date fund raises an alert once its live required monthly
+// amount is at least 10% above the planned pace (the stored monthlyAllocation,
+// the amount saved with the goal), or once its date has passed with money
+// still to save. The boundary is inclusive: exactly 10% above alerts (a small
+// epsilon absorbs float error, so planned 300 and required 330 alert).
+export const SINKING_BEHIND_ALERT_RATIO = 1.1;
+
+/**
+ * Alert state of a fund, or null when it should not alert.
+ *   null      - no usable target date, archived, funded, nothing left to save,
+ *               on or ahead of pace, less than 10% behind, or behind with no
+ *               planned pace (planned 0 or missing: nothing to slip from).
+ *   'pastDue' - the target date is before today and money is still missing
+ *               (checked regardless of the planned pace).
+ *   'behind'  - required >= planned * SINKING_BEHIND_ALERT_RATIO.
+ * Returns { kind, required, planned, remaining, monthsLeft, targetAmount, targetDate }.
+ */
+export function getSinkingAlertState(fund, todayISO) {
+    if (!fund || fund.archived) return null;
+    const info = getSinkingFundStatus(fund, todayISO);
+    if (!info || info.status === 'funded' || info.remaining <= 0) return null;
+    let kind = null;
+    if (info.status === 'pastDue') kind = 'pastDue';
+    else if (info.planned > 0 && info.required >= info.planned * SINKING_BEHIND_ALERT_RATIO - 1e-9) kind = 'behind';
+    if (!kind) return null;
+    return {
+        kind,
+        required: info.required,
+        planned: info.planned,
+        remaining: info.remaining,
+        monthsLeft: info.monthsLeft,
+        targetAmount: toNumber(fund.targetAmount),
+        targetDate: fund.targetDate,
+    };
+}

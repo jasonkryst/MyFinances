@@ -531,3 +531,141 @@ test('deleting the user removes their notifications', async () => {
     await pool.query('DELETE FROM users WHERE id = $1', [user.id]);
     assert.equal((await pool.query('SELECT count(*)::int AS n FROM notifications')).rows[0].n, 0);
 });
+
+// ─── Sinking fund behind (#701) ──────────────────────────────────────────────
+
+// Target 2027-05-15 from 2026-11-15: 6 months left, 1800 to go = 300/mo
+// required against a planned 200/mo, so the fund is behind.
+async function seedBehindFund(fields = {}) {
+    const account = await api('POST', '/api/accounts', { name: 'Savings', type: 'Savings', startingBalance: 5000 });
+    const fund = await api('POST', '/api/sinking-funds', {
+        name: 'Vacation', allocationMethod: 'target_date', targetDate: '2027-05-15', targetAmount: 3000,
+        currentAmount: 1200, monthlyAllocation: 200, accountId: account.id, ...fields,
+    });
+    return { account, fund };
+}
+
+const sinkRows = async userId => (await rows(userId)).filter(r => r.type === 'sinkingBehind');
+
+test('a behind fund raises one alert per episode, and a repeat check raises nothing', async () => {
+    const user = await signIn();
+    const { fund } = await seedBehindFund();
+    const r = await checkNotificationsForUser(user.id, NOW, quietLog);
+    assert.equal(r.created, 1);
+    const [row] = await sinkRows(user.id);
+    assert.equal(row.episode_key, `sinkingBehind|${fund.id}|2027-05-15|behind`);
+    assert.equal(row.dedupe_key, `${row.episode_key}|2026-11-15`);
+    assert.deepEqual(row.params, { name: 'Vacation', fundId: fund.id, kind: 'behind', targetDate: '2027-05-15', targetAmount: 3000, remaining: 1800, required: 300, planned: 200 });
+
+    assert.equal((await checkNotificationsForUser(user.id, NOW, quietLog)).created, 0);
+    // The next day the open episode still suppresses a new row.
+    const next = await checkNotificationsForUser(user.id, TOMORROW, quietLog);
+    assert.equal(next.created, 0);
+    assert.equal((await sinkRows(user.id)).length, 1);
+});
+
+test('a slip under 10%, a funded fund and a fixed-method fund raise nothing', async () => {
+    const user = await signIn();
+    const { fund } = await seedBehindFund({ monthlyAllocation: 290 });
+    assert.equal((await checkNotificationsForUser(user.id, NOW, quietLog)).created, 0);
+    await api('PATCH', `/api/sinking-funds/${fund.id}`, { monthlyAllocation: 200, currentAmount: 3000 });
+    assert.equal((await checkNotificationsForUser(user.id, NOW, quietLog)).created, 0);
+    await api('PATCH', `/api/sinking-funds/${fund.id}`, { currentAmount: 1200, allocationMethod: 'fixed' });
+    assert.equal((await checkNotificationsForUser(user.id, NOW, quietLog)).created, 0);
+    assert.equal((await sinkRows(user.id)).length, 0);
+});
+
+test('the open alert resolves when the fund catches up, is funded, changes date or is deleted', async () => {
+    const user = await signIn();
+    const { fund } = await seedBehindFund();
+    const path = `/api/sinking-funds/${fund.id}`;
+    const open = async () => (await sinkRows(user.id)).filter(r => !r.resolved_at).length;
+    const day = d => new Date(2026, 10, d, 12);
+
+    await checkNotificationsForUser(user.id, NOW, quietLog);
+    assert.equal(await open(), 1);
+
+    // Caught up: 1000 left over 6 months is 167/mo, under 220.
+    await api('PATCH', path, { currentAmount: 2000 });
+    assert.equal((await checkNotificationsForUser(user.id, NOW, quietLog)).resolved, 1);
+    assert.equal(await open(), 0);
+
+    // Funded.
+    await api('PATCH', path, { currentAmount: 1200 });
+    await checkNotificationsForUser(user.id, day(16), quietLog);
+    assert.equal(await open(), 1);
+    await api('PATCH', path, { currentAmount: 3000 });
+    assert.equal((await checkNotificationsForUser(user.id, day(16), quietLog)).resolved, 1);
+
+    // A later date lowers the requirement under the threshold.
+    await api('PATCH', path, { currentAmount: 1200 });
+    await checkNotificationsForUser(user.id, day(17), quietLog);
+    assert.equal(await open(), 1);
+    await api('PATCH', path, { targetDate: '2028-05-15' });
+    assert.equal((await checkNotificationsForUser(user.id, day(17), quietLog)).resolved, 1);
+
+    // Deleted.
+    await api('PATCH', path, { targetDate: '2027-05-15' });
+    await checkNotificationsForUser(user.id, day(18), quietLog);
+    assert.equal(await open(), 1);
+    await api('DELETE', path);
+    assert.equal((await checkNotificationsForUser(user.id, day(18), quietLog)).resolved, 1);
+    assert.equal(await open(), 0);
+});
+
+test('behind turning past due is a new alert; the old one resolves', async () => {
+    const user = await signIn();
+    const { fund } = await seedBehindFund({ targetDate: '2026-12-15' });
+    await checkNotificationsForUser(user.id, NOW, quietLog);
+    const later = new Date(2027, 0, 5, 12);
+    const r = await checkNotificationsForUser(user.id, later, quietLog);
+    assert.equal(r.created, 1);
+    assert.equal(r.resolved, 1);
+    const list = await sinkRows(user.id);
+    assert.deepEqual(list.map(x => x.params.kind), ['behind', 'pastDue']);
+    assert.equal(list[1].episode_key, `sinkingBehind|${fund.id}|2026-12-15|pastDue`);
+    assert.equal(list[1].params.remaining, 1800);
+    assert.equal((await checkNotificationsForUser(user.id, later, quietLog)).created, 0);
+});
+
+test('notifySinkingBehind false raises nothing and resolves an open alert', async () => {
+    const user = await signIn();
+    await seedBehindFund();
+    await checkNotificationsForUser(user.id, NOW, quietLog);
+    await setSetting('notifySinkingBehind', false);
+    const r = await checkNotificationsForUser(user.id, TOMORROW, quietLog);
+    assert.equal(r.created, 0);
+    assert.equal(r.resolved, 1);
+    const bad = await call('PUT', '/api/settings/notifySinkingBehind', { value: 'no' });
+    assert.equal(bad.status, 400);
+});
+
+test('the sinking fund alert is emailed per event and in a digest', async () => {
+    const user = await signIn();
+    const transport = recordingTransport();
+    useSmtp(transport);
+    await seedBehindFund();
+    await seedBehindFund({ name: 'Car', targetDate: '2026-05-01' });
+    await checkNotificationsForUser(user.id, NOW, quietLog);
+    assert.equal(transport.sent.length, 2);
+    assert.deepEqual(transport.sent.map(m => m.subject), ['MyFinances: Sinking fund behind', 'MyFinances: Sinking fund behind']);
+    const text = transport.sent.map(m => m.text).join('\n');
+    assert.ok(text.includes('Vacation is behind: 300.00/mo now needed (planned 200.00) to reach 3,000.00 by May 2027.'), text);
+    assert.ok(text.includes('Car passed its target date (May 1, 2026) with 1,800.00 still to save.'), text);
+
+    await resetDb();
+    const user2 = await signIn('digest@example.com');
+    const t2 = recordingTransport();
+    useSmtp(t2);
+    await setSetting('notifyDelivery', 'digest');
+    await seedBehindFund();
+    await checkNotificationsForUser(user2.id, NOW, quietLog);
+    assert.equal(t2.sent.length, 1);
+});
+
+test('describeNotification words the sinking fund alerts', () => {
+    assert.equal(describeNotification('sinkingBehind', { name: 'Vacation', kind: 'behind', required: 450, planned: 300, targetAmount: 3000, targetDate: '2027-06-01' }),
+        'Vacation is behind: 450.00/mo now needed (planned 300.00) to reach 3,000.00 by Jun 2027.');
+    assert.equal(describeNotification('sinkingBehind', { kind: 'pastDue', remaining: 1200, targetDate: '2026-05-01' }),
+        'A sinking fund passed its target date (May 1, 2026) with 1,200.00 still to save.');
+});

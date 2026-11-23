@@ -36,7 +36,7 @@ import {
     pruneSelection,
 } from './notificationsFilter.js';
 
-const ICONS = { billDueToday: '📅', billDueSoon: '🗓️', lowBalance: '⚠️', zeroBalance: '⛔', projectedLow: '📉', promoEnding: '⏳' };
+const ICONS = { billDueToday: '📅', billDueSoon: '🗓️', lowBalance: '⚠️', zeroBalance: '⛔', projectedLow: '📉', promoEnding: '⏳', sinkingBehind: '🎯' };
 const HIGHLIGHT_MS = 2000;
 
 let selected = new Set();
