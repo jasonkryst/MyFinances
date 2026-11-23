@@ -4,6 +4,31 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.24.0] — 2026-11-22
+
+### Added
+- **Year in review (#689).** A new Reports tab sums up a calendar year in short sentences. The current year shows as "so far" and is compared with the same months last year. *What happened* comes first:
+  - net worth change
+  - debt paid down and debts paid off
+  - estimated interest
+  - price changes and raises
+  - payments that differed from the plan
+  - savings goals reached
+  - reconciliation adjustments
+
+  *From your plan* follows, tagged "planned":
+  - what subscriptions cost
+  - the biggest category and the biggest category increase
+  - the best and toughest months
+  - the share of income going to debt
+  - income
+
+  Comparisons with last year only appear when the app has data from that far back, and estimates are labelled. The tab has its own year stepper (the month controls hide there) and prints with the other reports. Nothing new is stored.
+- One rule per insight in the pure, Stryker-scoped `src/yearReviewCore.js`. The lazy `src/reportsYearReview.js` prepares the data and renders it.
+
+### Tests and CI
+- Jest: `yearReviewCore.test.js` (every rule, its thresholds, the data floor, the period helpers and the ordering). Playwright: `test_year_in_review.py`. The i18n render guard scans the tab with seeded and empty data.
+
 ## [7.23.0] — 2026-11-22
 
 ### Added

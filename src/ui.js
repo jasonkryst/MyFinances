@@ -1047,6 +1047,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.24.0 — 2026-11-22',
+        items: [
+            '<strong>Year in review:</strong> Reports has a new <em>Year in review</em> tab that sums up a year in a few sentences: what happened (net worth, debt paid down, estimated interest, price changes and raises, goals reached) and what your plan says (subscriptions, biggest categories, best and toughest months). Step back through earlier years with the arrows.'
+        ]
+    },
+    {
         version: '7.23.0 — 2026-11-22',
         items: [
             '<strong>Price changes and raises keep your history:</strong> when you change the amount of an income or a recurring item, choose the date it applies from. Earlier months keep the old amount everywhere, and you can schedule a change ahead of time. Tick <em>All occurrences</em> to correct a mistake instead. The card shows what the amount was and lists its changes.'
