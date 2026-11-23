@@ -80,7 +80,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
         query('SELECT id, name, minimum_payment, due_date, weekend_rule, category, account_id, archived FROM debts WHERE user_id = $1', [userId]),
         query('SELECT id, name, type, amount, frequency, day_of_month, weekend_rule, category, account_id, start_date, end_date, paused, pause_until, skipped_months, paid_months, amount_changes FROM recurring_templates WHERE user_id = $1', [userId]),
         query('SELECT id, name, budget_amount, date, category, account_id FROM expenses WHERE user_id = $1', [userId]),
-        query('SELECT id, name, amount, first_pay_date, frequency, account_id, amount_changes FROM incomes WHERE user_id = $1', [userId]),
+        query('SELECT id, name, amount, first_pay_date, end_date, frequency, account_id, amount_changes FROM incomes WHERE user_id = $1', [userId]),
         query("SELECT value FROM settings WHERE user_id = $1 AND key = 'showArchivedDebts'", [userId]),
     ]);
 
@@ -162,7 +162,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
         }
 
         for (const inc of incomesRes.rows) {
-            const income = { firstPayDate: inc.first_pay_date, frequency: inc.frequency };
+            const income = { firstPayDate: inc.first_pay_date, endDate: inc.end_date, frequency: inc.frequency };
             for (const pay of getIncomePaydaysInMonth(income, y, mo)) {
                 const dateStr = isoDateStr(pay.getFullYear(), pay.getMonth(), pay.getDate());
                 events.push(vevent(

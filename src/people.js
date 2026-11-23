@@ -1,5 +1,5 @@
 // Family member (person) management
-import { normalizeText, escapeHtml, formatCurrency, todayISO } from './utils.js';
+import { normalizeText, escapeHtml, formatCurrency, todayISO, isIncomeEnded } from './utils.js';
 import { getCurrentAmount } from './amountSchedule.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
@@ -49,7 +49,7 @@ export function refreshPersonSelectors(app) {
 
 function personAnnualIncome(app, personId) {
     return (app.incomes || [])
-        .filter(inc => inc.personId === personId)
+        .filter(inc => inc.personId === personId && !isIncomeEnded(inc, todayISO())) // #679
         .reduce((s, inc) => {
             const mult = inc.frequency === 'biweekly' ? 26
                 : inc.frequency === 'weekly' ? 52

@@ -10,6 +10,8 @@ export const SHOW_ARCHIVED_DEBTS = 'showArchivedDebts';
 export const SHOW_ARCHIVED_RECURRING = 'showArchivedRecurring';
 export const SHOW_ARCHIVED_ACCOUNTS = 'showArchivedAccounts';
 export const SHOW_ARCHIVED_SINKING_FUNDS = 'showArchivedSinkingFunds';
+// #679: show incomes whose end date has passed on the Income page.
+export const SHOW_ENDED_INCOMES = 'showEndedIncomes';
 export const SURPLUS_ACCOUNT_ID = 'surplusAccountId';
 export const SURPLUS_WINDOW_DAYS = 'surplusWindowDays';
 export const SURPLUS_CUSHION_PCT = 'surplusCushionPct';
@@ -76,6 +78,7 @@ export const SETTINGS_EXPORT_SCHEMA = {
     [SHOW_ARCHIVED_RECURRING]: isBool,
     [SHOW_ARCHIVED_ACCOUNTS]: isBool,
     [SHOW_ARCHIVED_SINKING_FUNDS]: isBool,
+    [SHOW_ENDED_INCOMES]: isBool,
     [AUTO_NW_SNAPSHOT]: isBool,
     [SURPLUS_WINDOW_DAYS]: numberIn(7, 365, { integer: true }),
     [SURPLUS_CUSHION_PCT]: numberIn(0, 100, { integer: true }),

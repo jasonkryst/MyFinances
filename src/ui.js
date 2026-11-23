@@ -1047,6 +1047,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.25.0 — 2026-11-23',
+        items: [
+            '<strong>Income can end:</strong> give an income source an <em>End date</em> when a job, contract or rental stops, instead of deleting it. Past paydays stay in the Ledger, your balances and Reports; nothing is paid after the end date. Ended incomes are hidden on the Income page behind <em>Show ended</em>, and a future end date shows as <em>Ends &lt;date&gt;</em> on the card.'
+        ]
+    },
+    {
         version: '7.24.0 — 2026-11-22',
         items: [
             '<strong>Year in review:</strong> Reports has a new <em>Year in review</em> tab that sums up a year in a few sentences: what happened (net worth, debt paid down, estimated interest, price changes and raises, goals reached) and what your plan says (subscriptions, biggest categories, best and toughest months). Step back through earlier years with the arrows.'

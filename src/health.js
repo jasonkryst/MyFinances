@@ -1,4 +1,4 @@
-import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, formatCurrencyAxis, getCurrencyAffix, escapeHtml, renderChartDataTable, todayISO } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, formatCurrencyAxis, getCurrencyAffix, escapeHtml, renderChartDataTable, todayISO, isIncomeEnded } from './utils.js';
 import { getCurrentAmount } from './amountSchedule.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
@@ -1084,7 +1084,7 @@ function renderHealthDashboardUncached(app) {
         const pUtilSt = creditUtilizationStatus(pUtilRaw);
         const FREQ_MULTIPLIERS = { biweekly: 26, weekly: 52, twice_monthly: 24, monthly: 12 };
         const pAnnualIncome = (app.incomes || [])
-            .filter(inc => inc.personId === p.id)
+            .filter(inc => inc.personId === p.id && !isIncomeEnded(inc, todayISO())) // #679
             .reduce((s, inc) => s + getCurrentAmount(inc, todayISO()) * (FREQ_MULTIPLIERS[inc.frequency] || 12), 0);
         const pMonthlyIncome = pAnnualIncome / 12;
         const pMinPayment = personAllDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);

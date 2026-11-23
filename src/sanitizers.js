@@ -228,11 +228,17 @@ export function sanitizeIncome(record, idFallback) {
     const frequency = ['weekly', 'biweekly', 'bi-weekly', 'twice_monthly', 'monthly'].includes(rawFreq)
         ? (rawFreq === 'bi-weekly' ? 'biweekly' : rawFreq)
         : 'monthly';
+    const firstPayDate = sanitizeDateISO(record?.firstPayDate || record?.firstDate);
+    // #679: optional inclusive end date. One before the first payday is
+    // meaningless, so it is dropped (not clamped), like a bonus's recurUntil.
+    const rawEnd = sanitizeDateISO(record?.endDate);
+    const endDate = rawEnd && firstPayDate && rawEnd >= firstPayDate ? rawEnd : null;
     return {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),
         amount: sanitizeFiniteNumber(record?.amount, 0, { min: 0 }),
-        firstPayDate: sanitizeDateISO(record?.firstPayDate || record?.firstDate),
+        firstPayDate,
+        endDate,
         frequency,
         category: INCOME_CATEGORIES.includes(record?.category) ? record.category : 'Salary',
         isVariable: Boolean(record?.isVariable ?? false),

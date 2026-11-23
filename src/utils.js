@@ -2,7 +2,7 @@
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 import { getAmountOn } from './amountSchedule.js';
 
-export const APP_VERSION = '7.24.0';
+export const APP_VERSION = '7.25.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -463,7 +463,21 @@ export function getIncomePaydaysInMonth(income, year, month) {
         }
     }
 
-    return paydays;
+    // #679: no payday after the income's end date (inclusive).
+    const end = getIncomeEndDate(income);
+    return end ? paydays.filter(d => dateToISO(d) <= end) : paydays;
+}
+
+// #679: an income's optional end date (YYYY-MM-DD, inclusive), or null.
+export function getIncomeEndDate(income) {
+    const end = income?.endDate;
+    return typeof end === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(end) ? end : null;
+}
+
+// #679: true once the end date has passed (an income ending today is still active).
+export function isIncomeEnded(income, iso = todayISO()) {
+    const end = getIncomeEndDate(income);
+    return end !== null && end < iso;
 }
 
 export function countIncomePaydaysInMonth(income, year, month) {
@@ -527,7 +541,9 @@ export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
         }
     }
 
-    return dates;
+    // #679: the list stops at the end date, so an ended income has none.
+    const end = getIncomeEndDate(income);
+    return end ? dates.filter(d => dateToISO(d) <= end) : dates;
 }
 
 // Parses the leading YYYY-MM-DD of a bonus date string (also tolerates a
