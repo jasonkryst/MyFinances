@@ -922,7 +922,7 @@ TRANSLATED_PAGES = {
             // #330: pad past one page so the pager controls render.
             for (let i = 0; i < 30; i++) {
                 window.app.debts.push({ id: 5000 + i, name: '⟦Pager Debt ' + i + '⟧', debtType: 'creditCard', accountBalance: 100 + i,
-                    originalBalance: 500, minimumPayment: 10, interestRate: 5, dueDate: 5, category: 'Credit Card' });
+                    originalBalance: 500, minimumPayment: 10, interestRate: 5, dueDate: 5, category: '⟦Pager Cat⟧' });
             }
             window.app.switchPage('liabilities');
             window.app.switchLiabilitiesSubTab('debts');
@@ -1054,7 +1054,7 @@ TRANSLATED_PAGES = {
             // #330: pad past one page so the pager controls render.
             for (let i = 0; i < 30; i++) {
                 window.app.recurringTemplates.push({ id: 6000 + i, name: '⟦Pager Template ' + i + '⟧', type: 'subscription', amount: 10 + i,
-                    frequency: 'monthly', dayOfMonth: 5, category: 'Bills', accountId: null, targetAccountId: null,
+                    frequency: 'monthly', dayOfMonth: 5, category: '⟦Pager Cat⟧', accountId: null, targetAccountId: null,
                     startDate: '2024-01-01', endDate: null, paused: false, archived: false, skippedMonths: [], paidMonths: [], paidAmounts: {} });
             }
             window.app.switchPage('recurring');
