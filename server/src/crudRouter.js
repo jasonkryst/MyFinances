@@ -2,7 +2,7 @@ import express from 'express';
 import { query } from './db.js';
 import { recordJsonSql, auditCteSql } from './audit.js';
 
-export function createCrudResource({ table, columns, sanitize, requiredFields = [], foreignKeys = {}, jsonColumns = [] }) {
+export function createCrudResource({ table, columns, sanitize, requiredFields = [], foreignKeys = {}, foreignKeyArrays = {}, jsonColumns = [] }) {
     const router = express.Router();
     const jsFields = Object.keys(columns);
     const dbColumns = Object.values(columns);
@@ -49,6 +49,25 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
         return null;
     }
 
+    // Same check for array-valued references (#557: debts.personIds). Every
+    // id must be one of the caller's rows. There is no database FK behind an
+    // array column, so a legacy row may still hold the id of a deleted
+    // record: a PATCH is checked only when it sends that field, so editing
+    // an unrelated field of such a row still works.
+    async function findUnownedForeignKeyArray(userId, clean, onlyFields = null) {
+        for (const [field, refTable] of Object.entries(foreignKeyArrays)) {
+            if (onlyFields && !onlyFields.includes(field)) continue;
+            const ids = Array.isArray(clean[field]) ? [...new Set(clean[field])] : [];
+            if (ids.length === 0) continue;
+            const { rows } = await query(
+                `SELECT count(*)::int AS n FROM ${refTable} WHERE user_id = $1 AND id = ANY($2::bigint[])`,
+                [userId, ids]
+            );
+            if (rows[0].n !== ids.length) return field;
+        }
+        return null;
+    }
+
     // The GET body for one user. Also used by the background jobs (#579) to
     // load a user's data in exactly the shape the browser receives.
     async function listForUser(userId) {
@@ -76,7 +95,8 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             if (requiredFields.some(f => isMissing(clean[f]))) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${requiredFields[0]} is required` } });
             }
-            const unownedField = await findUnownedForeignKey(req.userId, clean);
+            const unownedField = await findUnownedForeignKey(req.userId, clean)
+                || await findUnownedForeignKeyArray(req.userId, clean);
             if (unownedField) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${unownedField} does not reference a resource you own` } });
             }
@@ -128,7 +148,8 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             if (requiredFields.some(f => isMissing(clean[f]))) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${requiredFields[0]} is required` } });
             }
-            const unownedField = await findUnownedForeignKey(req.userId, clean);
+            const unownedField = await findUnownedForeignKey(req.userId, clean)
+                || await findUnownedForeignKeyArray(req.userId, clean, Object.keys(body));
             if (unownedField) {
                 return res.status(400).json({ error: { code: 'VALIDATION_FAILED', message: `${unownedField} does not reference a resource you own` } });
             }

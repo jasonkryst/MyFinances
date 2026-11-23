@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.27.1] — 2026-11-23
+
+### Security
+- **Debt owners must be your own people (#557).** `POST`/`PATCH /api/debts` now answers 400 when `personIds` holds an id that isn't one of your persons (another user's, or one that doesn't exist), the same ownership rule `incomes.personId` already had. `createCrudResource` takes a new `foreignKeyArrays` option for array-valued references. Because an array column has no database foreign key, a debt that still lists a deleted person can be edited as long as the PATCH doesn't send `personIds`; sending the stale list is refused. The app already removes a deleted person from every debt, and imports remap or drop unresolved person ids, so normal use never hits the new 400.
+
+### Tests and CI
+- Server: `forgotPassword.test.js` covers `POST /auth/forgot-password` (an unknown address answers exactly like a known one and writes nothing; blank or non-string input; only the token's SHA-256 is stored, with a one-hour expiry; a failed or unconfigured email is logged and tolerated). `/api/persons` joined the shared CRUD round-trip and cross-user isolation loop in `crudResources.test.js`, which also gained IDOR tests for `incomes.personId` and `debts.personIds` and a legacy deleted-person case. The ownership-split test now uses real persons instead of made-up ids.
+
 ## [7.27.0] — 2026-11-23
 
 ### Added

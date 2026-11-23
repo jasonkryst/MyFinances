@@ -45,6 +45,19 @@ function csrfHeaders() {
     return { 'Content-Type': 'application/json', Cookie: cookies, 'X-CSRF-Token': csrfToken };
 }
 
+async function createPerson(name, headers = csrfHeaders()) {
+    const res = await fetch(`${baseUrl}/api/persons`, { method: 'POST', headers, body: JSON.stringify({ name }) });
+    assert.equal(res.status, 201);
+    return Number((await res.json()).id);
+}
+
+async function otherUserHeaders(email = 'person-owner@example.com') {
+    const otherUser = await createTestUser(email, 'another correct horse battery');
+    const res = await loginTestUser(baseUrl, otherUser.email, otherUser.password);
+    const otherCookies = res.headers.getSetCookie().map(x => x.split(';')[0]).join('; ');
+    return { 'Content-Type': 'application/json', Cookie: otherCookies, 'X-CSRF-Token': otherCookies.match(/csrf=([^;]+)/)[1] };
+}
+
 export const cases = [
     {
         path: '/api/manual-transactions',
@@ -141,6 +154,17 @@ export const cases = [
         updatedField: 'balance',
         updatedValue: -450,
         invalidPayload: () => ({ date: '2026-01-01' })
+    },
+    {
+        // #557: persons have no account FK, so the accountId IDOR case below
+        // doesn't apply; the person-reference IDOR tests are at the end.
+        path: '/api/persons',
+        validPayload: () => ({ name: 'Alex' }),
+        updatePayload: { name: 'Alexis' },
+        updatedField: 'name',
+        updatedValue: 'Alexis',
+        invalidPayload: () => ({ name: '' }),
+        noAccountFk: true
     }
 ];
 
@@ -196,7 +220,7 @@ for (const c of cases) {
         assert.equal(deleteRes.status, 404);
     });
 
-    test(`${c.path}: rejects an accountId belonging to another user (IDOR)`, async () => {
+    if (!c.noAccountFk) test(`${c.path}: rejects an accountId belonging to another user (IDOR)`, async () => {
         const otherUser = await createTestUser('idor-owner@example.com', 'another correct horse battery');
         const otherLoginRes = await loginTestUser(baseUrl, otherUser.email, otherUser.password);
         const otherCookies = otherLoginRes.headers.getSetCookie().map(x => x.split(';')[0]).join('; ');
@@ -377,20 +401,24 @@ test('/api/debts: ownershipSplit persists as jsonb, defaults to null, and is re-
     const plain = await (await mk({})).json();
     assert.equal(plain.ownershipSplit, null);
 
-    const created = await (await mk({ personIds: [11, 22], ownershipSplit: { 11: 0.6, 22: 0.4 } })).json();
-    assert.deepEqual(created.ownershipSplit, { 11: 0.6, 22: 0.4 });
+    // personIds must be the caller's own persons (#557), so create two.
+    const p1 = await createPerson('A');
+    const p2 = await createPerson('B');
+
+    const created = await (await mk({ personIds: [p1, p2], ownershipSplit: { [p1]: 0.6, [p2]: 0.4 } })).json();
+    assert.deepEqual(created.ownershipSplit, { [p1]: 0.6, [p2]: 0.4 });
 
     // Shares that do not sum to 1 are normalized server-side.
-    const normalized = await (await mk({ personIds: [11, 22], ownershipSplit: { 11: 0.25, 22: 0.25 } })).json();
-    assert.equal(normalized.ownershipSplit['11'], 0.5);
+    const normalized = await (await mk({ personIds: [p1, p2], ownershipSplit: { [p1]: 0.25, [p2]: 0.25 } })).json();
+    assert.equal(normalized.ownershipSplit[String(p1)], 0.5);
 
     // A single owner has no split.
-    const single = await (await mk({ personIds: [11], ownershipSplit: { 11: 1 } })).json();
+    const single = await (await mk({ personIds: [p1], ownershipSplit: { [p1]: 1 } })).json();
     assert.equal(single.ownershipSplit, null);
 
     // PATCHing personIds down to one person clears the stored split.
     const patchRes = await fetch(`${baseUrl}/api/debts/${created.id}`, {
-        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ personIds: [11] })
+        method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ personIds: [p1] })
     });
     assert.equal((await patchRes.json()).ownershipSplit, null);
 });
@@ -647,4 +675,69 @@ test('/api/bonuses: recurringAnnually and recurUntil round-trip on POST and PATC
     // A recurUntil before the date is dropped, not stored.
     const badRes = await post({ name: 'Bad until', amount: 1, date: '2026-12-15', accountId, recurringAnnually: true, recurUntil: '2026-01-01' });
     assert.equal((await badRes.json()).recurUntil, null);
+});
+
+// --- Person references (#557) ------------------------------------------------
+
+test('/api/incomes: a personId belonging to another user is rejected on POST and PATCH (IDOR)', async () => {
+    const theirs = await createPerson('Theirs', await otherUserHeaders());
+    const mine = await createPerson('Mine');
+    const base = { name: 'Paycheck', amount: 2000, firstPayDate: '2026-08-01', frequency: 'biweekly', accountId };
+
+    const bad = await fetch(`${baseUrl}/api/incomes`, { method: 'POST', headers: csrfHeaders(), body: JSON.stringify({ ...base, personId: theirs }) });
+    assert.equal(bad.status, 400);
+    assert.match((await bad.json()).error.message, /personId/);
+
+    const ok = await fetch(`${baseUrl}/api/incomes`, { method: 'POST', headers: csrfHeaders(), body: JSON.stringify({ ...base, personId: mine }) });
+    assert.equal(ok.status, 201);
+    const income = await ok.json();
+    assert.equal(Number(income.personId), mine);
+
+    const patch = await fetch(`${baseUrl}/api/incomes/${income.id}`, { method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ personId: theirs }) });
+    assert.equal(patch.status, 400);
+    const row = (await (await fetch(`${baseUrl}/api/incomes`, { headers: csrfHeaders() })).json()).find(r => r.id === income.id);
+    assert.equal(Number(row.personId), mine, 'the rejected PATCH changed nothing');
+});
+
+test('/api/debts: every personIds entry must be one of the caller persons (#557)', async () => {
+    const theirs = await createPerson('Theirs', await otherUserHeaders());
+    const mine = await createPerson('Mine');
+    const mk = personIds => fetch(`${baseUrl}/api/debts`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Visa', category: 'Credit Card', debtType: 'creditCard', accountBalance: 100, minimumPayment: 10, interestRate: 5, accountId, personIds })
+    });
+
+    // Another user's person, or an id that doesn't exist, is a 400 even next to a valid one.
+    for (const ids of [[theirs], [mine, theirs], [mine, 987654321]]) {
+        const res = await mk(ids);
+        assert.equal(res.status, 400, `personIds ${JSON.stringify(ids)}`);
+        assert.match((await res.json()).error.message, /personIds/);
+    }
+    assert.equal((await (await fetch(`${baseUrl}/api/debts`, { headers: csrfHeaders() })).json()).length, 0, 'nothing was created');
+
+    // Own persons, a repeated id and an empty list are fine.
+    assert.equal((await mk([mine])).status, 201);
+    assert.equal((await mk([mine, mine])).status, 201);
+    const empty = await mk([]);
+    assert.equal(empty.status, 201);
+    const debt = await empty.json();
+
+    const patch = await fetch(`${baseUrl}/api/debts/${debt.id}`, { method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ personIds: [theirs] }) });
+    assert.equal(patch.status, 400);
+});
+
+test('/api/debts: a legacy row still holding a deleted person id can be edited when personIds is not sent (#557)', async () => {
+    const gone = await createPerson('Gone');
+    const created = await (await fetch(`${baseUrl}/api/debts`, {
+        method: 'POST', headers: csrfHeaders(),
+        body: JSON.stringify({ name: 'Visa', category: 'Credit Card', debtType: 'creditCard', accountBalance: 100, minimumPayment: 10, interestRate: 5, accountId, personIds: [gone] })
+    })).json();
+    // Deleting a person has no FK cascade into the array column.
+    assert.equal((await fetch(`${baseUrl}/api/persons/${gone}`, { method: 'DELETE', headers: csrfHeaders() })).status, 204);
+
+    const edit = await fetch(`${baseUrl}/api/debts/${created.id}`, { method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ accountBalance: 90 }) });
+    assert.equal(edit.status, 200);
+    // Sending the stale list is rejected; dropping the id is accepted.
+    assert.equal((await fetch(`${baseUrl}/api/debts/${created.id}`, { method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ personIds: [gone] }) })).status, 400);
+    assert.equal((await fetch(`${baseUrl}/api/debts/${created.id}`, { method: 'PATCH', headers: csrfHeaders(), body: JSON.stringify({ personIds: [] }) })).status, 200);
 });
