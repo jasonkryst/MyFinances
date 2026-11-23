@@ -14,6 +14,9 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - **New sign-in email.** A sign-in from a browser/OS pair the account hasn't used before sends an email (template `newSignInEmail`). The first device ever is remembered without an email. The email goes out in the background and never delays or fails the sign-in. It is on by default: the new `notifyNewSignIn` setting turns it off from a switch on Settings → Notifications, and `notifyChannel: inApp` means no email. Pairs are remembered in `known_devices`.
   - **Storage.** Migration `1755600000048` adds `public_id`, `last_seen_at`, `user_agent` and `ip_prefix` to `sessions`, and creates `known_devices`. Its `down()` drops them but keeps the sessions, so nobody is signed out.
 
+### Fixed
+- **Plan History order after an import (#312).** Imported plans are created several at a time, so their ids could come out of order. Plan History and *Compare two plans* then put an older plan after a newer one, and the default comparison could pick the wrong "previous" plan. Both now order entries by when the plan was saved, then by id (pure `sortPlanEntries` in `src/planHistoryCompare.js`, with Jest cases).
+
 ### Tests and CI
 - Server: `sessions.test.js` covers User-Agent and IP helpers, listing (current first, no token or hash exposed, expired sessions hidden), cross-user isolation (list, single revoke and `?others=1`), revoking one, others or the current session, bad requests and CSRF, the last-seen throttle, the new-device email (first device, known device, setting off, in-app channel, failing or unconfigured SMTP, per-user devices), and migration idempotency and rollback. Jest: `newSignIn` in `getNotificationPrefs`. Playwright: `test_active_sessions.py` (shard `test-features-f`) uses second browser contexts to cover the list, Sign out with the other browser landing on the login gate, Sign out all, a session already gone, and the notification switch.
 

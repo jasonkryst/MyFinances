@@ -10,7 +10,7 @@ import {
     computeMonthlyBonusesForMonth
 } from './utils.js';
 import { t, plural } from './i18n.js';
-import { comparePlanEntries, deltaTone } from './planHistoryCompare.js';
+import { comparePlanEntries, deltaTone, sortPlanEntries } from './planHistoryCompare.js';
 
 function computeDebtFingerprint(debts) {
     return (debts || [])
@@ -164,7 +164,8 @@ export function renderPlanHistory(app) {
     const table = document.getElementById('planHistoryTable');
     if (!body) return;
 
-    const entries = (app.planHistory || []).slice().reverse();
+    // Newest first, by when each plan was saved (#312).
+    const entries = sortPlanEntries(app.planHistory).reverse();
 
     if (entries.length === 0) {
         body.innerHTML = '';
@@ -231,7 +232,7 @@ export function renderPlanCompare(app) {
     const result = document.getElementById('planCompareResult');
     if (!wrap || !selA || !selB || !result) return;
 
-    const entries = app.planHistory || [];
+    const entries = sortPlanEntries(app.planHistory);
     if (entries.length < 2) {
         wrap.classList.add('hidden');
         result.innerHTML = '';

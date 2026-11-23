@@ -105,3 +105,23 @@ export function remapPlanHistoryDebtIds(entry, debtIdMap) {
         }),
     };
 }
+
+// Milliseconds for a stored createdAt: an ISO string, or Postgres text such as
+// "2026-02-05 12:00:00+00". 0 when missing or unreadable.
+function createdAtMs(value) {
+    if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : 0;
+    if (typeof value !== 'string' || !value) return 0;
+    const iso = value.trim().replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00');
+    const ms = Date.parse(iso);
+    return Number.isFinite(ms) ? ms : 0;
+}
+
+// Plan History entries oldest first, by when the plan was saved, then by id.
+// The server lists them by id, and ids follow the order the records were
+// created, which an import does several at a time, so ids alone can put an
+// older plan after a newer one. Returns a new array.
+export function sortPlanEntries(entries) {
+    return (Array.isArray(entries) ? entries : [])
+        .slice()
+        .sort((a, b) => (createdAtMs(a?.createdAt) - createdAtMs(b?.createdAt)) || (Number(a?.id) - Number(b?.id)));
+}
