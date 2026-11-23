@@ -2153,6 +2153,10 @@
                         <input type="checkbox" role="switch" id="settingNotifyPromoEnding">
                         <span data-i18n="settings.notify.promoEnding">A debt's promotional rate ends within 60 days</span>
                     </label>
+                    <label class="settings-toggle-row" for="settingNotifyNewSignIn">
+                        <input type="checkbox" role="switch" id="settingNotifyNewSignIn">
+                        <span data-i18n="settings.notify.newSignIn">Someone signs in from a new browser or device (email)</span>
+                    </label>
                     <p class="modal-helper-text" data-i18n="settings.notify.thresholdHelp">Set a low-balance alert amount on each account from the Accounts page (Add or Edit).</p>
                 </fieldset>
                 <div class="form-group modal-form-group">
@@ -2305,6 +2309,15 @@
                     <p id="settingsChangePasswordStatus" class="settings-security-status" role="status" aria-live="polite"></p>
                     <button type="submit" id="settingsChangePasswordBtn" class="btn btn-primary btn-small" data-i18n="settings.security.submit">Change password</button>
                 </form>
+                    </div>
+                    <div class="settings-card settings-page-card settings-sessions" id="settingsSessions">
+                        <h4 id="settingsSessionsHeading" class="settings-security-title" tabindex="-1" data-i18n="settings.sessions.title">Active sessions</h4>
+                        <p class="modal-helper-text" data-i18n="settings.sessions.help">Browsers signed in to your account. Signing one out sends it to the sign-in screen on its next request.</p>
+                        <p id="settingsSessionsSummary" class="modal-helper-text"></p>
+                        <ul id="settingsSessionsList" class="settings-sessions-list" aria-labelledby="settingsSessionsHeading"></ul>
+                        <p id="settingsSessionsError" class="login-gate-error" role="alert"></p>
+                        <p id="settingsSessionsStatus" class="settings-security-status" role="status"></p>
+                        <button type="button" id="settingsSignOutOthersBtn" class="btn btn-secondary btn-small" data-i18n="settings.sessions.signOutOthers" disabled>Sign out all other sessions</button>
                     </div>
                 </section>
                 <section id="settingsPage-about" class="settings-page" aria-labelledby="settingsPageTitle-about">

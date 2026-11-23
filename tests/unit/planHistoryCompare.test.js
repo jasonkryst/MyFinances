@@ -1,6 +1,6 @@
 // #312: Plan History per-debt snapshot and comparison.
 const {
-    PLAN_HISTORY_DEBTS_MAX, buildPlanDebtSnapshot, monthsBetween, comparePlanEntries, deltaTone, remapPlanHistoryDebtIds,
+    PLAN_HISTORY_DEBTS_MAX, buildPlanDebtSnapshot, monthsBetween, comparePlanEntries, deltaTone, remapPlanHistoryDebtIds, sortPlanEntries,
 } = require('../../src/planHistoryCompare.js');
 
 const plan = [
@@ -140,5 +140,37 @@ describe('remapPlanHistoryDebtIds', () => {
         const plain = { id: 1 };
         expect(remapPlanHistoryDebtIds(plain, new Map())).toBe(plain);
         expect(remapPlanHistoryDebtIds(null, new Map())).toBeNull();
+    });
+});
+
+describe('sortPlanEntries', () => {
+    test('orders by createdAt, not by id (an import can create ids out of order)', () => {
+        const entries = [
+            { id: 135, createdAt: '2026-02-05 12:00:00+00' },
+            { id: 136, createdAt: '2026-01-05 12:00:00+00' },
+            { id: 137, createdAt: '2026-03-05T12:00:00.000Z' },
+        ];
+        expect(sortPlanEntries(entries).map(e => e.id)).toEqual([136, 135, 137]);
+        expect(entries.map(e => e.id)).toEqual([135, 136, 137]);
+    });
+
+    test('Postgres text offsets parse like ISO', () => {
+        const a = { id: 2, createdAt: '2026-01-05 13:00:00+01' };
+        const b = { id: 1, createdAt: '2026-01-05 12:30:00+00' };
+        expect(sortPlanEntries([b, a]).map(e => e.id)).toEqual([2, 1]);
+    });
+
+    test('equal or missing dates fall back to id order; Date objects work', () => {
+        const same = '2026-01-05T12:00:00.000Z';
+        expect(sortPlanEntries([{ id: 9, createdAt: same }, { id: 3, createdAt: same }]).map(e => e.id)).toEqual([3, 9]);
+        expect(sortPlanEntries([{ id: 5 }, { id: 2, createdAt: 'garbage' }, { id: 1, createdAt: null }]).map(e => e.id)).toEqual([1, 2, 5]);
+        expect(sortPlanEntries([{ id: 1, createdAt: new Date('2026-02-01') }, { id: 2, createdAt: new Date('2026-01-01') }]).map(e => e.id)).toEqual([2, 1]);
+        expect(sortPlanEntries([{ id: 1, createdAt: new Date('nope') }, { id: 0, createdAt: '' }]).map(e => e.id)).toEqual([0, 1]);
+        expect(sortPlanEntries([{ id: 2, createdAt: '2026-01-05T12:00:00Z' }, { id: 1, createdAt: ' 2026-01-04 12:00:00+00 ' }]).map(e => e.id)).toEqual([1, 2]);
+    });
+
+    test('non-arrays give an empty list', () => {
+        expect(sortPlanEntries(undefined)).toEqual([]);
+        expect(sortPlanEntries(null)).toEqual([]);
     });
 });

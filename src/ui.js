@@ -1047,6 +1047,13 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.28.0 — 2026-11-23',
+        items: [
+            '<strong>See where you are signed in:</strong> <em>Settings → Security → Active sessions</em> lists every browser signed in to your account, with its browser and system, when it was last active and its network. Sign out one you don\'t recognise, or all the others at once, without changing your password. A signed-out browser goes to the sign-in screen on its next request.',
+            '<strong>New sign-in emails:</strong> when your account is signed in to from a browser or device it hasn\'t used before, you get an email (if the server has email set up). Turn it off under <em>Settings → Notifications</em>.'
+        ]
+    },
+    {
         version: '7.27.0 — 2026-11-23',
         items: [
             '<strong>Compare saved plans debt by debt:</strong> open <em>Plan History</em> on the Plan page and pick any two saved plans. A table shows when each debt is paid off and the interest it costs in both, with arrows marking what got better or worse. Plans saved from now on record their per-debt results; older ones say they have none.'

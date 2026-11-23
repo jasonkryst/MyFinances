@@ -2,7 +2,7 @@
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 import { getAmountOn } from './amountSchedule.js';
 
-export const APP_VERSION = '7.27.1';
+export const APP_VERSION = '7.28.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by

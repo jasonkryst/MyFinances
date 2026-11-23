@@ -5,6 +5,8 @@ import { randomBytes, createHash } from 'node:crypto';
 import { query } from '../db.js';
 import { hashPassword, verifyPassword } from '../auth/argon2.js';
 import { createSession, destroySession } from '../auth/sessions.js';
+import { sessionMetaFromRequest } from '../auth/sessionInfo.js';
+import { recordSignIn } from '../auth/newSignIn.js';
 import { generateToken, hashToken, requireCsrf, requireSession } from '../auth/middleware.js';
 import { checkNewPassword, passwordProblemResponse, passwordPolicySummary } from '../auth/passwordCheck.js';
 import { sendTemplatedEmail } from '../email/send.js';
@@ -130,7 +132,10 @@ export function createAuthRouter() {
                 return res.status(409).json({ error: { code: 'SETUP_COMPLETE', message: 'Setup is already complete. Please sign in.' } });
             }
 
-            const session = await createSession(rows[0].id);
+            const meta = sessionMetaFromRequest(req);
+            const session = await createSession(rows[0].id, meta);
+            // The first device is remembered without an email (#683).
+            await recordSignIn(rows[0].id, email, meta).catch(err => console.error('[auth] sign-in record failed:', err));
             const csrfToken = generateToken();
             res.cookie('session', session.id, { ...sessionCookieOpts(req), expires: session.expiresAt });
             res.cookie('csrf', csrfToken, { ...csrfCookieOpts(req), expires: session.expiresAt });
@@ -161,7 +166,11 @@ export function createAuthRouter() {
             const ok = await verifyPassword(rows[0].password_hash, password);
             if (!ok) return reject();
 
-            const session = await createSession(rows[0].id);
+            const meta = sessionMetaFromRequest(req);
+            const session = await createSession(rows[0].id, meta);
+            // #683: remember the device; a browser/OS pair never seen before
+            // emails the user (notifyNewSignIn). Never blocks or fails sign-in.
+            await recordSignIn(rows[0].id, email, meta).catch(err => console.error('[auth] sign-in record failed:', err));
             const csrfToken = generateToken();
             res.cookie('session', session.id, { ...sessionCookieOpts(req), expires: session.expiresAt });
             res.cookie('csrf', csrfToken, { ...csrfCookieOpts(req), expires: session.expiresAt });

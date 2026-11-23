@@ -129,6 +129,19 @@ session, spends any outstanding reset link and clears the calendar feed token.
 A successful reset now signs out *every* session. The UI is Settings ->
 Security.
 
+**Active sessions (#683).** `GET /api/sessions` lists the signed-in user's
+unexpired sessions: `{ id, createdAt, lastSeenAt, browser, os, ip, current }`,
+current first. `id` is an opaque `public_id`, never the token or its hash, and
+`ip` is the network only (IPv4 /24, IPv6 /48); the full address is never
+stored. `DELETE /api/sessions/:id` signs one out (404 if it isn't yours), and
+`DELETE /api/sessions?others=1` signs out all but the caller and returns
+`{ revoked }`. `last_seen_at` is refreshed at most every 5 minutes.
+
+A sign-in from a browser/OS pair the account hasn't used before emails the user
+(`newSignInEmail`) unless the `notifyNewSignIn` setting is false or
+`notifyChannel` is `inApp`. The first device is remembered silently in
+`known_devices`, and the email never delays or fails the sign-in.
+
 ## Background jobs (issue #579)
 
 `src/index.js` starts an in-process scheduler (`src/jobs/runner.js`) after the

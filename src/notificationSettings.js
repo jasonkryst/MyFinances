@@ -4,7 +4,7 @@
 
 import {
     setSetting,
-    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW, NOTIFY_PROMO_ENDING,
+    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW, NOTIFY_PROMO_ENDING, NOTIFY_NEW_SIGN_IN,
     NOTIFY_DAYS_AHEAD, NOTIFY_DAYS_AHEAD_MAX, NOTIFY_CHANNEL, NOTIFY_DELIVERY,
 } from './settings.js';
 import { getNotificationPrefs } from './notificationsCore.js';
@@ -34,6 +34,7 @@ const TOGGLES = [
     ['settingNotifyZeroBalance', NOTIFY_ZERO_BALANCE, 'zeroBalance'],
     ['settingNotifyProjectedLow', NOTIFY_PROJECTED_LOW, 'projectedLow'],
     ['settingNotifyPromoEnding', NOTIFY_PROMO_ENDING, 'promoEnding'],
+    ['settingNotifyNewSignIn', NOTIFY_NEW_SIGN_IN, 'newSignIn'],
 ];
 
 const el = id => document.getElementById(id);
@@ -113,7 +114,7 @@ export function saveNotificationField(app, id) {
 }
 
 export function initNotificationSettings(app) {
-    for (const id of ['settingNotifyBillDue', 'settingNotifyLowBalance', 'settingNotifyZeroBalance', 'settingNotifyProjectedLow', 'settingNotifyPromoEnding',
+    for (const id of ['settingNotifyBillDue', 'settingNotifyLowBalance', 'settingNotifyZeroBalance', 'settingNotifyProjectedLow', 'settingNotifyPromoEnding', 'settingNotifyNewSignIn',
         'settingNotifyDaysAhead', 'settingNotifyChannel', 'settingNotifyDelivery']) {
         el(id)?.addEventListener('change', () => saveNotificationField(app, id));
     }
