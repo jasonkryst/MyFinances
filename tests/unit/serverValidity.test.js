@@ -63,6 +63,15 @@ describe('isValidRecurringTemplate', () => {
     test.each(['subscription', 'income', 'reimbursement'])('keeps allowing a $0 %s with no target (zeroAmountPolicy is client-side)', (type) => {
         expect(isValidRecurringTemplate(tmpl({ type, amount: 0, targetAccountId: null }))).toBe(true);
     });
+    test('rejects a transfer with a $0 scheduled amount change (#678)', () => {
+        expect(isValidRecurringTemplate(tmpl({ amountChanges: [{ from: '2027-01-01', amount: 0 }] }))).toBe(false);
+    });
+    test('accepts a transfer whose scheduled changes are all positive (#678)', () => {
+        expect(isValidRecurringTemplate(tmpl({ amountChanges: [{ from: '2027-01-01', amount: 7 }] }))).toBe(true);
+    });
+    test('keeps allowing a $0 scheduled change on a subscription (#678)', () => {
+        expect(isValidRecurringTemplate(tmpl({ type: 'subscription', targetAccountId: null, amountChanges: [{ from: '2027-01-01', amount: 0 }] }))).toBe(true);
+    });
     test('a non-transfer still needs a name', () => {
         expect(isValidRecurringTemplate(tmpl({ type: 'subscription', name: '' }))).toBe(false);
     });

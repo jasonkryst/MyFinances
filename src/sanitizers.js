@@ -3,6 +3,7 @@
 import { normalizeText, normalizeMultilineText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, sanitizeTimestampISO, todayISO } from './utils.js';
 import { isAllowedSetting } from './settingsSchema.js';
 import { sanitizeWeekendRule } from './weekendRule.js';
+import { sanitizeAmountChanges } from './amountSchedule.js';
 
 const RETIREMENT_SUBTYPES = ['401k', 'Traditional IRA', 'Roth IRA', 'HSA', 'Pension', 'Other'];
 
@@ -240,7 +241,9 @@ export function sanitizeIncome(record, idFallback) {
         updatedAt: sanitizeDateISO(record?.updatedAt),
         // #251: optional tax withholding percent — 0 (no withholding) is the
         // safe default, so legacy records without this field are unaffected.
-        withholdingPercent: sanitizeFiniteNumber(record?.withholdingPercent, 0, { min: 0, max: 99.9 })
+        withholdingPercent: sanitizeFiniteNumber(record?.withholdingPercent, 0, { min: 0, max: 99.9 }),
+        // #678: effective-dated amounts; income amounts must stay positive.
+        amountChanges: sanitizeAmountChanges(record?.amountChanges, { min: 0.01 })
     };
 }
 
@@ -432,7 +435,9 @@ export function sanitizeRecurringTemplate(record, idFallback) {
         archived: Boolean(record?.archived),
         skippedMonths,
         paidMonths,
-        paidAmounts
+        paidAmounts,
+        // #678: effective-dated amounts ($0 allowed, per zeroAmountPolicy).
+        amountChanges: sanitizeAmountChanges(record?.amountChanges)
     };
 }
 
@@ -611,13 +616,15 @@ export function isValidReconciliation(r) {
 }
 
 // A name is required; a transfer template also needs a distinct target
-// account and a positive amount (the Ledger would otherwise post a one-legged
-// outflow). Other types keep allowing $0: that is the user's zeroAmountPolicy
+// account and a positive amount, including every scheduled amount change
+// (#678); the Ledger would otherwise post a one-legged outflow. Other types
+// keep allowing $0: that is the user's zeroAmountPolicy
 // (#412), enforced client-side.
 export function isValidRecurringTemplate(r) {
     if (!r || !r.name) return false;
     if (r.type === 'transfer') {
-        return r.targetAccountId !== null && r.targetAccountId !== r.accountId && r.amount > 0;
+        return r.targetAccountId !== null && r.targetAccountId !== r.accountId && r.amount > 0
+            && (r.amountChanges || []).every(c => c.amount > 0);
     }
     return true;
 }

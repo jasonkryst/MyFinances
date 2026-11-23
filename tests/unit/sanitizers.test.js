@@ -1043,3 +1043,27 @@ describe('person-reference remapping on import (#421)', () => {
         expect(out.ownershipSplit).toBeNull();
     });
 });
+
+// #678: effective-dated amounts ride both record types.
+describe('amountChanges on income and recurring templates', () => {
+    const good = [{ from: '2027-01-01', amount: 18 }];
+    test('sanitizeIncome keeps a valid change list', () => {
+        expect(sanitizeIncome({ name: 'Pay', amount: 15, amountChanges: good }, 1).amountChanges).toEqual(good);
+    });
+    test('sanitizeIncome drops a non-positive change amount', () => {
+        expect(sanitizeIncome({ name: 'Pay', amount: 15, amountChanges: [{ from: '2027-01-01', amount: 0 }] }, 1).amountChanges).toEqual([]);
+        expect(sanitizeIncome({ name: 'Pay', amount: 15, amountChanges: [{ from: '2027-01-01', amount: -1 }] }, 1).amountChanges).toEqual([]);
+    });
+    test('sanitizeIncome gives a legacy record an empty list', () => {
+        expect(sanitizeIncome({ name: 'Pay', amount: 15 }, 1).amountChanges).toEqual([]);
+    });
+    test('sanitizeRecurringTemplate keeps a valid change list, including $0', () => {
+        const zero = [{ from: '2027-01-01', amount: 0 }];
+        expect(sanitizeRecurringTemplate({ name: 'N', amount: 15, amountChanges: good }, 1).amountChanges).toEqual(good);
+        expect(sanitizeRecurringTemplate({ name: 'N', amount: 15, amountChanges: zero }, 1).amountChanges).toEqual(zero);
+    });
+    test('sanitizeRecurringTemplate drops a negative change and defaults to an empty list', () => {
+        expect(sanitizeRecurringTemplate({ name: 'N', amount: 15, amountChanges: [{ from: '2027-01-01', amount: -1 }] }, 1).amountChanges).toEqual([]);
+        expect(sanitizeRecurringTemplate({ name: 'N', amount: 15 }, 1).amountChanges).toEqual([]);
+    });
+});

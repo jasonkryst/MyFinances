@@ -2,7 +2,7 @@ import express from 'express';
 import { query } from './db.js';
 import { recordJsonSql, auditCteSql } from './audit.js';
 
-export function createCrudResource({ table, columns, sanitize, requiredFields = [], foreignKeys = {} }) {
+export function createCrudResource({ table, columns, sanitize, requiredFields = [], foreignKeys = {}, jsonColumns = [] }) {
     const router = express.Router();
     const jsFields = Object.keys(columns);
     const dbColumns = Object.values(columns);
@@ -11,6 +11,11 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
     const selectList = `${dbColumns.join(', ')}, row_version`;
     // #580: every write also logs the record (API shape, without rowVersion).
     const json = alias => recordJsonSql(alias, columns);
+
+    // jsonb columns holding arrays (#678): node-pg sends a JS array as a
+    // Postgres array literal, which jsonb rejects, so serialize them here.
+    const jsonFieldSet = new Set(jsonColumns);
+    const toDb = (field, value) => (jsonFieldSet.has(field) && value !== null && value !== undefined ? JSON.stringify(value) : value);
 
     function rowToJson(row) {
         const out = {};
@@ -77,7 +82,7 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             }
             const insertFields = jsFields.filter(f => f !== 'id');
             const insertCols = insertFields.map(f => columns[f]);
-            const values = insertFields.map(f => clean[f]);
+            const values = insertFields.map(f => toDb(f, clean[f]));
             const placeholders = insertFields.map((_, i) => `$${i + 2}`);
             const { rows } = await query(
                 `WITH ins AS (
@@ -129,7 +134,7 @@ export function createCrudResource({ table, columns, sanitize, requiredFields = 
             }
             const updateFields = jsFields.filter(f => f !== 'id');
             const setClauses = updateFields.map((f, i) => `${columns[f]} = $${i + 3}`);
-            const values = updateFields.map(f => clean[f]);
+            const values = updateFields.map(f => toDb(f, clean[f]));
             // The version check is repeated in the UPDATE itself so a write
             // that lands between the SELECT above and here can't be lost.
             const versionGuard = versioned ? ` AND row_version = $${updateFields.length + 3}` : '';
