@@ -171,8 +171,12 @@ def test_interest_only_after_balance_turns_positive(app_page):
     }""")
 
     txs = _interest_txs(page)
-    # Month 1 balance: -500 + 2000 = 1500 -> positive, earns 1% = $15.00
-    assert len(txs) == 13
+    # The window starts last month, before the first payday: balance -500,
+    # no interest (before #705 a phantom payday made it positive too). This
+    # month: -500 + 2000 = 1500 -> positive, earns 1% = $15.00, then 11 more.
+    assert len(txs) == 12
+    now = page.evaluate("() => { const d = new Date(); return [d.getFullYear(), d.getMonth() + 1]; }")
+    assert txs[0]["date"].startswith(f"{now[0]}-{now[1]:02d}"), txs[0]["date"]
     assert abs(txs[0]["amount"] - 15.00) < 0.001, \
         f"Expected $15.00 on recovered balance, got {txs[0]['amount']}"
 

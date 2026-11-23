@@ -156,10 +156,9 @@ def test_variance_report_income_expense_delta(app_page):
     """Variance ('What Changed') report should show the exact income/expense delta
     between the previous and current report month, matching the known inputs.
 
-    Note: monthly-frequency income recurs on the same day-of-month in every
-    month regardless of firstPayDate (see getIncomePaydaysInMonth in
-    src/utils.js, which doesn't bound by firstPayDate's month) - so income
-    is identical in both months here and its delta is correctly zero. Only
+    The monthly income started long before both months, so it is identical in
+    both and its delta is zero. (Before #705 a monthly income also paid in
+    months before its firstPayDate, which this test used to rely on.) Only
     the one-time dated expense differs between months, so that's what this
     test asserts a delta on."""
     page = app_page
@@ -172,8 +171,8 @@ def test_variance_report_income_expense_delta(app_page):
         const pad = n => String(n + 1).padStart(2, '0');
 
         app.accounts = [{ id: 9201, name: 'Checking', type: 'Checking', startingBalance: 1000 }];
-        // Current month: income 3000 (also recurs in prev month), expense 500 (one-time, current month only)
-        app.incomes = [{ id: 1, name: 'Salary', amount: 3000, firstPayDate: `${y}-${pad(m)}-01`, frequency: 'monthly', accountId: 9201 }];
+        // Income 3000 in both months (started in 2020), expense 500 (one-time, current month only)
+        app.incomes = [{ id: 1, name: 'Salary', amount: 3000, firstPayDate: '2020-01-01', frequency: 'monthly', accountId: 9201 }];
         app.expenses = [{ id: 1, name: 'Groceries', budgetAmount: 500, date: `${y}-${pad(m)}-05`, category: 'Food', accountId: 9201 }];
         app.bills = []; app.debts = [];
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
