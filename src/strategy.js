@@ -5,10 +5,12 @@ import {
     formatShortDate,
     formatLongDate,
     escapeHtml,
+    formatMonthYear,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth
 } from './utils.js';
 import { t, plural } from './i18n.js';
+import { comparePlanEntries, deltaTone } from './planHistoryCompare.js';
 
 function computeDebtFingerprint(debts) {
     return (debts || [])
@@ -168,6 +170,7 @@ export function renderPlanHistory(app) {
         body.innerHTML = '';
         if (table) table.classList.add('hidden');
         if (empty) empty.classList.remove('hidden');
+        renderPlanCompare(app);
         return;
     }
 
@@ -184,4 +187,125 @@ export function renderPlanHistory(app) {
             <td>${entry.payoffDate ? escapeHtml(formatShortDate(entry.payoffDate)) : '—'}</td>
         </tr>
     `).join('');
+    renderPlanCompare(app);
+}
+
+// ── Per-debt comparison of two Plan History entries (#312) ─────────────────
+
+function payoffLabel(iso) {
+    if (!iso) return t('strategy.compareNotPaidOff');
+    const [y, m] = iso.split('-').map(Number);
+    return formatMonthYear(new Date(y, m - 1, 1));
+}
+
+function deltaCell(delta, text) {
+    const tone = deltaTone(delta);
+    if (tone === null) return '<td class="plan-delta">—</td>';
+    const arrow = tone === 'better' ? '↓' : tone === 'worse' ? '↑' : '=';
+    return `<td class="plan-delta plan-delta--${tone}"><span aria-hidden="true">${arrow}</span> ${escapeHtml(text)}</td>`;
+}
+
+function payoffDeltaText(delta) {
+    if (delta === null) return '';
+    if (delta === 0) return t('strategy.compareSameMonth');
+    return delta < 0
+        ? plural('strategy.compareMonthsEarlier', -delta)
+        : plural('strategy.compareMonthsLater', delta);
+}
+
+function interestDeltaText(delta) {
+    if (delta === null) return '';
+    if (delta === 0) return t('strategy.compareNoChange');
+    return t(delta < 0 ? 'strategy.compareLess' : 'strategy.compareMore', { amount: formatCurrency(Math.abs(delta)) });
+}
+
+/**
+ * Two selects pick any two entries (default: the previous and the latest);
+ * the table shows each debt's payoff month and interest in both, with the
+ * change from A to B. Entries saved before #312 have no per-debt data.
+ */
+export function renderPlanCompare(app) {
+    const wrap = document.getElementById('planCompare');
+    const selA = document.getElementById('planCompareA');
+    const selB = document.getElementById('planCompareB');
+    const result = document.getElementById('planCompareResult');
+    if (!wrap || !selA || !selB || !result) return;
+
+    const entries = app.planHistory || [];
+    if (entries.length < 2) {
+        wrap.classList.add('hidden');
+        result.innerHTML = '';
+        return;
+    }
+    wrap.classList.remove('hidden');
+
+    const ids = entries.map(e => String(e.id));
+    if (!ids.includes(app._planCompareA)) app._planCompareA = ids[ids.length - 2];
+    if (!ids.includes(app._planCompareB)) app._planCompareB = ids[ids.length - 1];
+
+    // Newest first, numbered oldest = 1 so same-day plans stay distinct.
+    const options = entries.map((e, i) => `<option value="${escapeHtml(String(e.id))}">${escapeHtml(t('strategy.compareOption', {
+        n: i + 1,
+        date: formatShortDate(e.createdAt),
+        strategy: strategyLabel(e.strategy),
+        payment: formatCurrency(e.monthlyPayment),
+    }))}</option>`).reverse().join('');
+    selA.innerHTML = options;
+    selB.innerHTML = options;
+    selA.value = app._planCompareA;
+    selB.value = app._planCompareB;
+    selA.onchange = () => { app._planCompareA = selA.value; renderPlanCompare(app); };
+    selB.onchange = () => { app._planCompareB = selB.value; renderPlanCompare(app); };
+
+    const indexA = ids.indexOf(app._planCompareA);
+    const indexB = ids.indexOf(app._planCompareB);
+    if (indexA === indexB) {
+        result.innerHTML = `<p class="target-date-desc" id="planCompareSame">${escapeHtml(t('strategy.compareSame'))}</p>`;
+        return;
+    }
+    const cmp = comparePlanEntries(entries[indexA], entries[indexB]);
+    if (!cmp) {
+        const missing = (entries[indexA].debts || []).length === 0 ? indexA : indexB;
+        result.innerHTML = `<p class="target-date-desc" id="planCompareNoData">${escapeHtml(t('strategy.compareNoData', { n: missing + 1 }))}</p>`;
+        return;
+    }
+
+    const side = (d, render) => (d ? render(d) : escapeHtml(t('strategy.compareNotInPlan')));
+    const rows = cmp.rows.map(r => `
+        <tr>
+            <th scope="row">${escapeHtml(r.name || t('undo.unnamed'))}</th>
+            <td>${side(r.a, d => escapeHtml(payoffLabel(d.payoffDate)))}</td>
+            <td>${side(r.b, d => escapeHtml(payoffLabel(d.payoffDate)))}</td>
+            ${deltaCell(r.payoffDelta, payoffDeltaText(r.payoffDelta))}
+            <td>${side(r.a, d => formatCurrency(d.totalInterest))}</td>
+            <td>${side(r.b, d => formatCurrency(d.totalInterest))}</td>
+            ${deltaCell(r.interestDelta, interestDeltaText(r.interestDelta))}
+        </tr>`).join('');
+    const totalDelta = Math.round((cmp.totals.interestB - cmp.totals.interestA) * 100) / 100;
+    result.innerHTML = `
+        <div class="table-wrapper">
+            <table class="plan-compare-table" id="planCompareTable">
+                <caption class="sr-only">${escapeHtml(t('strategy.compareCaption', { a: indexA + 1, b: indexB + 1 }))}</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">${escapeHtml(t('strategy.compareColDebt'))}</th>
+                        <th scope="col">${escapeHtml(t('strategy.compareColPayoffA'))}</th>
+                        <th scope="col">${escapeHtml(t('strategy.compareColPayoffB'))}</th>
+                        <th scope="col">${escapeHtml(t('strategy.compareColChange'))}</th>
+                        <th scope="col">${escapeHtml(t('strategy.compareColInterestA'))}</th>
+                        <th scope="col">${escapeHtml(t('strategy.compareColInterestB'))}</th>
+                        <th scope="col">${escapeHtml(t('strategy.compareColChange'))}</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+                <tfoot>
+                    <tr>
+                        <th scope="row" colspan="4">${escapeHtml(t('strategy.totalInterest'))}</th>
+                        <td>${formatCurrency(cmp.totals.interestA)}</td>
+                        <td>${formatCurrency(cmp.totals.interestB)}</td>
+                        ${deltaCell(totalDelta, interestDeltaText(totalDelta))}
+                    </tr>
+                </tfoot>
+            </table>
+        </div>`;
 }

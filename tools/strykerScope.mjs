@@ -49,6 +49,8 @@ export const MUTATE_SCOPE = {
         'isValidRecurringTemplate', 'sanitizeLowBalanceThreshold',
         // #548: were neither listed nor excluded.
         'sanitizeTransfer', 'sanitizeBudgetCategories',
+        // #312
+        'sanitizePlanHistoryDebts',
     ],
     // #548: the pure settings helpers (DOM-free; setSetting's pgPut is mocked in Jest).
     'src/settings.js': [
@@ -71,6 +73,8 @@ export const MUTATE_SCOPE = {
     'src/notificationsCore.js': true,
     // #681: promotional APR helpers shared with the server.
     'src/promoApr.js': true,
+    // #312: Plan History per-debt comparison.
+    'src/planHistoryCompare.js': true,
     // #577: Undo's Ledger-key move for a re-created record.
     'src/undoCore.js': true,
     // #678: effective-dated amounts (income + recurring templates).

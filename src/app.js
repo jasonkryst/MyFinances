@@ -203,6 +203,7 @@ export class DebtTrackerApp {
         this.ledgerClearedTransactions = {};
         this.lastPaymentPlan = null;
         this.lastSummary = null;
+        this.lastWorkingDebts = null;
         this._planFingerprint = null;
         this.perMonthStimulus = [];
         this.editingDebtId = null;

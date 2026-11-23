@@ -660,8 +660,28 @@ export function sanitizePlanHistoryEntry(record, idFallback) {
         monthsToPayOff: sanitizeInteger(record?.monthsToPayOff, 0, { min: 0 }),
         payoffDate: sanitizeDateISO(record?.payoffDate),
         totalDebt: sanitizeFiniteNumber(record?.totalDebt, 0, { min: 0 }),
+        // #312: per-debt results for the comparison; older entries have none.
+        debts: sanitizePlanHistoryDebts(record?.debts),
         createdAt
     };
+}
+
+// #312: the per-debt part of a Plan History entry. Entries that aren't
+// objects are dropped; the list is capped at 200.
+export function sanitizePlanHistoryDebts(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+        .filter(d => d !== null && typeof d === 'object' && !Array.isArray(d))
+        .slice(0, 200)
+        .map(d => {
+            const payoff = sanitizeDateISO(d.payoffDate);
+            return {
+                debtId: sanitizeInteger(d.debtId, null),
+                name: normalizeText(d.name, 80),
+                payoffDate: payoff ? `${payoff.slice(0, 7)}-01` : null,
+                totalInterest: sanitizeFiniteNumber(d.totalInterest, 0, { min: 0, max: 1e12 }),
+            };
+        });
 }
 
 export function sanitizeRetirementSnapshot(record, idFallback) {

@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.27.0] — 2026-11-23
+
+### Added
+- **Plan History per-debt comparison (#312).** Each *Calculate Payment Plan* run now records, per interest-bearing debt, its payoff month and total interest on the Plan History entry (`debts`, built by `buildPlanDebtSnapshot` in the pure `src/planHistoryCompare.js`).
+  - Plan History has a *Compare two plans* section once there are two entries: two selects (default: the previous and the latest plan) and a responsive table with each debt's payoff month and interest in plan A and plan B, plus the change. Arrows show the direction and colour shows better (sooner, less interest) or worse; a total-interest row closes the table.
+  - Debts match by id, then by name; a debt in only one plan says "Not in this plan", one never paid off says "Not paid off". Picking the same plan twice asks for two different ones, and an entry saved before this release says it has no per-debt data.
+  - Storage: `sanitizePlanHistoryDebts` (at most 200 entries, payoff date normalized to the month start); migration `1755600000047` adds `plan_history.debts jsonb`; the route serializes it as a JSON column. Import (replace and merge) rewrites each stored `debtId` through the debt id map, and an unresolved id becomes null so the entry still matches by name.
+
+### Tests and CI
+- Jest: `planHistoryCompare.test.js` (snapshot, month arithmetic, matching, totals, tone, import remap) and `sanitizePlanHistoryDebts` cases. `planHistoryCompare.js` and `sanitizePlanHistoryDebts` joined the Stryker scope. Server: `planHistoryDebts.test.js` (round-trip, old shape, malformed data, migration). Playwright: `test_plan_history_compare.py` (shard `test-features-d`); the i18n render guard covers the comparison, its reversed, same-plan and no-data states.
+
 ## [7.26.0] — 2026-11-23
 
 ### Added

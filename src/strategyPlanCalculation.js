@@ -3,6 +3,7 @@
 import { formatCurrency, formatLongDate, escapeHtml } from './utils.js';
 import { t, plural } from './i18n.js';
 import { showAlertModal } from './ui.js';
+import { buildPlanDebtSnapshot } from './planHistoryCompare.js';
 import { pgCreate, pgDelete } from './postgresSync.js';
 
 function computeDebtFingerprint(debts) {
@@ -33,6 +34,7 @@ export async function recordPlanHistoryEntry(app, monthlyPayment, strategy) {
         monthsToPayOff: app.lastSummary.monthsToPayOff,
         payoffDate: app.lastSummary.payOffDate ? app.lastSummary.payOffDate.toISOString() : null,
         totalDebt: app.lastSummary.totalDebt,
+        debts: buildPlanDebtSnapshot(app.lastWorkingDebts, app.lastPaymentPlan),
         createdAt: new Date().toISOString()
     };
 
@@ -84,6 +86,7 @@ export function recalculatePaymentPlan(app, { monthlyPayment, strategy, stimulus
         const activeDebts = app.debts.filter(d => !d.archived);
         const result = DebtCalculator.calculatePaymentPlan(activeDebts, monthlyPayment, strategy, stimulus);
         app.lastPaymentPlan = result.paymentPlan;
+        app.lastWorkingDebts = result.workingDebts; // #312: per-debt results for Plan History
         app.lastSummary = DebtCalculator.generateSummary(result.workingDebts, result.paymentPlan);
         app._planFingerprint = computeDebtFingerprint(app.debts);
         if (onSuccess) onSuccess();
@@ -162,6 +165,7 @@ export function calculateRequiredPayment(app) {
 
             // Store for the full plan display
             app.lastPaymentPlan = r.paymentPlan;
+            app.lastWorkingDebts = r.workingDebts;
             app.lastSummary = summary;
             app._planFingerprint = computeDebtFingerprint(app.debts);
 

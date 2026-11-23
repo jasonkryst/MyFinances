@@ -5,6 +5,7 @@ export default createCrudResource({
     table: 'plan_history',
     sanitize: sanitizePlanHistoryEntry,
     requiredFields: ['monthlyPayment', 'strategy'],
+    jsonColumns: ['debts'],
     columns: {
         id: 'id',
         monthlyPayment: 'monthly_payment',
@@ -13,6 +14,7 @@ export default createCrudResource({
         monthsToPayOff: 'months_to_pay_off',
         payoffDate: 'payoff_date',
         totalDebt: 'total_debt',
+        debts: 'debts',
         createdAt: 'created_at'
     }
 });

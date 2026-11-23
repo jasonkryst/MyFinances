@@ -268,6 +268,7 @@ export async function clearAllData(app, options = {}) {
     app.netWorthMilestonesAwarded = [];
     app.lastPaymentPlan = null;
     app.lastSummary = null;
+    app.lastWorkingDebts = null;
     app.perMonthStimulus = [];
     app.bonuses = [];
     app.ledgerAmountOverrides = {};

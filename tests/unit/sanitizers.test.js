@@ -23,6 +23,7 @@ const {
     sanitizeBalanceHistoryEntry,
     sanitizeReconciliation,
     sanitizePlanHistoryEntry,
+    sanitizePlanHistoryDebts,
     sanitizeParsedState,
 } = require('../../src/sanitizers.js');
 
@@ -939,7 +940,7 @@ describe('sanitizeSetting', () => {
 describe('sanitizePlanHistoryEntry', () => {
     test('passes through a well-formed record', () => {
         const result = sanitizePlanHistoryEntry({ id: 1, monthlyPayment: 300, strategy: 'avalanche', totalInterest: 1500, monthsToPayOff: 24, payoffDate: '2028-10-01', totalDebt: 7200, createdAt: '2026-10-01T12:00:00.000Z' }, 99);
-        expect(result).toEqual({ id: 1, monthlyPayment: 300, strategy: 'avalanche', totalInterest: 1500, monthsToPayOff: 24, payoffDate: '2028-10-01', totalDebt: 7200, createdAt: '2026-10-01T12:00:00.000Z' });
+        expect(result).toEqual({ id: 1, monthlyPayment: 300, strategy: 'avalanche', totalInterest: 1500, monthsToPayOff: 24, payoffDate: '2028-10-01', totalDebt: 7200, debts: [], createdAt: '2026-10-01T12:00:00.000Z' });
     });
 
     test('applies defaults for an empty record', () => {
@@ -1106,5 +1107,34 @@ describe('sanitizeDebt promo fields', () => {
         expect(sanitizeDebt({ ...promo, deferredInterest: true, deferredInterestAccrued: -5 }, 1).deferredInterestAccrued).toBe(0);
         expect(sanitizeDebt({ ...promo, deferredInterest: true, deferredInterestAccrued: 5e12 }, 1).deferredInterestAccrued).toBe(1e9);
         expect(sanitizeDebt({ ...promo, deferredInterest: true }, 1).deferredInterestAccrued).toBe(0);
+    });
+});
+
+// #312: per-debt results on Plan History entries.
+describe('sanitizePlanHistoryDebts', () => {
+    test('keeps well-formed entries and normalizes the payoff date to the month start', () => {
+        expect(sanitizePlanHistoryDebts([
+            { debtId: 3, name: ' Visa ', payoffDate: '2027-06-17', totalInterest: 120.5 },
+            { debtId: '4', name: 'Loan', payoffDate: null, totalInterest: '30' },
+        ])).toEqual([
+            { debtId: 3, name: 'Visa', payoffDate: '2027-06-01', totalInterest: 120.5 },
+            { debtId: 4, name: 'Loan', payoffDate: null, totalInterest: 30 },
+        ]);
+    });
+
+    test('drops non-objects, clamps values, caps the list', () => {
+        expect(sanitizePlanHistoryDebts([null, 5, 'x', [1], { debtId: 'abc', payoffDate: 'soon', totalInterest: -5 }]))
+            .toEqual([{ debtId: null, name: '', payoffDate: null, totalInterest: 0 }]);
+        expect(sanitizePlanHistoryDebts([{ totalInterest: 5e15 }])[0].totalInterest).toBe(1e12);
+        expect(sanitizePlanHistoryDebts([{ name: 'x'.repeat(100) }])[0].name).toHaveLength(80);
+        expect(sanitizePlanHistoryDebts(Array.from({ length: 250 }, () => ({})))).toHaveLength(200);
+    });
+
+    test('anything but an array is an empty list', () => {
+        expect(sanitizePlanHistoryDebts(undefined)).toEqual([]);
+        expect(sanitizePlanHistoryDebts({ debtId: 1 })).toEqual([]);
+        expect(sanitizePlanHistoryDebts('[]')).toEqual([]);
+        expect(sanitizePlanHistoryEntry({ debts: [{ debtId: 1, name: 'A', payoffDate: '2027-01-31', totalInterest: 1 }] }, 1).debts)
+            .toEqual([{ debtId: 1, name: 'A', payoffDate: '2027-01-01', totalInterest: 1 }]);
     });
 });
