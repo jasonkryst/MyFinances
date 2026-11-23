@@ -1,4 +1,5 @@
 {
+    "src/amountSchedule.js": 0,
     "src/balanceHistoryCore.js": 83,
     "src/changeHistoryCore.js": 88,
     "src/concurrency.js": 92,
