@@ -196,3 +196,87 @@ describe('computeYearInsights', () => {
         expect(computeYearInsights(input())).toEqual([]);
     });
 });
+
+// ─── Task 2: remaining actual rules ─────────────────────────────────────────
+
+describe('amountChanges', () => {
+    const tmpl = (o) => ({ id: 1, name: 'Netflix', type: 'subscription', amount: 15, frequency: 'monthly', amountChanges: [], ...o });
+    test('a price change inside the period, from the amount in effect the day before', () => {
+        const out = run('amountChanges', input({ recurringTemplates: [tmpl({ amountChanges: [{ from: '2024-06-01', amount: 16 }, { from: '2025-03-01', amount: 18 }] })] }));
+        expect(out).toEqual([expect.objectContaining({ key: 'yearReview.i.priceChange', vars: { name: 'Netflix', from: { $: 16 }, to: { $: 18 }, month: { m: '2025-03' } } })]);
+    });
+    test('a change outside the period is ignored', () => {
+        expect(run('amountChanges', input({ recurringTemplates: [tmpl({ amountChanges: [{ from: '2026-01-01', amount: 18 }] })] }))).toBeNull();
+    });
+    test('income and inflow templates are pay changes; transfers are skipped', () => {
+        const out = run('amountChanges', input({
+            incomes: [{ id: 3, name: 'Salary', amount: 1000, frequency: 'biweekly', amountChanges: [{ from: '2025-07-01', amount: 1080 }] }],
+            recurringTemplates: [tmpl({ type: 'transfer', amountChanges: [{ from: '2025-02-01', amount: 99 }] })]
+        }));
+        expect(out).toEqual([expect.objectContaining({ key: 'yearReview.i.payChange', vars: { name: 'Salary', from: { $: 1000 }, to: { $: 1080 }, month: { m: '2025-07' } } })]);
+    });
+    test('the top two by annualized difference are named, the rest counted', () => {
+        const out = run('amountChanges', input({ recurringTemplates: [
+            tmpl({ id: 1, name: 'Small', amountChanges: [{ from: '2025-02-01', amount: 16 }] }),       // 1 x 12 = 12
+            tmpl({ id: 2, name: 'Weekly', frequency: 'weekly', amount: 10, amountChanges: [{ from: '2025-02-01', amount: 11 }] }), // 1 x 52 = 52
+            tmpl({ id: 3, name: 'Yearly', frequency: 'yearly', amount: 100, amountChanges: [{ from: '2025-02-01', amount: 130 }] }) // 30 x 1 = 30
+        ] }));
+        expect(out.map(i => i.vars.name || i.vars.count)).toEqual(['Weekly', 'Yearly', 1]);
+        expect(out[2]).toMatchObject({ key: 'yearReview.i.changesMore', plural: true });
+    });
+});
+
+describe('actualsVsPlan', () => {
+    const ov = (date, amount, originalAmount) => ({ amount, originalAmount, date });
+    test('counts differing overrides in the period and sums the difference', () => {
+        const out = run('actualsVsPlan', input({ overrides: {
+            'recurring|1|2|2025-02-05': ov('2025-02-05', -25, -15),
+            'recurring|1|2|2025-03-05': ov('2025-03-05', -25, -15),
+            'expense|4|2|2025-04-01': ov('2025-04-01', -95, -100),
+            'expense|4|2|2024-04-01': ov('2024-04-01', -500, -100),
+            'debt|5|2|2025-05-01': ov('2025-05-01', -50, null),
+            'debt|6|2|2025-06-01': ov('2025-06-01', -50, -50)
+        } }));
+        expect(out).toMatchObject({ key: 'yearReview.i.actualsMore', plural: true, vars: { count: 3, amount: { $: 15 } } });
+    });
+    test('less than planned', () => {
+        expect(run('actualsVsPlan', input({ overrides: { 'bill|1|2|2025-02-01': ov('2025-02-01', -80, -100) } })).key).toBe('yearReview.i.actualsLess');
+    });
+    test('differences that cancel out', () => {
+        expect(run('actualsVsPlan', input({ overrides: {
+            'bill|1|2|2025-02-01': ov('2025-02-01', -80, -100),
+            'bill|1|2|2025-03-01': ov('2025-03-01', -120, -100)
+        } })).key).toBe('yearReview.i.actualsEven');
+    });
+    test('nothing differing gives nothing', () => {
+        expect(run('actualsVsPlan', input())).toBeNull();
+    });
+});
+
+describe('goalsReached', () => {
+    test('goals completed in the period', () => {
+        const out = run('goalsReached', input({ sinkingFunds: [
+            { name: 'Vacation', completedDate: '2025-06-01' },
+            { name: 'Car', completedDate: '2025-08-01' },
+            { name: 'Laptop', completedDate: '2025-09-01' },
+            { name: 'Old', completedDate: '2024-12-31' },
+            { name: 'Open', completedDate: null }
+        ] }));
+        expect(out).toMatchObject({ key: 'yearReview.i.goalsReached', plural: true, vars: { count: 3, names: 'Vacation, Car' } });
+    });
+    test('none gives nothing', () => {
+        expect(run('goalsReached', input({ sinkingFunds: [{ name: 'Open', completedDate: null }] }))).toBeNull();
+    });
+});
+
+describe('reconciliationAdjustments', () => {
+    test('counts non-zero differences in the period', () => {
+        const out = run('reconciliationAdjustments', input({ reconciliations: [
+            { date: '2025-03-31', difference: -12.5 },
+            { date: '2025-04-30', difference: 7 },
+            { date: '2025-05-31', difference: 0 },
+            { date: '2024-12-31', difference: 100 }
+        ] }));
+        expect(out).toMatchObject({ key: 'yearReview.i.reconAdjust', plural: true, vars: { count: 2, amount: { $: 19.5 } } });
+    });
+});

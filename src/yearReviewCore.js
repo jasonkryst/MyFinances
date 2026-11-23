@@ -180,9 +180,88 @@ export function interestEstimate(input) {
         { amount: { $: round2(total) }, name: _debtName(input, top.debtId) }, { estimated: true });
 }
 
+const OCCURRENCES_PER_YEAR = { weekly: 52, biweekly: 26, twice_monthly: 24, monthly: 12, quarterly: 4, yearly: 1 };
+
+// The amount in effect the day before `iso`: the base amount, or the latest
+// change dated before `iso` (#678's rule, inlined: this module imports nothing).
+function _amountBefore(record, iso) {
+    let amount = Number(record.amount) || 0;
+    const changes = (Array.isArray(record.amountChanges) ? record.amountChanges : [])
+        .filter(c => c && typeof c.from === 'string')
+        .sort((a, b) => a.from.localeCompare(b.from));
+    for (const c of changes) { if (c.from < iso) amount = Number(c.amount) || 0; else break; }
+    return amount;
+}
+
+export function amountChanges(input) {
+    const found = [];
+    const collect = (record, isPay) => {
+        for (const c of (Array.isArray(record.amountChanges) ? record.amountChanges : [])) {
+            if (!c || !_inPeriod(c.from, input.period)) continue;
+            const from = _amountBefore(record, c.from);
+            const to = Number(c.amount) || 0;
+            const perYear = OCCURRENCES_PER_YEAR[record.frequency] || 12;
+            found.push({ isPay, name: record.name || '', from, to, month: c.from.slice(0, 7), impact: Math.abs(to - from) * perYear });
+        }
+    };
+    for (const inc of (input.incomes || [])) collect(inc, true);
+    for (const t of (input.recurringTemplates || [])) {
+        if (t.type === 'transfer') continue;
+        collect(t, t.type === 'income' || t.type === 'reimbursement');
+    }
+    if (!found.length) return null;
+    found.sort((a, b) => b.impact - a.impact);
+    const out = found.slice(0, MAX_NAMED_CHANGES).map((f, i) => _insight('amountChanges', 'actual', 70 - i * 0.01,
+        f.isPay ? 'yearReview.i.payChange' : 'yearReview.i.priceChange',
+        { name: f.name, from: { $: f.from }, to: { $: f.to }, month: { m: f.month } }));
+    if (found.length > MAX_NAMED_CHANGES) {
+        out.push(_insight('changesMore', 'actual', 69, 'yearReview.i.changesMore',
+            { count: found.length - MAX_NAMED_CHANGES }, { plural: true }));
+    }
+    return out;
+}
+
+export function actualsVsPlan(input) {
+    let count = 0;
+    let diff = 0;
+    for (const [key, ov] of Object.entries(input.overrides || {})) {
+        const date = key.split('|').pop();
+        if (!_inPeriod(date, input.period)) continue;
+        const amount = Number(ov?.amount);
+        const original = ov?.originalAmount;
+        if (original === null || original === undefined || !Number.isFinite(Number(original)) || !Number.isFinite(amount)) continue;
+        if (amount === Number(original)) continue;
+        count++;
+        diff += Math.abs(amount) - Math.abs(Number(original));
+    }
+    if (count === 0) return null;
+    diff = round2(diff);
+    const key = diff > 0 ? 'yearReview.i.actualsMore' : diff < 0 ? 'yearReview.i.actualsLess' : 'yearReview.i.actualsEven';
+    return _insight('actualsVsPlan', 'actual', 60, key, { count, amount: { $: Math.abs(diff) } }, { plural: true });
+}
+
+export function goalsReached(input) {
+    const done = (input.sinkingFunds || []).filter(f => f && _inPeriod(f.completedDate, input.period))
+        .sort((a, b) => a.completedDate.localeCompare(b.completedDate));
+    if (!done.length) return null;
+    return _insight('goalsReached', 'actual', 55, 'yearReview.i.goalsReached',
+        { count: done.length, names: done.slice(0, MAX_NAMED_GOALS).map(f => f.name || '').join(', ') }, { plural: true });
+}
+
+export function reconciliationAdjustments(input) {
+    const adj = (input.reconciliations || []).filter(r => r && _inPeriod(r.date, input.period) && Number(r.difference));
+    if (!adj.length) return null;
+    const amount = round2(adj.reduce((s, r) => s + Math.abs(Number(r.difference)), 0));
+    return _insight('reconciliationAdjustments', 'actual', 50, 'yearReview.i.reconAdjust',
+        { count: adj.length, amount: { $: amount } }, { plural: true });
+}
+
 // ─── Runner ─────────────────────────────────────────────────────────────────
 
-export const RULES = [netWorthChange, debtPaidDown, debtCleared, interestEstimate];
+export const RULES = [
+    netWorthChange, debtPaidDown, debtCleared, interestEstimate,
+    amountChanges, actualsVsPlan, goalsReached, reconciliationAdjustments
+];
 
 export function computeYearInsights(input, rules = RULES) {
     const out = [];
