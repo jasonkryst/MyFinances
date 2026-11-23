@@ -4,6 +4,7 @@
 import { escapeHtml } from '../../sanitizers/index.js';
 
 const amountFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const monthFmt = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
 export function formatAmount(n) {
@@ -14,6 +15,11 @@ export function formatAmount(n) {
 export function formatIsoDate(iso) {
     if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
     return dateFmt.format(new Date(`${iso}T00:00:00Z`));
+}
+
+function formatIsoMonth(iso) {
+    if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+    return monthFmt.format(new Date(`${iso}T00:00:00Z`));
 }
 
 // One line of English describing an alert.
@@ -46,6 +52,13 @@ export function describeNotification(type, params = {}) {
             : '';
         return `The promotional rate on ${debt} ends on ${formatIsoDate(p.promoEndDate)}, then ${rate} APR applies to the ${formatAmount(p.balance)} balance.${tail}`;
     }
+    case 'sinkingBehind': {
+        const fund = p.name || 'A sinking fund';
+        if (p.kind === 'pastDue') {
+            return `${fund} passed its target date (${formatIsoDate(p.targetDate)}) with ${formatAmount(p.remaining)} still to save.`;
+        }
+        return `${fund} is behind: ${formatAmount(p.required)}/mo now needed (planned ${formatAmount(p.planned)}) to reach ${formatAmount(p.targetAmount)} by ${formatIsoMonth(p.targetDate)}.`;
+    }
     default:
         return 'You have a new MyFinances alert.';
     }
@@ -58,6 +71,7 @@ const SUBJECTS = {
     zeroBalance: 'Account overdrawn',
     projectedLow: 'Balance projected to run low',
     promoEnding: 'Promotional rate ending',
+    sinkingBehind: 'Sinking fund behind',
 };
 
 export default function notificationEmail({ items = [] } = {}) {

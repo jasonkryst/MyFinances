@@ -29,7 +29,7 @@ describe('notificationAccountId', () => {
 describe('notificationCategory', () => {
     test.each([
         ['billDueSoon', 'bill'], ['billDueToday', 'bill'], ['lowBalance', 'lowBalance'],
-        ['zeroBalance', 'overdrawn'], ['projectedLow', 'projected'],
+        ['zeroBalance', 'overdrawn'], ['projectedLow', 'projected'], ['promoEnding', 'promo'], ['sinkingBehind', 'sinking'],
         ['nope', 'other'], [undefined, 'other'], ['toString', 'other'],
     ])('%s -> %s', (t, c) => expect(notificationCategory(t)).toBe(c));
 });
@@ -40,6 +40,7 @@ describe('typesForCategory', () => {
         ['lowBalance', ['lowBalance']],
         ['overdrawn', ['zeroBalance']],
         ['projected', ['projectedLow']],
+        ['sinking', ['sinkingBehind']],
     ])('%s -> %j', (c, expected) => expect(typesForCategory(c)).toEqual(expected));
 
     test.each(['all', 'other', 'nope', undefined, null, 'toString'])('%s -> null', c => {
@@ -47,7 +48,7 @@ describe('typesForCategory', () => {
     });
 
     test('agrees with notificationCategory for every returned type', () => {
-        for (const c of ['bill', 'lowBalance', 'overdrawn', 'projected']) {
+        for (const c of ['bill', 'lowBalance', 'overdrawn', 'projected', 'sinking']) {
             for (const t of typesForCategory(c)) expect(notificationCategory(t)).toBe(c);
         }
     });
@@ -163,6 +164,7 @@ describe('notificationViewTarget', () => {
         expect(notificationViewTarget(mk(1, 'billDueToday', { params: {} }))).toEqual({ page: 'ledger', accountId: null });
         expect(notificationViewTarget(mk(1, 'lowBalance', { params: { accountId: 2 } }))).toEqual({ page: 'accounts', accountId: 2 });
         expect(notificationViewTarget(mk(1, 'zeroBalance'))).toEqual({ page: 'accounts', accountId: 1 });
+        expect(notificationViewTarget(mk(1, 'sinkingBehind', { params: {} }))).toEqual({ page: 'savings', accountId: null });
         expect(notificationViewTarget(null)).toEqual({ page: 'accounts', accountId: null });
     });
 });

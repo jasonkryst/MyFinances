@@ -6,7 +6,7 @@
 // toward the save-status chip or fire a live-refresh broadcast.
 
 import { t } from './i18n.js';
-import { escapeHtml, formatCurrency, formatShortDate, discardBody } from './utils.js';
+import { escapeHtml, formatCurrency, formatShortDate, formatMonthYear, discardBody } from './utils.js';
 import { getCsrfCookie } from './storage.js';
 import { getSetting, setSetting } from './settings.js';
 import { NOTIFY_FILTER_TYPE, NOTIFY_FILTER_STATUS, NOTIFY_FILTER_ACCOUNT } from './settingsSchema.js';
@@ -127,16 +127,30 @@ export function notificationMessage(type, params = {}) {
             rate: `${Number(p.regularRate) || 0}%`,
             balance: formatCurrency(Number(p.balance) || 0),
         });
+    case 'sinkingBehind': {
+        const name = p.name || t('notify.unknownFund');
+        if (p.kind === 'pastDue') {
+            return t('notify.msg.sinkingPastDue', { name, date: dateText(p.targetDate), remaining: formatCurrency(Number(p.remaining) || 0) });
+        }
+        return t('notify.msg.sinkingBehind', {
+            name,
+            required: formatCurrency(Number(p.required) || 0),
+            planned: formatCurrency(Number(p.planned) || 0),
+            target: formatCurrency(Number(p.targetAmount) || 0),
+            date: isoToDate(p.targetDate) ? formatMonthYear(p.targetDate) : '',
+        });
+    }
     default:
         return t('notify.msg.generic');
     }
 }
 
-const ICONS = { billDueToday: '📅', billDueSoon: '🗓️', lowBalance: '⚠️', zeroBalance: '⛔', projectedLow: '📉', promoEnding: '⏳' };
+const ICONS = { billDueToday: '📅', billDueSoon: '🗓️', lowBalance: '⚠️', zeroBalance: '⛔', projectedLow: '📉', promoEnding: '⏳', sinkingBehind: '🎯' };
 
 // Where clicking an alert goes: bills to the Ledger, balances to Accounts.
 export function notificationTargetPage(type) {
     if (type === 'promoEnding') return 'liabilities';
+    if (type === 'sinkingBehind') return 'savings';
     return type === 'billDueToday' || type === 'billDueSoon' ? 'ledger' : 'accounts';
 }
 

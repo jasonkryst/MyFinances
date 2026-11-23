@@ -8,7 +8,9 @@ const {
     getRequiredMonthlyAmount,
     getSinkingFundStatus,
     getEffectiveMonthlyAllocation,
-    isAfterTargetMonth
+    isAfterTargetMonth,
+    SINKING_BEHIND_ALERT_RATIO,
+    getSinkingAlertState
 } = require('../../src/sinkingFundSchedule.js');
 
 const fund = (extra) => ({
@@ -222,5 +224,53 @@ describe('isAfterTargetMonth', () => {
         expect(isAfterTargetMonth(fund({ targetDate: null }), 2030, 0)).toBe(false);
         expect(isAfterTargetMonth(fund({ allocationMethod: 'fixed' }), 2030, 0)).toBe(false);
         expect(isAfterTargetMonth(null, 2030, 0)).toBe(false);
+    });
+});
+
+// #701: when a fund alerts.
+describe('getSinkingAlertState', () => {
+    // 2026-01-15 to 2027-01-15 is 12 months left. 1200 left => 100/mo required.
+    const f = (extra) => fund({ targetAmount: 1200, currentAmount: 0, ...extra });
+
+    test('the threshold is 10%', () => {
+        expect(SINKING_BEHIND_ALERT_RATIO).toBe(1.1);
+    });
+    test('behind at 10% or more above the planned pace, with the figures', () => {
+        expect(getSinkingAlertState(f({ monthlyAllocation: 80 }), TODAY)).toEqual({
+            kind: 'behind', required: 100, planned: 80, remaining: 1200, monthsLeft: 12, targetAmount: 1200, targetDate: '2027-01-15',
+        });
+    });
+    test('the boundary is inclusive and float-safe; just under does not alert', () => {
+        // required 330 against planned 300 (300 * 1.1 is 330.00000000000006 in floating point).
+        expect(getSinkingAlertState(f({ targetAmount: 3960, monthlyAllocation: 300 }), TODAY)?.kind).toBe('behind');
+        expect(getSinkingAlertState(f({ monthlyAllocation: 90.91 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ monthlyAllocation: 90.9 }), TODAY)?.kind).toBe('behind');
+        expect(getSinkingAlertState(f({ targetAmount: 3959.88, monthlyAllocation: 300 }), TODAY)).toBeNull();
+    });
+    test('on pace, ahead and small slips are null', () => {
+        expect(getSinkingAlertState(f({ monthlyAllocation: 100 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ monthlyAllocation: 200 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ monthlyAllocation: 95 }), TODAY)).toBeNull();
+    });
+    test('a missing or zero planned pace never alerts as behind', () => {
+        expect(getSinkingAlertState(f({ monthlyAllocation: 0 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ monthlyAllocation: undefined }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ monthlyAllocation: -5 }), TODAY)).toBeNull();
+    });
+    test('pastDue when the date has passed and money is missing, with or without a planned pace', () => {
+        const past = f({ targetDate: '2026-01-14', currentAmount: 200, monthlyAllocation: 0 });
+        expect(getSinkingAlertState(past, TODAY)).toMatchObject({ kind: 'pastDue', remaining: 1000, monthsLeft: 0 });
+        expect(getSinkingAlertState({ ...past, monthlyAllocation: 100 }, TODAY).kind).toBe('pastDue');
+        expect(getSinkingAlertState(f({ targetDate: TODAY, monthlyAllocation: 50 }), TODAY)?.kind).toBe('behind');
+    });
+    test('funded, archived, undated, other methods and missing funds are null', () => {
+        expect(getSinkingAlertState(f({ currentAmount: 1200, monthlyAllocation: 50 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ currentAmount: 1500, targetDate: '2025-01-01' }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ archived: true, monthlyAllocation: 50 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ targetDate: null, monthlyAllocation: 50 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ allocationMethod: 'fixed', monthlyAllocation: 50 }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ targetAmount: 0, targetDate: '2025-01-01' }), TODAY)).toBeNull();
+        expect(getSinkingAlertState(null, TODAY)).toBeNull();
+        expect(getSinkingAlertState(f({ monthlyAllocation: 50 }), 'bad')).toBeNull();
     });
 });

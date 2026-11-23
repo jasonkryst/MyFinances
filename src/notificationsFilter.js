@@ -9,8 +9,9 @@ const CATEGORY_BY_TYPE = {
     zeroBalance: 'overdrawn',
     projectedLow: 'projected',
     promoEnding: 'promo',
+    sinkingBehind: 'sinking',
 };
-const FILTER_CATEGORIES = ['bill', 'lowBalance', 'overdrawn', 'projected', 'promo'];
+const FILTER_CATEGORIES = ['bill', 'lowBalance', 'overdrawn', 'projected', 'promo', 'sinking'];
 const FILTER_STATUSES = ['unread', 'read', 'active', 'resolved', 'all'];
 const DAY_MS = 86400000;
 
@@ -141,6 +142,7 @@ export function summarizeNotifications(items, total) {
 export function notificationViewTarget(n) {
     const accountId = notificationAccountId(n);
     if (n?.type === 'promoEnding') return { page: 'liabilities', accountId: null };
+    if (n?.type === 'sinkingBehind') return { page: 'savings', accountId: null };
     return BILL_TYPES.includes(n?.type)
         ? { page: 'ledger', accountId }
         : { page: 'accounts', accountId };

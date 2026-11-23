@@ -664,6 +664,8 @@ TRANSLATED_PAGES = {
                 { id: 7, type: 'projectedLow', params: { ...p, threshold: null }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
                 { id: 9, type: 'promoEnding', params: { name: '⟦Store Card⟧', promoEndDate: '2026-12-31', daysUntil: 46, regularRate: 26.99, balance: 1200 }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
                 { id: 10, type: 'promoEnding', params: { name: null, promoEndDate: '2026-12-31', daysUntil: 46, regularRate: 26.99, balance: 1200, deferredInterest: true }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 11, type: 'sinkingBehind', params: { name: '⟦Vacation⟧', fundId: 1, kind: 'behind', targetDate: '2027-06-01', targetAmount: 3000, remaining: 1800, required: 450, planned: 300 }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 12, type: 'sinkingBehind', params: { name: null, fundId: 2, kind: 'pastDue', targetDate: '2026-05-01', targetAmount: 3000, remaining: 1200 }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
                 { id: 8, type: 'mystery', params: {}, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
             ];
             st.unreadCount = 7;
@@ -1143,6 +1145,10 @@ TRANSLATED_PAGES = {
                   date: '2026-03-10' }, createdAt: day(20), readAt: null, resolvedAt: null },
                 { id: 9006, type: 'promoEnding', params: { name: '⟦Store Card⟧', debtId: 1, promoEndDate: '2026-04-30',
                   daysUntil: 40, regularRate: 26.99, balance: 1200 }, createdAt: day(21), readAt: null, resolvedAt: null },
+                { id: 9007, type: 'sinkingBehind', params: { name: '⟦Vacation⟧', fundId: 1, kind: 'behind', targetDate: '2027-06-01',
+                  targetAmount: 3000, remaining: 1800, required: 450, planned: 300 }, createdAt: day(22), readAt: null, resolvedAt: null },
+                { id: 9008, type: 'sinkingBehind', params: { name: '⟦Car⟧', fundId: 2, kind: 'pastDue', targetDate: '2026-02-01',
+                  targetAmount: 3000, remaining: 1200 }, createdAt: day(23), readAt: null, resolvedAt: null },
             ];
             s.total = 600;
             window.app._notificationsFilters = { status: 'all' };

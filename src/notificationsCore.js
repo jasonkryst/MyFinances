@@ -14,13 +14,14 @@ import { buildProjectedAccountTransactions, UNLINKED_KEY } from './projectionCor
 import { getEffectiveAmount, isCleared } from './ledgerStateCore.js';
 import { dateToISO } from './utils.js';
 import { daysUntilPromoEnd } from './promoApr.js';
+import { getSinkingAlertState } from './sinkingFundSchedule.js';
 import {
-    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW, NOTIFY_PROMO_ENDING, NOTIFY_NEW_SIGN_IN, PROMO_ALERT_DAYS,
+    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW, NOTIFY_PROMO_ENDING, NOTIFY_SINKING_BEHIND, NOTIFY_NEW_SIGN_IN, PROMO_ALERT_DAYS,
     NOTIFY_DAYS_AHEAD, NOTIFY_DAYS_AHEAD_DEFAULT, NOTIFY_DAYS_AHEAD_MAX,
     NOTIFY_CHANNEL, NOTIFY_CHANNELS, NOTIFY_DELIVERY, NOTIFY_DELIVERIES,
 } from './settingsSchema.js';
 
-export const NOTIFICATION_TYPES = ['billDueSoon', 'billDueToday', 'lowBalance', 'zeroBalance', 'projectedLow', 'promoEnding'];
+export const NOTIFICATION_TYPES = ['billDueSoon', 'billDueToday', 'lowBalance', 'zeroBalance', 'projectedLow', 'promoEnding', 'sinkingBehind'];
 
 // Account types whose balance is never alerted on: liabilities (a balance
 // there is money owed) and retirement accounts (statement-driven, #245).
@@ -48,6 +49,7 @@ export function getNotificationPrefs(settings) {
         zeroBalance: flag(NOTIFY_ZERO_BALANCE),
         projectedLow: flag(NOTIFY_PROJECTED_LOW),
         promoEnding: flag(NOTIFY_PROMO_ENDING),
+        sinkingBehind: flag(NOTIFY_SINKING_BEHIND),
         // #683: not an event type; read by the server at sign-in.
         newSignIn: flag(NOTIFY_NEW_SIGN_IN),
         daysAhead: Number.isInteger(days) && days >= 0 && days <= NOTIFY_DAYS_AHEAD_MAX ? days : NOTIFY_DAYS_AHEAD_DEFAULT,
@@ -215,6 +217,35 @@ export function computeNotificationEvents(app, now = new Date(), prefs = getNoti
                     regularRate: Number(debt.interestRate) || 0,
                     balance: round2(Number(debt.accountBalance) || 0),
                     deferredInterest: debt.deferredInterest === true,
+                },
+            });
+        }
+    }
+
+    // #701: a target-date sinking fund that fell behind its planned pace (or
+    // is past its date). One open episode per fund, date and kind: behind
+    // turning into past due is a new alert, a repeat check is not, and the
+    // episode resolves when the fund catches up, is funded, archived or
+    // deleted, or its date changes (the key no longer matches an active one).
+    if (prefs.sinkingBehind) {
+        for (const fund of app.sinkingFunds || []) {
+            const state = getSinkingAlertState(fund, todayIso);
+            if (!state) continue;
+            const episodeKey = `sinkingBehind|${fund.id}|${state.targetDate}|${state.kind}`;
+            activeEpisodes.push(episodeKey);
+            events.push({
+                type: 'sinkingBehind',
+                dedupeKey: `${episodeKey}|${todayIso}`,
+                episodeKey,
+                params: {
+                    name: fund.name || null,
+                    fundId: fund.id,
+                    kind: state.kind,
+                    targetDate: state.targetDate,
+                    targetAmount: round2(state.targetAmount),
+                    remaining: round2(state.remaining),
+                    required: round2(state.required),
+                    planned: round2(state.planned),
                 },
             });
         }

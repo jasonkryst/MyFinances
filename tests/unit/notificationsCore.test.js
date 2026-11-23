@@ -36,12 +36,16 @@ function makeApp(overrides = {}) {
 const debt = (fields = {}) => ({ id: 10, name: 'Visa', accountId: 1, dueDate: 17, minimumPayment: 50, accountBalance: 900, ...fields });
 const events = (app, prefs = DEFAULT_PREFS, now = NOW) => computeNotificationEvents(app, now, prefs).events;
 const ofType = (list, type) => list.filter(e => e.type === type);
+const fund = (fields = {}) => ({
+    id: 30, name: 'Vacation', allocationMethod: 'target_date', targetDate: '2027-05-15', targetAmount: 3000,
+    currentAmount: 1200, monthlyAllocation: 300, accountId: 1, archived: false, ...fields,
+});
 const txsFor = (app, id) => buildProjectedAccountTransactions(app, 2026, 10, 3)[id].txs;
 
 describe('getNotificationPrefs', () => {
     test('defaults: every type on, 3 days ahead, both channels, one email per alert', () => {
         expect(getNotificationPrefs(undefined)).toEqual({
-            billDue: true, lowBalance: true, zeroBalance: true, projectedLow: true, promoEnding: true, newSignIn: true,
+            billDue: true, lowBalance: true, zeroBalance: true, projectedLow: true, promoEnding: true, sinkingBehind: true, newSignIn: true,
             daysAhead: 3, channel: 'both', delivery: 'perEvent',
         });
     });
@@ -396,6 +400,7 @@ describe('balance alerts', () => {
             accounts: [acct({ id: 1, startingBalance: 50, lowBalanceThreshold: 100 }), acct({ id: 2, startingBalance: -1 }), acct({ id: 3, startingBalance: 500, lowBalanceThreshold: 100 })],
             debts: [debt({ id: 10, accountId: 3, dueDate: 15 }), debt({ id: 11, accountId: 3, dueDate: 17, minimumPayment: 400 }),
                 debt({ id: 12, accountId: 3, dueDate: 28, promoRate: 0, promoEndDate: '2026-12-31', interestRate: 24.99 })],
+            sinkingFunds: [fund({ id: 30, monthlyAllocation: 200 })],
         });
         const types = new Set(events(app).map(e => e.type));
         expect([...types].sort()).toEqual([...NOTIFICATION_TYPES].sort());
@@ -454,5 +459,73 @@ describe('promoEnding', () => {
 
     test('no debts list at all is fine', () => {
         expect(promoEvents(makeApp({ debts: undefined }))).toEqual([]);
+    });
+});
+
+// #701: a target-date sinking fund behind its planned pace, or past its date.
+describe('sinkingBehind', () => {
+    // NOW is 2026-11-15; the default fund targets 2027-05-15 (6 months left), 1800 to go = 300/mo.
+    const sinkEvents = (app, prefs = DEFAULT_PREFS, now = NOW) => ofType(events(app, prefs, now), 'sinkingBehind');
+    const withFund = (fields, prefs, now) => sinkEvents(makeApp({ sinkingFunds: [fund(fields)] }), prefs, now);
+
+    test('a fund behind its planned pace raises one event with its params and episode key', () => {
+        expect(withFund({})).toEqual([]);
+        expect(withFund({ monthlyAllocation: 200 })).toEqual([{
+            type: 'sinkingBehind',
+            dedupeKey: 'sinkingBehind|30|2027-05-15|behind|2026-11-15',
+            episodeKey: 'sinkingBehind|30|2027-05-15|behind',
+            params: { name: 'Vacation', fundId: 30, kind: 'behind', targetDate: '2027-05-15', targetAmount: 3000, remaining: 1800, required: 300, planned: 200 },
+        }]);
+    });
+
+    test('exactly 10% above the planned pace alerts (inclusive); just under does not', () => {
+        expect(withFund({ monthlyAllocation: 272.73 })).toEqual([]);
+        expect(withFund({ monthlyAllocation: 272.72 })).toHaveLength(1);
+        // 1980 left over 6 months is 330 required against planned 300.
+        expect(withFund({ currentAmount: 1020, monthlyAllocation: 300 })).toHaveLength(1);
+        expect(withFund({ currentAmount: 1030, monthlyAllocation: 300 })).toEqual([]);
+    });
+
+    test('an on-pace, ahead or slightly behind fund never alerts', () => {
+        expect(withFund({ currentAmount: 1100, monthlyAllocation: 300 })).toEqual([]);
+        expect(withFund({ currentAmount: 2400, monthlyAllocation: 300 })).toEqual([]);
+    });
+
+    test('past its date with money missing raises a pastDue event, even with no planned pace', () => {
+        const [e] = withFund({ targetDate: '2026-05-01', monthlyAllocation: 0 });
+        expect(e.episodeKey).toBe('sinkingBehind|30|2026-05-01|pastDue');
+        expect(e.params).toMatchObject({ kind: 'pastDue', remaining: 1800, targetDate: '2026-05-01' });
+    });
+
+    test('behind and pastDue are different episodes', () => {
+        const behind = withFund({ monthlyAllocation: 200 })[0];
+        const past = withFund({ monthlyAllocation: 200, targetDate: '2026-11-14' })[0];
+        expect(behind.episodeKey).not.toBe(past.episodeKey);
+    });
+
+    test('no event for funded, archived, non-target-date, undated or planned-0 funds', () => {
+        const app = makeApp({ sinkingFunds: [
+            fund({ id: 31, currentAmount: 3000, monthlyAllocation: 200 }),
+            fund({ id: 32, archived: true, monthlyAllocation: 200 }),
+            fund({ id: 33, allocationMethod: 'fixed', monthlyAllocation: 200 }),
+            fund({ id: 34, targetDate: null, monthlyAllocation: 200 }),
+            fund({ id: 35, monthlyAllocation: 0 }),
+            fund({ id: 36, monthlyAllocation: undefined }),
+            fund({ id: 37, targetAmount: 0, currentAmount: 0, targetDate: '2026-05-01' }),
+        ] });
+        expect(sinkEvents(app)).toEqual([]);
+        expect(sinkEvents(makeApp({ sinkingFunds: undefined }))).toEqual([]);
+    });
+
+    test('active episodes list the open ones, and nothing when the setting is off', () => {
+        const app = makeApp({ sinkingFunds: [fund({ monthlyAllocation: 200 })] });
+        expect(computeNotificationEvents(app, NOW, DEFAULT_PREFS).activeEpisodes).toContain('sinkingBehind|30|2027-05-15|behind');
+        const prefs = getNotificationPrefs([{ key: 'notifySinkingBehind', value: false }]);
+        expect(prefs.sinkingBehind).toBe(false);
+        const off = computeNotificationEvents(app, NOW, prefs);
+        expect(off.events).toEqual([]);
+        expect(off.activeEpisodes).toEqual([]);
+        expect(isAllowedSetting('notifySinkingBehind', true)).toBe(true);
+        expect(isAllowedSetting('notifySinkingBehind', 'yes')).toBe(false);
     });
 });
