@@ -279,6 +279,11 @@ Top-level pages (`data-page` buttons in `index.html`): `health`, `accounts`, `in
     - Subscriptions add to `totalOutflow`, which also feeds emergency-fund coverage.
   - **Deliberately unchanged.** DTI, mortgage DTI, interest burden, `computeMonthlyIncomeForMonth` and Home Purchase affordability stay on salary/bonus income only.
   - **Spec.** `docs/superpowers/specs/2026-10-28-recurring-income-type-design.md`.
+- **Promotional APR (#681).** Debts carry `promoRate`/`promoEndDate` (inclusive) and `deferredInterest`/`deferredInterestAccrued` (migration `1755600000046`; `sanitizeDebt` clears a partial promo).
+  - **Two copies of one rule.** `debtCalculator.js` is a classic script, so it has its own static `hasPromo`/`promoDaysInMonth`/`monthlyInterest`/`rateForMonth`; ES modules and the server use the pure, import-free `src/promoApr.js` (`getDebtRateOn`, `daysUntilPromoEnd`, `promoPayoffHint`). Keep them in step.
+  - **Rate in effect today.** Any "current rate" display or estimate (debt card, Health interest burden and advice, sorting) calls `getDebtRateOn(debt, todayISO())`, never `debt.interestRate` directly; the regular rate stays in `interestRate`.
+  - **Plan fingerprints** (`strategy.js`, `strategyPlanCalculation.js`) include the promo fields, so a promo edit marks the plan stale.
+  - **Notification.** `promoEnding` (`PROMO_ALERT_DAYS` = 60, dedupe `promoEnding|<debtId>|<endDate>`), setting `notifyPromoEnding`, filter category `promo`; a new notification type needs `NOTIFICATION_TYPES`, prefs, the email template, `CATEGORY_BY_TYPE`/`NOTIFY_FILTER_TYPES`, icons, locale keys and the render-guard fixtures.
 - **Income end date (#679).** Incomes carry an optional, inclusive `endDate` (`sanitizeIncome` drops one before `firstPayDate`; migration `1755600000045`, `end_date`).
   - **One rule.** `getIncomePaydaysInMonth` and `getNextIncomePayDates` (`utils.js`, Stryker-scoped) never return a payday after it, so every payday consumer (Ledger, balances, Forecast, Health, Reports, both calendar feeds) inherits it. Earlier paydays keep their `income|id|accountId|date` keys. **Never generate income paydays another way.**
   - **Annualized figures** (frequency × amount: Income summary, per-person income on Health and People) must skip `isIncomeEnded(inc, todayISO())`; an income ending today is still active.

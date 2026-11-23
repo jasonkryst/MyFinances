@@ -14,7 +14,8 @@ function computeDebtFingerprint(debts) {
     return (debts || [])
         .filter(d => !d.archived)
         .sort((a, b) => a.id - b.id)
-        .map(d => `${d.id}|${d.accountBalance}|${d.interestRate}|${d.minimumPayment}`)
+        // #681: a promo change makes the saved plan stale too.
+        .map(d => `${d.id}|${d.accountBalance}|${d.interestRate}|${d.minimumPayment}|${d.promoRate ?? ''}|${d.promoEndDate ?? ''}|${d.deferredInterest === true}|${d.deferredInterestAccrued || 0}`)
         .join(',');
 }
 

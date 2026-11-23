@@ -119,15 +119,24 @@ export function notificationMessage(type, params = {}) {
         return p.threshold
             ? t('notify.msg.projectedLow', { account, balance: formatCurrency(Number(p.projectedBalance) || 0), date: dateText(p.date), threshold: formatCurrency(Number(p.threshold) || 0) })
             : t('notify.msg.projectedZero', { account, balance: formatCurrency(Number(p.projectedBalance) || 0), date: dateText(p.date) });
+    case 'promoEnding':
+        return t(p.deferredInterest ? 'notify.msg.promoEndingDeferred' : 'notify.msg.promoEnding', {
+            name: p.name || t('notify.unknownDebt'),
+            days: Number(p.daysUntil) || 0,
+            date: dateText(p.promoEndDate),
+            rate: `${Number(p.regularRate) || 0}%`,
+            balance: formatCurrency(Number(p.balance) || 0),
+        });
     default:
         return t('notify.msg.generic');
     }
 }
 
-const ICONS = { billDueToday: '📅', billDueSoon: '🗓️', lowBalance: '⚠️', zeroBalance: '⛔', projectedLow: '📉' };
+const ICONS = { billDueToday: '📅', billDueSoon: '🗓️', lowBalance: '⚠️', zeroBalance: '⛔', projectedLow: '📉', promoEnding: '⏳' };
 
 // Where clicking an alert goes: bills to the Ledger, balances to Accounts.
 export function notificationTargetPage(type) {
+    if (type === 'promoEnding') return 'liabilities';
     return type === 'billDueToday' || type === 'billDueSoon' ? 'ledger' : 'accounts';
 }
 

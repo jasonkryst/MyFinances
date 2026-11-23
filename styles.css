@@ -3489,6 +3489,35 @@ body.dark-mode .neg-amort-badge {
     margin-top: 4px;
 }
 body.dark-mode .debt-min-trap-warn { background: #422006; color: #fde68a; border-color: #78350f; }
+/* #681: promotional APR notice on a debt card */
+.debt-promo-note {
+    display: flex;
+    background: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-top: 4px;
+}
+.debt-promo-line { font-weight: 600; }
+.debt-promo-deferred {
+    font-weight: 600;
+    color: var(--danger-text);
+}
+.debt-promo-hint { color: var(--text-secondary); }
+.debt-promo-fieldset {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px 4px;
+    margin: 0 0 16px;
+    min-width: 0;
+}
+.debt-promo-fieldset legend {
+    font-weight: 600;
+    padding: 0 4px;
+}
 .debt-min-trap-badge {
     display: inline-block;
     font-weight: 700;
@@ -3598,7 +3627,8 @@ body.dark-mode .debt-bulk-count { color: #f1f5f9; }
 }
 /* Sentence-style notices span the whole row instead of squeezing into a tile */
 .debt-details--tiles .iptd-detail,
-.debt-details--tiles .debt-min-trap-warn {
+.debt-details--tiles .debt-min-trap-warn,
+.debt-details--tiles .debt-promo-note {
     grid-column: 1 / -1;
     flex-direction: row;
     flex-wrap: wrap;

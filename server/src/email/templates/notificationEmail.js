@@ -38,6 +38,14 @@ export function describeNotification(type, params = {}) {
         return p.threshold
             ? `${account} is projected to drop to ${formatAmount(p.projectedBalance)} on ${formatIsoDate(p.date)}, at or below your alert amount of ${formatAmount(p.threshold)}.`
             : `${account} is projected to go below zero (${formatAmount(p.projectedBalance)}) on ${formatIsoDate(p.date)}.`;
+    case 'promoEnding': {
+        const debt = p.name || 'A debt';
+        const rate = `${Number(p.regularRate) || 0}%`;
+        const tail = p.deferredInterest
+            ? ' Deferred interest is charged back if a balance remains.'
+            : '';
+        return `The promotional rate on ${debt} ends on ${formatIsoDate(p.promoEndDate)}, then ${rate} APR applies to the ${formatAmount(p.balance)} balance.${tail}`;
+    }
     default:
         return 'You have a new MyFinances alert.';
     }
@@ -49,6 +57,7 @@ const SUBJECTS = {
     lowBalance: 'Low balance',
     zeroBalance: 'Account overdrawn',
     projectedLow: 'Balance projected to run low',
+    promoEnding: 'Promotional rate ending',
 };
 
 export default function notificationEmail({ items = [] } = {}) {

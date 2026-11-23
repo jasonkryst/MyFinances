@@ -9,6 +9,13 @@
  *
  * Interest model: daily compounding — balance × ((1 + APR/365)^daysInMonth − 1)
  *
+ * Promotional APR (#681): a debt with `promoRate` and `promoEndDate` accrues
+ * at the promo rate on every day up to and including the end date, then at
+ * `interestRate`; the month containing the end date is split by day. With
+ * `deferredInterest`, interest at `interestRate` accrues in the background
+ * during the promo (starting from `deferredInterestAccrued`) and is added to
+ * the balance in the month the promo ends if any balance remains.
+ *
  * Payment allocation order each month:
  *   1. Minimum payments to every active debt
  *   2. Remaining overage applied to debts in strategy order
@@ -66,7 +73,12 @@ class DebtCalculator {
             // For fixed-amount debts, calculate remaining months
             remainingMonths: debt.debtType === 'fixedAmount' ? 
                 this.calculateMonthsBetweenDates(new Date(debt.fixedStartDate), new Date(debt.fixedEndDate)) : 
-                null
+                null,
+            // #681: deferred interest waiting to be charged back at the promo's end.
+            deferredAccrued: debt.deferredInterest === true && this.hasPromo(debt)
+                ? Math.max(0, Number(debt.deferredInterestAccrued) || 0)
+                : 0,
+            deferredCharged: 0
         }));
 
         const paymentPlan = [];
@@ -85,8 +97,19 @@ class DebtCalculator {
                 stimulusApplied: {} // Track how much stimulus is applied to each debt this month
             };
 
-            // Determine payment order based on selected strategy (Avalanche, Snowball, etc.)
-            const paymentOrder = this.getPaymentOrder(workingDebts, strategy);
+            // Determine payment order based on selected strategy (Avalanche, Snowball, etc.).
+            // Avalanche ranks by the rate in effect this month (#681).
+            const paymentOrder = this.getPaymentOrder(workingDebts, strategy, monthDate, daysInMonth);
+
+            // #681: deferred interest accrues at the regular rate on the
+            // balance carried into each promo day.
+            for (const debt of workingDebts) {
+                if (debt.paidOffMonth || debt.debtType === 'fixedAmount' || debt.deferredInterest !== true) continue;
+                const promoDays = this.promoDaysInMonth(debt, monthDate, daysInMonth);
+                if (promoDays > 0) {
+                    debt.deferredAccrued += debt.balance * (Math.pow(1 + (debt.interestRate || 0) / 100 / 365, promoDays) - 1);
+                }
+            }
 
             let remainingPayment = monthlyPayment;
             // #672: interest the minimum pass already accrued this month, per
@@ -129,8 +152,7 @@ class DebtCalculator {
                     }
                 } else {
                     // Credit card debt: apply minimum payment with daily compounding interest
-                    const dailyRate = (debt.interestRate || 0) / 100 / 365;
-                    const monthlyInterest = debt.balance * (Math.pow(1 + dailyRate, daysInMonth) - 1);
+                    const monthlyInterest = this.monthlyInterest(debt, debt.balance, monthDate, daysInMonth);
                     const minimumRequired = debt.minimumPayment || 0;
 
                     if (minimumRequired > 0) {
@@ -175,10 +197,9 @@ class DebtCalculator {
                     // Interest still due this month: what the minimum pass left
                     // unpaid (#672), or the month's daily-compounded interest when
                     // this debt had no minimum payment.
-                    const dailyRate = (debt.interestRate || 0) / 100 / 365;
                     const monthlyInterest = Object.prototype.hasOwnProperty.call(interestOwed, debtIndex)
                         ? interestOwed[debtIndex]
-                        : debt.balance * (Math.pow(1 + dailyRate, daysInMonth) - 1);
+                        : this.monthlyInterest(debt, debt.balance, monthDate, daysInMonth);
                     const payment = Math.min(remainingPayment, debt.balance + monthlyInterest);
 
                     if (payment < 0.01) continue;
@@ -276,6 +297,35 @@ class DebtCalculator {
                 }
             }
 
+            // #681: a deferred-interest promo ending this month with a balance
+            // left charges back everything accrued; paid off in time, nothing.
+            for (const [debtIndex, debt] of workingDebts.entries()) {
+                if (debt.deferredInterest !== true || !this.promoEndsInMonth(debt, monthDate)) continue;
+                const charge = debt.deferredAccrued;
+                debt.deferredAccrued = 0;
+                if (debt.paidOffMonth || debt.balance <= 0.01 || charge < 0.01) continue;
+                debt.balance += charge;
+                debt.totalInterest += charge;
+                debt.deferredCharged += charge;
+                const charged = parseFloat(charge.toFixed(2));
+                const entry = monthPlan.payments.find(p => p.debtIndex === debtIndex);
+                if (entry) {
+                    entry.balance = parseFloat(debt.balance.toFixed(2));
+                    entry.deferredInterestCharged = charged;
+                } else {
+                    monthPlan.payments.push({
+                        debtIndex,
+                        debtName: debt.name,
+                        payment: 0,
+                        principal: 0,
+                        interest: 0,
+                        balance: parseFloat(debt.balance.toFixed(2)),
+                        paidOff: false,
+                        deferredInterestCharged: charged
+                    });
+                }
+            }
+
             paymentPlan.push(monthPlan);
             month++;
         }
@@ -331,7 +381,7 @@ class DebtCalculator {
      * @param {string}   strategy - Strategy key
      * @returns {number[]} Ordered array of indices into `debts`
      */
-    static getPaymentOrder(debts, strategy) {
+    static getPaymentOrder(debts, strategy, monthDate = null, daysInMonth = 0) {
         const activeDebts = debts
             .map((debt, index) => ({ ...debt, index }))
             .filter(debt => debt.paidOffMonth === null && debt.balance > 0.01);
@@ -343,11 +393,14 @@ class DebtCalculator {
                     .sort((a, b) => a.balance - b.balance)
                     .map(d => d.index);
 
-            case 'avalanche':
-                // Highest interest rate first
+            case 'avalanche': {
+                // Highest interest rate first: the rate in effect this month
+                // when one is given (#681), else the regular rate.
+                const rate = d => (monthDate ? this.rateForMonth(d, monthDate, daysInMonth) : (d.interestRate || 0));
                 return activeDebts
-                    .sort((a, b) => b.interestRate - a.interestRate)
+                    .sort((a, b) => rate(b) - rate(a))
                     .map(d => d.index);
+            }
 
             case 'priority-lowest':
                 // Lowest priority number first (1 = lowest)
@@ -372,6 +425,78 @@ class DebtCalculator {
             default:
                 return activeDebts.map(d => d.index);
         }
+    }
+
+    /**
+     * #681: true when the debt has a usable promo: a rate from 0 to 100 and a
+     * YYYY-MM-DD end date.
+     * @param {object} debt
+     * @returns {boolean}
+     */
+    static hasPromo(debt) {
+        const rate = debt?.promoRate;
+        return typeof rate === 'number' && Number.isFinite(rate) && rate >= 0 && rate <= 100
+            && typeof debt.promoEndDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(debt.promoEndDate);
+    }
+
+    /**
+     * #681: how many days of the month containing `monthDate` are on or
+     * before the promo end date (0 without a promo, or once it has ended).
+     * @param {object} debt
+     * @param {Date} monthDate - any date in the month (its year and month are used)
+     * @param {number} daysInMonth
+     * @returns {number}
+     */
+    static promoDaysInMonth(debt, monthDate, daysInMonth) {
+        if (!this.hasPromo(debt)) return 0;
+        const [y, m, d] = debt.promoEndDate.split('-').map(Number);
+        const endKey = y * 12 + (m - 1);
+        const monthKey = monthDate.getFullYear() * 12 + monthDate.getMonth();
+        if (endKey < monthKey) return 0;
+        if (endKey > monthKey) return daysInMonth;
+        return Math.min(d, daysInMonth);
+    }
+
+    /**
+     * #681: true when the promo end date falls in the month containing `monthDate`.
+     * @param {object} debt
+     * @param {Date} monthDate
+     * @returns {boolean}
+     */
+    static promoEndsInMonth(debt, monthDate) {
+        if (!this.hasPromo(debt)) return false;
+        const [y, m] = debt.promoEndDate.split('-').map(Number);
+        return y === monthDate.getFullYear() && m - 1 === monthDate.getMonth();
+    }
+
+    /**
+     * #681: one month of daily-compounded interest on `balance`, at the promo
+     * rate for the promo days and the regular rate for the rest.
+     * @param {object} debt
+     * @param {number} balance
+     * @param {Date} monthDate
+     * @param {number} daysInMonth
+     * @returns {number}
+     */
+    static monthlyInterest(debt, balance, monthDate, daysInMonth) {
+        const promoDays = this.promoDaysInMonth(debt, monthDate, daysInMonth);
+        const promoFactor = promoDays > 0 ? Math.pow(1 + debt.promoRate / 100 / 365, promoDays) : 1;
+        const regularFactor = Math.pow(1 + (debt.interestRate || 0) / 100 / 365, daysInMonth - promoDays);
+        return balance * (promoFactor * regularFactor - 1);
+    }
+
+    /**
+     * #681: the APR in effect at the end of the month: the promo rate only
+     * when the promo covers the whole month.
+     * @param {object} debt
+     * @param {Date} monthDate
+     * @param {number} daysInMonth
+     * @returns {number}
+     */
+    static rateForMonth(debt, monthDate, daysInMonth) {
+        return this.promoDaysInMonth(debt, monthDate, daysInMonth) >= daysInMonth
+            ? debt.promoRate
+            : (debt.interestRate || 0);
     }
 
     /**

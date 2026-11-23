@@ -88,6 +88,7 @@ test('each type value returns only matching rows', async () => {
         lowBalance: ['lowBalance'],
         overdrawn: ['zeroBalance', 'zeroBalance'],
         projected: ['projectedLow', 'projectedLow'],
+        promo: [],
     };
     for (const [type, expected] of Object.entries(cases)) {
         const res = await list(`?type=${type}`);

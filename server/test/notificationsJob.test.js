@@ -386,6 +386,13 @@ test('the email template describes each alert, escapes names and keeps the subje
         'Checking is projected to drop to 40.00 on Nov 18, 2026, at or below your alert amount of 100.00.');
     assert.equal(describeNotification('projectedLow', { accountName: 'Checking', projectedBalance: -1, date: '2026-11-18', threshold: null }),
         'Checking is projected to go below zero (-1.00) on Nov 18, 2026.');
+    // #681
+    assert.equal(describeNotification('promoEnding', { name: 'Store Card', promoEndDate: '2027-01-14', regularRate: 26.99, balance: 1200 }),
+        'The promotional rate on Store Card ends on Jan 14, 2027, then 26.99% APR applies to the 1,200.00 balance.');
+    assert.equal(describeNotification('promoEnding', { promoEndDate: '2027-01-14', balance: 5, deferredInterest: true }),
+        'The promotional rate on A debt ends on Jan 14, 2027, then 0% APR applies to the 5.00 balance. Deferred interest is charged back if a balance remains.');
+    assert.equal(notificationEmail({ items: [{ type: 'promoEnding', params: { name: 'X', promoEndDate: '2027-01-14', balance: 1 } }] }).subject,
+        'MyFinances: Promotional rate ending');
     assert.equal(describeNotification('unknown', {}), 'You have a new MyFinances alert.');
     assert.equal(formatAmount('x'), '');
     assert.equal(formatIsoDate('2026-13'), '');

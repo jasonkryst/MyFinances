@@ -16,6 +16,7 @@
     "src/planSettingsPatch.js": 90,
     "src/projectionCache.js": 97,
     "src/projectionCore.js": 82,
+    "src/promoApr.js": 80,
     "src/recordVersions.js": 97,
     "src/recurringOccurrences.js": 85,
     "src/refreshPolicy.js": 97,

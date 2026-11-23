@@ -133,7 +133,8 @@ def test_preferences_default_and_persist(app_page):
     page = app_page
     _open_notifications_settings(page)
     # Defaults: every type on, 3 days, both channels, one email per alert.
-    for box in ('#settingNotifyBillDue', '#settingNotifyLowBalance', '#settingNotifyZeroBalance', '#settingNotifyProjectedLow'):
+    for box in ('#settingNotifyBillDue', '#settingNotifyLowBalance', '#settingNotifyZeroBalance', '#settingNotifyProjectedLow',
+                '#settingNotifyPromoEnding'):
         assert page.is_checked(box), box
     assert page.input_value('#settingNotifyDaysAhead') == '3'
     assert page.input_value('#settingNotifyChannel') == 'both'

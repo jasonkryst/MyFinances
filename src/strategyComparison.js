@@ -4,8 +4,10 @@ import {
     formatCurrency,
     formatLongDate,
     escapeHtml,
-    debounce
+    debounce,
+    sanitizeDateISO
 } from './utils.js';
+import { hasPromo } from './promoApr.js';
 import { t, plural } from './i18n.js';
 import { strategyLabel } from './strategy.js';
 
@@ -82,10 +84,12 @@ export function parseRefinanceApr(raw) {
 /**
  * Pure what-if: re-run the payoff plan with ONE debt's interestRate replaced.
  * Never mutates app.debts (uses a shallow-copied array of shallow-copied debts).
- * Returns { current, scenario, debt, oldApr, newApr, interestDelta, monthsDelta }
+ * `promo` ({ rate, endDate }, #681) models an intro rate on the new terms,
+ * e.g. a 0% balance transfer; the old debt's own promo never carries over.
+ * Returns { current, scenario, debt, oldApr, newApr, promo, interestDelta, monthsDelta }
  * where interestDelta > 0 means the scenario saves interest.
  */
-export function computeRefinanceScenario(app, basePayment, strategy, debtId, newApr) {
+export function computeRefinanceScenario(app, basePayment, strategy, debtId, newApr, promo = null) {
     const activeDebts = (app.debts || []).filter(d => !d.archived);
     const target = activeDebts.find(d => String(d.id) === String(debtId) && d.debtType !== 'fixedAmount');
     if (!target) throw new Error(t('strategy.refiPickError'));
@@ -95,11 +99,19 @@ export function computeRefinanceScenario(app, basePayment, strategy, debtId, new
         return DebtCalculator.generateSummary(r.workingDebts, r.paymentPlan);
     };
     const current = run(activeDebts);
-    const scenarioDebts = activeDebts.map(d => d.id === target.id ? { ...d, interestRate: newApr } : d);
+    const scenarioDebt = {
+        ...target,
+        interestRate: newApr,
+        promoRate: promo ? promo.rate : null,
+        promoEndDate: promo ? promo.endDate : null,
+        deferredInterest: false,
+        deferredInterestAccrued: 0,
+    };
+    const scenarioDebts = activeDebts.map(d => d.id === target.id ? scenarioDebt : d);
     const scenario = run(scenarioDebts);
     return {
         current, scenario, debt: target,
-        oldApr: target.interestRate || 0, newApr,
+        oldApr: target.interestRate || 0, newApr, promo,
         interestDelta: parseFloat((current.totalInterest - scenario.totalInterest).toFixed(2)),
         monthsDelta: current.monthsToPayOff - scenario.monthsToPayOff
     };
@@ -112,6 +124,10 @@ export function resetRefinanceScenario(app) {
     const result = document.getElementById('refiResult');
     if (sel) sel.value = '';
     if (apr) { apr.value = ''; apr.removeAttribute('aria-invalid'); }
+    for (const id of ['refiPromoRateInput', 'refiPromoEndInput']) {
+        const el = document.getElementById(id);
+        if (el) { el.value = ''; el.removeAttribute('aria-invalid'); }
+    }
     if (result) result.innerHTML = `<p class="whatif-hint">${escapeHtml(t('strategy.refiHint'))}</p>`;
     const details = document.getElementById('refiDetails');
     if (details) details.open = false;
@@ -122,14 +138,18 @@ function wireRefinanceSection(app, basePayment, strategy) {
     const aprInput = document.getElementById('refiAprInput');
     const result = document.getElementById('refiResult');
     const clearBtn = document.getElementById('refiClearBtn');
+    const promoRateInput = document.getElementById('refiPromoRateInput');
+    const promoEndInput = document.getElementById('refiPromoEndInput');
     if (!sel || !aprInput || !result || !clearBtn) return;
 
-    const showError = (msg) => {
+    const showError = (msg, field = aprInput) => {
         result.innerHTML = `<p class="error-message" id="refiError" role="alert">${escapeHtml(msg)}</p>`;
-        aprInput.setAttribute('aria-invalid', 'true');
+        field.setAttribute('aria-invalid', 'true');
     };
     const update = () => {
         aprInput.removeAttribute('aria-invalid');
+        promoRateInput?.removeAttribute('aria-invalid');
+        promoEndInput?.removeAttribute('aria-invalid');
         if (!sel.value) {
             result.innerHTML = `<p class="whatif-hint">${escapeHtml(t('strategy.refiHint'))}</p>`;
             return;
@@ -140,14 +160,25 @@ function wireRefinanceSection(app, basePayment, strategy) {
         }
         const newApr = parseRefinanceApr(aprInput.value);
         if (newApr === null) { showError(t('strategy.refiAprRange')); return; }
+        // #681: optional intro rate; both fields or neither.
+        let promo = null;
+        const rawPromoRate = (promoRateInput?.value || '').trim();
+        const rawPromoEnd = (promoEndInput?.value || '').trim();
+        if (rawPromoRate !== '' || rawPromoEnd !== '') {
+            const promoRate = parseRefinanceApr(rawPromoRate);
+            if (rawPromoRate === '' || promoRate === null) { showError(t('strategy.refiPromoRateRange'), promoRateInput); return; }
+            const endDate = sanitizeDateISO(rawPromoEnd);
+            if (!endDate) { showError(t('strategy.refiPromoEndMissing'), promoEndInput); return; }
+            promo = { rate: promoRate, endDate };
+        }
         let r;
         try {
-            r = computeRefinanceScenario(app, basePayment, strategy, sel.value, newApr);
+            r = computeRefinanceScenario(app, basePayment, strategy, sel.value, newApr, promo);
         } catch (e) {
             showError(e && e.message ? e.message : String(e));
             return;
         }
-        if (newApr === r.oldApr) {
+        if (newApr === r.oldApr && !promo && !hasPromo(r.debt)) {
             result.innerHTML = `<p class="whatif-hint" id="refiNoChange">${escapeHtml(t('strategy.refiNoChange', { name: r.debt.name, apr: r.oldApr }))}</p>`;
             return;
         }
@@ -175,11 +206,14 @@ function wireRefinanceSection(app, basePayment, strategy) {
                 <div class="whatif-metric-val">${formatCurrency(r.scenario.totalInterest)}</div>
             </div>
         </div>
-        <p class="whatif-hint" id="refiPaymentNote">${escapeHtml(t('strategy.refiNote', { name: r.debt.name, old: r.oldApr, new: newApr, payment: formatCurrency(basePayment), min: formatCurrency(r.debt.minimumPayment || 0) }))}</p>`;
+        <p class="whatif-hint" id="refiPaymentNote">${escapeHtml(t('strategy.refiNote', { name: r.debt.name, old: r.oldApr, new: newApr, payment: formatCurrency(basePayment), min: formatCurrency(r.debt.minimumPayment || 0) }))}</p>
+        ${promo ? `<p class="whatif-hint" id="refiPromoNote">${escapeHtml(t('strategy.refiPromoNote', { rate: promo.rate, date: formatLongDate(new Date(`${promo.endDate}T12:00:00`)), apr: newApr }))}</p>` : ''}`;
     };
 
     sel.addEventListener('change', update);
     aprInput.addEventListener('input', update);
+    promoRateInput?.addEventListener('input', update);
+    promoEndInput?.addEventListener('change', update);
     clearBtn.addEventListener('click', () => { resetRefinanceScenario(app); sel.focus(); });
 }
 
@@ -218,6 +252,14 @@ export function displayWhatIfSimulator(app, basePayment, strategy) {
                 <div class="whatif-refi-field">
                     <label for="refiAprInput">${escapeHtml(t('strategy.refiAprLabel'))}</label>
                     <input type="number" id="refiAprInput" min="0" max="100" step="any" inputmode="decimal" aria-describedby="refiResult">
+                </div>
+                <div class="whatif-refi-field">
+                    <label for="refiPromoRateInput">${escapeHtml(t('strategy.refiPromoRateLabel'))}</label>
+                    <input type="number" id="refiPromoRateInput" min="0" max="100" step="any" inputmode="decimal" aria-describedby="refiResult">
+                </div>
+                <div class="whatif-refi-field">
+                    <label for="refiPromoEndInput">${escapeHtml(t('strategy.refiPromoEndLabel'))}</label>
+                    <input type="date" id="refiPromoEndInput" aria-describedby="refiResult">
                 </div>
                 <button type="button" class="btn btn-secondary" id="refiClearBtn" aria-label="${escapeHtml(t('strategy.refiClearAria'))}">${escapeHtml(t('strategy.refiClear'))}</button>
             </div>
