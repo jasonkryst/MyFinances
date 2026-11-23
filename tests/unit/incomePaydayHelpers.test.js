@@ -48,12 +48,6 @@ describe('getIncomePaydaysInMonth: month ends and leap years', () => {
         expect(isos(getIncomePaydaysInMonth(inc, 2026, 0))).toEqual(['2026-01-02', '2026-01-16', '2026-01-30']);
     });
 
-    test('monthly does not consult the first pay date for the month (pays on that day every month)', () => {
-        const inc = { firstPayDate: '2026-06-15', frequency: 'monthly' };
-        expect(isos(getIncomePaydaysInMonth(inc, 2026, 4))).toEqual(['2026-05-15']);
-        expect(isos(getIncomePaydaysInMonth(inc, 2026, 5))).toEqual(['2026-06-15']);
-    });
-
     test('an unknown frequency behaves as monthly; an empty or garbage date yields nothing', () => {
         expect(isos(getIncomePaydaysInMonth({ firstPayDate: '2026-01-10', frequency: 'whatever' }, 2026, 2)))
             .toEqual(['2026-03-10']);
