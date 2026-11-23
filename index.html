@@ -15,6 +15,8 @@
     <link rel="icon" href="icons/favicon-32.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <meta name="theme-color" content="#2563eb">
+    <!-- #703: starts the session probe and the boot data GETs while the module graph downloads; storage.js consumes them once. -->
+    <script src="src/earlyBoot.js" async></script>
     <!-- Modulepreload hints for transitive-import modules (level-2+ in the import graph).
          app.js directly imports 35+ modules; the browser only discovers these deeper modules
          after parsing each parent, creating a waterfall under HTTP/1.1's 6-connection limit.
@@ -27,10 +29,9 @@
          were removed from this list — they're no longer part of the static import graph
          at all (loaded on demand via src/lazyModules.js), and a modulepreload hint would
          force the browser to eagerly fetch+compile them on every load regardless, which
-         is exactly what lazy-loading them is meant to avoid. -->
+         is exactly what lazy-loading them is meant to avoid. Issue #703: es.js and pl.js are
+         not hinted either; i18n.js loads the stored locale on demand (earlyBoot.js hints it). -->
     <link rel="modulepreload" href="src/locales/en.js">
-    <link rel="modulepreload" href="src/locales/es.js">
-    <link rel="modulepreload" href="src/locales/pl.js">
     <link rel="modulepreload" href="src/ledger.js">
     <link rel="modulepreload" href="src/commandPalette.js">
     <link rel="modulepreload" href="src/breakEven.js">

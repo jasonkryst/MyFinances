@@ -32,8 +32,6 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 # an eager fetch+compile that defeats the point of lazy-loading them.
 EXPECTED_PRELOADED_MODULES = [
     'src/locales/en.js',
-    'src/locales/es.js',
-    'src/locales/pl.js',
     'src/ledger.js',
     'src/commandPalette.js',
     'src/breakEven.js',
@@ -363,7 +361,7 @@ def test_modulepreload_coverage_check_rejects_partial_list():
         if f'rel="modulepreload" href="{mod}"' not in partial_html
     ]
     assert len(missing) > 0, "Expected coverage check to find missing hints"
-    assert 'src/locales/es.js' in missing
+    assert 'src/ledger.js' in missing
 
 
 @pytest.mark.feature
@@ -398,3 +396,67 @@ def test_transitive_modules_are_not_directly_imported_by_app_js(app_js):
                 f"{mod} appears to be directly imported from app.js — "
                 "it is not a transitive module and should be removed from EXPECTED_PRELOADED_MODULES"
             )
+
+
+# ---------------------------------------------------------------------------
+# #703: boot fetches start early; es/pl load on demand
+# ---------------------------------------------------------------------------
+
+@pytest.mark.feature
+def test_early_boot_script_is_async_in_head_and_precached(index_html):
+    """src/earlyBoot.js starts the probe and data GETs while the module graph
+    downloads: it must be in <head>, async (never parser-blocking) and in the
+    service worker precache list."""
+    head = index_html[:index_html.find('</head>')]
+    tags = re.findall(r'<script\b[^>]*earlyBoot\.js[^>]*>', head)
+    assert len(tags) == 1, "earlyBoot.js script tag missing from <head>"
+    assert re.search(r'\sasync(\s|>|=)', tags[0]), "earlyBoot.js must be async"
+    with open(os.path.join(PROJECT_ROOT, 'sw.js'), 'r', encoding='utf-8') as f:
+        assert "'/src/earlyBoot.js'" in f.read()
+
+
+@pytest.mark.feature
+def test_early_boot_negative_check_rejects_blocking_tag():
+    """The async check must flag a plain (parser-blocking) script tag."""
+    tag = '<script src="src/earlyBoot.js"></script>'
+    assert re.search(r'\sasync(\s|>|=)', tag) is None
+
+
+@pytest.mark.feature
+def test_spanish_and_polish_dictionaries_are_not_modulepreloaded(index_html):
+    """es.js/pl.js are 77 KB gzipped that an English boot never needs (#703)."""
+    assert 'locales/es.js' not in index_html
+    assert 'locales/pl.js' not in index_html
+
+
+@pytest.mark.feature
+def test_locale_dictionaries_load_on_demand(app_page):
+    """An English boot fetches neither es.js nor pl.js before the idle preload;
+    a stored Spanish locale loads es.js and renders translated."""
+    page = app_page
+    page.add_init_script("window.requestIdleCallback = () => 0; window.__noIdle = true;")
+    urls = []
+    page.on('request', lambda r: urls.append(r.url))
+    page.reload()
+    page.wait_for_timeout(500)
+    assert not [u for u in urls if '/locales/es.js' in u or '/locales/pl.js' in u]
+    page.evaluate("() => localStorage.setItem('debtTrackerLocale', 'es')")
+    page.reload()
+    assert [u for u in urls if '/locales/es.js' in u]
+    assert not [u for u in urls if '/locales/pl.js' in u]
+    assert page.evaluate("document.documentElement.lang") == 'es'
+    assert page.evaluate("document.querySelector('[data-page=\"health\"]').textContent.trim()") != 'Health'
+    page.evaluate("() => localStorage.removeItem('debtTrackerLocale')")
+
+
+@pytest.mark.feature
+def test_switching_language_before_preload_finishes_still_applies(app_page):
+    """setLocale loads the dictionary on demand when the idle preload has not
+    run, and the awaited result is the new locale."""
+    page = app_page
+    page.add_init_script("window.requestIdleCallback = () => 0;")
+    page.reload()
+    result = page.evaluate("() => window.app.setLocale('pl')")
+    assert result == 'pl'
+    assert page.evaluate("document.documentElement.lang") == 'pl'
+    page.evaluate("() => window.app.setLocale('en')")

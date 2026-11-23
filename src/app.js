@@ -142,7 +142,7 @@ import { hasSnapshotInMonth } from './netWorthCore.js';
 import { maybeShowSetupWizard as maybeShowSetupWizardFeature, initSettingsModal as initSettingsModalFeature, openSettings as openSettingsFeature } from './setupWizard.js';
 import { initDataTransferModal, showImportResult, requestImportModeChoice } from './dataTransferModal.js';
 import { initCalendarFeedModal } from './calendarFeed.js';
-import { applyStaticTranslations, setLocale as setLocaleFeature, t } from './i18n.js';
+import { applyStaticTranslations, setLocale as setLocaleFeature, t, ensureLocaleLoaded, preloadAllLocales, getCurrentLocale } from './i18n.js';
 import {
     addPerson as addPersonFeature,
     deletePerson as deletePersonFeature,
@@ -1331,6 +1331,9 @@ export class DebtTrackerApp {
 // Initialize the app when the DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // #703: only English is bundled; a stored es/pl dictionary loads first
+        // (earlyBoot.js already hinted it), so the first render is translated.
+        await ensureLocaleLoaded(getCurrentLocale());
         window.app = new DebtTrackerApp();
         await window.app.init();
     } finally {
@@ -1343,6 +1346,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pageParam = new URLSearchParams(window.location.search).get('page');
     if (pageParam) window.app.switchPage(pageParam);
     registerServiceWorker(window.app);
+    // #703: fetch the other dictionaries once the landing page is up and the
+    // browser is idle, so a language switch in Settings is instant.
+    const preload = () => { preloadAllLocales(); };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(preload, { timeout: 4000 });
+    else setTimeout(preload, 2000);
 });
 
 
