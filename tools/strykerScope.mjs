@@ -37,6 +37,8 @@ export const MUTATE_SCOPE = {
         'formatCurrencyAxis', 'formatCurrencyCompact', 'getCurrencyAffix', 'cachedCurrencyFormatter',
         // #679: payday helpers and the income end date.
         'getIncomePaydaysInMonth', 'countIncomePaydaysInMonth', 'getNextIncomePayDates', 'getIncomeEndDate', 'isIncomeEnded',
+        // #547: escaping and the shared report-range helpers.
+        'escapeHtml', 'getReportRangeMonths', 'reportRangeMonthsList', 'getPriorEquivalentRangeEnd',
     ],
     'src/sanitizers.js': [
         'sanitizePerson', 'sanitizeAccount', 'sanitizeDebt', 'sanitizeOwnershipSplit', 'remapDebtPersonRefs',
@@ -113,6 +115,11 @@ export const MUTATE_SCOPE = {
     'src/recurringOccurrences.js': true,
     'src/ledgerStateCore.js': true,
     'src/netWorthCore.js': true,
+    // #547: ownership share math (the form-control half is DOM and stays out).
+    'src/debtOwnership.js': ['getDebtShare', 'hasCustomSplit', 'removePersonFromDebt', 'equalPercents', 'autoBalancePercents', 'round2'],
+    // #547: category budget derivation and mutations (render/panel code stays out).
+    'src/categoryBudgets.js': ['_configured', '_isFixed', 'computeDerivedBudgetByCategory', 'computeCategoryBudgets',
+        'setCategoryBudget', 'resetCategoryBudget', 'getKnownBudgetCategories'],
     'src/projectionCore.js': ['makeLedgerTransactionId', 'getLedgerTransactionsForMonth', 'computeAccountBalance', 'buildProjectedAccountTransactions'],
 };
 
