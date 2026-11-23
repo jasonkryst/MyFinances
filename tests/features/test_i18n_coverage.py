@@ -67,11 +67,13 @@ SAME_AS_ENGLISH = {
     'es': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.sortApyAsc',
            'accounts.sortApyDesc', 'homePurchase.pmiBelowValue', 'income.estBadge', 'savings.autoTag',
            'debts.updateOriginal', 'recurring.total', 'ownership.totalLabel', 'reports.spendDrillTitle', 'reports.no', 'reports.spendTotal',
-           'ledger.originalAmount', 'people.dtiBadge', 'settings.backup.skippedItem', 'import.mergeSkippedItem'},
+           'ledger.originalAmount', 'people.dtiBadge', 'settings.backup.skippedItem', 'import.mergeSkippedItem',
+           'strategy.comparePlanA', 'strategy.comparePlanB'},  # #312: 'Plan A/B' is Spanish too
     'pl': {'nav.strategy', 'health.personDti', 'retirement.coastTitle', 'accounts.apyBadge',
            'accounts.sortApyAsc', 'accounts.sortApyDesc', 'savings.autoTag',
            'modals.ok', 'breakEven.start', 'category.transport', 'reports.spendDrillTitle',
-           'ledger.statusLabel', 'people.dtiBadge', 'settings.backup.skippedItem', 'import.mergeSkippedItem'},
+           'ledger.statusLabel', 'people.dtiBadge', 'settings.backup.skippedItem', 'import.mergeSkippedItem',
+           'strategy.comparePlanA', 'strategy.comparePlanB'},  # #312: 'Plan A/B' is Polish too
 }
 
 

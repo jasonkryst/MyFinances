@@ -250,6 +250,36 @@ _REFI_PROMO = """
             if (pr) { pr.value = '%s'; pr.dispatchEvent(new Event('input')); }
 """
 
+# #312: Plan History with per-debt results (and one older entry without),
+# opened on the comparison. `extra` picks the pair to compare.
+def _plan_compare(extra=''):
+    return """async () => {
+            window.app.switchPage('strategy');
+            const e = (id, day, debts) => ({ id, monthlyPayment: 300 + id, strategy: 'avalanche', totalInterest: 1000,
+                monthsToPayOff: 20, payoffDate: null, totalDebt: 9000, createdAt: `2026-0${day}-05T12:00:00.000Z`, debts });
+            window.app.planHistory = [
+                e(1, 1, []),
+                e(2, 2, [
+                    { debtId: 1, name: '⟦Visa⟧', payoffDate: '2027-06-01', totalInterest: 900 },
+                    { debtId: 2, name: '⟦Loan⟧', payoffDate: '2027-09-01', totalInterest: 300 },
+                    { debtId: 4, name: '⟦Same⟧', payoffDate: '2027-02-01', totalInterest: 50 },
+                    { debtId: 5, name: '⟦Gone⟧', payoffDate: null, totalInterest: 10 },
+                ]),
+                e(3, 3, [
+                    { debtId: 1, name: '⟦Visa⟧', payoffDate: '2027-03-01', totalInterest: 700 },
+                    { debtId: 2, name: '⟦Loan⟧', payoffDate: '2027-10-01', totalInterest: 350 },
+                    { debtId: 4, name: '⟦Same⟧', payoffDate: '2027-02-01', totalInterest: 50 },
+                    { debtId: 3, name: '⟦New⟧', payoffDate: '2027-01-01', totalInterest: 0 },
+                ]),
+            ];
+            window.app._planCompareA = null;
+            window.app._planCompareB = null;
+            """ + extra + """
+            window.app.renderPlanHistory();
+            document.getElementById('planHistoryBodyWrap').hidden = false;
+        }"""
+
+
 EMPTY_STATE = {'accounts': [], 'debts': [], 'settings': []}
 
 # page name -> (DOM roots to scan, async JS run after load to render/open everything)
@@ -1145,6 +1175,10 @@ TRANSLATED_PAGES = {
     'strategy-refi': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('5') + "}"),
     'strategy-refi-worse': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('30') + "}"),
     'strategy-refi-nochange': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('24') + "}"),
+    'strategy-plan-compare': (_PLAN_ROOTS, _plan_compare()),
+    'strategy-plan-compare-reverse': (_PLAN_ROOTS, _plan_compare("window.app._planCompareA = '3'; window.app._planCompareB = '2';")),
+    'strategy-plan-compare-same': (_PLAN_ROOTS, _plan_compare("window.app._planCompareA = '3'; window.app._planCompareB = '3';")),
+    'strategy-plan-compare-nodata': (_PLAN_ROOTS, _plan_compare("window.app._planCompareA = '1'; window.app._planCompareB = '3';")),
     'strategy-refi-invalid': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('500') + "}"),
     # #681: an intro rate on the new terms, and the intro-rate validation message.
     'strategy-refi-promo': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('18') + _REFI_PROMO % ('2099-06-30', '0') + "}"),

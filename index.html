@@ -1008,6 +1008,21 @@
                                 <tbody id="planHistoryBody"></tbody>
                             </table>
                         </div>
+                        <div id="planCompare" class="plan-compare hidden">
+                            <h4 class="plan-compare-title" data-i18n="strategy.compareTitle">Compare two plans</h4>
+                            <p class="target-date-desc" data-i18n="strategy.compareDesc">See which debts pay off sooner or cost less interest from one saved plan to another.</p>
+                            <div class="plan-compare-controls">
+                                <div class="plan-compare-field">
+                                    <label for="planCompareA" data-i18n="strategy.comparePlanA">Plan A</label>
+                                    <select id="planCompareA"></select>
+                                </div>
+                                <div class="plan-compare-field">
+                                    <label for="planCompareB" data-i18n="strategy.comparePlanB">Plan B</label>
+                                    <select id="planCompareB"></select>
+                                </div>
+                            </div>
+                            <div id="planCompareResult" aria-live="polite"></div>
+                        </div>
                     </div>
                 </div>
 

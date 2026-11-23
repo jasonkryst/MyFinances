@@ -1047,6 +1047,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.27.0 — 2026-11-23',
+        items: [
+            '<strong>Compare saved plans debt by debt:</strong> open <em>Plan History</em> on the Plan page and pick any two saved plans. A table shows when each debt is paid off and the interest it costs in both, with arrows marking what got better or worse. Plans saved from now on record their per-debt results; older ones say they have none.'
+        ]
+    },
+    {
         version: '7.26.0 — 2026-11-23',
         items: [
             '<strong>Promotional rates:</strong> give a card or loan a promo rate and the date it ends, for example 0% until June. The plan charges the promo rate until then and the regular rate after, and the debt card shows <em>0% until Jun 2027 (then 24.99%)</em> with the monthly payment that clears it in time. Tick <em>Deferred interest</em> for store cards that charge back interest if a balance remains. You get a notification 60 days before a promo ends, and the refinancing what-if on the Plan page can model a balance-transfer intro rate.'

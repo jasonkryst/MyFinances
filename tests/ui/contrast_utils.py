@@ -46,8 +46,21 @@ _CONTRAST_JS = """
 
 
 def text_contrast(locator):
-    """{ratio, fg, bg, opacity} for the first element matched by `locator`."""
-    return locator.first.evaluate(_CONTRAST_JS)
+    """{ratio, fg, bg, opacity} for the first element matched by `locator`.
+
+    A list that re-renders between locating and measuring leaves a detached
+    node, whose computed style is empty (opacity NaN); re-locate and retry
+    instead of failing on a NaN ratio (seen on CI for a notifications row).
+    """
+    import math
+    import time
+    res = None
+    for _ in range(10):
+        res = locator.first.evaluate(_CONTRAST_JS)
+        if not math.isnan(res['ratio']):
+            return res
+        time.sleep(0.1)
+    return res
 
 
 def color_contrast(c1, c2):

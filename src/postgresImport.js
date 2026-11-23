@@ -9,6 +9,7 @@ import { remapLedgerEntries, ledgerKeyDropWarning } from './ledgerKeyRemap.js';
 import { isAllowedSetting } from './settingsSchema.js';
 import { remapAccountSettings } from './settingsRemap.js';
 import { remapDebtPersonRefs, remapIncomePersonRef } from './sanitizers.js';
+import { remapPlanHistoryDebtIds } from './planHistoryCompare.js';
 
 // Every per-record fan-out below goes through this pool (#519): an unbounded
 // Promise.all of a few thousand requests made Chromium abort some of them.
@@ -200,9 +201,14 @@ async function postAllResources(data, warnings) {
     // All non-account/person CRUD arrays with remapped FK references, one
     // resource at a time so the pool bounds the total in flight.
     const resourceResults = [];
+    let debtIds = new Map();
     for (const { field, path } of CRUD_RESOURCES) {
-        resourceResults.push(await pool(data[field] || [],
-            record => apiFetch('POST', path, remapFk(record, idMap, personIdMap))));
+        // #312: Plan History entries name debts by id inside their per-debt list.
+        const remap = field === 'planHistory'
+            ? record => remapPlanHistoryDebtIds(remapFk(record, idMap, personIdMap), debtIds)
+            : record => remapFk(record, idMap, personIdMap);
+        resourceResults.push(await pool(data[field] || [], record => apiFetch('POST', path, remap(record))));
+        if (field === 'debts') debtIds = idPairs(data.debts, resourceResults[resourceResults.length - 1]);
     }
 
     // Keyed resources -- PUT is always upsert, safe in both replace and merge.
@@ -428,7 +434,9 @@ export async function mergeForPostgres(app, clean, incomingStrategy, warnings) {
             // against the server ids the existing records hold.
             const originals = new Map((clean[field] || []).map(r => [r?.id, r]));
             const plan = planMerge(field, app[field] || [],
-                (clean[field] || []).map(r => remapFk(r, idMap, personIdMap)));
+                (clean[field] || []).map(r => (field === 'planHistory'
+                    ? remapPlanHistoryDebtIds(remapFk(r, idMap, personIdMap), ledgerIdMaps.debts) // #312
+                    : remapFk(r, idMap, personIdMap))));
             noteSkipped(field, plan.skipped);
             for (const [inId, existingId] of plan.matched) if (inId != null) fieldMap.set(String(inId), existingId);
             const incoming = plan.toPost.map(r => originals.get(r?.id) ?? r);

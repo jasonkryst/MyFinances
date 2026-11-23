@@ -9930,3 +9930,52 @@ body.dark-mode .change-history-op--create { color: #4ade80; }
 @media print {
     .yr-header button { display: none; }
 }
+
+/* #312: Plan History per-debt comparison */
+.plan-compare {
+    margin-top: 16px;
+}
+.plan-compare-title {
+    margin: 0 0 4px;
+}
+.plan-compare-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 8px 0 12px;
+}
+.plan-compare-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.plan-compare-field select {
+    max-width: 100%;
+}
+.plan-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.plan-compare-table th,
+.plan-compare-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    white-space: nowrap;
+}
+.plan-compare-table tfoot th,
+.plan-compare-table tfoot td {
+    font-weight: 700;
+}
+.plan-delta--better {
+    color: #166534;
+    font-weight: 600;
+}
+.plan-delta--worse {
+    color: #991b1b;
+    font-weight: 600;
+}
+body.dark-mode .plan-delta--better { color: #86efac; }
+body.dark-mode .plan-delta--worse { color: #fca5a5; }
