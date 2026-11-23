@@ -74,19 +74,12 @@ templates, so a lender-matching figure is impossible anyway.
 
 ### Data floor
 
-`dataFloorIso(app)` is the earliest dated evidence of real data. It is the
-minimum of:
-
-- account and debt balance-history entry dates
-- net-worth snapshot dates
-- manual transaction dates
-- reconciliation dates
-- Ledger override and Cleared key dates
-- income `firstPayDate`
-- recurring template `startDate`
-- bonus dates
-
-Rules use it as follows:
+`dataFloorIso(app)` is the earliest dated evidence of **real** data: account
+and debt balance-history entries, net-worth snapshots, manual transactions,
+reconciliations, and Ledger override / Cleared key dates. Plan inputs (an
+income's `firstPayDate`, a template's `startDate`, bonus dates) are not
+evidence. Revised after the branch review: an old first payday would open
+years the app only projects into, current debts included.
 
 - The year picker offers years from the floor's year up to the current year.
   With no data at all, it offers the current year and the page shows its
@@ -132,7 +125,9 @@ descending.
 **What happened (actual)**
 
 1. **netWorthChange.** First point in the period vs. the last. Gives the
-   change and its direction. `estimated` when either point is `estimated`.
+   change and its direction. When the last point is before the period's last
+   month (the latest snapshot is older), the sentence names that month
+   ("between January and June"), so it never implies "up to now". `estimated` when either point is `estimated`.
    Null with fewer than two points.
 2. **debtPaidDown.** Per debt, the balance at period start (last entry on or
    before `startIso`, else the first entry in the period) vs. the balance at
@@ -154,16 +149,20 @@ descending.
    planned).
 7. **goalsReached.** Sinking funds with `completedDate` in the period. Gives
    the count and up to 2 names.
-8. **reconciliationAdjustments.** Reconciliations in the period with
-   `difference !== 0`. Gives the count and the total absolute difference.
+8. **reconciliations.** The count of reconciliations in the period. Revised
+   after review: a reconciliation's `difference` is the statement minus the
+   account's starting balance, which is not an adjustment in record-only
+   mode, so no amount is claimed.
 
 **From your plan (planned)**
 
 9. **subscriptionsTotal.** Recurring outflows that aren't transfer legs
    (`isTransferLegTx`). Total, plus the change against the prior period when
    the data floor allows.
-10. **topCategory.** Spending by `spendingCategoryForTx` over the period. The
-    largest category and its share of spending.
+10. **topCategory.** Spending by the Spending tab's categories
+    (`spendingCategoryForTx`, inlined in the core: debt payments and savings
+    contributions count as categories), so the two pages agree. The largest
+    category and its share of spending.
 11. **biggestCategoryChange.** The category with the largest increase against
     the prior period. It needs at least 10% and $100 of increase, and the data
     floor.

@@ -59,7 +59,11 @@ export function priorPeriodOf(period) {
     return { year: y, startIso: `${y}-01-01`, endIso, months: period.months.slice(), isYtd: false };
 }
 
-// The earliest dated evidence of real data, or null.
+// The earliest dated evidence of real data, or null: balances, snapshots,
+// recorded transactions, reconciliations and Ledger overrides / Cleared marks.
+// Plan inputs (an income's first payday, a template's start date, a bonus
+// date) are deliberately not evidence: an old first payday would otherwise
+// open years the app only projects into (review of #689).
 export function dataFloorIso(data) {
     const dates = [];
     const take = (list, field) => { for (const r of (Array.isArray(list) ? list : [])) if (r && typeof r[field] === 'string') dates.push(r[field]); };
@@ -67,9 +71,6 @@ export function dataFloorIso(data) {
     take(data.snapshots, 'date');
     take(data.manualTransactions, 'date');
     take(data.reconciliations, 'date');
-    take(data.incomes, 'firstPayDate');
-    take(data.recurringTemplates, 'startDate');
-    take(data.bonuses, 'date');
     for (const map of [data.overrides, data.cleared]) {
         for (const key of Object.keys(map || {})) dates.push(key.split('|').pop());
     }
@@ -112,9 +113,13 @@ export function netWorthChange(input) {
     const first = pts[0];
     const last = pts[pts.length - 1];
     const delta = round2(last.netWorth - first.netWorth);
-    return _insight('netWorthChange', 'actual', 100,
-        delta >= 0 ? 'yearReview.i.netWorthUp' : 'yearReview.i.netWorthDown',
-        { amount: { $: Math.abs(delta) }, since: { m: first.monthKey } },
+    // A last point before the period's last month (e.g. the latest snapshot was
+    // in June) names its month, so the sentence never implies "up to now".
+    const until = last.monthKey < input.period.endIso.slice(0, 7);
+    const base = delta >= 0 ? 'yearReview.i.netWorthUp' : 'yearReview.i.netWorthDown';
+    const vars = { amount: { $: Math.abs(delta) }, since: { m: first.monthKey } };
+    if (until) vars.until = { m: last.monthKey };
+    return _insight('netWorthChange', 'actual', 100, until ? `${base}Until` : base, vars,
         { estimated: first.kind === 'estimated' || last.kind === 'estimated' });
 }
 
@@ -248,31 +253,30 @@ export function goalsReached(input) {
         { count: done.length, names: done.slice(0, MAX_NAMED_GOALS).map(f => f.name || '').join(', ') }, { plural: true });
 }
 
-export function reconciliationAdjustments(input) {
-    const adj = (input.reconciliations || []).filter(r => r && _inPeriod(r.date, input.period) && Number(r.difference));
-    if (!adj.length) return null;
-    const amount = round2(adj.reduce((s, r) => s + Math.abs(Number(r.difference)), 0));
-    return _insight('reconciliationAdjustments', 'actual', 50, 'yearReview.i.reconAdjust',
-        { count: adj.length, amount: { $: amount } }, { plural: true });
+// Only the count: a reconciliation's `difference` is statement minus the
+// account's starting balance, which is not an adjustment in record-only mode.
+export function reconciliations(input) {
+    const count = (input.reconciliations || []).filter(r => r && _inPeriod(r.date, input.period)).length;
+    if (!count) return null;
+    return _insight('reconciliations', 'actual', 50, 'yearReview.i.reconciled', { count }, { plural: true });
 }
 
 // ─── From your plan (planned) ───────────────────────────────────────────────
 
 // Classifies a Ledger transaction like computeReportsSummaryMetrics: own-account
-// transfers are neither; `spending` is the outflow that has a category (not
-// debt payments or savings contributions).
+// transfers are neither income nor outflow.
 function _flow(tx) {
     if (!tx || tx.isTransferLeg || tx.type === 'transfer') return null;
     const amount = Number(tx.amount) || 0;
     switch (tx.type) {
         case 'income': case 'bonus': case 'interest':
-            return { income: amount, outflow: 0, spending: 0 };
+            return { income: amount, outflow: 0 };
         case 'manual': case 'recurring':
-            return amount >= 0 ? { income: amount, outflow: 0, spending: 0 } : { income: 0, outflow: -amount, spending: -amount };
+            return amount >= 0 ? { income: amount, outflow: 0 } : { income: 0, outflow: -amount };
         case 'bill': case 'expense':
-            return { income: 0, outflow: Math.abs(amount), spending: Math.abs(amount) };
+            return { income: 0, outflow: Math.abs(amount) };
         case 'debt': case 'savings':
-            return { income: 0, outflow: Math.abs(amount), spending: 0 };
+            return { income: 0, outflow: Math.abs(amount) };
         default:
             return null;
     }
@@ -298,14 +302,26 @@ function _incomeOf(t) {
     return _flow(t)?.income || 0;
 }
 
+// The Spending tab's categories (spendingCategoryForTx in spending.js),
+// inlined because this module imports nothing: debt payments and savings
+// contributions are categories too, so both pages agree.
+function _spendingCategory(t) {
+    if (!t || t.isTransferLeg || t.type === 'transfer') return null;
+    const amount = Number(t.amount) || 0;
+    if (t.type === 'bill' || t.type === 'expense') return t.category || 'Other';
+    if ((t.type === 'manual' || t.type === 'recurring') && amount < 0) return t.category || 'Other';
+    if (t.type === 'debt') return 'Debt Payments';
+    if (t.type === 'savings' && amount < 0) return 'Savings';
+    return null;
+}
+
 function _byCategory(monthsTx) {
     const map = new Map();
     for (const txs of (monthsTx || [])) {
         for (const t of (txs || [])) {
-            const f = _flow(t);
-            if (!f || !f.spending) continue;
-            const cat = t.category || 'Other';
-            map.set(cat, (map.get(cat) || 0) + f.spending);
+            const cat = _spendingCategory(t);
+            if (!cat) continue;
+            map.set(cat, (map.get(cat) || 0) + Math.abs(Number(t.amount) || 0));
         }
     }
     return map;
@@ -389,7 +405,7 @@ export function incomeChange(input) {
 
 export const RULES = [
     netWorthChange, debtPaidDown, debtCleared, interestEstimate,
-    amountChanges, actualsVsPlan, goalsReached, reconciliationAdjustments,
+    amountChanges, actualsVsPlan, goalsReached, reconciliations,
     subscriptionsTotal, topCategory, biggestCategoryChange, bestAndWorstMonth,
     debtShareOfIncome, incomeChange
 ];

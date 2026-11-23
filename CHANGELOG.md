@@ -14,7 +14,7 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
   - price changes and raises
   - payments that differed from the plan
   - savings goals reached
-  - reconciliation adjustments
+  - statements reconciled
 
   *From your plan* follows, tagged "planned":
   - what subscriptions cost

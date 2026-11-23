@@ -70,6 +70,24 @@ def test_year_review_year_stepper(app_page):
     assert_no_errors(page)
 
 
+def test_year_review_stepper_keeps_focus_and_announces(app_page):
+    """Stepping the year re-renders the tab; keyboard focus stays on a year
+    button and a persistent live region announces the new year (review)."""
+    page = app_page
+    _seed_year(page)
+    _open_tab(page)
+    page.wait_for_selector("#yrPrevYear")
+    page.focus("#yrPrevYear")
+    page.keyboard.press("Enter")
+    page.wait_for_function("(y) => document.getElementById('yrYearLabel').textContent.trim() === String(y)", arg=YEAR - 1)
+    focused = page.evaluate("() => document.activeElement && document.activeElement.id")
+    assert focused in ("yrPrevYear", "yrNextYear"), focused
+    page.wait_for_function("(y) => (document.getElementById('yrAnnounce')?.textContent || '').includes(String(y))", arg=YEAR - 1)
+    assert page.evaluate("() => document.getElementById('yrAnnounce').closest('#reportsYearReview') === null"), \
+        "the live region must persist outside the re-rendered container"
+    assert_no_errors(page)
+
+
 def test_year_review_empty_state(app_page):
     page = app_page
     _open_tab(page)

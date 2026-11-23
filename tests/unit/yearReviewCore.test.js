@@ -48,11 +48,17 @@ describe('dataFloorIso', () => {
             manualTransactions: [{ date: '2025-06-01' }],
             reconciliations: [{ date: '2025-07-01' }],
             overrides: { 'recurring|5|2|2024-04-05': {} },
-            cleared: { 'income|1|2|2024-09-01': {} },
-            incomes: [{ firstPayDate: '2024-08-01' }],
-            recurringTemplates: [{ startDate: null }, { startDate: '2025-01-01' }],
-            bonuses: [{ date: '2024-12-24' }]
+            cleared: { 'income|1|2|2024-09-01': {} }
         })).toBe('2024-04-05');
+    });
+    test('plan inputs (first payday, template start, bonus date) do not set the floor (review)', () => {
+        expect(dataFloorIso({
+            incomes: [{ firstPayDate: '2015-01-02' }],
+            recurringTemplates: [{ startDate: '2015-01-01' }],
+            bonuses: [{ date: '2015-12-24' }],
+            balanceHistory: [{ date: '2025-03-01' }]
+        })).toBe('2025-03-01');
+        expect(dataFloorIso({ incomes: [{ firstPayDate: '2015-01-02' }] })).toBeNull();
     });
     test('no data gives null', () => {
         expect(dataFloorIso({})).toBeNull();
@@ -64,9 +70,21 @@ describe('netWorthChange', () => {
         const out = run('netWorthChange', input({ netWorthPoints: [
             { monthKey: '2024-12', netWorth: 1, kind: 'snapshot' },
             { monthKey: '2025-01', netWorth: 1000, kind: 'snapshot' },
-            { monthKey: '2025-11', netWorth: 1500, kind: 'snapshot' }
+            { monthKey: '2025-12', netWorth: 1500, kind: 'snapshot' }
         ] }));
         expect(out).toMatchObject({ id: 'netWorthChange', kind: 'actual', key: 'yearReview.i.netWorthUp', estimated: false, vars: { amount: { $: 500 }, since: { m: '2025-01' } } });
+    });
+    test('a last point before the period ends names its month (review)', () => {
+        const out = run('netWorthChange', input({ netWorthPoints: [
+            { monthKey: '2025-01', netWorth: 1000, kind: 'snapshot' },
+            { monthKey: '2025-06', netWorth: 1500, kind: 'snapshot' }
+        ] }));
+        expect(out).toMatchObject({ key: 'yearReview.i.netWorthUpUntil', vars: { amount: { $: 500 }, since: { m: '2025-01' }, until: { m: '2025-06' } } });
+        const down = run('netWorthChange', input({ netWorthPoints: [
+            { monthKey: '2025-01', netWorth: 1000, kind: 'snapshot' },
+            { monthKey: '2025-06', netWorth: 900, kind: 'snapshot' }
+        ] }));
+        expect(down.key).toBe('yearReview.i.netWorthDownUntil');
     });
     test('data that starts late in the year uses that first month, never January', () => {
         const out = run('netWorthChange', input({ netWorthPoints: [
@@ -269,15 +287,21 @@ describe('goalsReached', () => {
     });
 });
 
-describe('reconciliationAdjustments', () => {
-    test('counts non-zero differences in the period', () => {
-        const out = run('reconciliationAdjustments', input({ reconciliations: [
+describe('reconciliations', () => {
+    // `difference` is not an adjustment in record-only mode (it is statement
+    // minus the starting balance), so only the count is reported (review).
+    test('counts reconciliations in the period, whatever their difference', () => {
+        const out = run('reconciliations', input({ reconciliations: [
             { date: '2025-03-31', difference: -12.5 },
             { date: '2025-04-30', difference: 7 },
             { date: '2025-05-31', difference: 0 },
             { date: '2024-12-31', difference: 100 }
         ] }));
-        expect(out).toMatchObject({ key: 'yearReview.i.reconAdjust', plural: true, vars: { count: 2, amount: { $: 19.5 } } });
+        expect(out).toMatchObject({ key: 'yearReview.i.reconciled', plural: true, vars: { count: 3 } });
+        expect(out.vars.amount).toBeUndefined();
+    });
+    test('none gives nothing', () => {
+        expect(run('reconciliations', input())).toBeNull();
     });
 });
 
@@ -311,8 +335,12 @@ describe('subscriptionsTotal', () => {
 
 describe('topCategory', () => {
     test('largest spending category and its share', () => {
-        const monthsTx = months12(m => m === 0 ? [tx('expense', -600, 'Housing'), tx('bill', -300, 'Food'), tx('manual', -100, null), tx('debt', -5000, 'Debt'), tx('savings', -900, 'Savings')] : []);
-        expect(run('topCategory', input({ monthsTx }))).toMatchObject({ key: 'yearReview.i.topCategory', vars: { category: { cat: 'Housing' }, pct: { pct: 60 } } });
+        const monthsTx = months12(m => m === 0 ? [tx('expense', -600, 'Housing'), tx('bill', -300, 'Food'), tx('manual', -100, null), tx('debt', -500, 'x'), tx('savings', -500, 'x')] : []);
+        expect(run('topCategory', input({ monthsTx }))).toMatchObject({ key: 'yearReview.i.topCategory', vars: { category: { cat: 'Housing' }, pct: { pct: 30 } } });
+    });
+    test('debt payments and savings are categories, as on the Spending tab (review)', () => {
+        const monthsTx = months12(m => m === 0 ? [tx('expense', -600, 'Housing'), tx('debt', -900, 'x'), tx('savings', -500, 'x')] : []);
+        expect(run('topCategory', input({ monthsTx })).vars.category).toEqual({ cat: 'Debt Payments' });
     });
     test('no spending gives nothing', () => {
         expect(run('topCategory', input({ monthsTx: months12(() => [tx('income', 100, 'Income')]) }))).toBeNull();

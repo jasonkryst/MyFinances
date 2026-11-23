@@ -106,15 +106,29 @@ export function renderReportsYearReview(app) {
     container.innerHTML = `
         <div class="yr-header">
             <button type="button" class="rpt-month-btn" id="yrPrevYear" aria-label="${escapeHtml(t('yearReview.prevYearAria'))}" title="${escapeHtml(t('yearReview.prevYearAria'))}"${year <= floorYear ? ' disabled' : ''}>&#8249;</button>
-            <h3 class="yr-year-label" id="yrYearLabel" aria-live="polite">${escapeHtml(label)}</h3>
+            <h3 class="yr-year-label" id="yrYearLabel">${escapeHtml(label)}</h3>
             <button type="button" class="rpt-month-btn" id="yrNextYear" aria-label="${escapeHtml(t('yearReview.nextYearAria'))}" title="${escapeHtml(t('yearReview.nextYearAria'))}"${year >= thisYear ? ' disabled' : ''}>&#8250;</button>
         </div>
         ${headlineHtml}${actualHtml}${plannedHtml}${emptyHtml}`;
 
-    const step = delta => {
+    // Re-rendering replaces the stepper buttons, so after a step put focus back
+    // on the one used (or the other, once it is disabled) and announce the year
+    // through the persistent #yrAnnounce region outside the container.
+    const prevBtn = document.getElementById('yrPrevYear');
+    const nextBtn = document.getElementById('yrNextYear');
+    if (app._yearReviewFocus) {
+        const wanted = app._yearReviewFocus === 'prev' ? prevBtn : nextBtn;
+        const other = app._yearReviewFocus === 'prev' ? nextBtn : prevBtn;
+        (wanted && !wanted.disabled ? wanted : other)?.focus();
+        const announce = document.getElementById('yrAnnounce');
+        if (announce) announce.textContent = label;
+        app._yearReviewFocus = null;
+    }
+    const step = (delta, which) => {
         app._yearReviewYear = year + delta;
+        app._yearReviewFocus = which;
         app.renderReportsPage();
     };
-    document.getElementById('yrPrevYear')?.addEventListener('click', () => step(-1));
-    document.getElementById('yrNextYear')?.addEventListener('click', () => step(1));
+    prevBtn?.addEventListener('click', () => step(-1, 'prev'));
+    nextBtn?.addEventListener('click', () => step(1, 'next'));
 }
