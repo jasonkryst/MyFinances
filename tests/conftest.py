@@ -94,25 +94,29 @@ def browser() -> Browser:
     return _SYNC_BROWSER.get()
 
 
-@pytest.fixture
-def page(browser) -> Page:
-    """A fresh page in its own browser context for each test."""
-    page = browser.new_page()
-    
-    # Track console errors and page errors
+def _attach_error_hooks(page):
+    """Track console errors and page errors and auto-accept dialogs."""
     page.console_errors = []
     page.page_errors = []
-    
+
     def on_console(msg):
         if msg.type == "error":
             text = msg.text or ""
             if "favicon" not in text.lower():
                 page.console_errors.append(text)
-    
+
     page.on("console", on_console)
     page.on("pageerror", lambda e: page.page_errors.append(str(e)))
     page.on("dialog", lambda d: d.accept())
+
+
+@pytest.fixture
+def page(browser) -> Page:
+    """A fresh page in its own browser context for each test."""
+    page = browser.new_page()
     
+    _attach_error_hooks(page)
+
     yield page
     page.close()
 
@@ -579,6 +583,26 @@ def pin_clock(page, iso_date, hour=12):
     page.clock.resume()
     page.reload()
     return date(y, m, d)
+
+
+@pytest.fixture
+def app_page_no_sw(browser, stack_user) -> Page:
+    """Like `app_page`, but in its own context with service workers blocked (#553).
+
+    The app's service worker serves module and GET requests itself, which bypasses
+    `page.route()`; tests that stub or abort requests need it blocked. Same wiring as
+    `app_page` otherwise: console/page error tracking, empty server (wiped over HTTP
+    before the first load) and a `page.reload` that waits for app readiness."""
+    context = browser.new_context(service_workers='block')
+    page = context.new_page()
+    _attach_error_hooks(page)
+    ensure_session(context)
+    reset_server_state_http()
+    page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+    wait_for_app_ready(page)
+    _wrap_reload(page)
+    yield page
+    context.close()
 
 
 def wait_for_app_ready(page, timeout=30000):

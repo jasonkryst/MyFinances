@@ -319,30 +319,41 @@ def test_unlinked_template_uses_unlinked_ledger_key(app_page):
 # ── Legacy data migration ────────────────────────────────────────────────────
 
 @pytest.mark.feature
-def test_legacy_paid_month_and_amount_migrate_to_ledger_on_load(app_page):
-    """Pre-#434 data (paidMonths + paidAmounts on the template) migrates into the ledger maps on reload."""
-    page = app_page
+def test_legacy_paid_month_and_amount_migrate_to_ledger_on_load(app_page_no_sw):
+    """Pre-#434 data (paidMonths + paidAmounts on the template) migrates into the ledger maps on load.
+
+    The real load-time call site runs: paidAmounts was never persisted to Postgres, so the
+    recurring-templates GET is intercepted (service workers blocked, see `app_page_no_sw`) to
+    hand the legacy amount back on reload, and boot's own reconcile is what migrates it.
+    Nothing here calls reconcileRecurringPaidState() directly (#474)."""
+    page = app_page_no_sw
     mk = _mk()
     accounts = _seed_server(page, [_tmpl(paidMonths=[mk])])
     page.reload()
     _rebind_ids(page, accounts, [_tmpl()])
-    # paidAmounts was never persisted to Postgres, so the server can't hand legacy amounts
-    # back on load (and the load-time reconcile has already cleared the month from paidMonths
-    # alone). Rewind to the pre-#434 shape in memory -- paidMonths + paidAmounts, nothing
-    # cleared -- and run the same reconcile that runs on load.
-    changed = page.evaluate("""async ([tid, mk]) => {
-        const app = window.app;
-        const { pgDelete } = await import('/src/postgresSync.js');
-        for (const k of Object.keys(app.ledgerClearedTransactions)) {
-            delete app.ledgerClearedTransactions[k];
-            pgDelete(app, `/api/ledger-cleared/${k}`);
-        }
-        const t = app.recurringTemplates.find(x => x.id === tid);
-        t.paidMonths = [mk];
-        t.paidAmounts = { [mk]: 70 };
-        return app.reconcileRecurringPaidState();
-    }""", [TID, mk])
-    assert changed is True
+    # The first reload's own reconcile cleared the month (paidMonths alone, no amount). Wait
+    # for that write, then remove it so the legacy reload below starts from "nothing cleared":
+    # anything found afterwards was created by the load-time migration.
+    wait_for_api(page, '/api/ledger-cleared', lambda rows: any(r['clearedKey'] == _tx_id() for r in rows))
+    page.wait_for_load_state('networkidle')  # let boot's own writes land before wiping them
+    for key in list(_state(page)['cleared']):
+        page.evaluate(
+            "async (k) => { const { pgDelete } = await import('/src/postgresSync.js');"
+            " delete window.app.ledgerClearedTransactions[k];"
+            " await pgDelete(window.app, `/api/ledger-cleared/${k}`); }", key)
+    wait_for_api(page, '/api/ledger-cleared', lambda rows: not rows)
+
+    def inject_legacy(route):
+        resp = route.fetch()
+        rows = resp.json()
+        for row in rows:
+            row['paidMonths'] = [mk]
+            row['paidAmounts'] = {mk: 70}
+        route.fulfill(response=resp, json=rows)
+
+    page.route('**/api/recurring-templates', lambda r: inject_legacy(r) if r.request.method == 'GET' else r.continue_())
+    page.reload()
+    page.unroute('**/api/recurring-templates')
     page.evaluate("() => window.app.switchPage('recurring')")
     page.wait_for_selector(f'#recurring-card-{TID}', timeout=5000)
 
@@ -352,6 +363,10 @@ def test_legacy_paid_month_and_amount_migrate_to_ledger_on_load(app_page):
     assert s['paidAmounts'] == {}, "legacy paidAmounts should be emptied after migration"
     assert mk in s['paidMonths']
     assert 'Paid this month' in s['badge'] and '70.00' in s['badge']
+    # The migration persisted what it wrote.
+    wait_for_api(page, '/api/ledger-overrides',
+                 lambda rows: any(r['overrideKey'] == _tx_id() and r['amount'] == -70 for r in rows))
+    wait_for_api(page, '/api/ledger-cleared', lambda rows: any(r['clearedKey'] == _tx_id() for r in rows))
 
 
 @pytest.mark.feature

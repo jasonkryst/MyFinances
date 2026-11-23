@@ -518,7 +518,7 @@ def test_delete_person_removes_key_and_renormalizes(app_page):
     ids, _ = _seed_people_and_debt(page, [0.5, 0.3, 0.2], person_names=('A', 'B', 'C'))
     _delete_person(page, ids[1])
     d = page.evaluate("window.app.debts[0]")
-    assert sorted(d['personIds']) == sorted([ids[0], ids[2]])
+    assert d['personIds'] == [ids[0], ids[2]]  # order kept: remaining owners stay in place
     assert str(ids[1]) not in d['ownershipSplit']
     assert d['ownershipSplit'][str(ids[0])] == pytest.approx(0.5 / 0.7)
     assert d['ownershipSplit'][str(ids[2])] == pytest.approx(0.2 / 0.7)
@@ -531,7 +531,7 @@ def test_delete_person_moves_share_to_replacement(app_page):
     ids, _ = _seed_people_and_debt(page, [0.5, 0.3, 0.2], person_names=('A', 'B', 'C'))
     _delete_person(page, ids[1], replacement=ids[2])
     d = page.evaluate("window.app.debts[0]")
-    assert sorted(d['personIds']) == sorted([ids[0], ids[2]])
+    assert d['personIds'] == [ids[0], ids[2]]  # order kept: remaining owners stay in place
     assert d['ownershipSplit'][str(ids[0])] == pytest.approx(0.5)
     assert d['ownershipSplit'][str(ids[2])] == pytest.approx(0.5)
 
@@ -553,7 +553,7 @@ def test_delete_person_with_replacement_not_yet_linked(app_page):
     newbie = page.evaluate("window.app.persons.find(p => p.name === 'Newbie').id")
     _delete_person(page, ids[1], replacement=newbie)
     d = page.evaluate("window.app.debts[0]")
-    assert sorted(d['personIds']) == sorted([ids[0], newbie])
+    assert d['personIds'] == [ids[0], newbie]  # an unlinked replacement is appended after the remaining owners
     assert d['ownershipSplit'][str(ids[0])] == pytest.approx(0.6)
     assert d['ownershipSplit'][str(newbie)] == pytest.approx(0.4)
 

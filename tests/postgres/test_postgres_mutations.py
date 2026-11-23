@@ -79,12 +79,12 @@ async def test_debt_add_persists(pg_page, base_url, credentials):
     await pg_page.fill('#minimumPayment', '100')
     await pg_page.fill('#dueDate', '15')
     await pg_page.click('#debtFormSubmit')
-    await pg_page.wait_for_selector('text=Test Visa', timeout=5000)
+    await pg_page.wait_for_selector('#debtsList >> text=Test Visa', timeout=5000)
 
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
-    assert await pg_page.locator('text=Test Visa').count() > 0, f'Debt not found after reload. Console: {logs}'
+    assert await pg_page.locator('#debtsList >> text=Test Visa').count() > 0, f'Debt not found after reload. Console: {logs}'
 
     # Cleanup
     debts = await (await _api_get(pg_page, base_url, '/api/debts')).json()
@@ -108,7 +108,7 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
-    # Scoped to the debts list: an unscoped 'text=Delete Me' can also match
+    # Scoped to the debts list: an unscoped '#debtsList >> text=Delete Me' can also match
     # the Health page's per-card credit-util breakdown (#281), which renders
     # every credit-card debt's name into a hidden span that stays in the DOM
     # (just class-hidden) once Health has rendered once this session.
@@ -122,7 +122,7 @@ async def test_debt_delete_persists(pg_page, base_url, credentials):
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="liabilities"]')
-    assert await pg_page.locator('text=Delete Me').count() == 0, f'Deleted debt still present. Console: {logs}'
+    assert await pg_page.locator('#debtsList >> text=Delete Me').count() == 0, f'Deleted debt still present. Console: {logs}'
 async def test_debt_edit_form_renders(pg_page, base_url, credentials):
     """Regression: BIGSERIAL ids were returned as strings by node-postgres (OID 20),
     causing app.editingDebtId (number) === debt.id (string) to always be false and
@@ -182,11 +182,11 @@ async def test_account_add_persists(pg_page, base_url, credentials):
     await pg_page.select_option('#accountType', 'Checking')
     await pg_page.fill('#accountStartingBalance', '1000')
     await pg_page.click('#accountFormSubmit')
-    await pg_page.wait_for_selector('text=Smoke Checking', timeout=5000)
+    await pg_page.wait_for_selector('#accountList >> text=Smoke Checking', timeout=5000)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="accounts"]')
-    assert await pg_page.locator('text=Smoke Checking').count() > 0, f'Account not persisted. Console: {logs}'
+    assert await pg_page.locator('#accountList >> text=Smoke Checking').count() > 0, f'Account not persisted. Console: {logs}'
 
 
 async def test_income_add_persists(pg_page, base_url, credentials):
@@ -208,11 +208,11 @@ async def test_income_add_persists(pg_page, base_url, credentials):
         timeout=8000
     ):
         await pg_page.click('#incomeFormSubmit')
-    await pg_page.wait_for_selector('text=Smoke Salary', timeout=5000)
+    await pg_page.wait_for_selector('#incomeList >> text=Smoke Salary', timeout=5000)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="income"]')
-    assert await pg_page.locator('text=Smoke Salary').count() > 0, f'Income not persisted. Console: {logs}'
+    assert await pg_page.locator('#incomeList >> text=Smoke Salary').count() > 0, f'Income not persisted. Console: {logs}'
 
 
 async def test_income_withholding_percent_persists(pg_page, base_url, credentials):
@@ -234,7 +234,7 @@ async def test_income_withholding_percent_persists(pg_page, base_url, credential
         timeout=8000
     ):
         await pg_page.click('#incomeFormSubmit')
-    await pg_page.wait_for_selector('text=Smoke Withholding Salary', timeout=5000)
+    await pg_page.wait_for_selector('#incomeList >> text=Smoke Withholding Salary', timeout=5000)
 
     incomes = await (await _api_get(pg_page, base_url, '/api/incomes')).json()
     saved = next((i for i in incomes if i['name'] == 'Smoke Withholding Salary'), None)
@@ -283,11 +283,11 @@ async def test_recurring_add_persists(pg_page, base_url, credentials):
     await pg_page.fill('#recurringAmount', '15.99')
     await pg_page.select_option('#recurringAccount', str(account['id']))
     await pg_page.click('#recurringFormSubmit')
-    await pg_page.wait_for_selector('text=Smoke Netflix', timeout=5000)
+    await pg_page.wait_for_selector('#recurringList >> text=Smoke Netflix', timeout=5000)
     await pg_page.reload()
     await _wait_for_app_ready(pg_page)
     await pg_page.click('[data-page="recurring"]')
-    assert await pg_page.locator('text=Smoke Netflix').count() > 0, f'Recurring not persisted. Console: {logs}'
+    assert await pg_page.locator('#recurringList >> text=Smoke Netflix').count() > 0, f'Recurring not persisted. Console: {logs}'
 
 
 async def test_reconciliation_add_persists(pg_page, base_url, credentials):
