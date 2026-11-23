@@ -13,6 +13,10 @@ Detailed specs and implementation notes live in [`docs/superpowers/`](docs/super
 
 ### Fixed
 - Editing a sinking fund now updates it. Before, Edit filled the add form and saving created a second fund.
+- **Monthly incomes no longer have paydays before their first pay date (#705).** `getIncomePaydaysInMonth` and `getNextIncomePayDates` ignored `firstPayDate` for monthly incomes (and unknown frequencies, which fall back to monthly). An income starting in June showed paydays in earlier months in the Ledger, balances, Forecast, Health, Reports and both calendar feeds. Weekly, biweekly and twice-monthly incomes already respected it.
+
+### Tests
+- Jest: `sinkingFundSchedule.test.js` (dates, month ends, leap day, past and current-month targets, funded, status boundaries), sanitizer cases, and `incomeFirstPayDate.test.js` (before, on and after the first payday for every frequency, counts, monthly income, next pay dates). Server: `sinkingFundTargetDate.test.js` (round trip, invalid date, method change, migration 050). Playwright: `test_sinking_fund_target_date.py` (shard `test-features-d`).
 
 ## [7.29.0] — 2026-11-23
 

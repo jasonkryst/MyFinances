@@ -459,7 +459,8 @@ export function getIncomePaydaysInMonth(income, year, month) {
         const daysInMonth = monthEnd.getDate();
         const actualDay = Math.min(payDay, daysInMonth);
         const candidate = new Date(year, month, actualDay, 12, 0, 0);
-        if (candidate >= monthStart && candidate <= monthEnd) {
+        // #705: never before the first payday (both sides are noon local).
+        if (candidate >= monthStart && candidate <= monthEnd && candidate >= first) {
             paydays.push(candidate);
         }
     }
@@ -533,7 +534,7 @@ export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
             const daysInMonth = new Date(yr, mo + 1, 0).getDate();
             const actualDay = Math.min(payDay, daysInMonth);
             const candidate = new Date(yr, mo, actualDay, 12, 0, 0);
-            if (candidate >= today) dates.push(candidate);
+            if (candidate >= today && candidate >= first) dates.push(candidate); // #705
             mo++;
             if (mo > 11) {
                 mo = 0;
