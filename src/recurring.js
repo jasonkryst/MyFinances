@@ -321,10 +321,12 @@ export function renderRecurringPage(app) {
 
     // Apply sort
     const sortBy = document.getElementById('recurringSortBy')?.value || '';
+    const todayIso = dateToISO(now);
     if (sortBy) {
         displayTemplates = [...displayTemplates].sort((a, b) => {
-            if (sortBy === 'amount-desc') return (b.amount || 0) - (a.amount || 0);
-            if (sortBy === 'amount-asc') return (a.amount || 0) - (b.amount || 0);
+            // #678: sort by the amount the cards show (in effect today).
+            if (sortBy === 'amount-desc') return getCurrentAmount(b, todayIso) - getCurrentAmount(a, todayIso);
+            if (sortBy === 'amount-asc') return getCurrentAmount(a, todayIso) - getCurrentAmount(b, todayIso);
             if (sortBy === 'due-asc' || sortBy === 'due-desc') {
                 const va = a.dayOfMonth || 32, vb = b.dayOfMonth || 32;
                 return sortBy === 'due-asc' ? va - vb : vb - va;

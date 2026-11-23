@@ -103,7 +103,9 @@ else `record.amount`. Also exported from the same module:
     *(Call: a correction wipes scheduled changes too; the edit UI says so when
     any exist.)*
   - A date on or before the record's first occurrence (`firstPayDate` /
-    `startDate`) is treated as `'all'`.
+    `startDate`) replaces the base amount but keeps the changes dated after it
+    (revised after the branch review: treating it as `'all'` silently deleted
+    a scheduled raise when the starting amount was corrected).
   - Otherwise it inserts or replaces the entry for `from` and drops any later
     entries whose amount equals the one before them (no-op changes).
 - `getCurrentAmount(record, today)` and `getAmountChangeSummary(record, today)`

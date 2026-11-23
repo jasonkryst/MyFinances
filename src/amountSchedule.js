@@ -70,28 +70,38 @@ export function sanitizeAmountChanges(raw, { min = 0, max = MAX_AMOUNT } = {}) {
     return out.slice(-MAX_CHANGES);
 }
 
-// The edit operation. `from === 'all'` (or a date on or before the record's
-// first occurrence) corrects every occurrence: the base amount becomes
-// `newAmount` and all changes, scheduled ones included, are removed. Otherwise
-// the change for `from` is inserted or replaced, then any change that repeats
-// the amount already in effect before it is dropped.
+// Drops every change that repeats the amount already in effect before it.
+function _collapse(base, sortedChanges) {
+    const out = [];
+    let inEffect = base;
+    for (const c of sortedChanges) {
+        if (c.amount === inEffect) continue;
+        out.push(c);
+        inEffect = c.amount;
+    }
+    return out;
+}
+
+// The edit operation.
+// - `from === 'all'` (the user ticked "All occurrences") corrects every
+//   occurrence: the base amount becomes `newAmount` and every change, scheduled
+//   ones included, is removed.
+// - A date on or before the record's first occurrence replaces the base amount
+//   but keeps the changes dated after it, so a scheduled raise survives an
+//   ordinary correction of the starting amount.
+// - Otherwise the change for `from` is inserted or replaced.
+// Any change that repeats the amount already in effect before it is dropped.
 export function applyAmountChange(record, newAmount, from, firstOccurrenceIso) {
     const amount = Number(newAmount);
-    if (from === 'all' || (firstOccurrenceIso && from <= firstOccurrenceIso)) {
-        return { amount, amountChanges: [] };
+    if (from === 'all') return { amount, amountChanges: [] };
+    if (firstOccurrenceIso && from <= firstOccurrenceIso) {
+        return { amount, amountChanges: _collapse(amount, _changes(record).filter(c => c.from > from)) };
     }
     const base = _base(record);
     const merged = _changes(record).filter(c => c.from !== from);
     merged.push({ from, amount });
     merged.sort((a, b) => (a.from < b.from ? -1 : 1));
-    const amountChanges = [];
-    let inEffect = base;
-    for (const c of merged) {
-        if (c.amount === inEffect) continue;
-        amountChanges.push(c);
-        inEffect = c.amount;
-    }
-    return { amount: base, amountChanges };
+    return { amount: base, amountChanges: _collapse(base, merged) };
 }
 
 export function getAmountChangeSummary(record, todayIso) {

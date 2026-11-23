@@ -155,3 +155,21 @@ def test_delete_scheduled_change(app_page):
         r["id"] == tid and r["amountChanges"] == [] for r in rows))
     page.wait_for_selector(f"#recurring-card-{tid} .amount-changes", state="detached")
     assert_no_errors(page)
+
+
+def test_moving_first_payday_keeps_a_scheduled_raise(app_page):
+    """Changing the first payday and the amount in one save corrects the base
+    amount without deleting a raise scheduled after it (review of #678)."""
+    page = app_page
+    first = _month_offset(2, 8)
+    raise_from = _month_offset(6, 1)
+    _seed(page, incomes=[_income(firstPayDate=_iso(first), amountChanges=[{"from": _iso(raise_from), "amount": 1500}])])
+    iid = _id_of(page, "incomes", "EDA Salary")
+    _open_income_editor(page, iid)
+    page.fill(f"#ie-date-{iid}", _iso(_month_offset(3, 8)))
+    page.fill(f"#ie-amount-{iid}", "1100")
+    page.click(f'[data-income-action="save"][data-income-id="{iid}"]')
+    wait_for_api(page, "/api/incomes", lambda rows: any(
+        r["id"] == iid and float(r["amount"]) == 1100
+        and r["amountChanges"] == [{"from": _iso(raise_from), "amount": 1500}] for r in rows))
+    assert_no_errors(page)

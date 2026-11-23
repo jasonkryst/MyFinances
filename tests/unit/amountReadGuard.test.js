@@ -17,7 +17,8 @@ const PATTERN = /\b(inc|income|incomes|tmpl|template|tpl|row)\.amount\b/;
 const MARK = /\/\/ amount-read-ok: \S/;
 // Files where recurring templates go by `t`.
 const FILE_PATTERNS = {
-    'src/recurring.js': /\bt\.amount\b/,
+    // also the sort comparator's `a`/`b` (#678 review)
+    'src/recurring.js': /\b[tab]\.amount\b/,
     'src/recurringPaid.js': /\bt\.amount\b/
 };
 

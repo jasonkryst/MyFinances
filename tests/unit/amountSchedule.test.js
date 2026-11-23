@@ -106,9 +106,22 @@ describe('applyAmountChange', () => {
     test("'all' replaces the base amount and clears every change", () => {
         expect(applyAmountChange(one, 20, 'all', null)).toEqual({ amount: 20, amountChanges: [] });
     });
-    test('a date on or before the first occurrence behaves like all', () => {
-        expect(applyAmountChange(one, 20, '2026-01-01', '2026-03-01')).toEqual({ amount: 20, amountChanges: [] });
-        expect(applyAmountChange(one, 20, '2026-03-01', '2026-03-01')).toEqual({ amount: 20, amountChanges: [] });
+    test('a date on or before the first occurrence replaces the base amount and keeps later changes', () => {
+        expect(applyAmountChange(one, 20, '2026-01-01', '2026-03-01')).toEqual({ amount: 20, amountChanges: [{ from: '2027-01-01', amount: 18 }] });
+        expect(applyAmountChange(one, 20, '2026-03-01', '2026-03-01')).toEqual({ amount: 20, amountChanges: [{ from: '2027-01-01', amount: 18 }] });
+    });
+    test('an implicit base change keeps a scheduled raise (review finding)', () => {
+        const rec = { amount: 1000, amountChanges: [{ from: '2027-07-01', amount: 1200 }] };
+        expect(applyAmountChange(rec, 1100, '2027-01-08', '2027-01-08'))
+            .toEqual({ amount: 1100, amountChanges: [{ from: '2027-07-01', amount: 1200 }] });
+    });
+    test('an implicit base change drops a later change that now repeats the new base', () => {
+        expect(applyAmountChange(one, 18, '2026-01-01', '2026-03-01')).toEqual({ amount: 18, amountChanges: [] });
+    });
+    test('an implicit base change drops changes dated on or before its date', () => {
+        const rec = { amount: 15, amountChanges: [{ from: '2026-02-01', amount: 16 }, { from: '2027-01-01', amount: 18 }] };
+        expect(applyAmountChange(rec, 20, '2026-03-01', '2026-03-01'))
+            .toEqual({ amount: 20, amountChanges: [{ from: '2027-01-01', amount: 18 }] });
     });
     test('adds a change from a date', () => {
         expect(applyAmountChange({ amount: 15, amountChanges: [] }, 18, '2027-01-01', '2026-01-01'))
