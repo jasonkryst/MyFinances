@@ -47,3 +47,7 @@ backups/
 Thumbs.db
 desktop.ini
 .worktrees/
+
+# Lighthouse CI: generated config holding a session cookie (#470)
+lighthouserc.auth.json
+.lighthouseci/
