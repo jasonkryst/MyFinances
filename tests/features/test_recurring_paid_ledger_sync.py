@@ -13,7 +13,7 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import assert_no_errors, seed_state, wait_for_api
+from tests.conftest import assert_no_errors, pin_clock, seed_state, wait_for_api
 
 # Seed ids. The server assigns its own ids when data is seeded, so _seed()
 # rebinds these to the real ids and every helper below reads them at call time.
@@ -22,15 +22,30 @@ ACCT2 = 7342
 TID = 9341
 
 
+_PINNED = {"today": None}
+
+
+def _today():
+    """The pinned browser date when a test called pin_clock (#552), else the real date."""
+    return _PINNED["today"] or date.today()
+
+
+@pytest.fixture(autouse=True)
+def _reset_pinned_date():
+    _PINNED["today"] = None
+    yield
+    _PINNED["today"] = None
+
+
 def _mk():
-    t = date.today()
+    t = _today()
     return f"{t.year}-{t.month:02d}"
 
 
 def _tx_id(account=None, day=1, tid=None):
     account = ACCT if account is None else account
     tid = TID if tid is None else tid
-    t = date.today()
+    t = _today()
     return f"recurring|{tid}|{account}|{t.year}-{t.month:02d}-{day:02d}"
 
 
@@ -89,7 +104,7 @@ def _seed(page, templates, accounts=None, cleared=None, overrides=None):
 
 
 def _tmpl(**kw):
-    t = date.today()
+    t = _today()
     base = {
         "id": TID, "name": "Sync Phone Bill", "type": "subscription", "amount": 50,
         "frequency": "monthly", "dayOfMonth": 1, "category": "Bills",
@@ -247,7 +262,7 @@ def test_ledger_override_shows_as_actual_on_paid_card(app_page):
 def test_weekly_template_has_one_row_per_date_and_partial_badge(app_page):
     """A weekly template gets one row per occurrence; paying only some shows 'Paid N of M'."""
     page = app_page
-    t = date.today()
+    t = _today()
     _seed(page, [_tmpl(frequency="weekly", startDate=f"{t.year}-{t.month:02d}-01")])
     _open_modal(page)
     rows = page.query_selector_all('#recurringMarkPaidModal .recurring-paid-row')
@@ -350,13 +365,12 @@ def test_reconcile_is_idempotent(app_page):
 
 
 @pytest.mark.feature
-def test_new_occurrence_in_paid_month_is_not_auto_paid(app_page):
+@pytest.mark.parametrize("pinned", ["2026-01-01", "2026-01-20"])  # latest day with room for a later weekly start
+def test_new_occurrence_in_paid_month_is_not_auto_paid(app_page, pinned):
     """Once the Ledger owns a month (some leg cleared), an occurrence added later
     (e.g. a start-date edit) must not be marked paid by reconcile."""
     page = app_page
-    t = date.today()
-    if t.day > 20:
-        pytest.skip("needs room for a later weekly start date this month")
+    t = _PINNED["today"] = pin_clock(page, pinned)
     mid = t.day + 7 if t.day + 7 <= 28 else 28
     tmpl = _tmpl(frequency="weekly", startDate=f"{t.year}-{t.month:02d}-{mid:02d}")
     _seed(page, [tmpl])
@@ -385,7 +399,7 @@ def test_moved_occurrences_in_paid_month_are_not_auto_paid(app_page):
     cleared), so reconcile must not clear the moved occurrences. Before the
     fix this failed whenever the dates didn't overlap."""
     page = app_page
-    t = date.today()
+    t = _today()
     tmpl = _tmpl(frequency="weekly", startDate=f"{t.year}-{t.month:02d}-02")
     _seed(page, [tmpl])
     _open_modal(page)

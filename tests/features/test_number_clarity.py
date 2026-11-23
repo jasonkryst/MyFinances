@@ -5,7 +5,7 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import create_debt
+from tests.conftest import create_debt, pin_clock
 
 
 def _seed_base(page, extra=""):
@@ -171,8 +171,7 @@ def test_mortgage_with_housing_cost_shows_ratios(app_page):
     assert 'Enter a housing cost' not in text
 
 
-def _seed_overdue(page):
-    today = date.today()
+def _seed_overdue(page, today):
     mk = f"{today.year}-{today.month:02d}"
 
     def tpl(i, name, paid):
@@ -192,11 +191,10 @@ def _seed_overdue(page):
 
 
 @pytest.mark.feature
-def test_recurring_overdue_is_filter_with_helper_text(app_page):
-    if date.today().day <= 1:
-        pytest.skip("Cannot test overdue on the 1st")
+@pytest.mark.parametrize("pinned", ["2026-01-02", "2026-01-31"])  # #552: due day (1st) must be behind us
+def test_recurring_overdue_is_filter_with_helper_text(app_page, pinned):
     page = app_page
-    _seed_overdue(page)
+    _seed_overdue(page, pin_clock(page, pinned))
     assert "isn't marked paid or skipped" in page.inner_text('#recurringOverdueHelp')
     assert page.get_attribute('#recurringOverdueFilterBtn', 'aria-pressed') == 'false'
     listing = page.inner_text('#recurringList')

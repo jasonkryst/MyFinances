@@ -367,6 +367,7 @@ jobs:
             tests/features/test_ci_shard_coverage.py \
             tests/features/test_async_submit_guard.py \
             tests/features/test_skip_guard.py \
+            tests/features/test_sleep_ratchet.py \
             tests/features/test_settings_redesign_guard.py \
             tests/features/test_community_files.py \
             tests/features/test_ci_fail_fast.py \
@@ -813,10 +814,16 @@ jobs:
         with:
           chrome-version: stable
       - uses: ./.github/actions/start-stack
+      # #470: without a session Lighthouse only sees the sign-in screen.
+      # Sign in over HTTP and send the session cookie as an extra header.
+      - name: Sign in for Lighthouse
+        run: node tools/lighthouseAuth.mjs setup "$TEST_BASE_URL" "$TEST_EMAIL" "$TEST_PASSWORD" lighthouserc.auth.json
       - name: Run Lighthouse CI
-        run: npx --yes @lhci/cli@0.15.1 autorun
+        run: npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.auth.json
         env:
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+      - name: Verify Lighthouse audited the app, not the login gate
+        run: node tools/lighthouseAuth.mjs verify .lighthouseci
 
   # ---------------------------------------------------------------------------
   # Single required status check (issue #380). The main ruleset requires this

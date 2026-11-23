@@ -10,7 +10,9 @@ Coverage:
 
 import pytest
 
-from tests.conftest import reset_server_state, seed_state
+from datetime import date
+
+from tests.conftest import pin_clock, reset_server_state, seed_state
 
 BASE_URL = "http://localhost:32900/"
 
@@ -91,8 +93,8 @@ def _seed_recurring_template(page, *, template_id, day_of_month, name='Streaming
                               paused=False, archived=False, skipped_months=None, paid_months=None):
     skipped_months = skipped_months or []
     paid_months = paid_months or []
-    from datetime import date
-    start_date = date.today().replace(day=1).isoformat()
+    # The browser clock is pinned by _due_day_in (#552), so "this month" is January 2026.
+    start_date = f"{PINNED_TODAY.year}-{PINNED_TODAY.month:02d}-01"
     seed_state(page, {'recurringTemplates': [{
         'id': template_id, 'name': name, 'type': 'subscription', 'amount': 15,
         'frequency': 'monthly', 'dayOfMonth': day_of_month, 'category': 'Subscription',
@@ -108,24 +110,22 @@ def _seed_recurring_template(page, *, template_id, day_of_month, name='Streaming
     return real_id
 
 
-def _due_day_in(offset_days):
-    """A dayOfMonth that is `offset_days` ahead of today, within the current month.
-    Skips the test if today is too close to month-end for that offset to exist."""
-    from datetime import date
-    import calendar
-    today = date.today()
-    _, last_day = calendar.monthrange(today.year, today.month)
-    target_day = today.day + offset_days
-    if target_day > last_day:
-        pytest.skip(f"No day {offset_days} days out available this month (today is day {today.day})")
-    return target_day
+PINNED_TODAY = date(2026, 1, 1)
+
+
+def _due_day_in(page, offset_days):
+    """Pin the browser clock to Jan 1 2026 (#552) and return a dayOfMonth that
+    is `offset_days` ahead of it. Pinning keeps room for every offset the tests
+    use, whatever the real date is."""
+    pin_clock(page, PINNED_TODAY.isoformat())
+    return PINNED_TODAY.day + offset_days
 
 
 @pytest.mark.feature
 def test_urgency_badge_red_when_due_within_two_days(app_page):
     """#382 — Red urgency badge shown when the next occurrence is due in < 3 days."""
     page = app_page
-    dom = _due_day_in(2)
+    dom = _due_day_in(page, 2)
     tid = _seed_recurring_template(page, template_id=9401, day_of_month=dom)
 
     badge = page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge--red')
@@ -136,7 +136,7 @@ def test_urgency_badge_red_when_due_within_two_days(app_page):
 def test_urgency_badge_yellow_when_due_within_six_days(app_page):
     """#382 — Yellow urgency badge shown when the next occurrence is due in 3-6 days."""
     page = app_page
-    dom = _due_day_in(5)
+    dom = _due_day_in(page, 5)
     tid = _seed_recurring_template(page, template_id=9402, day_of_month=dom)
 
     badge = page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge--yellow')
@@ -147,7 +147,7 @@ def test_urgency_badge_yellow_when_due_within_six_days(app_page):
 def test_urgency_badge_absent_when_due_far_out(app_page):
     """#382 — No urgency badge when the next occurrence is more than 6 days away."""
     page = app_page
-    dom = _due_day_in(10)
+    dom = _due_day_in(page, 10)
     tid = _seed_recurring_template(page, template_id=9403, day_of_month=dom)
 
     assert page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge') is None
@@ -157,7 +157,7 @@ def test_urgency_badge_absent_when_due_far_out(app_page):
 def test_urgency_badge_absent_when_paused(app_page):
     """#382 — No urgency badge on a paused template even if the occurrence is due soon."""
     page = app_page
-    dom = _due_day_in(1)
+    dom = _due_day_in(page, 1)
     tid = _seed_recurring_template(page, template_id=9404, day_of_month=dom, paused=True)
 
     assert page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge') is None
@@ -167,9 +167,8 @@ def test_urgency_badge_absent_when_paused(app_page):
 def test_urgency_badge_absent_when_paid_this_month(app_page):
     """#382 — No urgency badge once the occurrence has already been marked paid this month."""
     page = app_page
-    from datetime import date
-    month_key = date.today().strftime('%Y-%m')
-    dom = _due_day_in(1)
+    dom = _due_day_in(page, 1)
+    month_key = PINNED_TODAY.strftime('%Y-%m')
     tid = _seed_recurring_template(page, template_id=9405, day_of_month=dom, paid_months=[month_key])
 
     assert page.query_selector(f'#recurring-card-{tid} .recurring-urgency-badge') is None
