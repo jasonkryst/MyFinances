@@ -916,6 +916,20 @@ TRANSLATED_PAGES = {
             document.querySelectorAll('.debt-row-select').forEach(cb => { cb.checked = true; cb.dispatchEvent(new Event('change')); });
         }""",
     ),
+    'liabilities-debts-paged': (
+        ['#liabilitiesSection'],
+        """async () => {
+            // #330: pad past one page so the pager controls render.
+            for (let i = 0; i < 30; i++) {
+                window.app.debts.push({ id: 5000 + i, name: '⟦Pager Debt ' + i + '⟧', debtType: 'creditCard', accountBalance: 100 + i,
+                    originalBalance: 500, minimumPayment: 10, interestRate: 5, dueDate: 5, category: '⟦Pager Cat⟧' });
+            }
+            window.app.switchPage('liabilities');
+            window.app.switchLiabilitiesSubTab('debts');
+            window.app._debtListPage = 1;
+            window.app.renderDebtsList();
+        }""",
+    ),
     'liabilities-debts-filtered': (
         ['#liabilitiesSection'],
         """async () => {
@@ -1031,6 +1045,20 @@ TRANSLATED_PAGES = {
             window.app.switchPage('recurring');
             document.getElementById('recurringFormToggle').click();
             document.getElementById('recurringFiltersBody')?.classList.add('is-open');
+            window.app.renderRecurringPage();
+        }""",
+    ),
+    'recurring-paged': (
+        ['#recurringSection'],
+        """async () => {
+            // #330: pad past one page so the pager controls render.
+            for (let i = 0; i < 30; i++) {
+                window.app.recurringTemplates.push({ id: 6000 + i, name: '⟦Pager Template ' + i + '⟧', type: 'subscription', amount: 10 + i,
+                    frequency: 'monthly', dayOfMonth: 5, category: '⟦Pager Cat⟧', accountId: null, targetAccountId: null,
+                    startDate: '2024-01-01', endDate: null, paused: false, archived: false, skippedMonths: [], paidMonths: [], paidAmounts: {} });
+            }
+            window.app.switchPage('recurring');
+            window.app._recurringListPage = 1;
             window.app.renderRecurringPage();
         }""",
     ),

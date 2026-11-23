@@ -4,6 +4,18 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.31.0] — 2026-11-23
+
+### Added
+- **List pagination on Liabilities and Recurring (#330).** The debt list and the recurring template list show 25 items per page, with Previous/Next controls and a "Showing a–b of n" status in a polite live region. The controls appear only past 25 items.
+  - **One rule.** The pure, Stryker-scoped `paginateList(items, page, pageSize)` in `src/pagination.js` clamps the page (below 1, past the end, NaN or fractional) and returns the slice plus the numbers the pager needs. `src/paginationUi.js` renders the pager (reusing the Ledger's pagination styles) and keeps focus on the pressed button, or the other one when it becomes disabled.
+  - **Filters and sorting** run over the whole list; only the shown slice changes. Changing a filter, sort or grouping (and the Recurring Overdue toggle) returns to page 1, as does navigating to the page. A live refresh or in-place re-render keeps the page and clamps it when the list shrank.
+  - **Grouped debts** page through the flat sorted-and-grouped order: a group that spans a page boundary shows its heading, with the whole group's count and totals, on both pages.
+  - **Session-only.** `app._debtListPage` and `app._recurringListPage` are never saved and are not in `VIEW_STATE_FIELDS`.
+
+### Tests
+- Jest: `pagination.test.js` (first, middle and last pages, exactly 25 vs 26, empty and non-array input, out-of-range, NaN, string and fractional pages, invalid page size, no input mutation). Playwright: `test_list_pagination.py` (shard `test-features-k`) for both lists, covering the pages and status, no controls at 25 and at 0, Previous/Next disabled at the ends, filter and sort across pages with a reset, back to page 1 on navigation, refresh and delete clamping, a grouped heading repeated across pages, and accessible names and focus. The render guards gain `liabilities-debts-paged` and `recurring-paged`.
+
 ## [7.30.0] — 2026-11-23
 
 ### Added

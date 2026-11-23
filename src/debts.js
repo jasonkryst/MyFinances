@@ -14,6 +14,8 @@ import { renderOwnershipControl, readOwnershipSplit, buildOwnershipSplitHtml } f
 import { sanitizeOwnershipSplit } from './sanitizers.js';
 import { readPromoInputs, renderInlinePromoFields, inlinePromoElements, formPromoElements, renderPromoCardHtml } from './debtPromo.js';
 import { getDebtRateOn } from './promoApr.js';
+import { paginateList, DEFAULT_PAGE_SIZE } from './pagination.js';
+import { renderPagerHtml, pagerDirectionFromEvent, afterPagerRender } from './paginationUi.js';
 
 function utilizationStatus(pct) {
     if (pct <= 10) return { cls: 'health-status--green',  label: t('debts.utilStatusGood') };
@@ -686,17 +688,30 @@ export function renderDebtsList(app) {
         debtsList.appendChild(bulkBar);
     }
 
+    // #330: paginate the flat sorted+grouped order. A group that spans a page
+    // boundary shows its heading on both pages (totals stay the whole group's).
+    const flatOrder = [];
+    for (const section of sections) for (const d of section.debts) flatOrder.push({ section, debt: d });
+    const debtPage = paginateList(flatOrder, app._debtListPage, DEFAULT_PAGE_SIZE);
+    app._debtListPage = debtPage.page;
+    const pageSections = [];
+    for (const entry of debtPage.items) {
+        const last = pageSections[pageSections.length - 1];
+        if (last && last.full === entry.section) last.debts.push(entry.debt);
+        else pageSections.push({ full: entry.section, name: entry.section.name, debts: [entry.debt] });
+    }
+
     const _cardIdCounts = new Map();
-    for (const section of sections) {
+    for (const section of pageSections) {
         if (section.name) {
-            const groupTotal = section.debts.reduce((s, d) => s + debtBalance(d), 0);
-            const groupMin = section.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
+            const groupTotal = section.full.debts.reduce((s, d) => s + debtBalance(d), 0);
+            const groupMin = section.full.debts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
             const header = document.createElement('div');
             header.className = 'debt-group-header';
             header.innerHTML = `
                 <span class="debt-group-header-name">${escapeHtml(section.name)}</span>
                 <span class="debt-group-header-summary">
-                    ${escapeHtml(t('debts.groupSummary', { count: plural('debts.countLabel', section.debts.length), balance: formatCurrency(groupTotal), min: formatCurrency(groupMin) }))}
+                    ${escapeHtml(t('debts.groupSummary', { count: plural('debts.countLabel', section.full.debts.length), balance: formatCurrency(groupTotal), min: formatCurrency(groupMin) }))}
                 </span>`;
             debtsList.appendChild(header);
         }
@@ -927,6 +942,14 @@ export function renderDebtsList(app) {
         }
     }
 
+    if (debtPage.totalPages > 1) {
+        debtsList.insertAdjacentHTML('beforeend', renderPagerHtml('debts', debtPage, 'pager.debts'));
+        if (app._debtPagerFocusDir) {
+            afterPagerRender(debtsList, 'debts', app._debtPagerFocusDir);
+        }
+    }
+    app._debtPagerFocusDir = null;
+
     if (filteredDebts.length === 0) {
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'empty-state';
@@ -1001,6 +1024,13 @@ export function renderDebtsList(app) {
     });
 
     debtsList.onclick = (event) => {
+        const pagerDir = pagerDirectionFromEvent(event, 'debts');
+        if (pagerDir) {
+            app._debtListPage = (app._debtListPage || 1) + (pagerDir === 'next' ? 1 : -1);
+            app._debtPagerFocusDir = pagerDir;
+            renderDebtsList(app);
+            return;
+        }
         // D-03: Break-even shortcut button in the debt actions row
         const shortcutEl = event.target.closest('[data-be-shortcut]');
         if (shortcutEl) {

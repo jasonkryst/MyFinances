@@ -175,20 +175,20 @@ export function initializeEventListeners(app) {
 
     const categoryFilter = document.getElementById('categoryFilter');
     if (categoryFilter) {
-        categoryFilter.addEventListener('change', () => app.renderDebtsList());
+        categoryFilter.addEventListener('change', () => { app._debtListPage = 1; app.renderDebtsList(); });
     }
 
     const debtInterestFilter = document.getElementById('debtInterestFilter');
     if (debtInterestFilter) {
-        debtInterestFilter.addEventListener('change', () => app.renderDebtsList());
+        debtInterestFilter.addEventListener('change', () => { app._debtListPage = 1; app.renderDebtsList(); });
     }
 
     ['debtSortBy', 'debtAccountFilter', 'debtProgressFilter', 'debtUtilizationFilter', 'debtGroupBy'].forEach(id => {
-        document.getElementById(id)?.addEventListener('change', () => app.renderDebtsList());
+        document.getElementById(id)?.addEventListener('change', () => { app._debtListPage = 1; app.renderDebtsList(); });
     });
 
     ['recurringSortBy', 'recurringCategoryFilter', 'recurringAccountFilter', 'recurringMonthFilter'].forEach(id => {
-        document.getElementById(id)?.addEventListener('change', () => app.renderRecurringPage());
+        document.getElementById(id)?.addEventListener('change', () => { app._recurringListPage = 1; app.renderRecurringPage(); });
     });
 
     ['accountSortBy', 'accountTypeFilter'].forEach(id => {
@@ -834,6 +834,7 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     }
     if (pageName === 'liabilities') {
         // Render both debts and expenses
+        if (resetToDefaults) app._debtListPage = 1; // #330: page 1 on each visit
         app.renderDebtsList();
         if (resetToDefaults) app._expenseMonthOffset = 0;
         app.renderBudgetPage();
@@ -877,6 +878,7 @@ function renderPageDataUncached(app, pageName, { resetToDefaults }) {
     }
     if (pageName === 'recurring') {
         app.refreshRecurringAccountSelectors();
+        if (resetToDefaults) app._recurringListPage = 1; // #330: page 1 on each visit
         app.renderRecurringPage();
     }
     if (pageName === 'reconcile') {
@@ -1046,6 +1048,12 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.31.0 — 2026-11-23',
+        items: [
+            '<strong>Long lists are paged:</strong> with more than 25 debts on <em>Liabilities</em> or 25 templates on <em>Recurring</em>, the list now shows 25 at a time with Previous and Next buttons. Sorting and filtering still cover everything, and changing them takes you back to page 1.'
+        ]
+    },
     {
         version: '7.30.0 — 2026-11-23',
         items: [
