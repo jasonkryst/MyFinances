@@ -182,3 +182,77 @@ describe('sanitizeIncome endDate', () => {
         expect(sanitizeIncome({ ...legacy, firstDate: '2026-02-01', endDate: '2026-02-01' }).endDate).toBe('2026-02-01');
     });
 });
+
+// The payday helpers' own rules, pinned so the mutation run can tell a
+// change from a no-op (#679 brought them into the Stryker scope).
+describe('getIncomePaydaysInMonth twice monthly edges', () => {
+    test('a first pay date on the 15th or the month end counts that day', () => {
+        expect(isos(getIncomePaydaysInMonth({ firstPayDate: '2026-02-15', frequency: 'twice_monthly' }, 2026, 1)))
+            .toEqual(['2026-02-15', '2026-02-28']);
+        expect(isos(getIncomePaydaysInMonth({ firstPayDate: '2026-02-28', frequency: 'twice_monthly' }, 2026, 1)))
+            .toEqual(['2026-02-28']);
+    });
+
+    test('a month wholly before the first pay date has none', () => {
+        expect(getIncomePaydaysInMonth({ firstPayDate: '2026-03-20', frequency: 'twice_monthly' }, 2026, 1)).toEqual([]);
+    });
+});
+
+describe('getNextIncomePayDates without an end date', () => {
+    test('weekly and biweekly return exactly n dates from today', () => {
+        const from = new Date(2026, 2, 1);
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-02', frequency: 'weekly' }, 3, from)))
+            .toEqual(['2026-03-06', '2026-03-13', '2026-03-20']);
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-02', frequency: 'biweekly' }, 2, from)))
+            .toEqual(['2026-03-13', '2026-03-27']);
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-02', frequency: 'bi-weekly' }, 2, from)))
+            .toEqual(['2026-03-13', '2026-03-27']);
+    });
+
+    test('weekly before the first pay date starts at it', () => {
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-04-03', frequency: 'weekly' }, 2, new Date(2026, 2, 1))))
+            .toEqual(['2026-04-03', '2026-04-10']);
+    });
+
+    test('twice monthly uses each month\'s own length and stops at n', () => {
+        const inc = { firstPayDate: '2026-01-15', frequency: 'twice_monthly' };
+        expect(isos(getNextIncomePayDates(inc, 3, new Date(2026, 1, 1)))).toEqual(['2026-02-15', '2026-02-28', '2026-03-15']);
+        expect(isos(getNextIncomePayDates(inc, 1, new Date(2026, 1, 1)))).toEqual(['2026-02-15']);
+        expect(isos(getNextIncomePayDates(inc, 2, new Date(2026, 1, 20)))).toEqual(['2026-02-28', '2026-03-15']);
+    });
+
+    test('twice monthly skips paydays before the first pay date', () => {
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-02-20', frequency: 'twice_monthly' }, 2, new Date(2026, 1, 1))))
+            .toEqual(['2026-02-28', '2026-03-15']);
+    });
+
+    test('twice monthly and monthly roll over the year', () => {
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-15', frequency: 'twice_monthly' }, 3, new Date(2026, 11, 20))))
+            .toEqual(['2026-12-31', '2027-01-15', '2027-01-31']);
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-10', frequency: 'monthly' }, 3, new Date(2026, 10, 20))))
+            .toEqual(['2026-12-10', '2027-01-10', '2027-02-10']);
+    });
+
+    test('monthly clamps to short months and skips this month\'s past payday', () => {
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-31', frequency: 'monthly' }, 3, new Date(2026, 1, 1))))
+            .toEqual(['2026-02-28', '2026-03-31', '2026-04-30']);
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-10', frequency: 'monthly' }, 2, new Date(2026, 2, 20))))
+            .toEqual(['2026-04-10', '2026-05-10']);
+    });
+
+    test('a payday today still counts, whatever the time of day', () => {
+        expect(isos(getNextIncomePayDates({ firstPayDate: '2026-01-15', frequency: 'monthly' }, 1, new Date(2026, 2, 15, 15, 30))))
+            .toEqual(['2026-03-15']);
+    });
+
+    test('an invalid first pay date gives none', () => {
+        expect(getNextIncomePayDates({ firstPayDate: 'never', frequency: 'monthly' }, 3, new Date(2026, 2, 1))).toEqual([]);
+        expect(getNextIncomePayDates({ frequency: 'weekly' }, 3, new Date(2026, 2, 1))).toEqual([]);
+    });
+});
+
+describe('getIncomeEndDate type guard', () => {
+    test('a non-string that stringifies to a date is not an end date', () => {
+        expect(getIncomeEndDate({ endDate: ['2026-05-31'] })).toBeNull();
+    });
+});
