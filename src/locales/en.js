@@ -2151,4 +2151,17 @@ export default {
     "import.skippedType.retirementSnapshots": "Retirement snapshots",
     "import.skippedType.transfers": "Transfers",
     "import.skippedType.manualTransactions": "Manual transactions",
+    // #678: effective-dated amounts
+    "amounts.appliesFrom": "Applies from",
+    "amounts.allOccurrences": "All occurrences (correct a mistake)",
+    "amounts.allWipesScheduled": "Scheduled changes will be removed too.",
+    "amounts.errAppliesFrom": "Choose the date the new amount applies from, or tick All occurrences.",
+    "amounts.wasUntil": "was {amount} until {date}",
+    "amounts.changesTo": "changes to {amount} on {date}",
+    "amounts.changeCount.one": "{count} change",
+    "amounts.changeCount.few": "{count} changes",
+    "amounts.changeCount.other": "{count} changes",
+    "amounts.changeItem": "{amount} from {date}",
+    "amounts.scheduled": "Scheduled",
+    "amounts.deleteScheduledAria": "Delete scheduled change to {amount} on {date}",
 };

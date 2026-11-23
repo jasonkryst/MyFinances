@@ -23,6 +23,7 @@ import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from 
 import { getRecurringMonthPaidStatus, buildRecurringPaidBadge, reconcileRecurringPaidState } from './recurringPaid.js';
 import { isEffectivelyPaused, getRecurringOccurrencesInMonth } from './recurringOccurrences.js';
 import { getAmountOn, getCurrentAmount } from './amountSchedule.js';
+import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
 
 // #678: each occurrence at the amount in effect on its own date.
 function sumOccurrenceAmounts(tmpl, occurrences) {
@@ -451,6 +452,7 @@ function _buildReadCard(app, t, year, month, monthKey) {
                 <span class="recurring-freq-badge">${escapeHtml(freqText)}</span>
             </div>
         </div>
+        ${renderAmountChangeSummary(t, 'recurring')}
         <div class="recurring-card-meta">
             <span class="recurring-meta-item">🏦 ${accountLine}</span>
             <span class="recurring-meta-item">🏷 ${escapeHtml(categoryLabel(t.category || 'Other'))}</span>
@@ -515,7 +517,10 @@ function _buildEditCard(app, t) {
             </div>
             <div class="form-group recurring-edit-field">
                 <label>${escapeHtml(tr('recurring.amountLabel'))}</label>
-                <input type="number" id="re-amount-${t.id}" value="${getCurrentAmount(t, dateToISO(new Date()))}" min="0" step="0.01">
+                <input type="number" id="re-amount-${t.id}" value="${getCurrentAmount(t, dateToISO(new Date()))}" min="0" step="0.01" ${amountInputAttrs('re', t.id, t)}>
+            </div>
+            <div class="form-group recurring-edit-field recurring-edit-applies">
+                ${renderAppliesFromRow('re', t.id, t, 'recurring')}
             </div>
             <div class="form-group recurring-edit-field">
                 <label>${escapeHtml(tr('recurring.editFrequency'))}</label>
@@ -778,9 +783,13 @@ export async function saveEditRecurring(app, id) {
         return;
     }
 
+    // #678: a changed amount applies from the chosen date (or to every occurrence).
+    const amountEdit = resolveAmountEdit(app.recurringTemplates[idx], amount, 're', id, startDate);
+    if (!amountEdit) { await showAlertModal(tr('amounts.errAppliesFrom')); return; }
+
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],
-        name, type, amount, frequency, dayOfMonth, weekendRule, category,
+        name, type, ...amountEdit, frequency, dayOfMonth, weekendRule, category,
         accountId, targetAccountId, startDate, endDate
     };
 

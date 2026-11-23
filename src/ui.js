@@ -1,5 +1,6 @@
 ﻿﻿﻿// UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
+import { installAmountChangeListeners } from './amountChangeUi.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
@@ -53,6 +54,8 @@ export function initializeEventListeners(app) {
         if (e.target.closest && e.target.closest('.filters-disclosure-body')) refreshFilterDisclosureCounts();
     });
     installOwnershipListeners(() => app);
+    // #678: the "Applies from" row and the scheduled-change Delete buttons.
+    installAmountChangeListeners(() => app);
     const themeSwitcher = document.getElementById('themeSwitcher');
 
     const savedTheme = localStorage.getItem('debtTrackerTheme');

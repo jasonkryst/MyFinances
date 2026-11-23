@@ -27,6 +27,7 @@ import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showAlertModal } from './ui.js';
 import { t, getIntlLocale } from './i18n.js';
 import { getCurrentAmount } from './amountSchedule.js';
+import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
 
 // #678: a month's net pay, each payday at the amount in effect on it.
 function netIncomeForMonth(inc, year, month) {
@@ -100,7 +101,10 @@ export function renderIncomeList(app) {
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editAmount')}</label>
-                                <input type="number" id="ie-amount-${inc.id}" value="${getCurrentAmount(inc, todayISO())}" min="0.01" step="0.01" class="form-control form-full-width">
+                                <input type="number" id="ie-amount-${inc.id}" value="${getCurrentAmount(inc, todayISO())}" min="0.01" step="0.01" class="form-control form-full-width" ${amountInputAttrs('ie', inc.id, inc)}>
+                            </div>
+                            <div class="form-group form-no-margin income-edit-applies">
+                                ${renderAppliesFromRow('ie', inc.id, inc, 'income')}
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editWithholding')}</label>
@@ -181,6 +185,7 @@ export function renderIncomeList(app) {
                     ${linkedPerson ? `<span class="income-card-detail"><span class="person-pill">${escapeHtml(linkedPerson.name)}</span></span>` : ''}
                     <span class="income-card-amount"${grossNote ? ` title="${escapeHtml(grossNote)}"` : ''}>${formatCurrency(netAmount)}</span>
                     ${grossNote ? `<span class="income-card-gross-note">${escapeHtml(grossNote)}</span>` : ''}
+                    ${renderAmountChangeSummary(inc, 'income')}
                     <span class="income-card-detail">${escapeHtml(t('income.firstPay', { date: dateStr }))}</span>
                     <span class="income-card-freq">${escapeHtml(labelFor(INCOME_FREQ_KEYS, inc.frequency))} &mdash; ${escapeHtml(pdayLabel)}</span>
                     ${upcomingHTML ? `<span class="income-card-upcoming-label">${t('income.nextPaydays')}</span>${upcomingHTML}` : ''}
@@ -356,7 +361,11 @@ export async function saveEditIncome(app, incomeId) {
     const idx = app.incomes.findIndex(i => i.id === incomeId);
     if (idx === -1) return;
 
-    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
+    // #678: a changed amount applies from the chosen date (or to every occurrence).
+    const amountEdit = resolveAmountEdit(app.incomes[idx], amount, 'ie', incomeId, firstPayDate);
+    if (!amountEdit) { await showAlertModal(t('amounts.errAppliesFrom')); return; }
+
+    app.incomes[idx] = { ...app.incomes[idx], name, ...amountEdit, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.editingIncomeId = null;
     pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
     app.renderIncomeList();
