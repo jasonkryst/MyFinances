@@ -13,7 +13,7 @@ MyFinances is a privacy-first, self-hosted personal finance tracker (debt payoff
 docker compose up -d                                                # http://localhost:32900
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d   # bind-mounts the frontend: edit, then refresh
 ```
-A plain static file server no longer works: the app needs the API. The stack needs `secrets/postgres_password.txt` and `secrets/smtp_password.txt` (empty is fine); `setup.sh`/`setup.ps1` create them (see `DEPLOYMENT.md`). `docker-compose.dev.yml` mounts `index.html`, `guide.html`, `src/`, the stylesheets, `sw.js`, `manifest.json` and `icons/` read-only into nginx; it has only been checked with `docker compose config`, not run live.
+A plain static file server no longer works: the app needs the API. The stack needs `secrets/postgres_password.txt` and `secrets/smtp_password.txt` (empty is fine); `setup.sh`/`setup.ps1` create them (see `DEPLOYMENT.md`). `docker-compose.dev.yml` mounts `index.html`, `guide.html`, `src/`, the stylesheets, `sw.js`, `manifest.json` and `icons/` read-only into nginx; it was run live once (Docker Desktop on Windows, a separate project name and port): the bind mounts work and an edited `src/` file was served on the next request. `env-config.js` is not mounted (nginx aliases it to `/tmp/env-config.js`).
 
 ### Tests
 ```bash

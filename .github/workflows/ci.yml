@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 # Shared Python/Playwright setup used by every browser-test job.
-# Kept inline (no composite action) so the workflow is self-contained.
+# Browser install and stack start are composite actions: .github/actions/install-playwright
+# and .github/actions/start-stack. The Python setup and pytest steps are repeated per job.
 # Change the cache key suffix (e.g. -v2) to bust stale Playwright binaries.
 
 jobs:
@@ -369,6 +370,7 @@ jobs:
             tests/features/test_async_submit_guard.py \
             tests/features/test_skip_guard.py \
             tests/features/test_sleep_ratchet.py \
+            tests/features/test_locator_scope_guard.py \
             tests/features/test_settings_redesign_guard.py \
             tests/features/test_community_files.py \
             tests/features/test_ci_fail_fast.py \

@@ -6,24 +6,16 @@ and a 401 shows the login gate instead.
 """
 import pytest
 
-from tests.conftest import BASE_URL, ensure_session, reset_server_state, wait_for_app_ready
+from tests.conftest import BASE_URL
 
 BANNER = '#syncErrorBanner'
 EN_TEXT = "Couldn't save your last change — check your connection. Reload to see what's saved."
 
 
 @pytest.fixture
-def app_page(browser, stack_user):
-    """Signed-in page on an empty server, service worker blocked so page.route() is in charge."""
-    context = browser.new_context(service_workers='block')
-    page = context.new_page()
-    page.on('dialog', lambda d: d.accept())
-    ensure_session(context)
-    page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
-    wait_for_app_ready(page)
-    reset_server_state(page)
-    yield page
-    context.close()
+def app_page(app_page_no_sw):
+    """Service workers blocked so page.route() is in charge (shared `app_page_no_sw`, #553)."""
+    return app_page_no_sw
 
 
 def _add_debt(page, name):

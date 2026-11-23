@@ -198,6 +198,8 @@ def test_reports_incomeexp_charts_have_sr_tables(app_page, account_data, income_
     page.select_option('#incomeFrequency', income_data["frequency"])
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    # The income save is async (#592): wait for it, or Reports may render first.
+    page.wait_for_selector(f'#incomeList >> text={income_data["name"]}', timeout=10000)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
@@ -230,6 +232,8 @@ def test_reports_moneyflow_chart_has_sr_table(app_page, account_data, income_dat
     page.select_option('#incomeFrequency', income_data["frequency"])
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
+    # The income save is async (#592): wait for it, or Reports may render first.
+    page.wait_for_selector(f'#incomeList >> text={income_data["name"]}', timeout=10000)
 
     page.click('button[data-page="reports"]')
     page.wait_for_selector('#reportsSection.active', timeout=5000)
