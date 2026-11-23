@@ -1047,6 +1047,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.23.0 — 2026-11-22',
+        items: [
+            '<strong>Price changes and raises keep your history:</strong> when you change the amount of an income or a recurring item, choose the date it applies from. Earlier months keep the old amount everywhere, and you can schedule a change ahead of time. Tick <em>All occurrences</em> to correct a mistake instead. The card shows what the amount was and lists its changes.'
+        ]
+    },
+    {
         version: '7.22.0 — 2026-11-22',
         items: [
             '<strong>Change history:</strong> Settings has a new <em>Change history</em> page listing what you created, changed or deleted in the last 90 days, newest first, with the old and new value of each changed field. Filter it by record type to find out when something changed. Clear All Data also erases the history.'

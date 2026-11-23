@@ -4,6 +4,16 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.23.0] — 2026-11-22
+
+### Added
+- **Amount changes apply from a date (#678).** Changing the amount of an income or a recurring item in its editor now asks *Applies from*, which defaults to the next occurrence. Earlier months keep the old amount in the Ledger, account balances, Reports, Forecast, budgets and both calendar feeds, and a future date schedules the change ahead. *All occurrences (correct a mistake)* replaces the amount everywhere, as an edit did before, and removes any scheduled changes. Cards show the current amount and "was $X until <date>", with a list of changes where a scheduled one can be deleted.
+- Stored as `amountChanges` (a list of `{ from, amount }`) on incomes and recurring templates, migration `1755600000044`. The one rule for the amount on a date is `getAmountOn` in the pure `src/amountSchedule.js`; withholding applies to the dated gross amount, and Mark as paid compares against the amount in effect on that occurrence. A recurring transfer can't be scheduled to $0.
+
+### Tests and CI
+- Jest: the helper (`amountSchedule.test.js`), projections and paid sync (`amountScheduleProjection.test.js`), the downloadable calendar (`amountScheduleCalendar.test.js`) and a guard that fails on a direct `.amount` read of an income or template (`amountReadGuard.test.js`). Server: `amountChanges.test.js` (round-trip, transfer rule, migration, webcal feed). Playwright: `test_effective_dated_amounts.py` (shard B).
+- `createCrudResource` takes `jsonColumns`, since node-pg sends a JS array as a Postgres array literal, which a jsonb column rejects.
+
 ## [7.22.2] — 2026-11-22
 
 ### Fixed
