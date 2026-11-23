@@ -80,7 +80,7 @@ def test_sign_out_one_session_sends_it_to_the_login_gate(app_page, browser):
         assert page.inner_text('#settingsSessionsSummary') == '1 other session is signed in.'
         btn = page.get_by_role('button', name='Sign out Firefox on Linux')
         btn.click()
-        page.wait_for_function("document.querySelectorAll('#settingsSessionsList > li').length === 1")
+        page.wait_for_function("() => document.querySelectorAll('#settingsSessionsList > li').length === 1")
         assert page.inner_text('#settingsSessionsStatus') == 'Signed out Firefox on Linux.'
         assert _probe(other) == 401
 
@@ -103,7 +103,7 @@ def test_sign_out_all_other_sessions(app_page, browser):
         assert _rows(page).count() == 3
         assert page.inner_text('#settingsSessionsSummary') == '2 other sessions are signed in.'
         page.click('#settingsSignOutOthersBtn')
-        page.wait_for_function("document.querySelectorAll('#settingsSessionsList > li').length === 1")
+        page.wait_for_function("() => document.querySelectorAll('#settingsSessionsList > li').length === 1")
         assert page.inner_text('#settingsSessionsStatus') == 'Signed out 2 other sessions.'
         assert page.is_disabled('#settingsSignOutOthersBtn')
         assert [_probe(c) for c in others] == [401, 401]
@@ -125,7 +125,7 @@ def test_session_revoked_elsewhere_is_handled_quietly(app_page, browser):
         csrf = next(c['value'] for c in other.cookies() if c['name'] == 'csrf')
         assert other.request.post('auth/logout', headers={'X-CSRF-Token': csrf}).ok
         page.get_by_role('button', name='Sign out Firefox on Linux').click()
-        page.wait_for_function("document.querySelectorAll('#settingsSessionsList > li').length === 1")
+        page.wait_for_function("() => document.querySelectorAll('#settingsSessionsList > li').length === 1")
         assert page.inner_text('#settingsSessionsError') == ''
     finally:
         other.close()

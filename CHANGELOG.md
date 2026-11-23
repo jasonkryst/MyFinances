@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.28.0] — 2026-11-23
+
+### Added
+- **Active sessions (#683).** Settings → Security has an *Active sessions* card that lists every browser signed in to the account. Each entry shows the browser and system, when it was last active, when it signed in, and its network. The current one is marked *This device* and listed first. *Sign out* ends one session, and *Sign out all other sessions* ends every session except this one. A signed-out browser gets a 401 on its next request and shows the login gate. Before this, signing out other devices required a password change.
+  - **API.** `GET /api/sessions` returns `id` (an opaque `public_id`, never the token or its hash), `createdAt`, `lastSeenAt`, `browser`, `os`, `ip` and `current`. `DELETE /api/sessions/:id` and `DELETE /api/sessions?others=1` are also available. Every query is scoped to the signed-in user, so another user's session id is a 404. Revoking the current session also clears its cookies.
+  - **Privacy.** Only the network is stored, truncated to IPv4 /24 or IPv6 /48 (`truncateIp`). The User-Agent is capped at 512 characters and summarized as a browser/OS pair on output (`server/src/auth/sessionInfo.js`).
+  - **Last active.** `requireSession` writes `last_seen_at` at most once every 5 minutes (`LAST_SEEN_THROTTLE_MS`).
+  - **New sign-in email.** A sign-in from a browser/OS pair the account hasn't used before sends an email (template `newSignInEmail`). The first device ever is remembered without an email. The email goes out in the background and never delays or fails the sign-in. It is on by default: the new `notifyNewSignIn` setting turns it off from a switch on Settings → Notifications, and `notifyChannel: inApp` means no email. Pairs are remembered in `known_devices`.
+  - **Storage.** Migration `1755600000048` adds `public_id`, `last_seen_at`, `user_agent` and `ip_prefix` to `sessions`, and creates `known_devices`. Its `down()` drops them but keeps the sessions, so nobody is signed out.
+
+### Tests and CI
+- Server: `sessions.test.js` covers User-Agent and IP helpers, listing (current first, no token or hash exposed, expired sessions hidden), cross-user isolation (list, single revoke and `?others=1`), revoking one, others or the current session, bad requests and CSRF, the last-seen throttle, the new-device email (first device, known device, setting off, in-app channel, failing or unconfigured SMTP, per-user devices), and migration idempotency and rollback. Jest: `newSignIn` in `getNotificationPrefs`. Playwright: `test_active_sessions.py` (shard `test-features-f`) uses second browser contexts to cover the list, Sign out with the other browser landing on the login gate, Sign out all, a session already gone, and the notification switch.
+
 ## [7.27.1] — 2026-11-23
 
 ### Security
