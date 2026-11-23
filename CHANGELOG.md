@@ -4,6 +4,19 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.32.0] — 2026-11-23
+
+### Added
+- **Sinking fund behind alert (#701).** A new notification type, `sinkingBehind`, on by default, with a *Sinking fund behind* switch in Settings → Notifications (`notifySinkingBehind`).
+  - **Rule.** `getSinkingAlertState(fund, today)` in `src/sinkingFundSchedule.js` (pure, Stryker-scoped) decides it for a target-date fund (#680) that isn't archived or funded:
+    - **behind** fires when the live amount needed per month is at least 10% above the planned pace, the `monthlyAllocation` saved with the goal (`SINKING_BEHIND_ALERT_RATIO` = 1.1, inclusive). Smaller slips, and funds with no planned pace, never alert.
+    - **pastDue** fires when the target date has passed with money still to save.
+  - **Episodes.** One open alert per fund, target date and kind (`sinkingBehind|<id>|<date>|<kind>`). A repeat check adds nothing, and going from behind to past due is a new alert. The alert resolves when the fund catches up, is funded, archived or deleted, when its date changes, or when the setting is turned off.
+  - **Everywhere else.** In-app and email (per event and digest). The bell and the Notifications page have a 🎯 icon, a *Sinking fund behind* type filter (category `sinking`) and a link to Savings. Strings are in en/es/pl.
+
+### Tests
+- Jest: the alert rule (both kinds, the inclusive boundary and just under it, no planned pace, funded/archived/undated/fixed funds), notification events and episodes, filter categories and the settings schema. Server: `notificationsJob.test.js` covers one alert per episode, every resolution path, behind → past due, the setting off and email text. Playwright: `test_notifications_sinking.py`.
+
 ## [7.31.1] — 2026-11-23
 
 ### Fixed

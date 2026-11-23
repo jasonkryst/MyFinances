@@ -1049,6 +1049,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.32.0 — 2026-11-23',
+        items: [
+            '<strong>Sinking fund alerts:</strong> you get a notification when a target-date sinking fund falls 10% or more behind the monthly pace you planned, or passes its date with money still to save. The alert clears once the fund catches up or is funded. Turn it off under <em>Settings → Notifications → Sinking fund behind</em>.'
+        ]
+    },
+    {
         version: '7.31.0 — 2026-11-23',
         items: [
             '<strong>Long lists are paged:</strong> with more than 25 debts on <em>Liabilities</em> or 25 templates on <em>Recurring</em>, the list now shows 25 at a time with Previous and Next buttons. Sorting and filtering still cover everything, and changing them takes you back to page 1.'
