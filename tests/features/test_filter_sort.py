@@ -12,6 +12,23 @@ from tests.conftest import assert_no_errors
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
+def _wait_first(page, selector, text):
+    """Wait until the first element matching `selector` starts with `text`."""
+    page.wait_for_function(
+        """([sel, text]) => {
+            const el = document.querySelector(sel);
+            return !!el && el.textContent.trim().startsWith(text);
+        }""",
+        arg=[selector, text], timeout=5000)
+
+
+def _wait_count(page, selector, n):
+    """Wait until exactly `n` elements match `selector`."""
+    page.wait_for_function(
+        "([sel, n]) => document.querySelectorAll(sel).length === n",
+        arg=[selector, n], timeout=5000)
+
+
 def _go_debts(page):
     page.click('button[data-page="liabilities"]')
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
@@ -134,7 +151,7 @@ def test_debts_sort_by_balance_desc(app_page):
     _seed_debts(page)
 
     page.select_option('#debtSortBy', 'balance-desc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#debtsList .debt-card .debt-name', 'Car Loan')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#debtsList .debt-card .debt-name'))
@@ -151,7 +168,7 @@ def test_debts_sort_by_interest_desc(app_page):
     _seed_debts(page)
 
     page.select_option('#debtSortBy', 'interest-desc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#debtsList .debt-card .debt-name', 'Credit Card')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#debtsList .debt-card .debt-name'))
@@ -168,7 +185,7 @@ def test_debts_sort_by_due_asc(app_page):
     _seed_debts(page)
 
     page.select_option('#debtSortBy', 'due-asc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#debtsList .debt-card .debt-name', 'Car Loan')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#debtsList .debt-card .debt-name'))
@@ -187,9 +204,9 @@ def test_debts_filter_by_account(app_page):
     _seed_debts(page)
 
     # Wait for account filter to populate
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#debtAccountFilter option[value="1"]', state='attached', timeout=5000)
     page.select_option('#debtAccountFilter', '1')  # Chase
-    page.wait_for_timeout(200)
+    _wait_count(page, '#debtsList .debt-card', 1)
 
     cards = page.query_selector_all('#debtsList .debt-card')
     assert len(cards) == 1, f"Only 1 debt linked to Chase, got {len(cards)}"
@@ -205,7 +222,7 @@ def test_debts_filter_by_utilization_low(app_page):
     _seed_debts(page)
 
     page.select_option('#debtUtilizationFilter', 'low')
-    page.wait_for_timeout(200)
+    _wait_count(page, '#debtsList .debt-card', 0)
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#debtsList .debt-card .debt-name'))
@@ -223,7 +240,7 @@ def test_debts_filter_by_utilization_medium(app_page):
     _seed_debts(page)
 
     page.select_option('#debtUtilizationFilter', 'medium')
-    page.wait_for_timeout(200)
+    _wait_count(page, '#debtsList .debt-card', 1)
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#debtsList .debt-card .debt-name'))
@@ -241,7 +258,7 @@ def test_debts_no_utilization_sort_to_bottom(app_page):
     _seed_debts(page)
 
     page.select_option('#debtSortBy', 'utilization-desc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#debtsList .debt-card .debt-name', 'Credit Card')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#debtsList .debt-card .debt-name'))
@@ -290,7 +307,7 @@ def test_recurring_sort_by_amount_desc(app_page):
     _seed_recurring(page)
 
     page.select_option('#recurringSortBy', 'amount-desc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#recurringList .recurring-card-name', 'Annual')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#recurringList .recurring-card-name'))
@@ -307,7 +324,7 @@ def test_recurring_sort_by_due_asc(app_page):
     _seed_recurring(page)
 
     page.select_option('#recurringSortBy', 'due-asc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#recurringList .recurring-card-name', 'Netflix')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#recurringList .recurring-card-name'))
@@ -325,9 +342,9 @@ def test_recurring_filter_by_category(app_page):
     page = app_page
     _seed_recurring(page)
 
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#recurringCategoryFilter option[value="Health"]', state='attached', timeout=5000)
     page.select_option('#recurringCategoryFilter', 'Health')
-    page.wait_for_timeout(200)
+    _wait_count(page, '#recurringList .recurring-card', 1)
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#recurringList .recurring-card-name'))
@@ -343,9 +360,9 @@ def test_recurring_filter_by_account(app_page):
     page = app_page
     _seed_recurring(page)
 
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#recurringAccountFilter option[value="2"]', state='attached', timeout=5000)
     page.select_option('#recurringAccountFilter', '2')  # Savings
-    page.wait_for_timeout(200)
+    _wait_count(page, '#recurringList .recurring-card', 1)
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#recurringList .recurring-card-name'))
@@ -361,7 +378,7 @@ def test_recurring_filter_by_month_shows_monthly_templates(app_page):
     page = app_page
     _seed_recurring(page)
 
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#recurringMonthFilter option:nth-child(2)', state='attached', timeout=5000)
     # Select the first available month option (current month)
     first_month = page.evaluate("""() => {
         const sel = document.getElementById('recurringMonthFilter');
@@ -370,7 +387,7 @@ def test_recurring_filter_by_month_shows_monthly_templates(app_page):
     assert first_month, "Month filter should have at least one month option"
 
     page.select_option('#recurringMonthFilter', first_month)
-    page.wait_for_timeout(200)
+    page.wait_for_function("() => document.getElementById('recurringMonthFilter').value !== ''", timeout=5000)
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#recurringList .recurring-card-name'))
@@ -411,7 +428,7 @@ def test_accounts_sort_by_name_asc(app_page):
     _seed_accounts(page)
 
     page.select_option('#accountSortBy', 'name-asc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#accountList .acct-card-name', 'Alpha Savings')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#accountList .acct-card-name'))
@@ -428,7 +445,7 @@ def test_accounts_sort_by_apy_desc(app_page):
     _seed_accounts(page)
 
     page.select_option('#accountSortBy', 'apy-desc')
-    page.wait_for_timeout(200)
+    _wait_first(page, '#accountList .acct-card-name', 'Alpha Savings')
 
     names = page.evaluate("""() =>
         Array.from(document.querySelectorAll('#accountList .acct-card-name'))
@@ -447,7 +464,7 @@ def test_accounts_filter_by_type(app_page):
     _seed_accounts(page)
 
     page.select_option('#accountTypeFilter', 'Savings')
-    page.wait_for_timeout(200)
+    _wait_count(page, '#accountList .acct-card', 1)
 
     cards = page.query_selector_all('#accountList .acct-card')
     assert len(cards) == 1, f"Only 1 Savings account, got {len(cards)}"
@@ -463,7 +480,7 @@ def test_accounts_filter_shows_empty_when_no_match(app_page):
     _seed_accounts(page)
 
     page.select_option('#accountTypeFilter', 'Investment')
-    page.wait_for_timeout(200)
+    _wait_count(page, '#accountList .acct-card', 0)
 
     cards = page.query_selector_all('#accountList .acct-card')
     assert len(cards) == 0, "No Investment accounts seeded — should show nothing"
@@ -477,9 +494,9 @@ def test_accounts_clear_filter_shows_all(app_page):
     _seed_accounts(page)
 
     page.select_option('#accountTypeFilter', 'Savings')
-    page.wait_for_timeout(200)
+    _wait_count(page, '#accountList .acct-card', 1)
     page.select_option('#accountTypeFilter', '')
-    page.wait_for_timeout(200)
+    _wait_count(page, '#accountList .acct-card', 3)
 
     cards = page.query_selector_all('#accountList .acct-card')
     assert len(cards) == 3, f"All 3 accounts should show after clearing filter, got {len(cards)}"

@@ -691,7 +691,7 @@ def test_surplus_positive_with_high_balance(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '5001'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function("() => document.getElementById('healthSurplusBadge')?.textContent.trim() === 'Surplus'", timeout=5000)
 
     badge_text = page.query_selector('#healthSurplusBadge').text_content().strip()
     result_text = page.query_selector('#healthSurplusResult').text_content()
@@ -720,7 +720,7 @@ def test_surplus_deficit_with_low_balance(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '6001'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function("() => document.getElementById('healthSurplusBadge')?.textContent.trim() === 'Deficit'", timeout=5000)
 
     badge_text = page.query_selector('#healthSurplusBadge').text_content().strip()
     assert badge_text == 'Deficit', \
@@ -754,7 +754,9 @@ def test_surplus_debt_recommendations_shown(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '7001'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function(
+        "() => { const t = document.getElementById('healthSurplusResult')?.textContent || ''; return t.includes('Highest interest rate'); }",
+        timeout=5000)
 
     result_text = page.query_selector('#healthSurplusResult').text_content()
     assert 'Highest interest rate' in result_text, \
@@ -789,7 +791,9 @@ def test_surplus_savings_recommendations_shown(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '8001'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function(
+        "() => { const t = document.getElementById('healthSurplusResult')?.textContent || ''; return t.includes('Emergency fund') || t.includes('Savings goal'); }",
+        timeout=5000)
 
     result_text = page.query_selector('#healthSurplusResult').text_content()
     assert 'Emergency fund' in result_text or 'Savings goal' in result_text, \
@@ -815,14 +819,16 @@ def test_surplus_window_control_updates_result(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '9101'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#healthSurplusWindow', timeout=5000)
 
     # Change window to 30 days
     page.evaluate("""() => {
         const inp = document.getElementById('healthSurplusWindow');
         if (inp) { inp.value = '30'; inp.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(200)
+    page.wait_for_function(
+        "() => { const t = document.getElementById('healthSurplusResult')?.textContent || ''; return t.includes('30'); }",
+        timeout=5000)
 
     result_html = page.query_selector('#healthSurplusResult').inner_html()
     assert '30' in result_html, \
@@ -860,7 +866,9 @@ def test_surplus_zero_balance_debts_excluded(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_function(
+        "() => { const t = document.getElementById('healthSurplusResult')?.textContent || ''; return t.includes('ActiveDebt'); }",
+        timeout=5000)
 
     result_text = page.query_selector('#healthSurplusResult').text_content()
     assert 'PaidOff' not in result_text, \
@@ -893,7 +901,7 @@ def test_surplus_transparency_toggle_shows_transactions(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(300)
+    page.wait_for_selector('#healthSurplusTxToggle', timeout=5000)
 
     toggle = page.query_selector('#healthSurplusTxToggle')
     assert toggle, "Transaction toggle button (#healthSurplusTxToggle) should be present"
@@ -904,7 +912,7 @@ def test_surplus_transparency_toggle_shows_transactions(app_page):
         "Detail panel should be hidden before toggle is clicked"
 
     toggle.click()
-    page.wait_for_timeout(100)
+    page.wait_for_selector('#healthSurplusTxDetail:not([hidden])', timeout=5000)
 
     assert detail.get_attribute('hidden') is None, \
         "Detail panel should be visible after clicking the toggle"
@@ -933,7 +941,7 @@ def test_surplus_sparkline_canvas_rendered(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#healthSurplusSparkline', timeout=5000)
 
     canvas = page.query_selector('#healthSurplusSparkline')
     assert canvas, "Sparkline canvas (#healthSurplusSparkline) should be rendered"
@@ -966,7 +974,9 @@ def test_surplus_payoff_acceleration_shown(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(400)
+    page.wait_for_function(
+        "() => { const t = document.getElementById('healthSurplusResult')?.textContent || ''; return t.includes('sooner'); }",
+        timeout=5000)
 
     result_text = page.query_selector('#healthSurplusResult').text_content()
     assert 'sooner' in result_text, \
@@ -1003,7 +1013,9 @@ def test_surplus_balance_dip_warning(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(400)
+    page.wait_for_function(
+        "() => { const t = document.getElementById('healthSurplusResult')?.textContent || ''; return t.toLowerCase().includes('dips to') || t.includes('Deficit') || t.includes('Reduce expenses'); }",
+        timeout=5000)
 
     result_text = page.query_selector('#healthSurplusResult').text_content()
     # Either dip warning or deficit notice — both indicate the cash flow problem
@@ -1045,7 +1057,7 @@ def test_surplus_allocation_slider_shown_with_mixed_recs(app_page):
         const sel = document.getElementById('healthSurplusAcct');
         if (sel) { sel.value = '1'; sel.dispatchEvent(new Event('change')); }
     }""")
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#healthSurplusAllocSlider', timeout=5000)
 
     slider = page.query_selector('#healthSurplusAllocSlider')
     assert slider, "Allocation slider (#healthSurplusAllocSlider) should appear with mixed recs"
@@ -1055,7 +1067,9 @@ def test_surplus_allocation_slider_shown_with_mixed_recs(app_page):
         const s = document.getElementById('healthSurplusAllocSlider');
         if (s) { s.value = '50'; s.dispatchEvent(new Event('input')); }
     }""")
-    page.wait_for_timeout(100)
+    page.wait_for_function(
+        "() => { const t = document.getElementById('healthSurplusResult')?.textContent || ''; return t.includes('50%'); }",
+        timeout=5000)
 
     alloc_text = page.query_selector('#healthSurplusResult').text_content()
     assert '50%' in alloc_text, "Allocation label should reflect 50% debt slider position"
@@ -1092,7 +1106,7 @@ def test_health_trend_arrow_present_when_income_changes(app_page):
         app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_timeout(500)
+    page.wait_for_selector('.health-trend', timeout=5000)
 
     trends = page.query_selector_all('.health-trend')
     assert len(trends) >= 1, "Expected at least one trend arrow when income and debt exist"
@@ -1117,7 +1131,7 @@ def test_health_trend_arrow_absent_when_no_prev_income(app_page):
         app.recurringTemplates = []; app.emergencyFunds = []; app.sinkingFunds = [];
         app.switchPage('health');
     }""")
-    page.wait_for_timeout(500)
+    page.wait_for_selector('#healthSection.active .health-card-title', timeout=5000)
 
     trends = page.query_selector_all('.health-trend')
     assert len(trends) == 0, "No trend arrows expected when prev-month income is zero"
@@ -1155,7 +1169,7 @@ def test_health_card_click_navigates(app_page):
             if (title) title.click();
         }
     }""")
-    page.wait_for_timeout(400)
+    page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
 
     liabilities_active = page.query_selector('#liabilitiesSection.active')
     assert liabilities_active, "Clicking a data-card-nav='liabilities' card should navigate to Liabilities"

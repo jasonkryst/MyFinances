@@ -147,7 +147,6 @@ def _add_account_for_ef(page, name='EF Sync Account'):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', '2500')
     submit_account_form(page)
-    page.wait_for_timeout(300)
 
 
 def _open_ef_form(page):
@@ -156,7 +155,7 @@ def _open_ef_form(page):
     page.wait_for_selector('#savingsSection.active', timeout=5000)
     # Ensure Emergency Fund subtab is active
     page.click('.savings-subtab-btn[data-savings-subtab="emergency"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('#emergencyFormToggle', state='attached', timeout=5000)
     # Open the add/edit form
     toggle = page.query_selector('#emergencyFormToggle')
     if toggle:
@@ -195,12 +194,12 @@ def test_ef_auto_sync_disables_current_amount(app_page):
 
     # Check auto-sync
     page.check('#emergencyAutoSync')
-    page.wait_for_timeout(100)
+    page.wait_for_function("() => document.getElementById('emergencyCurrent').disabled", timeout=5000)
     assert current_el.is_disabled(), "#emergencyCurrent should be disabled when auto-sync is on"
 
     # Uncheck — re-enables
     page.uncheck('#emergencyAutoSync')
-    page.wait_for_timeout(100)
+    page.wait_for_function("() => !document.getElementById('emergencyCurrent').disabled", timeout=5000)
     assert not current_el.is_disabled(), "#emergencyCurrent should re-enable when auto-sync is unchecked"
 
 
@@ -216,8 +215,6 @@ def test_ef_add_with_auto_sync_stores_flag(app_page):
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '500')
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
-
     ef_funds = wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
     assert len(ef_funds) > 0, "EF fund should be saved on the server"
     fund = ef_funds[-1]
@@ -237,8 +234,6 @@ def test_ef_add_without_auto_sync_stores_false(app_page):
     page.fill('#emergencyContribution', '300')
     # Do NOT check auto-sync
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
-
     ef_funds = wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
     assert len(ef_funds) > 0, "EF fund should be saved on the server"
     fund = ef_funds[-1]
@@ -257,7 +252,7 @@ def test_ef_sync_badge_visible_when_auto_sync_on(app_page):
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '400')
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
+    wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
 
     page.click('button[data-page="savings"]')
     page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -278,7 +273,7 @@ def test_ef_auto_sync_hides_contribute_button(app_page):
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '350')
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
+    wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
 
     page.click('button[data-page="savings"]')
     page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -300,7 +295,7 @@ def test_ef_auto_sync_off_shows_contribute_button(app_page):
     page.fill('#emergencyContribution', '200')
     # No auto-sync
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
+    wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
 
     page.click('button[data-page="savings"]')
     page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -320,7 +315,7 @@ def test_ef_edit_populates_auto_sync_checkbox(app_page):
     page.check('#emergencyAutoSync')
     page.fill('#emergencyContribution', '300')
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
+    wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
 
     page.click('button[data-page="savings"]')
     page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -351,8 +346,6 @@ def test_ef_id_is_numeric_not_string(app_page):
     page.fill('#emergencyCurrent', '500')
     page.fill('#emergencyContribution', '150')
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
-
     ef_funds = wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
     assert len(ef_funds) > 0, "EF fund should be saved on the server"
     fund = ef_funds[-1]
@@ -372,7 +365,7 @@ def test_ef_account_name_displayed_correctly(app_page):
     page.fill('#emergencyCurrent', '1200')
     page.fill('#emergencyContribution', '250')
     page.click('#emergencyFormSubmit')
-    page.wait_for_timeout(500)
+    wait_for_api(page, '/api/emergency-funds', lambda rows: len(rows) > 0)
 
     page.click('button[data-page="savings"]')
     page.wait_for_selector('#savingsSection.active', timeout=5000)
@@ -479,7 +472,7 @@ def test_savings_rate_summary_appears_across_all_subtabs(app_page):
 
     page.evaluate("() => window.app.switchPage('savings')")
     page.click('button[data-savings-subtab="home"]')
-    page.wait_for_timeout(200)
+    page.wait_for_selector('.savings-rate-summary', timeout=5000)
 
     summary = page.query_selector('.savings-rate-summary')
     assert summary, "Savings rate summary panel should remain visible on the Home Purchase sub-tab"
