@@ -109,9 +109,10 @@ export function loadReportsSubModules() {
         import('./reportsMoneyFlowSankey.js'),
         import('./reportsCashFlow.js'),
         import('./reportsVariance.js'),
-        import('./reportsSummary.js')
-    ]).then(([calendar, sankey, cashFlow, variance, summary]) => ({
-        calendar, sankey, cashFlow, variance, summary
+        import('./reportsSummary.js'),
+        import('./reportsYearReview.js')
+    ]).then(([calendar, sankey, cashFlow, variance, summary, yearReview]) => ({
+        calendar, sankey, cashFlow, variance, summary, yearReview
     })));
 }
 

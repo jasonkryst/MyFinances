@@ -28,5 +28,6 @@
     "src/settingsSchema.js": 85,
     "src/undoCore.js": 93,
     "src/utils.js": 76,
-    "src/weekendRule.js": 86
+    "src/weekendRule.js": 86,
+    "src/yearReviewCore.js": 73
 }

@@ -327,6 +327,7 @@ jobs:
             tests/features/test_weekend_rule_change_confirm.py \
             tests/features/test_boot_gates.py \
             tests/features/test_reconciliation_export.py \
+            tests/features/test_year_in_review.py \
             tests/features/test_emergency_balance_history.py \
             --maxfail=15 \
             -v
