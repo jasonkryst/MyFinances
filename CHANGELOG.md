@@ -4,6 +4,17 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.29.0] — 2026-11-23
+
+### Added
+- **Read-only personal API tokens (#581).** Settings → Security has an *API tokens* card. Give a token a name and create it; the token (`mft_` plus 43 characters) is shown once, with a Copy button. The list then shows each token's name, prefix, creation time and last use, with *Revoke*.
+  - **Use.** Send `Authorization: Bearer <token>` on `GET`/`HEAD` requests under `/api` (`requireSessionOrApiToken`, `server/src/auth/apiTokens.js`). A token reads only its owner's data. Any other method is `403 TOKEN_READ_ONLY`. `/api/sessions`, `/api/api-tokens` and `/api/calendar` are `403 TOKEN_FORBIDDEN`, so a token can't see or create credentials. A token never authenticates `/auth` or `/health`. A browser session cookie wins when both are sent, and an unknown or revoked token is `401 INVALID_TOKEN`.
+  - **API.** `GET`/`POST /api/api-tokens` and `DELETE /api/api-tokens/:id` require a browser session. A name is required (at most 60 characters). The limit is 25 tokens per user, checked inside the insert. The id is an opaque `public_id`.
+  - **Storage.** Only the token's SHA-256 is stored, plus its first 12 characters for display. `last_used_at` is written at most once a minute. Changing or resetting the password deletes every token, as it already cleared the calendar feed token. Migration `1755600000049` creates `api_tokens` (scope `read`, enforced by a CHECK); its `down()` drops the table.
+
+### Tests and CI
+- Server: `apiTokens.test.js` covers bearer parsing and the denied-path matcher (case, double and trailing slashes), creation (shown once, hash only), name validation, the 25-token limit and CSRF. Reads with GET and HEAD work. Every write method and credential route is refused and changes nothing. A token never authenticates `/auth` or `/health`. Unknown, malformed and revoked tokens are rejected, and owner isolation holds. Also covered: session precedence, the last-used throttle, revocation on password change, and the migration (idempotent, rollback, scope CHECK). Playwright: `test_api_tokens.py` (shard `test-features-f`) covers the empty state, a blank name, and create, use from a cookie-less client, show-once and revoke.
+
 ## [7.28.0] — 2026-11-23
 
 ### Added

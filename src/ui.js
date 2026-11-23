@@ -1047,6 +1047,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.29.0 — 2026-11-23',
+        items: [
+            '<strong>Read-only API tokens:</strong> under <em>Settings → Security → API tokens</em>, create a token for your own scripts or a home dashboard. It reads your data with GET requests to <code>/api/...</code> and can\'t change anything or manage your sign-in. Each token shows when it was last used, you can revoke it at any time, and changing your password revokes them all.'
+        ]
+    },
+    {
         version: '7.28.0 — 2026-11-23',
         items: [
             '<strong>See where you are signed in:</strong> <em>Settings → Security → Active sessions</em> lists every browser signed in to your account, with its browser and system, when it was last active and its network. Sign out one you don\'t recognise, or all the others at once, without changing your password. A signed-out browser goes to the sign-in screen on its next request.',

@@ -142,6 +142,18 @@ A sign-in from a browser/OS pair the account hasn't used before emails the user
 `notifyChannel` is `inApp`. The first device is remembered silently in
 `known_devices`, and the email never delays or fails the sign-in.
 
+**Read-only API tokens (#581).** `POST /api/api-tokens` `{ name }` (browser
+session + CSRF) returns `{ id, name, prefix, scope, createdAt, lastUsedAt,
+token }`. The `token` appears only in this response; the server stores its
+SHA-256. `GET /api/api-tokens` lists them, and `DELETE /api/api-tokens/:id`
+revokes one. The limit is 25 per user. Use a token as `Authorization: Bearer
+mft_...` on `GET`/`HEAD` under `/api`. Other methods are `403
+TOKEN_READ_ONLY`; `/api/sessions`, `/api/api-tokens` and `/api/calendar` are
+`403 TOKEN_FORBIDDEN`; and `/auth` and `/health` never accept a token. Changing
+or resetting the password revokes all tokens. Example:
+
+    curl -H "Authorization: Bearer mft_..." https://finances.example.com/api/accounts
+
 ## Background jobs (issue #579)
 
 `src/index.js` starts an in-process scheduler (`src/jobs/runner.js`) after the

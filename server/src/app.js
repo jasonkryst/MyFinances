@@ -27,6 +27,8 @@ import createNotificationsRouter from './routes/notifications.js';
 import personsRouter from './routes/persons.js';
 import auditLogRouter from './routes/auditLog.js';
 import sessionsRouter from './routes/sessions.js';
+import apiTokensRouter from './routes/apiTokens.js';
+import { requireSessionOrApiToken } from './auth/apiTokens.js';
 import calendarRouter, { handlePublicCalendar, createCalendarRateLimiter } from './routes/calendar.js';
 
 export function createApp() {
@@ -59,7 +61,8 @@ export function createApp() {
     app.post('/health/session-check', requireSession, requireCsrf, (req, res) => res.json({ ok: true }));
 
     const api = express.Router();
-    api.use(requireSession, requireCsrf);
+    // #581: /api also accepts a read-only Bearer API token.
+    api.use(requireSessionOrApiToken, requireCsrf);
     api.use('/accounts', accountsRouter);
     api.use('/bills', billsRouter);
     api.use('/expenses', expensesRouter);
@@ -84,6 +87,7 @@ export function createApp() {
     api.use('/notifications', createNotificationsRouter());
     api.use('/audit-log', auditLogRouter);
     api.use('/sessions', sessionsRouter);
+    api.use('/api-tokens', apiTokensRouter);
     api.use('/calendar', calendarRouter);
     app.use('/api', api);
 
