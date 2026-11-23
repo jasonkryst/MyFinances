@@ -270,6 +270,7 @@ export function createAuthRouter() {
             // a leaked URL stops working -- user must regenerate from the modal.
             await query('DELETE FROM sessions WHERE user_id = $1', [rows[0].user_id]);
             await query('UPDATE plan_settings SET calendar_token = NULL WHERE user_id = $1', [rows[0].user_id]);
+            await query('DELETE FROM api_tokens WHERE user_id = $1', [rows[0].user_id]); // #581
 
             res.json({ ok: true });
         } catch (err) {
@@ -322,6 +323,7 @@ export function createAuthRouter() {
             await query('DELETE FROM sessions WHERE user_id = $1 AND id <> $2', [req.userId, hashToken(req.cookies.session)]);
             await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [req.userId]);
             await query('UPDATE plan_settings SET calendar_token = NULL WHERE user_id = $1', [req.userId]);
+            await query('DELETE FROM api_tokens WHERE user_id = $1', [req.userId]); // #581
             res.json({ ok: true });
         } catch (err) {
             next(err);

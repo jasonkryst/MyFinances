@@ -9,6 +9,7 @@ import { showEmailTestToast, openWhatsNewModal } from './ui.js';
 import { initSettingsBackup } from './settingsBackup.js';
 import { initSecuritySettings, refreshSecuritySettingsPanel } from './securitySettings.js';
 import { initActiveSessions, loadActiveSessions } from './activeSessions.js';
+import { initApiTokens, refreshApiTokens } from './apiTokens.js';
 import { initNotificationSettings, loadNotificationSettingsForm } from './notificationSettings.js';
 import { resetBackupPage } from './dataTransferModal.js';
 import { onSettingsPageShown, initSettingsNav, showSettingsPage, showSettingsListQuiet, handleSettingsEscape, isSettingsNarrow, getActiveSettingsPage, refreshSettingsRowValues } from './settingsNav.js';
@@ -75,10 +76,15 @@ export function initSettingsModal(app) {
     initSettingsBackup(app);
     initSecuritySettings(app);
     initActiveSessions(app);
+    initApiTokens(app);
     initNotificationSettings(app);
     initSettingsNav(modal);
-    // #683: the Security page lists active sessions each time it is shown.
-    onSettingsPageShown('security', () => { loadActiveSessions(app); });
+    // #683/#581: the Security page lists active sessions and API tokens each
+    // time it is shown.
+    onSettingsPageShown('security', () => {
+        loadActiveSessions(app);
+        refreshApiTokens(app);
+    });
     // #580: the Change history page loads its module and entries when shown.
     onSettingsPageShown('history', () => {
         loadChangeHistoryModule()

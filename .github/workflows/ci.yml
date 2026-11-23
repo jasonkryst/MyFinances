@@ -103,7 +103,7 @@ jobs:
       - run: pip install -r tests/requirements.txt
       - uses: ./.github/actions/install-playwright
       - uses: ./.github/actions/start-stack
-      - run: pytest tests/features/test_ledger.py tests/features/test_notifications.py tests/features/test_notifications_page.py tests/features/test_login_recovery.py tests/features/test_debt_promo_apr.py tests/features/test_active_sessions.py --maxfail=15 -v
+      - run: pytest tests/features/test_ledger.py tests/features/test_notifications.py tests/features/test_notifications_page.py tests/features/test_login_recovery.py tests/features/test_debt_promo_apr.py tests/features/test_active_sessions.py tests/features/test_api_tokens.py --maxfail=15 -v
 
   # test_reports, test_debt_calculator, test_break_even, test_networth are
   # calculation-heavy tests (~20s each in CI vs ~3s for shard-B/C). Kept in

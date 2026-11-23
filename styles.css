@@ -10035,3 +10035,17 @@ body.dark-mode .plan-delta--worse { color: #fca5a5; }
 body.dark-mode .settings-session-badge {
     color: #0f172a;
 }
+
+/* #581: Settings -> Security -> API tokens */
+.settings-api-token-reveal {
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.settings-api-token-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}

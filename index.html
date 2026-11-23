@@ -2319,6 +2319,28 @@
                         <p id="settingsSessionsStatus" class="settings-security-status" role="status"></p>
                         <button type="button" id="settingsSignOutOthersBtn" class="btn btn-secondary btn-small" data-i18n="settings.sessions.signOutOthers" disabled>Sign out all other sessions</button>
                     </div>
+                    <div class="settings-card settings-page-card settings-api-tokens" id="settingsApiTokens">
+                        <h4 id="settingsApiTokensHeading" class="settings-security-title" tabindex="-1" data-i18n="settings.apiTokens.title">API tokens</h4>
+                        <p id="settingsApiTokensHelp" class="modal-helper-text" data-i18n="settings.apiTokens.help">Read-only tokens let your own scripts and dashboards read your data. They can't change anything or manage your sign-in. Changing your password revokes them all.</p>
+                        <form id="settingsApiTokenForm" class="settings-api-token-form" novalidate>
+                            <div class="form-group modal-form-group">
+                                <label for="settingsApiTokenName" data-i18n="settings.apiTokens.name">Token name</label>
+                                <input type="text" id="settingsApiTokenName" class="form-control" maxlength="60" autocomplete="off" data-i18n-attr="placeholder:settings.apiTokens.namePlaceholder" placeholder="e.g. Home dashboard">
+                            </div>
+                            <button type="submit" id="settingsApiTokenCreateBtn" class="btn btn-primary btn-small" data-i18n="settings.apiTokens.create">Create token</button>
+                        </form>
+                        <div id="settingsApiTokenReveal" class="settings-api-token-reveal hidden">
+                            <p class="modal-helper-text" data-i18n="settings.apiTokens.copyNow">Copy this token now. It won't be shown again.</p>
+                            <label for="settingsApiTokenValue" class="sr-only" data-i18n="settings.apiTokens.valueLabel">New API token</label>
+                            <input type="text" id="settingsApiTokenValue" class="form-control settings-api-token-value" readonly translate="no" spellcheck="false" autocomplete="off">
+                            <p class="modal-helper-text" data-i18n="settings.apiTokens.usage">Send it as an Authorization: Bearer header with GET requests to /api/... on this server.</p>
+                            <button type="button" id="settingsApiTokenCopyBtn" class="btn btn-secondary btn-small" data-i18n="settings.apiTokens.copy">Copy token</button>
+                        </div>
+                        <p id="settingsApiTokensEmpty" class="modal-helper-text" data-i18n="settings.apiTokens.empty">No API tokens yet.</p>
+                        <ul id="settingsApiTokensList" class="settings-sessions-list" aria-labelledby="settingsApiTokensHeading"></ul>
+                        <p id="settingsApiTokensError" class="login-gate-error" role="alert"></p>
+                        <p id="settingsApiTokensStatus" class="settings-security-status" role="status"></p>
+                    </div>
                 </section>
                 <section id="settingsPage-about" class="settings-page" aria-labelledby="settingsPageTitle-about">
                     <h4 id="settingsPageTitle-about" class="settings-page-title" tabindex="-1" data-i18n="settings.pageAbout"></h4>
