@@ -26,6 +26,7 @@ import planSettingsRouter from './routes/planSettings.js';
 import createNotificationsRouter from './routes/notifications.js';
 import personsRouter from './routes/persons.js';
 import auditLogRouter from './routes/auditLog.js';
+import sessionsRouter from './routes/sessions.js';
 import calendarRouter, { handlePublicCalendar, createCalendarRateLimiter } from './routes/calendar.js';
 
 export function createApp() {
@@ -82,6 +83,7 @@ export function createApp() {
     api.use('/plan-settings', planSettingsRouter);
     api.use('/notifications', createNotificationsRouter());
     api.use('/audit-log', auditLogRouter);
+    api.use('/sessions', sessionsRouter);
     api.use('/calendar', calendarRouter);
     app.use('/api', api);
 

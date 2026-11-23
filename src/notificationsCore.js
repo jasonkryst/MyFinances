@@ -15,7 +15,7 @@ import { getEffectiveAmount, isCleared } from './ledgerStateCore.js';
 import { dateToISO } from './utils.js';
 import { daysUntilPromoEnd } from './promoApr.js';
 import {
-    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW, NOTIFY_PROMO_ENDING, PROMO_ALERT_DAYS,
+    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW, NOTIFY_PROMO_ENDING, NOTIFY_NEW_SIGN_IN, PROMO_ALERT_DAYS,
     NOTIFY_DAYS_AHEAD, NOTIFY_DAYS_AHEAD_DEFAULT, NOTIFY_DAYS_AHEAD_MAX,
     NOTIFY_CHANNEL, NOTIFY_CHANNELS, NOTIFY_DELIVERY, NOTIFY_DELIVERIES,
 } from './settingsSchema.js';
@@ -48,6 +48,8 @@ export function getNotificationPrefs(settings) {
         zeroBalance: flag(NOTIFY_ZERO_BALANCE),
         projectedLow: flag(NOTIFY_PROJECTED_LOW),
         promoEnding: flag(NOTIFY_PROMO_ENDING),
+        // #683: not an event type; read by the server at sign-in.
+        newSignIn: flag(NOTIFY_NEW_SIGN_IN),
         daysAhead: Number.isInteger(days) && days >= 0 && days <= NOTIFY_DAYS_AHEAD_MAX ? days : NOTIFY_DAYS_AHEAD_DEFAULT,
         channel: NOTIFY_CHANNELS.includes(channel) ? channel : 'both',
         delivery: NOTIFY_DELIVERIES.includes(delivery) ? delivery : 'perEvent',

@@ -9979,3 +9979,59 @@ body.dark-mode .change-history-op--create { color: #4ade80; }
 }
 body.dark-mode .plan-delta--better { color: #86efac; }
 body.dark-mode .plan-delta--worse { color: #fca5a5; }
+
+/* #683: Settings -> Security -> Active sessions */
+.settings-sessions-list {
+    list-style: none;
+    margin: 0.5rem 0;
+    padding: 0;
+}
+
+.settings-session-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-session-row:last-child {
+    border-bottom: none;
+}
+
+.settings-session-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.settings-session-device {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.settings-session-badge {
+    align-self: flex-start;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.settings-session-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+.settings-session-signout {
+    flex-shrink: 0;
+}
+
+body.dark-mode .settings-session-badge {
+    color: #0f172a;
+}

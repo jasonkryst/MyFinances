@@ -41,7 +41,7 @@ const txsFor = (app, id) => buildProjectedAccountTransactions(app, 2026, 10, 3)[
 describe('getNotificationPrefs', () => {
     test('defaults: every type on, 3 days ahead, both channels, one email per alert', () => {
         expect(getNotificationPrefs(undefined)).toEqual({
-            billDue: true, lowBalance: true, zeroBalance: true, projectedLow: true, promoEnding: true,
+            billDue: true, lowBalance: true, zeroBalance: true, projectedLow: true, promoEnding: true, newSignIn: true,
             daysAhead: 3, channel: 'both', delivery: 'perEvent',
         });
     });
@@ -67,6 +67,15 @@ describe('getNotificationPrefs', () => {
         expect(prefs).toMatchObject({ daysAhead: 3, channel: 'both', delivery: 'perEvent', lowBalance: true });
         expect(getNotificationPrefs([{ key: 'notifyDaysAhead', value: 2.5 }]).daysAhead).toBe(3);
         expect(getNotificationPrefs([{ key: 'notifyDaysAhead', value: -1 }]).daysAhead).toBe(3);
+    });
+
+    test('#683: notifyNewSignIn is on unless stored as false', () => {
+        expect(getNotificationPrefs([{ key: 'notifyNewSignIn', value: false }]).newSignIn).toBe(false);
+        expect(getNotificationPrefs([{ key: 'notifyNewSignIn', value: true }]).newSignIn).toBe(true);
+        expect(getNotificationPrefs([{ key: 'notifyNewSignIn', value: 'no' }]).newSignIn).toBe(true);
+        expect(getNotificationPrefs([{ key: 'notifyBillDue', value: false }]).newSignIn).toBe(true);
+        expect(isAllowedSetting('notifyNewSignIn', false)).toBe(true);
+        expect(isAllowedSetting('notifyNewSignIn', 'off')).toBe(false);
     });
 });
 
