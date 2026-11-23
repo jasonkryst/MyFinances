@@ -1,11 +1,11 @@
 {
     "src/amountSchedule.js": 76,
     "src/balanceHistoryCore.js": 83,
-    "src/categoryBudgets.js": 90,
+    "src/categoryBudgets.js": 94,
     "src/changeHistoryCore.js": 88,
     "src/concurrency.js": 92,
     "src/debtCalculator.js": 85,
-    "src/debtOwnership.js": 85,
+    "src/debtOwnership.js": 87,
     "src/ledgerKeyRemap.js": 97,
     "src/ledgerSearch.js": 85,
     "src/ledgerStateCore.js": 88,
@@ -31,7 +31,7 @@
     "src/settingsRemap.js": 83,
     "src/settingsSchema.js": 85,
     "src/undoCore.js": 93,
-    "src/utils.js": 76,
+    "src/utils.js": 79,
     "src/weekendRule.js": 86,
     "src/yearReviewCore.js": 73
 }
