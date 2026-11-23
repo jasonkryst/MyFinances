@@ -2122,4 +2122,17 @@ export default {
     "import.skippedType.retirementSnapshots": "Instantáneas de jubilación",
     "import.skippedType.transfers": "Transferencias",
     "import.skippedType.manualTransactions": "Transacciones manuales",
+    // #678: effective-dated amounts
+    "amounts.appliesFrom": "Se aplica desde",
+    "amounts.allOccurrences": "Todas las repeticiones (corregir un error)",
+    "amounts.allWipesScheduled": "También se eliminarán los cambios programados.",
+    "amounts.errAppliesFrom": "Elige la fecha desde la que se aplica el nuevo importe o marca Todas las repeticiones.",
+    "amounts.wasUntil": "era {amount} hasta el {date}",
+    "amounts.changesTo": "cambia a {amount} el {date}",
+    "amounts.changeCount.one": "{count} cambio",
+    "amounts.changeCount.few": "{count} cambios",
+    "amounts.changeCount.other": "{count} cambios",
+    "amounts.changeItem": "{amount} desde el {date}",
+    "amounts.scheduled": "Programado",
+    "amounts.deleteScheduledAria": "Eliminar el cambio programado a {amount} el {date}",
 };

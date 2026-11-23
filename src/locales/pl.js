@@ -2122,4 +2122,17 @@ export default {
     "import.skippedType.retirementSnapshots": "Migawki emerytalne",
     "import.skippedType.transfers": "Transfery",
     "import.skippedType.manualTransactions": "Transakcje ręczne",
+    // #678: effective-dated amounts
+    "amounts.appliesFrom": "Obowiązuje od",
+    "amounts.allOccurrences": "Wszystkie wystąpienia (popraw błąd)",
+    "amounts.allWipesScheduled": "Zaplanowane zmiany również zostaną usunięte.",
+    "amounts.errAppliesFrom": "Wybierz datę, od której obowiązuje nowa kwota, albo zaznacz Wszystkie wystąpienia.",
+    "amounts.wasUntil": "było {amount} do {date}",
+    "amounts.changesTo": "zmiana na {amount} od {date}",
+    "amounts.changeCount.one": "{count} zmiana",
+    "amounts.changeCount.few": "{count} zmiany",
+    "amounts.changeCount.other": "{count} zmian",
+    "amounts.changeItem": "{amount} od {date}",
+    "amounts.scheduled": "Zaplanowana",
+    "amounts.deleteScheduledAria": "Usuń zaplanowaną zmianę na {amount} od {date}",
 };

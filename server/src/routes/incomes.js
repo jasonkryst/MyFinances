@@ -6,6 +6,7 @@ export default createCrudResource({
     sanitize: sanitizeIncome,
     requiredFields: ['name', 'firstPayDate'],
     foreignKeys: { accountId: 'accounts', personId: 'persons' },
+    jsonColumns: ['amountChanges'],
     columns: {
         id: 'id',
         name: 'name',
@@ -17,6 +18,7 @@ export default createCrudResource({
         category: 'category',
         isVariable: 'is_variable',
         withholdingPercent: 'withholding_percent',
+        amountChanges: 'amount_changes',
         updatedAt: 'updated_at'
     }
 });

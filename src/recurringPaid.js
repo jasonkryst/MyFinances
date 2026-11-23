@@ -20,6 +20,7 @@
 
 import { isRecurringInflow, dateToISO, formatCurrency, formatShortDate, sanitizeFiniteNumber, escapeHtml } from './utils.js';
 import { getRecurringOccurrencesInMonth } from './recurring.js';
+import { getAmountOn } from './amountSchedule.js';
 import { makeLedgerTransactionId } from './ledgerTransactions.js';
 import { isCleared, setLedgerCleared } from './ledgerCleared.js';
 import { getOverrideAmount, setLedgerAmountOverride, clearLedgerAmountOverride } from './ledgerOverrides.js';
@@ -65,8 +66,9 @@ export function getRecurringOccurrenceLegs(app, tmpl, occDate) {
  * override is in effect.
  */
 export function getRecurringMonthPaidStatus(app, tmpl, year, month) {
-    const base = Math.abs(Number(tmpl.amount) || 0);
     const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month).map(date => {
+        // #678: the template amount in effect on this occurrence.
+        const base = Math.abs(Number(getAmountOn(tmpl, dateToISO(date))) || 0);
         const legs = getRecurringOccurrenceLegs(app, tmpl, date);
         const override = getOverrideAmount(app, legs[0].txId);
         return {
@@ -111,7 +113,7 @@ function _persistTemplate(app, tmpl) {
 // number it becomes the leg's override (or removes the override when it equals
 // the template amount); `clearOverride` drops any override outright.
 function _applyOccurrence(app, tmpl, occ, { paid, actualAmount = null, clearOverride = false }) {
-    const base = Math.abs(Number(tmpl.amount) || 0);
+    const base = Math.abs(Number(getAmountOn(tmpl, occ.iso)) || 0);
     for (const leg of occ.legs) {
         setLedgerCleared(app, leg.txId, paid);
         if (clearOverride) {

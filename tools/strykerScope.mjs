@@ -67,6 +67,8 @@ export const MUTATE_SCOPE = {
     'src/notificationsCore.js': true,
     // #577: Undo's Ledger-key move for a re-created record.
     'src/undoCore.js': true,
+    // #678: effective-dated amounts (income + recurring templates).
+    'src/amountSchedule.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).
     'src/passwordPolicy.js': true,
     // #564: partial plan-settings PATCH body builder.

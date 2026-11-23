@@ -168,7 +168,7 @@ export function openCalendarDayModal(app, day) {
 
     let html = '';
     for (const inc of incomes) {
-        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--income"><span class="rpt-cal-evt-name">💰 ${escapeHtml(inc.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`;
+        html += `<div class="rpt-cal-modal-evt rpt-cal-evt--income"><span class="rpt-cal-evt-name">💰 ${escapeHtml(inc.name)}</span><span class="rpt-cal-evt-amt">${formatCurrency(inc.amount)}</span></div>`; // amount-read-ok: `inc` is a dated Ledger transaction
     }
     for (const bill of bills) {
         const amount = Math.abs(bill.amount || 0);

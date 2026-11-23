@@ -5,9 +5,10 @@ import { validatedSanitizer } from '../validity.js';
 export default createCrudResource({
     table: 'recurring_templates',
     // #569: a transfer template needs a distinct target and a positive amount.
-    sanitize: validatedSanitizer(sanitizeRecurringTemplate, isValidRecurringTemplate, ['name', 'type', 'amount', 'accountId', 'targetAccountId']),
+    sanitize: validatedSanitizer(sanitizeRecurringTemplate, isValidRecurringTemplate, ['name', 'type', 'amount', 'accountId', 'targetAccountId', 'amountChanges']),
     requiredFields: ['name'],
     foreignKeys: { accountId: 'accounts', targetAccountId: 'accounts' },
+    jsonColumns: ['amountChanges'],
     columns: {
         id: 'id',
         name: 'name',
@@ -25,6 +26,7 @@ export default createCrudResource({
         archived: 'archived',
         pauseUntil: 'pause_until',
         skippedMonths: 'skipped_months',
-        paidMonths: 'paid_months'
+        paidMonths: 'paid_months',
+        amountChanges: 'amount_changes'
     }
 });

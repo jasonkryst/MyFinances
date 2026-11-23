@@ -375,8 +375,10 @@ def test_inline_edit_zero_policy_and_blank(app_page):
     _dismiss_alert(page)
     assert amount() == 25
 
-    # warn: confirm saves
+    # warn: confirm saves. "All occurrences" (#678) makes it a correction of the
+    # base amount rather than a change scheduled from the next occurrence.
     _set_policy(page, 'warn')
+    page.check(f'#re-applies-all-{tid}')
     page.evaluate(f"() => {{ window.app.saveEditRecurring({tid}); }}")
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
     page.click('#deleteConfirmBtn')

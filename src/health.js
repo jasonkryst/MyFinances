@@ -1,4 +1,5 @@
-import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, formatCurrencyAxis, getCurrencyAffix, escapeHtml, renderChartDataTable } from './utils.js';
+import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, formatCurrencyAxis, getCurrencyAffix, escapeHtml, renderChartDataTable, todayISO } from './utils.js';
+import { getCurrentAmount } from './amountSchedule.js';
 import { t, getIntlLocale } from './i18n.js';
 import { buildProjectedAccountTransactions } from './ledgerTransactions.js';
 import { computeRecurringCashFlowForMonth } from './recurring.js';
@@ -1084,7 +1085,7 @@ function renderHealthDashboardUncached(app) {
         const FREQ_MULTIPLIERS = { biweekly: 26, weekly: 52, twice_monthly: 24, monthly: 12 };
         const pAnnualIncome = (app.incomes || [])
             .filter(inc => inc.personId === p.id)
-            .reduce((s, inc) => s + (inc.amount || 0) * (FREQ_MULTIPLIERS[inc.frequency] || 12), 0);
+            .reduce((s, inc) => s + getCurrentAmount(inc, todayISO()) * (FREQ_MULTIPLIERS[inc.frequency] || 12), 0);
         const pMonthlyIncome = pAnnualIncome / 12;
         const pMinPayment = personAllDebts.reduce((s, d) => s + (d.minimumPayment || 0), 0);
         const pDtiRaw = pMonthlyIncome > 0 ? Math.round((pMinPayment / pMonthlyIncome) * 100) : null;

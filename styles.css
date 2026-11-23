@@ -9857,3 +9857,18 @@ body.dark-mode .change-history-op--create { color: #4ade80; }
 .change-history-fields { list-style: none; margin: 6px 0 0; padding: 0; font-size: 0.85rem; }
 .change-history-field { overflow-wrap: anywhere; min-width: 0; }
 .change-history-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem; overflow-wrap: anywhere; }
+
+/* #678: effective-dated amounts ("Applies from" row and the card change list) */
+.amount-applies { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.amount-applies.hidden { display: none; }
+.amount-applies input[type="date"] { max-width: 100%; }
+.amount-applies-all { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.amount-applies-note { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+.amount-applies-note.hidden { display: none; }
+.income-edit-applies, .recurring-edit-applies { grid-column: 1 / -1; }
+.amount-changes { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0; min-width: 0; }
+.amount-changes summary { cursor: pointer; overflow-wrap: anywhere; }
+.amount-changes-sep::before { content: " · "; }
+.amount-changes-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.amount-changes-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 2px 0; }
+.amount-changes-badge { font-size: 0.75rem; padding: 1px 6px; border-radius: 8px; background: var(--bg-secondary, rgba(127, 127, 127, 0.15)); color: var(--text-color, inherit); }

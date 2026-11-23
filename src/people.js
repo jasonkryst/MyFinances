@@ -1,5 +1,6 @@
 // Family member (person) management
-import { normalizeText, escapeHtml, formatCurrency } from './utils.js';
+import { normalizeText, escapeHtml, formatCurrency, todayISO } from './utils.js';
+import { getCurrentAmount } from './amountSchedule.js';
 import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { showDeleteConfirmModal, showAlertModal, showPersonReplacementModal } from './ui.js';
 import { renderOwnershipControl, getDebtShare, removePersonFromDebt } from './debtOwnership.js';
@@ -54,7 +55,7 @@ function personAnnualIncome(app, personId) {
                 : inc.frequency === 'weekly' ? 52
                 : inc.frequency === 'twice_monthly' ? 24
                 : 12;
-            return s + (inc.amount || 0) * mult;
+            return s + getCurrentAmount(inc, todayISO()) * mult;
         }, 0);
 }
 
@@ -152,7 +153,7 @@ export function renderPeopleList(app) {
                                 <div class="person-linked-label">${escapeHtml(t('people.incomeSources'))}</div>
                                 ${linkedIncomes.map(inc => `
                                 <button class="person-link-btn" data-person-nav="income" data-person-nav-id="${inc.id}">
-                                    ${escapeHtml(inc.name)} &mdash; ${formatCurrency(inc.amount)}
+                                    ${escapeHtml(inc.name)} &mdash; ${formatCurrency(getCurrentAmount(inc, todayISO()))}
                                 </button>`).join('')}
                             </div>` : ''}
                             ${linkedDebts.length ? `

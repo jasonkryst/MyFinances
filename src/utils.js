@@ -1,7 +1,8 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
+import { getAmountOn } from './amountSchedule.js';
 
-export const APP_VERSION = '7.22.2';
+export const APP_VERSION = '7.23.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -592,9 +593,12 @@ export function computeMonthlyBonusesForMonth(bonuses, year, month) {
 // the income's optional withholdingPercent (issue #251) — 0 by default, so
 // an income record with no withholding set returns its raw `amount`
 // unchanged (fully backward compatible).
-export function computeNetIncomeAmount(income) {
+// #678: `date` (a Date or 'YYYY-MM-DD'; default today) picks the gross amount
+// in effect on that day; withholding applies to it.
+export function computeNetIncomeAmount(income, date) {
     const pct = income?.withholdingPercent || 0;
-    return (income?.amount || 0) * (1 - pct / 100);
+    const iso = typeof date === 'string' ? date : dateToISO(date instanceof Date ? date : new Date());
+    return getAmountOn(income, iso) * (1 - pct / 100);
 }
 
 // Returns the net (take-home) monthly income total — every call site is a
@@ -603,8 +607,9 @@ export function computeNetIncomeAmount(income) {
 export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
     let monthlyTotal = 0;
     for (const inc of (incomes || [])) {
-        const count = countIncomePaydaysInMonth(inc, year, month);
-        monthlyTotal += computeNetIncomeAmount(inc) * count;
+        for (const payDate of getIncomePaydaysInMonth(inc, year, month)) {
+            monthlyTotal += computeNetIncomeAmount(inc, payDate);
+        }
     }
     monthlyTotal += computeMonthlyBonusesForMonth(bonuses, year, month);
     return { monthlyTotal };
@@ -716,7 +721,7 @@ export function getIncomeEventsByMonthForRange(incomes, startDate, endDate) {
         for (const inc of (incomes || [])) {
             const paydays = getIncomePaydaysInMonth(inc, y, m);
             for (const payDate of paydays) {
-                events.push({ name: inc.name, amount: inc.amount, day: payDate.getDate() });
+                events.push({ name: inc.name, amount: getAmountOn(inc, dateToISO(payDate)), day: payDate.getDate() });
             }
         }
         byMonth.set(key, events);

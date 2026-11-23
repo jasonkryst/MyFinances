@@ -1,5 +1,6 @@
 ﻿﻿﻿// UI helpers, event listeners, theming
 import { renderLedgerPage } from './ledger.js';
+import { installAmountChangeListeners } from './amountChangeUi.js';
 import { refreshAccountSelectors, updateAccountFormRetirementVisibility } from './accounts.js';
 import { refreshPersonSelectors } from './people.js';
 import { refreshCategoryDatalist } from './recurring.js';
@@ -53,6 +54,8 @@ export function initializeEventListeners(app) {
         if (e.target.closest && e.target.closest('.filters-disclosure-body')) refreshFilterDisclosureCounts();
     });
     installOwnershipListeners(() => app);
+    // #678: the "Applies from" row and the scheduled-change Delete buttons.
+    installAmountChangeListeners(() => app);
     const themeSwitcher = document.getElementById('themeSwitcher');
 
     const savedTheme = localStorage.getItem('debtTrackerTheme');
@@ -1043,6 +1046,12 @@ function _buildWhatsNewHtml() {
 // tests/features/test_whats_new.py fails if the newest entry's major.minor
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
+    {
+        version: '7.23.0 — 2026-11-22',
+        items: [
+            '<strong>Price changes and raises keep your history:</strong> when you change the amount of an income or a recurring item, choose the date it applies from. Earlier months keep the old amount everywhere, and you can schedule a change ahead of time. Tick <em>All occurrences</em> to correct a mistake instead. The card shows what the amount was and lists its changes.'
+        ]
+    },
     {
         version: '7.22.0 — 2026-11-22',
         items: [

@@ -3,6 +3,7 @@ import {
     formatCurrency,
     formatCurrencyAxis,
     countIncomePaydaysInMonth,
+    getIncomePaydaysInMonth,
     getNextIncomePayDates,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth,
@@ -25,6 +26,13 @@ import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showAlertModal } from './ui.js';
 import { t, getIntlLocale } from './i18n.js';
+import { getCurrentAmount } from './amountSchedule.js';
+import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
+
+// #678: a month's net pay, each payday at the amount in effect on it.
+function netIncomeForMonth(inc, year, month) {
+    return getIncomePaydaysInMonth(inc, year, month).reduce((s, d) => s + computeNetIncomeAmount(inc, d), 0);
+}
 
 // Display labels for stored values (the stored English values never change).
 const INCOME_FREQ_KEYS = {
@@ -93,7 +101,10 @@ export function renderIncomeList(app) {
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editAmount')}</label>
-                                <input type="number" id="ie-amount-${inc.id}" value="${inc.amount}" min="0.01" step="0.01" class="form-control form-full-width">
+                                <input type="number" id="ie-amount-${inc.id}" value="${getCurrentAmount(inc, todayISO())}" min="0.01" step="0.01" class="form-control form-full-width" ${amountInputAttrs('ie', inc.id, inc)}>
+                            </div>
+                            <div class="form-group form-no-margin income-edit-applies">
+                                ${renderAppliesFromRow('ie', inc.id, inc, 'income')}
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editWithholding')}</label>
@@ -163,7 +174,7 @@ export function renderIncomeList(app) {
         const netAmount = computeNetIncomeAmount(inc);
         const hasWithholding = (inc.withholdingPercent || 0) > 0;
         const grossNote = hasWithholding
-            ? t('income.grossNote', { gross: formatCurrency(inc.amount), pct: inc.withholdingPercent })
+            ? t('income.grossNote', { gross: formatCurrency(getCurrentAmount(inc, todayISO())), pct: inc.withholdingPercent })
             : '';
         return `
             <div class="income-card" id="income-card-${inc.id}">
@@ -174,6 +185,7 @@ export function renderIncomeList(app) {
                     ${linkedPerson ? `<span class="income-card-detail"><span class="person-pill">${escapeHtml(linkedPerson.name)}</span></span>` : ''}
                     <span class="income-card-amount"${grossNote ? ` title="${escapeHtml(grossNote)}"` : ''}>${formatCurrency(netAmount)}</span>
                     ${grossNote ? `<span class="income-card-gross-note">${escapeHtml(grossNote)}</span>` : ''}
+                    ${renderAmountChangeSummary(inc, 'income')}
                     <span class="income-card-detail">${escapeHtml(t('income.firstPay', { date: dateStr }))}</span>
                     <span class="income-card-freq">${escapeHtml(labelFor(INCOME_FREQ_KEYS, inc.frequency))} &mdash; ${escapeHtml(pdayLabel)}</span>
                     ${upcomingHTML ? `<span class="income-card-upcoming-label">${t('income.nextPaydays')}</span>${upcomingHTML}` : ''}
@@ -349,7 +361,11 @@ export async function saveEditIncome(app, incomeId) {
     const idx = app.incomes.findIndex(i => i.id === incomeId);
     if (idx === -1) return;
 
-    app.incomes[idx] = { ...app.incomes[idx], name, amount, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
+    // #678: a changed amount applies from the chosen date (or to every occurrence).
+    const amountEdit = resolveAmountEdit(app.incomes[idx], amount, 'ie', incomeId, firstPayDate);
+    if (!amountEdit) { await showAlertModal(t('amounts.errAppliesFrom')); return; }
+
+    app.incomes[idx] = { ...app.incomes[idx], name, ...amountEdit, firstPayDate, frequency, accountId, personId, category, isVariable, withholdingPercent, updatedAt: todayISO() };
     app.editingIncomeId = null;
     pgPatch(app, `/api/incomes/${app.incomes[idx].id}`, app.incomes[idx]);
     app.renderIncomeList();
@@ -708,10 +724,10 @@ export function renderIncomeTrendChart(app) {
 
     // #251: net, consistent with the net figures shown everywhere else on this page.
     const regularTotals = months.map(({ year, month }) =>
-        app.incomes.reduce((sum, inc) => sum + computeNetIncomeAmount(inc) * countIncomePaydaysInMonth(inc, year, month), 0));
+        app.incomes.reduce((sum, inc) => sum + netIncomeForMonth(inc, year, month), 0));
     const bonusTotals = months.map(({ year, month }) => computeMonthlyBonusesForMonth(app.bonuses, year, month));
     const priorYearTotals = months.map(({ year, month }) =>
-        app.incomes.reduce((sum, inc) => sum + computeNetIncomeAmount(inc) * countIncomePaydaysInMonth(inc, year - 1, month), 0)
+        app.incomes.reduce((sum, inc) => sum + netIncomeForMonth(inc, year - 1, month), 0)
         + computeMonthlyBonusesForMonth(app.bonuses, year - 1, month));
 
     const { grid, label } = _incomeTrendChartColors();

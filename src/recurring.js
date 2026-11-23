@@ -9,7 +9,8 @@ import {
     sanitizeDateISO,
     escapeHtml,
     PINNED_COLORS,
-    isRecurringInflow
+    isRecurringInflow,
+    dateToISO
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { applyWeekendRule, sanitizeWeekendRule, countEntriesMovedByWeekendRule } from './weekendRule.js';
@@ -21,6 +22,13 @@ import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getRecurringMonthPaidStatus, buildRecurringPaidBadge, reconcileRecurringPaidState } from './recurringPaid.js';
 import { isEffectivelyPaused, getRecurringOccurrencesInMonth } from './recurringOccurrences.js';
+import { getAmountOn, getCurrentAmount } from './amountSchedule.js';
+import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
+
+// #678: each occurrence at the amount in effect on its own date.
+function sumOccurrenceAmounts(tmpl, occurrences) {
+    return occurrences.reduce((s, d) => s + (Number(getAmountOn(tmpl, dateToISO(d))) || 0), 0);
+}
 
 const TYPES = ['subscription', 'income', 'reimbursement', 'transfer'];
 // Stored values stay English ('subscription', 'monthly', ...); labels are looked up at render time.
@@ -136,7 +144,7 @@ function renderUpcomingThisMonthPanel(app) {
         if (occurrences.length === 0) continue;
         const isPaid = Array.isArray(t.paidMonths) && t.paidMonths.includes(monthKey);
         totalCount += occurrences.length;
-        totalAmount += occurrences.length * (t.amount || 0);
+        totalAmount += sumOccurrenceAmounts(t, occurrences);
         if (isPaid) paidCount++;
         if (isOverdue(t, now)) overdueCount++;
     }
@@ -313,10 +321,12 @@ export function renderRecurringPage(app) {
 
     // Apply sort
     const sortBy = document.getElementById('recurringSortBy')?.value || '';
+    const todayIso = dateToISO(now);
     if (sortBy) {
         displayTemplates = [...displayTemplates].sort((a, b) => {
-            if (sortBy === 'amount-desc') return (b.amount || 0) - (a.amount || 0);
-            if (sortBy === 'amount-asc') return (a.amount || 0) - (b.amount || 0);
+            // #678: sort by the amount the cards show (in effect today).
+            if (sortBy === 'amount-desc') return getCurrentAmount(b, todayIso) - getCurrentAmount(a, todayIso);
+            if (sortBy === 'amount-asc') return getCurrentAmount(a, todayIso) - getCurrentAmount(b, todayIso);
             if (sortBy === 'due-asc' || sortBy === 'due-desc') {
                 const va = a.dayOfMonth || 32, vb = b.dayOfMonth || 32;
                 return sortBy === 'due-asc' ? va - vb : vb - va;
@@ -381,7 +391,7 @@ function _buildReadCard(app, t, year, month, monthKey) {
     const paused = isEffectivelyPaused(t, now);
 
     const occurrences = getRecurringOccurrencesInMonth(t, year, month);
-    const thisMonthTotal = occurrences.length * (t.amount || 0);
+    const thisMonthTotal = sumOccurrenceAmounts(t, occurrences);
     const isSkippedThisMonth = Array.isArray(t.skippedMonths) && t.skippedMonths.includes(monthKey);
     // #434: paid state comes from the Ledger (each occurrence's Cleared flag
     // and amount override), not from a separate copy on the template.
@@ -440,10 +450,11 @@ function _buildReadCard(app, t, year, month, monthKey) {
                 <span class="recurring-type-label">${escapeHtml(typeText)}</span>
             </div>
             <div class="recurring-card-right">
-                <span class="recurring-amount ${amountClass}">${sign}${formatCurrency(t.amount)}</span>
+                <span class="recurring-amount ${amountClass}">${sign}${formatCurrency(getCurrentAmount(t, dateToISO(now)))}</span>
                 <span class="recurring-freq-badge">${escapeHtml(freqText)}</span>
             </div>
         </div>
+        ${renderAmountChangeSummary(t, 'recurring')}
         <div class="recurring-card-meta">
             <span class="recurring-meta-item">🏦 ${accountLine}</span>
             <span class="recurring-meta-item">🏷 ${escapeHtml(categoryLabel(t.category || 'Other'))}</span>
@@ -508,7 +519,10 @@ function _buildEditCard(app, t) {
             </div>
             <div class="form-group recurring-edit-field">
                 <label>${escapeHtml(tr('recurring.amountLabel'))}</label>
-                <input type="number" id="re-amount-${t.id}" value="${t.amount}" min="0" step="0.01">
+                <input type="number" id="re-amount-${t.id}" value="${getCurrentAmount(t, dateToISO(new Date()))}" min="0" step="0.01" ${amountInputAttrs('re', t.id, t)}>
+            </div>
+            <div class="form-group recurring-edit-field recurring-edit-applies">
+                ${renderAppliesFromRow('re', t.id, t, 'recurring')}
             </div>
             <div class="form-group recurring-edit-field">
                 <label>${escapeHtml(tr('recurring.editFrequency'))}</label>
@@ -771,9 +785,13 @@ export async function saveEditRecurring(app, id) {
         return;
     }
 
+    // #678: a changed amount applies from the chosen date (or to every occurrence).
+    const amountEdit = resolveAmountEdit(app.recurringTemplates[idx], amount, 're', id, startDate);
+    if (!amountEdit) { await showAlertModal(tr('amounts.errAppliesFrom')); return; }
+
     app.recurringTemplates[idx] = {
         ...app.recurringTemplates[idx],
-        name, type, amount, frequency, dayOfMonth, weekendRule, category,
+        name, type, ...amountEdit, frequency, dayOfMonth, weekendRule, category,
         accountId, targetAccountId, startDate, endDate
     };
 
@@ -844,11 +862,11 @@ export function computeRecurringCashFlowForMonth(app, year, month) {
     let outflow = 0;
     for (const tmpl of (app?.recurringTemplates || [])) {
         if (tmpl.type === 'transfer') continue;
-        const count = getRecurringOccurrencesInMonth(tmpl, year, month).length;
-        if (!count) continue;
-        const amt = Math.abs(Number(tmpl.amount)) || 0;
-        if (isRecurringInflow(tmpl)) inflow += amt * count;
-        else outflow += amt * count;
+        const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
+        if (!occurrences.length) continue;
+        const amt = Math.abs(sumOccurrenceAmounts(tmpl, occurrences));
+        if (isRecurringInflow(tmpl)) inflow += amt;
+        else outflow += amt;
     }
     return { inflow, outflow };
 }

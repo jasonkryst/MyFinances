@@ -10,6 +10,7 @@ import { getIncomePaydaysInMonth, dateToISO, computeNetIncomeAmount, isRecurring
 import { t } from './i18n.js';
 import { getDebtDueDateInMonth } from './weekendRule.js';
 import { getRecurringOccurrencesInMonth } from './recurringOccurrences.js';
+import { getAmountOn } from './amountSchedule.js';
 import { getOverrideAmount, getEffectiveAmount, isCleared, getClearedAt } from './ledgerStateCore.js';
 import { getCachedProjection } from './projectionCache.js';
 
@@ -92,9 +93,10 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
         }
 
         for (const inc of app.incomes || []) {
-            if (!inc.amount) continue;
             const paydays = getIncomePaydaysInMonth(inc, year, month);
             for (const payDate of paydays) {
+                // #678: the gross amount in effect on this payday.
+                if (!getAmountOn(inc, dateToISO(payDate))) continue;
                 addTx({
                     accountId: inc.accountId,
                     date: payDate,
@@ -102,7 +104,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                     // #251: posted/projected amount is net of withholding —
                     // a 0% (or unset) withholdingPercent leaves this equal
                     // to the raw gross amount, same as before.
-                    amount: computeNetIncomeAmount(inc),
+                    amount: computeNetIncomeAmount(inc, payDate),
                     type: 'income',
                     sourceId: inc.id,
                     category: inc.category || 'Income'
@@ -228,12 +230,14 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
         for (const tmpl of (app.recurringTemplates || []).filter(r => !r.archived)) {
             const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
             for (const occDate of occurrences) {
+                // #678: the amount in effect on this occurrence's date.
+                const occAmount = Math.abs(Number(getAmountOn(tmpl, dateToISO(occDate))));
                 if (isRecurringInflow(tmpl)) {
                     addTx({
                         accountId: tmpl.accountId,
                         date: occDate,
                         name: tmpl.name || t('ledger.txRecurring'),
-                        amount: Math.abs(Number(tmpl.amount)),
+                        amount: occAmount,
                         type: 'recurring',
                         sourceId: tmpl.id,
                         category: tmpl.category || (tmpl.type === 'income' ? 'Income' : 'Reimbursement')
@@ -243,7 +247,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                         accountId: tmpl.accountId,
                         date: occDate,
                         name: tmpl.name || t('ledger.txTransferOut'),
-                        amount: -Math.abs(Number(tmpl.amount)),
+                        amount: -occAmount,
                         type: 'recurring',
                         sourceId: tmpl.id,
                         category: tmpl.category || 'Transfer',
@@ -254,7 +258,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                         accountId: tmpl.targetAccountId,
                         date: occDate,
                         name: tmpl.name || t('ledger.txTransferIn'),
-                        amount: Math.abs(Number(tmpl.amount)),
+                        amount: occAmount,
                         type: 'recurring',
                         sourceId: tmpl.id,
                         category: tmpl.category || 'Transfer',
@@ -266,7 +270,7 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
                         accountId: tmpl.accountId,
                         date: occDate,
                         name: tmpl.name || t('ledger.txRecurring'),
-                        amount: -Math.abs(Number(tmpl.amount)),
+                        amount: -occAmount,
                         type: 'recurring',
                         sourceId: tmpl.id,
                         category: tmpl.category || 'Subscription'
