@@ -424,13 +424,25 @@ def test_import_replace_remaps_person_ids_in_split(app_page):
 @pytest.mark.feature
 def test_import_merge_remaps_person_ids_in_split(app_page):
     page = app_page
-    # 'Alex' already exists locally under a different id -> incoming maps onto it by name.
-    page.evaluate("window.app.persons = [{ id: 777, name: 'Alex' }]")
+    # 'Alex' already exists under a different id -> incoming maps onto it by name.
+    # Created on the server (not injected in memory): the server refuses a debt
+    # whose personIds holds an id it doesn't own (#557).
+    alex_id = page.evaluate("""async () => {
+        const { getCsrfCookie } = await import('/src/storage.js');
+        const res = await fetch('/api/persons', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfCookie() },
+            body: JSON.stringify({ name: 'Alex' })
+        });
+        const id = Number((await res.json()).id);
+        window.app.persons = [{ id, name: 'Alex' }];
+        return id;
+    }""")
     assert _import(page, _payload(), False) == 'imported'
     out = _name_split(page)
     assert out['people'] == ['Alex', 'Sam']
     assert out['split'] == {'Alex': 0.6, 'Sam': 0.4}
-    assert page.evaluate("window.app.debts.find(d => d.name === 'Mortgage').personIds[0]") == 777
+    assert page.evaluate("window.app.debts.find(d => d.name === 'Mortgage').personIds[0]") == alex_id
 
 
 @pytest.mark.feature
