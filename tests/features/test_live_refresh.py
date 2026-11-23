@@ -13,6 +13,8 @@ Refresh on focus and across tabs (#575), and records deleted elsewhere (#565).
   #recordGoneBanner (with Reload) instead of the connection banner.
 """
 
+import time
+
 import pytest
 
 from tests.conftest import BASE_URL, ensure_session, open_debt_form, seed_state, wait_for_api, wait_for_app_ready
@@ -167,6 +169,26 @@ def test_refresh_waits_for_an_open_inline_edit(app_page):
     page.wait_for_function("() => document.documentElement.dataset.refreshDeferred === 'editing'", timeout=3000)
     page.evaluate("() => { window.app.editingDebtId = null; }")
     _wait_refreshed(page, timeout=5000)
+
+
+@pytest.mark.feature
+def test_edit_opened_during_a_refresh_load_keeps_typed_value(app_page):
+    """#710: a refresh that began while idle must not re-render an inline edit
+    that was opened (and typed into) while its GETs were still in flight."""
+    page = app_page
+    seed_state(page, STATE)
+    page.evaluate("() => window.app.switchPage('accounts')")
+    acct_id = page.evaluate("() => window.app.accounts[0].id")
+    page.route('**/api/accounts', lambda route: (time.sleep(1.2), route.continue_())[1])
+    page.evaluate("() => { delete document.documentElement.dataset.lastRefresh; }")
+    with page.expect_request('**/api/accounts'):
+        page.evaluate(_HIDE_SHOW_JS, 0)
+    page.click(f'[data-account-action="edit"][data-account-id="{acct_id}"]')
+    page.fill(f'#ac-bal-{acct_id}', '2000')
+    page.wait_for_function(
+        "() => (document.documentElement.dataset.lastRefresh || '').startsWith('deferred')", timeout=8000)
+    assert page.input_value(f'#ac-bal-{acct_id}') == '2000'
+    page.unroute('**/api/accounts')
 
 
 @pytest.mark.feature

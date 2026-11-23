@@ -138,6 +138,9 @@ def test_editing_linked_savings_balance_records_history_and_updates_chart(app_pa
     # The Minimum payment field is for Credit Card / Loan only.
     assert page.locator(f'#ac-minpay-group-{acct_id}').is_hidden()
     page.fill(f'#ac-bal-{acct_id}', '2000')
+    # #710: the typed value must still be in the editor when Save reads it.
+    page.wait_for_function(
+        "(id) => document.getElementById(`ac-bal-${id}`)?.value === '2000'", arg=acct_id)
     page.click(f'[data-account-action="save"][data-account-id="{acct_id}"]')
 
     wait_for_api(page, '/api/balance-history', lambda rows: len(rows) == 2 and any(r['balance'] == 2000 for r in rows))

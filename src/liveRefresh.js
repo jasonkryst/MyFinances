@@ -68,7 +68,7 @@ function attempt() {
     }
     state.deferred = null;
     delete document.documentElement.dataset.refreshDeferred;
-    refreshFromServer(state.app);
+    refreshFromServer(state.app, { respectBlock: true });
 }
 
 // Ask for a refresh soon; repeated calls within DEBOUNCE_MS collapse to one.
@@ -80,7 +80,7 @@ export function scheduleRefresh() {
 
 // Re-read the server now (also the "Reload" action of the deleted-elsewhere
 // notice). Resolves true when fresh data was applied.
-export async function refreshFromServer(app) {
+export async function refreshFromServer(app, { respectBlock = false } = {}) {
     if (state?.running) {
         state.again = true;
         return false;
@@ -95,6 +95,13 @@ export async function refreshFromServer(app) {
         if (currentWriteGeneration() !== generation || pendingWriteCount() > 0) {
             if (state) state.again = true;
             markRefresh('discarded');
+            return false;
+        }
+        // A scheduled refresh started while the page was idle; an edit, dialog or
+        // typing that began during the load must not be re-rendered away (#710).
+        if (respectBlock && currentBlockReason(app)) {
+            if (state) state.again = true;
+            markRefresh('deferred');
             return false;
         }
         Object.assign(app, withoutViewState(loaded));

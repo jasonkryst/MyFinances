@@ -4,6 +4,14 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.31.1] — 2026-11-23
+
+### Fixed
+- **A live refresh no longer overwrites an edit started while it was loading (#710).** A scheduled refresh (another tab saved, or you returned to the tab) checked for an open inline edit, dialog or text-field focus only before its data load. If you opened an editor and typed while the load was in flight, the refresh then applied the server data and re-rendered the page, putting the old value back into the editor, so Save wrote nothing. `refreshFromServer` now re-checks after the load when it was scheduled (`respectBlock`); the refresh is deferred (`data-last-refresh="deferred"`) and retried once the edit ends. The deleted-elsewhere notice's Reload button still refreshes immediately.
+
+### Tests
+- `test_live_refresh.py::test_edit_opened_during_a_refresh_load_keeps_typed_value` delays `GET /api/accounts`, starts a refresh, opens the account editor and types, then asserts the refresh defers and the typed value survives. It fails without the fix. `test_emergency_balance_history.py` waits for the editor to hold the typed balance before Save. That test failed once in CI (#710), likely through this race; the original test could not be made to fail locally in 28 runs.
+
 ## [7.31.0] — 2026-11-23
 
 ### Added
