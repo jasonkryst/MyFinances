@@ -1047,6 +1047,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.30.0 — 2026-11-23',
+        items: [
+            '<strong>Sinking funds keep their target date:</strong> a goal set with a target date now remembers the date and recalculates what you need each month as time passes and you contribute. Each card shows the deadline, the amount needed per month and whether you are on track, behind, ahead or past due. Edit a goal to change its date or amount.'
+        ]
+    },
+    {
         version: '7.29.0 — 2026-11-23',
         items: [
             '<strong>Read-only API tokens:</strong> under <em>Settings → Security → API tokens</em>, create a token for your own scripts or a home dashboard. It reads your data with GET requests to <code>/api/...</code> and can\'t change anything or manage your sign-in. Each token shows when it was last used, you can revoke it at any time, and changing your password revokes them all.'

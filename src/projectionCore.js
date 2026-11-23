@@ -11,6 +11,7 @@ import { t } from './i18n.js';
 import { getDebtDueDateInMonth } from './weekendRule.js';
 import { getRecurringOccurrencesInMonth } from './recurringOccurrences.js';
 import { getAmountOn } from './amountSchedule.js';
+import { getEffectiveMonthlyAllocation, isAfterTargetMonth } from './sinkingFundSchedule.js';
 import { getOverrideAmount, getEffectiveAmount, isCleared, getClearedAt } from './ledgerStateCore.js';
 import { getCachedProjection } from './projectionCache.js';
 
@@ -295,14 +296,19 @@ function buildProjectionUncached(app, startYear, startMonth, monthsToProject) {
             }
         }
 
+        // #680: a target_date fund contributes its live required amount (from
+        // today's remaining and months left, the same figure for every
+        // projected month) and nothing after its target month.
+        const todayISO = dateToISO(new Date());
         for (const fund of app.sinkingFunds || []) {
-            if (fund.autoContribute && fund.monthlyAllocation > 0 && fund.currentAmount < fund.targetAmount) {
+            const sinkingAmount = getEffectiveMonthlyAllocation(fund, todayISO);
+            if (fund.autoContribute && sinkingAmount > 0 && fund.currentAmount < fund.targetAmount && !isAfterTargetMonth(fund, year, month)) {
                 const savingDate = new Date(year, month, 1); // First day of month
                 addTx({
                     accountId: fund.accountId,
                     date: savingDate,
                     name: fund.name || t('ledger.txSinkingFund'),
-                    amount: -Math.abs(Number(fund.monthlyAllocation)),
+                    amount: -Math.abs(sinkingAmount),
                     type: 'savings',
                     sourceId: fund.id,
                     category: 'Savings'

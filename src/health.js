@@ -980,8 +980,12 @@ function renderHealthDashboardUncached(app) {
     const prevDtiPct      = prevMonthlyIncome > 0 ? (totalDebtMin / prevMonthlyIncome) * 100 : null;
     const prevSavingsPct  = prevMonthlyIncome > 0 ? (totalSavingsContrib / prevMonthlyIncome) * 100 : null;
     const prevRecurringCf = computeRecurringCashFlowForMonth(app, prevYear, prevMonth);
-    const prevNet         = prevMonthlyIncome + prevRecurringCf.inflow
-        - (totalOutflow - totalRecurringOut + prevRecurringCf.outflow);
+    // Like DTI and savings rate: no comparison against a month with no inflow
+    // at all (e.g. a job that starts this month, #705).
+    const prevInflow      = prevMonthlyIncome + prevRecurringCf.inflow;
+    const prevNet         = prevInflow > 0
+        ? prevInflow - (totalOutflow - totalRecurringOut + prevRecurringCf.outflow)
+        : null;
 
     // ── Emergency Fund Coverage ────────────────────────────────────────────────
     const emergencyFunds = app.emergencyFunds || [];

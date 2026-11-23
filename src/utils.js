@@ -1,8 +1,9 @@
 // Formatting, date helpers, shared utilities
 import { getIntlLocale, getCurrencyCode, getCurrentLocale, t } from './i18n.js';
 import { getAmountOn } from './amountSchedule.js';
+import { getEffectiveMonthlyAllocation } from './sinkingFundSchedule.js';
 
-export const APP_VERSION = '7.29.0';
+export const APP_VERSION = '7.30.0';
 
 // Returns a debounced wrapper that delays invoking `fn` until `waitMs` has
 // elapsed since the last call — for expensive work triggered by
@@ -458,7 +459,8 @@ export function getIncomePaydaysInMonth(income, year, month) {
         const daysInMonth = monthEnd.getDate();
         const actualDay = Math.min(payDay, daysInMonth);
         const candidate = new Date(year, month, actualDay, 12, 0, 0);
-        if (candidate >= monthStart && candidate <= monthEnd) {
+        // #705: never before the first payday (both sides are noon local).
+        if (candidate >= monthStart && candidate <= monthEnd && candidate >= first) {
             paydays.push(candidate);
         }
     }
@@ -532,7 +534,7 @@ export function getNextIncomePayDates(income, n = 3, fromDate = new Date()) {
             const daysInMonth = new Date(yr, mo + 1, 0).getDate();
             const actualDay = Math.min(payDay, daysInMonth);
             const candidate = new Date(yr, mo, actualDay, 12, 0, 0);
-            if (candidate >= today) dates.push(candidate);
+            if (candidate >= today && candidate >= first) dates.push(candidate); // #705
             mo++;
             if (mo > 11) {
                 mo = 0;
@@ -636,8 +638,10 @@ export function computeMonthlyIncomeForMonth(incomes, bonuses, year, month) {
 // Savings Rate card and the Savings page's rate summary panel (issue #303)
 // so the two pages can never disagree about what counts as "saving".
 export function computeTotalSavingsContribution(app) {
+    // #680: a target_date fund counts its live required amount, never the stored one.
+    const todayISO = dateToISO(new Date());
     return (app.emergencyFunds || []).reduce((s, f) => s + (f.monthlyContribution || 0), 0) +
-           (app.sinkingFunds   || []).reduce((s, f) => s + (f.monthlyAllocation   || 0), 0);
+           (app.sinkingFunds   || []).reduce((s, f) => s + getEffectiveMonthlyAllocation(f, todayISO), 0);
 }
 
 // Single source of truth for the "Savings Rate" shown on both the Health card and

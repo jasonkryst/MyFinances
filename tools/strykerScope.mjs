@@ -81,6 +81,8 @@ export const MUTATE_SCOPE = {
     'src/undoCore.js': true,
     // #678: effective-dated amounts (income + recurring templates).
     'src/amountSchedule.js': true,
+    // #680: sinking fund target-date schedule (required amount, status).
+    'src/sinkingFundSchedule.js': true,
     // #689: Year in review insight rules.
     'src/yearReviewCore.js': true,
     // #456: shared new-password rules (browser meter + server enforcement).

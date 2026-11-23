@@ -176,6 +176,7 @@ jobs:
             tests/features/test_response_bodies.py \
             tests/features/test_income_end_date.py \
             tests/features/test_plan_history_compare.py \
+            tests/features/test_sinking_fund_target_date.py \
             --maxfail=15 \
             -v
 

@@ -1,4 +1,4 @@
-import { formatCurrency, formatCurrencyAxis, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy, parseContributionAmount, renderChartDataTable } from './utils.js';
+import { formatCurrency, formatCurrencyAxis, normalizeText, sanitizeFiniteNumber, sanitizeInteger, sanitizeDateISO, escapeHtml, formatShortDate, formatMonthYear, computeSavingsRate, withBusy, todayISO, parseContributionAmount, renderChartDataTable } from './utils.js';
 import { trailingMonths, buildBalanceSeries } from './balanceSeries.js';
 import { t } from './i18n.js';
 import { buildAccountOptionsHtml, computeAccountBalance } from './accounts.js';
@@ -8,6 +8,7 @@ import { showDeleteConfirmModal, showAlertModal } from './ui.js';
 import { getSetting, setSetting, SHOW_ARCHIVED_SINKING_FUNDS } from './settings.js';
 import { renderHomePurchaseContent, attachHomePurchaseEventListeners } from './homePurchase.js';
 import { savingsStatus } from './health.js';
+import { getSinkingFundStatus, getEffectiveMonthlyAllocation, getRequiredMonthlyAmount } from './sinkingFundSchedule.js';
 
 /**
  * Savings rate summary panel shown at the top of the Savings page (issue #303):
@@ -292,6 +293,8 @@ function renderSinkingFundsContent(app) {
   const visibleFunds = showArchived ? sortedFunds : sortedFunds.filter(f => !f.archived);
   const archivedCount = sortedFunds.filter(f => f.archived).length;
 
+  app._editingSinkingFundId = null;
+  const today = todayISO();
   let html = `
     <div class="savings-section sinking-funds-section">
       <h2>${t('savings.tabSinking')}</h2>
@@ -388,8 +391,10 @@ function renderSinkingFundsContent(app) {
       const remaining = Math.max(0, fund.targetAmount - fund.currentAmount);
       const isFullyFunded = fund.targetAmount > 0 && fund.currentAmount >= fund.targetAmount;
 
+      const schedule = getSinkingFundStatus(fund, today);
+      const liveMonthly = getEffectiveMonthlyAllocation(fund, today);
       const badgeClass = isFullyFunded ? 'badge-complete' : progressPercent >= 75 ? 'badge-excellent' : progressPercent >= 50 ? 'badge-good' : 'badge-warning';
-      const cardClass = fund.archived ? ' sinking-card--archived' : isFullyFunded ? ' sinking-card--funded' : '';
+      const cardClass = fund.archived ? ' sinking-card--archived' : isFullyFunded ? ' sinking-card--funded' : (schedule && schedule.status === 'pastDue') ? ' sinking-card--pastdue' : '';
       const orderLabel = fund.order ? `<span class="sinking-order-tag">#${fund.order}</span>` : '';
 
       html += `
@@ -411,8 +416,17 @@ function renderSinkingFundsContent(app) {
             </div>
             ${!fund.archived ? `<div class="detail-row">
               <span>${t('savings.monthlyAllocation')}</span>
-              <span>${formatCurrency(fund.monthlyAllocation)} ${fund.autoContribute ? t('savings.autoTag') : ''}</span>
+              <span>${formatCurrency(liveMonthly)} ${fund.autoContribute ? t('savings.autoTag') : ''}</span>
             </div>` : ''}
+            ${schedule ? `<div class="detail-row">
+              <span>${t('savings.targetDeadline')}</span>
+              <span>${escapeHtml(formatShortDate(fund.targetDate))}${!fund.archived ? ` <span class="sinking-status sinking-status--${schedule.status}" data-sinking-status="${schedule.status}">${t('savings.status.' + schedule.status)}</span>` : ''}</span>
+            </div>
+            ${!fund.archived && schedule.status !== 'funded' && schedule.status !== 'pastDue' ? `<div class="detail-row">
+              <span>${t('savings.requiredMonthly')}</span>
+              <span data-required-monthly>${formatCurrency(schedule.required)}</span>
+            </div>` : ''}
+            ${!fund.archived && schedule.status === 'pastDue' ? `<div class="sinking-pastdue-note" role="note">${escapeHtml(t('savings.pastDueNote', { amount: formatCurrency(schedule.remaining) }))}</div>` : ''}` : ''}
             ${!isFullyFunded && !fund.archived ? `<div class="detail-row">
               <span>${t('savings.remaining')}</span>
               <span>${formatCurrency(remaining)}</span>
@@ -544,6 +558,7 @@ export function attachSavingsEventListeners(app) {
     sinkingCancelBtn.addEventListener('click', () => {
       if (sinkingFormBody) { sinkingFormBody.classList.add('hidden'); sinkingFormBody.classList.remove('visible'); }
       sinkingForm?.reset();
+      app._editingSinkingFundId = null;
     });
   }
 
@@ -752,6 +767,7 @@ async function addSinkingFund(app) {
 
   let monthlyAllocation = 0;
   let targetAmount = 0;
+  let targetDate = null;
 
   if (allocationMethod === 'fixed') {
     monthlyAllocation = sanitizeFiniteNumber(document.getElementById('sinkingMonthlyAllocation').value);
@@ -775,20 +791,44 @@ async function addSinkingFund(app) {
       await showAlertModal(t('savings.errTargetAmountDate'));
       return;
     }
+    const validDate = sanitizeDateISO(targetDateStr);
+    const editing = app._editingSinkingFundId != null
+      ? app.sinkingFunds.find(f => f.id === app._editingSinkingFundId) : null;
+    // A past date is only accepted when an edit keeps the fund's existing date.
+    if (!validDate || (validDate < todayISO() && !(editing && editing.targetDate === validDate))) {
+      await showAlertModal(validDate ? t('savings.errTargetDatePast') : t('savings.errTargetAmountDate'));
+      return;
+    }
     targetAmount = targetAmount2;
-    const targetDate = new Date(targetDateStr);
-    const today = new Date();
-    const monthsDiff = (targetDate.getFullYear() - today.getFullYear()) * 12 + (targetDate.getMonth() - today.getMonth());
-    monthlyAllocation = monthsDiff > 0 ? targetAmount / monthsDiff : targetAmount;
+    targetDate = validDate;
+    // Stored as the amount needed at save time (the planned pace); the live
+    // figure is computed from targetDate at use time (#680).
+    monthlyAllocation = getRequiredMonthlyAmount(
+      { allocationMethod, targetDate, targetAmount, currentAmount }, todayISO());
   }
 
   const order = sanitizeInteger(document.getElementById('sinkingOrder').value, 0);
+
+  const editingId = app._editingSinkingFundId;
+  if (editingId != null) {
+    const existing = app.sinkingFunds.find(f => f.id === editingId);
+    if (existing) {
+      Object.assign(existing, { name, allocationMethod, monthlyAllocation, targetAmount, targetDate, currentAmount, autoContribute, accountId, notes, order });
+      pgPatch(app, `/api/sinking-funds/${existing.id}`, existing);
+      document.getElementById('sinkingForm')?.reset();
+      renderSavingsPage(app);
+      attachSavingsEventListeners(app);
+      return;
+    }
+  }
+
   const fund = {
     id: `sf-${Date.now()}`,
     name,
     allocationMethod,
     monthlyAllocation,
     targetAmount,
+    targetDate,
     currentAmount,
     autoContribute,
     accountId,
@@ -938,7 +978,9 @@ function startEditSinkingFund(app, fundId) {
     document.getElementById('sinkingAnnualCost').value = fund.targetAmount;
   } else if (fund.allocationMethod === 'target_date') {
     document.getElementById('sinkingTargetAmount').value = fund.targetAmount;
+    document.getElementById('sinkingTargetDate').value = fund.targetDate || '';
   }
+  app._editingSinkingFundId = fund.id;
 
   handleAllocationMethodChange();
   document.getElementById('sinkingFormBody').classList.add('visible'); document.getElementById('sinkingFormBody').classList.remove('hidden');
