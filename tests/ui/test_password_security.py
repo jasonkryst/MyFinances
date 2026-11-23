@@ -13,31 +13,12 @@ import json
 
 import pytest
 
-from tests.conftest import (BASE_URL, ensure_session, open_settings, reset_server_state,
-                            switch_settings_tab, wait_for_app_ready)
+from tests.conftest import BASE_URL, open_settings, switch_settings_tab
 
 @pytest.fixture
-def app_page(browser, stack_user):
-    """Signed-in page on an empty server, with service workers blocked.
-
-    These tests mock GET /auth/setup-status and /auth/password-policy with page.route. The app's
-    service worker proxies same-origin GETs itself, which bypasses page.route, so it is blocked
-    here (same approach as tests/features/test_code_splitting.py).
-    """
-    context = browser.new_context(service_workers='block')
-    page = context.new_page()
-    page.console_errors = []
-    page.page_errors = []
-    page.on('console', lambda m: page.console_errors.append(m.text or '')
-            if m.type == 'error' and 'favicon' not in (m.text or '').lower() else None)
-    page.on('pageerror', lambda e: page.page_errors.append(str(e)))
-    page.on('dialog', lambda d: d.accept())
-    ensure_session(context)
-    page.goto(BASE_URL, wait_until='networkidle', timeout=60000)
-    wait_for_app_ready(page)
-    reset_server_state(page)
-    yield page
-    context.close()
+def app_page(app_page_no_sw):
+    """Service workers blocked so page.route() is in charge (shared `app_page_no_sw`, #553)."""
+    return app_page_no_sw
 
 
 STRONG = 'violet harbor lantern 42'
