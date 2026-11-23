@@ -41,7 +41,7 @@ const txsFor = (app, id) => buildProjectedAccountTransactions(app, 2026, 10, 3)[
 describe('getNotificationPrefs', () => {
     test('defaults: every type on, 3 days ahead, both channels, one email per alert', () => {
         expect(getNotificationPrefs(undefined)).toEqual({
-            billDue: true, lowBalance: true, zeroBalance: true, projectedLow: true,
+            billDue: true, lowBalance: true, zeroBalance: true, projectedLow: true, promoEnding: true,
             daysAhead: 3, channel: 'both', delivery: 'perEvent',
         });
     });
@@ -385,9 +385,65 @@ describe('balance alerts', () => {
     test('every event type is a known type', () => {
         const app = makeApp({
             accounts: [acct({ id: 1, startingBalance: 50, lowBalanceThreshold: 100 }), acct({ id: 2, startingBalance: -1 }), acct({ id: 3, startingBalance: 500, lowBalanceThreshold: 100 })],
-            debts: [debt({ id: 10, accountId: 3, dueDate: 15 }), debt({ id: 11, accountId: 3, dueDate: 17, minimumPayment: 400 })],
+            debts: [debt({ id: 10, accountId: 3, dueDate: 15 }), debt({ id: 11, accountId: 3, dueDate: 17, minimumPayment: 400 }),
+                debt({ id: 12, accountId: 3, dueDate: 28, promoRate: 0, promoEndDate: '2026-12-31', interestRate: 24.99 })],
         });
         const types = new Set(events(app).map(e => e.type));
         expect([...types].sort()).toEqual([...NOTIFICATION_TYPES].sort());
+    });
+});
+
+// #681: a promotional APR ending within 60 days.
+describe('promoEnding', () => {
+    const promoDebt = (fields = {}) => debt({ id: 20, name: 'Store Card', dueDate: 28, interestRate: 26.99, promoRate: 0, promoEndDate: '2026-12-31', accountBalance: 1200, ...fields });
+    const promoEvents = (app, prefs = DEFAULT_PREFS, now = NOW) => ofType(events(app, prefs, now), 'promoEnding');
+
+    test('a promo ending within 60 days raises one event with its params', () => {
+        const list = promoEvents(makeApp({ debts: [promoDebt()] }));
+        expect(list).toEqual([{
+            type: 'promoEnding',
+            dedupeKey: 'promoEnding|20|2026-12-31',
+            episodeKey: null,
+            params: {
+                name: 'Store Card', debtId: 20, promoEndDate: '2026-12-31', daysUntil: 46,
+                promoRate: 0, regularRate: 26.99, balance: 1200, deferredInterest: false,
+            },
+        }]);
+    });
+
+    test('the 60-day window is inclusive at both ends', () => {
+        expect(promoEvents(makeApp({ debts: [promoDebt({ promoEndDate: '2027-01-14' })] }))[0].params.daysUntil).toBe(60);
+        expect(promoEvents(makeApp({ debts: [promoDebt({ promoEndDate: '2027-01-15' })] }))).toEqual([]);
+        expect(promoEvents(makeApp({ debts: [promoDebt({ promoEndDate: '2026-11-15' })] }))[0].params.daysUntil).toBe(0);
+        expect(promoEvents(makeApp({ debts: [promoDebt({ promoEndDate: '2026-11-14' })] }))).toEqual([]);
+    });
+
+    test('deferred interest, a missing name and a missing rate are carried', () => {
+        const [e] = promoEvents(makeApp({ debts: [promoDebt({ deferredInterest: true, name: '', interestRate: undefined, accountBalance: 10.005 })] }));
+        expect(e.params).toMatchObject({ deferredInterest: true, name: null, regularRate: 0, balance: 10.01 });
+    });
+
+    test('no event for archived, fixed-amount, paid-off or promo-less debts', () => {
+        const app = makeApp({ debts: [
+            promoDebt({ id: 21, archived: true }),
+            promoDebt({ id: 22, debtType: 'fixedAmount' }),
+            promoDebt({ id: 23, accountBalance: 0 }),
+            promoDebt({ id: 24, accountBalance: undefined }),
+            promoDebt({ id: 25, promoRate: null }),
+            promoDebt({ id: 26, promoEndDate: null }),
+        ] });
+        expect(promoEvents(app)).toEqual([]);
+    });
+
+    test('the notifyPromoEnding setting turns it off', () => {
+        const prefs = getNotificationPrefs([{ key: 'notifyPromoEnding', value: false }]);
+        expect(prefs.promoEnding).toBe(false);
+        expect(promoEvents(makeApp({ debts: [promoDebt()] }), prefs)).toEqual([]);
+        expect(isAllowedSetting('notifyPromoEnding', true)).toBe(true);
+        expect(isAllowedSetting('notifyPromoEnding', 'yes')).toBe(false);
+    });
+
+    test('no debts list at all is fine', () => {
+        expect(promoEvents(makeApp({ debts: undefined }))).toEqual([]);
     });
 });

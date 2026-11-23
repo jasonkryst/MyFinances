@@ -146,9 +146,11 @@ describe('sanitizeDebt', () => {
         const result = sanitizeDebt({ name: 'Visa', notAField: 'evil', __proto__: { polluted: true } }, 1);
         expect(result.notAField).toBeUndefined();
         expect(Object.keys(result).sort()).toEqual([
-            'accountBalance', 'accountId', 'archived', 'category', 'creditLimit', 'debtStartDate', 'debtType', 'dueDate',
+            'accountBalance', 'accountId', 'archived', 'category', 'creditLimit', 'debtStartDate', 'debtType',
+            'deferredInterest', 'deferredInterestAccrued', 'dueDate',
             'fixedAmount', 'fixedEndDate', 'fixedStartDate', 'id', 'interestRate', 'minimumPayment',
-            'name', 'nextPaymentDue', 'notes', 'originalBalance', 'originalMinimumPayment', 'ownershipSplit', 'personIds', 'priority', 'updatedAt', 'weekendRule',
+            'name', 'nextPaymentDue', 'notes', 'originalBalance', 'originalMinimumPayment', 'ownershipSplit', 'personIds', 'priority',
+            'promoEndDate', 'promoRate', 'updatedAt', 'weekendRule',
         ]);
     });
 
@@ -1065,5 +1067,44 @@ describe('amountChanges on income and recurring templates', () => {
     test('sanitizeRecurringTemplate drops a negative change and defaults to an empty list', () => {
         expect(sanitizeRecurringTemplate({ name: 'N', amount: 15, amountChanges: [{ from: '2027-01-01', amount: -1 }] }, 1).amountChanges).toEqual([]);
         expect(sanitizeRecurringTemplate({ name: 'N', amount: 15 }, 1).amountChanges).toEqual([]);
+    });
+});
+
+// #681: promotional APR fields.
+describe('sanitizeDebt promo fields', () => {
+    const base = { name: 'Card', debtType: 'creditCard', interestRate: 24.99 };
+
+    test('a rate and an end date are kept together', () => {
+        expect(sanitizeDebt({ ...base, promoRate: 0, promoEndDate: '2027-06-30' }, 1)).toMatchObject({
+            promoRate: 0, promoEndDate: '2027-06-30', deferredInterest: false, deferredInterestAccrued: 0,
+        });
+        expect(sanitizeDebt({ ...base, promoRate: '2.5', promoEndDate: '2027-06-30' }, 1).promoRate).toBe(2.5);
+    });
+
+    test('the rate is clamped to 0-100', () => {
+        expect(sanitizeDebt({ ...base, promoRate: 150, promoEndDate: '2027-06-30' }, 1).promoRate).toBe(100);
+        expect(sanitizeDebt({ ...base, promoRate: -3, promoEndDate: '2027-06-30' }, 1).promoRate).toBe(0);
+    });
+
+    test('a partial, invalid or fixed-amount promo is cleared, deferred fields with it', () => {
+        const cleared = { promoRate: null, promoEndDate: null, deferredInterest: false, deferredInterestAccrued: 0 };
+        expect(sanitizeDebt({ ...base, promoRate: 0, deferredInterest: true, deferredInterestAccrued: 40 }, 1)).toMatchObject(cleared);
+        expect(sanitizeDebt({ ...base, promoEndDate: '2027-06-30', deferredInterest: true }, 1)).toMatchObject(cleared);
+        expect(sanitizeDebt({ ...base, promoRate: 'abc', promoEndDate: '2027-06-30' }, 1)).toMatchObject(cleared);
+        expect(sanitizeDebt({ ...base, promoRate: '', promoEndDate: '2027-06-30' }, 1)).toMatchObject(cleared);
+        expect(sanitizeDebt({ ...base, promoRate: 0, promoEndDate: 'soon' }, 1)).toMatchObject(cleared);
+        expect(sanitizeDebt({ ...base, debtType: 'fixedAmount', promoRate: 0, promoEndDate: '2027-06-30' }, 1)).toMatchObject(cleared);
+        expect(sanitizeDebt(base, 1)).toMatchObject(cleared);
+    });
+
+    test('deferred interest needs a literal true; the accrued amount only rides along with it', () => {
+        const promo = { ...base, promoRate: 0, promoEndDate: '2027-06-30' };
+        expect(sanitizeDebt({ ...promo, deferredInterest: 'true', deferredInterestAccrued: 40 }, 1))
+            .toMatchObject({ deferredInterest: false, deferredInterestAccrued: 0 });
+        expect(sanitizeDebt({ ...promo, deferredInterest: true, deferredInterestAccrued: 40 }, 1))
+            .toMatchObject({ deferredInterest: true, deferredInterestAccrued: 40 });
+        expect(sanitizeDebt({ ...promo, deferredInterest: true, deferredInterestAccrued: -5 }, 1).deferredInterestAccrued).toBe(0);
+        expect(sanitizeDebt({ ...promo, deferredInterest: true, deferredInterestAccrued: 5e12 }, 1).deferredInterestAccrued).toBe(1e9);
+        expect(sanitizeDebt({ ...promo, deferredInterest: true }, 1).deferredInterestAccrued).toBe(0);
     });
 });

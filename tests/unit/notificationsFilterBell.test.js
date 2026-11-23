@@ -53,7 +53,7 @@ describe('notify filter settings keys', () => {
         expect(SS.NOTIFY_FILTER_ACCOUNT).toBe('notifyFilterAccount');
     });
     test('isAllowedSetting accepts and rejects', () => {
-        for (const v of ['all', 'bill', 'lowBalance', 'overdrawn', 'projected']) expect(SS.isAllowedSetting('notifyFilterType', v)).toBe(true);
+        for (const v of ['all', 'bill', 'lowBalance', 'overdrawn', 'projected', 'promo']) expect(SS.isAllowedSetting('notifyFilterType', v)).toBe(true);
         for (const v of ['unread', 'read', 'active', 'resolved', 'all']) expect(SS.isAllowedSetting('notifyFilterStatus', v)).toBe(true);
         for (const v of [0, 1, 42]) expect(SS.isAllowedSetting('notifyFilterAccount', v)).toBe(true);
         for (const v of ['zzz', '', 5, null, 'unread']) expect(SS.isAllowedSetting('notifyFilterType', v)).toBe(false);
@@ -72,7 +72,7 @@ describe('notify filter settings keys', () => {
             if (t !== 'all') expect(typesForCategory(t)).not.toBeNull();
         }
         for (const s of SS.NOTIFY_FILTER_STATUSES) expect(filtersFromSettings({ status: s }).status).toBe(s);
-        expect(SS.NOTIFY_FILTER_TYPES).toHaveLength(5);
+        expect(SS.NOTIFY_FILTER_TYPES).toHaveLength(6);
         expect(SS.NOTIFY_FILTER_STATUSES).toHaveLength(5);
     });
 });

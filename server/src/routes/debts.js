@@ -30,6 +30,10 @@ export default createCrudResource({
         updatedAt: 'updated_at',
         archived: 'archived',
         notes: 'notes',
-        nextPaymentDue: 'next_payment_due'
+        nextPaymentDue: 'next_payment_due',
+        promoRate: 'promo_rate',
+        promoEndDate: 'promo_end_date',
+        deferredInterest: 'deferred_interest',
+        deferredInterestAccrued: 'deferred_interest_accrued'
     }
 });

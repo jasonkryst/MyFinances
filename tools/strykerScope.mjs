@@ -25,7 +25,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // A file mapped to `true` is mutated whole.
 export const MUTATE_SCOPE = {
-    'src/debtCalculator.js': ['calculatePaymentPlan', 'formatDate', 'calculateMonthsBetweenDates'],
+    'src/debtCalculator.js': ['calculatePaymentPlan', 'formatDate', 'calculateMonthsBetweenDates',
+        // #681: promotional APR.
+        'hasPromo', 'promoDaysInMonth', 'promoEndsInMonth', 'monthlyInterest', 'rateForMonth', 'getPaymentOrder'],
     'src/utils.js': [
         'formatCurrency', 'normalizeText', 'normalizeMultilineText', 'sanitizeFiniteNumber',
         'parseFiniteOrNull', 'formatShortDate', 'formatMonthYear', 'sanitizeInteger', 'sanitizeDateISO',
@@ -67,6 +69,8 @@ export const MUTATE_SCOPE = {
     'src/netWorthEstimate.js': true,
     // #211: bill-due and balance alert rules (browser + server notifications job).
     'src/notificationsCore.js': true,
+    // #681: promotional APR helpers shared with the server.
+    'src/promoApr.js': true,
     // #577: Undo's Ledger-key move for a re-created record.
     'src/undoCore.js': true,
     // #678: effective-dated amounts (income + recurring templates).

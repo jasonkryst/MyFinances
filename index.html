@@ -485,6 +485,33 @@
                                     <input type="date" id="debtStartDate" class="credit-card-field">
                                 </div>
 
+                                <fieldset class="debt-promo-fieldset credit-card-field" id="debtPromoFieldset">
+                                    <legend data-i18n="debts.promoLegend">Promotional APR (optional)</legend>
+                                    <p class="form-hint" id="debtPromoHint" data-i18n="debts.promoHint">For a 0% balance transfer or intro rate: the rate until the end date, then the interest rate above.</p>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="debtPromoRate" data-i18n="debts.promoRateLabel">Promo rate (%)</label>
+                                            <input type="number" id="debtPromoRate" placeholder="0.00" step="0.01" min="0" max="100" aria-describedby="debtPromoHint">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="debtPromoEndDate" data-i18n="debts.promoEndLabel">Promo ends on</label>
+                                            <input type="date" id="debtPromoEndDate" aria-describedby="debtPromoHint">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="debtDeferredInterest">
+                                            <input type="checkbox" id="debtDeferredInterest">
+                                            <span data-i18n="debts.deferredLabel">Deferred interest (charged back if not paid off by the end date)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="debtDeferredAccrued"><span data-i18n="debts.deferredAccruedLabel">Deferred interest already accrued ($)</span>
+                                            <span class="help-icon" tabindex="0" aria-label="Optional: the deferred interest your statement shows so far. Only used with deferred interest." data-i18n-attr="aria-label:debts.deferredAccruedHelp">?</span>
+                                        </label>
+                                        <input type="number" id="debtDeferredAccrued" placeholder="0.00" step="0.01" min="0">
+                                    </div>
+                                </fieldset>
+
                                 <div class="form-group">
                                     <label for="debtAccount"><span data-i18n="debts.accountLabel">Pay from Account</span>
                                         <span class="help-icon" tabindex="0" aria-label="Which account do payments for this debt come from?" data-i18n-attr="aria-label:debts.accountHelp">?</span>
@@ -1367,6 +1394,7 @@
                             <option value="lowBalance" data-i18n="notifyPage.type.lowBalance">Low balance</option>
                             <option value="overdrawn" data-i18n="notifyPage.type.overdrawn">Overdrawn</option>
                             <option value="projected" data-i18n="notifyPage.type.projected">Projected low</option>
+                            <option value="promo" data-i18n="notifyPage.type.promo">Promo rate ending</option>
                         </select>
                     </div>
                     <div class="fd-field">
@@ -2105,6 +2133,10 @@
                     <label class="settings-toggle-row" for="settingNotifyProjectedLow">
                         <input type="checkbox" role="switch" id="settingNotifyProjectedLow">
                         <span data-i18n="settings.notify.projectedLow">An account is projected to run low within the days ahead</span>
+                    </label>
+                    <label class="settings-toggle-row" for="settingNotifyPromoEnding">
+                        <input type="checkbox" role="switch" id="settingNotifyPromoEnding">
+                        <span data-i18n="settings.notify.promoEnding">A debt's promotional rate ends within 60 days</span>
                     </label>
                     <p class="modal-helper-text" data-i18n="settings.notify.thresholdHelp">Set a low-balance alert amount on each account from the Accounts page (Add or Edit).</p>
                 </fieldset>

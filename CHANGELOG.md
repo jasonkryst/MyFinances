@@ -4,6 +4,21 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.26.0] — 2026-11-23
+
+### Added
+- **Promotional APR (#681).** Debts take an optional `promoRate` and inclusive `promoEndDate`, plus `deferredInterest` and `deferredInterestAccrued`.
+  - **Payoff engine.** `DebtCalculator` accrues at the promo rate through the end date and at `interestRate` after it; the month containing the end date is split by day (`monthlyInterest`, `promoDaysInMonth`). Avalanche ranks debts by the rate in effect each month (`rateForMonth`), so a 0% card moves up the month its promo ends.
+  - **Deferred interest.** During the promo, interest at the regular rate accrues in the background on the simulated balance, starting from the optional "already accrued" amount from the statement. If a balance remains in the month the promo ends, all of it is added to the balance and to total interest (`deferredInterestCharged` on that month's payment entry); paid off in time, nothing is charged.
+  - **Debt card.** "0% until Jun 2027 (then 24.99%)", a deferred-interest badge, and "Pay $X/mo to clear it before the promo ends". The interest tile, the monthly interest estimate, the minimum-payment trap, sorting by rate, and Health's interest burden and highest-APR advice use the rate in effect today (pure `src/promoApr.js`).
+  - **Forms.** A *Promotional APR* group on the add form and four fields in the inline editor; a rate without an end date (or the reverse) is rejected. Editing a promo marks the saved plan stale.
+  - **Refinancing what-if (#320).** Optional intro rate and end date on the new terms.
+  - **Notification (#211).** `promoEnding` fires once per promo within 60 days of its end (email and in-app), with its own setting (`notifyPromoEnding`, on by default) and a *Promo rate ending* Type filter; it opens Liabilities.
+  - **Storage.** `sanitizeDebt` keeps a promo only with both a rate (0-100) and an end date on a credit-card/loan debt. Migration `1755600000046` adds `promo_rate`, `promo_end_date`, `deferred_interest` and `deferred_interest_accrued`; the debts route lists them. Calendar feeds are unchanged.
+
+### Tests and CI
+- Jest: `debtCalculatorPromo.test.js` (boundary month, avalanche reordering, deferred charge-back and paid-in-time, ignored inputs), `promoApr.test.js`, promo cases in `notificationsCore.test.js` and `sanitizers.test.js`. The new calculator helpers and `promoApr.js` joined the Stryker scope. Server: `debtPromo.test.js` (round-trip, partial promo cleared, PATCH, migration, job alert and dedupe, setting off, ICS unchanged). Playwright: `test_debt_promo_apr.py` (shard `test-features-f`); the i18n render guard seeds promo debts, promo alerts and the refinancing intro rate.
+
 ## [7.25.0] — 2026-11-23
 
 ### Added

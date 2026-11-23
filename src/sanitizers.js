@@ -193,6 +193,13 @@ export function sanitizeDebt(record, idFallback) {
         ? record.personIds.map(id => sanitizeInteger(id, null)).filter(id => id !== null)
         : [];
 
+    // #681: a promo needs both a rate and an end date, and only applies to
+    // interest-bearing (credit card / loan) debts; anything partial clears it.
+    const promoRate = sanitizeFiniteNumber(record?.promoRate, null, { min: 0, max: 100 });
+    const promoEndDate = sanitizeDateISO(record?.promoEndDate);
+    const hasPromo = debtType === 'creditCard' && promoRate !== null && promoEndDate !== null;
+    const deferredInterest = hasPromo && record?.deferredInterest === true;
+
     return {
         id: sanitizeInteger(record?.id, idFallback),
         name: normalizeText(record?.name, 80),
@@ -217,7 +224,13 @@ export function sanitizeDebt(record, idFallback) {
         personIds,
         ownershipSplit: sanitizeOwnershipSplit(record?.ownershipSplit, personIds),
         notes: normalizeText(record?.notes ?? '', 500),
-        nextPaymentDue: sanitizeDateISO(record?.nextPaymentDue)
+        nextPaymentDue: sanitizeDateISO(record?.nextPaymentDue),
+        promoRate: hasPromo ? promoRate : null,
+        promoEndDate: hasPromo ? promoEndDate : null,
+        deferredInterest,
+        deferredInterestAccrued: deferredInterest
+            ? sanitizeFiniteNumber(record?.deferredInterestAccrued, 0, { min: 0, max: 1e9 })
+            : 0
     };
 }
 

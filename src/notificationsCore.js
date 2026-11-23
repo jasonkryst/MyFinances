@@ -13,13 +13,14 @@
 import { buildProjectedAccountTransactions, UNLINKED_KEY } from './projectionCore.js';
 import { getEffectiveAmount, isCleared } from './ledgerStateCore.js';
 import { dateToISO } from './utils.js';
+import { daysUntilPromoEnd } from './promoApr.js';
 import {
-    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW,
+    NOTIFY_BILL_DUE, NOTIFY_LOW_BALANCE, NOTIFY_ZERO_BALANCE, NOTIFY_PROJECTED_LOW, NOTIFY_PROMO_ENDING, PROMO_ALERT_DAYS,
     NOTIFY_DAYS_AHEAD, NOTIFY_DAYS_AHEAD_DEFAULT, NOTIFY_DAYS_AHEAD_MAX,
     NOTIFY_CHANNEL, NOTIFY_CHANNELS, NOTIFY_DELIVERY, NOTIFY_DELIVERIES,
 } from './settingsSchema.js';
 
-export const NOTIFICATION_TYPES = ['billDueSoon', 'billDueToday', 'lowBalance', 'zeroBalance', 'projectedLow'];
+export const NOTIFICATION_TYPES = ['billDueSoon', 'billDueToday', 'lowBalance', 'zeroBalance', 'projectedLow', 'promoEnding'];
 
 // Account types whose balance is never alerted on: liabilities (a balance
 // there is money owed) and retirement accounts (statement-driven, #245).
@@ -46,6 +47,7 @@ export function getNotificationPrefs(settings) {
         lowBalance: flag(NOTIFY_LOW_BALANCE),
         zeroBalance: flag(NOTIFY_ZERO_BALANCE),
         projectedLow: flag(NOTIFY_PROJECTED_LOW),
+        promoEnding: flag(NOTIFY_PROMO_ENDING),
         daysAhead: Number.isInteger(days) && days >= 0 && days <= NOTIFY_DAYS_AHEAD_MAX ? days : NOTIFY_DAYS_AHEAD_DEFAULT,
         channel: NOTIFY_CHANNELS.includes(channel) ? channel : 'both',
         delivery: NOTIFY_DELIVERIES.includes(delivery) ? delivery : 'perEvent',
@@ -187,6 +189,32 @@ export function computeNotificationEvents(app, now = new Date(), prefs = getNoti
             if (breach) {
                 balanceEvent('projectedLow', { ...base, projectedBalance: breach.balance, date: breach.date });
             }
+        }
+    }
+
+    // #681: a promotional APR ending within PROMO_ALERT_DAYS, once per promo
+    // (the end date is in the key, so a new promo alerts again).
+    if (prefs.promoEnding) {
+        for (const debt of app.debts || []) {
+            if (!debt || debt.archived || debt.debtType === 'fixedAmount') continue;
+            if (!((Number(debt.accountBalance) || 0) > 0)) continue;
+            const days = daysUntilPromoEnd(debt, todayIso);
+            if (days === null || days > PROMO_ALERT_DAYS) continue;
+            events.push({
+                type: 'promoEnding',
+                dedupeKey: `promoEnding|${debt.id}|${debt.promoEndDate}`,
+                episodeKey: null,
+                params: {
+                    name: debt.name || null,
+                    debtId: debt.id,
+                    promoEndDate: debt.promoEndDate,
+                    daysUntil: days,
+                    promoRate: debt.promoRate,
+                    regularRate: Number(debt.interestRate) || 0,
+                    balance: round2(Number(debt.accountBalance) || 0),
+                    deferredInterest: debt.deferredInterest === true,
+                },
+            });
         }
     }
 

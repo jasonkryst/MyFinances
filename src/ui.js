@@ -1047,6 +1047,12 @@ function _buildWhatsNewHtml() {
 // doesn't match APP_VERSION.
 const WHATS_NEW_ENTRIES = [
     {
+        version: '7.26.0 — 2026-11-23',
+        items: [
+            '<strong>Promotional rates:</strong> give a card or loan a promo rate and the date it ends, for example 0% until June. The plan charges the promo rate until then and the regular rate after, and the debt card shows <em>0% until Jun 2027 (then 24.99%)</em> with the monthly payment that clears it in time. Tick <em>Deferred interest</em> for store cards that charge back interest if a balance remains. You get a notification 60 days before a promo ends, and the refinancing what-if on the Plan page can model a balance-transfer intro rate.'
+        ]
+    },
+    {
         version: '7.25.0 — 2026-11-23',
         items: [
             '<strong>Income can end:</strong> give an income source an <em>End date</em> when a job, contract or rental stops, instead of deleting it. Past paydays stay in the Ledger, your balances and Reports; nothing is paid after the end date. Ended incomes are hidden on the Income page behind <em>Show ended</em>, and a future end date shows as <em>Ends &lt;date&gt;</em> on the card.'

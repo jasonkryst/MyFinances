@@ -132,11 +132,15 @@ LIABILITIES_STATE.update({
          'minimumPayment': 80, 'originalMinimumPayment': 100, 'interestRate': 24, 'dueDate': 15,
          'creditLimit': 5000, 'category': '⟦Cards⟧', 'accountId': 1, 'personIds': [1, 2],
          'ownershipSplit': {'1': 0.7, '2': 0.3}, 'debtStartDate': '2024-01-01', 'nextPaymentDue': _TODAY,
-         'notes': '⟦Pay early⟧', 'priority': 5},
+         'notes': '⟦Pay early⟧', 'priority': 5,
+         # #681: an active deferred-interest promo (card notice, badge, payoff hint).
+         'promoRate': 0, 'promoEndDate': '2099-12-31', 'deferredInterest': True, 'deferredInterestAccrued': 12},
         {'id': 2, 'name': '⟦Min Trap⟧', 'debtType': 'creditCard', 'accountBalance': 20000, 'originalBalance': 20000,
          'minimumPayment': 400, 'interestRate': 19, 'dueDate': 1, 'category': '⟦Loans⟧', 'personIds': [1]},
         {'id': 3, 'name': '⟦Neg Amort⟧', 'debtType': 'creditCard', 'accountBalance': 9000, 'originalBalance': 1000,
-         'minimumPayment': 50, 'interestRate': 20, 'dueDate': 22, 'creditLimit': 9000},
+         'minimumPayment': 50, 'interestRate': 20, 'dueDate': 22, 'creditLimit': 9000,
+         # #681: a plain promo (above the regular rate, so the negative-amortization badge stays).
+         'promoRate': 25, 'promoEndDate': '2099-12-31'},
         {'id': 4, 'name': '⟦Daycare⟧', 'debtType': 'fixedAmount', 'fixedAmount': 800,
          'fixedStartDate': '2025-01-01', 'fixedEndDate': '2099-12-31', 'priority': 2, 'category': '⟦Kids⟧'},
         {'id': 5, 'name': '⟦Old Loan⟧', 'debtType': 'creditCard', 'accountBalance': 0, 'originalBalance': 500,
@@ -238,6 +242,13 @@ def _plan_refi(apr):
             const apr = document.getElementById('refiAprInput');
             if (apr) { apr.value = '%s'; apr.dispatchEvent(new Event('input')); }
 """ % apr
+
+_REFI_PROMO = """
+            const pr = document.getElementById('refiPromoRateInput');
+            const pe = document.getElementById('refiPromoEndInput');
+            if (pe) { pe.value = '%s'; }
+            if (pr) { pr.value = '%s'; pr.dispatchEvent(new Event('input')); }
+"""
 
 EMPTY_STATE = {'accounts': [], 'debts': [], 'settings': []}
 
@@ -615,6 +626,8 @@ TRANSLATED_PAGES = {
                 { id: 5, type: 'zeroBalance', params: { accountName: null, balance: -5 }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
                 { id: 6, type: 'projectedLow', params: p, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
                 { id: 7, type: 'projectedLow', params: { ...p, threshold: null }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 9, type: 'promoEnding', params: { name: '⟦Store Card⟧', promoEndDate: '2026-12-31', daysUntil: 46, regularRate: 26.99, balance: 1200 }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
+                { id: 10, type: 'promoEnding', params: { name: null, promoEndDate: '2026-12-31', daysUntil: 46, regularRate: 26.99, balance: 1200, deferredInterest: true }, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
                 { id: 8, type: 'mystery', params: {}, createdAt: '2026-11-14T12:00:00Z', readAt: null, resolvedAt: null },
             ];
             st.unreadCount = 7;
@@ -1064,6 +1077,8 @@ TRANSLATED_PAGES = {
                   createdAt: day(10), readAt: null, resolvedAt: day(9) },
                 { id: 9005, type: 'projectedLow', params: { ...acct, projectedBalance: 20, threshold: 100,
                   date: '2026-03-10' }, createdAt: day(20), readAt: null, resolvedAt: null },
+                { id: 9006, type: 'promoEnding', params: { name: '⟦Store Card⟧', debtId: 1, promoEndDate: '2026-04-30',
+                  daysUntil: 40, regularRate: 26.99, balance: 1200 }, createdAt: day(21), readAt: null, resolvedAt: null },
             ];
             s.total = 600;
             window.app._notificationsFilters = { status: 'all' };
@@ -1131,6 +1146,9 @@ TRANSLATED_PAGES = {
     'strategy-refi-worse': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('30') + "}"),
     'strategy-refi-nochange': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('24') + "}"),
     'strategy-refi-invalid': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('500') + "}"),
+    # #681: an intro rate on the new terms, and the intro-rate validation message.
+    'strategy-refi-promo': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('18') + _REFI_PROMO % ('2099-06-30', '0') + "}"),
+    'strategy-refi-promo-invalid': (_PLAN_ROOTS, "async () => {\n" + _plan_refi('18') + _REFI_PROMO % ('', '0') + "}"),
     'strategy-summary': (
         _PLAN_ROOTS,
         """async () => {

@@ -45,6 +45,9 @@ export const NOTIFY_BILL_DUE = 'notifyBillDue';
 export const NOTIFY_LOW_BALANCE = 'notifyLowBalance';
 export const NOTIFY_ZERO_BALANCE = 'notifyZeroBalance';
 export const NOTIFY_PROJECTED_LOW = 'notifyProjectedLow';
+// #681: a debt's promotional APR ends within PROMO_ALERT_DAYS.
+export const NOTIFY_PROMO_ENDING = 'notifyPromoEnding';
+export const PROMO_ALERT_DAYS = 60;
 export const NOTIFY_DAYS_AHEAD = 'notifyDaysAhead';
 export const NOTIFY_DAYS_AHEAD_DEFAULT = 3;
 export const NOTIFY_DAYS_AHEAD_MAX = 30;
@@ -58,7 +61,7 @@ export const NOTIFY_DELIVERIES = ['perEvent', 'digest'];
 // tests/unit/notificationsFilterBell.test.js keeps them equal. Deliberately not
 // in SETTINGS_EXPORT_SCHEMA (account ids would dangle in another dataset).
 export const NOTIFY_FILTER_TYPE = 'notifyFilterType';
-export const NOTIFY_FILTER_TYPES = ['all', 'bill', 'lowBalance', 'overdrawn', 'projected'];
+export const NOTIFY_FILTER_TYPES = ['all', 'bill', 'lowBalance', 'overdrawn', 'projected', 'promo'];
 export const NOTIFY_FILTER_STATUS = 'notifyFilterStatus';
 export const NOTIFY_FILTER_STATUSES = ['unread', 'read', 'active', 'resolved', 'all'];
 export const NOTIFY_FILTER_ACCOUNT = 'notifyFilterAccount';
@@ -93,6 +96,7 @@ export const SETTINGS_EXPORT_SCHEMA = {
     [NOTIFY_LOW_BALANCE]: isBool,
     [NOTIFY_ZERO_BALANCE]: isBool,
     [NOTIFY_PROJECTED_LOW]: isBool,
+    [NOTIFY_PROMO_ENDING]: isBool,
     [NOTIFY_DAYS_AHEAD]: numberIn(0, NOTIFY_DAYS_AHEAD_MAX, { integer: true }),
     [NOTIFY_CHANNEL]: oneOf(NOTIFY_CHANNELS),
     [NOTIFY_DELIVERY]: oneOf(NOTIFY_DELIVERIES),

@@ -12,6 +12,8 @@ import { recordBalanceHistory, removeHistoryForOwner } from './balanceHistory.js
 import { t, plural, accountTypeLabel, categoryLabel } from './i18n.js';
 import { renderOwnershipControl, readOwnershipSplit, buildOwnershipSplitHtml } from './debtOwnership.js';
 import { sanitizeOwnershipSplit } from './sanitizers.js';
+import { readPromoInputs, renderInlinePromoFields, inlinePromoElements, formPromoElements, renderPromoCardHtml } from './debtPromo.js';
+import { getDebtRateOn } from './promoApr.js';
 
 function utilizationStatus(pct) {
     if (pct <= 10) return { cls: 'health-status--green',  label: t('debts.utilStatusGood') };
@@ -157,6 +159,11 @@ export async function addDebt(app) {
         debt.weekendRule = sanitizeWeekendRule(document.getElementById('debtWeekendRule')?.value);
         debt.debtStartDate = debtStartDate;
         debt.creditLimit = creditLimit;
+
+        // #681: optional promotional APR.
+        const promo = readPromoInputs(formPromoElements());
+        if (promo.error) { await showAlertModal(t(promo.error)); return; }
+        Object.assign(debt, promo.fields);
     }
 
     if (!(await pgCreate(app, 'debts', '/api/debts', debt))) return null;
@@ -372,6 +379,10 @@ export async function saveEdit(app) {
         return;
     }
 
+    const promoEls = formPromoElements();
+    const promo = promoEls.rateEl ? readPromoInputs(promoEls) : { fields: {} };
+    if (promo.error) { await showAlertModal(t(promo.error)); return; }
+
     const idx = app.debts.findIndex(d => d.id === app.editingDebtId);
     if (idx === -1) return;
 
@@ -398,7 +409,8 @@ export async function saveEdit(app) {
         personIds,
         ownershipSplit: sanitizeOwnershipSplit(app.debts[idx].ownershipSplit, personIds),
         notes,
-        nextPaymentDue
+        nextPaymentDue,
+        ...promo.fields
     };
 
     pgPatch(app, `/api/debts/${app.debts[idx].id}`, app.debts[idx]);
@@ -623,7 +635,8 @@ export function renderDebtsList(app) {
                 return sortBy === 'balance-desc' ? vb - va : va - vb;
             }
             if (sortBy === 'interest-desc' || sortBy === 'interest-asc') {
-                const va = a.interestRate || 0, vb = b.interestRate || 0;
+                const today = todayISO();
+                const va = getDebtRateOn(a, today), vb = getDebtRateOn(b, today);
                 return sortBy === 'interest-desc' ? vb - va : va - vb;
             }
             if (sortBy === 'minpay-desc' || sortBy === 'minpay-asc') {
@@ -725,7 +738,8 @@ export function renderDebtsList(app) {
                         <div class="debt-detail"><strong>${escapeHtml(t('weekend.label'))}</strong> <select id="inline-weekend-${debt.id}">${buildWeekendRuleOptionsHtml(debt.weekendRule)}</select></div>
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editPriority'))}</strong> <input id="inline-priority-${debt.id}" type="number" min="1" max="100" value="${debt.priority || ''}"></div>
                         <div class="debt-detail"><strong>${escapeHtml(t('debts.editDateOpened'))}</strong> <input id="inline-start-date-cc-${debt.id}" type="date" value="${debt.debtStartDate || ''}"></div>
-                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editCreditLimit'))}</strong> <input id="inline-credit-limit-${debt.id}" type="number" step="0.01" min="0" placeholder="${escapeHtml(t('debts.creditLimitOptional'))}" value="${debt.creditLimit != null ? debt.creditLimit : ''}"></div>`;
+                        <div class="debt-detail"><strong>${escapeHtml(t('debts.editCreditLimit'))}</strong> <input id="inline-credit-limit-${debt.id}" type="number" step="0.01" min="0" placeholder="${escapeHtml(t('debts.creditLimitOptional'))}" value="${debt.creditLimit != null ? debt.creditLimit : ''}"></div>
+                        ${renderInlinePromoFields(debt)}`;
             }
 
             editHTML += `
@@ -791,12 +805,14 @@ export function renderDebtsList(app) {
                     </div>
                     </div>`;
             } else {
-                const monthlyInterest = dailyCompoundInterest(debt.accountBalance, debt.interestRate, 30);
+                // #681: the rate in effect today (a promo rate while one runs).
+                const currentRate = getDebtRateOn(debt, todayISO());
+                const monthlyInterest = dailyCompoundInterest(debt.accountBalance, currentRate, 30);
                 const negAmortRisk = debt.minimumPayment <= monthlyInterest && debt.minimumPayment > 0;
                 const origBal = debt.originalBalance || debt.accountBalance;
 
                 const minPayMonths = (() => {
-                    const P = debt.accountBalance, r = debt.interestRate / 100 / 12, M = debt.minimumPayment;
+                    const P = debt.accountBalance, r = currentRate / 100 / 12, M = debt.minimumPayment;
                     if (!P || !r || !M || M <= P * r) return null;
                     return Math.ceil(-Math.log(1 - (r * P) / M) / Math.log(1 + r));
                 })();
@@ -820,12 +836,13 @@ export function renderDebtsList(app) {
                                 ? `<span class="amount-secondary">${escapeHtml(t('debts.originally', { amount: formatCurrency(debt.originalMinimumPayment) }))}</span>`
                                 : ''}
                             ${negAmortRisk ? `<span class="neg-amort-badge" title="${escapeHtml(t('debts.negAmortTitle'))}">⚠️ ${escapeHtml(t('debts.negAmortBadge'))}</span>` : ''}`, 'debt-detail--primary')}
-                        ${debtDetailTile(escapeHtml(t('debts.tileInterest')), `${debt.interestRate.toFixed(2)}%
+                        ${debtDetailTile(escapeHtml(t('debts.tileInterest')), `${currentRate.toFixed(2)}%
                             <span class="text-monthly-interest">≈ ${escapeHtml(t('debts.perMonth', { amount: formatCurrency(monthlyInterest) }))}</span>`)}
                         ${debtDetailTile(escapeHtml(t('debts.tileDueDate')), escapeHtml(t('debts.dueDayValue', { day: getDayOrdinal(debt.dueDate) })))}
                         ${debt.weekendRule && debt.weekendRule !== 'none' ? debtDetailTile(escapeHtml(t('weekend.tile')), escapeHtml(weekendRuleLabel(debt.weekendRule))) : ''}
                         ${debt.nextPaymentDue ? debtDetailTile(escapeHtml(t('debts.tileNextDue')), formatShortDate(debt.nextPaymentDue)) : ''}
                         ${debt.debtStartDate ? debtDetailTile(escapeHtml(t('debts.tileOpened')), formatShortDate(debt.debtStartDate)) : ''}
+                        ${renderPromoCardHtml(debt)}
                         ${iptd ? `
                         <div class="debt-detail iptd-detail">
                             <strong>${escapeHtml(t('debts.iptdLabel'))}</strong>
@@ -1087,6 +1104,11 @@ export async function saveInlineEdit(app, debtId) {
         }
     }
 
+    // #681: a half-filled promo is rejected before anything is applied.
+    const promoEls = inlinePromoElements(debtId);
+    const promo = debt.debtType !== 'fixedAmount' && promoEls.rateEl ? readPromoInputs(promoEls) : null;
+    if (promo?.error) { await showAlertModal(t(promo.error)); return; }
+
     try {
         const nameEl = document.getElementById(`inline-name-${debtId}`);
         if (nameEl) debt.name = normalizeText(nameEl.value, 80);
@@ -1132,6 +1154,7 @@ export async function saveInlineEdit(app, debtId) {
             if (priorityEl) debt.priority = sanitizeInteger(priorityEl.value, null, { min: 1, max: 100 });
             if (startDateEl) debt.debtStartDate = sanitizeDateISO(startDateEl.value);
             if (limitEl) debt.creditLimit = limitEl.value ? sanitizeFiniteNumber(limitEl.value, null, { min: 0 }) : null;
+            if (promo) Object.assign(debt, promo.fields);
         }
 
         const notesEl = document.getElementById(`inline-notes-${debtId}`);

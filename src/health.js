@@ -1,3 +1,4 @@
+import { getDebtRateOn } from './promoApr.js';
 import { computeMonthlyIncomeForMonth, computeSavingsRate, formatShortDate, formatMonthYear, formatCurrency, formatCurrencyAxis, getCurrencyAffix, escapeHtml, renderChartDataTable, todayISO, isIncomeEnded } from './utils.js';
 import { getCurrentAmount } from './amountSchedule.js';
 import { t, getIntlLocale } from './i18n.js';
@@ -1095,7 +1096,8 @@ function renderHealthDashboardUncached(app) {
     // ── Interest Burden Rate ───────────────────────────────────────────────────
     const monthlyInterest = activeDebts.reduce((s, d) => {
         const bal = d.debtType === 'fixedAmount' ? (d.fixedAmount || 0) : (d.accountBalance || 0);
-        return s + bal * ((d.interestRate || 0) / 100 / 12);
+        // #681: a promo rate while one runs.
+        return s + bal * (getDebtRateOn(d, todayISO()) / 100 / 12);
     }, 0);
     const ibRatio = monthlyIncome > 0 ? monthlyInterest / monthlyIncome : 0;
     const ibPct   = ibRatio * 100;
@@ -1136,8 +1138,10 @@ function renderHealthDashboardUncached(app) {
             : { cls: 'health-status--red', label: 'No surplus', yearsToFire: null };
 
     // ── Recommendations (#254) ────────────────────────────────────────────────
+    const todayIso = todayISO();
     const highestAprDebt = activeDebts
-        .filter(d => d.debtType !== 'fixedAmount' && (d.interestRate || 0) > 0)
+        .filter(d => d.debtType !== 'fixedAmount' && getDebtRateOn(d, todayIso) > 0)
+        .map(d => ({ ...d, interestRate: getDebtRateOn(d, todayIso) })) // #681: rate in effect today
         .sort((a, b) => b.interestRate - a.interestRate)[0] || null;
 
     let efWorst = null;
