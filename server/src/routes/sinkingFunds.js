@@ -12,6 +12,7 @@ export default createCrudResource({
         allocationMethod: 'allocation_method',
         monthlyAllocation: 'monthly_allocation',
         targetAmount: 'target_amount',
+        targetDate: 'target_date',
         currentAmount: 'current_amount',
         autoContribute: 'auto_contribute',
         accountId: 'account_id',

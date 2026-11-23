@@ -27,6 +27,7 @@
     "src/retirementCalculator.js": 88,
     "src/sanitizers.js": 62,
     "src/saveStatus.js": 87,
+    "src/sinkingFundSchedule.js": 90,
     "src/settings.js": 75,
     "src/settingsRemap.js": 83,
     "src/settingsSchema.js": 85,

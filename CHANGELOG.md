@@ -4,6 +4,21 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.30.0] — 2026-11-23
+
+### Added
+- **Sinking fund target date (#680).** A goal created with the *Target date* method now stores `targetDate` (`sinking_funds.target_date`, migration `1755600000050`; kept only for that method) instead of using it once. The monthly amount it needs is computed when shown: what is still missing divided by the months left (`src/sinkingFundSchedule.js`, pure and Stryker-scoped). Months are counted from today's month to the target month, a target this month needs everything now, and a past date needs nothing scheduled.
+  - **Card.** Shows the deadline, the amount needed per month and a status badge: On track, Behind, Ahead (the live need compared with the amount saved with the goal), Past due (date passed, not funded) or Funded.
+  - **Everywhere.** The Ledger auto-contribute projection (browser and server), and the savings rate use the live amount, and the projection stops after the target month. `monthlyAllocation` is still stored (the amount at save).
+
+### Fixed
+- Editing a sinking fund now updates it. Before, Edit filled the add form and saving created a second fund.
+- **Monthly incomes no longer have paydays before their first pay date (#705).** `getIncomePaydaysInMonth` and `getNextIncomePayDates` ignored `firstPayDate` for monthly incomes (and unknown frequencies, which fall back to monthly). An income starting in June showed paydays in earlier months in the Ledger, balances, Forecast, Health, Reports and both calendar feeds. Weekly, biweekly and twice-monthly incomes already respected it.
+  - Health's net cash-flow trend arrow, like the DTI and savings-rate arrows, is now hidden when last month had no income or recurring inflow, rather than comparing against a $0 month. The bug hid this case: a new job showed a phantom payday last month too.
+
+### Tests
+- Jest: `sinkingFundSchedule.test.js` (dates, month ends, leap day, past and current-month targets, funded, status boundaries), sanitizer cases, and `incomeFirstPayDate.test.js` (before, on and after the first payday for every frequency, counts, monthly income, next pay dates). Server: `sinkingFundTargetDate.test.js` (round trip, invalid date, method change, migration 050). Playwright: `test_sinking_fund_target_date.py` (shard `test-features-d`).
+
 ## [7.29.0] — 2026-11-23
 
 ### Added
