@@ -1,6 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
+import { generateIcsFromDbRows } from '../src/calendarGenerator.js';
 import { pool } from '../src/db.js';
 import { up, down } from '../migrations/1755600000044_add-amount-changes.js';
 import { resetDb, createTestUser, loginTestUser } from './helpers/testDb.js';
@@ -8,7 +9,7 @@ import { resetDb, createTestUser, loginTestUser } from './helpers/testDb.js';
 // Issue #678: effective-dated amounts (`amountChanges`) on incomes and
 // recurring templates.
 
-let server, baseUrl, cookies, accountId, otherAccountId;
+let server, baseUrl, cookies, userId, accountId, otherAccountId;
 
 before(() => {
     server = createApp().listen(0);
@@ -33,6 +34,7 @@ async function api(method, path, body) {
 beforeEach(async () => {
     await resetDb();
     const user = await createTestUser();
+    userId = user.id;
     const login = await loginTestUser(baseUrl, user.email, user.password);
     cookies = login.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
     accountId = (await api('POST', '/api/accounts', { name: 'Checking', type: 'checking', startingBalance: 0, interestRate: 0 })).body.id;
@@ -116,4 +118,38 @@ test('migration 044 is idempotent and its down() reverses it (inside a rolled-ba
         await client.query('ROLLBACK');
         client.release();
     }
+});
+
+// The feed describes each event with the amount in effect on its date.
+function iso(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function eventDescription(ics, uidPrefix) {
+    const unfolded = ics.replace(/\r\n[ \t]/g, '');
+    const block = unfolded.split('BEGIN:VEVENT').find(b => b.includes(`UID:${uidPrefix}`));
+    assert.ok(block, `no event ${uidPrefix}`);
+    return block.match(/DESCRIPTION:([^\r\n]*)/)[1];
+}
+
+test('the webcal feed uses the dated amount for recurring and payday events', async () => {
+    const now = new Date();
+    const thisMonth5 = new Date(now.getFullYear(), now.getMonth(), 5);
+    const nextMonth1 = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const nextMonth5 = new Date(now.getFullYear(), now.getMonth() + 1, 5);
+    const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const changes = [{ from: iso(nextMonth1), amount: 18 }];
+    const tmpl = await api('POST', '/api/recurring-templates', {
+        name: 'Netflix', type: 'subscription', amount: 15, frequency: 'monthly', dayOfMonth: 5,
+        category: 'Subscriptions', accountId, startDate: iso(start), amountChanges: changes
+    });
+    const inc = await api('POST', '/api/incomes', {
+        name: 'Pay', amount: 1000, firstPayDate: iso(new Date(start.getFullYear(), start.getMonth(), 5)),
+        frequency: 'monthly', accountId, amountChanges: [{ from: iso(nextMonth1), amount: 1200 }]
+    });
+    const ics = await generateIcsFromDbRows(userId, baseUrl);
+    const ymd = d => iso(d).replace(/-/g, '');
+    assert.match(eventDescription(ics, `recurring-${tmpl.body.id}-${ymd(thisMonth5)}`), /Amount Due: \$15\.00/);
+    assert.match(eventDescription(ics, `recurring-${tmpl.body.id}-${ymd(nextMonth5)}`), /Amount Due: \$18\.00/);
+    assert.match(eventDescription(ics, `income-${inc.body.id}-${ymd(thisMonth5)}`), /Amount: \$1000\.00/);
+    assert.match(eventDescription(ics, `income-${inc.body.id}-${ymd(nextMonth5)}`), /Amount: \$1200\.00/);
 });

@@ -6,6 +6,7 @@ import { applyWeekendRule } from './weekendRule.js';
 import { getCsrfCookie } from './storage.js';
 import { getSetting, SHOW_ARCHIVED_DEBTS } from './settings.js';
 import { getIncomePaydaysInMonth, discardBody } from './utils.js';
+import { getAmountOn } from './amountSchedule.js';
 
 const WINDOW_MONTHS = 12;
 
@@ -44,6 +45,11 @@ function buildDesc(amount, category, account, appUrl, amountLabel = 'Amount Due'
     if (account) parts.push(`Account: ${account}`);
     if (appUrl) parts.push(`View in MyFinances: ${appUrl}`);
     return parts.join('\n');
+}
+
+// RFC 5545 YYYYMMDD -> YYYY-MM-DD (the form getAmountOn compares).
+function dateStrToIso(dateStr) {
+    return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 }
 
 // RFC 5545 YYYYMMDD for the calendar day after dateStr.
@@ -132,7 +138,8 @@ export function generateIcs(app) {
                     `recurring-${t.id}-${dateStr}@myfinances`,
                     `${typeLabel} - ${t.name}`,
                     dateStr,
-                    buildDesc(t.amount, t.category, t.accountId ? accountMap[t.accountId] : null, appUrl)
+                    // #678: the amount in effect on this occurrence.
+                    buildDesc(getAmountOn(t, dateStrToIso(dateStr)), t.category, t.accountId ? accountMap[t.accountId] : null, appUrl)
                 ));
             }
         }
@@ -144,7 +151,7 @@ export function generateIcs(app) {
                     `income-${inc.id}-${dateStr}@myfinances`,
                     `Payday - ${inc.name}`,
                     dateStr,
-                    buildDesc(inc.amount, null, inc.accountId ? accountMap[inc.accountId] : null, appUrl, 'Amount')
+                    buildDesc(getAmountOn(inc, dateStrToIso(dateStr)), null, inc.accountId ? accountMap[inc.accountId] : null, appUrl, 'Amount')
                 ));
             }
         }

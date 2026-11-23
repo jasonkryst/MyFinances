@@ -8,6 +8,7 @@
 import { query } from './db.js';
 import { applyWeekendRule } from '../../src/weekendRule.js';
 import { getRecurringOccurrencesInMonth } from '../../src/recurringOccurrences.js';
+import { getAmountOn } from '../../src/amountSchedule.js';
 import { getIncomePaydaysInMonth } from '../../src/utils.js';
 
 const WINDOW_MONTHS = 12;
@@ -45,6 +46,11 @@ function buildDesc(amount, category, account, appUrl, amountLabel = 'Amount Due'
     return parts.join('\n');
 }
 
+// RFC 5545 YYYYMMDD -> YYYY-MM-DD (the form getAmountOn compares).
+function dateStrToIso(dateStr) {
+    return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+}
+
 // RFC 5545 YYYYMMDD for the calendar day after dateStr.
 function nextDayStr(dateStr) {
     const y = parseInt(dateStr.slice(0, 4), 10);
@@ -72,9 +78,9 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
         query('SELECT id, name FROM accounts WHERE user_id = $1', [userId]),
         query('SELECT id, name, amount, due_day, category, account_id FROM bills WHERE user_id = $1', [userId]),
         query('SELECT id, name, minimum_payment, due_date, weekend_rule, category, account_id, archived FROM debts WHERE user_id = $1', [userId]),
-        query('SELECT id, name, type, amount, frequency, day_of_month, weekend_rule, category, account_id, start_date, end_date, paused, pause_until, skipped_months, paid_months FROM recurring_templates WHERE user_id = $1', [userId]),
+        query('SELECT id, name, type, amount, frequency, day_of_month, weekend_rule, category, account_id, start_date, end_date, paused, pause_until, skipped_months, paid_months, amount_changes FROM recurring_templates WHERE user_id = $1', [userId]),
         query('SELECT id, name, budget_amount, date, category, account_id FROM expenses WHERE user_id = $1', [userId]),
-        query('SELECT id, name, amount, first_pay_date, frequency, account_id FROM incomes WHERE user_id = $1', [userId]),
+        query('SELECT id, name, amount, first_pay_date, frequency, account_id, amount_changes FROM incomes WHERE user_id = $1', [userId]),
         query("SELECT value FROM settings WHERE user_id = $1 AND key = 'showArchivedDebts'", [userId]),
     ]);
 
@@ -149,7 +155,8 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                     `recurring-${row.id}-${dateStr}@myfinances`,
                     `${typeLabel} - ${row.name}`,
                     dateStr,
-                    buildDesc(row.amount, row.category, row.account_id ? accountMap[row.account_id] : null, baseUrl)
+                    // #678: the amount in effect on this occurrence.
+                    buildDesc(getAmountOn({ amount: row.amount, amountChanges: row.amount_changes }, dateStrToIso(dateStr)), row.category, row.account_id ? accountMap[row.account_id] : null, baseUrl)
                 ));
             }
         }
@@ -162,7 +169,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                     `income-${inc.id}-${dateStr}@myfinances`,
                     `Payday - ${inc.name}`,
                     dateStr,
-                    buildDesc(inc.amount, null, inc.account_id ? accountMap[inc.account_id] : null, baseUrl, 'Amount')
+                    buildDesc(getAmountOn({ amount: inc.amount, amountChanges: inc.amount_changes }, dateStrToIso(dateStr)), null, inc.account_id ? accountMap[inc.account_id] : null, baseUrl, 'Amount')
                 ));
             }
         }
