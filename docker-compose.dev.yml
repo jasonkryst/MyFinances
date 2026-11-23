@@ -2,6 +2,12 @@
 # refresh without rebuilding the image.
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 # nginx's html root is /usr/share/nginx/html (see Dockerfile).
+# env-config.js is deliberately not mounted: nginx.conf aliases /env-config.js to
+# /tmp/env-config.js, which docker-entrypoint.d/40-ga-env-config.sh regenerates on every
+# container start, so the committed placeholder would never be served here anyway.
+# Verified live (7.29.x, Docker Desktop on Windows): the bind mounts work, an edited file is
+# served on the next request. The service worker serves precached assets cache-first, so
+# bump CACHE_NAME in sw.js (or unregister the worker) to see an edited asset in the browser.
 services:
   myfinances:
     volumes:
