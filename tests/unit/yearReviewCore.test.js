@@ -280,3 +280,117 @@ describe('reconciliationAdjustments', () => {
         expect(out).toMatchObject({ key: 'yearReview.i.reconAdjust', plural: true, vars: { count: 2, amount: { $: 19.5 } } });
     });
 });
+
+// ─── Task 3: planned rules ──────────────────────────────────────────────────
+
+const tx = (type, amount, category, extra = {}) => ({ type, amount, category, name: 'x', ...extra });
+const months12 = (fn) => Array.from({ length: 12 }, (_, m) => fn(m));
+const OLD_FLOOR = '2023-05-01';   // allows comparing 2025 with 2024
+const LATE_FLOOR = '2024-06-01';  // does not
+
+describe('subscriptionsTotal', () => {
+    const monthsTx = months12(() => [tx('recurring', -20, 'Subscriptions'), tx('recurring', -500, 'Transfer', { isTransferLeg: true }), tx('recurring', 50, 'Income')]);
+    const priorMonthsTx = months12(() => [tx('recurring', -200 / 12, 'Subscriptions')]);
+    test('sums recurring outflows, skipping transfer legs and inflows', () => {
+        expect(run('subscriptionsTotal', input({ monthsTx, floorIso: LATE_FLOOR }))).toMatchObject({ kind: 'planned', key: 'yearReview.i.subscriptions', vars: { amount: { $: 240 } } });
+    });
+    test('compares with last year when the data floor allows', () => {
+        expect(run('subscriptionsTotal', input({ monthsTx, priorMonthsTx, floorIso: OLD_FLOOR }))).toMatchObject({ key: 'yearReview.i.subscriptionsUp', vars: { amount: { $: 240 }, pct: { pct: 20 } } });
+    });
+    test('no comparison when data starts after the prior period begins', () => {
+        expect(run('subscriptionsTotal', input({ monthsTx, priorMonthsTx, floorIso: LATE_FLOOR })).key).toBe('yearReview.i.subscriptions');
+    });
+    test('a fall is reported as down', () => {
+        const prior = months12(() => [tx('recurring', -30, 'Subscriptions')]);
+        expect(run('subscriptionsTotal', input({ monthsTx, priorMonthsTx: prior, floorIso: OLD_FLOOR })).key).toBe('yearReview.i.subscriptionsDown');
+    });
+    test('none gives nothing', () => {
+        expect(run('subscriptionsTotal', input())).toBeNull();
+    });
+});
+
+describe('topCategory', () => {
+    test('largest spending category and its share', () => {
+        const monthsTx = months12(m => m === 0 ? [tx('expense', -600, 'Housing'), tx('bill', -300, 'Food'), tx('manual', -100, null), tx('debt', -5000, 'Debt'), tx('savings', -900, 'Savings')] : []);
+        expect(run('topCategory', input({ monthsTx }))).toMatchObject({ key: 'yearReview.i.topCategory', vars: { category: { cat: 'Housing' }, pct: { pct: 60 } } });
+    });
+    test('no spending gives nothing', () => {
+        expect(run('topCategory', input({ monthsTx: months12(() => [tx('income', 100, 'Income')]) }))).toBeNull();
+    });
+});
+
+describe('biggestCategoryChange', () => {
+    const one = (amt) => months12(m => m === 0 ? [tx('expense', -amt, 'Food')] : []);
+    test('a rise of at least 10% and $100 is reported', () => {
+        expect(run('biggestCategoryChange', input({ monthsTx: one(1100), priorMonthsTx: one(1000), floorIso: OLD_FLOOR })))
+            .toMatchObject({ key: 'yearReview.i.categoryRise', vars: { category: { cat: 'Food' }, amount: { $: 100 }, pct: { pct: 10 } } });
+    });
+    test('9.9% is not enough', () => {
+        expect(run('biggestCategoryChange', input({ monthsTx: one(1099), priorMonthsTx: one(1000), floorIso: OLD_FLOOR }))).toBeNull();
+    });
+    test('$99 is not enough, however large the percentage', () => {
+        expect(run('biggestCategoryChange', input({ monthsTx: one(199), priorMonthsTx: one(100), floorIso: OLD_FLOOR }))).toBeNull();
+    });
+    test('needs the data floor', () => {
+        expect(run('biggestCategoryChange', input({ monthsTx: one(2000), priorMonthsTx: one(1000), floorIso: LATE_FLOOR }))).toBeNull();
+    });
+    test('a category new this year has no percentage and is skipped', () => {
+        expect(run('biggestCategoryChange', input({ monthsTx: one(2000), priorMonthsTx: months12(() => []), floorIso: OLD_FLOOR }))).toBeNull();
+    });
+    test('picks the largest qualifying increase', () => {
+        const cur = months12(m => m === 0 ? [tx('expense', -1200, 'Food'), tx('expense', -3000, 'Travel')] : []);
+        const pri = months12(m => m === 0 ? [tx('expense', -1000, 'Food'), tx('expense', -2000, 'Travel')] : []);
+        expect(run('biggestCategoryChange', input({ monthsTx: cur, priorMonthsTx: pri, floorIso: OLD_FLOOR })).vars.category).toEqual({ cat: 'Travel' });
+    });
+});
+
+describe('bestAndWorstMonth', () => {
+    const three = [
+        [tx('income', 1000, 'Income'), tx('expense', -500, 'Food')],
+        [tx('income', 400, 'Income'), tx('bill', -500, 'Utilities')],
+        [tx('income', 1000, 'Income'), tx('debt', -100, 'Debt')]
+    ];
+    test('a past year names the best and worst month by net', () => {
+        const monthsTx = months12(m => three[m] || []);
+        expect(run('bestAndWorstMonth', input({ monthsTx }))).toMatchObject({ key: 'yearReview.i.bestWorst', vars: { best: { m: '2025-03' }, bestNet: { $: 900 }, worst: { m: '2025-02' }, worstNet: { $: -100 } } });
+    });
+    test('the current partial month is left out', () => {
+        const period = buildPeriod(2026, '2026-03-10');
+        const out = run('bestAndWorstMonth', input({ period, monthsTx: three, priorMonthsTx: [[], [], []] }));
+        expect(out.vars.best).toEqual({ m: '2026-01' });
+        expect(out.vars.worst).toEqual({ m: '2026-02' });
+    });
+    test('January of the current year has too few months', () => {
+        const period = buildPeriod(2026, '2026-01-20');
+        expect(run('bestAndWorstMonth', input({ period, monthsTx: [three[0]], priorMonthsTx: [[]] }))).toBeNull();
+    });
+});
+
+describe('debtShareOfIncome', () => {
+    test('debt payments as a share of income', () => {
+        const monthsTx = months12(() => [tx('income', 1000, 'Income'), tx('debt', -250, 'Debt')]);
+        expect(run('debtShareOfIncome', input({ monthsTx }))).toMatchObject({ key: 'yearReview.i.debtShare', vars: { pct: { pct: 25 } } });
+    });
+    test('no income or no debt gives nothing', () => {
+        expect(run('debtShareOfIncome', input({ monthsTx: months12(() => [tx('debt', -250, 'Debt')]) }))).toBeNull();
+        expect(run('debtShareOfIncome', input({ monthsTx: months12(() => [tx('income', 100, 'Income')]) }))).toBeNull();
+    });
+});
+
+describe('incomeChange', () => {
+    const cur = months12(() => [tx('income', 900, 'Income'), tx('bonus', 100, 'Bonus'), tx('recurring', 0, 'Income')]);
+    test('total income', () => {
+        expect(run('incomeChange', input({ monthsTx: cur }))).toMatchObject({ key: 'yearReview.i.income', vars: { amount: { $: 12000 } } });
+    });
+    test('up and down against last year', () => {
+        expect(run('incomeChange', input({ monthsTx: cur, priorMonthsTx: months12(() => [tx('income', 10000 / 12, 'Income')]), floorIso: OLD_FLOOR })))
+            .toMatchObject({ key: 'yearReview.i.incomeUp', vars: { pct: { pct: 20 } } });
+        expect(run('incomeChange', input({ monthsTx: cur, priorMonthsTx: months12(() => [tx('income', 1500, 'Income')]), floorIso: OLD_FLOOR })).key)
+            .toBe('yearReview.i.incomeDown');
+    });
+    test('planned insights sort after actual ones', () => {
+        const all = computeYearInsights(input({ monthsTx: cur, netWorthPoints: [{ monthKey: '2025-01', netWorth: 1, kind: 'snapshot' }, { monthKey: '2025-05', netWorth: 2, kind: 'snapshot' }] }));
+        expect(all[0].kind).toBe('actual');
+        expect(all[all.length - 1].kind).toBe('planned');
+    });
+});

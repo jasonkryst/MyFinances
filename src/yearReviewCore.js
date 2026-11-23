@@ -256,11 +256,142 @@ export function reconciliationAdjustments(input) {
         { count: adj.length, amount: { $: amount } }, { plural: true });
 }
 
+// ─── From your plan (planned) ───────────────────────────────────────────────
+
+// Classifies a Ledger transaction like computeReportsSummaryMetrics: own-account
+// transfers are neither; `spending` is the outflow that has a category (not
+// debt payments or savings contributions).
+function _flow(tx) {
+    if (!tx || tx.isTransferLeg || tx.type === 'transfer') return null;
+    const amount = Number(tx.amount) || 0;
+    switch (tx.type) {
+        case 'income': case 'bonus': case 'interest':
+            return { income: amount, outflow: 0, spending: 0 };
+        case 'manual': case 'recurring':
+            return amount >= 0 ? { income: amount, outflow: 0, spending: 0 } : { income: 0, outflow: -amount, spending: -amount };
+        case 'bill': case 'expense':
+            return { income: 0, outflow: Math.abs(amount), spending: Math.abs(amount) };
+        case 'debt': case 'savings':
+            return { income: 0, outflow: Math.abs(amount), spending: 0 };
+        default:
+            return null;
+    }
+}
+
+function _sum(monthsTx, pick) {
+    let total = 0;
+    for (const txs of (monthsTx || [])) for (const t of (txs || [])) total += pick(t) || 0;
+    return total;
+}
+
+function _canCompare(input) {
+    return !!input.floorIso && input.floorIso <= input.priorPeriod.startIso;
+}
+
+const _pct = (a, b) => Math.round(((a - b) / b) * 100);
+
+function _subscriptions(t) {
+    return t && t.type === 'recurring' && !t.isTransferLeg && Number(t.amount) < 0 ? -Number(t.amount) : 0;
+}
+
+function _incomeOf(t) {
+    return _flow(t)?.income || 0;
+}
+
+function _byCategory(monthsTx) {
+    const map = new Map();
+    for (const txs of (monthsTx || [])) {
+        for (const t of (txs || [])) {
+            const f = _flow(t);
+            if (!f || !f.spending) continue;
+            const cat = t.category || 'Other';
+            map.set(cat, (map.get(cat) || 0) + f.spending);
+        }
+    }
+    return map;
+}
+
+export function subscriptionsTotal(input) {
+    const total = round2(_sum(input.monthsTx, _subscriptions));
+    if (total <= 0) return null;
+    const prior = _sum(input.priorMonthsTx, _subscriptions);
+    if (_canCompare(input) && prior > 0 && Math.round(prior * 100) !== Math.round(total * 100)) {
+        return _insight('subscriptionsTotal', 'planned', 40,
+            total > prior ? 'yearReview.i.subscriptionsUp' : 'yearReview.i.subscriptionsDown',
+            { amount: { $: total }, pct: { pct: Math.abs(_pct(total, prior)) } });
+    }
+    return _insight('subscriptionsTotal', 'planned', 40, 'yearReview.i.subscriptions', { amount: { $: total } });
+}
+
+export function topCategory(input) {
+    const cats = [..._byCategory(input.monthsTx).entries()].sort((a, b) => b[1] - a[1]);
+    const total = cats.reduce((s, [, v]) => s + v, 0);
+    if (!cats.length || total <= 0) return null;
+    return _insight('topCategory', 'planned', 35, 'yearReview.i.topCategory',
+        { category: { cat: cats[0][0] }, pct: { pct: Math.round((cats[0][1] / total) * 100) } });
+}
+
+export function biggestCategoryChange(input) {
+    if (!_canCompare(input)) return null;
+    const cur = _byCategory(input.monthsTx);
+    const prior = _byCategory(input.priorMonthsTx);
+    let best = null;
+    for (const [cat, amount] of cur) {
+        const before = prior.get(cat) || 0;
+        if (before <= 0) continue;
+        const increase = amount - before;
+        const pct = (increase / before) * 100;
+        if (pct < CATEGORY_RISE_MIN_PCT || increase < CATEGORY_RISE_MIN_AMOUNT) continue;
+        if (!best || increase > best.increase) best = { cat, increase, pct };
+    }
+    if (!best) return null;
+    return _insight('biggestCategoryChange', 'planned', 30, 'yearReview.i.categoryRise',
+        { category: { cat: best.cat }, amount: { $: round2(best.increase) }, pct: { pct: Math.round(best.pct) } });
+}
+
+export function bestAndWorstMonth(input) {
+    const { period } = input;
+    const months = period.isYtd ? period.months.slice(0, -1) : period.months;
+    if (months.length < 2) return null;
+    const nets = months.map((m, i) => ({
+        m,
+        net: round2(_sum([input.monthsTx[i]], t => { const f = _flow(t); return f ? f.income - f.outflow : 0; }))
+    }));
+    const best = nets.reduce((a, b) => (b.net > a.net ? b : a));
+    const worst = nets.reduce((a, b) => (b.net < a.net ? b : a));
+    if (best.net === worst.net) return null; // no activity, or every month alike
+    const key = m => `${period.year}-${pad(m + 1)}`;
+    return _insight('bestAndWorstMonth', 'planned', 25, 'yearReview.i.bestWorst',
+        { best: { m: key(best.m) }, bestNet: { $: best.net }, worst: { m: key(worst.m) }, worstNet: { $: worst.net } });
+}
+
+export function debtShareOfIncome(input) {
+    const income = _sum(input.monthsTx, _incomeOf);
+    const debt = _sum(input.monthsTx, t => (t && t.type === 'debt' && !t.isTransferLeg ? Math.abs(Number(t.amount) || 0) : 0));
+    if (income <= 0 || debt <= 0) return null;
+    return _insight('debtShareOfIncome', 'planned', 20, 'yearReview.i.debtShare',
+        { pct: { pct: Math.round((debt / income) * 100) } });
+}
+
+export function incomeChange(input) {
+    const total = round2(_sum(input.monthsTx, _incomeOf));
+    if (total <= 0) return null;
+    const prior = _sum(input.priorMonthsTx, _incomeOf);
+    if (_canCompare(input) && prior > 0 && Math.round(prior * 100) !== Math.round(total * 100)) {
+        return _insight('incomeChange', 'planned', 15,
+            total > prior ? 'yearReview.i.incomeUp' : 'yearReview.i.incomeDown',
+            { amount: { $: total }, pct: { pct: Math.abs(_pct(total, prior)) } });
+    }
+    return _insight('incomeChange', 'planned', 15, 'yearReview.i.income', { amount: { $: total } });
+}
+
 // ─── Runner ─────────────────────────────────────────────────────────────────
 
 export const RULES = [
     netWorthChange, debtPaidDown, debtCleared, interestEstimate,
-    amountChanges, actualsVsPlan, goalsReached, reconciliationAdjustments
+    amountChanges, actualsVsPlan, goalsReached, reconciliationAdjustments,
+    subscriptionsTotal, topCategory, biggestCategoryChange, bestAndWorstMonth,
+    debtShareOfIncome, incomeChange
 ];
 
 export function computeYearInsights(input, rules = RULES) {
