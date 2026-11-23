@@ -40,10 +40,10 @@ def test_create_debt(app_page, debt_data):
     
     # Submit
     page.click('#debtFormSubmit')
-    page.wait_for_selector(f'text={debt_data["name"]}', timeout=10000)
+    page.wait_for_selector(f'#debtsList >> text={debt_data["name"]}', timeout=10000)
     
     # Verify debt appears in list
-    assert page.query_selector(f'text={debt_data["name"]}'), "Debt not created"
+    assert page.query_selector(f'#debtsList >> text={debt_data["name"]}'), "Debt not created"
 
 
 @pytest.mark.feature
@@ -113,7 +113,7 @@ def test_debt_interest_calculation(app_page):
     
     # Verify debt is shown
     page.wait_for_selector('#debtsList >> text=Interest Calc Debt', timeout=10000)
-    assert page.query_selector('text=Interest Calc Debt'), "Debt not created"
+    assert page.query_selector('#debtsList >> text=Interest Calc Debt'), "Debt not created"
 
 
 @pytest.mark.feature
@@ -337,7 +337,7 @@ def test_add_fixed_amount_debt_negative_amount_rejected(app_page):
         "A rejected negative fixed-amount debt must not reach app.debts"
     )
     assert page.locator('#debtFormBody:not([hidden])').count() == 1, "The form should stay open after a rejected submit"
-    assert page.query_selector('text=Negative Fixed Debt') is None, (
+    assert page.query_selector('#debtsList >> text=Negative Fixed Debt') is None, (
         "A negative fixed-amount debt payment should be rejected, not silently saved as $0.01"
     )
 
@@ -382,8 +382,8 @@ def test_debt_interest_filter_shows_only_interest_bearing(app_page):
 
     page.select_option('#debtInterestFilter', 'interestBearing')
 
-    assert page.query_selector('text=Interest Bearing Card') is not None
-    assert page.query_selector('text=No Interest Card') is None
+    assert page.query_selector('#debtsList >> text=Interest Bearing Card') is not None
+    assert page.query_selector('#debtsList >> text=No Interest Card') is None
 
 
 @pytest.mark.feature
@@ -394,8 +394,8 @@ def test_debt_interest_filter_shows_only_no_interest(app_page):
 
     page.select_option('#debtInterestFilter', 'noInterest')
 
-    assert page.query_selector('text=No Interest Card') is not None
-    assert page.query_selector('text=Interest Bearing Card') is None
+    assert page.query_selector('#debtsList >> text=No Interest Card') is not None
+    assert page.query_selector('#debtsList >> text=Interest Bearing Card') is None
 
 
 @pytest.mark.feature
@@ -407,8 +407,8 @@ def test_debt_interest_filter_any_shows_both(app_page):
     page.select_option('#debtInterestFilter', 'interestBearing')
     page.select_option('#debtInterestFilter', '')
 
-    assert page.query_selector('text=No Interest Card') is not None
-    assert page.query_selector('text=Interest Bearing Card') is not None
+    assert page.query_selector('#debtsList >> text=No Interest Card') is not None
+    assert page.query_selector('#debtsList >> text=Interest Bearing Card') is not None
 
 
 # ---------------------------------------------------------------------------
@@ -488,7 +488,7 @@ def test_celebrate_modal_keep_active_keeps_debt_visible(app_page):
     page.click('#dpoKeepBtn')
     page.wait_for_selector('#debtPaidOffTitle', state='hidden', timeout=5000)
 
-    assert page.query_selector('text=Paid Off Card') is not None
+    assert page.query_selector('#debtsList >> text=Paid Off Card') is not None
 
 
 @pytest.mark.feature
@@ -504,7 +504,7 @@ def test_celebrate_modal_archive_confirm_cancel_keeps_debt_visible(app_page):
     page.click('#archiveConfirmCancelBtn')
     page.wait_for_selector('#archiveConfirmModal', state='hidden', timeout=5000)
 
-    assert page.query_selector('text=Paid Off Card') is not None
+    assert page.query_selector('#debtsList >> text=Paid Off Card') is not None
 
 
 @pytest.mark.feature
@@ -537,7 +537,7 @@ def test_archived_debts_hidden_by_default(app_page):
         window.app.updateUI();
     }""")
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
-    assert page.query_selector('text=Already Archived') is None
+    assert page.query_selector('#debtsList >> text=Already Archived') is None
 
 
 @pytest.mark.feature
@@ -572,7 +572,7 @@ def test_show_archived_debts_setting_reveals_card(app_page):
         window.app.updateUI();
     }""")
     page.wait_for_selector('#liabilitiesSection.active', timeout=5000)
-    assert page.query_selector('text=Hidden Archived') is None
+    assert page.query_selector('#debtsList >> text=Hidden Archived') is None
 
     open_settings(page)
     page.evaluate("() => window.app.openSettings({ page: 'advanced' })")  # #322: archived-debts toggle now lives on the Advanced tab
@@ -580,7 +580,7 @@ def test_show_archived_debts_setting_reveals_card(app_page):
     close_settings(page)
 
     page.wait_for_selector('[data-debt-action="unarchive"]', timeout=5000)
-    assert page.query_selector('text=Hidden Archived') is not None
+    assert page.query_selector('#debtsList >> text=Hidden Archived') is not None
 
 
 @pytest.mark.feature
@@ -720,7 +720,7 @@ def test_credit_limit_saves_via_form(app_page):
     page.fill('#dueDate', '10')
     page.fill('#creditLimit', '1000')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('text=Limit Test Card', timeout=10000)
+    page.wait_for_selector('#debtsList >> text=Limit Test Card', timeout=10000)
 
     saved_limit = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'Limit Test Card')?.creditLimit"
@@ -912,7 +912,7 @@ def test_credit_limit_not_required_for_debt_save(app_page):
     page.fill('#dueDate', '20')
     # intentionally leave #creditLimit blank
     page.click('#debtFormSubmit')
-    page.wait_for_selector('text=No Limit Debt', timeout=10000)
+    page.wait_for_selector('#debtsList >> text=No Limit Debt', timeout=10000)
 
     saved_limit = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'No Limit Debt')?.creditLimit"
@@ -943,7 +943,7 @@ def test_debt_notes_saved_and_displayed(app_page):
     page.fill('#debtNotes', 'Transfer this to 0% card ASAP')
     page.click('#debtFormSubmit')
 
-    page.wait_for_selector('text=Notes Test Debt', timeout=10000)
+    page.wait_for_selector('#debtsList >> text=Notes Test Debt', timeout=10000)
     card_text = page.inner_text('#debtsList')
     assert 'Transfer this to 0% card ASAP' in card_text, \
         "Debt notes should be visible on the debt card"
@@ -1000,7 +1000,7 @@ def test_next_payment_due_saved_on_add(app_page):
     page.fill('#dueDate', '15')
     page.fill('#debtNextPaymentDue', '2026-11-15')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('text=NPD Add Test', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=NPD Add Test', timeout=5000)
 
     saved = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'NPD Add Test')?.nextPaymentDue"
@@ -1023,7 +1023,7 @@ def test_next_payment_due_displayed_on_debt_card(app_page):
     page.fill('#dueDate', '10')
     page.fill('#debtNextPaymentDue', '2026-12-01')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('text=NPD Display Test', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=NPD Display Test', timeout=5000)
 
     section = page.query_selector('#debtsList')
     text = section.text_content()
@@ -1048,7 +1048,7 @@ def test_next_payment_due_optional_empty_is_null(app_page):
     page.fill('#dueDate', '5')
     # leave #debtNextPaymentDue empty
     page.click('#debtFormSubmit')
-    page.wait_for_selector('text=NPD Empty Test', timeout=5000)
+    page.wait_for_selector('#debtsList >> text=NPD Empty Test', timeout=5000)
 
     saved = page.evaluate(
         "() => window.app.debts.find(d => d.name === 'NPD Empty Test')?.nextPaymentDue"
@@ -1136,7 +1136,7 @@ def test_debt_group_by_none_is_default_flat_list(app_page):
 
     assert page.query_selector('.debt-group-header') is None, \
         "No group headers should render when Group by is None"
-    assert page.query_selector('text=Alice Card') is not None
+    assert page.query_selector('#debtsList >> text=Alice Card') is not None
 
 
 @pytest.mark.feature
@@ -1223,7 +1223,7 @@ def test_debt_group_by_switch_back_to_none_restores_flat_list(app_page):
     page.select_option('#debtGroupBy', '')
     assert page.query_selector('.debt-group-header') is None, \
         "Group headers should be removed when switching back to None"
-    assert page.query_selector('text=Alice Card') is not None
+    assert page.query_selector('#debtsList >> text=Alice Card') is not None
 
 
 @pytest.mark.feature

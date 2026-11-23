@@ -42,10 +42,10 @@ def test_create_account(app_page, account_data):
     
     # Submit
     page.click('#accountFormSubmit')
-    page.wait_for_selector(f'text={account_data["name"]}', timeout=10000)
+    page.wait_for_selector(f'#accountList >> text={account_data["name"]}', timeout=10000)
     
     # Verify account appears in list
-    assert page.query_selector(f'text={account_data["name"]}'), "Account not created"
+    assert page.query_selector(f'#accountList >> text={account_data["name"]}'), "Account not created"
 
 
 @pytest.mark.feature
@@ -65,8 +65,8 @@ def test_account_types(app_page):
         page.click('#accountFormSubmit')
         
         # Verify account created (the card renders after the server round-trip)
-        page.wait_for_selector(f'text={account_type} Test', timeout=10000)
-        assert page.query_selector(f'text={account_type} Test'), \
+        page.wait_for_selector(f'#accountList >> text={account_type} Test', timeout=10000)
+        assert page.query_selector(f'#accountList >> text={account_type} Test'), \
             f"Could not create {account_type} account"
 
 
@@ -83,10 +83,10 @@ def test_account_balance_display(app_page):
     page.select_option('#accountType', label='Checking')
     page.fill('#accountStartingBalance', balance)
     page.click('#accountFormSubmit')
-    page.wait_for_selector('text=Balance Test', timeout=10000)
+    page.wait_for_selector('#accountList >> text=Balance Test', timeout=10000)
     
     # Find account and check balance display
-    account_card = page.query_selector('text=Balance Test')
+    account_card = page.query_selector('#accountList >> text=Balance Test')
     assert account_card, "Account not found"
     
     # Balance should be displayed somewhere in the card
@@ -139,11 +139,11 @@ def test_multiple_accounts(app_page):
         page.select_option('#accountType', label=name)
         page.fill('#accountStartingBalance', balance)
         page.click('#accountFormSubmit')
-        page.wait_for_selector(f'text={name} Test', timeout=10000)
+        page.wait_for_selector(f'#accountList >> text={name} Test', timeout=10000)
     
     # Verify all accounts are displayed
     for name, _ in accounts:
-        assert page.query_selector(f'text={name} Test'), f"{name} account not found"
+        assert page.query_selector(f'#accountList >> text={name} Test'), f"{name} account not found"
 
 
 @pytest.mark.feature
@@ -161,7 +161,7 @@ def test_account_form_submission(app_page):
     page.click('#accountFormSubmit')
     
     # Wait for account to appear
-    page.wait_for_selector('text=Form Test', timeout=10000)
+    page.wait_for_selector('#accountList >> text=Form Test', timeout=10000)
     assert_no_errors(page)
 
 
@@ -419,7 +419,7 @@ def test_delete_account_no_links_cancel_keeps_account(app_page):
     page.wait_for_selector('#deleteConfirmModal.flex-visible', timeout=5000)
     page.click('#deleteConfirmCancelBtn')
 
-    assert page.query_selector('text=Keep Me Account'), "Account should still exist after cancelling delete"
+    assert page.query_selector('#accountList >> text=Keep Me Account'), "Account should still exist after cancelling delete"
 
 
 @pytest.mark.feature
@@ -523,10 +523,10 @@ def test_delete_account_replacement_modal_cancel_keeps_account(app_page):
     assert _is_replacement_modal_open(page)
     page.click('#accountReplacementCancelBtn')
 
-    assert page.query_selector('text=Primary Account'), "Primary account should still exist after cancel"
+    assert page.query_selector('#accountList >> text=Primary Account'), "Primary account should still exist after cancel"
     page.click('button[data-page="income"]')
     page.wait_for_selector('#incomeSection.active', timeout=5000)
-    assert page.query_selector('text=Salary To Survive'), "Linked income should survive after cancel"
+    assert page.query_selector('#incomeList >> text=Salary To Survive'), "Linked income should survive after cancel"
     assert_no_errors(page)
 
 
@@ -586,7 +586,7 @@ def test_delete_account_with_linked_items_second_confirm_cancel_keeps_account(ap
 
     page.click('#deleteConfirmCancelBtn')
 
-    assert page.query_selector('text=Primary Account'), "Account should still exist after second confirm cancel"
+    assert page.query_selector('#accountList >> text=Primary Account'), "Account should still exist after second confirm cancel"
     assert_no_errors(page)
 
 

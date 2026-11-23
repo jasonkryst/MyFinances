@@ -143,7 +143,7 @@ def test_multiple_income_sources(app_page):
     
     # Verify all incomes appear
     for name, _, _, _ in incomes:
-        assert page.query_selector(f'text={name}'), f"{name} not found"
+        assert page.query_selector(f'#incomeList >> text={name}'), f"{name} not found"
 
 
 @pytest.mark.feature
@@ -169,7 +169,7 @@ def test_add_income_negative_amount_rejected(app_page):
     expect_alert_and_dismiss(page, 'Please enter a valid amount greater than 0.')
 
     wait_for_api(page, '/api/incomes', lambda rows: not any(r.get('name') == 'Negative Salary' for r in rows))
-    assert page.query_selector('text=Negative Salary') is None, (
+    assert page.query_selector('#incomeList >> text=Negative Salary') is None, (
         "A negative income amount should be rejected, not silently saved as $0.01"
     )
 
@@ -190,7 +190,7 @@ def test_add_bonus_negative_amount_rejected(app_page):
     expect_alert_and_dismiss(page, 'Please enter a valid amount greater than 0.')
 
     wait_for_api(page, '/api/bonuses', lambda rows: not any(r.get('name') == 'Negative Bonus' for r in rows))
-    assert page.query_selector('text=Negative Bonus') is None, (
+    assert page.query_selector('#bonusList >> text=Negative Bonus') is None, (
         "A negative bonus amount should be rejected, not silently saved as $0.01"
     )
 
@@ -212,7 +212,7 @@ def test_edit_income_negative_amount_rejected(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('text=Edit Salary Target', timeout=10000)
+    page.wait_for_selector('#incomeList >> text=Edit Salary Target', timeout=10000)
 
     page.click('[data-income-action="edit"]')
     page.wait_for_selector('[data-income-action="save"]', timeout=5000)
@@ -244,7 +244,7 @@ def test_edit_bonus_negative_amount_rejected(app_page):
     page.fill('#bonusDate', '2026-05-01')
     page.select_option('#bonusCategory', label='Bonus')
     page.click('#bonusForm button[type="submit"]')
-    page.wait_for_selector('text=Edit Bonus Target', timeout=10000)
+    page.wait_for_selector('#bonusList >> text=Edit Bonus Target', timeout=10000)
 
     page.click('[data-bonus-action="edit"]')
     page.wait_for_selector('[data-bonus-action="save"]', timeout=5000)
@@ -369,7 +369,7 @@ def _create_debt_for_advisor(page):
     page.fill('#minimumPayment', '100')
     page.fill('#dueDate', '15')
     page.click('#debtFormSubmit')
-    page.wait_for_selector('text=Advisor Test Debt', timeout=10000)
+    page.wait_for_selector('#debtsList >> text=Advisor Test Debt', timeout=10000)
 
 
 def _open_bonus_form(page):
@@ -391,7 +391,7 @@ def test_bonus_purpose_cash_flow_persists_and_shows_badge(app_page):
     page.select_option('#bonusCategory', label='Bonus')
     page.select_option('#bonusPurpose', 'cashFlow')
     page.click('#bonusForm button[type="submit"]')
-    page.wait_for_selector('text=Cash Flow Bonus', timeout=10000)
+    page.wait_for_selector('#bonusList >> text=Cash Flow Bonus', timeout=10000)
 
     purpose = page.evaluate(
         "() => window.app.bonuses.find(b => b.name === 'Cash Flow Bonus')?.purpose"
@@ -413,7 +413,7 @@ def test_bonus_purpose_savings_persists_and_shows_badge(app_page):
     page.select_option('#bonusCategory', label='Bonus')
     page.select_option('#bonusPurpose', 'savings')
     page.click('#bonusForm button[type="submit"]')
-    page.wait_for_selector('text=Savings Bonus', timeout=10000)
+    page.wait_for_selector('#bonusList >> text=Savings Bonus', timeout=10000)
 
     purpose = page.evaluate(
         "() => window.app.bonuses.find(b => b.name === 'Savings Bonus')?.purpose"
@@ -742,7 +742,7 @@ def test_income_frequency_weekly_selectable(app_page):
     page.select_option('#incomeAccount', index=1)
     _submit(page, '#incomeFormSubmit', 'incomes')
 
-    assert page.query_selector('text=Weekly Paycheck') is not None, \
+    assert page.query_selector('#incomeList >> text=Weekly Paycheck') is not None, \
         "Weekly income source not saved"
 
     # Frequency label should reflect weekly
@@ -764,7 +764,7 @@ def test_income_frequency_twice_monthly_selectable(app_page):
     page.select_option('#incomeAccount', index=1)
     _submit(page, '#incomeFormSubmit', 'incomes')
 
-    assert page.query_selector('text=Semi-Monthly Pay') is not None, \
+    assert page.query_selector('#incomeList >> text=Semi-Monthly Pay') is not None, \
         "Twice-monthly income source not saved"
 
     card_text = page.inner_text('#incomeList') if page.query_selector('#incomeList') else ''
@@ -957,7 +957,7 @@ def test_income_variable_flag_persists_through_add_and_edit(app_page):
         cb.check()
 
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('text=Hourly Gig', timeout=10000)
+    page.wait_for_selector('#incomeList >> text=Hourly Gig', timeout=10000)
 
     stored = page.evaluate(
         "() => window.app.incomes.find(i => i.name === 'Hourly Gig')?.isVariable"
@@ -1000,7 +1000,7 @@ def test_add_income_with_withholding_shows_net_amount_with_gross_tooltip(app_pag
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('text=Withheld Salary', timeout=10000)
+    page.wait_for_selector('#incomeList >> text=Withheld Salary', timeout=10000)
 
     card = page.query_selector('#incomeList .income-card:has-text("Withheld Salary")')
     assert card, "Expected the income card to render"
@@ -1026,7 +1026,7 @@ def test_income_without_withholding_shows_gross_amount_with_no_note(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('text=Plain Salary', timeout=10000)
+    page.wait_for_selector('#incomeList >> text=Plain Salary', timeout=10000)
 
     card = page.query_selector('#incomeList .income-card:has-text("Plain Salary")')
     amount_text = card.query_selector('.income-card-amount').text_content()
@@ -1051,7 +1051,7 @@ def test_income_withholding_persists_through_add_and_edit(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('text=Edit Withholding Salary', timeout=10000)
+    page.wait_for_selector('#incomeList >> text=Edit Withholding Salary', timeout=10000)
 
     stored = page.evaluate(
         "() => window.app.incomes.find(i => i.name === 'Edit Withholding Salary')?.withholdingPercent"
@@ -1090,7 +1090,7 @@ def test_add_income_withholding_out_of_range_rejected(app_page):
     expect_alert_and_dismiss(page, 'Please enter a tax withholding percent between 0 and 99.9.')
 
     wait_for_api(page, '/api/incomes', lambda rows: not any(r.get('name') == 'Bad Withholding Salary' for r in rows))
-    assert page.query_selector('text=Bad Withholding Salary') is None, (
+    assert page.query_selector('#incomeList >> text=Bad Withholding Salary') is None, (
         "An out-of-range withholding percent should be rejected, not silently saved"
     )
 
@@ -1108,7 +1108,7 @@ def test_income_withholding_export_import_round_trip(app_page):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('text=Roundtrip Salary', timeout=10000)
+    page.wait_for_selector('#incomeList >> text=Roundtrip Salary', timeout=10000)
 
     result = page.evaluate("""async () => {
         const app = window.app;
@@ -1158,7 +1158,7 @@ def _seed_income_for_trend(page, amount=3000):
     page.select_option('#incomeFrequency', 'monthly')
     page.select_option('#incomeAccount', index=1)
     page.click('#incomeFormSubmit')
-    page.wait_for_selector('text=Trend Salary', timeout=10000)
+    page.wait_for_selector('#incomeList >> text=Trend Salary', timeout=10000)
 
 
 @pytest.mark.feature
