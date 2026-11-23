@@ -22,6 +22,8 @@ import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getRecurringMonthPaidStatus, buildRecurringPaidBadge, reconcileRecurringPaidState } from './recurringPaid.js';
 import { isEffectivelyPaused, getRecurringOccurrencesInMonth } from './recurringOccurrences.js';
+import { paginateList, DEFAULT_PAGE_SIZE } from './pagination.js';
+import { renderPagerHtml, pagerDirectionFromEvent, afterPagerRender } from './paginationUi.js';
 import { getAmountOn, getCurrentAmount } from './amountSchedule.js';
 import { amountInputAttrs, renderAppliesFromRow, renderAmountChangeSummary, resolveAmountEdit } from './amountChangeUi.js';
 
@@ -185,6 +187,7 @@ function renderUpcomingThisMonthPanel(app) {
     if (overdueBtn) {
         overdueBtn.addEventListener('click', () => {
             app._recurringOverdueOnly = !app._recurringOverdueOnly;
+            app._recurringListPage = 1;
             renderRecurringPage(app);
         });
     }
@@ -336,7 +339,11 @@ export function renderRecurringPage(app) {
         });
     }
 
-    const cards = displayTemplates.map(t => {
+    // #330: only the current page's templates are rendered; filter and sort
+    // above already ran over the whole list.
+    const recurringPage = paginateList(displayTemplates, app._recurringListPage, DEFAULT_PAGE_SIZE);
+    app._recurringListPage = recurringPage.page;
+    const cards = recurringPage.items.map(t => {
         if (app.editingRecurringId === t.id) {
             return _buildEditCard(app, t);
         }
@@ -347,9 +354,20 @@ export function renderRecurringPage(app) {
         ? `<p class="recurring-archived-note">${escapeHtml(plural('recurring.archivedNote', archived.length))}</p>`
         : '';
 
-    container.innerHTML = cards + archivedNote;
+    container.innerHTML = cards + renderPagerHtml('recurring', recurringPage, 'pager.recurring') + archivedNote;
+    if (app._recurringPagerFocusDir && recurringPage.totalPages > 1) {
+        afterPagerRender(container, 'recurring', app._recurringPagerFocusDir);
+    }
+    app._recurringPagerFocusDir = null;
 
     container.onclick = async (event) => {
+        const pagerDir = pagerDirectionFromEvent(event, 'recurring');
+        if (pagerDir) {
+            app._recurringListPage = (app._recurringListPage || 1) + (pagerDir === 'next' ? 1 : -1);
+            app._recurringPagerFocusDir = pagerDir;
+            renderRecurringPage(app);
+            return;
+        }
         const actionEl = event.target.closest('[data-recurring-action]');
         if (!actionEl) return;
         const action = actionEl.getAttribute('data-recurring-action');

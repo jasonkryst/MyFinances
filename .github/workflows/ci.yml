@@ -377,6 +377,7 @@ jobs:
             tests/features/test_change_history.py \
             tests/features/test_reconciliation.py \
             tests/features/test_recurring_income.py \
+            tests/features/test_list_pagination.py \
             tests/features/test_retirement.py \
             tests/features/test_retirement_coast_fire.py \
             tests/features/test_savings_contribute.py \

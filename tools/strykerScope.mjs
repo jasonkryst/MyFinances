@@ -97,6 +97,8 @@ export const MUTATE_SCOPE = {
     'src/mergeDedupe.js': true,
     // #165: weekend due-date shift (shared by the browser and the server calendar feed).
     'src/weekendRule.js': true,
+    // #330: pure list pagination slice/clamp.
+    'src/pagination.js': true,
     // #578: optimistic-concurrency diff/conflict helpers.
     'src/recordVersions.js': true,
     // #575: refresh-on-focus / cross-tab refresh decisions.
