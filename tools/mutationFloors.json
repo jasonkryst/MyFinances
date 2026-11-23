@@ -13,7 +13,7 @@
     "src/notificationsCore.js": 89,
     "src/notificationsFilter.js": 87,
     "src/passwordPolicy.js": 82,
-    "src/planHistoryCompare.js": 80,
+    "src/planHistoryCompare.js": 84,
     "src/planSettingsPatch.js": 90,
     "src/projectionCache.js": 97,
     "src/projectionCore.js": 82,
