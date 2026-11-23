@@ -99,7 +99,7 @@ def test_lighthouserc_is_valid_json():
 DEFAULT_MIN_SCORE = 0.8
 # The signed-in app measured 0.75 in CI (LCP 6.5 s under simulated throttling:
 # the Health render waits for boot's data load). Raise this back to 0.8 once
-# the app's LCP is fixed (#703). Never lower it to make CI pass.
+# the app's LCP is fixed (#713). Never lower it to make CI pass.
 APP_PERFORMANCE_FLOOR = 0.7
 APP_URL_PATTERN = '^http://localhost:32900/$'
 
@@ -399,28 +399,8 @@ def test_transitive_modules_are_not_directly_imported_by_app_js(app_js):
 
 
 # ---------------------------------------------------------------------------
-# #703: boot fetches start early; es/pl load on demand
+# #703: es/pl load on demand
 # ---------------------------------------------------------------------------
-
-@pytest.mark.feature
-def test_early_boot_script_is_async_in_head_and_precached(index_html):
-    """src/earlyBoot.js starts the probe and data GETs while the module graph
-    downloads: it must be in <head>, async (never parser-blocking) and in the
-    service worker precache list."""
-    head = index_html[:index_html.find('</head>')]
-    tags = re.findall(r'<script\b[^>]*earlyBoot\.js[^>]*>', head)
-    assert len(tags) == 1, "earlyBoot.js script tag missing from <head>"
-    assert re.search(r'\sasync(\s|>|=)', tags[0]), "earlyBoot.js must be async"
-    with open(os.path.join(PROJECT_ROOT, 'sw.js'), 'r', encoding='utf-8') as f:
-        assert "'/src/earlyBoot.js'" in f.read()
-
-
-@pytest.mark.feature
-def test_early_boot_negative_check_rejects_blocking_tag():
-    """The async check must flag a plain (parser-blocking) script tag."""
-    tag = '<script src="src/earlyBoot.js"></script>'
-    assert re.search(r'\sasync(\s|>|=)', tag) is None
-
 
 @pytest.mark.feature
 def test_spanish_and_polish_dictionaries_are_not_modulepreloaded(index_html):

@@ -42,46 +42,10 @@ function _timeoutSignal(ms) {
 // discardBody moved to utils.js (#461); re-exported for existing importers.
 export { discardBody };
 
-// Results of src/earlyBoot.js (#703): the probe and boot GETs it started while
-// the module graph downloaded. Each is handed out once; after that, or when the
-// script never ran (tests, Node), the normal fetch path is used.
-function _earlyBoot() {
-    return typeof window !== 'undefined' && window.__earlyBoot ? window.__earlyBoot : null;
-}
-
-// Adapts an early { status, ok, text } result to the parts of Response that
-// probeServer uses. The body was already read by earlyBoot.js.
-function _asResponse(early) {
-    return {
-        status: early.status,
-        ok: early.ok,
-        json: async () => JSON.parse(early.text),
-        arrayBuffer: async () => new ArrayBuffer(0)
-    };
-}
-
-function _timeoutRace(promise, ms) {
-    let timer;
-    const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new DOMException('Request timed out', 'TimeoutError')), ms); });
-    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
-
-async function _probeFetch() {
-    const boot = _earlyBoot();
-    if (boot && boot.plan) {
-        const pending = boot.plan;
-        boot.plan = null;
-        return _asResponse(await _timeoutRace(pending, PROBE_TIMEOUT_MS));
-    }
-    // A later probe (Retry, re-probe after a 401) must not reuse stale early data.
-    if (boot) boot.data = null;
-    return fetch('/api/plan-settings', { cache: 'no-store', signal: _timeoutSignal(PROBE_TIMEOUT_MS) });
-}
-
 export async function probeServer() {
     const UNREACHABLE = { reachable: false };
     try {
-        const res = await _probeFetch();
+        const res = await fetch('/api/plan-settings', { cache: 'no-store', signal: _timeoutSignal(PROBE_TIMEOUT_MS) });
         if (res.status === 401) {
             await discardBody(res);
             return await _probeSetupStatus();
@@ -146,19 +110,6 @@ export class SessionExpiredError extends Error {
 // Fetch one API resource as JSON, throwing on any non-2xx (or timeout) so a
 // failed load reaches init()'s gates instead of assigning an error body as data.
 async function _getJson(path, signal) {
-    const boot = _earlyBoot();
-    const early = boot && boot.data ? boot.data[path] : null;
-    if (early) {
-        delete boot.data[path];
-        // A failed early request falls back to a normal one.
-        let r = null;
-        try { r = await early; } catch (_) { /* fetch normally below */ }
-        if (r) {
-            if (r.status === 401) throw new SessionExpiredError(path);
-            if (!r.ok) throw new Error(`GET ${path} failed: ${r.status}`);
-            return JSON.parse(r.text);
-        }
-    }
     const res = await fetch(path, { cache: 'no-store', signal });
     if (!res.ok) await discardBody(res);
     if (res.status === 401) throw new SessionExpiredError(path);

@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
     '/', '/index.html', '/styles.css', '/styles-csp-classes.css',
     '/guide.html', '/guide.css', '/manifest.json',
     '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/icons/favicon-32.png',
-    '/src/accounts.js', '/src/analytics.js', '/src/earlyBoot.js', '/src/app.js', '/src/bills.js', '/src/bonusAdvisor.js',
+    '/src/accounts.js', '/src/analytics.js', '/src/app.js', '/src/bills.js', '/src/bonusAdvisor.js',
     '/src/breakEven.js', '/src/categoryBudgets.js', '/src/charts.js', '/src/commandPalette.js', '/src/dataExport.js',
     '/src/dataTransferModal.js', '/src/debtBreakEven.js', '/src/debtCalculator.js', '/src/debtOwnership.js', '/src/debts.js',
     '/src/forecast.js', '/src/guideNav.js', '/src/guideTheme.js', '/src/health.js',

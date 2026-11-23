@@ -1331,8 +1331,8 @@ export class DebtTrackerApp {
 // Initialize the app when the DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // #703: only English is bundled; a stored es/pl dictionary loads first
-        // (earlyBoot.js already hinted it), so the first render is translated.
+        // #703: only English is bundled; a stored es/pl dictionary loads first,
+        // so the first render is translated.
         await ensureLocaleLoaded(getCurrentLocale());
         window.app = new DebtTrackerApp();
         await window.app.init();
