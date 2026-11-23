@@ -9,7 +9,8 @@ import {
     sanitizeDateISO,
     escapeHtml,
     PINNED_COLORS,
-    isRecurringInflow
+    isRecurringInflow,
+    dateToISO
 } from './utils.js';
 import { buildAccountOptionsHtml } from './accounts.js';
 import { applyWeekendRule, sanitizeWeekendRule, countEntriesMovedByWeekendRule } from './weekendRule.js';
@@ -21,6 +22,12 @@ import { getSetting, SHOW_ARCHIVED_RECURRING } from './settings.js';
 import { t as tr, plural, categoryLabel, accountTypeLabel, getIntlLocale } from './i18n.js';
 import { getRecurringMonthPaidStatus, buildRecurringPaidBadge, reconcileRecurringPaidState } from './recurringPaid.js';
 import { isEffectivelyPaused, getRecurringOccurrencesInMonth } from './recurringOccurrences.js';
+import { getAmountOn } from './amountSchedule.js';
+
+// #678: each occurrence at the amount in effect on its own date.
+function sumOccurrenceAmounts(tmpl, occurrences) {
+    return occurrences.reduce((s, d) => s + (Number(getAmountOn(tmpl, dateToISO(d))) || 0), 0);
+}
 
 const TYPES = ['subscription', 'income', 'reimbursement', 'transfer'];
 // Stored values stay English ('subscription', 'monthly', ...); labels are looked up at render time.
@@ -136,7 +143,7 @@ function renderUpcomingThisMonthPanel(app) {
         if (occurrences.length === 0) continue;
         const isPaid = Array.isArray(t.paidMonths) && t.paidMonths.includes(monthKey);
         totalCount += occurrences.length;
-        totalAmount += occurrences.length * (t.amount || 0);
+        totalAmount += sumOccurrenceAmounts(t, occurrences);
         if (isPaid) paidCount++;
         if (isOverdue(t, now)) overdueCount++;
     }
@@ -381,7 +388,7 @@ function _buildReadCard(app, t, year, month, monthKey) {
     const paused = isEffectivelyPaused(t, now);
 
     const occurrences = getRecurringOccurrencesInMonth(t, year, month);
-    const thisMonthTotal = occurrences.length * (t.amount || 0);
+    const thisMonthTotal = sumOccurrenceAmounts(t, occurrences);
     const isSkippedThisMonth = Array.isArray(t.skippedMonths) && t.skippedMonths.includes(monthKey);
     // #434: paid state comes from the Ledger (each occurrence's Cleared flag
     // and amount override), not from a separate copy on the template.
@@ -844,11 +851,11 @@ export function computeRecurringCashFlowForMonth(app, year, month) {
     let outflow = 0;
     for (const tmpl of (app?.recurringTemplates || [])) {
         if (tmpl.type === 'transfer') continue;
-        const count = getRecurringOccurrencesInMonth(tmpl, year, month).length;
-        if (!count) continue;
-        const amt = Math.abs(Number(tmpl.amount)) || 0;
-        if (isRecurringInflow(tmpl)) inflow += amt * count;
-        else outflow += amt * count;
+        const occurrences = getRecurringOccurrencesInMonth(tmpl, year, month);
+        if (!occurrences.length) continue;
+        const amt = Math.abs(sumOccurrenceAmounts(tmpl, occurrences));
+        if (isRecurringInflow(tmpl)) inflow += amt;
+        else outflow += amt;
     }
     return { inflow, outflow };
 }

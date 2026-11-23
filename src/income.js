@@ -3,6 +3,7 @@ import {
     formatCurrency,
     formatCurrencyAxis,
     countIncomePaydaysInMonth,
+    getIncomePaydaysInMonth,
     getNextIncomePayDates,
     computeMonthlyIncomeForMonth,
     computeMonthlyBonusesForMonth,
@@ -25,6 +26,11 @@ import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showAlertModal } from './ui.js';
 import { t, getIntlLocale } from './i18n.js';
+
+// #678: a month's net pay, each payday at the amount in effect on it.
+function netIncomeForMonth(inc, year, month) {
+    return getIncomePaydaysInMonth(inc, year, month).reduce((s, d) => s + computeNetIncomeAmount(inc, d), 0);
+}
 
 // Display labels for stored values (the stored English values never change).
 const INCOME_FREQ_KEYS = {
@@ -708,10 +714,10 @@ export function renderIncomeTrendChart(app) {
 
     // #251: net, consistent with the net figures shown everywhere else on this page.
     const regularTotals = months.map(({ year, month }) =>
-        app.incomes.reduce((sum, inc) => sum + computeNetIncomeAmount(inc) * countIncomePaydaysInMonth(inc, year, month), 0));
+        app.incomes.reduce((sum, inc) => sum + netIncomeForMonth(inc, year, month), 0));
     const bonusTotals = months.map(({ year, month }) => computeMonthlyBonusesForMonth(app.bonuses, year, month));
     const priorYearTotals = months.map(({ year, month }) =>
-        app.incomes.reduce((sum, inc) => sum + computeNetIncomeAmount(inc) * countIncomePaydaysInMonth(inc, year - 1, month), 0)
+        app.incomes.reduce((sum, inc) => sum + netIncomeForMonth(inc, year - 1, month), 0)
         + computeMonthlyBonusesForMonth(app.bonuses, year - 1, month));
 
     const { grid, label } = _incomeTrendChartColors();
