@@ -154,9 +154,10 @@ export function renderCalendarView(app, page = 0) {
             }
 
             for (const inc of incomes) {
-                gridHTML += `<div class="cal-income-event" title="💰 ${escapeHtml(inc.name)}: ${formatCurrency(inc.amount)}">
+                const incAmount = inc.amount; // amount-read-ok: payday event from getIncomeEventsByMonthForRange, already dated
+                gridHTML += `<div class="cal-income-event" title="💰 ${escapeHtml(inc.name)}: ${formatCurrency(incAmount)}">
                     <span class="cal-income-name">💰 ${escapeHtml(inc.name)}</span>
-                    <span class="cal-income-amount">${formatCurrency(inc.amount)}</span>
+                    <span class="cal-income-amount">${formatCurrency(incAmount)}</span>
                 </div>`;
             }
 

@@ -156,7 +156,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                     `${typeLabel} - ${row.name}`,
                     dateStr,
                     // #678: the amount in effect on this occurrence.
-                    buildDesc(getAmountOn({ amount: row.amount, amountChanges: row.amount_changes }, dateStrToIso(dateStr)), row.category, row.account_id ? accountMap[row.account_id] : null, baseUrl)
+                    buildDesc(getAmountOn({ amount: row.amount, amountChanges: row.amount_changes }, dateStrToIso(dateStr)), row.category, row.account_id ? accountMap[row.account_id] : null, baseUrl) // amount-read-ok: base amount passed to getAmountOn
                 ));
             }
         }
@@ -169,7 +169,7 @@ export async function generateIcsFromDbRows(userId, baseUrl) {
                     `income-${inc.id}-${dateStr}@myfinances`,
                     `Payday - ${inc.name}`,
                     dateStr,
-                    buildDesc(getAmountOn({ amount: inc.amount, amountChanges: inc.amount_changes }, dateStrToIso(dateStr)), null, inc.account_id ? accountMap[inc.account_id] : null, baseUrl, 'Amount')
+                    buildDesc(getAmountOn({ amount: inc.amount, amountChanges: inc.amount_changes }, dateStrToIso(dateStr)), null, inc.account_id ? accountMap[inc.account_id] : null, baseUrl, 'Amount') // amount-read-ok: base amount passed to getAmountOn
                 ));
             }
         }

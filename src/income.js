@@ -26,6 +26,7 @@ import { pgCreate, pgPatch, pgDelete } from './postgresSync.js';
 import { offerUndo, restoreDeletedRecord } from './undo.js';
 import { showAlertModal } from './ui.js';
 import { t, getIntlLocale } from './i18n.js';
+import { getCurrentAmount } from './amountSchedule.js';
 
 // #678: a month's net pay, each payday at the amount in effect on it.
 function netIncomeForMonth(inc, year, month) {
@@ -99,7 +100,7 @@ export function renderIncomeList(app) {
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editAmount')}</label>
-                                <input type="number" id="ie-amount-${inc.id}" value="${inc.amount}" min="0.01" step="0.01" class="form-control form-full-width">
+                                <input type="number" id="ie-amount-${inc.id}" value="${getCurrentAmount(inc, todayISO())}" min="0.01" step="0.01" class="form-control form-full-width">
                             </div>
                             <div class="form-group form-no-margin">
                                 <label class="label-compact">${t('income.editWithholding')}</label>
@@ -169,7 +170,7 @@ export function renderIncomeList(app) {
         const netAmount = computeNetIncomeAmount(inc);
         const hasWithholding = (inc.withholdingPercent || 0) > 0;
         const grossNote = hasWithholding
-            ? t('income.grossNote', { gross: formatCurrency(inc.amount), pct: inc.withholdingPercent })
+            ? t('income.grossNote', { gross: formatCurrency(getCurrentAmount(inc, todayISO())), pct: inc.withholdingPercent })
             : '';
         return `
             <div class="income-card" id="income-card-${inc.id}">
