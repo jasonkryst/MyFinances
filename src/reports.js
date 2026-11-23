@@ -52,7 +52,7 @@ const STATIC_REPORT_TAB_RENDERERS = {
     spending: [renderReportsSpending],
 };
 
-const LAZY_REPORT_TABS = new Set(['calendar', 'incomeexp', 'moneyflow', 'variance', 'summary']);
+const LAZY_REPORT_TABS = new Set(['calendar', 'incomeexp', 'moneyflow', 'variance', 'summary', 'yearreview']);
 
 async function getLazyReportRenderers(tab) {
     const mods = await loadReportsSubModules();
@@ -62,6 +62,7 @@ async function getLazyReportRenderers(tab) {
         case 'moneyflow': return [mods.sankey.renderMoneyFlowSankey, mods.cashFlow.renderReportsMoneyFlow, mods.cashFlow.renderReportsCashFlowTrend];
         case 'variance': return [mods.variance.renderReportsVariance];
         case 'summary': return [mods.summary.renderReportsSummary];
+        case 'yearreview': return [mods.yearReview.renderReportsYearReview];
         default: return [];
     }
 }
@@ -71,6 +72,8 @@ export async function renderReportsPage(app) {
 
     const activeBtn = document.querySelector('.rpt-tab-btn--active');
     const activeTab = activeBtn?.getAttribute('data-rptab') || 'calendar';
+    // #689: Year in review has its own year stepper; hide the month controls (Print stays).
+    document.querySelector('.rpt-month-nav')?.classList.toggle('rpt-month-nav--year', activeTab === 'yearreview');
 
     if (STATIC_REPORT_TAB_RENDERERS[activeTab]) {
         withProjectionCache(app, () => {

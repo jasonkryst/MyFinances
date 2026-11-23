@@ -1298,6 +1298,30 @@ TRANSLATED_PAGES = {
             await window.app.renderReportsPage();
 """),
     ),
+    # #689: with seeded data, add in memory one event per "What happened" rule
+    # (paid-off debt, amount change, differing payment, goal, reconciliation)
+    # so every sentence is scanned; with empty data the empty state is scanned.
+    'reports-yearreview': (
+        _REPORTS_ROOTS,
+        _reports_setup('yearreview', """
+            const app = window.app;
+            const y = new Date().getFullYear();
+            if ((app.debts || []).length) {
+                const debtId = app.debts[0].id;
+                app.balanceHistory = [...(app.balanceHistory || []),
+                    { id: 9901, debtId, accountId: null, date: `${y - 1}-12-01`, balance: 9000, minimumPayment: 0 },
+                    { id: 9902, debtId, accountId: null, date: `${y}-01-20`, balance: 0, minimumPayment: 0 }];
+                app.ledgerAmountOverrides = { ...(app.ledgerAmountOverrides || {}),
+                    [`recurring|1|7|${y}-01-05`]: { amount: -25, originalAmount: -15, date: `${y}-01-05` } };
+                if ((app.recurringTemplates || []).length) app.recurringTemplates[0].amountChanges = [{ from: `${y}-01-01`, amount: 99 }];
+                app.sinkingFunds = [...(app.sinkingFunds || []), { id: 9903, name: '⟦Trip⟧', monthlyAllocation: 0, targetAmount: 10,
+                    currentAmount: 10, accountId: 7, completedDate: `${y}-01-10` }];
+                app.reconciliations = [...(app.reconciliations || []), { id: 9904, accountId: 7, date: `${y}-01-31`, difference: 5 }];
+            }
+            app._yearReviewYear = y;
+            await app.renderReportsPage();
+"""),
+    ),
 }
 
 SCAN_JS = """

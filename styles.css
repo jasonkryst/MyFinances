@@ -9872,3 +9872,22 @@ body.dark-mode .change-history-op--create { color: #4ade80; }
 .amount-changes-list { list-style: none; margin: 4px 0 0; padding: 0; }
 .amount-changes-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 2px 0; }
 .amount-changes-badge { font-size: 0.75rem; padding: 1px 6px; border-radius: 8px; background: var(--bg-secondary, rgba(127, 127, 127, 0.15)); color: var(--text-color, inherit); }
+
+/* #689 year in review */
+.rpt-month-nav--year #rptPrevMonth,
+.rpt-month-nav--year #rptNextMonth,
+.rpt-month-nav--year #rptMonthLabel { display: none; }
+.yr-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.yr-year-label { margin: 0; font-size: 1.15rem; min-width: 0; overflow-wrap: anywhere; }
+.yr-headline { font-size: 1.1rem; font-weight: 600; margin: 0 0 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.yr-section { margin-bottom: 20px; min-width: 0; }
+.yr-section h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.yr-list { list-style: disc; margin: 0; padding-left: 1.25rem; }
+.yr-item { margin: 6px 0; overflow-wrap: anywhere; }
+.yr-item > span:first-child { margin-right: 6px; }
+.yr-tag { display: inline-block; font-size: 0.75rem; font-weight: 500; padding: 1px 8px; border-radius: 10px; background: var(--bg-secondary, rgba(127, 127, 127, 0.15)); color: var(--text-muted); border: 1px solid var(--border-color, rgba(127, 127, 127, 0.3)); }
+.yr-empty { padding: 24px 0; color: var(--text-muted); }
+.yr-empty p { margin: 0 0 6px; }
+@media print {
+    .yr-header button { display: none; }
+}
