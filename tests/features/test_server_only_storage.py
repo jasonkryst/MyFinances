@@ -9,6 +9,7 @@ import tempfile
 import pytest
 from playwright.sync_api import expect
 
+from tests.browser_storage_allowlist import WRITABLE_LOCAL_KEYS
 from tests.conftest import (
     BASE_URL, open_data_transfer, open_settings, reset_server_state, seed_state,
     switch_settings_tab, wait_for_api, wait_for_app_ready,
@@ -225,14 +226,10 @@ def test_no_session_shows_login_gate(app_page):
     assert page.is_hidden('#serverUnreachableGate')
 
 
-# Device-preference / transient-UI keys that may live in browser storage (spec section 3).
-# Collapsible open-state is held in memory by utils.js (no storage key), so there is no
-# prefix to match. Mirrors ALLOWED_KEYS in tests/security/test_no_browser_financial_storage.py.
-ALLOWED_LOCAL_KEYS = {
-    'debtTrackerTheme', 'debtTrackerLocale', 'debtTrackerCurrency',
-    'debtTrackerLastSeenVersion', 'debtTrackerLedgerFilters', 'ledgerHiddenColumns',
-    'debtTrackerReconInProgress',
-}
+# Device-preference / transient-UI keys that may live in browser storage (spec section 3): the
+# keys the app can write, from the one allowlist shared with the static scan
+# (tests/browser_storage_allowlist.py).
+ALLOWED_LOCAL_KEYS = WRITABLE_LOCAL_KEYS
 
 
 @pytest.mark.feature

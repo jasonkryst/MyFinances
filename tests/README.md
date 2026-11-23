@@ -73,15 +73,17 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 - `TEST_BASE_URL` — app URL, default `http://localhost:32900/`
 - `TEST_EMAIL` / `TEST_PASSWORD` — the stack's single user, defaults `testuser@example.com` / `ci-Test-Passphrase-2026!`; `POSTGRES_TEST_EMAIL` / `POSTGRES_TEST_PASSWORD` are fallbacks, and `tests/postgres/conftest.py` reads `POSTGRES_TEST_BASE_URL`
 
-**The user.** `stack_user` registers the user only when `/auth/setup-status` reports `needsSetup` (registration also needs `ALLOW_SETUP=true` on the server); otherwise it logs in and aborts the run loudly if that fails, changing nothing. On a fresh stack, create the default test user the way CI does (otherwise the run aborts):
+**The user.** `stack_user` logs in and aborts the run loudly if that fails, changing nothing. It registers the user only when you opt in with `TEST_ALLOW_REGISTER=1` **and** `/auth/setup-status` reports `needsSetup` (registration also needs `ALLOW_SETUP=true` on the server); on a fresh stack without the opt-in the run aborts with instructions, so a test run can never claim a new real deployment. Create the default test user the way CI does:
 
 ```bash
 printf '%s\n%s\n' testuser@example.com 'ci-Test-Passphrase-2026!' | docker compose run --rm -T server node scripts/create-user.js
 ```
 
-stdin is the email line, then the password line. Use other credentials by setting `TEST_EMAIL`/`TEST_PASSWORD` to match. The session cookies are cached in a temp file and shared across pytest processes.
+stdin is the email line, then the password line. Use other credentials by setting `TEST_EMAIL`/`TEST_PASSWORD` to match. The session cookies are cached in a temp file (written atomically, mode 0600) and shared across pytest processes; if the server answers 401 the harness skips that cache and logs in fresh.
 
-**⚠️ The suite wipes the server's data** before every test. Never point it at a stack holding real data, and never run two pytest processes against one stack (they share one user).
+**⚠️ The suite wipes the server's data** before every test. Never point it at a stack holding real data, and never run two pytest processes against one stack (they share one user). The harness enforces the second part: the first test that needs the stack's session takes an exclusive cross-process file lock (`myfinances-test-stack-<hash of the API root>.lock` in the system temp dir, see `tests/harness_support.py`); a second pytest against the same URL exits immediately (code 3) with a message naming the lock file. The lock is released when the process exits or dies. Pure tests (static scans, scanner unit tests) never take it. Set `TEST_SKIP_STACK_LOCK=1` to bypass it deliberately.
+
+**Browser-storage allowlist.** One module, `tests/browser_storage_allowlist.py`, feeds both the static scan (`tests/security/test_no_browser_financial_storage.py`, over `src/`, `sw.js` and `env-config.js`) and the runtime localStorage check. A new storage key is added there only.
 
 **Harness** (`tests/conftest.py`):
 - `app_page` — signed-in page; waits for `data-app-ready` and calls `reset_server_state` so every test starts on an empty server. Async twin: `async_app_page`.

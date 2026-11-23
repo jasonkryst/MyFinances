@@ -15,6 +15,8 @@ import pytest
 from playwright.sync_api import sync_playwright, Browser, Page
 from playwright.async_api import async_playwright
 
+from tests import harness_support
+
 # Configuration — override with TEST_BASE_URL env var when Docker occupies port 32900.
 BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:32900/")
 HEADLESS = True
@@ -188,22 +190,35 @@ def _read_session_cache():
 
 
 def _write_session_cache(cookies):
+    """Atomic (temp file + os.replace) and 0600, since it holds a live session (#475)."""
     try:
-        with open(_session_cache_path(), "w", encoding="utf-8") as f:
-            json.dump(cookies, f)
+        harness_support.write_json_atomic(_session_cache_path(), cookies)
     except OSError:
         pass
 
 
-def _login_or_register():
+def _acquire_stack_lock():
+    """One pytest process per stack (#558). Taken lazily, the first time a test needs the
+    stack's session, so pure tests (static scans, unit tests) never lock. Held until exit."""
+    try:
+        harness_support.acquire_stack_lock(_API_ROOT)
+    except harness_support.StackLockedError as e:
+        pytest.exit(f"Test harness: {e}", returncode=3)
+
+
+def _login_or_register(use_cache=True):
     """Sign in once and cache the cookies.
 
-    Registers only when the server reports `needsSetup: true` (an empty users
-    table). Any other state logs in with TEST_EMAIL/TEST_PASSWORD; if that fails
-    the whole session aborts and nothing is wiped, so a real deployment with
-    different credentials can never be reset by this harness.
+    Registers only with the explicit opt-in TEST_ALLOW_REGISTER=1 and only when the
+    server reports `needsSetup: true` (an empty users table); without the opt-in a fresh
+    stack aborts with instructions, so a real new deployment is never claimed by a test
+    run. Any other state logs in with TEST_EMAIL/TEST_PASSWORD; if that fails the whole
+    session aborts and nothing is wiped, so a real deployment with different credentials
+    can never be reset by this harness. `use_cache=False` (the 401 re-login path) skips
+    the cross-process cache, whose session is the stale one, and logs in fresh.
     """
-    cached = _read_session_cache()
+    _acquire_stack_lock()
+    cached = _read_session_cache() if use_cache else None
     if cached:
         _SESSION_COOKIES.clear()
         _SESSION_COOKIES.update(cached)
@@ -211,6 +226,8 @@ def _login_or_register():
     status, body, _ = _http_json("GET", "/auth/setup-status")
     creds = {"email": TEST_EMAIL, "password": TEST_PASSWORD}
     if status == 200 and isinstance(body, dict) and body.get("needsSetup") is True:
+        if not harness_support.registration_allowed():
+            pytest.exit(harness_support.needs_setup_message(_API_ROOT, TEST_EMAIL), returncode=2)
         status, body, headers = _http_json("POST", "/auth/register", creds)
         if status >= 300:
             pytest.exit(f"Test harness: POST /auth/register failed ({status}): {body}", returncode=2)
@@ -243,7 +260,7 @@ def _valid_session_cookies():
         _login_or_register()
     status, _, _ = _http_json("GET", "/api/plan-settings", cookies=_SESSION_COOKIES)
     if status == 401:
-        _login_or_register()
+        _login_or_register(use_cache=False)
     return [{"name": n, "value": v, "url": BASE_URL} for n, v in _SESSION_COOKIES.items()]
 
 
