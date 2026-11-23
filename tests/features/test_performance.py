@@ -98,8 +98,8 @@ def test_lighthouserc_is_valid_json():
 # category, and guide.html's performance, must stay at DEFAULT_MIN_SCORE.
 DEFAULT_MIN_SCORE = 0.8
 # The signed-in app measured 0.75 in CI (LCP 6.5 s under simulated throttling:
-# the Health render waits for boot's data load). Raise this back to 0.8 once
-# the app's LCP is fixed (#713). Never lower it to make CI pass.
+# about 100 module downloads gate the first Health paint, #703). Raise this
+# back to 0.8 once fewer modules load before first paint (#713). Never lower it to make CI pass.
 APP_PERFORMANCE_FLOOR = 0.7
 APP_URL_PATTERN = '^http://localhost:32900/$'
 

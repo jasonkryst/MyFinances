@@ -4,6 +4,15 @@ All notable changes to MyFinances are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Detailed specs and implementation notes live in [`docs/superpowers/`](docs/superpowers/).
 
+## [7.32.1] — 2026-11-23
+
+### Changed
+- **Spanish and Polish load on demand (#703).** Only the English dictionary is bundled and preloaded. A stored `es`/`pl` preference loads its dictionary before the app starts, so the first render is translated. The other dictionaries load in idle time after the landing page renders (`preloadAllLocales`). Switching language before that loads it first (`setLocale` returns a promise only then), and a failed load falls back to English. An English boot saves 77 KB gzipped; Lighthouse LCP improved about 0.5 s locally.
+- **What gates the app's Lighthouse score.** About 100 module requests (742 KB gzipped) load before the first Health paint, queued over HTTP/1.1's 6 connections on simulated slow 4G. Starting the data requests early, removing Chart.js and preloading every module were measured and did not help (preloading hurt). The performance floor stays 0.7; reducing the modules on the first-paint path is #713.
+
+### Tests
+- `test_performance.py`: `es.js`/`pl.js` are not modulepreloaded, an English boot fetches neither before the idle preload, a Spanish boot renders translated, and switching to Polish before the preload still applies.
+
 ## [7.32.0] — 2026-11-23
 
 ### Added
