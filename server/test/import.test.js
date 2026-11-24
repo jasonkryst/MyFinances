@@ -139,6 +139,49 @@ test('replace: one request imports a backup and every route then returns the rem
     assert.equal(plan.retirementTargetDate, '2050-01-01');
 });
 
+// #688 x #529: split manual transactions travel through the bulk import.
+test('replace: a split manual transaction keeps its splits (jsonb) through the import', async () => {
+    const data = sampleBackup();
+    data.manualTransactions.push({
+        id: 2, name: 'Store run', amount: -60, date: '2026-08-04', category: 'Groceries', accountId: 1,
+        splits: [{ category: 'Groceries', amount: -40.1, memo: 'food' }, { category: 'Gifts', amount: -19.9 }],
+    });
+    const res = await postImport({ mode: 'replace', data });
+    assert.equal(res.status, 200);
+    assert.deepEqual((await res.json()).warnings, []);
+    const store = (await get('/api/manual-transactions')).find(t => t.name === 'Store run');
+    assert.ok(store, 'split transaction imported');
+    assert.deepEqual(store.splits.map(s => [s.category, s.amount]), [['Groceries', -40.1], ['Gifts', -19.9]]);
+    assert.equal(store.splits[0].memo, 'food');
+});
+
+test('replace: an unbalanced split is dropped with a warning, the rest of the backup imports', async () => {
+    const data = sampleBackup();
+    data.manualTransactions.push({
+        id: 2, name: 'Bad split', amount: -60, date: '2026-08-04', category: 'Groceries', accountId: 1,
+        splits: [{ category: 'Groceries', amount: -40 }, { category: 'Gifts', amount: -19.99 }],
+    });
+    const res = await postImport({ mode: 'replace', data });
+    assert.equal(res.status, 200);
+    const { warnings } = await res.json();
+    assert.ok(warnings.length >= 1, 'the dropped record is reported');
+    const names = (await get('/api/manual-transactions')).map(t => t.name);
+    assert.deepEqual(names, ['Coffee']);
+    assert.equal((await get('/api/accounts')).length, 2);
+});
+
+test('merge: a split manual transaction keeps its splits', async () => {
+    const data = sampleBackup();
+    data.manualTransactions = [{
+        id: 7, name: 'Deposit', amount: 100, date: '2026-08-05', category: 'Salary', accountId: 1,
+        splits: [{ category: 'Salary', amount: 70 }, { category: 'Gift', amount: 30 }],
+    }];
+    const res = await postImport({ mode: 'merge', data });
+    assert.equal(res.status, 200);
+    const [deposit] = await get('/api/manual-transactions');
+    assert.deepEqual(deposit.splits.map(s => s.amount), [70, 30]);
+});
+
 test('replace: existing data, milestones, notifications and plan settings are replaced, the change log is kept', async () => {
     await seedExisting();
     await pool.query(`UPDATE plan_settings SET budget_categories = '{"Old": 1}', home_purchase_plan = '{"targetHomePrice": 5}' WHERE user_id = $1`, [userId]);
