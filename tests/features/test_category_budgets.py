@@ -219,7 +219,13 @@ def test_export_contains_budget_categories_and_replace_import_roundtrips(app_pag
 def test_merge_import_overwrites_and_adds_keeping_existing(app_page):
     page = app_page
     _seed(page)
-    page.evaluate("() => { window.app.budgetCategories = { Housing: { mode: 'fixed', amount: 100 }, Keep: { mode: 'fixed', amount: 5 } }; }")
+    # #529: a merge runs on the server against what the server holds, so the existing
+    # budgets must be saved there (an in-memory edit alone is not part of the merge).
+    page.evaluate("""async () => {
+        const { saveToStorage } = await import('/src/storage.js');
+        window.app.budgetCategories = { Housing: { mode: 'fixed', amount: 100 }, Keep: { mode: 'fixed', amount: 5 } };
+        await saveToStorage(window.app, ['budgetCategories']);
+    }""")
     payload = {'budgetCategories': {'Housing': {'mode': 'fixed', 'amount': 2000}, 'Food': {'mode': 'fixed', 'amount': 300}},
                'accounts': [{'id': 1, 'name': 'A', 'type': 'Checking', 'startingBalance': 1}]}
     result = page.evaluate(IMPORT_JS, {'payload': payload, 'replace': False})
